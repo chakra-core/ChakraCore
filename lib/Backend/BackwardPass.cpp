@@ -59,20 +59,6 @@ BackwardPass::DoByteCodeUpwardExposedUsed() const
 }
 
 bool
-BackwardPass::DoFieldHoistCandidates() const
-{
-    return DoFieldHoistCandidates(this->currentBlock->loop);
-}
-
-bool
-BackwardPass::DoFieldHoistCandidates(Loop * loop) const
-{
-    // We only need to do one pass to generate this data
-    return this->tag == Js::BackwardPhase
-        && !this->IsPrePass() && loop && GlobOpt::DoFieldHoisting(loop);
-}
-
-bool
 BackwardPass::DoMarkTempNumbers() const
 {
 #if FLOATVAR
@@ -228,7 +214,6 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
         block->upwardExposedUses = nullptr;
         block->upwardExposedFields = nullptr;
         block->typesNeedingKnownObjectLayout = nullptr;
-        block->fieldHoistCandidates = nullptr;
         block->slotDeadStoreCandidates = nullptr;
         block->byteCodeUpwardExposedUsed = nullptr;
 #if DBG
@@ -479,7 +464,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * upwardExposedUses = nullptr;
     BVSparse<JitArenaAllocator> * upwardExposedFields = nullptr;
     BVSparse<JitArenaAllocator> * typesNeedingKnownObjectLayout = nullptr;
-    BVSparse<JitArenaAllocator> * fieldHoistCandidates = nullptr;
     BVSparse<JitArenaAllocator> * slotDeadStoreCandidates = nullptr;
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
@@ -522,10 +506,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 typesNeedingKnownObjectLayout = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
             }
 
-            if (this->DoFieldHoistCandidates())
-            {
-                fieldHoistCandidates = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
-            }
             if (this->DoDeadStoreSlots())
             {
                 slotDeadStoreCandidates = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
@@ -641,9 +621,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert((blockSucc->typesNeedingKnownObjectLayout != nullptr)
                 || (blockSucc->isLoopHeader && (this->IsPrePass() || blockSucc->loop->IsDescendentOrSelf(block->loop)))
                 || this->tag != Js::DeadStorePhase);
-            Assert((blockSucc->fieldHoistCandidates != nullptr)
-                || blockSucc->isLoopHeader
-                || !this->DoFieldHoistCandidates(blockSucc->loop));
             Assert((blockSucc->slotDeadStoreCandidates != nullptr)
                 || (blockSucc->isLoopHeader && (this->IsPrePass() || blockSucc->loop->IsDescendentOrSelf(block->loop)))
                 || !this->DoDeadStoreSlots());
@@ -690,15 +667,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 }
             }
 
-            if (fieldHoistCandidates && blockSucc->fieldHoistCandidates != nullptr)
-            {
-                fieldHoistCandidates->Or(blockSucc->fieldHoistCandidates);
-                if (deleteData)
-                {
-                    JitAdelete(this->tempAlloc, blockSucc->fieldHoistCandidates);
-                    blockSucc->fieldHoistCandidates = nullptr;
-                }
-            }
             if (blockSucc->slotDeadStoreCandidates != nullptr)
             {
                 slotDeadStoreCandidates->And(blockSucc->slotDeadStoreCandidates);
@@ -1134,7 +1102,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->upwardExposedUses == nullptr);
             Assert(block->upwardExposedFields == nullptr);
             Assert(block->typesNeedingKnownObjectLayout == nullptr);
-            Assert(block->fieldHoistCandidates == nullptr);
             // byteCodeUpwardExposedUsed is required to populate the writeThroughSymbolsSet for the try region in the backwards pass
             Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->DoByteCodeUpwardExposedUsed()));
             Assert(block->byteCodeRestoreSyms == nullptr);
@@ -1179,7 +1146,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     block->upwardExposedUses = upwardExposedUses;
     block->upwardExposedFields = upwardExposedFields;
     block->typesNeedingKnownObjectLayout = typesNeedingKnownObjectLayout;
-    block->fieldHoistCandidates = fieldHoistCandidates;
     block->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
 #if DBG
     block->byteCodeRestoreSyms = byteCodeRestoreSyms;
@@ -1354,11 +1320,6 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
     {
         JitAdelete(this->tempAlloc, block->typesNeedingKnownObjectLayout);
         block->typesNeedingKnownObjectLayout = nullptr;
-    }
-    if (block->fieldHoistCandidates != nullptr)
-    {
-        JitAdelete(this->tempAlloc, block->fieldHoistCandidates);
-        block->fieldHoistCandidates = nullptr;
     }
     if (block->byteCodeUpwardExposedUsed != nullptr)
     {
@@ -1589,7 +1550,6 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
 
         if (block->isLoopHeader && block->loop == lastBlock->loop)
         {
-            Assert(block->fieldHoistCandidates == nullptr);
             break;
         }
     }
@@ -2731,11 +2691,6 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 block->slotDeadStoreCandidates->ClearAll();
             }
 
-            if (this->DoFieldHoistCandidates())
-            {
-                this->ProcessFieldHoistKills(instr);
-            }
-
             TrackIntUsage(instr);
             TrackBitWiseOrNumberOp(instr);
 
@@ -2989,12 +2944,6 @@ BackwardPass::ProcessBlock(BasicBlock * block)
     NEXT_INSTR_BACKWARD_IN_BLOCK_EDITING;
 
     EndIntOverflowDoesNotMatterRange();
-
-    if (this->DoFieldHoistCandidates() && !block->isDead && block->isLoopHeader)
-    {
-        Assert(block->loop->fieldHoistCandidates == nullptr);
-        block->loop->fieldHoistCandidates = block->fieldHoistCandidates->CopyNew(this->func->m_alloc);
-    }
 
     if (!this->IsPrePass() && !block->isDead && block->isLoopHeader)
     {
@@ -3298,12 +3247,6 @@ BackwardPass::DumpBlockData(BasicBlock * block)
     {
         Output::Print(_u("            Needs Known Object Layout: "));
         block->typesNeedingKnownObjectLayout->Dump();
-    }
-
-    if (this->DoFieldHoistCandidates() && !block->isDead)
-    {
-        Output::Print(_u("            Exposed Field: "));
-        block->fieldHoistCandidates->Dump();
     }
 
     if (block->byteCodeUpwardExposedUsed)
@@ -4334,15 +4277,6 @@ BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeU
         if(IsCollectionPass())
         {
             return true;
-        }
-
-        Assert((block->fieldHoistCandidates != nullptr) == this->DoFieldHoistCandidates());
-
-        if (block->fieldHoistCandidates && this->currentInstr->TransfersSrcValue())
-        {
-            // If the instruction doesn't transfer the src value to dst, it will not be copyprop'd
-            // So we can't hoist those.
-            block->fieldHoistCandidates->Set(propertySym->m_id);
         }
 
         if (this->DoDeadStoreSlots())
@@ -6656,11 +6590,6 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             return false;
         }
 
-        Assert((block->fieldHoistCandidates != nullptr) == this->DoFieldHoistCandidates());
-        if (block->fieldHoistCandidates)
-        {
-            block->fieldHoistCandidates->Clear(sym->m_id);
-        }
         PropertySym *propertySym = sym->AsPropertySym();
         if (this->DoDeadStoreSlots())
         {
@@ -6986,24 +6915,6 @@ BackwardPass::ClearBucketsOnFieldKill(IR::Instr *instr, HashTable<T> *table)
                 table->Clear(dst->AsRegOpnd()->m_sym->m_id);
             }
         }
-    }
-}
-
-void
-BackwardPass::ProcessFieldHoistKills(IR::Instr * instr)
-{
-    // The backward pass, we optimistically will not kill on a[] access
-    // So that the field hoist candidate will be more then what can be hoisted
-    // The root prepass will figure out the exact set of field that is hoisted
-    this->globOpt->ProcessFieldKills(instr, this->currentBlock->fieldHoistCandidates, false);
-
-    switch (instr->m_opcode)
-    {
-    case Js::OpCode::BrOnHasProperty:
-    case Js::OpCode::BrOnNoProperty:
-        // Should not hoist pass these instructions
-        this->currentBlock->fieldHoistCandidates->Clear(instr->GetSrc1()->AsSymOpnd()->m_sym->m_id);
-        break;
     }
 }
 

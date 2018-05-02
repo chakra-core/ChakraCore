@@ -474,29 +474,11 @@ GlobOpt::OptBlock(BasicBlock *block)
     this->intOverflowCurrentlyMattersInRange = true;
     this->intOverflowDoesNotMatterRange = this->currentBlock->intOverflowDoesNotMatterRange;
 
-    if (loop && DoFieldHoisting(loop))
+    if (!DoFieldCopyProp() && !DoFieldRefOpts())
     {
-        if (block->isLoopHeader)
-        {
-            if (!this->IsLoopPrePass())
-            {
-                this->PrepareFieldHoisting(loop);
-            }
-            else if (loop == this->rootLoopPrePass)
-            {
-                this->PreparePrepassFieldHoisting(loop);
-            }
-        }
+        this->KillAllFields(CurrentBlockData()->liveFields);
     }
-    else
-    {
-        Assert(!TrackHoistableFields() || !HasHoistableFields(CurrentBlockData()));
-        if (!DoFieldCopyProp() && !DoFieldRefOpts())
-        {
-            this->KillAllFields(CurrentBlockData()->liveFields);
-        }
-    }
-
+    
     this->tempAlloc->Reset();
 
     if(loop && block->isLoopHeader)
@@ -3034,15 +3016,7 @@ GlobOpt::CopyPropDstUses(IR::Opnd *opnd, IR::Instr *instr, Value *src1Val)
             Value *const objectValue = CurrentBlockData()->FindValue(originalPropertySym->m_stackSym);
             symOpnd->SetPropertyOwnerValueType(objectValue ? objectValue->GetValueInfo()->Type() : ValueType::Uninitialized);
 
-            this->FieldHoistOptDst(instr, originalPropertySym, src1Val);
-            PropertySym * sym = this->CopyPropPropertySymObj(symOpnd, instr);
-            if (sym != originalPropertySym && !this->IsLoopPrePass())
-            {
-                // Consider: This doesn't detect hoistability of a property sym after object pointer copy prop
-                // on loop prepass. But if it so happened that the property sym is hoisted, we might as well do so.
-                this->FieldHoistOptDst(instr, sym, src1Val);
-            }
-
+            this->CopyPropPropertySymObj(symOpnd, instr);
         }
     }
 }
@@ -3242,67 +3216,56 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         opnd->AsSymOpnd()->SetPropertyOwnerValueType(
             objectValue ? objectValue->GetValueInfo()->Type() : ValueType::Uninitialized);
 
-        if (!FieldHoistOptSrc(opnd->AsSymOpnd(), instr, originalPropertySym))
+        
+        sym = this->CopyPropPropertySymObj(opnd->AsSymOpnd(), instr);
+
+        if (!DoFieldCopyProp())
         {
-            sym = this->CopyPropPropertySymObj(opnd->AsSymOpnd(), instr);
-
-            // Consider: This doesn't detect hoistability of a property sym after object pointer copy prop
-            // on loop prepass. But if it so happened that the property sym is hoisted, we might as well do so.
-            if (originalPropertySym == sym || this->IsLoopPrePass() ||
-                !FieldHoistOptSrc(opnd->AsSymOpnd(), instr, sym->AsPropertySym()))
+            if (opnd->AsSymOpnd()->IsPropertySymOpnd())
             {
-                if (!DoFieldCopyProp())
-                {
-                    if (opnd->AsSymOpnd()->IsPropertySymOpnd())
-                    {
-                        this->FinishOptPropOp(instr, opnd->AsPropertySymOpnd());
-                    }
-                    return nullptr;
-                }
-                switch (instr->m_opcode)
-                {
-                    // These need the symbolic reference to the field, don't copy prop the value of the field
-                case Js::OpCode::DeleteFld:
-                case Js::OpCode::DeleteRootFld:
-                case Js::OpCode::DeleteFldStrict:
-                case Js::OpCode::DeleteRootFldStrict:
-                case Js::OpCode::ScopedDeleteFld:
-                case Js::OpCode::ScopedDeleteFldStrict:
-                case Js::OpCode::LdMethodFromFlags:
-                case Js::OpCode::BrOnNoProperty:
-                case Js::OpCode::BrOnHasProperty:
-                case Js::OpCode::LdMethodFldPolyInlineMiss:
-                case Js::OpCode::StSlotChkUndecl:
-                    return nullptr;
-                };
-
-                if (instr->CallsGetter())
-                {
-                    return nullptr;
-                }
-
-                if (this->IsLoopPrePass() && this->DoFieldPRE(this->rootLoopPrePass))
-                {
-                    if (!this->prePassLoop->allFieldsKilled && !this->prePassLoop->fieldKilled->Test(sym->m_id))
-                    {
-                        this->SetLoopFieldInitialValue(this->rootLoopPrePass, instr, sym->AsPropertySym(), originalPropertySym);
-                    }
-                    if (this->IsPREInstrCandidateLoad(instr->m_opcode))
-                    {
-                        // Foreach property sym, remember the first instruction that loads it.
-                        // Can this be done in one call?
-                        if (!this->prePassInstrMap->ContainsKey(sym->m_id))
-                        {
-                            this->prePassInstrMap->AddNew(sym->m_id, instr);
-                        }
-                    }
-                }
-                break;
+                this->FinishOptPropOp(instr, opnd->AsPropertySymOpnd());
             }
+            return nullptr;
+        }
+        switch (instr->m_opcode)
+        {
+            // These need the symbolic reference to the field, don't copy prop the value of the field
+        case Js::OpCode::DeleteFld:
+        case Js::OpCode::DeleteRootFld:
+        case Js::OpCode::DeleteFldStrict:
+        case Js::OpCode::DeleteRootFldStrict:
+        case Js::OpCode::ScopedDeleteFld:
+        case Js::OpCode::ScopedDeleteFldStrict:
+        case Js::OpCode::LdMethodFromFlags:
+        case Js::OpCode::BrOnNoProperty:
+        case Js::OpCode::BrOnHasProperty:
+        case Js::OpCode::LdMethodFldPolyInlineMiss:
+        case Js::OpCode::StSlotChkUndecl:
+            return nullptr;
+        };
+
+        if (instr->CallsGetter())
+        {
+            return nullptr;
         }
 
-        // We field hoisted, we can continue as a reg.
-        opnd = instr->GetSrc1();
+        if (this->IsLoopPrePass() && this->DoFieldPRE(this->rootLoopPrePass))
+        {
+            if (!this->prePassLoop->allFieldsKilled && !this->prePassLoop->fieldKilled->Test(sym->m_id))
+            {
+                this->SetLoopFieldInitialValue(this->rootLoopPrePass, instr, sym->AsPropertySym(), originalPropertySym);
+            }
+            if (this->IsPREInstrCandidateLoad(instr->m_opcode))
+            {
+                // Foreach property sym, remember the first instruction that loads it.
+                // Can this be done in one call?
+                if (!this->prePassInstrMap->ContainsKey(sym->m_id))
+                {
+                    this->prePassInstrMap->AddNew(sym->m_id, instr);
+                }
+            }
+        }
+        break; 
     }
     case IR::OpndKindReg:
         // Clear the opnd's value type up-front, so that this code cannot accidentally use the value type set from a previous
@@ -3763,10 +3726,6 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         this->SetSymStoreDirect(valueInfo, opndSym);
         return opnd;
     }
-
-    // We should have dealt with field hoist already
-    Assert(!instr->TransfersSrcValue() || !opndSym->IsPropertySym() ||
-        !this->IsHoistedPropertySym(opndSym->AsPropertySym()));
 
     StackSym *copySym = CurrentBlockData()->GetCopyPropSym(opndSym, val);
     if (copySym != nullptr)
@@ -4665,7 +4624,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
                 }
                 else if(src1ValueInfo->IsUninitialized())
                 {
-                    if(IsLoopPrePass() && (!dst->IsRegOpnd() || !dst->AsRegOpnd()->m_sym->IsSingleDef() || DoFieldHoisting()))
+                    if(IsLoopPrePass() && (!dst->IsRegOpnd() || !dst->AsRegOpnd()->m_sym->IsSingleDef()))
                     {
                         dstVal = this->NewGenericValue(profiledValueType, dst);
                     }
@@ -4688,16 +4647,8 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         {
             // We cannot transfer value if the field hasn't been copy prop'd because we don't generate
             // an implicit call bailout between those values if we don't have "live fields" unless, we are hoisting the field.
-            PropertySym *propertySym = instr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
-            StackSym * fieldHoistSym;
-            Loop * loop = this->FindFieldHoistStackSym(this->currentBlock->loop, propertySym->m_id, &fieldHoistSym, instr);
             ValueInfo *dstValueInfo = (dstVal ? dstVal->GetValueInfo() : nullptr);
 
-            // Update symStore for field hoisting
-            if (loop != nullptr && (dstValueInfo != nullptr))
-            {
-                this->SetSymStoreDirect(dstValueInfo, fieldHoistSym);
-            }
             // Update symStore if it isn't a stackSym
             if (dstVal && (!dstValueInfo->GetSymStore() || !dstValueInfo->GetSymStore()->IsStackSym()))
             {
@@ -4749,13 +4700,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             Assert(sym->IsPropertySym());
             SymID symId = sym->m_id;
             Assert(instr->m_opcode == Js::OpCode::StSlot || instr->m_opcode == Js::OpCode::StSlotChkUndecl || !CurrentBlockData()->liveFields->Test(symId));
-            if (IsHoistablePropertySym(symId))
-            {
-                // We have changed the value of a hoistable field, load afterwards shouldn't get hoisted,
-                // but we will still copy prop the pre-assign sym to it if we have a live value.
-                Assert((instr->m_opcode == Js::OpCode::StSlot || instr->m_opcode == Js::OpCode::StSlotChkUndecl) && CurrentBlockData()->liveFields->Test(symId));
-                CurrentBlockData()->hoistableFields->Clear(symId);
-            }
+
             CurrentBlockData()->liveFields->Set(symId);
             if (!this->IsLoopPrePass() && dst->GetIsDead())
             {
@@ -5591,11 +5536,6 @@ GlobOpt::ValueNumberTransferDst(IR::Instr *const instr, Value * src1Val)
 bool
 GlobOpt::IsSafeToTransferInPrePass(IR::Opnd *src, Value *srcValue)
 {
-    if (this->DoFieldHoisting())
-    {
-        return false;
-    }
-
     if (src->IsRegOpnd())
     {
         StackSym *srcSym = src->AsRegOpnd()->m_sym;
@@ -5652,32 +5592,29 @@ GlobOpt::ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const sr
         }
     }
 
-    if (!this->DoFieldHoisting())
+    if (instr->GetDst()->IsRegOpnd())
     {
-        if (instr->GetDst()->IsRegOpnd())
-        {
-            StackSym *stackSym = instr->GetDst()->AsRegOpnd()->m_sym;
+        StackSym *stackSym = instr->GetDst()->AsRegOpnd()->m_sym;
 
-            if (stackSym->IsSingleDef() || this->IsLive(stackSym, this->prePassLoop->landingPad))
+        if (stackSym->IsSingleDef() || this->IsLive(stackSym, this->prePassLoop->landingPad))
+        {
+            IntConstantBounds src1IntConstantBounds;
+            if (src1ValueInfo->TryGetIntConstantBounds(&src1IntConstantBounds) &&
+                !(
+                    src1IntConstantBounds.LowerBound() == INT32_MIN &&
+                    src1IntConstantBounds.UpperBound() == INT32_MAX
+                    ))
             {
-                IntConstantBounds src1IntConstantBounds;
-                if (src1ValueInfo->TryGetIntConstantBounds(&src1IntConstantBounds) &&
-                    !(
-                        src1IntConstantBounds.LowerBound() == INT32_MIN &&
-                        src1IntConstantBounds.UpperBound() == INT32_MAX
-                        ))
-                {
-                    const ValueType valueType(
-                        GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, &isValueInfoPrecise));
-                    if (isValueInfoPrecise)
-                    {
-                        return src1Val;
-                    }
-                }
-                else
+                const ValueType valueType(
+                    GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, &isValueInfoPrecise));
+                if (isValueInfoPrecise)
                 {
                     return src1Val;
                 }
+            }
+            else
+            {
+                return src1Val;
             }
         }
     }
@@ -15923,13 +15860,12 @@ GlobOpt::Trace(BasicBlock * block, bool before) const
     bool globOptTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::GlobOptPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool typeSpecTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::TypeSpecPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool floatTypeSpecTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::FloatTypeSpecPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
-    bool fieldHoistTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldHoistPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
-    bool fieldCopyPropTrace = fieldHoistTrace || Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
+    bool fieldCopyPropTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool objTypeSpecTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::ObjTypeSpecPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool valueTableTrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::ValueTablePhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
     bool fieldPRETrace = Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldPREPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId());
 
-    bool anyTrace = globOptTrace || typeSpecTrace || floatTypeSpecTrace || fieldCopyPropTrace || fieldHoistTrace || objTypeSpecTrace || valueTableTrace || fieldPRETrace;
+    bool anyTrace = globOptTrace || typeSpecTrace || floatTypeSpecTrace || fieldCopyPropTrace || objTypeSpecTrace || valueTableTrace || fieldPRETrace;
 
     if (!anyTrace)
     {
@@ -15998,11 +15934,6 @@ GlobOpt::Trace(BasicBlock * block, bool before) const
     {
         Output::Print(_u("    Live field syms: "));
         block->globOptData.liveFields->Dump();
-    }
-    if ((fieldHoistTrace || objTypeSpecTrace) && this->DoFieldHoisting(block->loop) && HasHoistableFields(block))
-    {
-        Output::Print(_u("    Hoistable field sym: "));
-        block->globOptData.hoistableFields->Dump();
     }
     if (objTypeSpecTrace || valueTableTrace)
     {

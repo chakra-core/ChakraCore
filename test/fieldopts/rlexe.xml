@@ -71,55 +71,55 @@
   <test>
     <default>
       <files>fieldhoist2.js</files>
-      <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist4.js</files>
-      <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldhoist4.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist5.js</files>
-      <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline />
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist6.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist6.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist6b.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist6b.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist7.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist7.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist8.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist8.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_nullfieldhoist.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_nullfieldhoist.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -127,13 +127,13 @@
   <test>
     <default>
       <files>fieldhoist9.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_unreachable.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_unreachable.baseline</baseline>
     </default>
   </test>
@@ -141,27 +141,27 @@
     <default>
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
-      <compile-flags>-force:fieldhoist -off:aggressiveIntTypeSpec</compile-flags>
+      <compile-flags>-off:aggressiveIntTypeSpec</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_typespec.js</files>
       <baseline>fieldhoist_typespec.baseline</baseline>
-      <compile-flags>-force:fieldhoist -off:aggressiveIntTypeSpec -off:inline</compile-flags>
+      <compile-flags>-off:aggressiveIntTypeSpec -off:inline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_typespec2.js</files>
-      <compile-flags>-force:fieldHoist -force:jitLoopBody -off:aggressiveIntTypeSpec</compile-flags>
+      <compile-flags>-force:jitLoopBody -off:aggressiveIntTypeSpec</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -175,21 +175,21 @@
   <test>
     <default>
       <files>fieldhoist_undefined_global.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_undefined_global.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_negzero.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_negzero.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_negzero.js</files>
-      <compile-flags>-force:fieldhoist -Serialized</compile-flags>
+      <compile-flags>-Serialized</compile-flags>
       <baseline>fieldhoist_negzero.baseline</baseline>
       <tags>exclude_forceserialized</tags>
     </default>
@@ -197,21 +197,21 @@
   <test>
     <default>
       <files>fieldhoist_typeof.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_typeof.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_sideeffect.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_sideeffect.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldcopyprop_nonwritable.js</files>
-      <compile-flags>-force:fieldhoist -force:fieldcopyprop</compile-flags>
+      <compile-flags>-force:fieldcopyprop</compile-flags>
       <baseline>fieldcopyprop_nonwritable.baseline</baseline>
     </default>
   </test>
@@ -245,14 +245,14 @@
   <test>
     <default>
       <files>fieldhoist_join.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_join.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_slots.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_slots.baseline</baseline>
     </default>
   </test>
@@ -265,14 +265,14 @@
   <test>
     <default>
       <files>fieldhoist_objptrcopyprop.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline />
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_objptrcopyprop2.js</files>
-      <compile-flags>-force:fieldhoist</compile-flags>
+      <compile-flags></compile-flags>
       <baseline>fieldhoist_objptrcopyprop2.baseline</baseline>
     </default>
   </test>
@@ -280,7 +280,7 @@
     <default>
       <files>fieldhoist_kills.js</files>
       <baseline>fieldhoist_kills.baseline</baseline>
-      <compile-flags>-force:fieldHoist</compile-flags>
+      <compile-flags></compile-flags>
     </default>
   </test>
   <test>
@@ -382,7 +382,7 @@
     <default>
       <files>objtypespec-fieldhoist.js</files>
       <baseline>objtypespec-fieldhoist.baseline</baseline>
-      <compile-flags>-maxinterpretcount:1 -off:simpleJit -bgjit- -loopinterpretcount:0 -force:fieldhoist</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -off:simpleJit -bgjit- -loopinterpretcount:0 </compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -797,14 +797,14 @@
   <test>
     <default>
       <files>fieldhoist_accessorinlining1.js</files>
-      <compile-flags>-loopinterpretcount:1 -bgjit- -force:fieldhoist</compile-flags>
+      <compile-flags>-loopinterpretcount:1 -bgjit- </compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>fieldhoist_accessorinlining2.js</files>
       <baseline>fieldhoist_accessorinlining2.baseline</baseline>
-      <compile-flags>-force:fieldhoist -off:inlinegetters -off:fixedmethods</compile-flags>
+      <compile-flags>-off:inlinegetters -off:fixedmethods</compile-flags>
     </default>
   </test>
   <test>

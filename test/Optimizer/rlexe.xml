@@ -764,7 +764,7 @@
     <default>
       <files>test105.js</files>
       <baseline>test105.baseline</baseline>
-      <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:aggressiveIntTypeSpec -off:fieldHoist</compile-flags>
+      <compile-flags>-minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit -off:aggressiveIntTypeSpec</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -933,7 +933,7 @@
   <test>
     <default>
       <files>test130.js</files>
-      <compile-flags>-bgJit- -fullJitAfter:1 -off:fieldHoist -force:deferParse</compile-flags>
+      <compile-flags>-bgJit- -fullJitAfter:1 -force:deferParse</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1239,7 +1239,7 @@
     <default>
       <files>ArrayCheckHoist.js</files>
       <baseline>ArrayCheckHoist_Bailout.baseline</baseline>
-      <compile-flags>-args bailout -endArgs -off:fieldHoist -off:fieldCopyProp -off:objTypeSpec -dynamicprofileinput:profile.dpl.ArrayCheckHoist.js</compile-flags>
+      <compile-flags>-args bailout -endArgs -off:fieldCopyProp -off:objTypeSpec -dynamicprofileinput:profile.dpl.ArrayCheckHoist.js</compile-flags>
       <tags>exclude_interpreted,exclude_serialized,Slow</tags>
       <timeout>300</timeout>
     </default>

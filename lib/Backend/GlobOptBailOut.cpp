@@ -1085,8 +1085,7 @@ bool
 GlobOpt::MayNeedBailOut(Loop * loop) const
 {
     Assert(this->IsLoopPrePass());
-    return loop->CanHoistInvariants() ||
-        this->DoFieldCopyProp(loop) || (this->DoFieldHoisting(loop) && !loop->fieldHoistCandidates->IsEmpty());
+    return loop->CanHoistInvariants() || this->DoFieldCopyProp(loop) ;
 }
 
 bool

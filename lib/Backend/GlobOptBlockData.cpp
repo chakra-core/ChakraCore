@@ -18,7 +18,6 @@ GlobOptBlockData::NullOutBlockData(GlobOpt* globOpt, Func* func)
     this->liveInt32Syms = nullptr;
     this->liveLossyInt32Syms = nullptr;
     this->liveFloat64Syms = nullptr;
-    this->hoistableFields = nullptr;
     this->argObjSyms = nullptr;
     this->maybeTempObjectSyms = nullptr;
     this->canStoreTempObjectSyms = nullptr;
@@ -61,7 +60,6 @@ GlobOptBlockData::InitBlockData(GlobOpt* globOpt, Func* func)
     this->liveInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveLossyInt32Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveFloat64Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
-    this->hoistableFields = nullptr;
     this->argObjSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->maybeTempObjectSyms = nullptr;
     this->canStoreTempObjectSyms = nullptr;
@@ -105,10 +103,6 @@ GlobOptBlockData::ReuseBlockData(GlobOptBlockData *fromData)
     this->liveInt32Syms = fromData->liveInt32Syms;
     this->liveLossyInt32Syms = fromData->liveLossyInt32Syms;
     this->liveFloat64Syms = fromData->liveFloat64Syms;
-    if (this->globOpt->TrackHoistableFields())
-    {
-        this->hoistableFields = fromData->hoistableFields;
-    }
 
     if (this->globOpt->TrackArgumentsObject())
     {
@@ -156,7 +150,6 @@ GlobOptBlockData::CopyBlockData(GlobOptBlockData *fromData)
     this->liveInt32Syms = fromData->liveInt32Syms;
     this->liveLossyInt32Syms = fromData->liveLossyInt32Syms;
     this->liveFloat64Syms = fromData->liveFloat64Syms;
-    this->hoistableFields = fromData->hoistableFields;
     this->argObjSyms = fromData->argObjSyms;
     this->maybeTempObjectSyms = fromData->maybeTempObjectSyms;
     this->canStoreTempObjectSyms = fromData->canStoreTempObjectSyms;
@@ -197,10 +190,6 @@ GlobOptBlockData::DeleteBlockData()
     JitAdelete(alloc, this->liveInt32Syms);
     JitAdelete(alloc, this->liveLossyInt32Syms);
     JitAdelete(alloc, this->liveFloat64Syms);
-    if (this->hoistableFields)
-    {
-        JitAdelete(alloc, this->hoistableFields);
-    }
     if (this->argObjSyms)
     {
         JitAdelete(alloc, this->argObjSyms);
@@ -290,13 +279,6 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
 
     this->liveFloat64Syms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
     this->liveFloat64Syms->Copy(fromData->liveFloat64Syms);
-    if (this->globOpt->TrackHoistableFields())
-    {
-        if (fromData->hoistableFields)
-        {
-            this->hoistableFields = fromData->hoistableFields->CopyNew(alloc);
-        }
-    }
 
     if (this->globOpt->TrackArgumentsObject() && fromData->argObjSyms)
     {
@@ -670,18 +652,6 @@ GlobOptBlockData::MergeBlockData(
         this->liveInt32Syms->And(fromData->liveInt32Syms);
         this->liveLossyInt32Syms->Or(fromData->liveLossyInt32Syms);
         this->liveLossyInt32Syms->And(this->liveInt32Syms);
-    }
-
-    if (this->globOpt->TrackHoistableFields() && this->globOpt->HasHoistableFields(fromData))
-    {
-        if (this->hoistableFields)
-        {
-            this->hoistableFields->Or(fromData->hoistableFields);
-        }
-        else
-        {
-            this->hoistableFields = fromData->hoistableFields->CopyNew(this->globOpt->alloc);
-        }
     }
 
     if (this->globOpt->TrackArgumentsObject())
@@ -1323,7 +1293,6 @@ GlobOptBlockData::FindPropertyValue(SymID symId)
     Assert(this->globOpt->func->m_symTable->Find(symId)->IsPropertySym());
     if (!this->liveFields->Test(symId))
     {
-        Assert(!this->globOpt->IsHoistablePropertySym(symId));
         return nullptr;
     }
     return FindValueFromMapDirect(symId);
@@ -1721,10 +1690,6 @@ GlobOptBlockData::KillStateForGeneratorYield()
     this->liveInt32Syms->ClearAll();
     this->liveLossyInt32Syms->ClearAll();
     this->liveFloat64Syms->ClearAll();
-    if (this->hoistableFields)
-    {
-        this->hoistableFields->ClearAll();
-    }
     // Keep this->liveVarSyms as is
     // Keep this->argObjSyms as is
 
