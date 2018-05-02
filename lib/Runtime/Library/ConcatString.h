@@ -6,6 +6,11 @@
 
 namespace Js
 {
+    // Upon construction, LiteralStringWithPropertyStringPtr is guaranteed to point to a recycler-allocated
+    // buffer, so it passes the LiteralString assertions. However, upon receiving a property record pointer,
+    // this object will update to point to the copy of its data in that property record, meaning that using
+    // this class is just like using PropertyString: you can't take a reference to the underlying buffer via
+    // GetSz or GetString, drop the reference to the owning string, and expect the buffer to stay alive.
     class LiteralStringWithPropertyStringPtr : public LiteralString
     {
     private:
@@ -14,6 +19,11 @@ namespace Js
 
     public:
         virtual void GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary = false) override;
+        void GetPropertyRecordImpl(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary = false);
+        virtual void CachePropertyRecord(_In_ PropertyRecord const* propertyRecord) override;
+        void CachePropertyRecordImpl(_In_ PropertyRecord const* propertyRecord);
+
+        virtual RecyclableObject* CloneToScriptContext(ScriptContext* requestContext) override;
 
         bool HasPropertyRecord() const { return propertyRecord != nullptr; }
 
