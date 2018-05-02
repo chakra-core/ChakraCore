@@ -355,11 +355,11 @@ namespace Js
         return found;
     }
 
-    BOOL PathTypeHandlerBase::SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes, bool isInit)
+    BOOL PathTypeHandlerBase::SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes, bool setAllAttributes)
     {
         if (instanceAttributes)
         {
-            if (!isInit)
+            if (!setAllAttributes)
             {
                 // Preserve non-default bits like accessors
                 propertyAttributes = (ObjectSlotAttributes)(propertyAttributes | (instanceAttributes[propertyIndex] & ~ObjectSlotAttr_PropertyAttributesMask));
@@ -755,7 +755,7 @@ namespace Js
 
             if (setAttributes)
             {
-                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, isInit);
+                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, true);
             }
             else if (isInit)
             {

@@ -66,6 +66,8 @@ PASSED
 PASSED
 *** Running test #34 (test34): Convert accessor to a data property for non-extensible object (WIN8 bug 463559)
 PASSED
-*** Running test #35 (test_last_01): 8.12.9.3: define property for non-extensible object, check that it throws TypeError
+*** Running test #35 (test35): Set and unset getter property on a non-configurable property
 PASSED
-Summary of tests: total executed: 35; passed: 35; failed: 0
+*** Running test #36 (test_last_01): 8.12.9.3: define property for non-extensible object, check that it throws TypeError
+PASSED
+Summary of tests: total executed: 36; passed: 36; failed: 0
