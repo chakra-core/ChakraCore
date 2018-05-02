@@ -269,17 +269,12 @@ CHAKRA_API JsDiagGetBreakpoints(
 #ifndef ENABLE_SCRIPT_DEBUGGING
     return JsErrorCategoryUsage;
 #else
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(breakpoints);
-
         *breakpoints = JS_INVALID_REFERENCE;
 
-        JsrtContext *currentContext = JsrtContext::GetCurrent();
-
-        Js::JavascriptArray* bpsArray = currentContext->GetScriptContext()->GetLibrary()->CreateArray();
-
-        JsrtRuntime * runtime = currentContext->GetRuntime();
+        JsrtContext* currentContext = JsrtContext::GetCurrent();
+        JsrtRuntime* runtime = currentContext->GetRuntime();
 
         ThreadContextScope scope(runtime->GetThreadContext());
 
@@ -289,18 +284,18 @@ CHAKRA_API JsDiagGetBreakpoints(
         }
 
         JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
-
         VALIDATE_IS_DEBUGGING(jsrtDebugManager);
 
-        for (Js::ScriptContext *scriptContext = runtime->GetThreadContext()->GetScriptContextList();
-        scriptContext != nullptr && !scriptContext->IsClosed();
-            scriptContext = scriptContext->next)
+        Js::JavascriptArray* bpsArray = currentContext->GetScriptContext()->GetLibrary()->CreateArray();
+
+        for (Js::ScriptContext* currentScriptContext = runtime->GetThreadContext()->GetScriptContextList();
+            currentScriptContext != nullptr && !currentScriptContext->IsClosed();
+            currentScriptContext = currentScriptContext->next)
         {
-            jsrtDebugManager->GetBreakpoints(&bpsArray, scriptContext);
+            jsrtDebugManager->GetBreakpoints(&bpsArray, currentScriptContext);
         }
 
         *breakpoints = bpsArray;
-
         return JsNoError;
     });
 #endif
@@ -315,15 +310,12 @@ CHAKRA_API JsDiagSetBreakpoint(
 #ifndef ENABLE_SCRIPT_DEBUGGING
     return JsErrorCategoryUsage;
 #else
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(breakpoint);
-
         *breakpoint = JS_INVALID_REFERENCE;
 
-        JsrtContext *currentContext = JsrtContext::GetCurrent();
-
-        JsrtRuntime * runtime = currentContext->GetRuntime();
+        JsrtContext* currentContext = JsrtContext::GetCurrent();
+        JsrtRuntime* runtime = currentContext->GetRuntime();
 
         ThreadContextScope scope(runtime->GetThreadContext());
 
@@ -336,11 +328,11 @@ CHAKRA_API JsDiagSetBreakpoint(
 
         Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
 
-        for (Js::ScriptContext *scriptContext = runtime->GetThreadContext()->GetScriptContextList();
-        scriptContext != nullptr && utf8SourceInfo == nullptr && !scriptContext->IsClosed();
-            scriptContext = scriptContext->next)
+        for (Js::ScriptContext* currentScriptContext = runtime->GetThreadContext()->GetScriptContextList();
+            currentScriptContext != nullptr && utf8SourceInfo == nullptr && !currentScriptContext->IsClosed();
+            currentScriptContext = currentScriptContext->next)
         {
-            scriptContext->MapScript([&](Js::Utf8SourceInfo* sourceInfo) -> bool
+            currentScriptContext->MapScript([&](Js::Utf8SourceInfo* sourceInfo) -> bool
             {
                 if (sourceInfo->GetSourceInfoId() == scriptId)
                 {
@@ -354,7 +346,6 @@ CHAKRA_API JsDiagSetBreakpoint(
         if (utf8SourceInfo != nullptr && utf8SourceInfo->HasDebugDocument())
         {
             JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
-
             Js::DynamicObject* bpObject = jsrtDebugManager->SetBreakPoint(currentContext->GetScriptContext(), utf8SourceInfo, lineNumber, columnNumber);
 
             if(bpObject != nullptr)
@@ -377,10 +368,8 @@ CHAKRA_API JsDiagRemoveBreakpoint(
 #ifndef ENABLE_SCRIPT_DEBUGGING
     return JsErrorCategoryUsage;
 #else
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-
-        JsrtContext *currentContext = JsrtContext::GetCurrent();
-
+    return ContextAPIWrapper_NoRecord<false>([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
+        JsrtContext* currentContext = JsrtContext::GetCurrent();
         JsrtRuntime* runtime = currentContext->GetRuntime();
 
         ThreadContextScope scope(runtime->GetThreadContext());
@@ -391,7 +380,6 @@ CHAKRA_API JsDiagRemoveBreakpoint(
         }
 
         JsrtDebugManager* jsrtDebugManager = runtime->GetJsrtDebugManager();
-
         VALIDATE_IS_DEBUGGING(jsrtDebugManager);
 
         if (!jsrtDebugManager->RemoveBreakpoint(breakpointId))
