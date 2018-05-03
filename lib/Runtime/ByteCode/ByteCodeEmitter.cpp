@@ -3978,11 +3978,8 @@ void ByteCodeGenerator::EndEmitFunction(ParseNodeFnc *pnodeFnc)
         }
     }
 
-    if (CONFIG_FLAG(DeferNested))
-    {
-        Assert(funcInfo == this->TopFuncInfo());
-        PopFuncInfo(_u("EndEmitFunction"));
-    }
+    Assert(funcInfo == this->TopFuncInfo());
+    PopFuncInfo(_u("EndEmitFunction"));
 }
 
 void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)

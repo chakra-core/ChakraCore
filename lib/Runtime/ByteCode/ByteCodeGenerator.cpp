@@ -1098,7 +1098,6 @@ FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNodeProg *pnode)
 {
     if (parentScopeInfo)
     {
-        Assert(CONFIG_FLAG(DeferNested));
         trackEnvDepth = true;
         RestoreScopeInfo(parentScopeInfo, nullptr);
         trackEnvDepth = false;
@@ -2047,8 +2046,6 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
         return;
     }
 
-    Assert(CONFIG_FLAG(DeferNested));
-
     Assert(this->funcInfoStack && !this->funcInfoStack->Empty());
 
     // Box the stack nested function if we detected new may be escaped use function.
@@ -2685,7 +2682,6 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
             // Before doing this, though, make sure there's no local symbol that hides the function name
             // from the nested functions. If a lookup starting at the current local scope finds some symbol
             // other than the func expr, then it's hidden. (See Win8 393618.)
-            Assert(CONFIG_FLAG(DeferNested));
             byteCodeGenerator->ProcessCapturedSym(sym);
 
             top->SetFuncExprNameReference(true);
