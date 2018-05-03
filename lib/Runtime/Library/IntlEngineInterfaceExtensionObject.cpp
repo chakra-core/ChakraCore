@@ -405,7 +405,7 @@ namespace Js
     }
 
     template <typename T>
-    static _Ret_notnull_ T AssertNotNullOrOOM(_In_ T value)
+    static _Ret_notnull_ T ThrowOOMIfNull(_In_ T value)
     {
         if (value == nullptr)
         {
@@ -1090,7 +1090,7 @@ namespace Js
                 }
 
                 // OS#17172584: OOM during uloc_toUnicodeLocaleType can make this return nullptr even for known collations
-                const char *unicodeCollation = AssertNotNullOrOOM(uloc_toUnicodeLocaleType("collation", collation));
+                const char *unicodeCollation = ThrowOOMIfNull(uloc_toUnicodeLocaleType("collation", collation));
                 const size_t unicodeCollationLen = strlen(unicodeCollation);
 
                 // we only need strlen(unicodeCollation) + 1 char16s because unicodeCollation will always be ASCII (funnily enough)
@@ -1181,7 +1181,7 @@ namespace Js
                 ICU_ASSERT(status, calendar != nullptr && calendarLen > 0);
 
                 // OS#17172584: OOM during uloc_toUnicodeLocaleType can make this return nullptr even for known calendars
-                const char *unicodeCalendar = AssertNotNullOrOOM(uloc_toUnicodeLocaleType("calendar", calendar));
+                const char *unicodeCalendar = ThrowOOMIfNull(uloc_toUnicodeLocaleType("calendar", calendar));
                 const size_t unicodeCalendarLen = strlen(unicodeCalendar);
 
                 // we only need strlen(unicodeCalendar) + 1 char16s because unicodeCalendar will always be ASCII (funnily enough)
@@ -2605,7 +2605,7 @@ namespace Js
         ICU_ASSERT(status, availableLength > 0);
 
         charcount_t matchLen = 0;
-        UChar match[100];
+        UChar match[100] = { 0 };
         for (int a = 0; a < availableLength; ++a)
         {
             int curLen = -1;
@@ -2615,6 +2615,7 @@ namespace Js
             {
                 // OS#17175014: in rare cases, ICU will return U_ZERO_ERROR and a valid `cur` string but a length of 0
                 // This only happens in an OOM during uenum_(u)next
+                // Tracked by ICU: http://bugs.icu-project.org/trac/ticket/13739
                 Throw::OutOfMemory();
             }
 
