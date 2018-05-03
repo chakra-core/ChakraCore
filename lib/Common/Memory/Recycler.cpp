@@ -1321,9 +1321,9 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    size_t limit = GetRecyclerFlagsTable().MaxSingleAllocSizeInMB * 1024 * 1024;
+    size_t limit = (size_t)GetRecyclerFlagsTable().MaxSingleAllocSizeInMB * 1024 * 1024;
 #else
-    size_t limit = CONFIG_FLAG(MaxSingleAllocSizeInMB) * 1024 * 1024;
+    size_t limit = (size_t)CONFIG_FLAG(MaxSingleAllocSizeInMB) * 1024 * 1024;
 #endif
 
     if (size >= limit)
