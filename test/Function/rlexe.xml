@@ -142,7 +142,7 @@
   <test>
     <default>
       <files>defernested.js</files>
-      <compile-flags>-Force:Deferparse -DeferNested</compile-flags>
+      <compile-flags>-Force:Deferparse</compile-flags>
       <baseline>defernested.baseline</baseline>
     </default>
   </test>

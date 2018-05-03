@@ -5266,7 +5266,6 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
         // These are the conditions that prohibit upfront deferral *and* redeferral.
         isTopLevelDeferredFunc =
             (DeferredParse(pnodeFnc->functionId)
-                && (!pnodeFnc->IsNested() || CONFIG_FLAG(DeferNested))
                 && !m_InAsmMode
                 // Don't defer a module function wrapper because we need to do export resolution at parse time
                 && !fModule

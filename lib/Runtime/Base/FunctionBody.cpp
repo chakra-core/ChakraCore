@@ -2338,7 +2338,6 @@ namespace Js
                 Assert(!funcBody->HasExecutionDynamicProfileInfo());
 #endif
                 // In debug or asm.js mode, the scriptlet will be asked to recompile again.
-                AssertMsg(isDebugOrAsmJsReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
 
                 HRESULT hr = NO_ERROR;
                 HRESULT hrParser = NO_ERROR;
@@ -2378,9 +2377,9 @@ namespace Js
                         grfscr &= ~fscrDeferredFncIsMethod;
                     }
 
-                    if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
+                    if (isDebugOrAsmJsReparse)
                     {
-                        grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
+                        grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if doing a debug/asm.js re-parse
                     }
 
                     if (isDebugOrAsmJsReparse)
