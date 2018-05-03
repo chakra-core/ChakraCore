@@ -12,8 +12,18 @@
 #include "catch.hpp"
 #pragma warning(pop)
 
-// Use nativetests.exe -? to get all command line options
+TestHooks g_testHooks = { 0 };
+bool g_testHooksLoaded = false;
 
+extern "C"
+HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
+{
+    g_testHooks = testHooks;
+    g_testHooksLoaded = true;
+    return S_OK;
+}
+
+// Use nativetests.exe -? to get all command line options
 int _cdecl main(int argc, char * const argv[])
 {
     return Catch::Session().run(argc, argv);

@@ -6,6 +6,19 @@
 #include "Core/ConfigParser.h"
 #include "TestHooks.h"
 
+namespace PlatformAgnostic
+{
+namespace UnicodeText
+{
+namespace Internal
+{
+// this is in place of including PlatformAgnostic/UnicodeTextInternal.h, which has template
+// instantiations that upset Clang on macOS and Linux
+int LogicalStringCompareImpl(const char16* p1, const char16* p2);
+}
+}
+}
+
 #ifdef ENABLE_TEST_HOOKS
 
 HRESULT __stdcall SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags)
@@ -153,6 +166,7 @@ HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
         PrintConfigFlagsUsageString,
         SetAssertToConsoleFlag,
         SetEnableCheckMemoryLeakOutput,
+        PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl,
 
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAGINCLUDE(name) \

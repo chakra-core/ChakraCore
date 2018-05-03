@@ -1,0 +1,4 @@
+NAME NativeTests
+
+EXPORTS
+    OnChakraCoreLoadedEntry

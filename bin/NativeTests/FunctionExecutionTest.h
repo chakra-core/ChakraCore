@@ -18,6 +18,7 @@
 #define PHASE_FORCE(foo, bar) false
 #define NewSimpleJit 1
 #define FullJitPhase 2
+#undef DEFAULT_CONFIG_MinSimpleJitIterations
 #define DEFAULT_CONFIG_MinSimpleJitIterations 0
 
 namespace FunctionExecutionTest

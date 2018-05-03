@@ -22,12 +22,14 @@ struct TestHooks
     typedef HRESULT(TESTHOOK_CALL *SetAssertToConsoleFlagPtr)(bool flag);
     typedef HRESULT(TESTHOOK_CALL *SetEnableCheckMemoryLeakOutputPtr)(bool flag);
     typedef void(TESTHOOK_CALL * NotifyUnhandledExceptionPtr)(PEXCEPTION_POINTERS exceptionInfo);
+    typedef int(TESTHOOK_CALL *LogicalStringCompareImpl)(const char16* p1, const char16* p2);
 
     SetConfigFlagsPtr pfSetConfigFlags;
     SetConfigFilePtr  pfSetConfigFile;
     PrintConfigFlagsUsageStringPtr pfPrintConfigFlagsUsageString;
     SetAssertToConsoleFlagPtr pfSetAssertToConsoleFlag;
     SetEnableCheckMemoryLeakOutputPtr pfSetEnableCheckMemoryLeakOutput;
+    LogicalStringCompareImpl pfLogicalCompareStringImpl;
 
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAG_String(name) \
