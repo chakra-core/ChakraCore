@@ -33,11 +33,15 @@ ThreadContext * ThreadBoundThreadContextManager::EnsureContextForCurrentThread()
     // Just reinitialize the thread context.
     if (threadContext == nullptr)
     {
-        threadContext = HeapNew(ThreadContext);
+        bool requireConcurrencySupport = true;
+        AllocationPolicyManager * policyManager = HeapNew(AllocationPolicyManager, requireConcurrencySupport);
+        threadContext = HeapNew(ThreadContext, policyManager);
+
         threadContext->SetIsThreadBound();
         if (!ThreadContextTLSEntry::TrySetThreadContext(threadContext))
         {
             HeapDelete(threadContext);
+            HeapDelete(policyManager);
             return NULL;
         }
     }
@@ -177,17 +181,7 @@ void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries(bool shouldDe
 
         if (threadContext != nullptr)
         {
-#if DBG
-            PageAllocator* pageAllocator = threadContext->GetPageAllocator();
-            if (pageAllocator)
-            {
-                pageAllocator->SetConcurrentThreadId(::GetCurrentThreadId());
-            }
-#endif
-
-            threadContext->ShutdownThreads();
-
-            HeapDelete(threadContext);
+            ShutdownThreadContext(threadContext);
         }
 
         if (currentThreadEntry != entry)
@@ -262,6 +256,12 @@ void ThreadContextManagerBase::ShutdownThreadContext(
 
     if (deleteThreadContext)
     {
+        AllocationPolicyManager * policyManager = threadContext->IsThreadBound() ? threadContext->GetAllocationPolicyManager() : nullptr;
         HeapDelete(threadContext);
+
+        if (policyManager)
+        {
+            HeapDelete(policyManager);
+        }
     }
 }
