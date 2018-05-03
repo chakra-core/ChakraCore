@@ -140,7 +140,7 @@ void BeginVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     FuncInfo *func = scope->GetFunc();
 
     if (func->GetCallsEval() || func->GetChildCallsEval() ||
-        (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+        (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis)))
     {
         scope->SetIsObject();
     }
@@ -810,7 +810,7 @@ void ByteCodeGenerator::SetRootFuncInfo(FuncInfo* func)
 {
     Assert(pRootFunc == nullptr || pRootFunc == func->byteCodeFunction || !IsInNonDebugMode());
 
-    if ((this->flags & (fscrImplicitThis | fscrImplicitParents)) && !this->HasParentScopeInfo())
+    if ((this->flags & fscrImplicitThis) && !this->HasParentScopeInfo())
     {
         // Mark a top-level event handler, since it will need to construct the "this" pointer's
         // namespace hierarchy to access globals.
@@ -1892,7 +1892,7 @@ bool ByteCodeGenerator::NeedObjectAsFunctionScope(FuncInfo * funcInfo, ParseNode
     return funcInfo->GetCallsEval()
         || funcInfo->GetChildCallsEval()
         || NeedScopeObjectForArguments(funcInfo, pnodeFnc)
-        || (this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents));
+        || (this->flags & (fscrEval | fscrImplicitThis));
 }
 
 Scope * ByteCodeGenerator::FindScopeForSym(Scope *symScope, Scope *scope, Js::PropertyId *envIndex, FuncInfo *funcInfo) const
@@ -2766,7 +2766,7 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
             top->GetCallsEval() ||
             top->GetHasClosureReference() ||
             byteCodeGenerator->InDynamicScope() ||
-            (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrImplicitParents | fscrEval)))
+            (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrEval)))
         {
             byteCodeGenerator->SetNeedEnvRegister();
         }
@@ -3577,7 +3577,7 @@ void PostVisitBlock(ParseNodeBlock *pnodeBlock, ByteCodeGenerator *byteCodeGener
 
     Scope *scope = pnodeBlock->scope;
 
-    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    if (pnodeBlock->GetCallsEval() || pnodeBlock->GetChildCallsEval() || (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis)))
     {
         bool scopeIsEmpty = scope->IsEmpty();
         scope->SetIsObject();
@@ -5188,7 +5188,7 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
         && (funcInfo->GetIsStrictMode()
             || pnodeFnc->HasNonSimpleParameterList())
         // We're not in eval or event handler, which will force the scope(s) to be objects
-        && !(this->flags & (fscrEval | fscrImplicitThis | fscrImplicitParents))
+        && !(this->flags & (fscrEval | fscrImplicitThis))
         // Neither of the scopes are objects
         && !funcInfo->paramScope->GetIsObject()
         && !funcInfo->bodyScope->GetIsObject();

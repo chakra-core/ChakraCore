@@ -11,7 +11,7 @@ enum
     // Unused = 1 << 0,
     fscrReturnExpression = 1 << 1,   // call should return the last expression
     fscrImplicitThis = 1 << 2,   // 'this.' is optional (for Call)
-    fscrImplicitParents = 1 << 3,   // the parents of 'this' are implicit
+    // Unused = 1 << 3,
     // Unused = 1 << 4,
     fscrDynamicCode = 1 << 5,   // The code is being generated dynamically (eval, new Function, etc.)
     // Unused = 1 << 6,
