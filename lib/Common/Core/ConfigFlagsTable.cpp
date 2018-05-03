@@ -340,8 +340,8 @@ namespace Js
         this->SetAllParentFlagsAsDefaultValue();
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && CONFIG_PARSE_CONFIG_FILE
-        rawInputIndex = 0;
-        memset(rawInput, 0, sizeof(rawInput));
+        rawInputFromConfigFileIndex = 0;
+        memset(rawInputFromConfigFile, 0, sizeof(rawInputFromConfigFile));
 #endif
     }
 

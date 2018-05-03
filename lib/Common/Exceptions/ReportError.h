@@ -74,8 +74,8 @@ void FromDOM_NoScriptScope_unrecoverable_error();
 void Debugger_AttachDetach_unrecoverable_error(HRESULT hr);
 void RpcFailure_unrecoverable_error(HRESULT hr);
 void OutOfMemory_unrecoverable_error();
-void RecyclerSingleAllocationLimit_fatal_error();
-void MemGCSingleAllocationLimit_fatal_error();
+void RecyclerSingleAllocationLimit_unrecoverable_error();
+void MemGCSingleAllocationLimit_unrecoverable_error();
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

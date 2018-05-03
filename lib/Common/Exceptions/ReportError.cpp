@@ -145,13 +145,13 @@ _NOINLINE void OutOfMemory_unrecoverable_error()
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
-_NOINLINE void RecyclerSingleAllocationLimit_fatal_error()
+_NOINLINE void RecyclerSingleAllocationLimit_unrecoverable_error()
 {
     int scenario = 10;
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
-_NOINLINE void MemGCSingleAllocationLimit_fatal_error()
+_NOINLINE void MemGCSingleAllocationLimit_unrecoverable_error()
 {
     int scenario = 11;
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);

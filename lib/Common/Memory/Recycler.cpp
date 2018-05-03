@@ -1331,11 +1331,19 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
         if (nothrow == false)
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-            this->IsMemProtectMode() ? MemGCSingleAllocationLimit_fatal_error() :
-                RecyclerSingleAllocationLimit_fatal_error();
-#else
-            this->OutOfMemory();
+            if (GetRecyclerFlagsTable().EnableFatalErrorOnOOM)
+            {
+                if (this->IsMemProtectMode())
+                {
+                    MemGCSingleAllocationLimit_unrecoverable_error();
+                }
+                else
+                {
+                    RecyclerSingleAllocationLimit_unrecoverable_error();
+                }
+            }
 #endif
+            this->OutOfMemory();
         }
         else
         {
