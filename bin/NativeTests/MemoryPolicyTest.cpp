@@ -271,8 +271,9 @@ namespace MemoryPolicyTests
         REQUIRE(JsDisposeRuntime(jsRuntime) == JsNoError);
     }
 
-    TEST_CASE("MemoryPolicyTest_ContextLeak1", "[ContextLeak1]")
-    {
-        ContextLeak1();
-    }
+    // Disabled due to the test terminating the process early. See OS: 17366304
+    //TEST_CASE("MemoryPolicyTest_ContextLeak1", "[ContextLeak1]")
+    //{
+    //    ContextLeak1();
+    //}
 }
