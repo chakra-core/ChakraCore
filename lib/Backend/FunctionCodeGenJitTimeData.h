@@ -47,9 +47,6 @@ namespace Js
         // accurate count.
         Field(uint) ldFldInlineeCount;
 
-        // Number of functions passed as arguments to be inlined.
-        Field(uint) callbackInlineeCount;
-
         // For polymorphic call site we will have linked list of FunctionCodeGenJitTimeData
         // Each is differentiated by id starting from 0, 1
         Field(FunctionCodeGenJitTimeData *) next;
@@ -102,7 +99,6 @@ namespace Js
             bool isInlined = true);
         uint InlineeCount() const;
         uint LdFldInlineeCount() const;
-        uint CallbackInlineeCount() const;
         bool IsLdFldInlineePresent() const { return ldFldInlineeCount != 0; }
 
         RecyclerWeakReference<FunctionBody> *GetWeakFuncRef() const { return this->weakFuncRef; }

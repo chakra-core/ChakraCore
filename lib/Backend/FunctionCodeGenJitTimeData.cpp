@@ -194,10 +194,6 @@ namespace Js
 
         FunctionCodeGenJitTimeData * inlineeData = FunctionCodeGenJitTimeData::New(recycler, inlinee, nullptr /* entryPoint */, true /*isInlined*/);
         callbackInlinees[profiledCallSiteId] = inlineeData;
-        if (++callbackInlineeCount == 0)
-        {
-            Js::Throw::OutOfMemory();
-        }
         return inlineeData;
     }
 
@@ -209,11 +205,6 @@ namespace Js
     uint FunctionCodeGenJitTimeData::LdFldInlineeCount() const
     {
         return ldFldInlineeCount;
-    }
-
-    uint FunctionCodeGenJitTimeData::CallbackInlineeCount() const
-    {
-        return callbackInlineeCount;
     }
 
 #ifdef FIELD_ACCESS_STATS

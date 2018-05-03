@@ -652,7 +652,6 @@ typedef struct FunctionJITTimeDataIDL
 
     unsigned int inlineeCount;
     unsigned int ldFldInlineeCount;
-    unsigned int callbackInlineeCount;
     IDL_DEF([size_is(inlineeCount)]) struct FunctionJITTimeDataIDL ** inlinees;
     IDL_DEF([size_is(inlineeCount)]) boolean * inlineesRecursionFlags;
 
@@ -660,7 +659,7 @@ typedef struct FunctionJITTimeDataIDL
 
     IDL_DEF([size_is(callbackInlineeCount)]) struct FunctionJITTimeDataIDL ** callbackInlinees;
 
-    X64_PAD4(1)
+    unsigned int callbackInlineeCount;
     unsigned int objTypeSpecFldInfoCount;
     IDL_DEF([size_is(objTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
 
