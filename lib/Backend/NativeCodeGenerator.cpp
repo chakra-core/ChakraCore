@@ -2254,21 +2254,21 @@ NativeCodeGenerator::GatherCodeGenData(
     Assert(
         PHASE_ON(Js::Phase::SimulatePolyCacheWithOneTypeForFunctionPhase, functionBody) ==
         CONFIG_ISENABLED(Js::Flag::SimulatePolyCacheWithOneTypeForInlineCacheIndexFlag));
-    if(PHASE_ON(Js::Phase::SimulatePolyCacheWithOneTypeForFunctionPhase, functionBody))
+    if (PHASE_ON(Js::Phase::SimulatePolyCacheWithOneTypeForFunctionPhase, functionBody))
     {
         const Js::InlineCacheIndex inlineCacheIndex = CONFIG_FLAG(SimulatePolyCacheWithOneTypeForInlineCacheIndex);
         functionBody->CreateNewPolymorphicInlineCache(
             inlineCacheIndex,
             functionBody->GetPropertyIdFromCacheId(inlineCacheIndex),
             functionBody->GetInlineCache(inlineCacheIndex));
-        if(functionBody->HasDynamicProfileInfo())
+        if (functionBody->HasDynamicProfileInfo())
         {
             functionBody->GetAnyDynamicProfileInfo()->RecordPolymorphicFieldAccess(functionBody, inlineCacheIndex);
         }
     }
 #endif
 
-    if(IsInlinee)
+    if (IsInlinee)
     {
         // This function is recursive
         PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackDefault);
@@ -2321,7 +2321,7 @@ NativeCodeGenerator::GatherCodeGenData(
     bool inlineGetterSetter = false;
     bool inlineApplyTarget = false; //to indicate whether we can inline apply target or not.
     bool inlineCallTarget = false;
-    if(profileData)
+    if (profileData)
     {
         if (!IsInlinee)
         {
@@ -2892,6 +2892,32 @@ NativeCodeGenerator::GatherCodeGenData(
 
                     AddInlineCacheStats(jitTimeData, inlineeJitTimeData);
             }
+
+            if (PHASE_ENABLED(InlineCallbacksPhase, functionBody))
+            {
+                Js::FunctionInfo *const callbackInfo = inliningDecider.InlineCallback(functionBody, profiledCallSiteId, recursiveInlineDepth);
+                if (callbackInfo != nullptr)
+                {
+                    Js::FunctionBody *const callbackBody = callbackInfo->GetFunctionBody();
+                    if (callbackBody != nullptr && callbackBody != functionBody)
+                    {
+                        Js::FunctionCodeGenJitTimeData * callbackJitTimeData = jitTimeData->AddCallbackInlinee(recycler, profiledCallSiteId, callbackInfo);
+                        Js::FunctionCodeGenRuntimeData * callbackRuntimeData = IsInlinee ? runtimeData->EnsureCallbackInlinee(recycler, profiledCallSiteId, callbackBody) : functionBody->EnsureCallbackInlineeCodeGenRuntimeData(recycler, profiledCallSiteId, callbackBody);
+
+                        GatherCodeGenData<true>(
+                            recycler,
+                            topFunctionBody,
+                            callbackBody,
+                            entryPoint,
+                            inliningDecider,
+                            objTypeSpecFldInfoList,
+                            callbackJitTimeData,
+                            callbackRuntimeData);
+
+                        AddInlineCacheStats(jitTimeData, callbackJitTimeData);
+                    }
+                }
+            }
         }
     }
 
@@ -2940,7 +2966,7 @@ NativeCodeGenerator::GatherCodeGenData(
                     continue;
                 }
 
-                const auto inlinee = inliningDecider.Inline(functionBody, inlineeFunctionInfo, false /*isConstructorCall*/, false /*isPolymorphicCall*/, 0, (uint16)inlineCacheIndex, 0, false);
+                const auto inlinee = inliningDecider.Inline(functionBody, inlineeFunctionInfo, false /*isConstructorCall*/, false /*isPolymorphicCall*/, false /*isCallback*/, 0, (uint16)inlineCacheIndex, 0, false);
                 if(!inlinee)
                 {
                     continue;
@@ -3710,7 +3736,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         }
         else
         {
-            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody->GetFunctionInfo() == inlinee ? recursiveInlineDepth + 1 : 0, true);
+            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody->GetFunctionInfo() == inlinee ? recursiveInlineDepth + 1 : 0, true);
             if (!inlinee)
             {
                 return false;

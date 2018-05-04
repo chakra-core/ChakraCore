@@ -664,12 +664,10 @@ namespace Js
         if (emitProfiledArgout
             && DoDynamicProfileOpcode(InlinePhase)
             && arg > 0 && arg < Js::Constants::MaximumArgumentCountForConstantArgumentInlining
-            && (reg > FunctionBody::FirstRegSlot && reg < m_functionWrite->GetConstantCount())
+            && reg > FunctionBody::FirstRegSlot
             && callSiteId != Js::Constants::NoProfileId
-            && !m_isInDebugMode // We don't inline in debug mode, so no need to emit ProfiledArgOut_A
             )
         {
-            Assert((reg > FunctionBody::FirstRegSlot && reg < m_functionWrite->GetConstantCount()));
             MULTISIZE_LAYOUT_WRITE(Arg, Js::OpCode::ProfiledArgOut_A, arg, reg);
             m_byteCodeData.Encode(&callSiteId, sizeof(Js::ProfileId));
         }

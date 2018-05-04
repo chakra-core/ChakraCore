@@ -207,17 +207,53 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         break;
                     }
 
-                    const auto inlineeData = inlinerData->GetInlinee(profileId);
-                    if(!inlineeData)
+                    const FunctionJITTimeInfo * inlineeData = inlinerData->GetInlinee(profileId);
+                    IR::Instr * callbackDefInstr = nullptr;
+                    if (inlineeData == nullptr)
                     {
-                        TryResetObjTypeSpecFldInfoOn(methodValueOpnd);
-                        TryDisableRuntimePolymorphicCacheOn(methodValueOpnd);
-                        break;
+                        if (PHASE_ENABLED(InlineCallbacksPhase, func))
+                        {
+                            callbackDefInstr = TryGetCallbackDefInstr(instr);
+                        }
+
+                        if (callbackDefInstr == nullptr)
+                        {
+                            TryResetObjTypeSpecFldInfoOn(methodValueOpnd);
+                            TryDisableRuntimePolymorphicCacheOn(methodValueOpnd);
+                            break;
+                        }
                     }
 
-                    if(inlinerData->IsPolymorphicCallSite(profileId))
+                    if (inlineeData != nullptr && inlinerData->IsPolymorphicCallSite(profileId))
                     {
-                        isPolymorphic = true;
+                        if (PHASE_ENABLED(InlineCallbacksPhase, func))
+                        {
+                            callbackDefInstr = TryGetCallbackDefInstr(instr);
+                            if (callbackDefInstr == nullptr)
+                            {
+                                isPolymorphic = true;
+                            }
+                        }
+                        else
+                        {
+                            isPolymorphic = true;
+                        }
+                    }
+
+                    if (callbackDefInstr != nullptr)
+                    {
+                        Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callbackDefInstr->AsProfiledInstr()->u.profileId);
+                        inlineeData = callbackDefInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetCallbackInlinee(callSiteId);
+                        if (PHASE_TESTTRACE(Js::InlineCallbacksPhase, func) || PHASE_TRACE(Js::InlineCallbacksPhase, func))
+                        {
+                            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                            Output::Print(_u("INLINING : Inlining callback at\tCallSite: %d\tCaller: %s (%s)\n"),
+                                callSiteId, inlinerData->GetBody()->GetDisplayName(), inlinerData->GetDebugNumberSet(debugStringBuffer));
+                        }
+                    }
+
+                    if (isPolymorphic)
+                    {
                         if (isCtor ||
                             (PHASE_OFF(Js::PolymorphicInlinePhase, this->topFunc) || PHASE_OFF(Js::PolymorphicInlinePhase, func)) ||
                             (this->IsInliningOutSideLoops() && !PHASE_FORCE(Js::InlinePhase, this->topFunc) && !PHASE_FORCE(Js::InlinePhase, func)))
@@ -368,7 +404,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
                         instrNext = builtInInlineCandidateOpCode != 0 ?
                             this->InlineBuiltInFunction(instr, inlineeData, builtInInlineCandidateOpCode, inlinerData, symThis, &isInlined, profileId, recursiveInlineDepth) :
-                            this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, recursiveInlineDepth);
+                            this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, callbackDefInstr, recursiveInlineDepth);
                          if (!isInlined && hasDstUsedBuiltInReturnType)
                         {
                             // We haven't actually inlined the builtin, we need to revert the value type to likely
@@ -452,7 +488,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     break;
                 }
 
-                instrNext = this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, recursiveInlineDepth);
+                instrNext = this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, nullptr, recursiveInlineDepth);
 
                 if (++this->inlineesProcessed == inlinerData->GetInlineeCount())
                 {
@@ -974,6 +1010,80 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
     return instrNext;
 }
 
+IR::Instr * Inline::TryGetCallbackDefInstr(IR::Instr * callInstr)
+{
+    // Try to find a function argument that could be inlined.
+    IR::Instr * defInstr = callInstr;
+    StackSym * linkSym = callInstr->GetSrc1()->GetStackSym();
+    Assert(linkSym != nullptr);
+
+    Inline * currFrame = this;
+
+    while (linkSym->m_isSingleDef)
+    {
+        if (linkSym->m_instrDef != nullptr)
+        {
+            defInstr = linkSym->m_instrDef;
+        }
+        else
+        {
+            Assert(defInstr->m_opcode == Js::OpCode::ArgIn_A);
+            if (currFrame->prevFrame == nullptr)
+            {
+                return nullptr;
+            }
+
+            IR::Instr * callingInstr = currFrame->prevFrameCallInstr;
+            Assert(callingInstr != nullptr && callingInstr->IsProfiledInstr());
+
+            Js::ProfileId callSiteId = static_cast<Js::ProfileId>(callingInstr->AsProfiledInstr()->u.profileId);
+            Js::ArgSlot argIndex = linkSym->GetParamSlotNum() - 1;
+
+            Func * callingFunc = callingInstr->m_func;
+            if (!callingFunc->GetReadOnlyProfileInfo()->CanInlineCallback(argIndex, callSiteId))
+            {
+                return nullptr;
+            }
+
+            if (callingFunc->GetWorkItem()->GetJITTimeInfo()->GetCallbackInlinee(callSiteId) != nullptr)
+            {
+                return callingInstr;
+            }
+
+            defInstr = nullptr;
+
+            // find the appropraite argOut from the call site.
+            callingInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
+                StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+                if (argSym->GetArgSlotNum() - 1 == argIndex)
+                {
+                    defInstr = argInstr;
+                    return true;
+                }
+                return false;
+            });
+
+            Assert(defInstr != nullptr);
+
+            currFrame = currFrame->prevFrame;
+        }
+
+        IR::Opnd * linkOpnd = defInstr->GetSrc1();
+        if (linkOpnd == nullptr)
+        {
+            return nullptr;
+        }
+
+        linkSym = linkOpnd->GetStackSym();
+        if (linkSym == nullptr)
+        {
+            return nullptr;
+        }
+    }
+
+    return nullptr;
+}
+
 void Inline::CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr)
 {
     IR::Instr* previousArg = nullptr;
@@ -1389,7 +1499,7 @@ Inline::BuildIRForInlinee(Func *inlinee, JITTimeFunctionBody *funcBody, IR::Inst
 
     inlinee->m_symTable->ClearIDAdjustment();
 
-    Inline recursiveInliner(this->topFunc, this->inliningHeuristics, this->isInLoop, currentInlineeFrameSlot + Js::Constants::InlineeMetaArgCount + actualsCount, isApplyTarget);
+    Inline recursiveInliner(this->topFunc, this->inliningHeuristics, this->isInLoop, currentInlineeFrameSlot + Js::Constants::InlineeMetaArgCount + actualsCount, isApplyTarget, this, callInstr);
     recursiveInliner.Optimize(inlinee, argOuts, actualsCount, inlinee->GetJITFunctionBody()->GetAddr() == callInstr->m_func->GetJITFunctionBody()->GetAddr() ? recursiveInlineDepth + 1 : 0);
 
 #ifdef DBG
@@ -3845,7 +3955,7 @@ Inline::InsertStatementBoundary(IR::Instr * instrNext)
 }
 
 IR::Instr *
-Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth)
+Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, IR::Instr * inlineeDefInstr, uint recursiveInlineDepth)
 {
     *pIsInlined = false;
 
@@ -3949,6 +4059,10 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
 
 
     JITTimePolymorphicInlineCacheInfo * entryPointPolymorphicInlineCacheInfo = this->topFunc->GetWorkItem()->GetInlineePolymorphicInlineCacheInfo(funcBody->GetAddr());
+    const FunctionJITRuntimeInfo * runtimeInfo = (inlineeDefInstr == nullptr)
+        ? funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr())
+        : inlineeDefInstr->m_func->GetWorkItem()->GetJITTimeInfo()->GetInlineeForCallbackInlineeRuntimeData(static_cast<Js::ProfileId>(inlineeDefInstr->AsProfiledInstr()->u.profileId), funcBody->GetAddr());
+
 #if !FLOATVAR
     Func * inlinee = JitAnew(this->topFunc->m_alloc,
         Func,
@@ -3958,7 +4072,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
         nullptr,
-        funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
+        runtimeInfo,
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
         this->topFunc->GetNumberAllocator(),
@@ -3979,7 +4093,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         this->topFunc->GetScriptContextInfo(),
         this->topFunc->GetJITOutput()->GetOutputData(),
         nullptr,
-        funcCaller->GetWorkItem()->GetJITTimeInfo()->GetInlineeForTargetInlineeRuntimeData(profileId, funcBody->GetAddr()),
+        runtimeInfo,
         entryPointPolymorphicInlineCacheInfo,
         this->topFunc->GetCodeGenAllocators(),
         this->topFunc->GetCodeGenProfiler(),
@@ -5687,16 +5801,7 @@ void Inline::TraceInlining(const FunctionJITTimeInfo *const inliner, const char1
         Assert(len > 14);
         inlineeName = debugStringBuffer3;
     }
-    INLINE_TESTTRACE(_u("INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
-        inLoopBody ? _u("IN LOOP BODY") : _u(""),
-        inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
-        inliner->GetBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
-        topFunc->GetBody()->GetDisplayName(),
-        topFunc->GetDebugNumberSet(debugStringBuffer2), topFunc->GetBody()->GetByteCodeCount(),
-        callSiteId
-    );
-
-    INLINE_TRACE(_u("INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
+    INLINE_TRACE_AND_TESTTRACE(_u("INLINING %s: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\tCallSiteId: %d\n"),
         inLoopBody ? _u("IN LOOP BODY") : _u(""),
         inlineeName, inlineeFunctionIdandNumberString, inlineeByteCodeCount,
         inliner->GetBody()->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
@@ -5716,13 +5821,7 @@ void Inline::TraceInlining(const FunctionJITTimeInfo *const inliner, const char1
 
     if (inliner->GetSourceContextId() != inlinee->GetSourceContextId())
     {
-        INLINE_TESTTRACE(_u("INLINING_ACROSS_FILES: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\n"),
-            inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetBody()->GetByteCodeCount(),
-            inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
-            topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3), topFunc->GetBody()->GetByteCodeCount()
-        );
-
-        INLINE_TRACE(_u("INLINING_ACROSS_FILES: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\n"),
+        INLINE_TRACE_AND_TESTTRACE(_u("INLINING_ACROSS_FILES: Inlinee: %s (%s)\tSize: %d\tCaller: %s (%s)\tSize: %d\tInlineCount: %d\tRoot: %s (%s)\tSize: %d\n"),
             inlinee->GetDisplayName(), inlinee->GetDebugNumberSet(debugStringBuffer), inlinee->GetBody()->GetByteCodeCount(),
             inliner->GetDisplayName(), inliner->GetDebugNumberSet(debugStringBuffer2), inliner->GetBody()->GetByteCodeCount(), inlinedByteCodeCount,
             topFunc->GetBody()->GetDisplayName(), topFunc->GetDebugNumberSet(debugStringBuffer3), topFunc->GetBody()->GetByteCodeCount()

@@ -6582,6 +6582,38 @@ namespace Js
 
         return codeGenGetSetRuntimeData[inlineCacheIndex] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
     }
+
+    const FunctionCodeGenRuntimeData * FunctionBody::GetCallbackInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const
+    {
+        Assert(profiledCallSiteId < profiledCallSiteCount);
+
+        Field(FunctionCodeGenRuntimeData*)* codeGenRuntimeData = this->GetCodeGenCallbackRuntimeDataWithLock();
+        return codeGenRuntimeData ? codeGenRuntimeData[profiledCallSiteId] : nullptr;
+    }
+
+    FunctionCodeGenRuntimeData * FunctionBody::EnsureCallbackInlineeCodeGenRuntimeData(
+        Recycler *const recycler,
+        __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        Assert(recycler);
+        Assert(profiledCallSiteId < profiledCallSiteCount);
+        Assert(inlinee);
+
+        if (this->GetCodeGenCallbackRuntimeData() == nullptr)
+        {
+            FunctionCodeGenRuntimeData ** codeGenCallbackRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, profiledCallSiteCount);
+            this->SetCodeGenCallbackRuntimeData(codeGenCallbackRuntimeData);
+        }
+
+        Field(FunctionCodeGenRuntimeData*)* codeGenCallbackRuntimeData = this->GetCodeGenCallbackRuntimeData();
+        if (codeGenCallbackRuntimeData[profiledCallSiteId] == nullptr)
+        {
+            codeGenCallbackRuntimeData[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+        }
+
+        return codeGenCallbackRuntimeData[profiledCallSiteId];
+    }
 #endif
 
     void FunctionBody::AllocateLoopHeaders()

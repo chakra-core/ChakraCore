@@ -84,6 +84,31 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
     data->callSiteData = reinterpret_cast<CallSiteIDL*>(profileInfo->GetCallSiteInfo());
 
+    CompileAssert(sizeof(CallbackInfoIDL) == sizeof(Js::CallbackInfo));
+    Js::CallbackInfoList * callbackInfoList = functionBody->GetCallbackInfoListWithLock();
+    if (callbackInfoList == nullptr)
+    {
+        data->profiledCallbackCount = 0;
+    }
+    else
+    {
+        data->profiledCallbackCount = static_cast<Js::ProfileId>(callbackInfoList->Count());
+        data->callbackData = AnewArrayZ(alloc, CallbackInfoIDL, data->profiledCallbackCount);
+
+        size_t callbackInfoIndex = 0;
+        FOREACH_SLIST_ENTRY(Field(Js::CallbackInfo *), callbackInfo, callbackInfoList)
+        {
+            memcpy_s(
+                &data->callbackData[callbackInfoIndex],
+                sizeof(CallbackInfoIDL),
+                callbackInfo,
+                sizeof(Js::CallbackInfo)
+            );
+            ++callbackInfoIndex;
+        }
+        NEXT_SLIST_ENTRY
+    }
+
     CompileAssert(sizeof(BVUnitIDL) == sizeof(BVUnit));
     data->loopFlags = (BVFixedIDL*)profileInfo->GetLoopFlags();
 
@@ -269,6 +294,13 @@ JITTimeProfileInfo::GetLoopFlags(uint loopNum) const
 {
     Assert(GetLoopFlags() != nullptr);
     return GetLoopFlags()->GetRange<Js::LoopFlags>(loopNum * Js::LoopFlags::COUNT, Js::LoopFlags::COUNT);
+}
+
+bool 
+JITTimeProfileInfo::CanInlineCallback(Js::ArgSlot argIndex, Js::ProfileId callSiteId) const
+{
+    Js::CallbackInfo * callbackInfo = FindCallbackInfo(callSiteId);
+    return callbackInfo != nullptr && callbackInfo->CanInlineCallback(argIndex);
 }
 
 uint16
@@ -573,6 +605,26 @@ Js::CallSiteInfo *
 JITTimeProfileInfo::GetCallSiteInfo() const
 {
     return reinterpret_cast<Js::CallSiteInfo*>(m_profileData.callSiteData);
+}
+
+Js::CallbackInfo *
+JITTimeProfileInfo::GetCallbackInfo() const
+{
+    return reinterpret_cast<Js::CallbackInfo*>(m_profileData.callbackData);
+}
+
+Js::CallbackInfo * 
+JITTimeProfileInfo::FindCallbackInfo(Js::ProfileId callSiteId) const
+{
+    Js::CallbackInfo * callbackInfo = GetCallbackInfo();
+    for (size_t i = 0; i < m_profileData.profiledCallbackCount; ++i)
+    {
+        if (callbackInfo[i].callSiteId == callSiteId)
+        {
+            return &callbackInfo[i];
+        }
+    }
+    return nullptr;
 }
 
 bool

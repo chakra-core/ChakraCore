@@ -1195,6 +1195,8 @@ namespace Js
             FormalsPropIdArray = 21,
             ForInCacheArray = 22,
             SlotIdInCachedScopeToNestedIndexArray = 23,
+            CodeGenCallbackRuntimeData = 24,
+            CallbackArgOutInfoList = 25,
 
             Max,
             Invalid = 0xff
@@ -2779,6 +2781,10 @@ namespace Js
         Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenCallbackRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenCallbackRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenCallbackRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenCallbackRuntimeData)); }
+        void SetCodeGenCallbackRuntimeData(FunctionCodeGenRuntimeData** codeGenArgumentRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenCallbackRuntimeData, codeGenArgumentRuntimeData); }
+
         template <typename TStatementMapList>
         static StatementMap * GetNextNonSubexpressionStatementMap(TStatementMapList *statementMapList, int & startingAtIndex);
         static StatementMap * GetPrevNonSubexpressionStatementMap(StatementMapList *statementMapList, int & startingAtIndex);
@@ -2992,6 +2998,10 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead, polyCallSiteInfo); }
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead)); }
+
+        void SetCallbackInfoList(CallbackInfoList * callbackInfoList) { this->SetAuxPtr(AuxPointerType::CallbackArgOutInfoList, callbackInfoList); }
+        CallbackInfoList * GetCallbackInfoList() { return static_cast<CallbackInfoList *>(this->GetAuxPtr(AuxPointerType::CallbackArgOutInfoList)); }
+        CallbackInfoList * GetCallbackInfoListWithLock() { return static_cast<CallbackInfoList *>(this->GetAuxPtrWithLock(AuxPointerType::CallbackArgOutInfoList)); }
 #endif
 
         FunctionBodyPolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<FunctionBodyPolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
@@ -3325,6 +3335,11 @@ namespace Js
         FunctionCodeGenRuntimeData *EnsureLdFldInlineeCodeGenRuntimeData(
             Recycler *const recycler,
             const InlineCacheIndex inlineCacheIndex,
+            FunctionBody *const inlinee);
+        const FunctionCodeGenRuntimeData * GetCallbackInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const;
+        FunctionCodeGenRuntimeData * EnsureCallbackInlineeCodeGenRuntimeData(
+            Recycler *const recycler,
+            __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
             FunctionBody *const inlinee);
 
         void LoadDynamicProfileInfo();

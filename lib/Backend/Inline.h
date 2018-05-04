@@ -7,9 +7,25 @@
 class Inline
 {
 public:
-    Inline(Func *topFunc, InliningHeuristics &heuristics, uint lCount = 0, uint  currentInlineeFrameSlot = 0, bool isApplyTargetInliningInProgress = false) :
-        topFunc(topFunc), inlineesProcessed(0), currentInlineeFrameSlot(currentInlineeFrameSlot), isInLoop(lCount), inliningHeuristics(heuristics),
-        isApplyTargetInliningInProgress(isApplyTargetInliningInProgress), isInInlinedApplyCall(false){}
+    Inline(Func *topFunc, 
+        InliningHeuristics &heuristics, 
+        uint lCount = 0, 
+        uint currentInlineeFrameSlot = 0, 
+        bool isApplyTargetInliningInProgress = false, 
+        Inline * prevFrame = nullptr, 
+        IR::Instr * callingInstr = nullptr
+    ) :
+        topFunc(topFunc), 
+        inlineesProcessed(0), 
+        currentInlineeFrameSlot(currentInlineeFrameSlot), 
+        isInLoop(lCount), 
+        inliningHeuristics(heuristics),
+        isApplyTargetInliningInProgress(isApplyTargetInliningInProgress), 
+        isInInlinedApplyCall(false), 
+        prevFrame(prevFrame),
+        prevFrameCallInstr(callingInstr)
+    {}
+
     void Optimize();
     static IR::Instr* GetDefInstr(IR::Opnd* linkOpnd);
 private:
@@ -33,11 +49,14 @@ private:
 
     IR::PragmaInstr * lastStatementBoundary;
 
+    Inline * prevFrame;
+    IR::Instr * prevFrameCallInstr;
+
     void Optimize(Func *func, __in_ecount_opt(actuals) IR::Instr *argOuts[] = NULL, Js::ArgSlot actuals = (Js::ArgSlot) - 1, uint recursiveInlineDepth = 0);
     bool TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined, bool& safeThis,
                                             bool dontOptimizeJustCheck = false, uint i = 0 /*i-th inlinee at a polymorphic call site*/);
     intptr_t TryOptimizeInstrWithFixedDataProperty(IR::Instr *&instr);
-    IR::Instr * InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth);
+    IR::Instr * InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symThis, const Js::ProfileId profileId, bool* pIsInlined, IR::Instr * inlineeDefInstr, uint recursiveInlineDepth);
 #ifdef ENABLE_DOM_FAST_PATH
     void        InlineDOMGetterSetterFunction(IR::Instr *ldFldInstr, const FunctionJITTimeInfo *const inlineeData, const FunctionJITTimeInfo *const inlinerData);
 #endif
@@ -74,6 +93,7 @@ private:
         const bool isInlined, const bool doneFixedMethodFld, IR::Instr** createObjInstrOut, IR::Instr** callCtorInstrOut) const;
     IR::Instr * InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth, bool triedUsingFixedMethods = false);
     IR::Instr * InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, IR::PropertySymOpnd* methodValueOpnd, bool* pIsInlined, uint recursiveInlineDepth);
+    IR::Instr * TryGetCallbackDefInstr(IR::Instr * callInstr);
 
     IR::Instr * InlineSpread(IR::Instr *spreadCall);
 

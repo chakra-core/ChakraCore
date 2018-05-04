@@ -8231,13 +8231,10 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
         FunctionBody* functionBody = this->m_functionBody;
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
 
-        Assert(playout->Reg > FunctionBody::FirstRegSlot && playout->Reg < functionBody->GetConstantCount());
+        Assert(playout->Reg > FunctionBody::FirstRegSlot);
         Var value = GetReg(playout->Reg);
-        if (value != nullptr && TaggedInt::Is(value))
-        {
-            dynamicProfileInfo->RecordConstParameterAtCallSite(playout->profileId, playout->Arg);
-        }
-        SetOut(playout->Arg, GetReg(playout->Reg));
+        dynamicProfileInfo->RecordParameterAtCallSite(functionBody, playout->profileId, value, playout->Arg, playout->Reg);
+        SetOut(playout->Arg, value);
     }
 #endif
 

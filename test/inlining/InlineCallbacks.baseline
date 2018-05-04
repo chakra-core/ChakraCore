@@ -1,0 +1,19 @@
+foo
+foo
+INLINING : Inlining callback at	CallSite: 0	Caller: Dispatch ( (#1.1), #2)
+foo
+bar
+bar
+INLINING : Inlining callback at	CallSite: 0	Caller: Dispatch ( (#1.1), #2)
+INLINING : Inlining callback at	CallSite: 0	Caller: Dispatch ( (#1.1), #2)
+bar
+blah
+blah
+INLINING : Inlining callback at	CallSite: 0	Caller: Dispatch2 ( (#1.12), #13)
+blah
+foo
+bar
+foo
+bar
+foo
+bar
