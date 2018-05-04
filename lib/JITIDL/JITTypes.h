@@ -205,22 +205,20 @@ typedef struct BVSparseNodeIDL
     __int64 data;
 } BVSparseNodeIDL;
 
-typedef struct CallbackArgOutInfoIDL
+typedef struct CallbackInfoIDL
 {
     byte argInfoButs;
     IDL_PAD1(0)
     IDL_PAD2(1)
     unsigned int sourceId;
     unsigned int functionId;
-} CallbackArgOutInfoIDL;
+} CallbackInfoIDL;
 
 typedef struct CallSiteIDL
 {
     unsigned short bitFields;
     unsigned short returnType;
     unsigned int ldFldInlineCacheId;
-    CallbackArgOutInfoIDL callbackArgOutInfoIDL;
-    X64_PAD4(0)
     unsigned int sourceId;
     unsigned int functionId;
 } CallSiteIDL;
@@ -287,6 +285,7 @@ typedef struct ProfileDataIDL
 
     unsigned short profiledSlotCount;
     unsigned short profiledCallSiteCount;
+    unsigned short profiledCallbackCount;
 
     unsigned short profiledReturnTypeCount;
     unsigned short profiledDivOrRemCount;
@@ -312,6 +311,8 @@ typedef struct ProfileDataIDL
     IDL_DEF([size_is(profiledSlotCount)]) unsigned short * slotData;
 
     IDL_DEF([size_is(profiledCallSiteCount)]) CallSiteIDL * callSiteData;
+
+    IDL_DEF([size_is(profiledCallbackCount)]) CallbackInfoIDL * callbackData;
 
     IDL_DEF([size_is(profiledReturnTypeCount)]) unsigned short * returnTypeData;
 

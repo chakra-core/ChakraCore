@@ -150,7 +150,6 @@ namespace Js
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); ++i)
         {
-            callSiteInfo[i].callbackArgOutInfo.canInlineCallback = true;
             callSiteInfo[i].returnType = ValueType::Uninitialized;
             callSiteInfo[i].u.functionData.sourceId = NoSourceId;
         }
@@ -433,44 +432,41 @@ namespace Js
             return;
         }
 
-        CallbackArgOutInfo & callbackInfo = callSiteInfo[callSiteId].callbackArgOutInfo;
         if (arg != nullptr && RecyclableObject::Is(arg) && JavascriptFunction::Is(arg))
         {
-            if (callbackInfo.canInlineCallback)
+            CallbackInfo * callbackInfo = EnsureCallbackInfo(functionBody, callSiteId);
+            if (callbackInfo->sourceId == NoSourceId)
             {
-                if (callbackInfo.hasCallbackArgument && argNum != callbackInfo.argNumber)
+                JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &callbackInfo->sourceId, &callbackInfo->functionId);
+                callbackInfo->argNumber = argNum;
+            }
+            else if (callbackInfo->canInlineCallback)
+            {
+                if (argNum != callbackInfo->argNumber)
                 {
-                    callbackInfo.canInlineCallback = false;
+                    callbackInfo->canInlineCallback = false;
                 }
-                else if (!callbackInfo.isPolymorphic)
+                else if (!callbackInfo->isPolymorphic)
                 {
                     Js::SourceId sourceId;
                     Js::LocalFunctionId functionId;
                     JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
                     GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &sourceId, &functionId);
 
-                    if (callbackInfo.hasCallbackArgument)
+                    if (sourceId != callbackInfo->sourceId || functionId != callbackInfo->functionId)
                     {
-                        if (sourceId != callbackInfo.sourceId || functionId != callbackInfo.functionId)
-                        {
-                            callbackInfo.isPolymorphic = true;
-                        }
-                    }
-                    else
-                    {
-                        callbackInfo.hasCallbackArgument = true;
-                        callbackInfo.sourceId = sourceId;
-                        callbackInfo.functionId = functionId;
-                        callbackInfo.argNumber = argNum;
+                        callbackInfo->isPolymorphic = true;
                     }
                 }
             }
         }
         else
         {
-            if (callbackInfo.hasCallbackArgument && callbackInfo.argNumber == argNum)
+            CallbackInfo * callbackInfo = FindCallbackInfo(functionBody, callSiteId);
+            if (callbackInfo != nullptr && callbackInfo->argNumber == argNum)
             {
-                callbackInfo.canInlineCallback = false;
+                callbackInfo->canInlineCallback = false;
             }
 
             if (TaggedInt::Is(arg) && regSlot < functionBody->GetConstantCount())
@@ -478,6 +474,49 @@ namespace Js
                 callSiteInfo[callSiteId].isArgConstant = callSiteInfo[callSiteId].isArgConstant | (1 << argNum);
             }
         }
+    }
+
+    CallbackInfo * DynamicProfileInfo::FindCallbackInfo(FunctionBody * funcBody, ProfileId callSiteId)
+    {
+        CallbackInfoList * list = funcBody->GetCallbackInfoList();
+        if (list == nullptr)
+        {
+            return nullptr;
+        }
+
+        FOREACH_SLIST_ENTRY(Field(CallbackInfo *), callbackInfo, list)
+        {
+            if (callbackInfo->callSiteId == callSiteId)
+            {
+                return callbackInfo;
+            }
+        }
+        NEXT_SLIST_ENTRY;
+
+        return nullptr;
+    }
+
+    CallbackInfo * DynamicProfileInfo::EnsureCallbackInfo(FunctionBody * funcBody, ProfileId callSiteId)
+    {
+        CallbackInfoList * list = funcBody->GetCallbackInfoList();
+        if (list == nullptr)
+        {
+            Recycler * recycler = funcBody->GetScriptContext()->GetRecycler();
+            list = RecyclerNew(recycler, CallbackInfoList, recycler);
+            funcBody->SetCallbackInfoList(list);
+        }
+
+        CallbackInfo * info = FindCallbackInfo(funcBody, callSiteId);
+        if (info == nullptr)
+        {
+            info = RecyclerNewStructZ(funcBody->GetScriptContext()->GetRecycler(), CallbackInfo);
+            info->callSiteId = callSiteId;
+            info->sourceId = NoSourceId;
+            info->canInlineCallback = true;
+            list->Prepend(info);
+        }
+
+        return info;
     }
 
     uint16 DynamicProfileInfo::GetConstantArgInfo(ProfileId callSiteId)
@@ -1028,13 +1067,13 @@ namespace Js
         Assert(callSiteId < callSiteCount);
         Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
 
-        CallbackArgOutInfo & callbackInfo = callSiteInfo[callSiteId].callbackArgOutInfo;
-        if (!callbackInfo.canInlineCallback || !callbackInfo.hasCallbackArgument || callbackInfo.isPolymorphic)
+        CallbackInfo * callbackInfo = FindCallbackInfo(functionBody, callSiteId);
+        if (callbackInfo == nullptr || !callbackInfo->canInlineCallback || callbackInfo->isPolymorphic)
         {
             return nullptr;
         }
 
-        return GetFunctionInfo(functionBody, callbackInfo.sourceId, callbackInfo.functionId);
+        return GetFunctionInfo(functionBody, callbackInfo->sourceId, callbackInfo->functionId);
     }
 
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)

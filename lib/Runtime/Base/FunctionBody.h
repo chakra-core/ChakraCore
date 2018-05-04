@@ -1196,6 +1196,7 @@ namespace Js
             ForInCacheArray = 22,
             SlotIdInCachedScopeToNestedIndexArray = 23,
             CodeGenCallbackRuntimeData = 24,
+            CallbackArgOutInfoList = 25,
 
             Max,
             Invalid = 0xff
@@ -2998,6 +2999,10 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead, polyCallSiteInfo); }
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead)); }
+
+        void SetCallbackInfoList(CallbackInfoList * callbackInfoList) { this->SetAuxPtr(AuxPointerType::CallbackArgOutInfoList, callbackInfoList); }
+        CallbackInfoList * GetCallbackInfoList() { return static_cast<CallbackInfoList *>(this->GetAuxPtr(AuxPointerType::CallbackArgOutInfoList)); }
+        CallbackInfoList * GetCallbackInfoListWithLock() { return static_cast<CallbackInfoList *>(this->GetAuxPtrWithLock(AuxPointerType::CallbackArgOutInfoList)); }
 #endif
 
         FunctionBodyPolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<FunctionBodyPolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }

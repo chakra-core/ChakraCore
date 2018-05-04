@@ -125,6 +125,8 @@ private:
     bool TestFlag(ProfileDataFlags flag) const;
 
     Js::CallSiteInfo * GetCallSiteInfo() const;
+    Js::CallbackInfo * GetCallbackInfo() const;
+    Js::CallbackInfo * FindCallbackInfo(Js::ProfileId callSiteId) const;
 
     ProfileDataIDL m_profileData;
 };

@@ -84,29 +84,29 @@ namespace Js
         }
     };
 
-    struct CallbackArgOutInfo
+    struct CallbackInfo
     {
         bool CanInlineCallback(Js::ArgSlot argIndex)
         {
-            return canInlineCallback && hasCallbackArgument && argNumber == argIndex;
+            return canInlineCallback && argNumber == argIndex;
         }
 
         // False if there is more than one ArgIn that is a function object or a function object with arg number greater than MaxInlineeArgoutCount
         Field(uint8) canInlineCallback : 1;
 
-        // True if there is at least one ArgIn that is a function object.
-        Field(uint8) hasCallbackArgument : 1;
-
         Field(uint8) isPolymorphic : 1;
 
         // Used to correlate from callee's ArgIn to this ArgOut
         Field(uint8) argNumber : 5;
+        static_assert(Js::InlineeCallInfo::MaxInlineeArgoutCount < (1 << 5), "Ensure CallbackInfo::argNumber is large enough to hold all inline arguments");
 
-        static_assert(Js::InlineeCallInfo::MaxInlineeArgoutCount < (1 << 5), "Ensure CallbackArgOutInfo::argNumber is large enough to hold all inline arguments");
+        Field(uint16) callSiteId;
 
         Field(Js::SourceId) sourceId;
         Field(Js::LocalFunctionId) functionId;
     };
+
+    using CallbackInfoList = SList<CallbackInfo*, Recycler, RealCount>;
 
     struct CallSiteInfo
     {
@@ -116,7 +116,6 @@ namespace Js
         Field(uint16) dontInline : 1;
         Field(uint16) isPolymorphic : 1;
         Field(InlineCacheIndex) ldFldInlineCacheId;
-        Field(CallbackArgOutInfo) callbackArgOutInfo;
         union _u_type
         {
             struct
@@ -621,6 +620,8 @@ namespace Js
 
         static void DumpLoopInfo(FunctionBody *fbody);
 #endif
+        CallbackInfo * FindCallbackInfo(FunctionBody * funcBody, ProfileId callSiteId);
+        CallbackInfo * EnsureCallbackInfo(FunctionBody * funcBody, ProfileId callSiteId);
 
         bool IsPolymorphicCallSite(Js::LocalFunctionId curFunctionId, Js::SourceId curSourceId, Js::LocalFunctionId oldFunctionId, Js::SourceId oldSourceId);
         void CreatePolymorphicDynamicProfileCallSiteInfo(FunctionBody * funcBody, ProfileId callSiteId, Js::LocalFunctionId functionId, Js::LocalFunctionId oldFunctionId, Js::SourceId sourceId, Js::SourceId oldSourceId);
