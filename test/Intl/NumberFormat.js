@@ -17,10 +17,14 @@ function format() {
         [locale, options, n] = arguments;
     }
 
-    const format = new Intl.NumberFormat(locale, options).format(n);
+    const nf = new Intl.NumberFormat(locale, options);
+    const format = nf.format(n);
     const localeString = n.toLocaleString(locale, options);
 
-    assert.isTrue(format === localeString, `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] new Intl.NumberFormat().format(${n}) -> ${format} !== ${n}.toLocaleString() -> ${localeString}`);
+    assert.isTrue(format === localeString, `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match toLocaleString`);
+    if (WScript.Platform.INTL_LIBRARY === "icu") {
+        assert.isTrue(format === nf.formatToParts(n).map((part) => part.value).join(""), `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match formatToParts`);
+    }
 
     return format;
 }
@@ -161,7 +165,105 @@ const tests = [
             // This assert may need to change in the future, pending any decision made on https://github.com/tc39/ecma402/issues/219
             assert.areEqual("0", (-0).toLocaleString(), "-0 should be formatted as 0");
         }
+    },
+    {
+        name: "formatToParts",
+        body() {
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                return;
+            }
+
+            function assertParts(locale, options, n, expectedParts) {
+                const nf = new Intl.NumberFormat(locale, options);
+                const resolved = nf.resolvedOptions();
+                assert.areEqual(locale, resolved.locale, `This test requires ${locale} support`);
+                if (options) {
+                    for (const opt of Object.getOwnPropertyNames(options)) {
+                        assert.areEqual(options[opt], resolved[opt], `Bad option resolution for option ${opt}`)
+                    }
+                }
+
+                const actualParts = nf.formatToParts(n);
+                assert.isTrue(Array.isArray(actualParts), `formatToParts(${n}) did not return an array`);
+
+                if (WScript.Platform.ICU_VERSION < 61) {
+                    // real formatToParts support was only added with ICU 61
+                    assert.areEqual(1, actualParts.length, `formatToParts(${n}) stub implementation should return only one part`);
+                    const literal = actualParts[0];
+                    assert.areEqual("literal", literal.type, `formatToParts(${n}) stub implementation should return a literal part`);
+                    assert.areEqual(nf.format(n), literal.value, `formatToParts(${n}) stub implementation should return one part whose value matches the fully formatted number`);
+                    return;
+                }
+
+                assert.areEqual(expectedParts.length, actualParts.length, `formatToParts(${n}) returned wrong number of parts (actual: ${JSON.stringify(actualParts, null, 2)})`);
+                expectedParts.forEach((part, i) => {
+                    assert.areEqual(expectedParts[i].type, actualParts[i].type, `formatToParts(${n}) returned bad type for part ${i}`);
+                    assert.areEqual(expectedParts[i].value, actualParts[i].value, `formatToParts(${n}) returned bad value for part ${i} (code points: ${actualParts[i].value.split("").map(char => char.charCodeAt(0)).toString()})`);
+                })
+            }
+
+            assertParts("en-US", undefined, 1000, [
+                { type: "integer" , value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" }
+            ]);
+            assertParts("en-US", undefined, NaN, [{ type: "nan", value: "NaN" }]);
+            assertParts("en-US", undefined, Infinity, [{ type: "infinity", value: "∞" }]);
+            assertParts("en-US", undefined, 1000.3423, [
+                { type: "integer", value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" },
+                { type: "decimal", value: "." },
+                { type: "fraction", value: "342" }
+            ]);
+            assertParts("en-US", { minimumFractionDigits: 5 }, 1000.3423, [
+                { type: "integer", value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" },
+                { type: "decimal", value: "." },
+                { type: "fraction", value: "34230" }
+            ]);
+            assertParts("en-US", { style: "currency", currency: "CAD", currencyDisplay: "name" }, 1000.3423, [
+                { type: "integer", value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" },
+                { type: "decimal", value: "." },
+                { type: "fraction", value: "34" },
+                { type: "literal", value: " " },
+                { type: "currency", value: "Canadian dollars" }
+            ]);
+            assertParts("en-US", { style: "percent", minimumSignificantDigits: 4 }, 0.3423, [
+                { type: "integer", value: "34" },
+                { type: "decimal", value: "." },
+                { type: "fraction", value: "23" },
+                { type: "percent", value: "%" }
+            ]);
+
+            assertParts("de-DE", { minimumFractionDigits: 5 }, 1000.3423, [
+                { type: "integer", value: "1" },
+                { type: "group", value: "." },
+                { type: "integer", value: "000" },
+                { type: "decimal", value: "," },
+                { type: "fraction", value: "34230" }
+            ]);
+            assertParts("de-DE", { style: "currency", currency: "CAD", currencyDisplay: "name" }, 1000.3423, [
+                { type: "integer", value: "1" },
+                { type: "group", value: "." },
+                { type: "integer", value: "000" },
+                { type: "decimal", value: "," },
+                { type: "fraction", value: "34" },
+                { type: "literal", value: " " },
+                { type: "currency", value: "Kanadische Dollar" }
+            ]);
+            assertParts("de-DE", { style: "percent", minimumSignificantDigits: 4 }, 0.3423, [
+                { type: "integer", value: "34" },
+                { type: "decimal", value: "," },
+                { type: "fraction", value: "23" },
+                { type: "literal", value: "\u00A0" }, // non-breaking space
+                { type: "percent", value: "%" }
+            ]);
+        }
     }
 ];
 
-testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
+testRunner.runTests(tests, { verbose: false });
