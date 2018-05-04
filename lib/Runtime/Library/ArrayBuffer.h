@@ -86,6 +86,7 @@ namespace Js
         virtual bool IsArrayBuffer() = 0;
         virtual bool IsSharedArrayBuffer() = 0;
         virtual bool IsWebAssemblyArrayBuffer() { return false; }
+        virtual bool IsProjectionArrayBuffer() { return false; }
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
@@ -325,7 +326,8 @@ namespace Js
         // take over ownership. a CoTaskMemAlloc'ed buffer passed in via projection.
         static ProjectionArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
-        virtual void Finalize(bool isShutdown) override {};
+        virtual void Finalize(bool isShutdown) override;
+        virtual bool IsProjectionArrayBuffer() override { return true; }
     private:
         ProjectionArrayBuffer(uint32 length, DynamicType * type);
         ProjectionArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
