@@ -447,6 +447,11 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser, const cha
     {
         CharType curChar = ReadChar(configFile);
 
+        if (this->_flags.rawInputFromConfigFileIndex < sizeof(this->_flags.rawInputFromConfigFile) / sizeof(this->_flags.rawInputFromConfigFile[0]))
+        {
+            this->_flags.rawInputFromConfigFile[this->_flags.rawInputFromConfigFileIndex++] = curChar;
+        }
+
         if (curChar == EndChar || isspace(curChar) || curChar == 0)
         {
             configBuffer[index] = 0;
