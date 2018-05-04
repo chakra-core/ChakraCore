@@ -4297,6 +4297,7 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         flags |= fFncOneArg;
     }
 
+    AutoParsingSuperRestrictionStateRestorer restorer(this);
     this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
     ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(flags, *ppNameHint,
         /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
@@ -4609,6 +4610,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
             // Rewind to the PID and parse a function expression.
             this->GetScanner()->SeekTo(atPid);
+
+            AutoParsingSuperRestrictionStateRestorer restorer(this);
             this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
             ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
                 /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
