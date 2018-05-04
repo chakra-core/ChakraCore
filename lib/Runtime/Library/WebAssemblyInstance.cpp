@@ -257,9 +257,21 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
             case Wasm::ExternalKinds::Memory:
                 obj = env->GetMemory(wasmExport->index);
                 break;
-            case Wasm::ExternalKinds::Function:
+            case Wasm::ExternalKinds::Function: {
                 obj = env->GetWasmFunction(wasmExport->index);
+                // Check whether there's any SIMD value in the function's signature.
+                Wasm::WasmSignature* sig = ((WasmScriptFunction*)(obj))->GetSignature();
+                for (Js::ArgSlot j = 0; j < sig->GetParamCount(); j++) {
+                    if ((sig->GetParam(j)) == Wasm::WasmTypes::M128)
+                        JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
+                }
+
+                for (Js::ArgSlot j = 0; j < sig->GetResultCount(); j++) {
+                    if ((sig->GetResult(j)) == Wasm::WasmTypes::M128)
+                        JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
+                }
                 break;
+            }
             case Wasm::ExternalKinds::Global:
                 Wasm::WasmGlobal* global = wasmModule->GetGlobal(wasmExport->index);
                 if (global->IsMutable())
@@ -279,6 +291,7 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
                     obj = JavascriptNumber::New(cnst.f64, scriptContext);
                     break;
                 case Wasm::WasmTypes::I64:
+                case Wasm::WasmTypes::M128:
                     JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
                 default:
                     Assert(UNREACHED);
@@ -340,6 +353,18 @@ void WebAssemblyInstance::LoadImports(
                 }
                 // Imported Wasm functions can be called directly
                 env->SetWasmFunction(counter, func);
+            }
+
+            // Check whether there's any SIMD value in the function's signature.
+            Wasm::WasmSignature* sig = wasmModule->GetWasmFunctionInfo(counter)->GetSignature();
+            for (Js::ArgSlot j = 0; j < sig->GetParamCount(); j++) {
+                if ((sig->GetParam(j)) == Wasm::WasmTypes::M128)
+                    JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
+            }
+
+            for (Js::ArgSlot j = 0; j < sig->GetResultCount(); j++) {
+                if ((sig->GetResult(j)) == Wasm::WasmTypes::M128)
+                   JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
             }
             break;
         }
@@ -412,7 +437,9 @@ void WebAssemblyInstance::LoadImports(
             case Wasm::WasmTypes::I32: cnst.i32 = JavascriptConversion::ToInt32(prop, ctx); break;
             case Wasm::WasmTypes::F32: cnst.f32 = (float)JavascriptConversion::ToNumber(prop, ctx); break;
             case Wasm::WasmTypes::F64: cnst.f64 = JavascriptConversion::ToNumber(prop, ctx); break;
-            case Wasm::WasmTypes::I64: Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
+            case Wasm::WasmTypes::I64:
+            case Wasm::WasmTypes::M128:
+            Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             default:
                 Js::Throw::InternalError();
             }
