@@ -93,6 +93,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)HeapInfoManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RecyclerSweepManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DelayDeletingFunctionTable.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)HeapBucketStats.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
@@ -119,6 +120,7 @@
     <ClInclude Include="HeapBlock.h" />
     <ClInclude Include="HeapBlockMap.h" />
     <ClInclude Include="HeapBucket.h" />
+    <ClInclude Include="HeapBucketStats.h" />
     <ClInclude Include="HeapConstants.h" />
     <ClInclude Include="HeapInfo.h" />
     <ClInclude Include="HeapInfoManager.h" />
