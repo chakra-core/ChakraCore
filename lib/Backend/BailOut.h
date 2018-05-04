@@ -27,8 +27,8 @@ public:
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
         byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
-        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), outParamInlinedArgSlot(nullptr),
-        liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
+        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false),
+        outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
         branchConditionOpnd(nullptr),
         stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr)
     {
@@ -70,6 +70,7 @@ public:
     bool wasCloned;
     bool isInvertedBranch;
     bool sharedBailOutKind;
+    bool isLoopTopBailOutInfo;
 
 #if DBG
     bool wasCopied;
@@ -201,9 +202,13 @@ public:
     {
         Normal = 0,
         Branch = 1,
-        Shared = 2
+        Shared = 2,
+        SharedForLoopTop = 3
     };
     BailoutRecordType GetType() { return type; }
+    void SetType(BailoutRecordType type) { this->type = type; }
+    bool IsShared() const { return type == Shared || type == SharedForLoopTop; }
+    bool IsForLoopTop() const { return type == SharedForLoopTop; }
 protected:
     struct BailOutReturnValue
     {

@@ -3345,6 +3345,19 @@ BasicBlock::IsLandingPad()
     return nextBlock && nextBlock->loop && nextBlock->isLoopHeader && nextBlock->loop->landingPad == this;
 }
 
+BailOutInfo *
+BasicBlock::CreateLoopTopBailOutInfo(GlobOpt * globOpt)
+{
+    IR::Instr * firstInstr = this->GetFirstInstr();
+    BailOutInfo* bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo, firstInstr->GetByteCodeOffset(), firstInstr->m_func);
+    bailOutInfo->isLoopTopBailOutInfo = true;
+    globOpt->FillBailOutInfo(this, bailOutInfo);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
+#endif
+    return bailOutInfo;
+}
+
 IR::Instr *
 FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
 {
@@ -4539,13 +4552,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         {
             // Capture bail out info in case we have optimization that needs it
             Assert(this->loop->bailOutInfo == nullptr);
-            IR::Instr * firstInstr = this->GetFirstInstr();
-            this->loop->bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo,
-                firstInstr->GetByteCodeOffset(), firstInstr->m_func);
-            globOpt->FillBailOutInfo(this, this->loop->bailOutInfo);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-            this->loop->bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
-#endif
+            this->loop->bailOutInfo = this->CreateLoopTopBailOutInfo(globOpt);
         }
 
         // If loop pre-pass, don't insert convert from type-spec to var

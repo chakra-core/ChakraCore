@@ -1212,7 +1212,7 @@ BailOutRecord::BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout,
 
 void BailOutRecord::UpdatePolymorphicFieldAccess(Js::JavascriptFunction * function, BailOutRecord const * bailOutRecord)
 {
-    Js::FunctionBody * executeFunction = bailOutRecord->type == Shared ? ((SharedBailOutRecord*)bailOutRecord)->functionBody : function->GetFunctionBody();
+    Js::FunctionBody * executeFunction = bailOutRecord->IsShared() ? ((SharedBailOutRecord*)bailOutRecord)->functionBody : function->GetFunctionBody();
     Js::DynamicProfileInfo *dynamicProfileInfo = nullptr;
     if (executeFunction->HasDynamicProfileInfo())
     {
@@ -1708,11 +1708,10 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
     Assert(bailOutKind != IR::BailOutInvalid);
 
-    if ((executeFunction->HasDynamicProfileInfo() && callsCount == 0) ||
+    Js::DynamicProfileInfo * profileInfo = executeFunction->HasDynamicProfileInfo() ? executeFunction->GetAnyDynamicProfileInfo() : nullptr;
+    if ((profileInfo && callsCount == 0) ||
         PHASE_FORCE(Js::ReJITPhase, executeFunction))
     {
-        Js::DynamicProfileInfo * profileInfo = executeFunction->GetAnyDynamicProfileInfo();
-
         if ((bailOutKind & (IR::BailOutOnResultConditions | IR::BailOutOnDivSrcConditions)) || bailOutKind == IR::BailOutIntOnly || bailOutKind == IR::BailOnIntMin || bailOutKind == IR::BailOnDivResultNotInt)
         {
             // Note WRT BailOnIntMin: it wouldn't make sense to re-jit without changing anything here, as interpreter will not change the (int) type,
@@ -2155,7 +2154,6 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
     if (!reThunk && rejitReason != RejitReason::None)
     {
-        Js::DynamicProfileInfo * profileInfo = executeFunction->GetAnyDynamicProfileInfo();
         // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
         //         For RS2, turn the rejitCount check into an assert and let's fix all these issues.
         if (profileInfo->GetRejitCount() >= 100 ||
@@ -2223,6 +2221,14 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     }
     else if (rejitReason != RejitReason::None)
     {
+        if (bailOutRecord->IsForLoopTop() && IR::IsTypeCheckBailOutKind(bailOutRecord->bailOutKind))
+        {
+            // Disable FieldPRE if we're triggering a type check rejit due to a bailout at the loop top.
+            // Most likely this was caused by a CheckFixedFld that was hoisted from a branch block where 
+            // only certain types flowed, to the loop top, where more types (different or non-equivalent)
+            // were flowing in.
+            profileInfo->DisableFieldPRE();
+        }
 #ifdef REJIT_STATS
         executeFunction->GetScriptContext()->LogRejit(executeFunction, rejitReason);
 #endif

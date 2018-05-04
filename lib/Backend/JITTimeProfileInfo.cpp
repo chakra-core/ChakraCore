@@ -147,6 +147,7 @@ JITTimeProfileInfo::InitializeJITProfileData(
     data->flags |= profileInfo->IsPowIntIntTypeSpecDisabled() ? Flags_disablePowIntIntTypeSpec : 0;
     data->flags |= profileInfo->IsTagCheckDisabled() ? Flags_disableTagCheck : 0;
     data->flags |= profileInfo->IsOptimizeTryFinallyDisabled() ? Flags_disableOptimizeTryFinally : 0;
+    data->flags |= profileInfo->IsFieldPREDisabled() ? Flags_disableFieldPRE : 0;
 }
 
 const Js::LdLenInfo *
@@ -507,6 +508,12 @@ bool
 JITTimeProfileInfo::IsOptimizeTryFinallyDisabled() const
 {
     return TestFlag(Flags_disableOptimizeTryFinally);
+}
+
+bool
+JITTimeProfileInfo::IsFieldPREDisabled() const
+{
+    return TestFlag(Flags_disableFieldPRE);
 }
 
 bool

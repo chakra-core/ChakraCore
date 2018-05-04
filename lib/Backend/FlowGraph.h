@@ -346,6 +346,7 @@ public:
     }
 
     bool IsLandingPad();
+    BailOutInfo * CreateLoopTopBailOutInfo(GlobOpt * globOpt);
 
     // GlobOpt Stuff
 public:

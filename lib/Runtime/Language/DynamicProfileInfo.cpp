@@ -1735,6 +1735,7 @@ namespace Js
                 _u(" disableStackArgOpt : %s\n")
                 _u(" disableTagCheck : %s\n")
                 _u(" disableOptimizeTryFinally : %s\n"),
+                _u(" disableFieldPRE : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1771,7 +1772,8 @@ namespace Js
                 IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableStackArgOpt),
                 IsTrueOrFalse(this->bits.disableTagCheck),
-                IsTrueOrFalse(this->bits.disableOptimizeTryFinally));
+                IsTrueOrFalse(this->bits.disableOptimizeTryFinally),
+                IsTrueOrFalse(this->bits.disableFieldPRE));
         }
     }
 

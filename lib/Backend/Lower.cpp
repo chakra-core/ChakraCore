@@ -13495,7 +13495,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
                 indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr, false);
         }
 
-        if (bailOutInfo->bailOutRecord->GetType() == BailOutRecord::BailoutRecordType::Shared)
+        if (bailOutInfo->bailOutRecord->IsShared())
         {
             IR::Opnd *functionBodyOpnd;
             if (this->m_func->IsOOPJIT())
@@ -13629,6 +13629,10 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         {
             bailOutRecord = NativeCodeDataNewZ(this->m_func->GetNativeCodeDataAllocator(),
                 SharedBailOutRecord, bailOutInfo->bailOutOffset, bailOutInfo->polymorphicCacheIndex, instr->GetBailOutKind(), bailOutInfo->bailOutFunc);
+            if (bailOutInfo->isLoopTopBailOutInfo)
+            {
+                bailOutRecord->SetType(BailOutRecord::BailoutRecordType::SharedForLoopTop);
+            }
         }
         else
         {

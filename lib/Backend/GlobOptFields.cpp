@@ -117,6 +117,11 @@ GlobOpt::DoFieldPRE(Loop *loop) const
         return true;
     }
 
+    if (this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsFieldPREDisabled())
+    {
+        return false;
+    }
+
     return DoFieldOpts(loop);
 }
 

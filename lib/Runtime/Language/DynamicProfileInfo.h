@@ -568,6 +568,7 @@ namespace Js
             Field(bool) disableStackArgOpt : 1;
             Field(bool) disableTagCheck : 1;
             Field(bool) disableOptimizeTryFinally : 1;
+            Field(bool) disableFieldPRE : 1;
         };
         Field(Bits) bits;
 
@@ -868,6 +869,8 @@ namespace Js
         void DisableTagCheck() { this->bits.disableTagCheck = true; }
         bool IsOptimizeTryFinallyDisabled() const { return bits.disableOptimizeTryFinally; }
         void DisableOptimizeTryFinally() { this->bits.disableOptimizeTryFinally = true; }
+        bool IsFieldPREDisabled() const { return bits.disableFieldPRE; }
+        void DisableFieldPRE() { this->bits.disableFieldPRE = true; }
 
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }
