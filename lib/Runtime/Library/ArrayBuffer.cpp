@@ -218,11 +218,10 @@ namespace Js
     {
         Assert(!this->isDetached);
 
-        if (this->IsProjectionArrayBuffer())
-        {
-            Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
-            recycler->ReportExternalMemoryFree(bufferLength);
-        }
+        // we are about to lose track of the buffer to another owner
+        // report that we no longer own the memory
+        Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
+        recycler->ReportExternalMemoryFree(bufferLength);
 
         this->buffer = nullptr;
         this->bufferLength = 0;
@@ -702,6 +701,13 @@ namespace Js
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptArrayBuffer, buffer, length, type);
         Assert(result);
+
+        // we take the ownership of the buffer and will have to free it so charge it to our quota.
+        if (!recycler->RequestExternalMemoryAllocation(length))
+        {
+            JavascriptError::ThrowOutOfMemoryError(result->GetScriptContext());
+        }
+
         recycler->AddExternalMemoryUsage(length);
         return result;
     }
@@ -713,12 +719,6 @@ namespace Js
         {
             freeFunction(this->buffer);
             this->buffer = nullptr;
-
-            // for projection array buffers we have already reported freeing on detach
-            if (this->allocationType != ArrayBufferAllocationType::CoTask)
-            {
-                this->recycler->ReportExternalMemoryFree(this->bufferLength);
-            }
         }
         this->bufferLength = 0;
     }
@@ -890,6 +890,12 @@ namespace Js
         if (buffer)
         {
             result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, buffer, length, type);
+
+            // we take the ownership of the buffer and will have to free it so charge it to our quota.
+            if (!recycler->RequestExternalMemoryAllocation(length))
+            {
+                JavascriptError::ThrowOutOfMemoryError(result->GetScriptContext());
+            }
         }
         else
         {
@@ -903,9 +909,9 @@ namespace Js
             {
                 result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, length, type);
             }
-            // Only add external memory when we create a new internal buffer
-            recycler->AddExternalMemoryUsage(length);
         }
+
+        recycler->AddExternalMemoryUsage(length);
         Assert(result);
         return result;
     }
@@ -960,6 +966,11 @@ namespace Js
             {
                 return nullptr;
             }
+
+            // We are transferring the buffer to the new owner. 
+            // To avoid double-charge to the allocation quota we will free the "diff" amount here.
+            this->GetRecycler()->ReportExternalMemoryFree(growSize);
+
             return finalizeGrowMemory(this->GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength));
         }
 #endif
@@ -994,6 +1005,10 @@ namespace Js
             {
                 return nullptr;
             }
+
+            // We are transferring the buffer to the new owner. 
+            // To avoid double-charge to the allocation quota we will free the "diff" amount here.
+            this->GetRecycler()->ReportExternalMemoryFree(growSize);
 
             WebAssemblyArrayBuffer* newArrayBuffer = finalizeGrowMemory(this->GetLibrary()->CreateWebAssemblyArrayBuffer(newBuffer, newBufferLength));
             // We've successfully Detached this buffer and created a new WebAssemblyArrayBuffer
