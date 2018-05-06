@@ -149,6 +149,7 @@ struct InlineeFrameInfo
     InlineeFrameRecord* record;
     BVSparse<JitArenaAllocator>* floatSyms;
     BVSparse<JitArenaAllocator>* intSyms;
+    BVSparse<JitArenaAllocator>* varSyms;
 
     bool isRecorded;
 
