@@ -740,7 +740,10 @@ void ByteCodeGenerator::FinalizeFuncInfos()
 
     FOREACH_SLIST_ENTRY(FuncInfo*, funcInfo, this->funcInfosToFinalize)
     {
-        funcInfo->byteCodeFunction->SetAttributes(funcInfo->originalAttributes);
+        if (funcInfo->canDefer)
+        {
+            funcInfo->byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(funcInfo->byteCodeFunction->GetAttributes() | Js::FunctionInfo::Attributes::CanDefer));
+        }
     }
     NEXT_SLIST_ENTRY;
 

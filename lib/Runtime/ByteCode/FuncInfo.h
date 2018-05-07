@@ -117,8 +117,8 @@ public:
     Js::RegSlot firstTmpReg;
     Js::RegSlot curTmpReg;
     int argsPlaceHolderSlotCount;   // count of place holder slots for same name args and destructuring patterns
-    Js::FunctionInfo::Attributes originalAttributes;
 
+    uint canDefer : 1;
     uint callsEval : 1;
     uint childCallsEval : 1;
     uint hasArguments : 1;

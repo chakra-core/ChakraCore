@@ -2763,7 +2763,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 
     // Note: Don't check the actual attributes on the functionInfo here, since CanDefer has been cleared while
     // we're generating byte code.
-    if (deferParseFunction->IsDeferred() || (funcInfo->originalAttributes & Js::FunctionInfo::Attributes::CanDefer))
+    if (deferParseFunction->IsDeferred() || funcInfo->canDefer)
     {
         Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);
     }

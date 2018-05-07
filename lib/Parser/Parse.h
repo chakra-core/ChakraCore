@@ -141,7 +141,7 @@ public:
     size_t GetSourceLength() { return m_length; }
     size_t GetOriginalSourceLength() { return m_originalLength; }
     static ULONG GetDeferralThreshold(bool isProfileLoaded);
-    BOOL DeferredParse(Js::LocalFunctionId functionId);
+    BOOL WillDeferParse(Js::LocalFunctionId functionId);
     BOOL IsDeferredFnc();
     void ReduceDeferredScriptLength(size_t chars);
 

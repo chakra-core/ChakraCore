@@ -2379,7 +2379,7 @@ namespace Js
 
                     if (isDebugOrAsmJsReparse)
                     {
-                        grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if doing a debug/asm.js re-parse
+                        grfscr &= ~fscrWillDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
                     }
 
                     if (isDebugOrAsmJsReparse)
