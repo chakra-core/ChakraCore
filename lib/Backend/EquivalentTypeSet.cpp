@@ -20,6 +20,12 @@ JITTypeHolder EquivalentTypeSet::GetType(uint16 index) const
     return this->types[index];
 }
 
+void EquivalentTypeSet::SetType(uint16 index, JITTypeHolder type)
+{
+    Assert(index < this->count);
+    this->types[index] = type;
+}
+
 JITTypeHolder EquivalentTypeSet::GetFirstType() const
 {
     return GetType(0);

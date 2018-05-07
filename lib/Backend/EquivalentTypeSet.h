@@ -20,14 +20,25 @@ namespace Js
             return this->count;
         }
 
+        void SetCount(uint16 count)
+        {
+            this->count = count;
+        }
+
         JITTypeHolder GetFirstType() const;
 
         JITTypeHolder GetType(uint16 index) const;
+        void SetType(uint16 index, JITTypeHolder type);
 
         bool GetSortedAndDuplicatesRemoved() const
         {
             return this->sortedAndDuplicatesRemoved;
         }
+        void SetSortedAndDuplicatesRemoved(bool sorted)
+        {
+            this->sortedAndDuplicatesRemoved = sorted;
+        }
+
         bool Contains(const JITTypeHolder type, uint16 * pIndex = nullptr);
 
         static bool AreIdentical(EquivalentTypeSet * left, EquivalentTypeSet * right);

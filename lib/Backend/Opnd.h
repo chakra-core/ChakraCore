@@ -1267,6 +1267,17 @@ public:
         return this->objTypeSpecFldInfo->GetFirstEquivalentType();
     }
 
+    void TryDepolymorphication(JITTypeHolder type, uint16 slotIndex, bool usesAuxSlot, uint16 * pNewSlotIndex, bool * pNewUsesAuxSlot, uint16 * checkedTypeSetIndex = nullptr) const
+    {
+        Assert(HasObjTypeSpecFldInfo());
+        return this->objTypeSpecFldInfo->TryDepolymorphication(type, slotIndex, usesAuxSlot, pNewSlotIndex, pNewUsesAuxSlot, checkedTypeSetIndex);
+    }
+
+    bool NeedsDepolymorphication() const
+    {
+        return this->objTypeSpecFldInfo != nullptr && this->objTypeSpecFldInfo->NeedsDepolymorphication();
+    }
+
     bool IsObjectHeaderInlined() const;
     void UpdateSlotForFinalType();
     bool ChangesObjectLayout() const;

@@ -998,6 +998,8 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     bool doEquivTypeCheck = opnd->HasEquivalentTypeSet() && !opnd->NeedsMonoCheck();
     if (!doEquivTypeCheck)
     {
+        AssertOrFailFast(!opnd->NeedsDepolymorphication());
+
         // We need a monomorphic type check here (e.g., final type opt, fixed field check on non-proto property).
         JITTypeHolder opndType = opnd->GetType();
 
@@ -1119,7 +1121,71 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         Js::EquivalentTypeSet * opndTypeSet = opnd->GetEquivalentTypeSet();
         uint16 checkedTypeSetIndex = (uint16)-1;
 
-        if (valueInfo == nullptr || (valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr))
+        if (opnd->NeedsDepolymorphication())
+        {
+            // The opnd's type set (opndTypeSet) is non-equivalent. Test all the types coming from the valueInfo.
+            // If all of them are contained in opndTypeSet, and all of them have the same slot index in opnd's
+            // objtypespecfldinfo, then we can use that slot index and treat the set as equivalent.
+            // (Also test whether all types do/don't use aux slots.)
+
+            uint16 slotIndex = Js::Constants::NoSlot;
+            bool auxSlot = false;
+
+            // Do this work only if there is an upstream type value. We don't attempt to do a type check based on
+            // a non-equivalent set.
+            if (valueInfo != nullptr)
+            {
+                if (valueInfo->GetJsType() != nullptr)
+                {
+                    opnd->TryDepolymorphication(valueInfo->GetJsType(), Js::Constants::NoSlot, false, &slotIndex, &auxSlot, &checkedTypeSetIndex);
+                }
+                else if (valueInfo->GetJsTypeSet() != nullptr)
+                {
+                    Js::EquivalentTypeSet *typeSet = valueInfo->GetJsTypeSet();
+                    for (uint16 i = 0; i < typeSet->GetCount(); i++)
+                    {
+                        opnd->TryDepolymorphication(typeSet->GetType(i), slotIndex, auxSlot, &slotIndex, &auxSlot);
+                        if (slotIndex == Js::Constants::NoSlot)
+                        {
+                            // Indicates failure/mismatch. We're done.
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (slotIndex == Js::Constants::NoSlot)
+            {
+                // Indicates failure/mismatch
+                isSpecialized = false;
+                if (consumeType)
+                {
+                    opnd->SetTypeMismatch(true);
+                }
+            }
+            else
+            {
+                // Indicates we can optimize, as all upstream types are equivalent here.
+
+                opnd->SetSlotIndex(slotIndex);
+                opnd->SetUsesAuxSlot(auxSlot);
+
+                isSpecialized = true;
+                if (isTypeCheckedOut)
+                {
+                    *isTypeCheckedOut = true;
+                }
+                if (consumeType)
+                {
+                    opnd->SetTypeChecked(true);
+                }
+                if (checkedTypeSetIndex != (uint16)-1)
+                {
+                    opnd->SetCheckedTypeSetIndex(checkedTypeSetIndex);
+                }
+            }
+        }
+        else if (valueInfo == nullptr || (valueInfo->GetJsType() == nullptr && valueInfo->GetJsTypeSet() == nullptr))
         {
             // If we don't have a value for the type we will have to emit a type check and we produce a new type value here.
             if (produceType)
