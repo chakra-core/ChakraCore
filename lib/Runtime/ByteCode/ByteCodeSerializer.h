@@ -161,6 +161,7 @@ namespace Js
         static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
 
         static FunctionBody* DeserializeFunction(ScriptContext* scriptContext, DeferDeserializeFunctionInfo* deferredFunction);
+        static LPCWSTR DeserializeString(const DeferredFunctionStub* deferredStub, uint stringId, uint32& stringLength);
 
         // This lib doesn't directly depend on the generated interfaces. Ensure the same codes with a C_ASSERT
         static const HRESULT CantGenerate = 0x80020201L;

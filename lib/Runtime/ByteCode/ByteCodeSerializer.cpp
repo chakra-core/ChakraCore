@@ -2354,7 +2354,7 @@ public:
                     // We have to convert them to indices into our string table to effectively
                     // serialize the names.
                     const IdentPtr& pid = iter.CurrentValueReference();
-                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), pid->Cch());
+                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), (pid->Cch() + 1) * sizeof(WCHAR));
 
                     PrependInt32(builder, _u("Captured Name"), capturedNameSerializedId);
 
@@ -3802,7 +3802,7 @@ public:
         if (definedFields->has_deferredStubs)
         {
             Assert(isDeferredFunction);
-            current = ReadDeferredStubs(current, nestedCount, &deferredStubs, true);
+            current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
         if (!deserializeThis && !isDeferredFunction)
@@ -3852,6 +3852,11 @@ public:
         {
             *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, (FunctionInfo::Attributes)attributes,
                         Js::FunctionBody::FunctionBodyFlags::Flags_None);
+
+            if (deferredStubs != nullptr)
+            {
+                (*function)->SetDeferredStubs(deferredStubs);
+            }
         }
 
         // These fields are manually deserialized previously
@@ -4134,7 +4139,7 @@ public:
         return S_OK;
     }
 
-    const byte* ReadDeferredStubs(const byte* current, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
+    const byte* ReadDeferredStubs(const byte* current, ByteCodeCache* cache, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
     {
         if (nestedCount == 0)
         {
@@ -4146,6 +4151,8 @@ public:
         for (uint i = 0; i < nestedCount; i++)
         {
             DeferredFunctionStub* nestedStub = *deferredStubs + i;
+
+            nestedStub->byteCodeCache = cache;
 
             current = ReadUInt32(current, &nestedStub->ichMin);
             current = ReadUInt32(current, (uint*)&nestedStub->fncFlags);
@@ -4165,7 +4172,7 @@ public:
 
             if (recurse)
             {
-                current = ReadDeferredStubs(current, nestedStub->nestedCount, &nestedStub->deferredStubs, recurse);
+                current = ReadDeferredStubs(current, cache, nestedStub->nestedCount, &nestedStub->deferredStubs, recurse);
             }
         }
 
@@ -4542,6 +4549,15 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
     LEAVE_PINNED_SCOPE();
 
     return hr;
+}
+
+LPCWSTR ByteCodeSerializer::DeserializeString(const DeferredFunctionStub* deferredStub, uint stringId, uint32& stringLength)
+{
+    ByteCodeCache* cache = deferredStub->byteCodeCache;
+    ByteCodeBufferReader* reader = cache->GetReader();
+
+    stringLength = reader->GetString16LengthById(stringId);
+    return reader->GetString16ById(stringId);
 }
 
 void ByteCodeSerializer::ReadSourceInfo(const DeferDeserializeFunctionInfo* deferredFunction, int& lineNumber, int& columnNumber, bool& m_isEval, bool& m_isDynamicFunction)

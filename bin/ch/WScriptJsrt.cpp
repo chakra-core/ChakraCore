@@ -546,8 +546,17 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
             strlen(fullPath), &fname));
         JsSourceContext sourceContext = GetNextSourceContext();
         RegisterScriptDir(sourceContext, fullPath);
-        errorCode = ChakraRTInterface::JsRun(scriptSource, sourceContext,
-            fname, JsParseScriptAttributeNone, &returnValue);
+
+        if (HostConfigFlags::flags.UseParserStateCacheIsEnabled)
+        {
+            JsValueRef parserState;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsSerializeParserState(scriptSource, &parserState, JsParseScriptAttributeNone));
+            errorCode = ChakraRTInterface::JsRunScriptWithParserState(scriptSource, sourceContext, fname, JsParseScriptAttributeNone, parserState, &returnValue);
+        }
+        else
+        {
+            errorCode = ChakraRTInterface::JsRun(scriptSource, sourceContext, fname, JsParseScriptAttributeNone, &returnValue);
+        }
 
         if(errorCode == JsNoError)
         {
@@ -583,8 +592,17 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
             strlen(fullPath), &fname));
         JsSourceContext sourceContext = GetNextSourceContext();
         RegisterScriptDir(sourceContext, fullPath);
-        errorCode = ChakraRTInterface::JsRun(scriptSource, sourceContext,
-            fname, JsParseScriptAttributeNone, &returnValue);
+
+        if (HostConfigFlags::flags.UseParserStateCacheIsEnabled)
+        {
+            JsValueRef parserState;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsSerializeParserState(scriptSource, &parserState, JsParseScriptAttributeNone));
+            errorCode = ChakraRTInterface::JsRunScriptWithParserState(scriptSource, sourceContext, fname, JsParseScriptAttributeNone, parserState, &returnValue);
+        }
+        else
+        {
+            errorCode = ChakraRTInterface::JsRun(scriptSource, sourceContext, fname, JsParseScriptAttributeNone, &returnValue);
+        }
 
         if (errorCode == JsNoError)
         {
