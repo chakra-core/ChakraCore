@@ -6607,12 +6607,31 @@ namespace Js
         }
 
         Field(FunctionCodeGenRuntimeData*)* codeGenCallbackRuntimeData = this->GetCodeGenCallbackRuntimeData();
-        if (codeGenCallbackRuntimeData[profiledCallSiteId] == nullptr)
+        Field(FunctionCodeGenRuntimeData*) const inlineeData = codeGenCallbackRuntimeData[profiledCallSiteId];
+        if (inlineeData == nullptr)
         {
-            codeGenCallbackRuntimeData[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            codeGenCallbackRuntimeData[profiledCallSiteId] = runtimeData;
+            return runtimeData;
         }
 
-        return codeGenCallbackRuntimeData[profiledCallSiteId];
+        // Find the right code gen runtime data
+        FunctionCodeGenRuntimeData *next = inlineeData;
+
+        while (next && (next->GetFunctionBody() != inlinee))
+        {
+            next = next->GetNext();
+        }
+
+        if (next)
+        {
+            return next;
+        }
+
+        FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+        runtimeData->SetupRuntimeDataChain(inlineeData);
+        codeGenCallbackRuntimeData[profiledCallSiteId] = runtimeData;
+        return runtimeData;
     }
 #endif
 
