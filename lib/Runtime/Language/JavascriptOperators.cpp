@@ -891,6 +891,7 @@ CommonNumber:
                     const PropertyRecord* rightValue = JavascriptSymbol::UnsafeFromVar(aRight)->GetValue();
                     Assert(leftValue != rightValue);
             }
+            break;
 #endif
         case TypeIds_GlobalObject:
         case TypeIds_HostDispatch:
