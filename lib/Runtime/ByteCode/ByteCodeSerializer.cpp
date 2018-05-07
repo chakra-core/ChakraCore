@@ -3814,7 +3814,7 @@ public:
         }
 
         bool isDeferredFunction = (attributes & FunctionInfo::Attributes::DeferredParse) != 0;
-        DeferredFunctionStub* deferredStubs = nullptr;
+        Field(DeferredFunctionStub*) deferredStubs = nullptr;
         if (definedFields->has_deferredStubs)
         {
             Assert(isDeferredFunction);
@@ -4150,7 +4150,7 @@ public:
         return S_OK;
     }
 
-    const byte* ReadDeferredStubs(const byte* current, uint nestedCount, DeferredFunctionStub** deferredStubs, bool recurse)
+    const byte* ReadDeferredStubs(const byte* current, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
     {
         if (nestedCount == 0)
         {

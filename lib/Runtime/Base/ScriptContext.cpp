@@ -2104,10 +2104,10 @@ namespace Js
         _In_ charcount_t cchLength,
         _In_ SRCINFO *srcInfo,
         _In_ Js::Utf8SourceInfo* utf8SourceInfo,
-        __inout uint& sourceIndex,
+        _Inout_ uint& sourceIndex,
         _In_ bool isCesu8,
-        _In_ NativeModule* nativeModule,
-        __deref_out Js::ParseableFunctionInfo ** func,
+        _In_opt_ NativeModule* nativeModule,
+        _Out_ Js::ParseableFunctionInfo ** func,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
         Assert(pDataCache != nullptr);
@@ -2115,6 +2115,7 @@ namespace Js
 
         *func = nullptr;
 
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         AutoCOMPtr<IStream> readStream;
         HRESULT hr = pDataCache->GetReadStream(&readStream);
 
@@ -2171,6 +2172,7 @@ namespace Js
         }
 
         *func = functionBody->GetParseableFunctionInfo();
+#endif
 
         return S_OK;
     }
@@ -2193,7 +2195,9 @@ namespace Js
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
         Assert(func != nullptr);
+        Assert(pDataCache != nullptr);
 
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         HRESULT hr = E_FAIL;
         byte* parserStateCacheBuffer = nullptr;
         DWORD parserStateCacheSize = 0;
@@ -2220,7 +2224,12 @@ namespace Js
             return false;
         }
 
-        return pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize);
+        if (!pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize))
+        {
+            return false;
+        }
+#endif
+        return true;
     }
 
     HRESULT ScriptContext::CompileUTF8Core(
@@ -2235,12 +2244,13 @@ namespace Js
         __out size_t& srcLength,
         __out uint& sourceIndex,
         __deref_out Js::ParseableFunctionInfo ** func,
-        __in Js::SimpleDataCacheWrapper* pDataCache
+        __in_opt Js::SimpleDataCacheWrapper* pDataCache
     )
     {
         HRESULT hr = E_FAIL;
         Parser ps(this);
         (*func) = nullptr;
+        srcLength = cchLength;
 
         bool isCesu8 = !fOriginalUTF8Code;
         ParseNodeProg * parseTree = nullptr;

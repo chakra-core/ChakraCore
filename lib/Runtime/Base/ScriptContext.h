@@ -1294,10 +1294,10 @@ private:
             _In_ charcount_t cchLength,
             _In_ SRCINFO *srcInfo,
             _In_ Js::Utf8SourceInfo* utf8SourceInfo,
-            __inout uint& sourceIndex,
+            _Inout_ uint& sourceIndex,
             _In_ bool isCesu8,
-            _In_ NativeModule* nativeModule,
-            __deref_out Js::ParseableFunctionInfo ** func,
+            _In_opt_ NativeModule* nativeModule,
+            _Out_ Js::ParseableFunctionInfo ** func,
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
         bool TrySerializeParserState(
@@ -1318,7 +1318,7 @@ private:
             __out size_t& srcLength,
             __out uint& sourceIndex,
             __deref_out Js::ParseableFunctionInfo ** func,
-            __in Js::SimpleDataCacheWrapper* pDataCache);
+            __in_opt Js::SimpleDataCacheWrapper* pDataCache);
 
         HRESULT SerializeParserState(const byte* script, size_t cb,
             SRCINFO const * pSrcInfo,

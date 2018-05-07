@@ -29,8 +29,8 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             Assert(this->dataCache != nullptr);
             success = this->dataCache->SaveWriteDataStream(this->outStream) == S_OK;
-#endif
             this->outStream->Release();
+#endif
             this->outStream = nullptr;
         }
 
@@ -137,6 +137,9 @@ namespace Js
 
     HRESULT SimpleDataCacheWrapper::GetReadStream(_Out_ IStream** readStream)
     {
+        Assert(readStream != nullptr);
+
+        *readStream = nullptr;
         HRESULT hr = S_OK;
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
@@ -144,7 +147,7 @@ namespace Js
         hr = this->dataCache->GetReadDataStream(readStream);
 #endif
 
-        if (FAILED(hr))
+        if (FAILED(hr) || *readStream == nullptr)
         {
             return hr;
         }
@@ -152,22 +155,14 @@ namespace Js
         return ReadHeader(*readStream) ? S_OK : E_FAIL;
     }
 
-    bool SimpleDataCacheWrapper::HasBlock(_In_ BlockType blockType)
-    {
-        AutoCOMPtr<IStream> readStream;
-        HRESULT hr = this->GetReadStream(&readStream);
-
-        if (FAILED(hr))
-        {
-            return false;
-        }
-
-        return this->SeekReadStreamToBlock(readStream, blockType);
-    }
-
     bool SimpleDataCacheWrapper::SeekReadStreamToBlock(_In_ IStream* readStream, _In_ BlockType blockType, _Out_opt_ ULONG* bytesInBlock)
     {
         Assert(readStream != nullptr);
+
+        if (bytesInBlock != nullptr)
+        {
+            *bytesInBlock = 0;
+        }
 
         BlockType currentBlockType = BlockType_Invalid;
         ULONG byteCount = 0;
@@ -191,6 +186,7 @@ namespace Js
             return true;
         }
 
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         // The block we're pointing at is not the requested one, seek forward to the next block
         LARGE_INTEGER dlibMove;
         dlibMove.QuadPart = byteCount;
@@ -198,6 +194,7 @@ namespace Js
         {
             return false;
         }
+#endif
 
         return SeekReadStreamToBlock(readStream, blockType);
     }

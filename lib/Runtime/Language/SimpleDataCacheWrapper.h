@@ -22,7 +22,6 @@ namespace Js
 
         bool StartBlock(_In_ BlockType blockType, _In_ ULONG byteCount);
         ULONG BytesWrittenInBlock() { return this->bytesWrittenInBlock; }
-        bool HasBlock(_In_ BlockType blockType);
 
         bool Close();
 
@@ -32,46 +31,58 @@ namespace Js
         template <typename T>
         bool Write(_In_ T const& data)
         {
+            HRESULT hr = E_FAIL;
             if (!EnsureWriteStream()) {
                 return false;
             }
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesWritten = 0;
-            HRESULT hr = outStream->Write(&data, sizeof(T), &bytesWritten);
+            hr = outStream->Write(&data, sizeof(T), &bytesWritten);
             bytesWrittenInBlock += bytesWritten;
             // hr is S_FALSE if bytesRead < sizeOf(T)
+#endif
             return hr == S_OK;
         }
 
         template <typename T>
         bool WriteArray(_In_reads_(len) T * data, _In_ ULONG len)
         {
+            HRESULT hr = E_FAIL;
             if (!EnsureWriteStream()) {
                 return false;
             }
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesSize = sizeof(T) * len;
             ULONG bytesWritten = 0;
-            HRESULT hr = outStream->Write(data, bytesSize, &bytesWritten);
+            hr = outStream->Write(data, bytesSize, &bytesWritten);
             bytesWrittenInBlock += bytesWritten;
             // hr is S_FALSE if bytesRead < bytesSize
+#endif
             return hr == S_OK;
         }
 
         template <typename T>
         bool Read(_In_ IStream* readStream, T * data)
         {
+            HRESULT hr = E_FAIL;
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesRead = 0;
-            HRESULT hr = readStream->Read(data, sizeof(T), &bytesRead);
+            hr = readStream->Read(data, sizeof(T), &bytesRead);
             // hr is S_FALSE if bytesRead < sizeOf(T)
+#endif
             return hr == S_OK;
         }
 
         template <typename T>
         bool ReadArray(_In_ IStream* readStream, _Out_writes_(len) T * data, ULONG len)
         {
+            HRESULT hr = E_FAIL;
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesSize = sizeof(T) * len;
             ULONG bytesRead = 0;
-            HRESULT hr = readStream->Read(data, bytesSize, &bytesRead);
+            hr = readStream->Read(data, bytesSize, &bytesRead);
             // hr is S_FALSE if bytesRead < bytesSize
+#endif
             return hr == S_OK;
         }
 
