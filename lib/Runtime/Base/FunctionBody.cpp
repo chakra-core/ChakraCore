@@ -6509,33 +6509,35 @@ namespace Js
         return runtimeData;
     }
 
-    FunctionCodeGenRuntimeData *FunctionBody::EnsureInlineeCodeGenRuntimeData(
+    FunctionCodeGenRuntimeData * FunctionBody::EnsureCodeGenRuntimeDataCommon(
         Recycler *const recycler,
         __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
-        FunctionBody *const inlinee)
+        FunctionBody *const inlinee,
+        AuxPointerType auxType)
     {
         Assert(recycler);
         Assert(profiledCallSiteId < profiledCallSiteCount);
         Assert(inlinee);
 
-        if(!this->GetCodeGenRuntimeData())
+        if (this->GetAuxPtr(auxType) == nullptr)
         {
-            const auto codeGenRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, profiledCallSiteCount);
-            this->SetCodeGenRuntimeData(codeGenRuntimeData);
+            FunctionCodeGenRuntimeData ** codeGenRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, profiledCallSiteCount);
+            this->SetAuxPtr(auxType, codeGenRuntimeData);
         }
 
-        auto codeGenRuntimeData = this->GetCodeGenRuntimeData();
-        const auto inlineeData = codeGenRuntimeData[profiledCallSiteId];
-
-        if(!inlineeData)
+        Field(FunctionCodeGenRuntimeData *)* codeGenRuntimeData = static_cast<Field(FunctionCodeGenRuntimeData *)*>(this->GetAuxPtr(auxType));
+        Field(FunctionCodeGenRuntimeData *) const inlineeData = codeGenRuntimeData[profiledCallSiteId];
+        if (inlineeData == nullptr)
         {
-            return codeGenRuntimeData[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+            return runtimeData;
         }
 
         // Find the right code gen runtime data
-        FunctionCodeGenRuntimeData *next = inlineeData;
+        FunctionCodeGenRuntimeData * next = inlineeData;
 
-        while(next && (next->GetFunctionBody() != inlinee))
+        while (next && (next->GetFunctionBody() != inlinee))
         {
             next = next->GetNext();
         }
@@ -6545,9 +6547,26 @@ namespace Js
             return next;
         }
 
-        FunctionCodeGenRuntimeData *runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+        FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
         runtimeData->SetupRuntimeDataChain(inlineeData);
-        return codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+        codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+        return runtimeData;
+    }
+
+    FunctionCodeGenRuntimeData *FunctionBody::EnsureInlineeCodeGenRuntimeData(
+        Recycler *const recycler,
+        __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        return EnsureCodeGenRuntimeDataCommon(recycler, profiledCallSiteId, inlinee, AuxPointerType::CodeGenRuntimeData);
+    }
+
+    FunctionCodeGenRuntimeData * FunctionBody::EnsureCallbackInlineeCodeGenRuntimeData(
+        Recycler *const recycler,
+        __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        return EnsureCodeGenRuntimeDataCommon(recycler, profiledCallSiteId, inlinee, AuxPointerType::CodeGenCallbackRuntimeData);
     }
 
     const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
@@ -6589,49 +6608,6 @@ namespace Js
 
         Field(FunctionCodeGenRuntimeData*)* codeGenRuntimeData = this->GetCodeGenCallbackRuntimeDataWithLock();
         return codeGenRuntimeData ? codeGenRuntimeData[profiledCallSiteId] : nullptr;
-    }
-
-    FunctionCodeGenRuntimeData * FunctionBody::EnsureCallbackInlineeCodeGenRuntimeData(
-        Recycler *const recycler,
-        __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
-        FunctionBody *const inlinee)
-    {
-        Assert(recycler);
-        Assert(profiledCallSiteId < profiledCallSiteCount);
-        Assert(inlinee);
-
-        if (this->GetCodeGenCallbackRuntimeData() == nullptr)
-        {
-            FunctionCodeGenRuntimeData ** codeGenCallbackRuntimeData = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, profiledCallSiteCount);
-            this->SetCodeGenCallbackRuntimeData(codeGenCallbackRuntimeData);
-        }
-
-        Field(FunctionCodeGenRuntimeData*)* codeGenCallbackRuntimeData = this->GetCodeGenCallbackRuntimeData();
-        Field(FunctionCodeGenRuntimeData*) const inlineeData = codeGenCallbackRuntimeData[profiledCallSiteId];
-        if (inlineeData == nullptr)
-        {
-            FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
-            codeGenCallbackRuntimeData[profiledCallSiteId] = runtimeData;
-            return runtimeData;
-        }
-
-        // Find the right code gen runtime data
-        FunctionCodeGenRuntimeData *next = inlineeData;
-
-        while (next && (next->GetFunctionBody() != inlinee))
-        {
-            next = next->GetNext();
-        }
-
-        if (next)
-        {
-            return next;
-        }
-
-        FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
-        runtimeData->SetupRuntimeDataChain(inlineeData);
-        codeGenCallbackRuntimeData[profiledCallSiteId] = runtimeData;
-        return runtimeData;
     }
 #endif
 
