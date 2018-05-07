@@ -353,6 +353,7 @@
 <dir>
   <default>
     <files>PRE</files>
+    <tags>require_backend</tags>
   </default>
 </dir>
 </regress-exe>
