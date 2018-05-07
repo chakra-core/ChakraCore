@@ -77,31 +77,36 @@ namespace Js
         inlinees[profiledCallSiteId] = this;
     }
 
-    FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::EnsureInlinee(
+    FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::EnsureInlineeCommon(
         Recycler *const recycler,
         const ProfileId profiledCallSiteId,
-        FunctionBody *const inlinee)
+        FunctionBody *const inlinee,
+        Field(Field(FunctionCodeGenRuntimeData *)*) & codeGenRuntimeData)
     {
         Assert(recycler);
         Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
         Assert(inlinee);
 
-        if (!inlinees)
+        if (codeGenRuntimeData == nullptr)
         {
-            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
+            codeGenRuntimeData = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
         }
-        const auto inlineeData = inlinees[profiledCallSiteId];
 
-        if (!inlineeData)
+        Field(FunctionCodeGenRuntimeData *) const inlineeData = codeGenRuntimeData[profiledCallSiteId];
+
+        if (inlineeData == nullptr)
         {
-            return inlinees[profiledCallSiteId] = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+            codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+            return runtimeData;
         }
 
         // Find the right code gen runtime data
-        FunctionCodeGenRuntimeData *next = inlineeData;
-        while (next && next->functionBody != inlinee)
+        FunctionCodeGenRuntimeData * next = inlineeData;
+
+        while (next && (next->GetFunctionBody() != inlinee))
         {
-            next = next->next;
+            next = next->GetNext();
         }
 
         if (next)
@@ -109,9 +114,26 @@ namespace Js
             return next;
         }
 
-        FunctionCodeGenRuntimeData *runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
-        runtimeData->next = inlineeData;
-        return inlinees[profiledCallSiteId] = runtimeData;
+        FunctionCodeGenRuntimeData * runtimeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
+        runtimeData->SetupRuntimeDataChain(inlineeData);
+        codeGenRuntimeData[profiledCallSiteId] = runtimeData;
+        return runtimeData;
+    }
+
+    FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::EnsureInlinee(
+        Recycler *const recycler,
+        const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        return EnsureInlineeCommon(recycler, profiledCallSiteId, inlinee, inlinees);
+    }
+
+    FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::EnsureCallbackInlinee(
+        Recycler *const recycler,
+        const ProfileId profiledCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        return EnsureInlineeCommon(recycler, profiledCallSiteId, inlinee, callbackInlinees);
     }
 
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const
@@ -158,29 +180,5 @@ namespace Js
         Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
 
         return callbackInlinees ? callbackInlinees[profiledCallSiteId] : nullptr;
-    }
-
-    FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::EnsureCallbackInlinee(
-        Recycler *const recycler,
-        const ProfileId profiledCallSiteId,
-        FunctionBody *const inlinee)
-    {
-        Assert(recycler);
-        Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
-        Assert(inlinee);
-
-        if (!callbackInlinees)
-        {
-            callbackInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
-        }
-
-        FunctionCodeGenRuntimeData * inlineeData = callbackInlinees[profiledCallSiteId];
-        if (!inlineeData)
-        {
-            inlineeData = RecyclerNew(recycler, FunctionCodeGenRuntimeData, inlinee);
-            callbackInlinees[profiledCallSiteId] = inlineeData;
-        }
-
-        return inlineeData;
     }
 }
