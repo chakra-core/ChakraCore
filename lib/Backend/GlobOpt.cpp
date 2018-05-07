@@ -9988,7 +9988,8 @@ GlobOpt::SetPathDependentInfo(const bool conditionToBranch, const PathDependentI
     }
     NEXT_SLISTBASECOUNTED_ENTRY;
 
-    Assert(false);
+    // In case flowgraph peeps is disabled, we could have conditional branch to next instr
+    Assert(this->func->HasTry() || PHASE_OFF(Js::FGPeepsPhase, this->func));
 }
 
 PathDependentInfoToRestore
