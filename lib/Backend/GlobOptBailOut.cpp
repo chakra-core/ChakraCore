@@ -1074,7 +1074,7 @@ GlobOpt::ConvertToByteCodeUses(IR::Instr * instr)
     instr->Remove();
     if (byteCodeUsesInstr)
     {
-        byteCodeUsesInstr->Aggregate();
+        byteCodeUsesInstr->AggregateFollowingByteCodeUses();
     }
     return byteCodeUsesInstr;
 }

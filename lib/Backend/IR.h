@@ -290,6 +290,8 @@ public:
     IR::Instr *     GetPrevRealInstr() const;
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
+    IR::ByteCodeUsesInstr * GetFirstByteCodeUsesInstrBackward();
+    bool            IsByteCodeUsesInstrFor(IR::Instr * instr) const;
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
     static bool     HasSymUseSrc(StackSym *sym, IR::Opnd*);
     static bool     HasSymUseDst(StackSym *sym, IR::Opnd*);
@@ -297,6 +299,7 @@ public:
     static bool     HasSymUseInRange(StackSym *sym, Instr *instrBegin, Instr *instrEnd);
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
+    bool            CanAggregateByteCodeUsesAcrossInstr(IR::Instr * instr);
 
     BranchInstr *   ChangeCmCCToBranchInstr(LabelInstr *targetInstr);
     static void     MoveRangeAfter(Instr * instrStart, Instr * instrLast, Instr * instrAfter);
@@ -466,6 +469,7 @@ public:
     bool       UsesAllFields();
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
+    void       AggregateByteCodeUses();
 private:
     void            ClearNumber() { this->m_number = 0; }
     void            SetNumber(uint32 number);
@@ -571,7 +575,11 @@ public:
     // a compare, but still need to generate them for bailouts. Without this, we cause
     // problems because we end up with an instruction losing atomicity in terms of its
     // bytecode use and generation lifetimes.
-    void Aggregate();
+    void AggregateFollowingByteCodeUses();
+    void AggregatePrecedingByteCodeUses();
+
+private:
+    void Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr);
 };
 
 class JitProfilingInstr : public Instr

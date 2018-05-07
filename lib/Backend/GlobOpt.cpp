@@ -450,6 +450,11 @@ GlobOpt::OptBlock(BasicBlock *block)
         if (loop != this->prePassLoop)
         {
             OptLoops(loop);
+            if (!IsLoopPrePass() && loop->parent)
+            {
+                loop->fieldPRESymStores->Or(loop->parent->fieldPRESymStores);
+            }
+            
             if (!this->IsLoopPrePass() && DoFieldPRE(loop))
             {
                 // Note: !IsLoopPrePass means this was a root loop pre-pass. FieldPre() is called once per loop.
@@ -544,6 +549,7 @@ GlobOpt::OptBlock(BasicBlock *block)
                 if (succ->isLoopHeader && succ->loop->IsDescendentOrSelf(block->loop))
                 {
                     BVSparse<JitArenaAllocator> *liveOnBackEdge = block->loop->regAlloc.liveOnBackEdgeSyms;
+                    liveOnBackEdge->Or(block->loop->fieldPRESymStores);
 
                     this->tempBv->Minus(block->loop->varSymsOnEntry, block->globOptData.liveVarSyms);
                     this->tempBv->And(liveOnBackEdge);
@@ -664,7 +670,7 @@ GlobOpt::OptLoops(Loop *loop)
 
         loop->symsDefInLoop = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
         loop->fieldKilled = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
-        loop->fieldPRESymStore = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
+        loop->fieldPRESymStores = JitAnew(alloc, BVSparse<JitArenaAllocator>, this->alloc);
         loop->allFieldsKilled = false;
     }
     else
@@ -1036,13 +1042,13 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     if (ldInstr->GetDst()->AsRegOpnd()->m_sym != symStore)
     {
         ldInstr->ReplaceDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->func));
+        loop->fieldPRESymStores->Set(symStore->m_id);
     }
 
     ldInstr->GetSrc1()->SetIsJITOptimizedReg(true);
     ldInstr->GetDst()->SetIsJITOptimizedReg(true);
 
     landingPad->globOptData.liveVarSyms->Set(symStore->m_id);
-    loop->fieldPRESymStore->Set(symStore->m_id);
 
     ValueType valueType(ValueType::Uninitialized);
     Value *initialValue = nullptr;
@@ -2638,6 +2644,16 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->InsertByteCodeUses(instr);
     }
 
+    if (!IsLoopPrePass() && instr->HasBailOutInfo())
+    {
+        // Aggregate byteCodeUpwardExposedUsed of preceding ByteCodeUses instrs with the same bytecode offset.
+        // This is required as different ByteCodeUses instrs may be inserted for an instr in the loop pre-pass
+        // and the main pass (and there may be additional instructions inserted between the two sets of 
+        // ByteCodeUses instructions), but the Backward Pass only processes immediately preceding consecutive
+        // ByteCodeUses instructions before processing a pre-op bailout.
+        instr->AggregateByteCodeUses();
+    }
+
     if (!this->IsLoopPrePass() && !isHoisted && this->IsImplicitCallBailOutCurrentlyNeeded(instr, src1Val, src2Val))
     {
         IR::BailOutKind kind = IR::BailOutOnImplicitCalls;
@@ -3028,11 +3044,10 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     Value *initialValue = nullptr;
     StackSym *symStore;
 
-    if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id))
+    if (loop->allFieldsKilled || loop->fieldKilled->Test(originalPropertySym->m_id) || loop->fieldKilled->Test(propertySym->m_id))
     {
         return;
     }
-    Assert(!loop->fieldKilled->Test(propertySym->m_id));
 
     // Value already exists
     if (CurrentBlockData()->FindValue(propertySym))
@@ -5354,7 +5369,7 @@ GlobOpt::GetPrepassValueTypeForDst(
     IR::Instr *const instr,
     Value *const src1Value,
     Value *const src2Value,
-    bool *const isValueInfoPreciseRef) const
+    bool const isValueInfoPrecise) const
 {
     // Values with definite types can be created in the loop prepass only when it is guaranteed that the value type will be the
     // same on any iteration of the loop. The heuristics currently used are:
@@ -5371,18 +5386,12 @@ GlobOpt::GetPrepassValueTypeForDst(
     Assert(IsLoopPrePass());
     Assert(instr);
 
-    if(isValueInfoPreciseRef)
-    {
-        *isValueInfoPreciseRef = false;
-    }
-
     if(!desiredValueType.IsDefinite())
     {
         return desiredValueType;
     }
 
-    if((instr->GetSrc1() && !IsPrepassSrcValueInfoPrecise(instr->GetSrc1(), src1Value)) ||
-       (instr->GetSrc2() && !IsPrepassSrcValueInfoPrecise(instr->GetSrc2(), src2Value)))
+    if(!isValueInfoPrecise)
     {
         // If the desired value type is not precise, the value type of the destination is derived from the value types of the
         // sources. Since the value type of a source sym is not definite, the destination value type also cannot be definite.
@@ -5399,42 +5408,45 @@ GlobOpt::GetPrepassValueTypeForDst(
         return desiredValueType.ToLikely();
     }
 
-    if(isValueInfoPreciseRef)
-    {
-        // The produced value info is derived from the sources, which have precise value infos
-        *isValueInfoPreciseRef = true;
-    }
     return desiredValueType;
 }
 
 bool
-GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue) const
+GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool * isSafeToTransferInPrepass) const
+{
+    return
+        (!instr->GetSrc1() || IsPrepassSrcValueInfoPrecise(instr->GetSrc1(), src1Value, isSafeToTransferInPrepass)) &&
+        (!instr->GetSrc2() || IsPrepassSrcValueInfoPrecise(instr->GetSrc2(), src2Value, isSafeToTransferInPrepass));
+}
+
+bool
+GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue, bool * isSafeToTransferInPrepass) const
 {
     Assert(IsLoopPrePass());
     Assert(src);
 
-    if(!src->IsRegOpnd() || !srcValue)
+    if (isSafeToTransferInPrepass)
+    {
+        *isSafeToTransferInPrepass = false;
+    }
+
+    if (!src->IsRegOpnd() || !srcValue)
     {
         return false;
     }
 
     ValueInfo *const srcValueInfo = srcValue->GetValueInfo();
-    if(!srcValueInfo->IsDefinite())
+    bool isValueInfoDefinite = srcValueInfo->IsDefinite();
+
+    StackSym * srcSym = src->AsRegOpnd()->m_sym;
+
+    bool isSafeToTransfer = IsSafeToTransferInPrepass(srcSym, srcValueInfo);
+    if (isSafeToTransferInPrepass)
     {
-        return false;
+        *isSafeToTransferInPrepass = isSafeToTransfer;
     }
 
-    StackSym *srcSym = src->AsRegOpnd()->m_sym;
-    Assert(!srcSym->IsTypeSpec());
-    int32 intConstantValue;
-    return
-        srcSym->IsFromByteCodeConstantTable() ||
-        (
-            srcValueInfo->TryGetIntConstantValue(&intConstantValue) &&
-            !Js::TaggedInt::IsOverflow(intConstantValue) &&
-            GetTaggedIntConstantStackSym(intConstantValue) == srcSym
-        ) ||
-        !currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(srcSym->m_id);
+    return isValueInfoDefinite && isSafeToTransfer;
 }
 
 bool
@@ -5471,7 +5483,8 @@ Value *GlobOpt::CreateDstUntransferredIntValue(
     bool isValueInfoPrecise;
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, &isValueInfoPrecise);
+        isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, isValueInfoPrecise);
     }
     else
     {
@@ -5502,7 +5515,7 @@ GlobOpt::CreateDstUntransferredValue(
     ValueType valueType(desiredValueType);
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value));
     }
     return NewGenericValue(valueType, instr->GetDst());
 }
@@ -5629,8 +5642,24 @@ GlobOpt::ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const sr
 
     // In prepass we are going to copy the value but with a different value number
     // for aggressive int type spec.
-    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, &isValueInfoPrecise));
-    if(isValueInfoPrecise || (valueType == src1ValueInfo->Type() && src1ValueInfo->IsGeneric()))
+    bool isSafeToTransferInPrepass = false;
+    isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Val, nullptr, &isSafeToTransferInPrepass);
+    
+    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, isValueInfoPrecise));
+    if(isValueInfoPrecise || isSafeToTransferInPrepass)
+    {
+        Assert(valueType == src1ValueInfo->Type());
+        if (!PHASE_OFF1(Js::AVTInPrePassPhase))
+        {
+            dstVal = src1Val;
+        }
+        else
+        {
+            dstVal = CopyValue(src1Val);
+            TrackCopiedValueForKills(dstVal);
+        }
+    }
+    else if (valueType == src1ValueInfo->Type() && src1ValueInfo->IsGeneric()) // this else branch is probably not needed
     {
         Assert(valueType == src1ValueInfo->Type());
         dstVal = CopyValue(src1Val);
@@ -8144,7 +8173,8 @@ GlobOpt::TypeSpecializeIntDst(IR::Instr* instr, Js::OpCode originalOpCode, Value
     bool isValueInfoPrecise;
     if(IsLoopPrePass())
     {
-        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, &isValueInfoPrecise);
+        isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Value, src2Value);
+        valueType = GetPrepassValueTypeForDst(valueType, instr, src1Value, src2Value, isValueInfoPrecise);
     }
     else
     {
@@ -9642,7 +9672,7 @@ LOutsideSwitch:
                 // calculation, we want to insert the Conv_bool after the whole compare instruction
                 // block.
                 IR::Instr *putAfter = instr;
-                while (putAfter->m_next && putAfter->m_next->m_opcode == Js::OpCode::ByteCodeUses)
+                while (putAfter->m_next && putAfter->m_next->IsByteCodeUsesInstrFor(instr))
                 {
                     putAfter = putAfter->m_next;
                 }
@@ -14215,7 +14245,6 @@ GlobOpt::OptIsInvariant(
         return false;
 
         // Usually not worth hoisting these
-    case Js::OpCode::LdStr:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
     case Js::OpCode::LdC_A_I4:

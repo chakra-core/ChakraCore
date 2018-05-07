@@ -3345,6 +3345,19 @@ BasicBlock::IsLandingPad()
     return nextBlock && nextBlock->loop && nextBlock->isLoopHeader && nextBlock->loop->landingPad == this;
 }
 
+BailOutInfo *
+BasicBlock::CreateLoopTopBailOutInfo(GlobOpt * globOpt)
+{
+    IR::Instr * firstInstr = this->GetFirstInstr();
+    BailOutInfo* bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo, firstInstr->GetByteCodeOffset(), firstInstr->m_func);
+    bailOutInfo->isLoopTopBailOutInfo = true;
+    globOpt->FillBailOutInfo(this, bailOutInfo);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
+#endif
+    return bailOutInfo;
+}
+
 IR::Instr *
 FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
 {
@@ -4227,8 +4240,9 @@ BasicBlock::CleanUpValueMaps()
     {
         FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
         {
-            bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
-            if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
+            Sym * sym = bucket.value;
+            bool isSymUpwardExposed = upwardExposedUses->Test(sym->m_id) || upwardExposedFields->Test(sym->m_id);
+            if (!isSymUpwardExposed && symsInCallSequence.Test(sym->m_id))
             {
                 // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
                 // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
@@ -4241,22 +4255,22 @@ BasicBlock::CleanUpValueMaps()
             // Make sure symbol was created before backward pass.
             // If symbols isn't upward exposed, mark it as dead.
             // If a symbol was copy-prop'd in a loop prepass, the upwardExposedUses info could be wrong.  So wait until we are out of the loop before clearing it.
-            if ((SymID)bucket.value->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed
-                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(bucket.value->m_id)))
+            bool isSymFieldPRESymStore = isInLoop && this->loop->fieldPRESymStores->Test(sym->m_id);
+            if ((SymID)sym->m_id <= this->globOptData.globOpt->maxInitialSymID && !isSymUpwardExposed && !isSymFieldPRESymStore
+                && (!isInLoop || !this->globOptData.globOpt->prePassCopyPropSym->Test(sym->m_id)))
             {
                 Value *val = bucket.element;
                 ValueInfo *valueInfo = val->GetValueInfo();
 
-                Sym * sym = bucket.value;
                 Sym *symStore = valueInfo->GetSymStore();
 
-                if (symStore && symStore == bucket.value)
+                if (symStore && symStore == sym)
                 {
                     // Keep constants around, as we don't know if there will be further uses
                     if (!bucket.element->GetValueInfo()->IsVarConstant() && !bucket.element->GetValueInfo()->HasIntConstantValue())
                     {
                         // Symbol may still be a copy-prop candidate.  Wait before deleting it.
-                        deadSymsBv.Set(bucket.value->m_id);
+                        deadSymsBv.Set(sym->m_id);
 
                         // Make sure the type sym is added to the dead syms vector as well, because type syms are
                         // created in backward pass and so their symIds > maxInitialSymID.
@@ -4287,8 +4301,6 @@ BasicBlock::CleanUpValueMaps()
             }
             else
             {
-                Sym * sym = bucket.value;
-
                 if (sym->IsPropertySym() && !this->globOptData.liveFields->Test(sym->m_id))
                 {
                     // Remove propertySyms which are not live anymore.
@@ -4306,7 +4318,7 @@ BasicBlock::CleanUpValueMaps()
 
                     Sym *symStore = valueInfo->GetSymStore();
 
-                    if (symStore && symStore != bucket.value)
+                    if (symStore && symStore != sym)
                     {
                         keepAliveSymsBv.Set(symStore->m_id);
                         if (symStore->IsStackSym() && symStore->AsStackSym()->HasObjectTypeSym())
@@ -4843,13 +4855,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         {
             // Capture bail out info in case we have optimization that needs it
             Assert(this->loop->bailOutInfo == nullptr);
-            IR::Instr * firstInstr = this->GetFirstInstr();
-            this->loop->bailOutInfo = JitAnew(globOpt->func->m_alloc, BailOutInfo,
-                firstInstr->GetByteCodeOffset(), firstInstr->m_func);
-            globOpt->FillBailOutInfo(this, this->loop->bailOutInfo);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-            this->loop->bailOutInfo->bailOutOpcode = Js::OpCode::LoopBodyStart;
-#endif
+            this->loop->bailOutInfo = this->CreateLoopTopBailOutInfo(globOpt);
         }
 
         // If loop pre-pass, don't insert convert from type-spec to var
@@ -4969,9 +4975,9 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
     // (airlock block) to put in the conversion code.
     Assert(globOpt->tempBv->IsEmpty());
 
-    BVSparse<JitArenaAllocator> tempBv2(globOpt->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv3(globOpt->tempAlloc);
-    BVSparse<JitArenaAllocator> tempBv4(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingLossyIntConversion(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingLosslessIntConversion(globOpt->tempAlloc);
+    BVSparse<JitArenaAllocator> symsNeedingFloatConversion(globOpt->tempAlloc);
 
     FOREACH_PREDECESSOR_EDGE_EDITING(edge, this, iter)
     {
@@ -4993,22 +4999,22 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         }
 
         // Lossy int in the merged block, and no int in the predecessor - need a lossy conversion to int
-        tempBv2.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
+        symsNeedingLossyIntConversion.Minus(blockData.liveLossyInt32Syms, pred->globOptData.liveInt32Syms);
 
         // Lossless int in the merged block, and no lossless int in the predecessor - need a lossless conversion to int
-        tempBv3.Minus(blockData.liveInt32Syms, this->globOptData.liveLossyInt32Syms);
+        symsNeedingLosslessIntConversion.Minus(blockData.liveInt32Syms, blockData.liveLossyInt32Syms);
         globOpt->tempBv->Minus(pred->globOptData.liveInt32Syms, pred->globOptData.liveLossyInt32Syms);
-        tempBv3.Minus(globOpt->tempBv);
+        symsNeedingLosslessIntConversion.Minus(globOpt->tempBv);
 
         globOpt->tempBv->Minus(blockData.liveVarSyms, pred->globOptData.liveVarSyms);
-        tempBv4.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
+        symsNeedingFloatConversion.Minus(blockData.liveFloat64Syms, pred->globOptData.liveFloat64Syms);
 
-        bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !tempBv3.Test(symIV->m_id));
+        bool symIVNeedsSpecializing = (symIV && !pred->globOptData.liveInt32Syms->Test(symIV->m_id) && !symsNeedingLosslessIntConversion.Test(symIV->m_id));
 
         if (!globOpt->tempBv->IsEmpty() ||
-            !tempBv2.IsEmpty() ||
-            !tempBv3.IsEmpty() ||
-            !tempBv4.IsEmpty() ||
+            !symsNeedingLossyIntConversion.IsEmpty() ||
+            !symsNeedingLosslessIntConversion.IsEmpty() ||
+            !symsNeedingFloatConversion.IsEmpty() ||
             symIVNeedsSpecializing ||
             symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
         {
@@ -5051,17 +5057,17 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             {
                 globOpt->ToVar(globOpt->tempBv, pred);
             }
-            if (!tempBv2.IsEmpty())
+            if (!symsNeedingLossyIntConversion.IsEmpty())
             {
-                globOpt->ToInt32(&tempBv2, pred, true /* lossy */);
+                globOpt->ToInt32(&symsNeedingLossyIntConversion, pred, true /* lossy */);
             }
-            if (!tempBv3.IsEmpty())
+            if (!symsNeedingLosslessIntConversion.IsEmpty())
             {
-                globOpt->ToInt32(&tempBv3, pred, false /* lossy */);
+                globOpt->ToInt32(&symsNeedingLosslessIntConversion, pred, false /* lossy */);
             }
-            if (!tempBv4.IsEmpty())
+            if (!symsNeedingFloatConversion.IsEmpty())
             {
-                globOpt->ToFloat64(&tempBv4, pred);
+                globOpt->ToFloat64(&symsNeedingFloatConversion, pred);
             }
             if (symIVNeedsSpecializing)
             {

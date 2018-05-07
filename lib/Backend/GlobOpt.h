@@ -561,8 +561,9 @@ private:
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd const* src1, IR::RegOpnd const* dst) const;
     Value *                 ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val);
     Value *                 ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal);
-    ValueType               GetPrepassValueTypeForDst(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool *const isValueInfoPreciseRef = nullptr) const;
-    bool                    IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue) const;
+    ValueType               GetPrepassValueTypeForDst(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool const isValueInfoPreciseRef = false) const;
+    bool                    IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue, bool * canTransferValueNumberToDst = nullptr) const;
+    bool                    IsPrepassSrcValueInfoPrecise(IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool * canTransferValueNumberToDst = nullptr) const;
     bool                    IsSafeToTransferInPrepass(StackSym * const sym, ValueInfo *const srcValueInfo) const;
     Value *                 CreateDstUntransferredIntValue(const int32 min, const int32 max, IR::Instr *const instr, Value *const src1Value, Value *const src2Value);
     Value *                 CreateDstUntransferredValue(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value);
