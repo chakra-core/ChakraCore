@@ -6235,7 +6235,7 @@ ScriptContext::GetJitFuncRangeCache()
             Js::StringBuilder<ArenaAllocator> nameBuffer(tempAllocator);
             nameBuffer.Reset();
 
-            OUTPUT_TRACE(Js::StackFramesEventPhase, _u("\nPosting stack trace via ETW:\n"));
+            OUTPUT_TRACE(Js::StackFramesEventPhase, _u("Posting stack trace via ETW:\n"));
 
             ushort frameCount = walker.WalkUntil((ushort)maxFrameCount, [&](Js::JavascriptFunction* function, ushort frameIndex) -> bool
             {
@@ -6278,12 +6278,7 @@ ScriptContext::GetJitFuncRangeCache()
                     methodIdOrNameId,
                     isFrameIndex);
 
-                OUTPUT_TRACE(Js::StackFramesEventPhase, _u("Frame : (%s : %u) (%s), LineNumber : %u, ColumnNumber : %u\n"),
-                    (isFrameIndex == 1) ? (_u("NameBufferIndex")) : (_u("MethodID")),
-                    methodIdOrNameId,
-                    name,
-                    lineNumber,
-                    columnNumber);
+                OUTPUT_TRACE(Js::StackFramesEventPhase, _u("Frame : Name : %s, LineNumber : %u, ColumnNumber : %u\n"), name, lineNumber, columnNumber);
 
                 stackFrames.Add(frame);
 
