@@ -1,0 +1,59 @@
+100
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 2 to Block 4 in func foo
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 4 to Block 3 in func foo
+100
+Done foo
+
+100
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func bar
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func bar
+Done bar
+
+100
+100
+Done baz
+
+100
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func bargt
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func bargt
+Done bargt
+
+0
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 4 in func barlt
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 5 in func barlt
+0
+Done barlt
+
+0
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 4 in func barle
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 5 in func barle
+0
+Done barle
+
+100
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func barge
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func barge
+Done barge
+
+400
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func bareq
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func bareq
+Done bareq
+
+0
+0
+Done barnt
+
+false
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 4 in func barntbool
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 5 in func barntbool
+false
+Done barntbool
+
+true
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func barfalse
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func barfalse
+Done barfalse
+
+5
+5

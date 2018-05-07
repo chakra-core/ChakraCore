@@ -349,6 +349,9 @@ public:
 
     // GlobOpt Stuff
 public:
+    IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
+    bool         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
+    bool         PathDepBranchFolding(GlobOpt* globOptState);
     void         MergePredBlocksValueMaps(GlobOpt* globOptState);
 private:
     void         CleanUpValueMaps();
@@ -381,6 +384,7 @@ public:
 
     // Deadstore data
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
+    BVSparse<JitArenaAllocator> *              successorBlockUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
     BVSparse<JitArenaAllocator> *              slotDeadStoreCandidates;
@@ -426,6 +430,7 @@ private:
         isLoopHeader(false),
         hasCall(false),
         upwardExposedUses(nullptr),
+        successorBlockUses(nullptr),
         upwardExposedFields(nullptr),
         typesNeedingKnownObjectLayout(nullptr),
         slotDeadStoreCandidates(nullptr),
@@ -1004,6 +1009,16 @@ struct MemCopyEmitData : public MemOpEmitData
 #define NEXT_PREDECESSOR_BLOCK\
     }\
     NEXT_EDGE_IN_LIST
+
+#define FOREACH_PREDECESSOR_BLOCK_EDITING(blockPred, block, iter)\
+    FOREACH_EDGE_IN_LIST_EDITING(__edge, block->GetPredList(), iter)\
+    {\
+        BasicBlock * blockPred = __edge->GetPred(); \
+        AnalysisAssert(blockPred);
+
+#define NEXT_PREDECESSOR_BLOCK_EDITING\
+    }\
+    NEXT_EDGE_IN_LIST_EDITING
 
 #define FOREACH_DEAD_PREDECESSOR_BLOCK(blockPred, block)\
     FOREACH_EDGE_IN_LIST(__edge, block->GetDeadPredList())\
