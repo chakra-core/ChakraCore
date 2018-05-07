@@ -3325,6 +3325,12 @@ namespace Js
 
         void FindClosestStatements(int32 characterOffset, StatementLocation *firstStatementLocation, StatementLocation *secondStatementLocation);
 #if ENABLE_NATIVE_CODEGEN
+        FunctionCodeGenRuntimeData *EnsureCodeGenRuntimeDataCommon(
+            Recycler *const recycler,
+            __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
+            FunctionBody *const inlinee,
+            AuxPointerType auxType);
+
         const FunctionCodeGenRuntimeData *GetInlineeCodeGenRuntimeData(const ProfileId profiledCallSiteId) const;
         const FunctionCodeGenRuntimeData *GetInlineeCodeGenRuntimeDataForTargetInlinee(const ProfileId profiledCallSiteId, FunctionBody *inlineeFuncBody) const;
         FunctionCodeGenRuntimeData *EnsureInlineeCodeGenRuntimeData(

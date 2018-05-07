@@ -49,6 +49,12 @@ namespace Js
         const FunctionCodeGenRuntimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
         const FunctionCodeGenRuntimeData *GetInlineeForTargetInlinee(const ProfileId profiledCallSiteId, FunctionBody *inlineeFuncBody) const;
 
+        FunctionCodeGenRuntimeData * EnsureInlineeCommon(
+            Recycler *const recycler,
+            const ProfileId profiledCallSiteId,
+            FunctionBody *const inlinee,
+            Field(Field(FunctionCodeGenRuntimeData *)*) & codeGenRuntimeData);
+
         FunctionCodeGenRuntimeData *EnsureInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
