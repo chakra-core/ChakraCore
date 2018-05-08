@@ -8834,11 +8834,14 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 break;
             }
         }
-        else
+        else // a binary operator
         {
+            ParseNode* pnode1 = pnode;
+
             // Parse the operand, make a new node, and look for more
             IdentToken token;
-            pnodeT = ParseExpr<buildAST>(opl, NULL, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen);
+            ParseNode* pnode2 = ParseExpr<buildAST>(
+                opl, nullptr, fAllowIn, FALSE, pNameHint, &hintLength, &hintOffset, &token, false, nullptr, plastRParen);
 
             // Detect nested function escapes of the pattern "o.f = function(){...}" or "o[s] = function(){...}".
             // Doing so in the parser allows us to disable stack-nested-functions in common cases where an escape
@@ -8850,36 +8853,42 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
             if (buildAST)
             {
-                pnode = CreateBinNode(nop, pnode, pnodeT);
-                Assert(pnode->AsParseNodeBin()->pnode2 != NULL);
-                if (pnode->AsParseNodeBin()->pnode2->nop == knopFncDecl)
+                Assert(pnode2 != nullptr);
+                if (pnode2->nop == knopFncDecl)
                 {
                     Assert(hintLength >= hintOffset);
-                    pnode->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hint = pNameHint;
-                    pnode->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hintLength = hintLength;
-                    pnode->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hintOffset = hintOffset;
+                    pnode2->AsParseNodeFnc()->hint = pNameHint;
+                    pnode2->AsParseNodeFnc()->hintLength = hintLength;
+                    pnode2->AsParseNodeFnc()->hintOffset = hintOffset;
 
-                    if (pnode->AsParseNodeBin()->pnode1->nop == knopDot)
+                    if (pnode1->nop == knopDot)
                     {
-                        pnode->AsParseNodeBin()->pnode2->AsParseNodeFnc()->isNameIdentifierRef = false;
+                        pnode2->AsParseNodeFnc()->isNameIdentifierRef = false;
                     }
-                    else if (pnode->AsParseNodeBin()->pnode1->nop == knopName)
+                    else if (pnode1->nop == knopName)
                     {
-                        PidRefStack *pidRef = pnode->AsParseNodeBin()->pnode1->AsParseNodeName()->pid->GetTopRef();
+                        PidRefStack *pidRef = pnode1->AsParseNodeName()->pid->GetTopRef();
                         pidRef->isFuncAssignment = true;
                     }
                 }
-                if (pnode->AsParseNodeBin()->pnode2->nop == knopClassDecl && pnode->AsParseNodeBin()->pnode1->nop == knopDot)
+                else if (pnode2->nop == knopClassDecl && pnode1->nop == knopDot)
                 {
-                    Assert(pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor);
+                    Assert(pnode2->AsParseNodeClass()->pnodeConstructor);
 
-                    if (!pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->pid)
+                    if (!pnode2->AsParseNodeClass()->pnodeConstructor->pid)
                     {
-                        pnode->AsParseNodeBin()->pnode2->AsParseNodeClass()->pnodeConstructor->isNameIdentifierRef = false;
+                        pnode2->AsParseNodeClass()->pnodeConstructor->isNameIdentifierRef = false;
                     }
                 }
+                else if (pnode1->nop == knopName && nop == knopIn)
+                {
+                    PidRefStack* pidRef = pnode1->AsParseNodeName()->pid->GetTopRef();
+                    pidRef->SetIsUsedInLdElem(true);
+                }
+
+                pnode = CreateBinNode(nop, pnode1, pnode2);
             }
-            pNameHint = NULL;
+            pNameHint = nullptr;
         }
     }
 
