@@ -1300,7 +1300,7 @@ private:
             _Out_ Js::ParseableFunctionInfo ** func,
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
-        bool TrySerializeParserState(
+        HRESULT TrySerializeParserState(
             _In_ LPCUTF8 pszSrc,
             _In_ size_t cbLength,
             _In_ Js::ParseableFunctionInfo* func,

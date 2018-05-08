@@ -103,24 +103,16 @@ namespace Js
 
         // Keep a copy of this
         this->dataCacheWrapper = dataCacheWrapper;
-
-        AutoCOMPtr<IStream> readStream;
-        HRESULT hr = dataCacheWrapper->GetReadStream(&readStream);
+        HRESULT hr = dataCacheWrapper->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ProfileData);
         if(SUCCEEDED(hr))
         {
-            Assert(readStream != nullptr);
-
-            if (!dataCacheWrapper->SeekReadStreamToBlock(readStream, SimpleDataCacheWrapper::BlockType_ProfileData))
-            {
-                return false;
-            }
-            uint numberOfFunctions;
-            if (!dataCacheWrapper->Read(readStream, &numberOfFunctions) || numberOfFunctions > MAX_FUNCTION_COUNT)
+            uint numberOfFunctions = 0;
+            if (FAILED(dataCacheWrapper->Read(&numberOfFunctions)) || numberOfFunctions > MAX_FUNCTION_COUNT)
             {
                 return false;
             }
             BVFixed* functions = BVFixed::New(numberOfFunctions, this->recycler);
-            if (!dataCacheWrapper->ReadArray(readStream, functions->GetData(), functions->WordCount()))
+            if (FAILED(dataCacheWrapper->ReadArray(functions->GetData(), functions->WordCount())))
             {
                 return false;
             }
@@ -187,21 +179,21 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         //TODO: Add some diffing logic to not write unless necessary
         ULONG byteCount = startupFunctions->WordCount() * sizeof(BVUnit) + sizeof(BVIndex);
-        if (!dataCacheWrapper->StartBlock(SimpleDataCacheWrapper::BlockType::BlockType_ProfileData, byteCount))
+        if (FAILED(dataCacheWrapper->StartBlock(SimpleDataCacheWrapper::BlockType::BlockType_ProfileData, byteCount)))
         {
             return 0;
         }
 
-        if (!dataCacheWrapper->Write(startupFunctions->Length()))
+        if (FAILED(dataCacheWrapper->Write(startupFunctions->Length())))
         {
             return 0;
         }
 
-        if (dataCacheWrapper->WriteArray(startupFunctions->GetData(), startupFunctions->WordCount()))
+        if (SUCCEEDED(dataCacheWrapper->WriteArray(startupFunctions->GetData(), startupFunctions->WordCount())))
         {
             bytesWritten = dataCacheWrapper->BytesWrittenInBlock();
 
-            if (!dataCacheWrapper->Close())
+            if (FAILED(dataCacheWrapper->SaveWriteStream()))
             {
                 return 0;
             }

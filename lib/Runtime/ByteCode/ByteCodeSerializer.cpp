@@ -1558,48 +1558,6 @@ public:
     }
 #endif
 
-    void TranslateDeferredStubTree(DeferredFunctionStub* deferredStubs, uint stubsCount, Recycler *recycler)
-    {
-        if (deferredStubs == nullptr || stubsCount == 0)
-        {
-            return;
-        }
-
-        for (uint i = 0; i < stubsCount; i++)
-        {
-            IdentPtrSet *capturedNames = deferredStubs[i].capturedNamePointers;
-
-            if (capturedNames != nullptr && capturedNames->Count() != 0)
-            {
-                Assert(deferredStubs[i].capturedNameSerializedIds == nullptr);
-
-                uint capturedNamesCount = capturedNames->Count();
-                deferredStubs[i].capturedNameCount = capturedNamesCount;
-                deferredStubs[i].capturedNameSerializedIds = RecyclerNewArray(recycler, int, capturedNamesCount);
-
-                uint j = 0;
-                auto iter = capturedNames->GetIterator();
-
-                while (iter.IsValid())
-                {
-                    AnalysisAssertOrFailFast(j < capturedNamesCount);
-
-                    const IdentPtr& pid = iter.CurrentValueReference();
-                    deferredStubs[i].capturedNameSerializedIds[j] = this->GetIdOfString(pid->Psz(), pid->Cch());
-                    iter.MoveNext();
-                    ++j;
-                }
-            }
-
-            // After we've converted the captured names into indices in the string table,
-            // make sure we won't accidentally try to use the set of IdentPtrs since those
-            // are allocated in the Parser arena.
-            deferredStubs[i].capturedNamePointers = nullptr;
-
-            TranslateDeferredStubTree(deferredStubs[i].deferredStubs, deferredStubs[i].nestedCount, recycler);
-        }
-    }
-
     uint32 AddConstantTable(BufferBuilderList & builder, FunctionBody * function)
     {
         uint32 size = 0;
@@ -2284,7 +2242,6 @@ public:
             && GenerateParserStateCache())
         {
             definedFields.has_deferredStubs = true;
-            TranslateDeferredStubTree(deferredStubs, function->GetNestedCount(), scriptContext->GetRecycler());
             AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), true);
         }
 
@@ -2376,10 +2333,31 @@ public:
             PrependStruct(builder, _u("Restore Point"), &deferredStubs[i].restorePoint);
 
             // Add all the captured name ids
-            PrependUInt32(builder, _u("Captured Name Count"), deferredStubs[i].capturedNameCount);
-            for (uint j = 0; j < deferredStubs[i].capturedNameCount; j++)
+            IdentPtrSet *capturedNames = deferredStubs[i].capturedNamePointers;
+
+            if (capturedNames != nullptr && capturedNames->Count() != 0)
             {
-                PrependInt32(builder, _u("Captured Name"), deferredStubs[i].capturedNameSerializedIds[j]);
+                uint capturedNamesCount = capturedNames->Count();
+                auto iter = capturedNames->GetIterator();
+
+                PrependUInt32(builder, _u("Captured Name Count"), capturedNamesCount);
+
+                while (iter.IsValid())
+                {
+                    // The captured names are IdentPtr allocated in Parser arena memory.
+                    // We have to convert them to indices into our string table to effectively
+                    // serialize the names.
+                    const IdentPtr& pid = iter.CurrentValueReference();
+                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), pid->Cch());
+
+                    PrependInt32(builder, _u("Captured Name"), capturedNameSerializedId);
+
+                    iter.MoveNext();
+                }
+            }
+            else
+            {
+                PrependUInt32(builder, _u("Captured Name Count"), 0);
             }
 
             PrependUInt32(builder, _u("Nested Count"), deferredStubs[i].nestedCount);

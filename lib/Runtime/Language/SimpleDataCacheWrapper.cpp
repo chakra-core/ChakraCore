@@ -13,6 +13,7 @@ namespace Js
     SimpleDataCacheWrapper::SimpleDataCacheWrapper(IActiveScriptDataCache* dataCache) :
         dataCache(dataCache),
         outStream(nullptr),
+        inStream(nullptr),
         bytesWrittenInBlock(0)
     {
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
@@ -20,162 +21,173 @@ namespace Js
 #endif
     }
 
-    bool SimpleDataCacheWrapper::Close()
+    HRESULT SimpleDataCacheWrapper::Close()
     {
-        bool success = true;
+        HRESULT hr = E_FAIL;
 
-        if (IsWriteStreamOpen())
-        {
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
-            Assert(this->dataCache != nullptr);
-            success = this->dataCache->SaveWriteDataStream(this->outStream) == S_OK;
-            this->outStream->Release();
-#endif
-            this->outStream = nullptr;
+        hr = this->SaveWriteStream();
+
+        if (IsReadStreamOpen())
+        {
+            this->inStream->Release();
+            this->inStream = nullptr;
         }
 
-#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         if (this->dataCache != nullptr)
         {
             this->dataCache->Release();
             this->dataCache = nullptr;
         }
 #endif
-        return success;
+
+        return hr;
     }
 
-    bool SimpleDataCacheWrapper::OpenWriteStream()
+    HRESULT SimpleDataCacheWrapper::SaveWriteStream()
     {
-        HRESULT hr = S_OK;
+        HRESULT hr = E_FAIL;
+
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
+        if (IsWriteStreamOpen())
+        {
+            Assert(this->dataCache != nullptr);
+            hr = this->dataCache->SaveWriteDataStream(this->outStream);
+            this->outStream->Release();
+            this->outStream = nullptr;
+        }
+#endif
+
+        return hr;
+    }
+
+    HRESULT SimpleDataCacheWrapper::OpenWriteStream()
+    {
+        HRESULT hr = E_FAIL;
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         Assert(!IsWriteStreamOpen());
         Assert(this->dataCache != nullptr);
-
+        Assert(this->outStream == nullptr);
         hr = this->dataCache->GetWriteDataStream(&this->outStream);
 #endif
         if (FAILED(hr))
         {
             this->outStream = nullptr;
-            return false;
+            return hr;
         }
 
         return WriteHeader();
     }
 
-    bool SimpleDataCacheWrapper::WriteHeader()
+    HRESULT SimpleDataCacheWrapper::WriteHeader()
     {
         DWORD jscriptMajorVersion;
         DWORD jscriptMinorVersion;
+        HRESULT hr = E_FAIL;
 
-        if (FAILED(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajorVersion, &jscriptMinorVersion)))
-        {
-            return false;
-        }
+        IFFAILRET(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajorVersion, &jscriptMinorVersion));
+        IFFAILRET(Write(jscriptMajorVersion));
+        IFFAILRET(Write(jscriptMinorVersion));
 
-        if (!Write(jscriptMajorVersion))
-        {
-            return false;
-        }
-
-        if (!Write(jscriptMinorVersion))
-        {
-            return false;
-        }
-
-        return true;
+        return hr;
     }
 
-    bool SimpleDataCacheWrapper::ReadHeader(_In_ IStream* readStream)
+    HRESULT SimpleDataCacheWrapper::ReadHeader()
     {
-        Assert(readStream != nullptr);
-
         DWORD jscriptMajorVersion;
         DWORD jscriptMinorVersion;
+        HRESULT hr = E_FAIL;
 
-        if (FAILED(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajorVersion, &jscriptMinorVersion)))
-        {
-            return false;
-        }
+        IFFAILRET(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajorVersion, &jscriptMinorVersion));
 
         DWORD majorVersion;
-        if (!Read(readStream, &majorVersion) || majorVersion != jscriptMajorVersion)
+        IFFAILRET(Read(&majorVersion));
+        if (majorVersion != jscriptMajorVersion)
         {
-            return false;
+            return E_FAIL;
         }
 
         DWORD minorVersion;
-        if (!Read(readStream, &minorVersion) || minorVersion != jscriptMinorVersion)
+        IFFAILRET(Read(&minorVersion));
+        if (minorVersion != jscriptMinorVersion)
         {
-            return false;
+            return E_FAIL;
         }
 
-        return true;
+        return hr;
     }
 
-    bool SimpleDataCacheWrapper::EnsureWriteStream()
+    HRESULT SimpleDataCacheWrapper::EnsureWriteStream()
     {
         if (IsWriteStreamOpen())
         {
-            return true;
+            return S_OK;
         }
 
         return OpenWriteStream();
     }
 
-    bool SimpleDataCacheWrapper::StartBlock(_In_ BlockType blockType, _In_ ULONG byteCount)
+    HRESULT SimpleDataCacheWrapper::EnsureReadStream()
     {
-        if (!Write(blockType) || !Write(byteCount))
+        if (IsReadStreamOpen())
         {
-            return false;
+            return S_OK;
         }
+
+        return OpenReadStream();
+    }
+
+    HRESULT SimpleDataCacheWrapper::StartBlock(_In_ BlockType blockType, _In_ ULONG byteCount)
+    {
+        HRESULT hr = E_FAIL;
+
+        IFFAILRET(Write(blockType));
+        IFFAILRET(Write(byteCount));
 
         // Reset the bytes written for the current block
         this->bytesWrittenInBlock = 0;
-        return true;
+        return hr;
     }
 
-    HRESULT SimpleDataCacheWrapper::GetReadStream(_Out_ IStream** readStream)
+    HRESULT SimpleDataCacheWrapper::OpenReadStream()
     {
-        Assert(readStream != nullptr);
-
-        *readStream = nullptr;
-        HRESULT hr = S_OK;
+        HRESULT hr = E_FAIL;
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         Assert(this->dataCache != nullptr);
-        hr = this->dataCache->GetReadDataStream(readStream);
+        Assert(this->inStream == nullptr);
+        IFFAILRET(this->dataCache->GetReadDataStream(&this->inStream));
 #endif
 
-        if (FAILED(hr) || *readStream == nullptr)
-        {
-            return hr;
-        }
-
-        return ReadHeader(*readStream) ? S_OK : E_FAIL;
+        return ReadHeader();
     }
 
-    bool SimpleDataCacheWrapper::SeekReadStreamToBlock(_In_ IStream* readStream, _In_ BlockType blockType, _Out_opt_ ULONG* bytesInBlock)
+    HRESULT SimpleDataCacheWrapper::ResetReadStream()
     {
-        Assert(readStream != nullptr);
+        HRESULT hr;
 
-        if (bytesInBlock != nullptr)
-        {
-            *bytesInBlock = 0;
-        }
+        IFFAILRET(EnsureReadStream());
 
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
+        // Reset the read stream to beginning of the stream - after the header
+        LARGE_INTEGER dlibMove;
+        dlibMove.QuadPart = sizeof(DWORD) * 2;
+        IFFAILRET(this->inStream->Seek(dlibMove, STREAM_SEEK_SET, nullptr));
+#endif
+
+        return hr;
+    }
+
+    HRESULT SimpleDataCacheWrapper::SeekReadStreamToBlockHelper(_In_ BlockType blockType, _Out_opt_ ULONG* bytesInBlock)
+    {
+        HRESULT hr;
         BlockType currentBlockType = BlockType_Invalid;
         ULONG byteCount = 0;
 
-        // The header should have already been consumed
-        if (!Read(readStream, &currentBlockType))
-        {
-            return false;
-        }
-        if (!Read(readStream, &byteCount))
-        {
-            return false;
-        }
+        // Reset above has moved the seek pointer to just after the header, we're at the first block.
+        IFFAILRET(Read(&currentBlockType));
+        IFFAILRET(Read(&byteCount));
 
         if (currentBlockType == blockType)
         {
@@ -183,20 +195,31 @@ namespace Js
             {
                 *bytesInBlock = byteCount;
             }
-            return true;
+            return S_OK;
         }
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         // The block we're pointing at is not the requested one, seek forward to the next block
         LARGE_INTEGER dlibMove;
         dlibMove.QuadPart = byteCount;
-        if (FAILED(readStream->Seek(dlibMove, STREAM_SEEK_CUR, nullptr)))
-        {
-            return false;
-        }
+        IFFAILRET(this->inStream->Seek(dlibMove, STREAM_SEEK_CUR, nullptr));
 #endif
 
-        return SeekReadStreamToBlock(readStream, blockType);
+        return SeekReadStreamToBlockHelper(blockType, bytesInBlock);
+    }
+
+    HRESULT SimpleDataCacheWrapper::SeekReadStreamToBlock(_In_ BlockType blockType, _Out_opt_ ULONG* bytesInBlock)
+    {
+        HRESULT hr;
+
+        if (bytesInBlock != nullptr)
+        {
+            *bytesInBlock = 0;
+        }
+
+        IFFAILRET(ResetReadStream());
+
+        return SeekReadStreamToBlockHelper(blockType, bytesInBlock);
     }
 }
 #endif

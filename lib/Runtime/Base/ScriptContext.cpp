@@ -2110,28 +2110,18 @@ namespace Js
         _Out_ Js::ParseableFunctionInfo ** func,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
+        HRESULT hr = E_FAIL;
+
         Assert(pDataCache != nullptr);
         Assert(func != nullptr);
 
         *func = nullptr;
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
-        AutoCOMPtr<IStream> readStream;
-        HRESULT hr = pDataCache->GetReadStream(&readStream);
-
-        if (FAILED(hr))
-        {
-            return hr;
-        }
-
-        Assert(readStream != nullptr);
-
         // Find the parser state block in the read stream and get the size of the block in bytes.
         ULONG byteCount = 0;
-        if (!pDataCache->SeekReadStreamToBlock(readStream, SimpleDataCacheWrapper::BlockType_ParserState, &byteCount))
-        {
-            return E_FAIL;
-        }
+
+        IFFAILRET(pDataCache->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ParserState, &byteCount));
 
         // The contract for this bytecode buffer is that it is available as long as we have this ScriptContext.
         // We will use this buffer as the string table needed to back the deferred stubs as well as bytecode
@@ -2145,10 +2135,7 @@ namespace Js
             return E_FAIL;
         }
 
-        if (!pDataCache->ReadArray(readStream, buffer, byteCount))
-        {
-            return E_FAIL;
-        }
+        IFFAILRET(pDataCache->ReadArray(buffer, byteCount));
 
         if (utf8SourceInfo != nullptr)
         {
@@ -2164,17 +2151,12 @@ namespace Js
         }
 
         FunctionBody* functionBody = nullptr;
-        hr = Js::ByteCodeSerializer::DeserializeFromBuffer(this, grfscr, (ISourceHolder*) nullptr, srcInfo, buffer, nativeModule, &functionBody, sourceIndex);
-
-        if (FAILED(hr))
-        {
-            return hr;
-        }
+        IFFAILRET(Js::ByteCodeSerializer::DeserializeFromBuffer(this, grfscr, (ISourceHolder*) nullptr, srcInfo, buffer, nativeModule, &functionBody, sourceIndex));
 
         *func = functionBody->GetParseableFunctionInfo();
 #endif
 
-        return S_OK;
+        return hr;
     }
 
     template <class T>
@@ -2188,17 +2170,18 @@ namespace Js
         ~AutoCoTaskMemFreePtr() { CoTaskMemFree(this->ptr); this->ptr = nullptr; }
     };
 
-    bool ScriptContext::TrySerializeParserState(
+    HRESULT ScriptContext::TrySerializeParserState(
         _In_ LPCUTF8 pszSrc,
         _In_ size_t cbLength,
         _In_ Js::ParseableFunctionInfo* func,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
+        HRESULT hr = E_FAIL;
+
         Assert(func != nullptr);
         Assert(pDataCache != nullptr);
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
-        HRESULT hr = E_FAIL;
         byte* parserStateCacheBuffer = nullptr;
         DWORD parserStateCacheSize = 0;
         DWORD dwFlags = GENERATE_BYTE_CODE_PARSER_STATE;
@@ -2212,24 +2195,18 @@ namespace Js
 
         if (FAILED(hr))
         {
-            return false;
+            return hr;
         }
 
         // The parser state cache buffer was allocated by CoTaskMemAlloc.
         // TODO: Keep this buffer around for the PLT1 scenario by deserializing it and storing a cache.
         AutoCoTaskMemFreePtr<byte*> autoFreeBytes(parserStateCacheBuffer);
 
-        if (!pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize))
-        {
-            return false;
-        }
-
-        if (!pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize))
-        {
-            return false;
-        }
+        IFFAILRET(pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize));
+        IFFAILRET(pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize));
 #endif
-        return true;
+
+        return hr;
     }
 
     HRESULT ScriptContext::CompileUTF8Core(
