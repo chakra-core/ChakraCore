@@ -871,7 +871,7 @@ extern BOOL FParallel;
 extern BOOL FSyncEnumDirs;
 extern BOOL FNogpfnt;
 extern BOOL FTest;
-extern BOOL FStonOnError;
+extern BOOL FStopOnError;
 extern BOOL FAppendTestNameToExtraCCFlags;
 extern BOOL FNoProgramOutput;
 extern BOOL FOnlyAssertOutput;

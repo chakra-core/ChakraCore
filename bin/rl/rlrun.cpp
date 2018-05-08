@@ -524,7 +524,7 @@ int
         }
 
         //
-        // If the test is a JS test and we've passed in a custom config file, 
+        // If the test is a JS test and we've passed in a custom config file,
         // ignore all of the other flags and just pass the config file in
         //
         if (kind == TK_JSCRIPT && pTestVariant->testInfo.data[TIK_CUSTOM_CONFIG_FILE] != nullptr)
@@ -598,7 +598,7 @@ logFailure:
         if (fDumpOutputFile) {
             DumpFileToLog(full);
         }
-        if (FStonOnError)
+        if (FStopOnError)
         {
             GStopDueToError = TRUE;
         }

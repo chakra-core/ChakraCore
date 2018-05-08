@@ -322,7 +322,7 @@ BOOL FVerbose;
 BOOL FQuiet;
 BOOL FNoWarn;
 BOOL FTest;
-BOOL FStonOnError = FALSE;
+BOOL FStopOnError = FALSE;
 BOOL GStopDueToError = FALSE;
 BOOL FLow;
 BOOL FNoDelete;
@@ -2853,7 +2853,7 @@ ParseArg(
          }
          if (!_stricmp(&arg[1], "stoponerror"))
          {
-             FStonOnError = TRUE;
+             FStopOnError = TRUE;
              break;
          }
          if (!_stricmp(&arg[1], "exeflags")) {
@@ -3591,7 +3591,7 @@ GetTestInfoFromNode
             {
                // Validate the timeout string now to fail early so we don't run any tests when there is an error.
                if (!IsTimeoutStringValid(testInfo->data[i])) {
-                  CFG_ERROR_EX(fileName, node->LineNumber, 
+                  CFG_ERROR_EX(fileName, node->LineNumber,
                      "Invalid timeout specified. Cannot parse or too large.\n", NULL);
                   childNode->Dump();
                   return FALSE;
@@ -5083,7 +5083,7 @@ main(int argc, char *argv[])
       if (status == PCS_ERROR)
       {
           exit(1);
-      } 
+      }
       else
       {
 
