@@ -83,50 +83,47 @@ namespace Js
 
         bool hasSuperReference = functionProxy->HasSuperReference();
 
+        ScriptFunction * pfuncScript = nullptr;
+
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
         {
-            Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
-            ScriptFunctionWithInlineCache* pfuncScriptWithInlineCache = scriptContext->GetLibrary()->CreateScriptFunctionWithInlineCache(functionProxy);
-            pfuncScriptWithInlineCache->SetEnvironment(environment);
-            JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScriptWithInlineCache, EtwTrace::GetFunctionId(functionProxy)));
-
-            Assert(functionBody->GetInlineCacheCount() + functionBody->GetIsInstInlineCacheCount());
-
+            FunctionBody * functionBody = functionProxy->GetFunctionBody();
             if (functionBody->GetIsFirstFunctionObject())
             {
-                // point the inline caches of the first function object to those on the function body.
-                pfuncScriptWithInlineCache->SetInlineCachesFromFunctionBody();
                 functionBody->SetIsNotFirstFunctionObject();
             }
             else
             {
+                ScriptFunctionWithInlineCache* pfuncScriptWithInlineCache = scriptContext->GetLibrary()->CreateScriptFunctionWithInlineCache(functionProxy);
                 // allocate inline cache for this function object
                 pfuncScriptWithInlineCache->CreateInlineCache();
+
+                Assert(functionBody->GetInlineCacheCount() + functionBody->GetIsInstInlineCacheCount());
+                if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
+                {
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+
+                    Output::Print(_u("Function object with inline cache: function number: (%s)\tfunction name: %s\n"),
+                        functionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName());
+                    Output::Flush();
+                }
+
+                pfuncScript = pfuncScriptWithInlineCache;
             }
-
-            pfuncScriptWithInlineCache->SetHasSuperReference(hasSuperReference);
-
-            if (PHASE_TRACE1(Js::ScriptFunctionWithInlineCachePhase))
-            {
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-
-                Output::Print(_u("Function object with inline cache: function number: (%s)\tfunction name: %s\n"),
-                    functionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName());
-                Output::Flush();
-            }
-            return pfuncScriptWithInlineCache;
         }
-        else
+
+        if (pfuncScript == nullptr)
         {
-            ScriptFunction* pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(functionProxy);
-            pfuncScript->SetEnvironment(environment);
-
-            pfuncScript->SetHasSuperReference(hasSuperReference);
-
-            JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
-
-            return pfuncScript;
+            pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(functionProxy);
         }
+
+        pfuncScript->SetEnvironment(environment);
+
+        pfuncScript->SetHasSuperReference(hasSuperReference);
+
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
+
+        return pfuncScript;
     }
 
     void ScriptFunction::SetEnvironment(FrameDisplay * environment)
@@ -749,11 +746,11 @@ namespace Js
 #endif
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
-        ScriptFunction(proxy, deferredPrototypeType), hasOwnInlineCaches(false)
+        ScriptFunction(proxy, deferredPrototypeType)
     {}
 
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(DynamicType * type) :
-        ScriptFunction(type), hasOwnInlineCaches(false)
+        ScriptFunction(type)
     {}
 
     bool ScriptFunctionWithInlineCache::Is(Var func)
@@ -786,45 +783,6 @@ namespace Js
         return reinterpret_cast<InlineCache *>(PointerValue(inlineCaches[index]));
     }
 
-    Field(void**) ScriptFunctionWithInlineCache::GetInlineCaches()
-    {
-        // If script function have inline caches pointing to function body and function body got reparsed we need to reset cache
-        if (this->GetHasInlineCaches() && !this->GetHasOwnInlineCaches())
-        {
-            // Script function have inline caches pointing to function body
-            if (!this->HasFunctionBody())
-            {
-                // Function body got re-deferred and have not been re-parsed yet. Reset cache to null
-                this->m_inlineCaches = nullptr;
-                this->inlineCacheCount = 0;
-                this->SetHasInlineCaches(false);
-            }
-            else if (this->m_inlineCaches != this->GetFunctionBody()->GetInlineCaches())
-            {
-                // Function body got reparsed we need to reset cache
-                Assert(this->GetFunctionBody()->GetCompileCount() > 1);
-                this->SetInlineCachesFromFunctionBody();
-            }
-        }
-
-        return this->m_inlineCaches;
-    }
-
-    void ScriptFunctionWithInlineCache::SetInlineCachesFromFunctionBody()
-    {
-        SetHasInlineCaches(true);
-        Js::FunctionBody* functionBody = this->GetFunctionBody();
-        this->m_inlineCaches = functionBody->GetInlineCaches();
-#if DBG
-        this->m_inlineCacheTypes = functionBody->GetInlineCacheTypes();
-#endif
-        this->rootObjectLoadInlineCacheStart = functionBody->GetRootObjectLoadInlineCacheStart();
-        this->rootObjectLoadMethodInlineCacheStart = functionBody->GetRootObjectLoadMethodInlineCacheStart();
-        this->rootObjectStoreInlineCacheStart = functionBody->GetRootObjectStoreInlineCacheStart();
-        this->inlineCacheCount = functionBody->GetInlineCacheCount();
-        this->isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
-    }
-
     void ScriptFunctionWithInlineCache::CreateInlineCache()
     {
         Js::FunctionBody *functionBody = this->GetFunctionBody();
@@ -835,7 +793,6 @@ namespace Js
 
         SetHasInlineCaches(true);
         AllocateInlineCache();
-        hasOwnInlineCaches = true;
     }
 
     void ScriptFunctionWithInlineCache::Finalize(bool isShutdown)
@@ -854,7 +811,7 @@ namespace Js
     {
         uint isInstInlineCacheStart = this->GetInlineCacheCount();
         uint totalCacheCount = isInstInlineCacheStart + isInstInlineCacheCount;
-        if (this->GetHasInlineCaches() && this->m_inlineCaches && this->hasOwnInlineCaches)
+        if (this->GetHasInlineCaches() && this->m_inlineCaches)
         {
             Js::ScriptContext* scriptContext = this->GetParseableFunctionInfo()->GetScriptContext();
             uint i = 0;
@@ -1086,14 +1043,5 @@ namespace Js
             this->isInstInlineCacheCount = 0;
         }
         SetHasInlineCaches(false);
-    }
-
-    void ScriptFunctionWithInlineCache::ClearBorrowedInlineCacheOnFunctionObject()
-    {
-        if (this->hasOwnInlineCaches)
-        {
-            return;
-        }
-        ClearInlineCacheOnFunctionObject();
     }
 }

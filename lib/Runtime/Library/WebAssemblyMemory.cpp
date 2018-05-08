@@ -239,7 +239,7 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 
     WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
     Assert(ArrayBuffer::Is(memory->m_buffer));
-    return memory->m_buffer;
+    return CrossSite::MarshalVar(scriptContext, memory->m_buffer);
 }
 
 WebAssemblyMemory *

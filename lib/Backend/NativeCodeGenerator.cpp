@@ -3257,8 +3257,7 @@ NativeCodeGenerator::FreeNativeCodeGenAllocation(void* codeAddress)
 #if PDATA_ENABLED && defined(_WIN32)
         DelayDeletingFunctionTable::Clear();
 #endif
-        ThreadContext * context = this->scriptContext->GetThreadContext();
-        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)codeAddress);
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(this->scriptContext->GetRemoteScriptAddr(), (intptr_t)codeAddress);
         JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
     }
     else if(this->backgroundAllocators)

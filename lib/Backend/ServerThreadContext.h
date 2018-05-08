@@ -55,7 +55,6 @@ public:
     virtual ptrdiff_t GetChakraBaseAddressDifference() const override;
     virtual ptrdiff_t GetCRTBaseAddressDifference() const override;
 
-    OOPCodeGenAllocators * GetCodeGenAllocators();
 #if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     OOPJITThunkEmitter * GetJITThunkEmitter();
 #endif
@@ -72,6 +71,7 @@ public:
 
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
+    bool CanCreatePreReservedSegment() const;
 
     static intptr_t GetJITCRTBaseAddress();
 
@@ -84,7 +84,6 @@ private:
     SectionAllocWrapper m_sectionAllocator;
     CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
     CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
-    OOPCodeGenAllocators m_codeGenAlloc;
 #if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     OOPJITThunkEmitter m_jitThunkEmitter;
 #endif
@@ -96,5 +95,6 @@ private:
 
     CriticalSection m_cs;
     uint m_refCount;
+    bool m_canCreatePreReservedSegment;
 };
 #endif

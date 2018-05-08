@@ -228,6 +228,9 @@ namespace Js
         }
 #endif
 
+        // Marshaling should not cause any re-entrancy.
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(object);
 #endif
@@ -297,9 +300,18 @@ namespace Js
         {
             if (!dynamicObject->IsCrossSiteObject())
             {
-                TTD_XSITE_LOG(object->GetScriptContext(), "MarshalDynamicObjectAndPrototype", object);
+                if (JavascriptProxy::Is(dynamicObject))
+                {
+                    // We don't need to marshal the prototype chain in the case of Proxy. Otherwise we will go to the user code.
+                    TTD_XSITE_LOG(object->GetScriptContext(), "MarshalDynamicObject", object);
+                    MarshalDynamicObject(scriptContext, dynamicObject);
+                }
+                else
+                {
+                    TTD_XSITE_LOG(object->GetScriptContext(), "MarshalDynamicObjectAndPrototype", object);
 
-                MarshalDynamicObjectAndPrototype(scriptContext, dynamicObject);
+                    MarshalDynamicObjectAndPrototype(scriptContext, dynamicObject);
+                }
             }
         }
         else
