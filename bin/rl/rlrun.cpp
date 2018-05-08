@@ -42,8 +42,6 @@ __declspec(thread) char EnvFlags[MAX_ENV_LEN];
 // either be protected by synchronization or use thread-local storage.
 //
 
-// currently, none
-
 
 LOCAL void __cdecl
     RunCleanUp()
@@ -526,7 +524,7 @@ int
         }
 
         //
-        // If the test is a JS test and we've passed in a custom config file, 
+        // If the test is a JS test and we've passed in a custom config file,
         // ignore all of the other flags and just pass the config file in
         //
         if (kind == TK_JSCRIPT && pTestVariant->testInfo.data[TIK_CUSTOM_CONFIG_FILE] != nullptr)
@@ -599,6 +597,10 @@ logFailure:
         LogOut("    %s", cmdbuf);
         if (fDumpOutputFile) {
             DumpFileToLog(full);
+        }
+        if (FStopOnError)
+        {
+            GStopDueToError = TRUE;
         }
     }
 
@@ -1333,7 +1335,7 @@ int
 
     // Check to see if all of the files exist.
 
-    for (StringList * pFile = pTest->files; pFile != NULL; pFile = pFile->next)
+    for (StringList * pFile = pTest->files; pFile != NULL && !GStopDueToError; pFile = pFile->next)
     {
         // Get a pointer to the filename sans path, if present.
 

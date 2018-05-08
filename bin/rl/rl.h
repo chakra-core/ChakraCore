@@ -871,6 +871,7 @@ extern BOOL FParallel;
 extern BOOL FSyncEnumDirs;
 extern BOOL FNogpfnt;
 extern BOOL FTest;
+extern BOOL FStopOnError;
 extern BOOL FAppendTestNameToExtraCCFlags;
 extern BOOL FNoProgramOutput;
 extern BOOL FOnlyAssertOutput;
@@ -882,6 +883,7 @@ extern const char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
 extern BOOL FDebug;
 #endif
 
+extern BOOL GStopDueToError;
 extern BOOL bThreadStop;
 
 extern BOOL FSyncImmediate;

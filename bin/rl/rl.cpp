@@ -322,6 +322,8 @@ BOOL FVerbose;
 BOOL FQuiet;
 BOOL FNoWarn;
 BOOL FTest;
+BOOL FStopOnError = FALSE;
+BOOL GStopDueToError = FALSE;
 BOOL FLow;
 BOOL FNoDelete;
 BOOL FCopyOnFail;
@@ -1155,6 +1157,7 @@ Usage(
          "\n"
          "    -nosummary disables output of summary diff/failure info (implies -dirname)\n"
          "    -dirname enables output of '*** dirname ***'\n"
+         "    -stoponerror stop on first test failure\n"
          "    -nomovediffs to not place assembly diffs in DIFF_DIR\n"
          "    -nodelete to not delete objs and exes when doing -exe\n"
          "         (only compatible with a single EXEC_TESTS_FLAGS flags)\n"
@@ -2848,6 +2851,11 @@ ParseArg(
             FTest = TRUE;
             break;
          }
+         if (!_stricmp(&arg[1], "stoponerror"))
+         {
+             FStopOnError = TRUE;
+             break;
+         }
          if (!_stricmp(&arg[1], "exeflags")) {
             EXEC_TESTS_FLAGS = ComplainIfNoArg(arg, s);
             break;
@@ -3583,7 +3591,7 @@ GetTestInfoFromNode
             {
                // Validate the timeout string now to fail early so we don't run any tests when there is an error.
                if (!IsTimeoutStringValid(testInfo->data[i])) {
-                  CFG_ERROR_EX(fileName, node->LineNumber, 
+                  CFG_ERROR_EX(fileName, node->LineNumber,
                      "Invalid timeout specified. Cannot parse or too large.\n", NULL);
                   childNode->Dump();
                   return FALSE;
@@ -4621,7 +4629,7 @@ PerformSingleRegression(
     // Before executing, make sure directory is started.
     pDir->TryBeginDirectory();
 
-    for (TestVariant * pTestVariant = pTest->variants; pTestVariant != NULL; pTestVariant = pTestVariant->next)
+    for (TestVariant * pTestVariant = pTest->variants; pTestVariant != NULL && !GStopDueToError; pTestVariant = pTestVariant->next)
     {
         ThreadInfo[ThreadId].SetCurrentTest(pDir->GetDirectoryName(), pTest->name, pDir->IsBaseline());
 
@@ -4791,7 +4799,7 @@ RegressDirectory(
    // variation. We do not need to write any directory summary here, the CDirectory
    // object itself will take care of that when status is updated during regression
    // execution.
-   for (pTest = pTestList->first; pTest; pTest = pTest->next)
+   for (pTest = pTestList->first; pTest && !GStopDueToError; pTest = pTest->next)
    {
        PerformSingleRegression(pDir, pTest);
    }
@@ -4859,7 +4867,7 @@ ThreadWorker( void *arg )
    }
 
    while(TRUE) {
-       if(bThreadStop)
+       if(bThreadStop || GStopDueToError)
            break;
 
        // Poll for new stuff. If the thread is set to stop, then go away.
@@ -4887,7 +4895,7 @@ ThreadWorker( void *arg )
    }
 
    while(TRUE) {
-       if(bThreadStop)
+       if(bThreadStop || GStopDueToError)
            break;
 
        // Poll for new stuff. If the thread is set to stop, then go away.
@@ -5075,7 +5083,7 @@ main(int argc, char *argv[])
       if (status == PCS_ERROR)
       {
           exit(1);
-      } 
+      }
       else
       {
 
