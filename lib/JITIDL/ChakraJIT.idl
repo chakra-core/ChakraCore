@@ -85,7 +85,7 @@ interface IChakraJIT
 
     HRESULT FreeAllocation(
         [in] handle_t binding,
-        [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] CHAKRA_PTR codeAddress);
 
     HRESULT NewInterpreterThunkBlock(

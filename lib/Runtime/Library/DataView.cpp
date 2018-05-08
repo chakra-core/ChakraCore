@@ -597,8 +597,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
         }
-
-        return arrayBuffer;
+        return CrossSite::MarshalVar(scriptContext, arrayBuffer);
     }
 
     Var DataView::EntryGetterByteLength(RecyclableObject* function, CallInfo callInfo, ...)

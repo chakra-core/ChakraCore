@@ -14,24 +14,21 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL* data, ProcessCont
     m_numericPropertyBV(nullptr),
     m_preReservedSectionAllocator(processContext->processHandle),
     m_sectionAllocator(processContext->processHandle),
-    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processContext->processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, processContext->processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, processContext->processHandle),
 #if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
     m_jitThunkEmitter(this, &m_sectionAllocator, processContext->processHandle),
 #endif
-    m_codeGenAlloc(nullptr, nullptr, this, &m_codePageAllocators, processContext->processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
     ),
-    processContext(processContext)
+    processContext(processContext),
+    m_canCreatePreReservedSegment(data->allowPrereserveAlloc != FALSE)
 {
     m_pid = GetProcessId(processContext->processHandle);
 
-#if !TARGET_64 && _CONTROL_FLOW_GUARD
-    m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
-#endif
     m_numericPropertyBV = HeapNew(BVSparse<HeapAllocator>, &HeapAllocator::Instance);
 }
 
@@ -121,22 +118,16 @@ ServerThreadContext::GetThunkPageAllocators()
     return &m_thunkPageAllocators;
 }
 
-CustomHeap::OOPCodePageAllocators *
-ServerThreadContext::GetCodePageAllocators()
-{
-    return &m_codePageAllocators;
-}
-
 SectionAllocWrapper *
 ServerThreadContext::GetSectionAllocator()
 {
     return &m_sectionAllocator;
 }
 
-OOPCodeGenAllocators *
-ServerThreadContext::GetCodeGenAllocators()
+CustomHeap::OOPCodePageAllocators *
+ServerThreadContext::GetCodePageAllocators()
 {
-    return &m_codeGenAlloc;
+    return &m_codePageAllocators;
 }
 
 #if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)
@@ -170,6 +161,12 @@ PageAllocator *
 ServerThreadContext::GetForegroundPageAllocator()
 {
     return &m_pageAlloc;
+}
+
+bool
+ServerThreadContext::CanCreatePreReservedSegment() const
+{
+    return m_canCreatePreReservedSegment;
 }
 
 bool

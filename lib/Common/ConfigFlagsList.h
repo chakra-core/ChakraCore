@@ -496,7 +496,13 @@ PHASE(All)
 #define DEFAULT_CONFIG_PoisonFloatArrayLoad (true)
 #define DEFAULT_CONFIG_PoisonTypedArrayLoad (true)
 #define DEFAULT_CONFIG_PoisonStringLoad (true)
-#define DEFAULT_CONFIG_PoisonObjects (true)
+#define DEFAULT_CONFIG_PoisonObjectsForLoads (true)
+
+#define DEFAULT_CONFIG_PoisonVarArrayStore (true)
+#define DEFAULT_CONFIG_PoisonIntArrayStore (true)
+#define DEFAULT_CONFIG_PoisonFloatArrayStore (true)
+#define DEFAULT_CONFIG_PoisonTypedArrayStore (true)
+#define DEFAULT_CONFIG_PoisonObjectsForStores (true)
 
 #ifdef RECYCLER_PAGE_HEAP
 #define DEFAULT_CONFIG_PageHeap             ((Js::Number) PageHeapMode::PageHeapModeOff)
@@ -1249,7 +1255,13 @@ FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayLoad, "Poison loads from Int arra
 FLAGPR(Boolean, MitigateSpectre, PoisonFloatArrayLoad, "Poison loads from Float arrays", DEFAULT_CONFIG_PoisonFloatArrayLoad)
 FLAGPR(Boolean, MitigateSpectre, PoisonTypedArrayLoad, "Poison loads from TypedArrays", DEFAULT_CONFIG_PoisonTypedArrayLoad)
 FLAGPR(Boolean, MitigateSpectre, PoisonStringLoad, "Poison indexed loads from strings", DEFAULT_CONFIG_PoisonStringLoad)
-FLAGPR(Boolean, MitigateSpectre, PoisonObjects, "Poison objects after type checks", DEFAULT_CONFIG_PoisonObjects)
+FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForLoads, "Poison objects after type checks", DEFAULT_CONFIG_PoisonObjectsForLoads)
+
+FLAGPR(Boolean, MitigateSpectre, PoisonVarArrayStore, "Poison stores from Var arrays", DEFAULT_CONFIG_PoisonVarArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayStore, "Poison stores from Int arrays", DEFAULT_CONFIG_PoisonIntArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonFloatArrayStore, "Poison stores from Float arrays", DEFAULT_CONFIG_PoisonFloatArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonTypedArrayStore, "Poison stores from TypedArrays", DEFAULT_CONFIG_PoisonTypedArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForStores, "Poison objects after type checks", DEFAULT_CONFIG_PoisonObjectsForStores)
 
 FLAGNR(Number,  MinInterpretCount     , "Minimum number of times a function must be interpreted", 0)
 FLAGNR(Number,  MinSimpleJitRunCount  , "Minimum number of times a function must be run in simple jit", 0)

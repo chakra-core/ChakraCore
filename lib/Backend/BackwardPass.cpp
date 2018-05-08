@@ -4124,8 +4124,9 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
 
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
     if(!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
-        !currentBlock->noImplicitCallNativeArrayUses->IsEmpty())
+        (!baseValueType.IsLikelyNativeArray() || !instr->GetSrc1()->IsInt32()) &&
+        !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
+        !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {
         // There is an upwards-exposed use of a native array. Since the array referenced by this instruction can be aliased,
         // this instruction needs to bail out if it converts the native array even if this array specifically is not
@@ -4231,6 +4232,11 @@ BackwardPass::ProcessStackSymUse(StackSym * stackSym, BOOLEAN isNonByteCodeUse)
         return true;
     }
 
+    if (this->DoMarkTempNumbers())
+    {
+        Assert((block->loop != nullptr) == block->tempNumberTracker->HasTempTransferDependencies());
+        block->tempNumberTracker->ProcessUse(stackSym, this);
+    }
     if (this->DoMarkTempObjects())
     {
         Assert((block->loop != nullptr) == block->tempObjectTracker->HasTempTransferDependencies());
@@ -4293,17 +4299,7 @@ BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeU
         }
     }
 
-    StackSym * stackSym = sym->AsStackSym();
-    bool isUsed = ProcessStackSymUse(stackSym, isNonByteCodeUse);
-
-    if (!IsCollectionPass() && isRegOpndUse && this->DoMarkTempNumbers())
-    {
-        // Collect mark temp number information
-        Assert((block->loop != nullptr) == block->tempNumberTracker->HasTempTransferDependencies());
-        block->tempNumberTracker->ProcessUse(stackSym, this);
-    }
-
-    return isUsed;
+    return ProcessStackSymUse(sym->AsStackSym(), isNonByteCodeUse);
 }
 
 bool
