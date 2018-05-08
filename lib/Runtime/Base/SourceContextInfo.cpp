@@ -41,7 +41,7 @@ bool SourceContextInfo::IsSourceProfileLoaded() const
 
 SourceContextInfo* SourceContextInfo::Clone(Js::ScriptContext* scriptContext) const
 {
-    IActiveScriptDataCache* profileCache = NULL;
+    SimpleDataCacheWrapper* profileCache = NULL;
     
 #if ENABLE_PROFILE_INFO
     if (this->sourceDynamicProfileManager != NULL)

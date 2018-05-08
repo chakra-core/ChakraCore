@@ -220,3 +220,24 @@ private:
         }
     }
 };
+
+template <typename T>
+class AutoCoTaskMemFreePtr : public BasePtr<T>
+{
+public:
+    AutoCoTaskMemFreePtr(T* ptr) : BasePtr<T>(ptr) {}
+    ~AutoCoTaskMemFreePtr()
+    {
+        Clear();
+    }
+
+private:
+    void Clear()
+    {
+        if (this->ptr != nullptr)
+        {
+            CoTaskMemFree(this->ptr);
+            this->ptr = nullptr;
+        }
+    }
+};

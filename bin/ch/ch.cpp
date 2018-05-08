@@ -183,6 +183,16 @@ Error:
     return hr;
 }
 
+HANDLE GetFileHandle(LPCWSTR filename)
+{
+    if (filename != nullptr)
+    {
+        return CreateFile(filename, GENERIC_WRITE, FILE_SHARE_DELETE,
+            nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    }
+    return GetStdHandle(STD_OUTPUT_HANDLE);
+}
+
 HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, JsFinalizeCallback contentsRawFinalizeCallback, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
 {
     HANDLE bcFileHandle = nullptr;
@@ -220,19 +230,8 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, JsFinalizeCallback conte
 
     IfJsrtErrorHRLabel(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer, &bcBufferSize), ErrorRunFinalize);
 
-    if (bcFullPath)
-    {
-        bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
-            nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    }
-    else
-    {
-        bcFileHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-    }
-    if (bcFileHandle == INVALID_HANDLE_VALUE)
-    {
-        IfFailedGoLabel(E_FAIL, ErrorRunFinalize);
-    }
+    bcFileHandle = GetFileHandle(bcFullPath);
+    IfFalseGo(bcFileHandle != INVALID_HANDLE_VALUE && bcFileHandle != nullptr);
 
     IfFalseGoLabel(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr), ErrorRunFinalize);
     IfFalseGoLabel(WriteFile(bcFileHandle, normalizedContent, (DWORD)normalizedContentStr.size(), &written, nullptr), ErrorRunFinalize);
@@ -316,7 +315,7 @@ static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
     return true;
 }
 
-HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, JsValueRef bufferValue, char *fullPath)
+HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, JsValueRef bufferValue, char *fullPath, JsValueRef parserStateCache)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -397,18 +396,18 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
         IfJsErrorFailLogLabel(ChakraRTInterface::JsCreateString(fullPath,
             strlen(fullPath), &fname), ErrorRunFinalize);
 
-        if(bufferValue != nullptr)
+        if (bufferValue != nullptr)
         {
-            if(fileContents == nullptr)
+            if (fileContents == nullptr)
             {
                 // if we have no fileContents, no worry about freeing them, and the call is simple.
                 runScript = ChakraRTInterface::JsRunSerialized(
-                        bufferValue,
-                        nullptr /*JsSerializedLoadScriptCallback*/,
-                        0 /*SourceContext*/,
-                        fname,
-                        nullptr /*result*/
-                        );
+                    bufferValue,
+                    nullptr /*JsSerializedLoadScriptCallback*/,
+                    0 /*SourceContext*/,
+                    fname,
+                    nullptr /*result*/
+                );
             }
             else // fileContents != nullptr
             {
@@ -420,24 +419,40 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
 
                 // Now we can run our script, with this serializedCallbackInfo as the sourcecontext
                 runScript = ChakraRTInterface::JsRunSerialized(
-                        bufferValue,
-                        DummyJsSerializedScriptLoadUtf8Source,
-                        reinterpret_cast<JsSourceContext>(&serializedCallbackInfo),
-                        // Use source ptr as sourceContext
-                        fname,
-                        nullptr /*result*/);
+                    bufferValue,
+                    DummyJsSerializedScriptLoadUtf8Source,
+                    reinterpret_cast<JsSourceContext>(&serializedCallbackInfo),
+                    // Use source ptr as sourceContext
+                    fname,
+                    nullptr /*result*/);
                 // Now that we're down here, we can free the fileContents if they weren't sent into
                 // a GC-managed object.
-                if(!serializedCallbackInfo.freeingHandled)
+                if (!serializedCallbackInfo.freeingHandled)
                 {
-                    if(fileContentsFinalizeCallback != nullptr)
+                    if (fileContentsFinalizeCallback != nullptr)
                     {
                         fileContentsFinalizeCallback((void*)fileContents);
                     }
                 }
             }
         }
-        else // bufferValue == nullptr
+        else if (parserStateCache != nullptr)
+        {
+            JsValueRef scriptSource;
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+                (unsigned int)fileLength,
+                fileContentsFinalizeCallback, (void*)fileContents, &scriptSource));
+
+            // TODO: Support TTD
+            runScript = ChakraRTInterface::JsRunScriptWithParserState(
+                scriptSource,
+                WScriptJsrt::GetNextSourceContext(),
+                fname,
+                JsParseScriptAttributeNone,
+                parserStateCache,
+                nullptr);
+        }
+        else // bufferValue == nullptr && parserStateCache == nullptr
         {
             JsValueRef scriptSource;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
@@ -584,6 +599,108 @@ Error:
     return hr;
 }
 
+HRESULT GetParserStateBuffer(LPCSTR fileContents, JsFinalizeCallback fileContentsFinalizeCallback, JsValueRef *parserStateBuffer)
+{
+    HRESULT hr = S_OK;
+    JsValueRef scriptSource = nullptr;
+
+    IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+        (unsigned int)strlen(fileContents), fileContentsFinalizeCallback, (void*)fileContents, &scriptSource));
+
+    IfJsErrorFailLog(ChakraRTInterface::JsSerializeParserState(scriptSource, parserStateBuffer, JsParseScriptAttributeNone));
+
+Error:
+    return hr;
+}
+
+HRESULT CreateParserState(LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, LPCWSTR fullPath)
+{
+    HRESULT hr = S_OK;
+    HANDLE fileHandle = nullptr;
+    JsValueRef parserStateBuffer = nullptr;
+    BYTE *buffer = nullptr;
+    unsigned int bufferSize = 0;
+
+    IfFailedGoLabel(GetParserStateBuffer(fileContents, fileContentsFinalizeCallback, &parserStateBuffer), Error);
+    IfJsErrorFailLog(ChakraRTInterface::JsGetArrayBufferStorage(parserStateBuffer, &buffer, &bufferSize));
+
+    fileHandle = GetFileHandle(fullPath);
+    IfFalseGo(fileHandle != INVALID_HANDLE_VALUE && fileHandle != nullptr);
+
+    for (unsigned int i = 0; i < bufferSize; i++)
+    {
+        const unsigned int BYTES_PER_LINE = 32;
+        DWORD written = 0;
+        char scratch[3];
+        auto scratchLen = sizeof(scratch);
+        int num = _snprintf_s(scratch, scratchLen, _countof(scratch), "%02X", buffer[i]);
+        Assert(num == 2);
+        IfFalseGo(WriteFile(fileHandle, scratch, (DWORD)(scratchLen - 1), &written, nullptr));
+
+        // Add line breaks so this block can be readable
+        if (i % BYTES_PER_LINE == (BYTES_PER_LINE - 1) && i < bufferSize - 1)
+        {
+            IfFalseGo(WriteFile(fileHandle, "\n", 1, &written, nullptr));
+        }
+    }
+
+Error:
+    if (fileHandle != nullptr)
+    {
+        CloseHandle(fileHandle);
+    }
+    return hr;
+}
+
+HRESULT CreateParserStateAndRunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, char *fullPath)
+{
+    HRESULT hr = S_OK;
+    JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
+    JsContextRef context = JS_INVALID_REFERENCE, current = JS_INVALID_REFERENCE;
+    JsValueRef bufferVal;
+
+    // We don't want this to free fileContents when it completes, so the finalizeCallback is nullptr
+    IfFailedGoLabel(GetParserStateBuffer(fileContents, nullptr, &bufferVal), ErrorRunFinalize);
+
+    // Bytecode buffer is created in one runtime and will be executed on different runtime.
+    IfFailedGoLabel(CreateRuntime(&runtime), ErrorRunFinalize);
+    chRuntime = runtime;
+
+    IfJsErrorFailLogLabel(ChakraRTInterface::JsCreateContext(runtime, &context), ErrorRunFinalize);
+    IfJsErrorFailLogLabel(ChakraRTInterface::JsGetCurrentContext(&current), ErrorRunFinalize);
+    IfJsErrorFailLogLabel(ChakraRTInterface::JsSetCurrentContext(context), ErrorRunFinalize);
+
+    // Initialized the WScript object on the new context
+    if (!WScriptJsrt::Initialize())
+    {
+        IfFailedGoLabel(E_FAIL, ErrorRunFinalize);
+    }
+
+    // This is our last call to use fileContents, so pass in the finalizeCallback
+    IfFailGo(RunScript(fileName, fileContents, fileLength, fileContentsFinalizeCallback, nullptr, fullPath, bufferVal));
+
+    if (false)
+    {
+ErrorRunFinalize:
+        if (fileContentsFinalizeCallback != nullptr)
+        {
+            fileContentsFinalizeCallback((void*)fileContents);
+        }
+    }
+Error:
+    if (current != JS_INVALID_REFERENCE)
+    {
+        ChakraRTInterface::JsSetCurrentContext(current);
+    }
+
+    if (runtime != JS_INVALID_RUNTIME_HANDLE)
+    {
+        ChakraRTInterface::JsDisposeRuntime(runtime);
+    }
+
+    return hr;
+}
+
 HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, size_t fileLength, JsFinalizeCallback fileContentsFinalizeCallback, char *fullPath)
 {
     HRESULT hr = S_OK;
@@ -610,7 +727,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     }
 
     // This is our last call to use fileContents, so pass in the finalizeCallback
-    IfFailGo(RunScript(fileName, fileContents, fileLength, fileContentsFinalizeCallback, bufferVal, fullPath));
+    IfFailGo(RunScript(fileName, fileContents, fileLength, fileContentsFinalizeCallback, bufferVal, fullPath, nullptr));
 
     if(false)
     {
@@ -662,7 +779,7 @@ HRESULT ExecuteTest(const char* fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
-        IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, nullptr));
+        IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, nullptr, nullptr));
 
         unsigned int rcount = 0;
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(nullptr));
@@ -783,9 +900,17 @@ HRESULT ExecuteTest(const char* fileName)
         {
             CreateAndRunSerializedScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, fullPath);
         }
+        else if (HostConfigFlags::flags.GenerateParserStateCacheIsEnabled)
+        {
+            CreateParserState(fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr);
+        }
+        else if (HostConfigFlags::flags.UseParserStateCacheIsEnabled)
+        {
+            CreateParserStateAndRunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, fullPath);
+        }
         else
         {
-            IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, fullPath));
+            IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, fullPath, nullptr));
         }
     }
 Error:

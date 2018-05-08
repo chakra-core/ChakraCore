@@ -406,7 +406,7 @@ void BGParseWorkItem::ParseUTF8Core(Js::ScriptContext* scriptContext)
     charcount_t cchLength = 0;
     uint sourceIndex = 0;
     Js::ParseableFunctionInfo * func = nullptr;
-    this->parseHR = scriptContext->CompileUTF8Core(sourceInfo, &si, true, this->script, this->cb, fscrGlobalCode, &this->cse, cchLength, this->parseSourceLength, sourceIndex, &func);
+    this->parseHR = scriptContext->CompileUTF8Core(sourceInfo, &si, true, this->script, this->cb, fscrGlobalCode, &this->cse, cchLength, this->parseSourceLength, sourceIndex, &func, nullptr);
     if (this->parseHR == S_OK)
     {
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("BGParseWorkItem"));

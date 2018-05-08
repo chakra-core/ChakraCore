@@ -138,6 +138,7 @@ struct SerializedFieldList {
     bool has_propertyIdOfFormals: 1;
     bool has_slotIdInCachedScopeToNestedIndexArray : 1;
     bool has_debuggerScopeSlotArray : 1;
+    bool has_deferredStubs : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -386,6 +387,11 @@ class ByteCodeBufferBuilder
     bool GenerateByteCodeForNative() const
     {
         return (dwFlags & GENERATE_BYTE_CODE_FOR_NATIVE) != 0;
+    }
+
+    bool GenerateParserStateCache() const
+    {
+        return (dwFlags & GENERATE_BYTE_CODE_PARSER_STATE) != 0;
     }
 
 public:
@@ -749,6 +755,12 @@ public:
     {
         auto id = GetString16Id(bb);
         return PrependInt32(builder, clue, id);
+    }
+
+    int GetIdOfString(__in_bcount_opt(byteLength) LPCWSTR sz, __in uint32 byteLength)
+    {
+        auto bb = Anew(alloc, ByteBuffer, byteLength, (void*)sz); // Includes trailing null
+        return GetString16Id(bb);
     }
 
     int GetIdOfPropertyRecord(const PropertyRecord * propertyRecord)
@@ -1978,107 +1990,10 @@ public:
     }
 #endif
 
-    HRESULT AddFunctionBody(BufferBuilderList & builder, FunctionBody * function, SRCINFO const * srcInfo)
+    HRESULT AddFunctionBody(BufferBuilderList &builder, FunctionBody *function, SRCINFO const *srcInfo, SerializedFieldList& definedFields)
     {
-        SerializedFieldList definedFields = { 0 };
-
-#ifdef BYTE_CODE_MAGIC_CONSTANTS
-        PrependInt32(builder, _u("Start Function Table"), magicStartOfFunctionBody);
-#endif
-
         Assert(!function->GetIsSerialized());
         DebugOnly(function->SetIsSerialized(true));
-
-        uint32 sourceDiff = 0;
-
-        if (!TryConvertToUInt32(function->StartOffset(), &sourceDiff))
-        {
-            Assert(0); // Likely a bug
-            return ByteCodeSerializer::CantGenerate;
-        }
-
-        if (function->m_lineNumber != 0)
-        {
-            definedFields.has_m_lineNumber = true;
-            PrependInt32(builder, _u("Line Number"), function->m_lineNumber);
-        }
-
-        if (function->m_columnNumber != 0)
-        {
-            definedFields.has_m_columnNumber = true;
-            PrependInt32(builder, _u("Column Number"), function->m_columnNumber);
-        }
-
-        bool isAnonymous = function->GetIsAnonymousFunction();
-
-        // FunctionBody Details
-        DWORD bitFlags =
-            (function->m_isDeclaration ? ffIsDeclaration : 0)
-            | (function->m_hasImplicitArgIns ? ffHasImplicitArgsIn : 0)
-            | (function->m_isAccessor ? ffIsAccessor : 0)
-            | (function->m_isStaticNameFunction ? ffIsStaticNameFunction : 0)
-            | (function->m_isNamedFunctionExpression ? ffIsNamedFunctionExpression : 0)
-            | (function->m_isNameIdentifierRef ? ffIsNameIdentifierRef : 0)
-            | (function->m_isGlobalFunc ? ffIsGlobalFunc : 0)
-            | (function->m_dontInline ? ffDontInline : 0)
-            | (function->m_isFuncRegistered ? ffIsFuncRegistered : 0)
-            | (function->m_isStrictMode ? ffIsStrictMode : 0)
-            | (function->m_doBackendArgumentsOptimization ? ffDoBackendArgumentsOptimization : 0)
-            | (function->m_doScopeObjectCreation ? ffDoScopeObjectCreation : 0)
-            | (function->m_usesArgumentsObject ? ffUsesArgumentsObject : 0)
-            | (function->m_isEval ? ffIsEval : 0)
-            | (function->m_isDynamicFunction ? ffIsDynamicFunction : 0)
-            | (function->m_hasAllNonLocalReferenced ? ffhasAllNonLocalReferenced : 0)
-            | (function->m_hasSetIsObject ? ffhasSetIsObject : 0)
-            | (function->m_CallsEval ? ffhasSetCallsEval : 0)
-            | (function->m_ChildCallsEval ? ffChildCallsEval : 0)
-            | (function->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
-            | (function->m_isParamAndBodyScopeMerged ? ffIsParamAndBodyScopeMerged : 0)
-            | (isAnonymous ? ffIsAnonymous : 0)
-#ifdef ASMJS_PLAT
-            | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
-            | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
-#endif
-            ;
-
-        PrependConstantInt32(builder, _u("BitFlags"), bitFlags);
-
-        if (!isAnonymous)
-        {
-            const char16* displayName = function->GetDisplayName();
-            uint displayNameLength = function->m_displayNameLength;
-            PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1) * sizeof(char16));
-        }
-
-        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
-        auto attributes = function->GetAttributes();
-        AssertMsg((attributes &
-            ~(FunctionInfo::Attributes::ErrorOnNew
-                | FunctionInfo::Attributes::SuperReference
-                | FunctionInfo::Attributes::Lambda
-                | FunctionInfo::Attributes::Async
-                | FunctionInfo::Attributes::CapturesThis
-                | FunctionInfo::Attributes::Generator
-                | FunctionInfo::Attributes::ClassConstructor
-                | FunctionInfo::Attributes::BaseConstructorKind
-                | FunctionInfo::Attributes::ClassMethod
-                | FunctionInfo::Attributes::Method
-                | FunctionInfo::Attributes::EnclosedByGlobalFunc
-                | FunctionInfo::Attributes::AllowDirectSuper
-                | FunctionInfo::Attributes::ComputedName)) == 0,
-            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper|ComputedName attributes should be set on a serialized function");
-        if (attributes != FunctionInfo::Attributes::None)
-        {
-            definedFields.has_attributes = true;
-            PrependInt32(builder, _u("Attributes"), attributes);
-        }
-       
-        PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
-        if (function->GetNestedCount() > 0)
-        {
-            definedFields.has_m_nestedCount = true;
-            PrependInt32(builder, _u("Nested count"), function->GetNestedCount());
-        }
 
         // This field should always be non-zero
         Assert(function->GetConstantCount() != 0);
@@ -2089,16 +2004,6 @@ public:
 #define PrependULong PrependInt32
 #define PrependUInt16 PrependInt16
 #define PrependUInt32 PrependInt32
-
-#define DEFINE_FUNCTION_PROXY_FIELDS 1
-#define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
-#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
-        if (function->##name != 0) { \
-            definedFields.has_##name = true; \
-            Prepend##serializableType(builder, _u(#name), function->##name); \
-        }
-
-#include "SerializableFunctionFields.h"
 
         {
 #define DEFINE_FUNCTION_BODY_FIELDS 1
@@ -2211,7 +2116,7 @@ public:
 
                 const auto source = literalRegex->GetSource();
                 PrependInt32(builder, _u("Literal regex source length"), source.GetLength());
-                PrependString16(builder, _u("Literal regex source"), source.GetBuffer(), (source.GetLength() + 1)* sizeof(char16));
+                PrependString16(builder, _u("Literal regex source"), source.GetBuffer(), (source.GetLength() + 1) * sizeof(char16));
                 PrependByte(builder, _u("Literal regex flags"), literalRegex->GetFlags());
             }
 
@@ -2219,17 +2124,161 @@ public:
             PrependSmallSpanSequence(builder, _u("Span Sequence"), function->m_sourceInfo.pSpanSequence);
         }
 
+        return S_OK;
+    }
+
+    HRESULT AddFunction(BufferBuilderList & builder, ParseableFunctionInfo * function, SRCINFO const * srcInfo)
+    {
+        SerializedFieldList definedFields = { 0 };
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        PrependInt32(builder, _u("Start Function Table"), magicStartOfFunctionBody);
+#endif
+
+        uint32 sourceDiff = 0;
+
+        if (!TryConvertToUInt32(function->StartOffset(), &sourceDiff))
+        {
+            Assert(0); // Likely a bug
+            return ByteCodeSerializer::CantGenerate;
+        }
+
+        if (function->m_lineNumber != 0)
+        {
+            definedFields.has_m_lineNumber = true;
+            PrependInt32(builder, _u("Line Number"), function->m_lineNumber);
+        }
+
+        if (function->m_columnNumber != 0)
+        {
+            definedFields.has_m_columnNumber = true;
+            PrependInt32(builder, _u("Column Number"), function->m_columnNumber);
+        }
+
+        bool isAnonymous = function->GetIsAnonymousFunction();
+
+        // FunctionBody Details
+        DWORD bitFlags =
+            (function->m_isDeclaration ? ffIsDeclaration : 0)
+            | (function->m_hasImplicitArgIns ? ffHasImplicitArgsIn : 0)
+            | (function->m_isAccessor ? ffIsAccessor : 0)
+            | (function->m_isStaticNameFunction ? ffIsStaticNameFunction : 0)
+            | (function->m_isNamedFunctionExpression ? ffIsNamedFunctionExpression : 0)
+            | (function->m_isNameIdentifierRef ? ffIsNameIdentifierRef : 0)
+            | (function->m_isGlobalFunc ? ffIsGlobalFunc : 0)
+            | (function->m_dontInline ? ffDontInline : 0)
+            | (function->m_isStrictMode ? ffIsStrictMode : 0)
+            | (function->m_doBackendArgumentsOptimization ? ffDoBackendArgumentsOptimization : 0)
+            | (function->m_doScopeObjectCreation ? ffDoScopeObjectCreation : 0)
+            | (function->m_usesArgumentsObject ? ffUsesArgumentsObject : 0)
+            | (function->m_isEval ? ffIsEval : 0)
+            | (function->m_isDynamicFunction ? ffIsDynamicFunction : 0)
+            | (isAnonymous ? ffIsAnonymous : 0)
+#ifdef ASMJS_PLAT
+            | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
+            | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
+#endif
+            ;
+
+        FunctionBody *functionBody = nullptr;
+        if (function->IsFunctionBody())
+        {
+            functionBody = function->GetFunctionBody();
+
+            bitFlags |=
+                (functionBody->m_isFuncRegistered ? ffIsFuncRegistered : 0)
+                | (functionBody->m_hasAllNonLocalReferenced ? ffhasAllNonLocalReferenced : 0)
+                | (functionBody->m_hasSetIsObject ? ffhasSetIsObject : 0)
+                | (functionBody->m_CallsEval ? ffhasSetCallsEval : 0)
+                | (functionBody->m_ChildCallsEval ? ffChildCallsEval : 0)
+                | (functionBody->m_hasReferenceableBuiltInArguments ? ffHasReferenceableBuiltInArguments : 0)
+                | (functionBody->m_isParamAndBodyScopeMerged ? ffIsParamAndBodyScopeMerged : 0);
+        }
+
+        PrependConstantInt32(builder, _u("BitFlags"), bitFlags);
+
+        if (!isAnonymous)
+        {
+            const char16* displayName = function->GetDisplayName();
+            uint displayNameLength = function->m_displayNameLength;
+            PrependString16(builder, _u("Display Name"), displayName, (displayNameLength + 1) * sizeof(char16));
+        }
+
+        PrependInt32(builder, _u("Relative Function ID"), function->GetLocalFunctionId() - topFunctionId); // Serialized function ids are relative to the top function ID
+        auto attributes = function->GetAttributes();
+        AssertMsg((attributes &
+            ~(FunctionInfo::Attributes::ErrorOnNew
+                | FunctionInfo::Attributes::SuperReference
+                | FunctionInfo::Attributes::Lambda
+                | FunctionInfo::Attributes::Async
+                | FunctionInfo::Attributes::CapturesThis
+                | FunctionInfo::Attributes::Generator
+                | FunctionInfo::Attributes::ClassConstructor
+                | FunctionInfo::Attributes::BaseConstructorKind
+                | FunctionInfo::Attributes::ClassMethod
+                | FunctionInfo::Attributes::Method
+                | FunctionInfo::Attributes::EnclosedByGlobalFunc
+                | FunctionInfo::Attributes::AllowDirectSuper
+                | FunctionInfo::Attributes::DeferredParse
+                | FunctionInfo::Attributes::CanDefer
+                | FunctionInfo::Attributes::ComputedName)) == 0,
+            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper|ComputedName|DeferredParse|CanDefer attributes should be set on a serialized function");
+        if (attributes != FunctionInfo::Attributes::None)
+        {
+            definedFields.has_attributes = true;
+            PrependInt32(builder, _u("Attributes"), attributes);
+        }
+       
+        PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
+        if (function->GetNestedCount() > 0)
+        {
+            definedFields.has_m_nestedCount = true;
+            PrependInt32(builder, _u("Nested count"), function->GetNestedCount());
+        }
+
+        DeferredFunctionStub* deferredStubs = function->GetDeferredStubs();
+        if (deferredStubs != nullptr 
+            && (attributes & FunctionInfo::Attributes::DeferredParse) != 0
+            && GenerateParserStateCache())
+        {
+            definedFields.has_deferredStubs = true;
+            AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), true);
+        }
+
+#define PrependArgSlot PrependInt16
+#define PrependRegSlot PrependInt32
+#define PrependCharCount PrependInt32
+#define PrependULong PrependInt32
+#define PrependUInt16 PrependInt16
+#define PrependUInt32 PrependInt32
+
+#define DEFINE_FUNCTION_PROXY_FIELDS 1
+#define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
+#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) \
+        if (function->##name != 0) { \
+            definedFields.has_##name = true; \
+            Prepend##serializableType(builder, _u(#name), function->##name); \
+        }
+
+#include "SerializableFunctionFields.h"
+
+        if (functionBody != nullptr)
+        {
+            AddFunctionBody(builder, functionBody, srcInfo, definedFields);
+        }
+
         // Lastly, write each of the lexically enclosed functions
         if (function->GetNestedCount())
         {
             auto nestedBodyList = Anew(alloc, BufferBuilderList, _u("Nest Function Bodies"));
 
-            for(uint32 i = 0; i<function->GetNestedCount(); ++i)
+            for (uint32 i = 0; i < function->GetNestedCount(); ++i)
             {
-                auto nestedFunctionBody = function->GetNestedFunc(i)->GetFunctionBody();
-                if (nestedFunctionBody==nullptr)
+                auto nestedFunction = function->GetNestedFunc(i);
+                if (nestedFunction == nullptr || !nestedFunction->HasParseableInfo())
                 {
-                    PrependInt32(builder, _u("Empty Nested Function"), 0);
+                    PrependConstantInt32(builder, _u("Empty Nested Function"), 0);
+                    ++functionCount.value;
                 }
                 else
                 {
@@ -2237,7 +2286,7 @@ public:
                     nestedBodyList->list = nestedBodyList->list->Prepend(nestedFunctionBuilder, alloc);
                     auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To Nested Function"), nestedFunctionBuilder);
                     builder.list = builder.list->Prepend(offsetToNested, alloc);
-                    AddFunctionBody(*nestedFunctionBuilder, nestedFunctionBody, srcInfo);
+                    AddFunction(*nestedFunctionBuilder, nestedFunction->GetParseableFunctionInfo(), srcInfo);
                 }
             }
 
@@ -2254,7 +2303,6 @@ public:
 #endif
         }
 
-
         // Increment the function count
         ++functionCount.value;
 
@@ -2268,9 +2316,63 @@ public:
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
     {
         topFunctionId = function->GetLocalFunctionId();
-        return AddFunctionBody(functionsTable, function, srcInfo);
+        return AddFunction(functionsTable, function, srcInfo);
     }
 
+    HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, bool recursive)
+    {
+        AssertOrFailFast(!(deferredStubs == nullptr && stubsCount > 0));
+
+        if (deferredStubs == nullptr || stubsCount == 0)
+        {
+            return S_OK;
+        }
+
+        for (uint i = 0; i < stubsCount; i++)
+        {
+            DeferredFunctionStub* currentStub = deferredStubs + i;
+
+            PrependUInt32(builder, _u("Character Min"), currentStub->ichMin);
+            PrependUInt32(builder, _u("Function flags"), currentStub->fncFlags);
+            PrependStruct(builder, _u("Restore Point"), &(currentStub->restorePoint));
+
+            // Add all the captured name ids
+            IdentPtrSet *capturedNames = currentStub->capturedNamePointers;
+
+            if (capturedNames != nullptr && capturedNames->Count() != 0)
+            {
+                uint capturedNamesCount = capturedNames->Count();
+                auto iter = capturedNames->GetIterator();
+
+                PrependUInt32(builder, _u("Captured Name Count"), capturedNamesCount);
+
+                while (iter.IsValid())
+                {
+                    // The captured names are IdentPtr allocated in Parser arena memory.
+                    // We have to convert them to indices into our string table to effectively
+                    // serialize the names.
+                    const IdentPtr& pid = iter.CurrentValueReference();
+                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), pid->Cch());
+
+                    PrependInt32(builder, _u("Captured Name"), capturedNameSerializedId);
+
+                    iter.MoveNext();
+                }
+            }
+            else
+            {
+                PrependUInt32(builder, _u("Captured Name Count"), 0);
+            }
+
+            PrependUInt32(builder, _u("Nested Count"), currentStub->nestedCount);
+            if (recursive)
+            {
+                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, recursive);
+            }
+        }
+
+        return S_OK;
+    }
 };
 
 class ByteCodeBufferReader
@@ -2457,10 +2559,10 @@ public:
 
     const byte * ReadCharCount(const byte * buffer, size_t remainingBytes, charcount_t * value)
     {
-        Assert(remainingBytes>=sizeof(charcount_t));
 #if VARIABLE_INT_ENCODING
         return ReadVariableInt<charcount_t>(buffer, remainingBytes, value);
 #else
+        Assert(remainingBytes >= sizeof(charcount_t));
         *value = *(charcount_t *) buffer;
         return buffer + sizeof(charcount_t);
 #endif
@@ -3693,7 +3795,15 @@ public:
             current = ReadInt32(current, &nestedCount);
         }
 
-        if (!deserializeThis)
+        bool isDeferredFunction = (attributes & FunctionInfo::Attributes::DeferredParse) != 0;
+        Field(DeferredFunctionStub*) deferredStubs = nullptr;
+        if (definedFields->has_deferredStubs)
+        {
+            Assert(isDeferredFunction);
+            current = ReadDeferredStubs(current, nestedCount, &deferredStubs, true);
+        }
+
+        if (!deserializeThis && !isDeferredFunction)
         {
             Assert(sourceInfo->GetSrcInfo()->moduleID == kmodGlobal);
             Assert(!deserializeNested);
@@ -3828,7 +3938,7 @@ public:
             (*functionBody)->m_isAsmJsFunction = (bitflags & ffIsAsmJsFunction) ? true : false;
             (*functionBody)->m_isAsmjsMode = (bitflags & ffIsAsmJsMode) ? true : false;
 #endif
-            
+
             if (definedFields->has_loopHeaderArray)
             {
                 (*functionBody)->AllocateLoopHeaders();
@@ -4014,12 +4124,50 @@ public:
 
             (*functionBody)->m_isPartialDeserializedFunction = false;
         }
-        else
+        else if (!isDeferredFunction)
         {
             *function = (*function)->Parse(nullptr, true);
         }
 
         return S_OK;
+    }
+
+    const byte* ReadDeferredStubs(const byte* current, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
+    {
+        if (nestedCount == 0)
+        {
+            return current;
+        }
+
+        *deferredStubs = RecyclerNewArray(this->scriptContext->GetRecycler(), DeferredFunctionStub, nestedCount);
+
+        for (uint i = 0; i < nestedCount; i++)
+        {
+            DeferredFunctionStub* nestedStub = *deferredStubs + i;
+
+            current = ReadUInt32(current, &nestedStub->ichMin);
+            current = ReadUInt32(current, (uint*)&nestedStub->fncFlags);
+
+            serialization_alignment RestorePoint* restorePoint;
+            current = ReadStruct<RestorePoint>(current, &restorePoint);
+            nestedStub->restorePoint = *restorePoint;
+
+            current = ReadUInt32(current, &nestedStub->capturedNameCount);
+            nestedStub->capturedNameSerializedIds = RecyclerNewArray(this->scriptContext->GetRecycler(), int, nestedStub->capturedNameCount);
+            for (uint j = 0; j < nestedStub->capturedNameCount; j++)
+            {
+                current = ReadInt32(current, &nestedStub->capturedNameSerializedIds[j]);
+            }
+
+            current = ReadUInt32(current, &nestedStub->nestedCount);
+
+            if (recurse)
+            {
+                current = ReadDeferredStubs(current, nestedStub->nestedCount, &nestedStub->deferredStubs, recurse);
+            }
+        }
+
+        return current;
     }
 
     // Read the top function body.
@@ -4034,6 +4182,7 @@ public:
         sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId += functionCount;
         sourceInfo->EnsureInitialized(functionCount);
         sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
+
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         bool prejit = false;
@@ -4298,11 +4447,9 @@ void ByteCodeCache::PopulateLookupPropertyId(ScriptContext * scriptContext, int 
 // Serialize function body
 HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
 {
-
     int builtInPropertyCount = (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0 ?  PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
 
     Utf8SourceInfo *utf8SourceInfo = function->GetUtf8SourceInfo();
-
     HRESULT hr = utf8SourceInfo->EnsureLineOffsetCacheNoThrow();
 
     if (FAILED(hr))
@@ -4312,6 +4459,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
     ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
+    
     hr = builder.AddTopFunctionBody(function, srcInfo);
 
     if (SUCCEEDED(hr))
@@ -4335,7 +4483,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext,
 // Deserialize function body from supplied buffer
 HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
-    AssertMsg(sourceHolder != nullptr, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
+    AssertMsg(sourceHolder != nullptr || sourceIndex != Js::Constants::InvalidSourceIndex, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, /* utf8Source */ nullptr, sourceHolder, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
 HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
@@ -4376,7 +4524,7 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
     }
     else
     {
-        Assert(CONFIG_FLAG(ForceSerialized));
+        Assert(CONFIG_FLAG(ForceSerialized) || ((scriptFlags & fscrCreateParserState) == fscrCreateParserState));
         sourceInfo = scriptContext->GetSource(sourceIndex);
         reader->utf8SourceInfo = sourceInfo;
         reader->sourceIndex = sourceIndex;
