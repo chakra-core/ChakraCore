@@ -1546,7 +1546,7 @@ EncoderMD::FixMaps(uint32 brOffset, uint32 bytesSaved, uint32 *inlineeFrameRecor
 
 {
     InlineeFrameRecords *recList = m_encoder->m_inlineeFrameRecords;
-    InlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
+    ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
     PragmaInstrList *pInstrList = m_encoder->m_pragmaInstrToRecordOffset;
     int32 i;
     for (i = *inlineeFrameRecordsIndex; i < recList->Count() && recList->Item(i)->inlineeStartOffset <= brOffset; i++)

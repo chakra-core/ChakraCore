@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#include "NativeEntryPointData.h"
+#include "JitTransferData.h"
 
 JITOutput::JITOutput(JITOutputIDL * outputData) :
     m_outputData(outputData),
@@ -267,11 +269,11 @@ JITOutput::FinalizeNativeCode()
 #endif
     {
         m_func->GetInProcCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_inProcAlloc);
-        m_func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(m_func->GetNativeCodeDataAllocator()->Finalize());
+        m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->SetNativeCodeData(m_func->GetNativeCodeDataAllocator()->Finalize());
         m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(m_func->GetTransferDataAllocator()->Finalize());
 #if !FLOATVAR
         CodeGenNumberChunk * numberChunks = m_func->GetNumberAllocator()->Finalize();
-        m_func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
+        m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->SetNumberChunks(numberChunks);
 #endif
 
 #if defined(_CONTROL_FLOW_GUARD) && !defined(_M_ARM)

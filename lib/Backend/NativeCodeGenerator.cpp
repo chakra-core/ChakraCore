@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "Base/ScriptContextProfiler.h"
+#include "NativeEntryPointData.h"
+#include "JitTransferData.h"
 
 #if DBG
 Js::JavascriptMethod checkCodeGenThunk;
@@ -964,8 +966,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         throw Js::OperationAbortedException();
     }
-
-    workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetNativeDataBufferRef();
+    
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        workItem->GetJITData()->nativeDataAddr = (__int3264)workItem->GetEntryPoint()->GetOOPNativeEntryPointData()->GetNativeDataBufferRef();
+    }
+#endif
 
     // TODO: oop jit can we be more efficient here?
     ArenaAllocator alloc(_u("JitData"), pageAllocator, Js::Throw::OutOfMemory);
@@ -1015,7 +1022,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Output::Flush();
     }
 
-    workItem->GetFunctionBody()->SetFrameHeight(workItem->GetEntryPoint(), jitWriteData.frameHeight);
+    epInfo->GetNativeEntryPointData()->SetFrameHeight(jitWriteData.frameHeight);    
 
     if (workItem->Type() == JsFunctionType)
     {
@@ -1029,6 +1036,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetEntryPoint()->SetHasJittedStackClosure();
     }
 
+#if ENABLE_OOP_NATIVE_CODEGEN
 #if !FLOATVAR
     if (jitWriteData.numberPageSegments)
     {
@@ -1040,11 +1048,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         else
         {
             // TODO: when codegen fail, need to return the segment as well
-            epInfo->SetNumberPageSegment(jitWriteData.numberPageSegments);
+            epInfo->GetOOPNativeEntryPointData()->SetNumberPageSegment(jitWriteData.numberPageSegments);
         }
     }
 #endif
+#endif
 
+#if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         if (jitWriteData.nativeDataFixupTable)
@@ -1080,7 +1090,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             jitWriteData.nativeDataFixupTable = nullptr;
 
             // change the address with the fixup information
-            *epInfo->GetNativeDataBufferRef() = (char*)jitWriteData.buffer->data;
+            epInfo->GetOOPNativeEntryPointData()->SetNativeDataBuffer((char*)jitWriteData.buffer->data);
 
 #if DBG
             if (PHASE_TRACE1(Js::NativeCodeDataPhase))
@@ -1089,8 +1099,6 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             }
 #endif
         }
-
-        epInfo->GetJitTransferData()->SetRuntimeTypeRefs(jitWriteData.pinnedTypeRefs);
 
         if (jitWriteData.throwMapCount > 0)
         {
@@ -1101,26 +1109,33 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
                 workItem->RecordNativeThrowMap(iter, throwMap[i].nativeBufferOffset, throwMap[i].statementIndex);
             }
         }
+
+        epInfo->GetOOPNativeEntryPointData()->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
     }
+#endif
 
     if (workItem->GetJitMode() != ExecutionMode::SimpleJit)
     {
-        epInfo->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
-
+        epInfo->GetJitTransferData()->SetRuntimeTypeRefs(jitWriteData.pinnedTypeRefs);
         epInfo->GetJitTransferData()->SetEquivalentTypeGuardOffsets(jitWriteData.equivalentTypeGuardOffsets);
         epInfo->GetJitTransferData()->SetTypeGuardTransferData(&jitWriteData);
 
-        Assert(jitWriteData.ctorCacheEntries == nullptr || epInfo->GetConstructorCacheCount() > 0);
+        Assert(jitWriteData.ctorCacheEntries == nullptr || epInfo->GetNativeEntryPointData()->GetConstructorCacheCount() > 0);
         epInfo->GetJitTransferData()->SetCtorCacheTransferData(&jitWriteData);
 
         workItem->GetEntryPoint()->GetJitTransferData()->SetIsReady();
     }
+    else
+    {
+        Assert(jitWriteData.pinnedTypeRefs == nullptr);
+    }
+
 
 #if defined(TARGET_64)
     XDataAllocation * xdataInfo = HeapNewZ(XDataAllocation);
     xdataInfo->address = (byte*)jitWriteData.xdataAddr;
     XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress, jitWriteData.codeSize);
-    epInfo->SetXDataInfo(xdataInfo);
+    epInfo->GetNativeEntryPointData()->SetXDataInfo(xdataInfo);
 #endif
 
 
@@ -1152,7 +1167,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
         // unmask thumb mode from code address
         XDataAllocator::Register(xdataInfo, jitWriteData.codeAddress & ~0x1, jitWriteData.codeSize);
-        epInfo->SetXDataInfo(xdataInfo);
+        epInfo->GetNativeEntryPointData()->SetXDataInfo(xdataInfo);
     }
 #endif
 
@@ -1173,7 +1188,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         ((JsLoopBodyCodeGen*)workItem)->SetCodeAddress(jitWriteData.codeAddress);
     }
 
-    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.thunkAddress, (Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize);
+    workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.thunkAddress, (Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize, (void *)this);
 
     if (jitWriteData.hasBailoutInstr != FALSE)
     {
@@ -2061,6 +2076,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
 
             if (entryPointInfo)
             {
+#if ENABLE_ENTRYPOINT_CLEANUP_TRACE
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 switch (job->failureReason)
                 {
@@ -2071,6 +2087,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
                 case Job::FailureReason::Unknown: entryPointInfo->SetCleanupReason(Js::EntryPointInfo::CleanupReason::CodeGenFailedUnknown); break;
                 default: Assert(job->failureReason == Job::FailureReason::NotFailed);
                 }
+#endif
 #endif
 
                 entryPointInfo->SetPendingCleanup();
@@ -2268,13 +2285,21 @@ NativeCodeGenerator::GatherCodeGenData(
     }
 #endif
 
+    NativeEntryPointData * nativeEntryPointData;
     if (IsInlinee)
     {
         // This function is recursive
         PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackDefault);
+        nativeEntryPointData = entryPoint->GetNativeEntryPointData();;
     }
     else
     {
+        // TODO: For now, we create the native entry point data and the jit transfer data when we queue up
+        // the entry point for code gen, but not clear/free then then the work item got knocked off the queue
+        // without code gen happening.  
+        nativeEntryPointData = entryPoint->EnsureNativeEntryPointData();
+        nativeEntryPointData->EnsureJitTransferData(recycler);
+
         //TryAggressiveInlining adjusts inlining heuristics and walks the call tree. If it can inlining everything it will set the InliningThreshold to be aggressive.
         if (!inliningDecider.GetIsLoopBody())
         {
@@ -2297,10 +2322,9 @@ NativeCodeGenerator::GatherCodeGenData(
                 inliningDecider.ResetState();
             }
         }
-        entryPoint->EnsurePolymorphicInlineCacheInfo(recycler, functionBody);
+        nativeEntryPointData->EnsurePolymorphicInlineCacheInfo(recycler, functionBody);
     }
 
-    entryPoint->EnsureJitTransferData(recycler);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
@@ -2330,9 +2354,9 @@ NativeCodeGenerator::GatherCodeGenData(
                 _u("Objtypespec (%s): Pending cache state on add %x to JIT queue: %d\n"),
                 functionBody->GetDebugNumberSet(debugStringBuffer), entryPoint, profileData->GetPolymorphicCacheState());
 
-            entryPoint->SetPendingPolymorphicCacheState(profileData->GetPolymorphicCacheState());
-            entryPoint->SetPendingInlinerVersion(profileData->GetInlinerVersion());
-            entryPoint->SetPendingImplicitCallFlags(profileData->GetImplicitCallFlags());
+            nativeEntryPointData->SetPendingPolymorphicCacheState(profileData->GetPolymorphicCacheState());
+            nativeEntryPointData->SetPendingInlinerVersion(profileData->GetInlinerVersion());
+            nativeEntryPointData->SetPendingImplicitCallFlags(profileData->GetImplicitCallFlags());
         }
 
         if (functionBody->GetProfiledArrayCallSiteCount() != 0)
@@ -2342,7 +2366,7 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 jitTimeData->SetWeakFuncRef(weakFuncRef);
             }
-            entryPoint->AddWeakFuncRef(weakFuncRef, recycler);
+            entryPoint->GetNativeEntryPointData()->AddWeakFuncRef(weakFuncRef, recycler);
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2650,14 +2674,14 @@ NativeCodeGenerator::GatherCodeGenData(
 #endif
 
                     byte polyCacheUtil = profileData->GetFldInfo(functionBody, i)->polymorphicInlineCacheUtilization;
-                    entryPoint->GetPolymorphicInlineCacheInfo()->SetPolymorphicInlineCache(functionBody, i, polymorphicInlineCache, IsInlinee, polyCacheUtil);
+                    nativeEntryPointData->GetPolymorphicInlineCacheInfo()->SetPolymorphicInlineCache(functionBody, i, polymorphicInlineCache, IsInlinee, polyCacheUtil);
                     if (IsInlinee)
                     {
-                        Assert(entryPoint->GetPolymorphicInlineCacheInfo()->GetInlineeInfo(functionBody)->GetPolymorphicInlineCaches()->GetInlineCache(functionBody, i) == polymorphicInlineCache);
+                        Assert(nativeEntryPointData->GetPolymorphicInlineCacheInfo()->GetInlineeInfo(functionBody)->GetPolymorphicInlineCaches()->GetInlineCache(functionBody, i) == polymorphicInlineCache);
                     }
                     else
                     {
-                        Assert(entryPoint->GetPolymorphicInlineCacheInfo()->GetSelfInfo()->GetPolymorphicInlineCaches()->GetInlineCache(functionBody, i) == polymorphicInlineCache);
+                        Assert(nativeEntryPointData->GetPolymorphicInlineCacheInfo()->GetSelfInfo()->GetPolymorphicInlineCaches()->GetInlineCache(functionBody, i) == polymorphicInlineCache);
                     }
                 }
                 else if(IsInlinee && CONFIG_FLAG(CloneInlinedPolymorphicCaches))
@@ -3095,7 +3119,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 #endif
         GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::JavascriptFunction::FromVar(function) : nullptr, 0);
 
-        jitTimeData->sharedPropertyGuards = entryPoint->GetSharedPropertyGuards(jitTimeData->sharedPropertyGuardCount);
+        jitTimeData->sharedPropertyGuards = entryPoint->GetNativeEntryPointData()->GetSharedPropertyGuards(recycler, jitTimeData->sharedPropertyGuardCount);
 
 #ifdef FIELD_ACCESS_STATS
         Js::FieldAccessStats* fieldAccessStats = entryPoint->EnsureFieldAccessStats(recycler);
@@ -3139,7 +3163,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
         JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInfo(
             recycler,
-            entryPoint->EnsurePolymorphicInlineCacheInfo(recycler, workItem->GetFunctionBody()),
+            entryPoint->GetNativeEntryPointData()->EnsurePolymorphicInlineCacheInfo(recycler, workItem->GetFunctionBody()),
             jitData);
 
         jitTimeData->SetPolymorphicInlineInfo(jitData->inlineeInfo, jitData->selfInfo, jitData->selfInfo->polymorphicInlineCaches);

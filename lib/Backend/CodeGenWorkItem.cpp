@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "Language/SourceDynamicProfileManager.h"
+#include "NativeEntryPointData.h"
 
 CodeGenWorkItem::CodeGenWorkItem(
     JsUtil::JobManager *const manager,
@@ -184,7 +185,7 @@ void CodeGenWorkItem::OnRemoveFromJitQueue(NativeCodeGenerator* generator)
         // Go ahead and delete it and let it re-queue if more interpreting of the loop happens
         auto loopBodyWorkItem = static_cast<JsLoopBodyCodeGen*>(this);
         loopBodyWorkItem->loopHeader->ResetInterpreterCount();
-        loopBodyWorkItem->GetEntryPoint()->Reset();
+        loopBodyWorkItem->GetEntryPoint()->Reset(true);
         HeapDelete(loopBodyWorkItem);
     }
     else
@@ -207,15 +208,19 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
 #endif
 
 #if PDATA_ENABLED & defined(_WIN32)
-        if (this->entryPointInfo && this->entryPointInfo->GetXDataInfo()) 
+        if (this->entryPointInfo)
         {
-            void* functionTable = this->entryPointInfo->GetXDataInfo()->functionTable;
-            if (functionTable)
+            XDataAllocation * xdataAllocation = this->entryPointInfo->GetNativeEntryPointData()->GetXDataInfo();
+            if (xdataAllocation)
             {
-                if (!DelayDeletingFunctionTable::AddEntry(functionTable))
+                void* functionTable = xdataAllocation->functionTable;
+                if (functionTable)
                 {
-                    PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), functionTable);
-                    DelayDeletingFunctionTable::DeleteFunctionTable(functionTable);
+                    if (!DelayDeletingFunctionTable::AddEntry(functionTable))
+                    {
+                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), functionTable);
+                        DelayDeletingFunctionTable::DeleteFunctionTable(functionTable);
+                    }
                 }
             }
         }

@@ -5,8 +5,7 @@
 #include "RuntimeBasePch.h"
 
 ExpirableObject::ExpirableObject(ThreadContext* threadContext):
-    isUsed(false),
-    registrationHandle(nullptr)
+    registrationHandle(0)
 {
     if (threadContext)
     {
@@ -16,7 +15,7 @@ ExpirableObject::ExpirableObject(ThreadContext* threadContext):
 
 void ExpirableObject::Finalize(bool isShutdown)
 {
-    if (!isShutdown && this->registrationHandle != nullptr)
+    if (!isShutdown && this->GetRegistrationHandle() != nullptr)
     {
         ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
 
@@ -28,17 +27,38 @@ void ExpirableObject::Dispose(bool isShutdown)
 {
 }
 
+void * ExpirableObject::GetRegistrationHandle()
+{
+    return (void *)(registrationHandle & ~1);
+}
+
+void 
+ExpirableObject::SetRegistrationHandle(void * registrationHandle)
+{
+    Assert(this->GetRegistrationHandle() == nullptr);
+    Assert(((intptr_t)registrationHandle & 1) == 0);
+    Assert(registrationHandle != nullptr);
+    this->registrationHandle |= (intptr_t)registrationHandle;
+}
+
+void
+ExpirableObject::ClearRegistrationHandle()
+{
+    Assert(this->GetRegistrationHandle() != nullptr);
+    this->registrationHandle = this->registrationHandle & 1;
+}
+
 void ExpirableObject::EnterExpirableCollectMode()
 {
-    this->isUsed = false;
+    this->registrationHandle &= ~1;
 }
 
 bool ExpirableObject::IsObjectUsed()
 {
-    return this->isUsed;
+    return (this->registrationHandle & 1);
 }
 
 void ExpirableObject::SetIsObjectUsed()
 {
-    this->isUsed = true;
+    this->registrationHandle |= 1;
 }

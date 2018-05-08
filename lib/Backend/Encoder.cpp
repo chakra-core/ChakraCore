@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 #include "Core/CRC.h"
+#include "NativeEntryPointData.h"
+#include "JitTransferData.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -74,8 +76,8 @@ Encoder::Encode()
 #endif
 
     m_pc = m_encodeBuffer;
-    m_inlineeFrameMap = Anew(m_tempAlloc, InlineeFrameMap, m_tempAlloc);
-    m_bailoutRecordMap = Anew(m_tempAlloc, BailoutRecordMap, m_tempAlloc);
+    m_inlineeFrameMap = Anew(m_tempAlloc, ArenaInlineeFrameMap, m_tempAlloc);
+    m_bailoutRecordMap = Anew(m_tempAlloc, ArenaBailoutRecordMap, m_tempAlloc);
 
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
@@ -435,7 +437,7 @@ Encoder::Encode()
     else
     {
         XDataAllocator::Register(&allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), (DWORD)m_func->GetJITOutput()->GetCodeSize());
-        m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&allocation->xdata);
+        m_func->GetInProcJITEntryPointInfo()->GetNativeEntryPointData()->SetXDataInfo(&allocation->xdata);
     }
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
 #endif
@@ -447,7 +449,7 @@ Encoder::Encode()
     {
         if (!m_func->IsOOPJIT()) // in-proc JIT
         {
-            m_func->GetInProcJITEntryPointInfo()->RecordInlineeFrameMap(m_inlineeFrameMap);
+            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordInlineeFrameMap(m_inlineeFrameMap);
         }
         else // OOP JIT
         {
@@ -472,7 +474,7 @@ Encoder::Encode()
 
     if (this->m_bailoutRecordMap->Count() > 0)
     {
-        m_func->GetInProcJITEntryPointInfo()->RecordBailOutMap(m_bailoutRecordMap);
+        m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordBailOutMap(m_bailoutRecordMap);
     }
 
     if (this->m_func->pinnedTypeRefs != nullptr)
@@ -492,7 +494,6 @@ Encoder::Encode()
 
             pinnedTypeRefs->count = pinnedTypeRefCount;
             pinnedTypeRefs->isOOPJIT = true;
-            this->m_func->GetJITOutput()->GetOutputData()->pinnedTypeRefs = pinnedTypeRefs;
         }
         else
         {
@@ -515,10 +516,7 @@ Encoder::Encode()
             Output::Flush();
         }
 
-        if (!this->m_func->IsOOPJIT())
-        {
-            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRuntimeTypeRefs(pinnedTypeRefs);
-        }
+        this->m_func->GetJITOutput()->GetOutputData()->pinnedTypeRefs = pinnedTypeRefs;
     }
 
     // Save all equivalent type guards in a fixed size array on the JIT transfer data
@@ -642,7 +640,7 @@ Encoder::Encode()
 
             Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
 
-            m_func->GetInProcJITEntryPointInfo()->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
         }
         else
         {
@@ -730,7 +728,7 @@ Encoder::Encode()
         }
         else
         {
-            Assert(m_func->GetInProcJITEntryPointInfo()->GetConstructorCacheCount() > 0);
+            Assert(m_func->GetInProcJITEntryPointInfo()->GetNativeEntryPointData()->GetConstructorCacheCount() > 0);
 
             size_t ctorCachesTransferSize =                                // Reserve enough room for:
                 propertyCount * sizeof(Js::CtorCacheGuardTransferEntry) +  //   each propertyId,
@@ -763,7 +761,7 @@ Encoder::Encode()
 
             Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
 
-            m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
         }
     }
     m_func->GetJITOutput()->FinalizeNativeCode();
@@ -1413,7 +1411,7 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
     )
 {
     InlineeFrameRecords *recList = m_inlineeFrameRecords;
-    InlineeFrameMap *mapList = m_inlineeFrameMap;
+    ArenaInlineeFrameMap *mapList = m_inlineeFrameMap;
     PragmaInstrList *pInstrList = m_pragmaInstrToRecordOffset;
 
     OffsetList *origRecList, *origMapList, *origPInstrList;

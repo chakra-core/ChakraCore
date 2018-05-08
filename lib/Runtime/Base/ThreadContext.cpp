@@ -2968,11 +2968,11 @@ void
 ThreadContext::RegisterExpirableObject(ExpirableObject* object)
 {
     Assert(this->expirableObjectList);
-    Assert(object->registrationHandle == nullptr);
+    Assert(object->GetRegistrationHandle() == nullptr);
 
     ExpirableObject** registrationData = this->expirableObjectList->PrependNode();
     (*registrationData) = object;
-    object->registrationHandle = (void*) registrationData;
+    object->SetRegistrationHandle((void*) registrationData);
     OUTPUT_VERBOSE_TRACE(Js::ExpirableCollectPhase, _u("Registered 0x%p\n"), object);
 
     numExpirableObjects++;
@@ -2982,13 +2982,13 @@ void
 ThreadContext::UnregisterExpirableObject(ExpirableObject* object)
 {
     Assert(this->expirableObjectList);
-    Assert(object->registrationHandle != nullptr);
+    Assert(object->GetRegistrationHandle() != nullptr);
 
-    ExpirableObject** registrationData = (ExpirableObject**)PointerValue(object->registrationHandle);
+    ExpirableObject** registrationData = (ExpirableObject**)PointerValue(object->GetRegistrationHandle());
     Assert(*registrationData == object);
 
     this->expirableObjectList->MoveElementTo(registrationData, this->expirableObjectDisposeList);
-    object->registrationHandle = nullptr;
+    object->ClearRegistrationHandle();
     OUTPUT_VERBOSE_TRACE(Js::ExpirableCollectPhase, _u("Unregistered 0x%p\n"), object);
     numExpirableObjects--;
 }

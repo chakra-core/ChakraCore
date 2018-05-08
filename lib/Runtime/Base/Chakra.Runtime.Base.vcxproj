@@ -52,7 +52,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionExecutionStateMachine.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LeaveScriptObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />    
+    <ClCompile Include="$(MSBuildThisFileDirectory)LineOffsetCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PerfHint.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ScriptContext.cpp" />

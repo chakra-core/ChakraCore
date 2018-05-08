@@ -182,14 +182,10 @@ public:
             IR::RegOpnd*    MaterializeConstFromBits(int intConst, IRType type, IR::Instr* instr);
             IR::Opnd*       Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr);
             bool            TryGenerateFastMulAdd(IR::Instr * instrAdd, IR::Instr ** pInstrPrev);
-            BVSparse<JitArenaAllocator>* GatherFltTmps();
             void            GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMethod helperMethod);
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble);
             void            GenerateFastInlineBuiltInMathAbs(IR::Instr* instr);
             void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);
-            IR::Instr *     CheckIsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label);
-            IR::Instr *     CloneSlowPath(IR::Instr * instrEndFloatRange, IR::Instr * instrInsert);
-            bool            IsCloneDone(IR::Instr * instr, BVSparse<JitArenaAllocator> *bvTmps);
             IR::Instr *     EnsureAdjacentArgs(IR::Instr * instrArg);
             void            SaveDoubleToVar(IR::RegOpnd * dstOpnd, IR::RegOpnd *opndFloat, IR::Instr *instrOrig, IR::Instr *instrInsert, bool isHelper = false);
 #if !FLOATVAR

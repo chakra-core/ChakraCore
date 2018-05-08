@@ -51,6 +51,7 @@ add_library (Chakra.Backend OBJECT
     JITTimePolymorphicInlineCacheInfo.cpp
     JITTimeProfileInfo.cpp
     JITTimeWorkItem.cpp
+    JitTransferData.cpp
     JITType.cpp
     JITTypeHandler.cpp
     JnHelperMethod.cpp
@@ -60,6 +61,7 @@ add_library (Chakra.Backend OBJECT
     LowerMDSharedSimd128.cpp
     NativeCodeData.cpp
     NativeCodeGenerator.cpp
+    NativeEntryPointData.cpp
     ObjTypeSpecFldInfo.cpp
     Opnd.cpp
     PDataManager.cpp
