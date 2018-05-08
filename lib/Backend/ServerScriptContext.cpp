@@ -26,6 +26,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_asmJsInterpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, threadContextInfo, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
+    m_codeGenAlloc(nullptr, nullptr, threadContextInfo, threadContextInfo->GetCodePageAllocators(), threadContextInfo->GetProcessHandle()),
     m_globalThisAddr(0),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(nullptr),
@@ -33,6 +34,11 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_refCount(0),
     m_isClosed(false)
 {
+
+#if !TARGET_64 && _CONTROL_FLOW_GUARD
+    m_codeGenAlloc.canCreatePreReservedSegment = threadContextInfo->CanCreatePreReservedSegment();
+#endif
+
 #ifdef PROFILE_EXEC
     if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
     {
@@ -356,6 +362,8 @@ ServerScriptContext::Close()
     Assert(!IsClosed());
     m_isClosed = true;
     
+    m_codeGenAlloc.emitBufferManager.Decommit();
+
 #ifdef STACK_BACK_TRACE
     ServerContextManager::RecordCloseContext(this);
 #endif
@@ -377,6 +385,12 @@ ServerScriptContext::Release()
         // otherwise after free, the CodeGen call can still get same scriptContext if there's another 
         // ServerInitializeScriptContext call
     }
+}
+
+OOPCodeGenAllocators *
+ServerScriptContext::GetCodeGenAllocators()
+{
+    return &m_codeGenAlloc;
 }
 
 Field(Js::Var)*

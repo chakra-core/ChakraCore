@@ -209,7 +209,6 @@ namespace Js
     {
     private:
         Field(void**) m_inlineCaches;
-        Field(bool) hasOwnInlineCaches;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
@@ -237,12 +236,9 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
-        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
-        Field(void**) GetInlineCaches();
-        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
-        void SetInlineCachesFromFunctionBody();
+        Field(void**) GetInlineCaches() const { return m_inlineCaches; }
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>
         void FreeOwnInlineCaches();

@@ -1646,6 +1646,7 @@ public:
     // DefaultCollectWrapper
     virtual void PreCollectionCallBack(CollectionFlags flags) override;
     virtual void PreSweepCallback() override;
+    virtual void PreRescanMarkCallback() override;
     virtual void WaitCollectionCallBack() override;
     virtual void PostCollectionCallBack() override;
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) override;
@@ -1654,6 +1655,8 @@ public:
 #endif
     virtual void DisposeObjects(Recycler * recycler) override;
     virtual void PreDisposeObjectsCallBack() override;
+
+    void DoExpirableCollectModeStackWalk();
 
     typedef DList<ExpirableObject*, ArenaAllocator> ExpirableObjectList;
     ExpirableObjectList* expirableObjectList;

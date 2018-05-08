@@ -712,6 +712,13 @@ namespace Js
         }
 #endif
 
+#if ENABLE_NATIVE_CODEGEN
+        if (m_remoteScriptContextAddr)
+        {
+            JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
+        }
+#endif
+
 #ifdef ENABLE_SCRIPT_PROFILING
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
@@ -1460,12 +1467,6 @@ namespace Js
 #endif
             }
 
-#if ENABLE_NATIVE_CODEGEN
-            if (m_remoteScriptContextAddr)
-            {
-                JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
-            }
-#endif
             this->PrintStats();
         }
     }

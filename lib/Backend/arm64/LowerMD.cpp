@@ -7005,9 +7005,9 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
 }
 
 void
-LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr)
+LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchInstr, IR::Instr* insertInstr, bool isForStore)
 {
-    if (CONFIG_FLAG_RELEASE(PoisonObjects))
+    if ((isForStore && CONFIG_FLAG_RELEASE(PoisonObjectsForStores)) || (!isForStore && CONFIG_FLAG_RELEASE(PoisonObjectsForLoads)))
     {
         Js::OpCode opcode;
         if (branchInstr->m_opcode == Js::OpCode::BNE)
@@ -7016,7 +7016,7 @@ LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchIns
         }
         else
         {
-            AssertOrFailFast(branchInstr->m_opcode == Js::OpCode::BEQ);
+            AssertOrFailFastMsg(branchInstr->m_opcode == Js::OpCode::BEQ, "Unexpected branch type in InsertObjectPoison preceeding instruction");
             opcode = Js::OpCode::CSELNE;
         }
         AssertOrFailFast(branchInstr->m_prev->m_opcode == Js::OpCode::SUBS || branchInstr->m_prev->m_opcode == Js::OpCode::ANDS);

@@ -85,6 +85,7 @@ public:
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
+    OOPCodeGenAllocators * GetCodeGenAllocators();
     ArenaAllocator * GetSourceCodeArena();
     void Close();
     void AddRef();
@@ -104,6 +105,8 @@ private:
     intptr_t m_globalThisAddr;
 
     uint m_refCount;
+
+    OOPCodeGenAllocators m_codeGenAlloc;
 
     bool m_isPRNGSeeded;
     bool m_isClosed;

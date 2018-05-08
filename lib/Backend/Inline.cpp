@@ -2199,10 +2199,10 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         callInstr->m_opcode = inlineCallOpCode;
         SetupInlineInstrForCallDirect(builtInFunctionId, callInstr, argoutInstr);
 
+        WrapArgsOutWithCoerse(builtInFunctionId, callInstr);
+
         // Generate ByteCodeArgOutCaptures and move the ArgOut_A/ArgOut_A_Inline close to the call instruction
         callInstr->MoveArgs(/*generateByteCodeCapture*/ true);
-
-        WrapArgsOutWithCoerse(builtInFunctionId, callInstr);
 
         inlineBuiltInEndInstr = callInstr;
     }

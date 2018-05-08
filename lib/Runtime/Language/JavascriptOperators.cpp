@@ -4504,6 +4504,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         ScriptContext* scriptContext,
         PropertyOperationFlags flags)
     {
+        
+        INT_PTR vt = (INT_PTR)nullptr;
+        vt = VirtualTableInfoBase::GetVirtualTable(instance);
+
         if (TaggedInt::Is(aElementIndex))
         {
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
@@ -4514,11 +4518,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 {
                     arr->SetItem(indexInt, iValue);
                 }
-                return TRUE;
+                return vt != VirtualTableInfoBase::GetVirtualTable(instance);
             }
         }
 
-        return JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVar(iValue, scriptContext), scriptContext, flags);
+        JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVar(iValue, scriptContext), scriptContext, flags);
+        return vt != VirtualTableInfoBase::GetVirtualTable(instance);
     }
 
     BOOL JavascriptOperators::OP_SetNativeIntElementI_UInt32(
@@ -4560,6 +4565,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyOperationFlags flags,
         double dValue)
     {
+        
+        INT_PTR vt = (INT_PTR)nullptr;
+        vt = VirtualTableInfoBase::GetVirtualTable(instance);
+
         if (TaggedInt::Is(aElementIndex))
         {
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
@@ -4570,16 +4579,17 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 {
                     arr->SetItem(indexInt, dValue);
                 }
-                return TRUE;
+                return vt != VirtualTableInfoBase::GetVirtualTable(instance);
             }
         }
 
-        return JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVarWithCheck(dValue, scriptContext), scriptContext, flags);
+        JavascriptOperators::OP_SetElementI(instance, aElementIndex, JavascriptNumber::ToVarWithCheck(dValue, scriptContext), scriptContext, flags);
+        return vt != VirtualTableInfoBase::GetVirtualTable(instance);
     }
 
     BOOL JavascriptOperators::OP_SetNativeFloatElementI_UInt32(
-        Var instance, uint32
-        aElementIndex,
+        Var instance,
+        uint32 aElementIndex,
         ScriptContext* scriptContext,
         PropertyOperationFlags flags,
         double dValue)

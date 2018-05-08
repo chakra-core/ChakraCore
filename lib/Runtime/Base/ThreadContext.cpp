@@ -2544,6 +2544,44 @@ ThreadContext::PreSweepCallback()
 }
 
 void
+ThreadContext::PreRescanMarkCallback()
+{
+    // If this feature is turned off or if we're already in profile collection mode, do nothing
+    // We also do nothing if expiration is explicitly disabled by someone lower down the stack
+    if (!PHASE_OFF1(Js::ExpirableCollectPhase) && InExpirableCollectMode() && !this->disableExpiration)
+    {
+        this->DoExpirableCollectModeStackWalk();
+    }
+}
+
+void
+ThreadContext::DoExpirableCollectModeStackWalk()
+{
+    if (this->entryExitRecord != nullptr)
+    {
+        // If we're in script, we will do a stack walk, find the JavascriptFunction's on the stack
+        // and mark their entry points as being used so that we don't prematurely expire them
+
+        Js::ScriptContext* topScriptContext = this->entryExitRecord->scriptContext;
+        Js::JavascriptStackWalker walker(topScriptContext, TRUE);
+
+        Js::JavascriptFunction* javascriptFunction = nullptr;
+        while (walker.GetCallerWithoutInlinedFrames(&javascriptFunction))
+        {
+            if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
+            {
+                Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
+                Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
+                entryPointInfo->SetIsObjectUsed();
+                scriptFunction->GetFunctionBody()->MapEntryPoints([](int index, Js::FunctionEntryPointInfo* entryPoint){
+                    entryPoint->SetIsObjectUsed();
+                });
+            }
+        }
+    }
+}
+
+void
 ThreadContext::CollectionCallBack(RecyclerCollectCallBackFlags flags)
 {
     DListBase<CollectCallBack>::Iterator i(&this->collectCallBackList);
@@ -2936,30 +2974,6 @@ ThreadContext::TryEnterExpirableCollectMode()
 
             Assert(object);
             object->EnterExpirableCollectMode();
-        }
-
-        if (this->entryExitRecord != nullptr)
-        {
-            // If we're in script, we will do a stack walk, find the JavascriptFunction's on the stack
-            // and mark their entry points as being used so that we don't prematurely expire them
-
-            Js::ScriptContext* topScriptContext = this->entryExitRecord->scriptContext;
-            Js::JavascriptStackWalker walker(topScriptContext, TRUE);
-
-            Js::JavascriptFunction* javascriptFunction = nullptr;
-            while (walker.GetCallerWithoutInlinedFrames(&javascriptFunction))
-            {
-                if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
-                {
-                    Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
-                    Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
-                    entryPointInfo->SetIsObjectUsed();
-                    scriptFunction->GetFunctionBody()->MapEntryPoints([](int index, Js::FunctionEntryPointInfo* entryPoint){
-                        entryPoint->SetIsObjectUsed();
-                    });
-                }
-            }
-
         }
     }
 }

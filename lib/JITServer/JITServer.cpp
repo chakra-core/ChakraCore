@@ -676,10 +676,10 @@ ServerIsInterpreterThunkAddr(
 HRESULT
 ServerFreeAllocation(
     /* [in] */ handle_t binding,
-    /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfo,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
     /* [in] */ intptr_t codeAddress)
 {
-    ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
+    ServerScriptContext* context = (ServerScriptContext*)DecodePointer(scriptContextInfo);
 
     if (context == nullptr)
     {
@@ -709,7 +709,7 @@ ServerIsNativeAddr(
 
     *result = false;
 
-    ServerThreadContext * context = (ServerThreadContext*)DecodePointer(threadContextInfo);
+    ServerThreadContext* context = (ServerThreadContext*)DecodePointer(threadContextInfo);
     if (context == nullptr)
     {
         Assert(false);
@@ -853,7 +853,7 @@ ServerRemoteCodeGen(
             nullptr,
             nullptr,
             jitWorkItem->GetPolymorphicInlineCacheInfo(),
-            threadContextInfo->GetCodeGenAllocators(),
+            scriptContextInfo->GetCodeGenAllocators(),
 #if !FLOATVAR
             nullptr, // number allocator
 #endif
