@@ -156,9 +156,8 @@ namespace Js
 
     HRESULT SimpleDataCacheWrapper::OpenReadStream()
     {
-        HRESULT hr = E_FAIL;
-
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
+        HRESULT hr = E_FAIL;
         Assert(this->dataCache != nullptr);
         Assert(this->inStream == nullptr);
         IFFAILRET(this->dataCache->GetReadDataStream(&this->inStream));

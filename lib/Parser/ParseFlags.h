@@ -16,7 +16,9 @@ enum
     fscrDynamicCode = 1 << 5,   // The code is being generated dynamically (eval, new Function, etc.)
     // Unused = 1 << 6,
     fscrNoImplicitHandlers = 1 << 7,   // same as Opt NoConnect at start of block
-    // Unused = 1 << 8,
+    fscrCreateParserState = 1 << 8, // The parser should expose parser state information on the parse nodes.
+                                    // This parser state includes the set of names which are captured by each function
+                                    // and is stored in ParseNodeFnc::capturedNames.
 
 #if DEBUG
     fscrEnforceJSON = 1 << 9,  // used together with fscrReturnExpression
@@ -49,8 +51,5 @@ enum
     fscrIsModuleCode = 1 << 26, // Current code should be parsed as a module body
 
     fscrDeferredFncIsMethod = 1 << 27,
-    fscrCreateParserState = 1 << 28, // The parser should expose parser state information on the parse nodes.
-                                     // This parser state includes the set of names which are captured by each function
-                                     // and is stored in ParseNodeFnc::capturedNames.
-    fscrAll = (1 << 29) - 1
+    fscrAll = (1 << 28) - 1
 };

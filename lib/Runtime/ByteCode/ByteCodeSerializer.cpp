@@ -2321,6 +2321,8 @@ public:
 
     HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, bool recursive)
     {
+        AssertOrFailFast(!(deferredStubs == nullptr && stubsCount > 0));
+
         if (deferredStubs == nullptr || stubsCount == 0)
         {
             return S_OK;
@@ -2328,7 +2330,7 @@ public:
 
         for (uint i = 0; i < stubsCount; i++)
         {
-            DeferredFunctionStub* currentStub = &(deferredStubs[i]);
+            DeferredFunctionStub* currentStub = deferredStubs + i;
 
             PrependUInt32(builder, _u("Character Min"), currentStub->ichMin);
             PrependUInt32(builder, _u("Function flags"), currentStub->fncFlags);

@@ -147,19 +147,24 @@ struct DeferredFunctionStub
     // capturedNamePointers is not nullptr.
     Field(uint) capturedNameCount;
 
-    // After the parser memory is cleaned-up, we no longer have access to
-    // the IdentPtrs allocated from the Parser arena. We keep a list of
-    // ids into the string table deserialized from the parser state cache.
-    // This list is Recycler-allocated.
-    Field(int *) capturedNameSerializedIds;
+    // Note: We only need to access either the list of serialized ids or the
+    //       set of IdentPtr captured names so these are in a union.
+    union
+    {
+        // After the parser memory is cleaned-up, we no longer have access to
+        // the IdentPtrs allocated from the Parser arena. We keep a list of
+        // ids into the string table deserialized from the parser state cache.
+        // This list is Recycler-allocated.
+        Field(int *) capturedNameSerializedIds;
 
-    // The set of names which are captured by this function.
-    // A function captures a name when it references a name not defined within
-    // the function.
-    // A function also captures all names captured by nested functions.
-    // The IdentPtrs in this set and the set itself are allocated from Parser
-    // arena memory.
-    Field(IdentPtrSet *) capturedNamePointers;
+        // The set of names which are captured by this function.
+        // A function captures a name when it references a name not defined within
+        // the function.
+        // A function also captures all names captured by nested functions.
+        // The IdentPtrs in this set and the set itself are allocated from Parser
+        // arena memory.
+        Field(IdentPtrSet *) capturedNamePointers;
+    };
 
     // List of deferred stubs for further nested functions.
     // Length of this list is equal to nestedCount.

@@ -681,7 +681,7 @@ HRESULT CreateParserStateAndRunScript(const char* fileName, LPCSTR fileContents,
 
     if (false)
     {
-    ErrorRunFinalize:
+ErrorRunFinalize:
         if (fileContentsFinalizeCallback != nullptr)
         {
             fileContentsFinalizeCallback((void*)fileContents);
