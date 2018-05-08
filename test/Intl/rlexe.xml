@@ -113,6 +113,12 @@
       <tags>Intl,exclude_windows</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>PluralRules.js</files>
+      <tags>Intl,exclude_windows</tags>
+    </default>
+  </test>
 
   <!-- Slow Tests -->
 
