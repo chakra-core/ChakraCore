@@ -121,14 +121,6 @@ namespace Js
 
         pfuncScript->SetHasSuperReference(hasSuperReference);
 
-        ScriptFunctionType *scFuncType = functionProxy->GetUndeferredFunctionType();
-        if (scFuncType)
-        {
-            Assert(pfuncScript->GetType() == functionProxy->GetDeferredPrototypeType());
-            pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
-        }
-
-
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
         return pfuncScript;
