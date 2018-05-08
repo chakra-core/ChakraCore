@@ -1431,7 +1431,7 @@ FLAGNR(Boolean, RecyclerVerifyMark    , "verify concurrent gc", false)
 #endif
 FLAGR (Number,  LowMemoryCap          , "Memory cap indicating a low-memory process", DEFAULT_CONFIG_LowMemoryCap)
 FLAGNR(Number,  NewPagesCapDuringBGSweeping, "New pages count allowed to be allocated during background sweeping", DEFAULT_CONFIG_NewPagesCapDuringBGSweeping)
-FLAGR (Number,  AllocPolicyLimit      , "Memory allocation policy limit in MB (default: -1).", DEFAULT_CONFIG_AllocationPolicyLimit)
+FLAGR (Number,  AllocPolicyLimit      , "Memory allocation policy limit in MB (default: -1, which means no allocation policy limit).", DEFAULT_CONFIG_AllocationPolicyLimit)
 #ifdef RUNTIME_DATA_COLLECTION
 FLAGNR(String,  RuntimeDataOutputFile, "Filename to write the dynamic profile info", nullptr)
 #endif
