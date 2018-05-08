@@ -2328,12 +2328,14 @@ public:
 
         for (uint i = 0; i < stubsCount; i++)
         {
-            PrependUInt32(builder, _u("Character Min"), deferredStubs[i].ichMin);
-            PrependUInt32(builder, _u("Function flags"), deferredStubs[i].fncFlags);
-            PrependStruct(builder, _u("Restore Point"), &deferredStubs[i].restorePoint);
+            DeferredFunctionStub* currentStub = &(deferredStubs[i]);
+
+            PrependUInt32(builder, _u("Character Min"), currentStub->ichMin);
+            PrependUInt32(builder, _u("Function flags"), currentStub->fncFlags);
+            PrependStruct(builder, _u("Restore Point"), &(currentStub->restorePoint));
 
             // Add all the captured name ids
-            IdentPtrSet *capturedNames = deferredStubs[i].capturedNamePointers;
+            IdentPtrSet *capturedNames = currentStub->capturedNamePointers;
 
             if (capturedNames != nullptr && capturedNames->Count() != 0)
             {
@@ -2360,10 +2362,10 @@ public:
                 PrependUInt32(builder, _u("Captured Name Count"), 0);
             }
 
-            PrependUInt32(builder, _u("Nested Count"), deferredStubs[i].nestedCount);
+            PrependUInt32(builder, _u("Nested Count"), currentStub->nestedCount);
             if (recursive)
             {
-                AddDeferredStubs(builder, deferredStubs[i].deferredStubs, deferredStubs[i].nestedCount, recursive);
+                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, recursive);
             }
         }
 

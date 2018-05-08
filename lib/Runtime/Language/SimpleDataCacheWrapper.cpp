@@ -63,19 +63,23 @@ namespace Js
 
     HRESULT SimpleDataCacheWrapper::OpenWriteStream()
     {
-        HRESULT hr = E_FAIL;
-
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
+        HRESULT hr = E_FAIL;
         Assert(!IsWriteStreamOpen());
         Assert(this->dataCache != nullptr);
         Assert(this->outStream == nullptr);
         hr = this->dataCache->GetWriteDataStream(&this->outStream);
-#endif
+
         if (FAILED(hr))
         {
-            this->outStream = nullptr;
+            if (this->outStream != nullptr)
+            {
+                this->outStream->Release();
+                this->outStream = nullptr;
+            }
             return hr;
         }
+#endif
 
         return WriteHeader();
     }
@@ -185,7 +189,6 @@ namespace Js
         BlockType currentBlockType = BlockType_Invalid;
         ULONG byteCount = 0;
 
-        // Reset above has moved the seek pointer to just after the header, we're at the first block.
         IFFAILRET(Read(&currentBlockType));
         IFFAILRET(Read(&byteCount));
 
@@ -219,6 +222,7 @@ namespace Js
 
         IFFAILRET(ResetReadStream());
 
+        // Reset above has moved the seek pointer to just after the header, we're at the first block.
         return SeekReadStreamToBlockHelper(blockType, bytesInBlock);
     }
 }

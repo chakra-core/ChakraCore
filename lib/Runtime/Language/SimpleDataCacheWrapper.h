@@ -11,6 +11,21 @@ namespace Js
     // AddRef's the IActiveScriptDataCache passed to constructor and Release's it in the destructor.
     // We primarily need this class to support writing multiple blocks of data to the underlying
     // cache as it doesn't support opening multiple write streams.
+    // The cache underlying this wrapper is segmented into blocks where each block has a small
+    // header. The overall cache itself has a versioned header tied to the running version of
+    // Chakra. A cache built with one version of Chakra may not be loaded by other versions.
+    //
+    // Cache layout:
+    //      /----------------\
+    //      | majorVersion   |  <- Stream header
+    //      | minorVersion   |
+    //      ------------------
+    //      | BlockType      |  <- Block header
+    //      | blockByteCount |
+    //      ------------------
+    //      | <bytes>        |  <- Block contents
+    //      \----------------/
+    //
     // To write a block of data, call StartBlock (to create a header) and then Write or WriteArray
     // as many times as necessary to write the data into the cache.
     // To read a block of data, call SeekReadStreamToBlock (optionally fetching the size of this

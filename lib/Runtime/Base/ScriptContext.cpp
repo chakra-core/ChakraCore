@@ -2159,17 +2159,6 @@ namespace Js
         return hr;
     }
 
-    template <class T>
-    class AutoCoTaskMemFreePtr
-    {
-    private:
-        T ptr;
-
-    public:
-        AutoCoTaskMemFreePtr(T ptr) : ptr(ptr) { }
-        ~AutoCoTaskMemFreePtr() { CoTaskMemFree(this->ptr); this->ptr = nullptr; }
-    };
-
     HRESULT ScriptContext::TrySerializeParserState(
         _In_ LPCUTF8 pszSrc,
         _In_ size_t cbLength,
@@ -2193,14 +2182,14 @@ namespace Js
             &parserStateCacheSize, dwFlags);
         END_TEMP_ALLOCATOR(tempAllocator, this);
 
+        // The parser state cache buffer was allocated by CoTaskMemAlloc.
+        // TODO: Keep this buffer around for the PLT1 scenario by deserializing it and storing a cache.
+        AutoCoTaskMemFreePtr<byte> autoFreeBytes(parserStateCacheBuffer);
+
         if (FAILED(hr))
         {
             return hr;
         }
-
-        // The parser state cache buffer was allocated by CoTaskMemAlloc.
-        // TODO: Keep this buffer around for the PLT1 scenario by deserializing it and storing a cache.
-        AutoCoTaskMemFreePtr<byte*> autoFreeBytes(parserStateCacheBuffer);
 
         IFFAILRET(pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize));
         IFFAILRET(pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize));
