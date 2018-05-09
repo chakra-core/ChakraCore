@@ -74,6 +74,9 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
     JsUtil::BackgroundJobProcessor * jobProcessor = NULL;
 #endif
+    
+    // Since BGParseManager has a dependency on threadcontexts, make sure it shuts down first
+    BGParseManager::DeleteBGParseManager();
 
     {
         AutoCriticalSection lock(ThreadContext::GetCriticalSection());
@@ -139,8 +142,6 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
         entries.Remove(currentEntry);
         ThreadContextTLSEntry::CleanupThread();
 
-        BGParseManager::DeleteBGParseManager();
-
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
         if (s_sharedJobProcessor != NULL)
         {
@@ -162,6 +163,9 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 
 void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries(bool shouldDeleteCurrentTlsEntry)
 {
+    // Since BGParseManager has a dependency on threadcontexts, make sure it shuts down first
+    BGParseManager::DeleteBGParseManager();
+
     AutoCriticalSection lock(ThreadContext::GetCriticalSection());
 
     // When shouldDeleteCurrentTlsEntry is true, the comparison in the while loop will always be true, so
@@ -197,8 +201,6 @@ void ThreadBoundThreadContextManager::DestroyAllContextsAndEntries(bool shouldDe
             ThreadContextTLSEntry::Delete(entry);
         }
     }
-
-    BGParseManager::DeleteBGParseManager();
 
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
     if (s_sharedJobProcessor != NULL)
