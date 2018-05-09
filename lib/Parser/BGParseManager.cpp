@@ -282,17 +282,6 @@ bool BGParseManager::DiscardParseResults(DWORD cookie, void* buffer)
     {
         Assert(buffer == workitem->GetScriptSrc());
 
-        if (PHASE_TRACE1(Js::BgParsePhase))
-        {
-            Js::Tick now = Js::Tick::Now();
-            Output::Print(
-                _u("[BgParse: Discard -- cookie: %04d on thread 0x%X at %.2f ms -- workitem not found]\n"),
-                cookie,
-                ::GetCurrentThreadId(),
-                now.ToMilliseconds()
-            );
-        }
-
         if (!workitem->IsDiscarded())
         {
             HeapDelete(workitem);
@@ -301,6 +290,19 @@ bool BGParseManager::DiscardParseResults(DWORD cookie, void* buffer)
         {
             callerOwnsSourceBuffer = false;
         }
+    }
+
+    if (PHASE_TRACE1(Js::BgParsePhase))
+    {
+        Js::Tick now = Js::Tick::Now();
+        Output::Print(
+            _u("[BgParse: Discard -- cookie: %04d on thread 0x%X at %.2f ms, workitem: 0x%p, workitem owns buffer: %u]\n"),
+            cookie,
+            ::GetCurrentThreadId(),
+            now.ToMilliseconds(),
+            workitem,
+            !callerOwnsSourceBuffer
+        );
     }
 
     return callerOwnsSourceBuffer;
