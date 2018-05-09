@@ -599,6 +599,8 @@ ENTRY(InitInternalProperties)
 ENTRY(methodName)
 ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
+ENTRY(toLength)
+ENTRY(toInteger)
 
 // EngineInterfaceObject built-ins
 ENTRY(builtInGlobalObjectEntryIsFinite)

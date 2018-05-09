@@ -25,7 +25,6 @@ GlobalBuiltIn(JavascriptObject, EntryHasOwnProperty)
 GlobalBuiltIn(JavascriptObject, EntryKeys)
 
 GlobalBuiltIn(JavascriptArray, EntryForEach)
-GlobalBuiltIn(JavascriptArray, EntryIndexOf)
 GlobalBuiltIn(JavascriptArray, EntryPush)
 GlobalBuiltIn(JavascriptArray, EntryJoin)
 GlobalBuiltIn(JavascriptArray, EntryMap)
