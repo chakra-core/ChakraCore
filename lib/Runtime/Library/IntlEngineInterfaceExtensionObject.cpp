@@ -2154,25 +2154,179 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     }
 #endif
 
-    /*
-    * This function has the following options:
-    *  - Format as Percent.
-    *  - Format as Number.
-    *  - If significant digits are present, format using the significant digts;
-    *  - Otherwise format using minimumFractionDigits, maximumFractionDigits, minimumIntegerDigits
-    */
+#ifdef INTL_ICU
+    // Rationale for this data structure: ICU reports back a tree of parts where each node in the tree
+    // has a type and a width, and there must be at least one node corresponding to each character in the tree
+    // (nodes can be wider than one character). Nodes can have children, and the parent-child relationship is
+    // that child node represents a more specific type for a given character range than the parent. Since ICU
+    // doesn't ever report "literal" parts of strings (like spaces or other extra characters), the root node in
+    // the tree will always be the entire width of the string with the type UnsetField, and we later map UnsetField
+    // to the "literal" part. Then, for a string like "US$ 1,000", there will be two child nodes, one of type
+    // currency with width [0, 3) and one of type integer with width [4, 9). The integer node will have a child
+    // of type group and width [6, 7). So the most specific type for characters 0 to 3 is currency, 3 to 4 is unset
+    // (literal), 4 to 5 is integer, 5 to 6 is group, and 6 to 9 is integer. This linear scan across the string,
+    // determining the part of consecutive spans of characters, is what the NumberFormat.prototype.formatToParts
+    // API needs to return to the user.
+    //
+    // I thought about this a bunch and I didn't like the idea of traversing an actual tree structure to get that
+    // information because it felt awkward to encode the "width" of nodes with specific meaning during traveral.
+    // So, I came up with an array structure where basically when we are told a part exists from position x to y,
+    // we can figure out what type used to apply to that span and update that section of the array with the new type.
+    // We skip over sections of the span [x, y) that have a type that doesn't match the start and end because that
+    // means we have already gotten a more specific part for that sub-span (for instance if we got a grouping
+    // separator before it's parent integer)
+    class NumberFormatPartsBuilder
+    {
+    private:
+        double num;
+        Field(const char16 *) formatted;
+        const charcount_t formattedLength;
+        Field(ScriptContext *) sc;
+        Field(UNumberFormatFields *) fields;
+
+        static const UNumberFormatFields UnsetField = static_cast<UNumberFormatFields>(0xFFFFFFFF);
+
+        JavascriptString *GetPartTypeString(UNumberFormatFields field)
+        {
+            JavascriptLibrary *library = sc->GetLibrary();
+
+            // this is outside the switch because MSVC doesn't like that UnsetField is not a valid enum value
+            if (field == UnsetField)
+            {
+                return library->GetIntlLiteralPartString();
+            }
+
+            switch (field)
+            {
+            case UNUM_INTEGER_FIELD:
+            {
+                if (JavascriptNumber::IsNan(num))
+                {
+                    return library->GetIntlNanPartString();
+                }
+                else if (!NumberUtilities::IsFinite(num))
+                {
+                    return library->GetIntlInfinityPartString();
+                }
+                else
+                {
+                    return library->GetIntlIntegerPartString();
+                }
+            }
+            case UNUM_FRACTION_FIELD: return library->GetIntlFractionPartString();
+            case UNUM_DECIMAL_SEPARATOR_FIELD: return library->GetIntlDecimalPartString();
+
+            // The following three should only show up if UNUM_SCIENTIFIC is used, which Intl.NumberFormat doesn't currently use
+            case UNUM_EXPONENT_SYMBOL_FIELD: AssertOrFailFastMsg(false, "Unexpected exponent symbol field");
+            case UNUM_EXPONENT_SIGN_FIELD: AssertOrFailFastMsg(false, "Unexpected exponent sign field");
+            case UNUM_EXPONENT_FIELD: AssertOrFailFastMsg(false, "Unexpected exponent field");
+
+            case UNUM_GROUPING_SEPARATOR_FIELD: return library->GetIntlGroupPartString();
+            case UNUM_CURRENCY_FIELD: return library->GetIntlCurrencyPartString();
+            case UNUM_PERCENT_FIELD: return library->GetIntlPercentPartString();
+
+            // TODO(jahorto): Determine if this would ever be returned and what it would map to
+            case UNUM_PERMILL_FIELD: AssertOrFailFastMsg(false, "Unexpected permill field");
+
+            case UNUM_SIGN_FIELD: num < 0 ? library->GetIntlMinusSignPartString() : library->GetIntlPlusSignPartString();
+            default: AssertOrFailFastMsg(false, "Unexpected unknown part"); return nullptr;
+            }
+        }
+
+    public:
+        NumberFormatPartsBuilder(double num, const char16 *formatted, charcount_t formattedLength, ScriptContext *scriptContext)
+            : num(num)
+            , formatted(formatted)
+            , formattedLength(formattedLength)
+            , sc(scriptContext)
+            , fields(RecyclerNewArrayLeaf(sc->GetRecycler(), UNumberFormatFields, formattedLength))
+        {
+            // this will allow InsertPart to tell what fields have been initialized or not, and will
+            // be the value of resulting { type: "literal" } fields in ToPartsArray
+            memset(fields, UnsetField, sizeof(UNumberFormatFields) * formattedLength);
+        }
+
+        // Note -- ICU reports fields as inclusive start, exclusive end, so thats how we handle the parameters here
+        void InsertPart(UNumberFormatFields field, int start, int end)
+        {
+            AssertOrFailFast(start >= 0);
+            AssertOrFailFast(start < end);
+
+            // the asserts above mean the cast to charcount_t is safe
+            charcount_t ccStart = static_cast<charcount_t>(start);
+            charcount_t ccEnd = static_cast<charcount_t>(end);
+
+            AssertOrFailFast(ccEnd <= formattedLength);
+
+            // Make sure that the part does not overlap/is a strict subset or superset of other fields
+            // The part builder could probably be built and tested to handle this structure not being so rigid,
+            // but its safer for now to make sure this is true.
+            UNumberFormatFields parentStartField = fields[ccStart];
+            UNumberFormatFields parentEndField = fields[ccEnd - 1];
+            AssertOrFailFast(parentStartField == parentEndField);
+
+            // Actually insert the part now
+            // Only overwrite fields in the span that match start and end, since fields that don't match are sub-parts that were already inserted
+            for (charcount_t i = ccStart; i < ccEnd; ++i)
+            {
+                if (fields[i] == parentStartField)
+                {
+                    fields[i] = field;
+                }
+            }
+        }
+
+        JavascriptArray *ToPartsArray()
+        {
+            JavascriptArray *ret = sc->GetLibrary()->CreateArray(0);
+            int retIndex = 0;
+
+            // With the structure of the fields array, creating the resulting parts list to return to JS is simple
+            // Map set parts to the corresponding `type` value (see ECMA-402 #sec-partitionnumberpattern), and unset parts to the `literal` type
+            for (charcount_t start = 0; start < formattedLength; ++retIndex)
+            {
+                // At the top of the loop, fields[start] should always be different from fields[start - 1] (we should be at the start of a new part),
+                // since start is adjusted later in the loop to the end of the part
+                AssertOrFailFast(start == 0 || fields[start - 1] != fields[start]);
+
+                charcount_t end = start + 1;
+                while (end < formattedLength && fields[end] == fields[start])
+                {
+                    ++end;
+                }
+
+                JavascriptString *partType = GetPartTypeString(fields[start]);
+                JavascriptString *partValue = JavascriptString::NewCopyBuffer(formatted + start, end - start, sc);
+
+                DynamicObject* part = sc->GetLibrary()->CreateObject();
+                JavascriptOperators::InitProperty(part, PropertyIds::type, partType);
+                JavascriptOperators::InitProperty(part, PropertyIds::value, partValue);
+
+                ret->SetItem(retIndex, part, PropertyOperationFlags::PropertyOperation_None);
+
+                start = end;
+            }
+
+            return ret;
+        }
+    };
+#endif
+
     Var IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber(RecyclableObject* function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
+#if defined(INTL_ICU)
         INTL_CHECK_ARGS(
-            args.Info.Count == 3 &&
-            (TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) &&
-            DynamicObject::Is(args.Values[2])
+            args.Info.Count == 4 &&
+            (TaggedInt::Is(args[1]) || JavascriptNumber::Is(args[1])) &&
+            DynamicObject::Is(args[2]) &&
+            JavascriptBoolean::Is(args[3])
         );
 
-#if defined(INTL_ICU)
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[2]);
+        double num = JavascriptConversion::ToNumber(args[1], scriptContext);
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args[2]);
+        bool toParts = JavascriptBoolean::FromVar(args[3])->GetValue();
         Var cachedFormatter = nullptr; // cached by EntryIntl_CacheNumberFormat
         AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
 
@@ -2180,25 +2334,57 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         char16 *formatted = nullptr;
         int formattedLen = 0;
 
-        if (TaggedInt::Is(args.Values[1]))
+        if (!toParts)
         {
-            int num = TaggedInt::ToInt32(args.Values[1]);
-            EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
-            {
-                return unum_format(*fmt, num, buf, bufLen, nullptr, status);
-            }, scriptContext->GetRecycler(), &formatted, &formattedLen);
-        }
-        else
-        {
-            double num = JavascriptNumber::GetValue(args.Values[1]);
             EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
             {
                 return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
             }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+
+            return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
         }
 
-        return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);;
+#if defined(ICU_VERSION) && ICU_VERSION >= 61
+        UErrorCode status = U_ZERO_ERROR;
+        ScopedUFieldPositionIterator fpi(ufieldpositer_open(&status));
+
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
+            return unum_formatDoubleForFields(*fmt, num, buf, bufLen, fpi, status);
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+
+        NumberFormatPartsBuilder nfpb(num, formatted, formattedLen, scriptContext);
+
+        int partStart = 0;
+        int partEnd = 0;
+        int i = 0;
+        for (int kind = ufieldpositer_next(fpi, &partStart, &partEnd); kind >= 0; kind = ufieldpositer_next(fpi, &partStart, &partEnd), ++i)
+        {
+            nfpb.InsertPart(static_cast<UNumberFormatFields>(kind), partStart, partEnd);
+        }
+
+        return nfpb.ToPartsArray();
 #else
+        JavascriptLibrary *library = scriptContext->GetLibrary();
+        JavascriptArray *ret = library->CreateArray(1);
+        DynamicObject* part = library->CreateObject();
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
+            return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+        JavascriptOperators::InitProperty(part, PropertyIds::type, library->GetIntlLiteralPartString());
+        JavascriptOperators::InitProperty(part, PropertyIds::value, JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext));
+
+        ret->SetItem(0, part, PropertyOperationFlags::PropertyOperation_None);
+        return ret;
+#endif // #if ICU_VERSION >= 61 ... #else
+#else
+        INTL_CHECK_ARGS(
+            args.Info.Count == 3 &&
+            (TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) &&
+            DynamicObject::Is(args.Values[2])
+        );
+
         DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
         Var hiddenObject = nullptr;
         AssertOrFailFastMsg(options->GetInternalProperty(options, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
@@ -2450,7 +2636,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         int i = 0;
         for (
             int kind = ufieldpositer_next(fpi, &partStart, &partEnd);
-            kind > 0;
+            kind >= 0;
             kind = ufieldpositer_next(fpi, &partStart, &partEnd), ++i
         )
         {

@@ -177,4 +177,16 @@ testRunner.runTests([
             pairs.forEach((pair) => test(pair[0], pair[1]));
         }
     },
+    {
+        name: "https://github.com/Microsoft/ChakraCore/issues/5097",
+        body() {
+            const cases = [0, 1, true, false, null, undefined, { toString() { return "hello!" }}, [1, 2, 3, 4], {}, new (class ToStringTag { get [Symbol.toStringTag]() { return "MyClass" } })];
+
+            const coll = new Intl.Collator();
+            cases.forEach((test) => {
+                assert.areEqual(0, ("" + test).localeCompare(test), `${test} did not compare equal to itself using String.prototype.localeCompare`);
+                assert.areEqual(0, coll.compare("" + test, test), `${test} did not compare equal to itself using Collator.prototype.compare`);
+            });
+        }
+    }
 ], { verbose: !WScript.Arguments.includes("summary") });
