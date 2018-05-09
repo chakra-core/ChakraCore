@@ -514,6 +514,7 @@ ENTRY(supportedLocalesOf)
 ENTRY(tagPublicLibraryCode)
 ENTRY(winglob)
 ENTRY(platform)
+ENTRY(formatToParts)
 
 ENTRY(NumberFormat)
 ENTRY(__currency)
@@ -586,6 +587,9 @@ ENTRY(timeZone)
 ENTRY(timeZoneName)
 ENTRY(weekday)
 ENTRY(year)
+
+ENTRY(PluralRules)
+ENTRY(select)
 
 // JsBuiltIns
 ENTRY(__chakraLibrary)
