@@ -60,6 +60,7 @@ public:
         CompileScriptException* pse,
         size_t& srcLength
     );
+    bool DiscardParseResults(DWORD cookie, void* buffer);
 
     virtual bool Process(JsUtil::Job *const job, JsUtil::ParallelThreadData *threadData) override;
     virtual void JobProcessed(JsUtil::Job *const job, const bool succeeded) override;
@@ -70,7 +71,7 @@ public:
     bool WasAddedToJobProcessor(JsUtil::Job *const job) const;
 
 private:
-    BGParseWorkItem * FindJob(DWORD dwCookie, bool waitForResults);
+    BGParseWorkItem * FindJob(DWORD dwCookie, bool waitForResults, bool removeJob);
 
     // BGParseWorkItem job can be in one of 3 states, based on which linked list it is in:
     // - queued - JobProcessor::jobs
@@ -103,7 +104,10 @@ public:
 
     void CreateCompletionEvent();
     void WaitForCompletion();
-    void JobProcessed();
+    void JobProcessed(const bool succeeded);
+
+    void Discard() { discarded = true; }
+    bool IsDiscarded() const { return discarded; }
 
     DWORD GetCookie() const { return cookie; }
     const byte* GetScriptSrc() const { return script; }
@@ -125,7 +129,11 @@ private:
     CompileScriptException cse;
     HRESULT parseHR;
     size_t parseSourceLength;
-    Event* complete; 
+    Event* complete;
+    
+    // True when this workitem was discarded while processing. This instance
+    // will free itself after it has been processed.
+    bool discarded;
 
     // Output data
     byte * bufferReturn;
