@@ -985,6 +985,7 @@ ParseNodeProg * Parser::CreateProgNode(bool isModuleSource, ULONG lineNumber)
 
     pnodeProg->cbMin = this->GetScanner()->IecpMinTok();
     pnodeProg->lineNumber = lineNumber;
+    pnodeProg->homeObjLocation = Js::Constants::NoRegister;
     return pnodeProg;
 }
 
@@ -4297,6 +4298,7 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
     {
         pnodeFnc->SetHasComputedName();
     }
+    pnodeFnc->SetHasHomeObj();
 
     if (buildAST)
     {
@@ -4571,9 +4573,14 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             {
                 pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
 
-                if (isComputedName && pnodeExpr && pnodeExpr->nop == knopFncDecl)
+                if (pnodeExpr && pnodeExpr->nop == knopFncDecl)
                 {
-                    pnodeExpr->AsParseNodeFnc()->SetHasComputedName();
+                    ParseNodeFnc* funcNode = pnodeExpr->AsParseNodeFnc();
+                    if (isComputedName)
+                    {
+                        funcNode->SetHasComputedName();
+                    }
+                    funcNode->SetHasHomeObj();
                 }
             }
 #if DEBUG
@@ -4617,6 +4624,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             {
                 pnodeFnc->SetHasComputedName();
             }
+            pnodeFnc->SetHasHomeObj();
 
             if (buildAST)
             {
@@ -4948,6 +4956,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsModule(fModule);
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
+    pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
@@ -6726,6 +6735,8 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->SetHasNonThisStmt();
     pnodeFnc->SetIsGeneratedDefault(TRUE);
     pnodeFnc->SetHasComputedName();
+    pnodeFnc->SetHasHomeObj();
+    pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
     pnodeFnc->ichLim = this->GetScanner()->IchLimTok();
     pnodeFnc->ichMin = this->GetScanner()->IchMinTok();
@@ -7632,6 +7643,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
             pnodeConstructor->SetHasNonThisStmt();
             pnodeConstructor->SetHasComputedName();
+            pnodeConstructor->SetHasHomeObj();
         }
         else
         {
@@ -7689,6 +7701,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 {
                     pnodeFnc->SetHasComputedName();
                 }
+                pnodeFnc->SetHasHomeObj();
 
                 if (buildAST)
                 {
@@ -7727,6 +7740,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 {
                     pnodeFnc->SetHasComputedName();
                 }
+                pnodeFnc->SetHasHomeObj();
 
                 if (buildAST)
                 {

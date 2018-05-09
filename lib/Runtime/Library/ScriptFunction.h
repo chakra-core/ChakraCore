@@ -56,12 +56,30 @@ namespace Js
 #endif
     };
 
+    template <class BaseClass>
+    class FunctionWithHomeObj : public BaseClass
+    {
+    private:
+        Field(Var) homeObj;
+    protected:
+        DEFINE_VTABLE_CTOR(FunctionWithHomeObj<BaseClass>, BaseClass);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(FunctionWithHomeObj<BaseClass>);
+    public:
+        FunctionWithHomeObj(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType)
+            : BaseClass(proxy, deferredPrototypeType), homeObj(nullptr)
+        {
+            Assert(proxy->GetFunctionInfo()->HasHomeObj());
+        }
+        virtual Var GetHomeObj() const override { return homeObj; }
+        virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }
+        static uint32 GetOffsetOfHomeObj() { return  offsetof(FunctionWithHomeObj<BaseClass>, homeObj); }
+    };
+
     class ScriptFunction : public ScriptFunctionBase
     {
     private:
         Field(FrameDisplay*) environment;  // Optional environment, for closures
         Field(ActivationObjectEx *) cachedScopeObj;
-        Field(Var) homeObj;
         Field(bool) hasInlineCaches;
 
         JavascriptString * FormatToString(JavascriptString* inputString);
@@ -77,6 +95,7 @@ namespace Js
         static ScriptFunction * FromVar(Var func);
         static ScriptFunction * UnsafeFromVar(Var func);
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
+        static ScriptFunction * OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
@@ -97,7 +116,6 @@ namespace Js
         static uint32 GetOffsetOfEnvironment() { return offsetof(ScriptFunction, environment); }
         static uint32 GetOffsetOfCachedScopeObj() { return offsetof(ScriptFunction, cachedScopeObj); };
         static uint32 GetOffsetOfHasInlineCaches() { return offsetof(ScriptFunction, hasInlineCaches); };
-        static uint32 GetOffsetOfHomeObj() { return  offsetof(ScriptFunction, homeObj); }
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
@@ -114,8 +132,8 @@ namespace Js
 
         bool HasSuperReference();
 
-        virtual Var GetHomeObj() const override { return homeObj; }
-        virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }               
+        virtual Var GetHomeObj() const override { return nullptr; }
+        virtual void SetHomeObj(Var homeObj) override { AssertMsg(false, "Should have created FunctionWithHomeObj variant"); }
 
         virtual Var GetComputedNameVar() const override { return nullptr; }
         virtual void SetComputedNameVar(Var computedNameVar) override { AssertMsg(false, "Should have created the FunctionWithComputedName variant"); }
@@ -135,7 +153,7 @@ namespace Js
 
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
-        void ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* ssfi, TTD::SlabAllocator& alloc);
+        virtual void ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* ssfi, TTD::SlabAllocator& alloc);
 #endif
 
     public:
@@ -146,6 +164,7 @@ namespace Js
     };
 
     typedef FunctionWithComputedName<ScriptFunction> ScriptFunctionWithComputedName;
+    typedef FunctionWithHomeObj<ScriptFunction> ScriptFunctionWithHomeObj;
 
     class AsmJsScriptFunction : public ScriptFunction
     {

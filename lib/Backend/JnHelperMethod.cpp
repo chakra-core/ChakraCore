@@ -435,6 +435,12 @@ const char16 *GetVtableName(VTableValue value)
     case VtableStackScriptFunction:
         return _u("vtable StackScriptFunction");
         break;
+    case VtableScriptFunctionWithInlineCacheAndHomeObj:
+        return _u("vtable ScriptFunctionWithInlineCacheAndHomeObj");
+        break;
+    case VtableScriptFunctionWithInlineCacheHomeObjAndComputedName:
+        return _u("vtable ScriptFunctionWithInlineCacheHomeObjAndComputedName");
+        break;
     case VtableConcatStringMulti:
         return _u("vtable ConcatStringMulti");
         break;

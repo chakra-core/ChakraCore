@@ -322,6 +322,7 @@ namespace Js
         template <typename SizePolicy> bool TryWriteElementSlot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId);
         template <typename SizePolicy> bool TryWriteElementSlotI1(OpCode op, RegSlot value, uint32 slotId);
         template <typename SizePolicy> bool TryWriteElementSlotI2(OpCode op, RegSlot value, uint32 slotId1, uint32 slotId2);
+        template <typename SizePolicy> bool TryWriteElementSlotI3(OpCode op, RegSlot value, RegSlot instance, uint32 slotId, RegSlot homeObj);
         template <typename SizePolicy> bool TryWriteElementU(OpCode op, RegSlot instance, PropertyIdIndexType index);
         template <typename SizePolicy> bool TryWriteElementScopedU(OpCode op, PropertyIdIndexType index);
         template <typename SizePolicy> bool TryWriteElementRootU(OpCode op, PropertyIdIndexType index);
@@ -345,8 +346,8 @@ namespace Js
         uint InsertAuxiliaryData(const void* buffer, uint byteCount);
 
         void InitClass(RegSlot constructor, RegSlot extends = Js::Constants::NoRegister);
-        void NewFunction(RegSlot destinationRegister, uint index, bool isGenerator);
-        void NewInnerFunction(RegSlot destinationRegister, uint index, RegSlot environmentRegister, bool isGenerator);
+        void NewFunction(RegSlot destinationRegister, uint index, bool isGenerator, RegSlot homeObjLocation);
+        void NewInnerFunction(RegSlot destinationRegister, uint index, RegSlot environmentRegister, bool isGenerator, RegSlot homeObjLocation);
         ByteCodeLabel DefineLabel();
         void MarkLabel(ByteCodeLabel labelID);
         void StartStatement(ParseNode* node, uint32 tmpRegCount);

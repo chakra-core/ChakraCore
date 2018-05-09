@@ -21,7 +21,9 @@
 HELPERCALL(Invalid, nullptr, 0)
 
 HELPERCALL(ScrFunc_OP_NewScFunc, Js::ScriptFunction::OP_NewScFunc, 0)
+HELPERCALL(ScrFunc_OP_NewScFuncHomeObj, Js::ScriptFunction::OP_NewScFuncHomeObj, 0)
 HELPERCALL(ScrFunc_OP_NewScGenFunc, Js::JavascriptGeneratorFunction::OP_NewScGenFunc, 0)
+HELPERCALL(ScrFunc_OP_NewScGenFuncHomeObj, Js::JavascriptGeneratorFunction::OP_NewScGenFuncHomeObj, 0)
 HELPERCALL(ScrFunc_CheckAlignment, Js::JavascriptFunction::CheckAlignment, 0)
 HELPERCALL(ScrObj_LdHandlerScope, Js::JavascriptOperators::OP_LdHandlerScope, 0)
 HELPERCALL(ScrObj_LdFrameDisplay, Js::JavascriptOperators::OP_LdFrameDisplay, 0)
@@ -506,7 +508,6 @@ HELPERCALL(SpreadCall, Js::JavascriptFunction::EntrySpreadCall, 0)
 
 HELPERCALL(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj,          0)
 HELPERCALL(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj,          0)
-HELPERCALL(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj,         0)
 HELPERCALL(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto,     0)
 HELPERCALL(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto,     0)
 

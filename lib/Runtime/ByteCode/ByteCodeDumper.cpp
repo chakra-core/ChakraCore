@@ -826,6 +826,14 @@ namespace Js
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
             }
+            case OpCode::NewScFuncHomeObj:
+            case OpCode::NewScGenFuncHomeObj:
+            {
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+                Output::Print(_u(" R%d = hmo:R%d, %s()"), data->Value, data->Instance,
+                    pfuncActual->EnsureDeserialized()->GetDisplayName());
+                break;
+            }
 #if ENABLE_NATIVE_CODEGEN
             case OpCode::StSlot:
             case OpCode::StSlotChkUndecl:
@@ -918,6 +926,28 @@ namespace Js
             }
         }
     }
+
+    template <class T>
+    void ByteCodeDumper::DumpElementSlotI3(OpCode op, const unaligned T * data, Js::FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        switch (op)
+        {
+        case OpCode::NewInnerScFuncHomeObj:
+        case OpCode::NewInnerScGenFuncHomeObj:
+        {
+            FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
+            Output::Print(_u(" R%d = env:R%d hmo: R%d, %s()"), data->Value, data->Instance, data->HomeObj,
+                pfuncActual->EnsureDeserialized()->GetDisplayName());
+            break;
+        }
+        default:
+        {
+            AssertMsg(false, "Unknown OpCode for OpLayoutElementSlotI3");
+            break;
+        }
+        }
+    }
+
 
     template <class T>
     void ByteCodeDumper::DumpElementP(OpCode op, const unaligned T * data, Js::FunctionBody * dumpFunction, ByteCodeReader& reader)

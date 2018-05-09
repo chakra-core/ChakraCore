@@ -161,6 +161,8 @@ private:
                             int32 slotId, Js::ProfileId profileId);
     void                BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlot,
                             int32 slotId1, int32 slotId2, Js::ProfileId profileId);
+    void                BuildElementSlotI3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fieldRegSlot, Js::RegSlot regSlot,
+                            int32 slotId, Js::RegSlot homeObjLocation, Js::ProfileId profileId);
     void                BuildArgIn0(uint32 offset, Js::RegSlot R0);
     void                BuildArg(Js::OpCode newOpcode, uint32 offset, Js::ArgSlot argument, Js::RegSlot srcRegSlot);
     void                BuildArgIn(uint32 offset, Js::RegSlot dstRegSlot, uint16 argument);
@@ -320,7 +322,7 @@ private:
     void                InsertDoneLoopBodyLoopCounter(uint32 lastOffset);
 
     IR::RegOpnd *       InsertConvPrimStr(IR::RegOpnd * srcOpnd, uint offset, bool forcePreOpBailOutIfNeeded);
-
+    IR::Opnd *          IRBuilder::GetEnvironmentOperand(uint32 offset);
     bool                DoLoadInstructionArrayProfileInfo();
     bool                AllowNativeArrayProfileInfo();
 

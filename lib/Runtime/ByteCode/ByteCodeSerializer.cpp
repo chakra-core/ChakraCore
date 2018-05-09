@@ -1010,6 +1010,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlot);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlotI1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlotI2);
+                DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(ElementSlotI3);
                 DEFAULT_LAYOUT(W1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Reg1Unsigned1);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg2Int1);
@@ -2221,8 +2222,9 @@ public:
                 | FunctionInfo::Attributes::AllowDirectSuper
                 | FunctionInfo::Attributes::DeferredParse
                 | FunctionInfo::Attributes::CanDefer
-                | FunctionInfo::Attributes::ComputedName)) == 0,
-            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper|ComputedName|DeferredParse|CanDefer attributes should be set on a serialized function");
+                | FunctionInfo::Attributes::ComputedName
+                | FunctionInfo::Attributes::HomeObj)) == 0,
+            "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|BaseConstructorKind|Async|ClassMember|Method|EnclosedByGlobalFunc|AllowDirectSuper|ComputedName|DeferredParse|CanDefer|HomeObj attributes should be set on a serialized function");
         if (attributes != FunctionInfo::Attributes::None)
         {
             definedFields.has_attributes = true;

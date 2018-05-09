@@ -7078,10 +7078,6 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         RecyclableObject * ctor = RecyclableObject::FromVar(constructor);
 
-        // This is a circular reference to the constructor, it associate the constructor with the class and also allows us to check if a
-        // function is a constructor by comparing the homeObj to the this pointer. see ScriptFunction::IsClassConstructor() for implementation
-        JavascriptOperators::OP_SetHomeObj(constructor, constructor);
-
         if (extends)
         {
             switch (JavascriptOperators::GetTypeId(extends))
@@ -7138,6 +7134,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 }
             }
         }
+
+        Var proto = JavascriptOperators::GetProperty(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
+        JavascriptOperators::OP_SetHomeObj(constructor, proto);
     }
 
     void JavascriptOperators::OP_LoadUndefinedToElement(Var instance, PropertyId propertyId)

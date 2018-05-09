@@ -100,6 +100,8 @@ public:
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
     bool GetDoScopeObjectCreation() const;
     void EnsureConsistentConstCount() const;
+    bool HasComputedName() const;
+    bool HasHomeObj() const;
 
     const byte * GetByteCodeBuffer() const;
     StatementMapIDL * GetFullStatementMap() const;

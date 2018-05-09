@@ -500,8 +500,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerNewScFunc(instr);
             break;
 
+        case Js::OpCode::NewScFuncHomeObj:
+            instrPrev = this->LowerNewScFuncHomeObj(instr);
+            break;
+
         case Js::OpCode::NewScGenFunc:
             instrPrev = this->LowerNewScGenFunc(instr);
+            break;
+        case Js::OpCode::NewScGenFuncHomeObj:
+            instrPrev = this->LowerNewScGenFuncHomeObj(instr);
             break;
 
         case Js::OpCode::StFld:
@@ -2851,12 +2858,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::LdFuncObjProto:
             this->GenerateLdFuncObjProto(instr);
             break;
-
-        case Js::OpCode::SetHomeObj:
-        {
-            this->GenerateSetHomeObj(instr);
-            break;
-        }
 
         case Js::OpCode::ImportCall:
         {
@@ -6763,6 +6764,19 @@ Lowerer::LowerNewScFunc(IR::Instr * newScFuncInstr)
 }
 
 IR::Instr *
+Lowerer::LowerNewScFuncHomeObj(IR::Instr * newScFuncInstr)
+{
+    newScFuncInstr->m_opcode = Js::OpCode::CallHelper;
+    IR::HelperCallOpnd *helperOpnd = IR::HelperCallOpnd::New(IR::HelperScrFunc_OP_NewScFuncHomeObj, this->m_func);
+
+    IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
+    newScFuncInstr->SetSrc1(helperOpnd);
+    newScFuncInstr->SetSrc2(src1);
+    
+    return newScFuncInstr;
+}
+
+IR::Instr *
 Lowerer::LowerNewScGenFunc(IR::Instr * newScFuncInstr)
 {
     IR::IntConstOpnd * functionBodySlotOpnd = newScFuncInstr->UnlinkSrc1()->AsIntConstOpnd();
@@ -6772,6 +6786,19 @@ Lowerer::LowerNewScGenFunc(IR::Instr * newScFuncInstr)
     m_lowererMD.ChangeToHelperCall(newScFuncInstr, IR::HelperScrFunc_OP_NewScGenFunc );
 
     return instrPrev;
+}
+
+IR::Instr *
+Lowerer::LowerNewScGenFuncHomeObj(IR::Instr * newScFuncInstr)
+{
+    newScFuncInstr->m_opcode = Js::OpCode::CallHelper;
+    IR::HelperCallOpnd *helperOpnd = IR::HelperCallOpnd::New(IR::HelperScrFunc_OP_NewScGenFuncHomeObj, this->m_func);
+
+    IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
+    newScFuncInstr->SetSrc1(helperOpnd);
+    newScFuncInstr->SetSrc2(src1);
+    
+    return newScFuncInstr;
 }
 
 ///----------------------------------------------------------------------------
@@ -24532,6 +24559,9 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
     Func *func = instr->m_func;
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelInlineFunc = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *testLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *scriptFuncLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
 
     IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
@@ -24550,9 +24580,35 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 
     InsertObjectPoison(instanceRegOpnd, branchInstr, instr, false);
 
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
+    // Is this an function with inline cache and home obj??
+    IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
+    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
+    IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
+    Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+    InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+    instr->InsertBefore(labelInlineFunc);
+
+    // Is this a function with inline cache, home obj and computed name??
+    IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
+    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
+    IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+    Lowerer::InsertMove(dstOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
+    InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+    instr->InsertBefore(scriptFuncLabel);
+    IR::IndirOpnd *indirOpnd = nullptr;
+    if (func->GetJITFunctionBody()->HasComputedName())
+    {
+        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::ScriptFunctionWithHomeObj>::GetOffsetOfHomeObj(), TyMachPtr, func);
+    }
+    else
+    {
+        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+    }
     Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
 
+    instr->InsertBefore(testLabel);
     InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instr);
 
     Lowerer::InsertMove(dstOpnd, instanceRegOpnd, instr);
@@ -24687,55 +24743,6 @@ Lowerer::GenerateLdFuncObjProto(IR::Instr* instr)
 
     instr->InsertBefore(labelDone);
     instr->Remove();
-}
-
-void
-Lowerer::GenerateSetHomeObj(IR::Instr* instrInsert)
-{
-    //  MOV funcObj, src1
-    //  CMP [funcObj], VtableJavascriptGeneratorFunction
-    //  JNE $ScriptFunction
-    //
-    //  MOV funcObj, funcObj->scriptFunction
-    //
-    //  $ScriptFunction:
-    //  MOV funcObj->homeObj, src2
-
-    Func *func = instrInsert->m_func;
-
-    IR::LabelInstr *labelScriptFunction = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-    IR::LabelInstr *labelForGeneratorScriptFunction = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-
-    IR::Opnd *src2Opnd = instrInsert->UnlinkSrc2();
-    IR::Opnd *src1Opnd = instrInsert->UnlinkSrc1();
-    IR::RegOpnd *funcObjRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
-    IR::IndirOpnd *indirOpnd = nullptr;
-
-    Assert(src1Opnd != nullptr && src2Opnd != nullptr);
-
-    Lowerer::InsertMove(funcObjRegOpnd, src1Opnd, instrInsert);
-
-    IR::Opnd * vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableJavascriptGeneratorFunction);
-    InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
-        Js::OpCode::BrEq_A, true, labelForGeneratorScriptFunction, instrInsert);
-
-    vtableAddressOpnd = this->LoadVTableValueOpnd(instrInsert, VTableValue::VtableJavascriptAsyncFunction);
-    IR::BranchInstr *branchInstr = InsertCompareBranch(IR::IndirOpnd::New(funcObjRegOpnd, 0, TyMachPtr, func), vtableAddressOpnd,
-        Js::OpCode::BrNeq_A, true, labelScriptFunction, instrInsert);
-
-    InsertObjectPoison(funcObjRegOpnd, branchInstr, instrInsert, false);
-
-    instrInsert->InsertBefore(labelForGeneratorScriptFunction);
-
-    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::JavascriptGeneratorFunction::GetOffsetOfScriptFunction(), TyMachPtr, func);
-    Lowerer::InsertMove(funcObjRegOpnd, indirOpnd, instrInsert);
-
-    instrInsert->InsertBefore(labelScriptFunction);
-
-    indirOpnd = IR::IndirOpnd::New(funcObjRegOpnd, Js::ScriptFunction::GetOffsetOfHomeObj(), TyMachPtr, func);
-    Lowerer::InsertMove(indirOpnd, src2Opnd, instrInsert);
-
-    instrInsert->Remove();
 }
 
 void
