@@ -224,7 +224,7 @@ namespace PlatformAgnostic
 
         bool IsWhitespace(codepoint_t ch)
         {
-            return u_isUWhiteSpace(ch) == 1;
+            return u_hasBinaryProperty(ch, UCHAR_WHITE_SPACE);
         }
 
         template<bool toUpper, bool useInvariant>
@@ -258,12 +258,12 @@ namespace PlatformAgnostic
 
         bool IsIdStart(codepoint_t ch)
         {
-            return u_isIDStart(ch);
+            return u_hasBinaryProperty(ch, UCHAR_ID_START);
         }
 
         bool IsIdContinue(codepoint_t ch)
         {
-            return u_isIDPart(ch);
+            return u_hasBinaryProperty(ch, UCHAR_ID_CONTINUE);
         }
 
         int LogicalStringCompare(const char16* string1, const char16* string2)

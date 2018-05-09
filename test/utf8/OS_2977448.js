@@ -7,8 +7,9 @@ try {
     // Ensure that character classifier does not incorrectly classify \u2e2f as a letter.
     eval("ⸯ");
 } catch (e) {
-    if (e instanceof SyntaxError)
-    {
+    if (e instanceof SyntaxError) {
         WScript.Echo("PASS");
+    } else {
+        WScript.Echo(e);
     }
 }

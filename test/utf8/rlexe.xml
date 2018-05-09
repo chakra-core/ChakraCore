@@ -16,7 +16,6 @@
   <test>
     <default>
       <files>OS_2977448.js</files>
-      <tags>require_winglob</tags>
     </default>
   </test>
   <test>
@@ -39,7 +38,7 @@
     <default>
       <files>bugGH2656.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <tags>require_winglob,exclude_noicu</tags> <!-- Microsoft/ChakraCore#3777: Fix this test under ICU -->
+      <tags>exclude_noicu</tags>
     </default>
   </test>
   <test>
