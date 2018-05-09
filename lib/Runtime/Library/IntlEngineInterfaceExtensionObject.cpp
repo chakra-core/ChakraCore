@@ -500,6 +500,10 @@ namespace Js
             return;
         }
         JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        // Ensure JsBuiltIns are initialized before initializing Intl which uses some of them.
+        library->EnsureBuiltInEngineIsReady();
+
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
         if (scriptContext->IsIntlEnabled())
         {

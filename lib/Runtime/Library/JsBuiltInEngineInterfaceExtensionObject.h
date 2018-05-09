@@ -28,6 +28,8 @@ namespace Js
             static NoProfileFunctionInfo JsBuiltIn_Internal_GetLength;
             static NoProfileFunctionInfo JsBuiltIn_Internal_GetIteratorPrototype;
             static NoProfileFunctionInfo JsBuiltIn_Internal_InitInternalProperties;
+            static NoProfileFunctionInfo JsBuiltIn_Internal_ToLengthFunction;
+            static NoProfileFunctionInfo JsBuiltIn_Internal_ToIntegerFunction;
         };
 
     private:
@@ -45,6 +47,8 @@ namespace Js
         static Var EntryJsBuiltIn_Internal_GetLength(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_GetIteratorPrototype(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJsBuiltIn_Internal_InitInternalProperties(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryJsBuiltIn_Internal_ToLengthFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryJsBuiltIn_Internal_ToIntegerFunction(RecyclableObject* function, CallInfo callInfo, ...);
     };
 }
 #endif // ENABLE_JS_BUILTINS
