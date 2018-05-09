@@ -1075,7 +1075,7 @@ SECOND_PASS:
 
         const auto isSegmentValid = [length](Js::SparseArraySegment<T>* segment, uint32 startIndex) {
             uint32 end, segmentEnd;
-            // Check the segment is int32 enough
+            // Check the segment is big enough
             return (
                 segment &&
                 !UInt32Math::Add(startIndex, length, &end) &&
@@ -1085,8 +1085,8 @@ SECOND_PASS:
                 segmentEnd >= end
             );
         };
-        //Find the segment where itemIndex is present or is at the boundary
-        Js::SparseArraySegment<T>* fromSegment = (Js::SparseArraySegment<T>*)fromArray->GetBeginLookupSegment(fromStartIndex, false);
+        // Check if the head segment of the fromArray has everything we need to copy
+        Js::SparseArraySegment<T>* fromSegment = (Js::SparseArraySegment<T>*)fromArray->GetHead();
         if (!isSegmentValid(fromSegment, fromStartIndex))
         {
             return false;
