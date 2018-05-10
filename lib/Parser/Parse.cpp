@@ -5569,7 +5569,14 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 {
                     *pNeedScanRCurly = false;
                 }
+                DeferredFunctionStub* savedStub = m_currDeferredStub;
+                if (pnodeFncSave != nullptr && m_currDeferredStub != nullptr)
+                {
+                    Assert(pnodeFncSave->nestedCount != 0);
+                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->nestedCount - 1))->deferredStubs;
+                }
                 this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
+                m_currDeferredStub = savedStub;
             }
             else
             {
@@ -5795,7 +5802,13 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
 
     m_ppnodeVar = &pnodeFnc->pnodeVars;
 
-    if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr)
+    // Don't try and skip scanning nested deferred lambdas which have only a single expression in the body.
+    // Their more-complicated text extents won't match the deferred-stub and the single expression should be fast to scan, anyway.
+    if (fLambda && !*pNeedScanRCurly)
+    {
+        ParseExpressionLambdaBody<false>(pnodeFnc);
+    }
+    else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr)
     {
         // We've already parsed this function body for syntax errors on the initial parse of the script.
         // We have information that allows us to skip it, so do so.
@@ -5829,22 +5842,13 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
             PushPidRef(pid);
         }
 
-        pnodeFnc->ichLim = stub->restorePoint.m_ichMinTok;
-        pnodeFnc->cbLim = this->GetScanner()->IecpMinTok();
         pnodeFnc->nestedCount = stub->nestedCount;
         pnodeFnc->deferredStub = stub->deferredStubs;
         pnodeFnc->fncFlags = (FncFlags)(pnodeFnc->fncFlags | stub->fncFlags);
     }
     else
     {
-        if (fLambda && !*pNeedScanRCurly)
-        {
-            ParseExpressionLambdaBody<false>(pnodeFnc);
-        }
-        else
-        {
-            ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
-        }
+        ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
     }
 
     if (!fLambda || *pNeedScanRCurly)
