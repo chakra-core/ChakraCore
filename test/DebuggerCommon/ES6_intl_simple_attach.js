@@ -18,16 +18,16 @@ function Run() {
 
     WScript.Echo('PASSED');/**bp:
     locals(1);
-	evaluate('coll',4);
-	evaluate('numFormat',4);
-	evaluate('dttmFormat',4);
-	evaluate('coll.compare.toString() == \'function() {\\n    [native code]\\n}\'');
+    evaluate('coll',4);
+    evaluate('numFormat',4);
+    evaluate('dttmFormat',4);
+    evaluate('coll.compare.toString() == \'function() {\\n    [native code]\\n}\'');
     evaluate('coll.resolvedOptions.toString() == \'function() {\\n    [native code]\\n}\'');
     evaluate('numFormat.format.toString() == \'function() {\\n    [native code]\\n}\'');
     evaluate('numFormat.resolvedOptions.toString() == \'function() {\\n    [native code]\\n}\'');
     evaluate('dttmFormat.format.toString() == \'function() {\\n    [native code]\\n}\'');
     evaluate('dttmFormat.resolvedOptions.toString() == \'function() {\\n    [native code]\\n}\'');
-	**/
+    **/
 }
 
 var x; /**bp:evaluate('Intl.Collator')**/

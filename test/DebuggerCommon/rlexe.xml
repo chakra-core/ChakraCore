@@ -218,6 +218,7 @@
       <files>ES6_intl_simple_attach.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_simple_attach.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_simple_attach.js.baseline</baseline>
+      <!-- This test is still require_winglob because it has winglob-specific output in the .dbg.baseline -->
       <tags>Intl,require_winglob</tags>
     </default>
   </test>
