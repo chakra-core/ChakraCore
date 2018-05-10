@@ -402,7 +402,7 @@
     <default>
       <files>VerifyParserState.js</files>
       <baseline>VerifyParserState.baseline</baseline>
-      <compile-flags>-forcecreateparserstate -trace:createparserstate -forcedeferparse</compile-flags>
+      <compile-flags>-UseParserStateCache -ParserStateCache -ForceDeferParse -Trace:CreateParserState</compile-flags>
       <tags>exclude_test</tags>
     </default>
   </test>
