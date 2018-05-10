@@ -5112,6 +5112,67 @@ CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve,
     });
 }
 
+CHAKRA_API JsGetPromiseState(_In_ JsValueRef promise, _Out_ JsPromiseState *state)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        VALIDATE_INCOMING_REFERENCE(promise, scriptContext);
+        PARAM_NOT_NULL(state);
+
+        *state = JsPromiseState_Pending;
+
+        if (!Js::JavascriptPromise::Is(promise))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        Js::JavascriptPromise *jsPromise = Js::JavascriptPromise::FromVar(promise);
+        Js::JavascriptPromise::PromiseStatus status = jsPromise->GetStatus();
+
+        switch (status)
+        {
+        case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasRejection:
+            *state = JsPromiseState_Rejected;
+            break;
+
+        case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasResolution:
+            *state = JsPromiseState_Fulfilled;
+            break;
+        }
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsGetPromiseResult(_In_ JsValueRef promise, _Out_ JsValueRef *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        VALIDATE_INCOMING_REFERENCE(promise, scriptContext);
+        PARAM_NOT_NULL(result);
+
+        *result = JS_INVALID_REFERENCE;
+
+        if (!Js::JavascriptPromise::Is(promise))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        Js::JavascriptPromise *jsPromise = Js::JavascriptPromise::FromVar(promise);
+        Js::Var jsResult = jsPromise->GetResult();
+
+        if (jsResult == nullptr)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        *result = (JsValueRef)jsResult;
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsCreateWeakReference(
     _In_ JsValueRef value,
     _Out_ JsWeakRef* weakRef)

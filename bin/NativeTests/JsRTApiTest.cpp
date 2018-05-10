@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "catch.hpp"
+#include <array>
 #include <process.h>
 
 #pragma warning(disable:4100) // unreferenced formal parameter
@@ -2662,5 +2663,75 @@ namespace JsRTApiTest
     TEST_CASE("ApiTest_JsCreateStringTest", "[ApiTest]")
     {
         JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCreateStringTest);
+    }
+
+    void JsCreatePromiseTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef result = JS_INVALID_REFERENCE;
+
+        JsValueRef promise = JS_INVALID_REFERENCE;
+        JsValueRef resolve = JS_INVALID_REFERENCE;
+        JsValueRef reject = JS_INVALID_REFERENCE;
+
+        // Create resolvable promise
+        REQUIRE(JsCreatePromise(&promise, &resolve, &reject) == JsNoError);
+
+        JsPromiseState state = JsPromiseState_Pending;
+        REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
+        CHECK(state == JsPromiseState_Pending);
+
+        result = JS_INVALID_REFERENCE;
+        CHECK(JsGetPromiseResult(promise, &result) == JsErrorInvalidArgument);
+        CHECK(result == JS_INVALID_REFERENCE);
+
+        JsValueRef num = JS_INVALID_REFERENCE;
+        REQUIRE(JsIntToNumber(42, &num) == JsNoError);
+
+        std::array<JsValueRef, 2> args{ GetUndefined(), num };
+        REQUIRE(JsCallFunction(resolve, args.data(), static_cast<unsigned short>(args.size()), &result) == JsNoError);
+
+        state = JsPromiseState_Pending;
+        REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
+        CHECK(state == JsPromiseState_Fulfilled);
+
+        result = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetPromiseResult(promise, &result) == JsNoError);
+
+        int resultNum = 0;
+        REQUIRE(JsNumberToInt(result, &resultNum) == JsNoError);
+        CHECK(resultNum == 42);
+
+        // Create rejectable promise
+        REQUIRE(JsCreatePromise(&promise, &resolve, &reject) == JsNoError);
+
+        state = JsPromiseState_Pending;
+        REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
+        CHECK(state == JsPromiseState_Pending);
+
+        result = JS_INVALID_REFERENCE;
+        CHECK(JsGetPromiseResult(promise, &result) == JsErrorInvalidArgument);
+        CHECK(result == JS_INVALID_REFERENCE);
+
+        num = JS_INVALID_REFERENCE;
+        REQUIRE(JsIntToNumber(43, &num) == JsNoError);
+
+        args = { GetUndefined(), num };
+        REQUIRE(JsCallFunction(reject, args.data(), static_cast<unsigned short>(args.size()), &result) == JsNoError);
+
+        state = JsPromiseState_Pending;
+        REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
+        CHECK(state == JsPromiseState_Rejected);
+
+        result = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetPromiseResult(promise, &result) == JsNoError);
+
+        resultNum = 0;
+        REQUIRE(JsNumberToInt(result, &resultNum) == JsNoError);
+        CHECK(resultNum == 43);
+    }
+
+    TEST_CASE("ApiTest_JsCreatePromiseTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::JsCreatePromiseTest);
     }
 }
