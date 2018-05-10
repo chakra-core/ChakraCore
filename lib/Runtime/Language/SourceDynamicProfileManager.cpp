@@ -60,10 +60,7 @@ namespace Js
     void SourceDynamicProfileManager::MarkAsExecuted(LocalFunctionId functionId)
     {
         Assert(startupFunctions != nullptr);
-        //Assert(functionId <= startupFunctions->Length());
-        if (functionId >= startupFunctions->Length()) {
-            return;
-        }
+        Assert(functionId <= startupFunctions->Length());
         startupFunctions->Set(functionId);
     }
 

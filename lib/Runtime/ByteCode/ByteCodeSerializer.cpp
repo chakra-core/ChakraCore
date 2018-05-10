@@ -2280,7 +2280,6 @@ public:
                 if (nestedFunction == nullptr || !nestedFunction->HasParseableInfo())
                 {
                     PrependConstantInt32(builder, _u("Empty Nested Function"), 0);
-                    ++functionCount.value;
                 }
                 else
                 {
@@ -2371,6 +2370,9 @@ public:
             {
                 AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, recursive);
             }
+
+            // Each deferred stub will turn into a function after we defer-parse the parent of the stub.
+            ++functionCount.value;
         }
 
         return S_OK;

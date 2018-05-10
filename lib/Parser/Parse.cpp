@@ -13874,12 +13874,9 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
 
 bool Parser::IsCreatingStateCache()
 {
-    return ((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
+    return (((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
         && this->m_functionBody == nullptr
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        || (CONFIG_FLAG(ForceCreateParserState))
-#endif
-        ;
+        && CONFIG_FLAG(ParserStateCache));
 }
 
 DeferredFunctionStub * Parser::BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
