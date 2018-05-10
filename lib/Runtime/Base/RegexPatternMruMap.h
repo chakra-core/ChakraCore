@@ -12,13 +12,8 @@ namespace Js
 namespace JsUtil
 {
     template <>
-    class ValueEntry<Js::RegexPatternMruMap::MruDictionaryData>: public BaseValueEntry<Js::RegexPatternMruMap::MruDictionaryData>
+    inline void ClearValue<Js::RegexPatternMruMap::MruDictionaryData>::Clear(Js::RegexPatternMruMap::MruDictionaryData* value)
     {
-    public:
-        void Clear()
-        {
-            this->value = 0;
-        }
-    };
-
-};
+        *value = 0;
+    }
+}

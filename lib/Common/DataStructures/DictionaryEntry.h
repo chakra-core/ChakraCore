@@ -6,83 +6,123 @@
 
 namespace JsUtil
 {
-    template <class TValue>
-    class BaseValueEntry
+    namespace
     {
-    protected:
-        TValue value;        // data of entry
-        void Set(TValue const& value)
+        template <class T1, class T2, bool isT1Smaller>
+        struct ChooseSmallerHelper
         {
-            this->value = value;
-        }
+            typedef T2 type;
+        };
 
-    public:
-        int next;        // Index of next entry, -1 if last
-
-        static bool SupportsCleanup()
+        template <class T1, class T2>
+        struct ChooseSmallerHelper<T1, T2, true>
         {
-            return false;
-        }
+            typedef T1 type;
+        };
 
-        static bool NeedsCleanup(BaseValueEntry<TValue>&)
+        template <class T1, class T2>
+        using ChooseSmaller = typename ChooseSmallerHelper<T1, T2, (sizeof(T1) < sizeof(T2))>::type;
+
+        template <class TValue>
+        class ValueEntryData
         {
-            return false;
-        }
+        protected:
+            TValue value;    // data of entry
+        public:
+            int next;        // Index of next entry, -1 if last
+        };
 
-        TValue const& Value() const { return value; }
-        TValue& Value() { return value; }
-        void SetValue(TValue const& value) { this->value = value; }
-    };
-
-    template <class TValue>
-    class ValueEntry: public BaseValueEntry<TValue>
-    {
-    public:
-        void Clear()
+        template <class TKey, class TValue>
+        class KeyValueEntryDataLayout1
         {
-        }
-    };
+        protected:
+            TValue value;    // data of entry
+            TKey key;        // key of entry
+        public:
+            int next;        // Index of next entry, -1 if last
+        };
 
-    // Class specialization for pointer values to support clearing
-    template <class TValue>
-    class ValueEntry<TValue*>: public BaseValueEntry<TValue*>
-    {
-    public:
-        void Clear()
+        template <class TKey, class TValue>
+        class KeyValueEntryDataLayout2
         {
-            this->value = nullptr;
-        }
-    };
+        protected:
+            TValue value;    // data of entry
+        public:
+            int next;        // Index of next entry, -1 if last
+        protected:
+            TKey key;        // key of entry
+        };
 
-    template <>
-    class ValueEntry<bool>: public BaseValueEntry<bool>
-    {
-    public:
-        void Clear()
-        {
-            this->value = false;
-        }
-    };
+        // Packing matters because we make so many dictionary entries.
+        // The int pointing to the next item in the list may be included
+        // either after the value or after the key, depending on which
+        // packs better.
+        template <class TKey, class TValue>
+        using KeyValueEntryData = ChooseSmaller<KeyValueEntryDataLayout1<TKey, TValue>, KeyValueEntryDataLayout2<TKey, TValue>>;
 
-    template <>
-    class ValueEntry<int>: public BaseValueEntry<int>
-    {
-    public:
-        void Clear()
+        template <class TValue, class TData = ValueEntryData<TValue>>
+        class ValueEntry : public TData
         {
-            this->value = 0;
-        }
-    };
+        protected:
+            void Set(TValue const& value)
+            {
+                this->value = value;
+            }
 
-    template <>
-    class ValueEntry<uint>: public BaseValueEntry<uint>
-    {
-    public:
-        void Clear()
+        public:
+            static bool SupportsCleanup()
+            {
+                return false;
+            }
+
+            static bool NeedsCleanup(ValueEntry<TValue, TData>&)
+            {
+                return false;
+            }
+
+            void Clear()
+            {
+                ClearValue<TValue>::Clear(&this->value);
+            }
+
+            TValue const& Value() const { return this->value; }
+            TValue& Value() { return this->value; }
+            void SetValue(TValue const& value) { this->value = value; }
+        };
+
+        // Used by BaseHashSet, the default is that the key is the same as the value
+        template <class TKey, class TValue>
+        class ImplicitKeyValueEntry : public ValueEntry<TValue>
         {
-            this->value = 0;
-        }
-    };
+        public:
+            TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
+
+            void Set(TKey const& key, TValue const& value)
+            {
+                __super::Set(value);
+            }
+        };
+
+        template <class TKey, class TValue>
+        class KeyValueEntry : public ValueEntry<TValue, KeyValueEntryData<TKey, TValue>>
+        {
+        protected:
+            void Set(TKey const& key, TValue const& value)
+            {
+                __super::Set(value);
+                this->key = key;
+            }
+
+        public:
+            TKey const& Key() const { return this->key; }
+
+            void Clear()
+            {
+                __super::Clear();
+                this->key = TKey();
+            }
+        };
+    }
 
     template<class TKey, class TValue>
     struct ValueToKey
@@ -90,71 +130,17 @@ namespace JsUtil
         static TKey ToKey(const TValue &value) { return static_cast<TKey>(value); }
     };
 
-    // Used by BaseHashSet,  the default is that the key is the same as the value
-    template <class TKey, class TValue>
-    class ImplicitKeyValueEntry : public ValueEntry<TValue>
+    template <class TValue>
+    struct ClearValue
     {
-    public:
-        inline TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
-
-        void Set(TKey const& key, TValue const& value)
-        {
-            __super::Set(value);
-        }
-    };
-
-    template <class TKey, class TValue>
-    class BaseKeyValueEntry : public ValueEntry<TValue>
-    {
-    protected:
-        TKey key;    // key of entry
-        void Set(TKey const& key, TValue const& value)
-        {
-            __super::Set(value);
-            this->key = key;
-        }
-
-    public:
-        TKey const& Key() const  { return key; }
+        static inline void Clear(TValue* value) { *value = TValue(); }
     };
 
     template <class TKey>
-    class BaseKeyEntry : public ValueEntry<TKey>
+    class KeyEntry : public ValueEntry<TKey>
     {
     public:
         TKey const& Key() const { return this->value; }
-    };
-
-    template <class TKey, class TValue>
-    class KeyValueEntry : public BaseKeyValueEntry<TKey, TValue>
-    {
-    };
-
-    template <class TKey>
-    class KeyEntry : public BaseKeyEntry<TKey>
-    {
-    };
-
-    template <class TKey, class TValue>
-    class KeyValueEntry<TKey*, TValue> : public BaseKeyValueEntry<TKey*, TValue>
-    {
-    public:
-        void Clear()
-        {
-            __super::Clear();
-            this->key = nullptr;
-        }
-    };
-
-    template <class TValue>
-    class KeyValueEntry<int, TValue> : public BaseKeyValueEntry<int, TValue>
-    {
-    public:
-        void Clear()
-        {
-            __super::Clear();
-            this->key = 0;
-        }
     };
 
     template <class TKey, class TValue, template <class K, class V> class THashEntry>
