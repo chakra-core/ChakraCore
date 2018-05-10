@@ -153,6 +153,7 @@ PHASE(All)
                     PHASE(TraceObjTypeSpecWriteGuards)
                     PHASE(LiveOutFields)
                     PHASE(DisabledObjTypeSpec)
+                    PHASE(DepolymorphizeInlinees)
                     PHASE(ReuseAuxSlotPtr)
                     #if DBG
                         PHASE(SimulatePolyCacheWithOneTypeForFunction)

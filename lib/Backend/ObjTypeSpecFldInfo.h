@@ -34,6 +34,19 @@ union ObjTypeSpecFldInfoFlags
     ObjTypeSpecFldInfoFlags(uint16 flags) : flags(flags) { }
 };
 
+class ObjTypeSpecPolymorphicInfo
+{
+public:
+    ObjTypeSpecPolymorphicInfo() : m_data() {}
+    void SetSlotIndex(uint16 slotIndex);
+    uint16 GetSlotIndex() const;
+    void SetUsesAuxSlot(bool usesAuxSlot);
+    bool GetUsesAuxSlot() const;
+    ObjTypeSpecPolymorphicInfoIDL * GetRaw();
+private:
+    Field(ObjTypeSpecPolymorphicInfoIDL) m_data;
+};
+
 class ObjTypeSpecFldInfo
 {
 public:
@@ -45,6 +58,7 @@ public:
         m_data.initialType = nullptr;
         m_data.flags = InitialObjTypeSpecFldInfoFlagValue;
         m_data.slotIndex = Js::Constants::NoSlot;
+        m_data.polymorphicInfoCount = 0;
         m_data.propertyId = Js::Constants::NoProperty;
         m_data.protoObjectAddr = nullptr;
         m_data.propertyGuardValueAddr = nullptr;
@@ -52,6 +66,7 @@ public:
         m_data.fixedFieldCount = 0;
         m_data.fixedFieldInfoArraySize = 0;
         m_data.fixedFieldInfoArray = nullptr;
+        m_data.polymorphicInfoArray = nullptr;
     }
 
     ObjTypeSpecFldInfo(uint id, Js::TypeId typeId, JITType* initialType,
@@ -77,6 +92,7 @@ public:
         m_data.typeSet = nullptr;
         m_data.initialType = initialType->GetData();
         m_data.slotIndex = slotIndex;
+        m_data.polymorphicInfoCount = 0;
         m_data.propertyId = propertyId;
         m_data.protoObjectAddr = protoObject;
         m_data.propertyGuardValueAddr = (void*)propertyGuard->GetAddressOfValue();
@@ -84,12 +100,13 @@ public:
         m_data.fixedFieldCount = 1;
         m_data.fixedFieldInfoArraySize = 1;
         m_data.fixedFieldInfoArray = fixedFieldInfoArray->GetRaw();
+        m_data.polymorphicInfoArray = nullptr;
     }
 
     ObjTypeSpecFldInfo(uint id, Js::TypeId typeId, JITType* initialType, Js::EquivalentTypeSet* typeSet,
         bool usesAuxSlot, bool isLoadedFromProto, bool usesAccessor, bool isFieldValueFixed, bool keepFieldValue, bool doesntHaveEquivalence, bool isPolymorphic,
         uint16 slotIndex, Js::PropertyId propertyId, Js::DynamicObject* protoObject, Js::PropertyGuard* propertyGuard,
-        JITTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray, uint16 fixedFieldCount)
+        JITTimeConstructorCache* ctorCache, FixedFieldInfo* fixedFieldInfoArray, uint16 fixedFieldCount, uint16 polymorphicInfoCount, ObjTypeSpecPolymorphicInfo * polymorphicInfoArray)
     {
         ObjTypeSpecFldInfoFlags flags(InitialObjTypeSpecFldInfoFlagValue);
         flags.isPolymorphic = isPolymorphic;
@@ -109,6 +126,7 @@ public:
         m_data.typeSet = (EquivalentTypeSetIDL*)typeSet;
         m_data.initialType = initialType->GetData();
         m_data.slotIndex = slotIndex;
+        m_data.polymorphicInfoCount = polymorphicInfoCount;
         m_data.propertyId = propertyId;
         m_data.protoObjectAddr = protoObject;
         m_data.propertyGuardValueAddr = (void*)propertyGuard->GetAddressOfValue();
@@ -116,6 +134,7 @@ public:
         m_data.fixedFieldCount = fixedFieldCount;
         m_data.fixedFieldInfoArraySize = fixedFieldCount > 0 ? fixedFieldCount : 1;
         m_data.fixedFieldInfoArray = fixedFieldInfoArray->GetRaw();
+        m_data.polymorphicInfoArray = polymorphicInfoArray->GetRaw();
     }
 
     bool UsesAuxSlot() const;
@@ -134,6 +153,9 @@ public:
     bool HasInitialType() const;
     bool IsMonoObjTypeSpecCandidate() const;
     bool IsPolyObjTypeSpecCandidate() const;
+
+    bool NeedsDepolymorphication() const;
+    void TryDepolymorphication(JITTypeHolder type, uint16 slotIndex, bool usesAuxSlot, uint16 * pNewSlotIndex, bool * pNewUsesAuxSlot, uint16 * checkedTypeSetIndex = nullptr) const;
 
     bool GetKeepFieldValue() const
     {
@@ -160,7 +182,11 @@ public:
     Js::JavascriptFunction* GetFieldValueAsFunctionIfAvailable() const
     {
         Assert(!JITManager::GetJITManager()->IsJITServer());
-        Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+
+        if (IsPoly() && DoesntHaveEquivalence())
+        {
+            return nullptr;
+        }
 
         if (PHASE_OFF1(Js::ObjTypeSpecPhase)) return nullptr; // TODO: (lei)remove this after obj type spec for OOPJIT implemented
 
@@ -173,6 +199,7 @@ public:
 
     Js::PropertyId GetPropertyId() const;
     uint16 GetSlotIndex() const;
+    uint16 * GetSlotIndices() const;
     uint16 GetFixedFieldCount() const;
 
     uint GetObjTypeSpecFldId() const;
@@ -194,6 +221,8 @@ public:
     FixedFieldInfo * GetFixedFieldIfAvailableAsFixedFunction(uint i);
     FixedFieldInfo * GetFixedFieldInfoArray() const;
 
+    ObjTypeSpecPolymorphicInfo * GetObjTypeSpecPolymorphicInfoArray() const;
+
     void SetIsBeingStored(bool value); // REVIEW: this doesn't flow out of JIT, should it?
 
     ObjTypeSpecFldIDL * GetRaw() { return &m_data; }
@@ -203,6 +232,8 @@ public:
 
     static ObjTypeSpecFldInfo* CreateFrom(uint id, Js::PolymorphicInlineCache* cache, uint cacheId,
         Js::EntryPointInfo *entryPoint, Js::FunctionBody* const topFunctionBody, Js::FunctionBody *const functionBody, Js::FieldAccessStatsPtr inlineCacheStats);
+
+    static void SortTypesAndPolymorphicInfo(Js::Type ** types, ObjTypeSpecPolymorphicInfo * info, uint16 * pTypeCount);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     const char16* GetCacheLayoutString() const { return _u("ObjTypeSpecFldInfo"); }

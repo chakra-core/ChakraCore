@@ -137,6 +137,13 @@ typedef struct FixedFieldIDL
     IDL_Field(CHAKRA_WB_PTR) environmentAddr;
 } FixedFieldIDL;
 
+typedef struct ObjTypeSpecPolymorphicInfoIDL
+{
+    IDL_Field(unsigned short) slotIndex;
+    IDL_Field(boolean) usesAuxSlot;
+    IDL_PAD1(0)
+} ObjTypeSpecPolymorphicInfoIDL;
+
 typedef struct JITTimeConstructorCacheIDL
 {
     IDL_Field(boolean) skipNewScObject;
@@ -161,18 +168,20 @@ typedef struct ObjTypeSpecFldIDL
 {
     IDL_Field(unsigned short) flags;
     IDL_Field(unsigned short) slotIndex;
+    IDL_Field(unsigned short) polymorphicInfoCount;
     IDL_Field(unsigned short) fixedFieldCount;
     IDL_Field(unsigned short) fixedFieldInfoArraySize; // 1 (when fixedFieldCount is 0) or fixedFieldCount
+    IDL_PAD2(0)
     IDL_Field(int) propertyId;
     IDL_Field(int) typeId;
     IDL_Field(unsigned int) id;
-    X64_PAD4(0)
     IDL_Field(CHAKRA_WB_PTR) protoObjectAddr;
     IDL_Field(CHAKRA_WB_PTR) propertyGuardValueAddr;
     IDL_Field(EquivalentTypeSetIDL *) typeSet;
     IDL_Field(TypeIDL *) initialType;
     IDL_Field(JITTimeConstructorCacheIDL *) ctorCache;
     IDL_DEF([size_is(fixedFieldInfoArraySize)]) IDL_Field(FixedFieldIDL *) fixedFieldInfoArray;
+    IDL_DEF([size_is(polymorphicInfoCount)]) IDL_Field(ObjTypeSpecPolymorphicInfoIDL *) polymorphicInfoArray;
 } ObjTypeSpecFldIDL;
 
 typedef struct PinnedTypeRefsIDL
