@@ -69,8 +69,13 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesWritten = 0;
             hr = this->outStream->Write(&data, sizeof(T), &bytesWritten);
+            Assert(bytesWritten == sizeof(T) || FAILED(hr) || hr == S_FALSE);
             bytesWrittenInBlock += bytesWritten;
             // hr is S_FALSE if bytesRead < sizeOf(T)
+            if (hr == S_FALSE)
+            {
+                hr = E_FAIL;
+            }
 #endif
             return hr;
         }
@@ -84,8 +89,13 @@ namespace Js
             ULONG bytesSize = sizeof(T) * len;
             ULONG bytesWritten = 0;
             hr = this->outStream->Write(data, bytesSize, &bytesWritten);
+            Assert(bytesWritten == bytesSize || FAILED(hr) || hr == S_FALSE);
             bytesWrittenInBlock += bytesWritten;
             // hr is S_FALSE if bytesRead < bytesSize
+            if (hr == S_FALSE)
+            {
+                hr = E_FAIL;
+            }
 #endif
             return hr;
         }
@@ -98,7 +108,12 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesRead = 0;
             hr = this->inStream->Read(data, sizeof(T), &bytesRead);
+            Assert(bytesRead == sizeof(T) || FAILED(hr) || hr == S_FALSE);
             // hr is S_FALSE if bytesRead < sizeOf(T)
+            if (hr == S_FALSE)
+            {
+                hr = E_FAIL;
+            }
 #endif
             return hr;
         }
@@ -112,7 +127,12 @@ namespace Js
             ULONG bytesSize = sizeof(T) * len;
             ULONG bytesRead = 0;
             hr = this->inStream->Read(data, bytesSize, &bytesRead);
+            Assert(bytesRead == bytesSize || FAILED(hr) || hr == S_FALSE);
             // hr is S_FALSE if bytesRead < bytesSize
+            if (hr == S_FALSE)
+            {
+                hr = E_FAIL;
+            }
 #endif
             return hr;
         }

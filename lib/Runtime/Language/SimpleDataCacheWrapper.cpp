@@ -91,8 +91,13 @@ namespace Js
         HRESULT hr = E_FAIL;
 
         IFFAILRET(AutoSystemInfo::GetJscriptFileVersion(&jscriptMajorVersion, &jscriptMinorVersion));
+
+        Assert(this->bytesWrittenInBlock == 0);
+
         IFFAILRET(Write(jscriptMajorVersion));
         IFFAILRET(Write(jscriptMinorVersion));
+
+        Assert(this->bytesWrittenInBlock == sizeof(DWORD) * 2);
 
         return hr;
     }
@@ -198,6 +203,10 @@ namespace Js
                 *bytesInBlock = byteCount;
             }
             return S_OK;
+        }
+        else if (currentBlockType == BlockType_Invalid || byteCount == 0)
+        {
+            return E_FAIL;
         }
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
