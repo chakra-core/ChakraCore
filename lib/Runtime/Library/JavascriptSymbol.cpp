@@ -312,7 +312,7 @@ namespace Js
     {
         if (requestContext->GetThreadContext()->RecordImplicitException())
         {
-            JavascriptError::ThrowTypeError(requestContext, VBSERR_OLENoPropOrMethod, _u("ToString"));
+            JavascriptError::ThrowTypeError(requestContext, JSERR_ImplicitStrConv, _u("Symbol"));
         }
 
         return requestContext->GetLibrary()->GetEmptyString();
