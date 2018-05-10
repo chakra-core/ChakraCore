@@ -8379,6 +8379,41 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(uint loopId)
     }
 #endif
 
+#if ENABLE_PROFILE_INFO
+
+    template <bool doProfile>
+    Var InterpreterStackFrame::ProfiledIsIn(Var argProperty, Var instance, ScriptContext* scriptContext, ProfileId profileId)
+    {
+        if (doProfile)
+        {
+            DynamicProfileInfo * profileData = m_functionBody->GetDynamicProfileInfo();
+
+            LdElemInfo ldElemInfo;
+            ldElemInfo.arrayType = ValueType::Uninitialized.Merge(instance);
+
+            if (this->TestFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization))
+            {
+                ldElemInfo.disableAggressiveSpecialization = true;
+            }
+            this->ClearFlags(InterpreterStackFrameFlags_ProcessingBailOutOnArraySpecialization);
+
+            profileData->RecordElementLoad(m_functionBody, profileId, ldElemInfo);
+        }
+
+        return JavascriptOperators::IsIn(argProperty, instance, scriptContext);
+    }
+
+#else
+
+    template <bool doProfile>
+    Var InterpreterStackFrame::ProfiledIsIn(Var argProperty, Var instance, ScriptContext* scriptContext, ProfileId profileId)
+    {
+        Assert(!doProfile);
+        return JavascriptOperators::IsIn(argProperty, instance, scriptContext);
+    }
+
+#endif
+
     JavascriptFunction* InterpreterStackFrame::GetFunctionExpression()
     {
         // Make sure we get the boxed function object if is there, (or the function itself)

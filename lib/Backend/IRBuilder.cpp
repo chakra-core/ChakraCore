@@ -2144,7 +2144,42 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(dstRegSlot);
     StackSym *      dstSym = dstOpnd->m_sym;
 
-    if (profileId != Js::Constants::NoProfileId)
+    bool isProfiledInstr = (profileId != Js::Constants::NoProfileId);
+    bool wasNotProfiled = false;
+    const Js::LdElemInfo * ldElemInfo = nullptr;
+
+    if (isProfiledInstr && newOpcode == Js::OpCode::IsIn)
+    {
+        if (!DoLoadInstructionArrayProfileInfo())
+        {
+            isProfiledInstr = false;
+        }
+        else
+        {
+            ldElemInfo = this->m_func->GetReadOnlyProfileInfo()->GetLdElemInfo(profileId);
+            ValueType arrayType = ldElemInfo->GetArrayType();
+            wasNotProfiled = !ldElemInfo->WasProfiled();
+
+            if (arrayType.IsLikelyNativeArray() && !AllowNativeArrayProfileInfo())
+            {
+                arrayType = arrayType.SetArrayTypeId(Js::TypeIds_Array);
+
+                // An opnd's value type will get replaced in the forward phase when it is not fixed. Store the array type in the ProfiledInstr.
+                Js::LdElemInfo *const newLdElemInfo = JitAnew(m_func->m_alloc, Js::LdElemInfo, *ldElemInfo);
+                newLdElemInfo->arrayType = arrayType;
+                ldElemInfo = newLdElemInfo;
+            }
+
+            src2Opnd->SetValueType(arrayType);
+
+            if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
+            {
+                isProfiledInstr = false;
+            }
+        }
+    }
+
+    if (isProfiledInstr)
     {
         if (m_func->DoSimpleJitDynamicProfile())
         {
@@ -2154,7 +2189,14 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
         else
         {
             instr = IR::ProfiledInstr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
-            instr->AsProfiledInstr()->u.profileId = profileId;
+            if (newOpcode == Js::OpCode::IsIn)
+            {
+                instr->AsProfiledInstr()->u.ldElemInfo = ldElemInfo;
+            }
+            else
+            {
+                instr->AsProfiledInstr()->u.profileId = profileId;
+            }
         }
     }
     else
@@ -2164,6 +2206,11 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
 
     this->AddInstr(instr, offset);
 
+    if (wasNotProfiled && DoBailOnNoProfile())
+    {
+        InsertBailOnNoProfile(instr);
+    }
+    
     switch (newOpcode)
     {
     case Js::OpCode::LdHandlerScope:
@@ -4459,12 +4506,7 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
 {
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
 
-    bool isProfiled = OpCodeAttr::IsProfiledOp(newOpcode);
-
-    if (isProfiled)
-    {
-        Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
-    }
+    Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
 
     Assert(newOpcode == Js::OpCode::LdLen_A);
 
@@ -4472,22 +4514,20 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
     IR::SymOpnd * fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType) - 1, PropertyKindData, inlineCacheIndex);
     IR::RegOpnd * dstOpnd = this->BuildDstOpnd(regSlot);
 
+    bool isProfiled = (profileId != Js::Constants::NoProfileId);
     ValueType arrayType = ValueType::Uninitialized;
-
     const Js::LdLenInfo * ldLenInfo = nullptr;
+
     if (m_func->HasProfileInfo())
     {
         ldLenInfo = m_func->GetReadOnlyProfileInfo()->GetLdLenInfo(profileId);
         arrayType = (ldLenInfo->GetArrayType());
-        if (arrayType.IsLikelyNativeArray() &&
-            (
-                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
-                m_func->IsJitInDebugMode()
-            ))
+        if (arrayType.IsLikelyNativeArray() && !AllowNativeArrayProfileInfo())
         {
             // An opnd's value type will get replaced in the forward phase when it is not fixed. Store the array type in the ProfiledInstr.
             arrayType = arrayType.SetArrayTypeId(Js::TypeIds_Array);
         }
+
         fieldSymOpnd->SetValueType(arrayType);
 
         if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
@@ -4503,37 +4543,23 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
     bool wasNotProfiled = false;
     IR::Instr *instr = nullptr;
 
-    if (m_func->DoSimpleJitDynamicProfile())
+    if (isProfiled)
     {
-        // Since we're in simplejit, we want to keep track of the profileid:
-        IR::JitProfilingInstr * profiledInstr = IR::JitProfilingInstr::New(newOpcode, dstOpnd, fieldSymOpnd, m_func);
-        instr = profiledInstr;
-        profiledInstr->profileId = profileId;
+        instr = this->BuildProfiledFieldLoad(newOpcode, dstOpnd, fieldSymOpnd, inlineCacheIndex, &wasNotProfiled);
     }
-    else if (isProfiled)
-    {
-        IR::ProfiledInstr * profiledInstr = IR::ProfiledInstr::New(newOpcode, dstOpnd, fieldSymOpnd, m_func);
-        instr = profiledInstr;
-        profiledInstr->u.FldInfo() = *(m_func->GetReadOnlyProfileInfo()->GetFldInfo(inlineCacheIndex));
-        profiledInstr->u.LdLenInfo() = *ldLenInfo;
-        profiledInstr->u.LdLenInfo().arrayType = arrayType;
-        wasNotProfiled = !profiledInstr->u.FldInfo().WasLdFldProfiled();
-        dstOpnd->SetValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-        if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::DynamicProfilePhase))
-        {
-            const ValueType valueType(profiledInstr->u.FldInfo().valueType);
-            char valueTypeStr[VALUE_TYPE_MAX_STRING_SIZE];
-            valueType.ToString(valueTypeStr);
-            char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(_u("TestTrace function %s (%s) ValueType = %i "), m_func->GetJITFunctionBody()->GetDisplayName(), m_func->GetDebugNumberSet(debugStringBuffer), valueTypeStr);
-            instr->DumpTestTrace();
-        }
-#endif
-    }
-    else
+
+    if (instr == nullptr)
     {
         instr = IR::Instr::New(newOpcode, dstOpnd, fieldSymOpnd, m_func);
+    }
+    else if (instr->IsJitProfilingInstr())
+    {
+        instr->AsJitProfilingInstr()->profileId = profileId;
+    }
+    else if (instr->IsProfiledInstr())
+    {
+        instr->AsProfiledInstr()->u.LdLenInfo() = *ldLenInfo;
+        instr->AsProfiledInstr()->u.LdLenInfo().arrayType = arrayType;
     }
 
     this->AddInstr(instr, offset);
@@ -5331,11 +5357,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
         switch (newOpcode)
         {
         case Js::OpCode::LdElemI_A:
-            if (!this->m_func->HasProfileInfo() ||
-                (
-                    PHASE_OFF(Js::TypedArrayPhase, this->m_func->GetTopFunc()) &&
-                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func)
-                ))
+            if (!DoLoadInstructionArrayProfileInfo())
             {
                 break;
             }
@@ -5347,11 +5369,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
 
         case Js::OpCode::StElemI_A:
         case Js::OpCode::StElemI_A_Strict:
-            if (!this->m_func->HasProfileInfo() ||
-                (
-                    PHASE_OFF(Js::TypedArrayPhase, this->m_func->GetTopFunc()) &&
-                    PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func)
-                ))
+            if (!DoLoadInstructionArrayProfileInfo())
             {
                 break;
             }
@@ -5371,11 +5389,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
 
     if (isProfiledLoad || isProfiledStore)
     {
-        if(arrayType.IsLikelyNativeArray() &&
-            (
-                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
-                m_func->IsJitInDebugMode()
-            ))
+        if(arrayType.IsLikelyNativeArray() && !AllowNativeArrayProfileInfo())
         {
             arrayType = arrayType.SetArrayTypeId(Js::TypeIds_Array);
 
@@ -7527,4 +7541,21 @@ IRBuilder::InnerScopeIndexToRegSlot(uint32 index) const
         Js::Throw::FatalInternalError();
     }
     return reg;
+}
+
+bool
+IRBuilder::DoLoadInstructionArrayProfileInfo()
+{
+    return !(!this->m_func->HasProfileInfo() ||
+        (
+            PHASE_OFF(Js::TypedArrayPhase, this->m_func->GetTopFunc()) &&
+            PHASE_OFF(Js::ArrayCheckHoistPhase, this->m_func)
+            ));
+}
+
+bool
+IRBuilder::AllowNativeArrayProfileInfo()
+{
+    return !((!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
+        m_func->IsJitInDebugMode());
 }

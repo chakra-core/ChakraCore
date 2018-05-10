@@ -454,6 +454,11 @@ namespace Js
             isProfiled = true;
             OpCodeUtil::ConvertNonCallOpToProfiled(op);
         }
+        else if (op == Js::OpCode::IsIn && this->m_functionWrite->AllocProfiledLdElemId(&profileId))
+        {
+            isProfiled = true;
+            OpCodeUtil::ConvertNonCallOpToProfiled(op);
+        }
 
         MULTISIZE_LAYOUT_WRITE(Reg3, op, R0, R1, R2);
         if (isProfiled)
