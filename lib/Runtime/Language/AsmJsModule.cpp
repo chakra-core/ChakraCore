@@ -554,7 +554,7 @@ namespace Js
 
         if (fncNode->pnodeBody == NULL)
         {
-            if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
+            if (!PHASE_OFF1(Js::SkipNestedDeferredPhase) && this->GetParser()->IsCreatingStateCache())
             {
                 deferParseFunction->BuildDeferredStubs(fncNode);
             }

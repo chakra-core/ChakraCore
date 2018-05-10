@@ -2770,7 +2770,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 
     if (funcInfo->root->pnodeBody == nullptr)
     {
-        if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
+        if (!PHASE_OFF1(Js::SkipNestedDeferredPhase) && this->GetParser()->IsCreatingStateCache())
         {
             deferParseFunction->BuildDeferredStubs(funcInfo->root);
         }

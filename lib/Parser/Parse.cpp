@@ -13881,6 +13881,8 @@ bool Parser::IsCreatingStateCache()
 
 DeferredFunctionStub * Parser::BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
 {
+    Assert(CONFIG_FLAG(ParserStateCache));
+
     uint nestedCount = pnodeFnc->nestedCount;
     if (nestedCount == 0)
     {
