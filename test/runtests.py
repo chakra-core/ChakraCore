@@ -166,6 +166,10 @@ if args.static != None:
 
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
+
+if 'require_icu' in not_tags or 'exclude_noicu' in not_tags:
+    not_tags.add('Intl')
+
 not_compile_flags = None
 
 # use -j flag to specify number of parallel processes
