@@ -1245,7 +1245,7 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     // This function is recursive, so when jitting in the foreground, probe the stack
     if(!func->IsBackgroundJIT())
     {
-        PROBE_STACK(func->GetScriptContext(), Js::Constants::MinStackDefault);
+        PROBE_STACK_NO_DISPOSE(func->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     if (tailBlock->number < headBlock->number)

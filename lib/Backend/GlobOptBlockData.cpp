@@ -1392,7 +1392,7 @@ GlobOptBlockData::FindFuturePropertyValue(PropertySym *const propertySym)
                 // About to make a recursive call, so when jitting in the foreground, probe the stack
                 if(!this->globOpt->func->IsBackgroundJIT())
                 {
-                    PROBE_STACK(this->globOpt->func->GetScriptContext(), Js::Constants::MinStackDefault);
+                    PROBE_STACK_NO_DISPOSE(this->globOpt->func->GetScriptContext(), Js::Constants::MinStackDefault);
                 }
                 objectValue = FindFuturePropertyValue(objectTransferSrcSym->AsPropertySym());
             }

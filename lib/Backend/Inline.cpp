@@ -1189,7 +1189,7 @@ Inline::InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInf
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
     {
-        PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
+        PROBE_STACK_NO_DISPOSE(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     IR::RegOpnd * returnValueOpnd;
@@ -3657,7 +3657,7 @@ Inline::InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTi
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
     {
-        PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
+        PROBE_STACK_NO_DISPOSE(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     *pIsInlined = true;
@@ -3962,7 +3962,7 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     // This function is recursive, so when jitting in the foreground, probe the stack
     if (!this->topFunc->IsBackgroundJIT())
     {
-        PROBE_STACK(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
+        PROBE_STACK_NO_DISPOSE(this->topFunc->GetScriptContext(), Js::Constants::MinStackDefault);
     }
 
     IR::Instr *instrNext = callInstr->m_next;
