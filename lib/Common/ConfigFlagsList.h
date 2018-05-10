@@ -426,6 +426,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WasmMaxTableSize     (10000000)
 #define DEFAULT_CONFIG_WasmThreads          (false)
 #define DEFAULT_CONFIG_WasmMultiValue       (false)
+#define DEFAULT_CONFIG_WasmNontrapping      (true)
 #define DEFAULT_CONFIG_WasmExperimental     (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
@@ -933,6 +934,7 @@ FLAGNR(Boolean, WasmIgnoreResponse    , "Ignore the type of the Response object"
 FLAGNR(Number,  WasmMaxTableSize      , "Maximum size allowed to the WebAssembly.Table", DEFAULT_CONFIG_WasmMaxTableSize)
 FLAGNR(Boolean, WasmThreads           , "Enable WebAssembly threads feature", DEFAULT_CONFIG_WasmThreads)
 FLAGNR(Boolean, WasmMultiValue        , "Use new WebAssembly multi-value", DEFAULT_CONFIG_WasmMultiValue)
+FLAGNR(Boolean, WasmNontrapping, "Enable non-trapping float-to-int conversions in WebAssembly", DEFAULT_CONFIG_WasmNontrapping)
 
 // WebAssembly Experimental Features
 // Master WasmExperimental flag to activate WebAssembly experimental features
@@ -944,7 +946,6 @@ FLAGR(Boolean, WasmExperimental, "Enable WebAssembly experimental features", DEF
 // Not having the DEFAULT_CONFIG_XXXX macro ensures we use CONFIG_FLAG_RELEASE instead of CONFIG_FLAG
 FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSignExtends , "Use new WebAssembly sign extension operators")
 FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmSimd        , "Enable SIMD in WebAssembly")
-FLAGPR_EXPERIMENTAL_WASM(Boolean, WasmNontrapping, "Enable non-trapping float-to-int conversions in WebAssembly")
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)

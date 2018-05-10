@@ -37,7 +37,7 @@ namespace WasmNontrapping
     bool IsEnabled()
     {
 #ifdef ENABLE_WASM
-        return CONFIG_FLAG_RELEASE(WasmNontrapping);
+        return CONFIG_FLAG(WasmNontrapping);
 #else
         return false;
 #endif
