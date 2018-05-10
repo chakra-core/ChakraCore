@@ -1086,6 +1086,12 @@ PropertySymOpnd::CloneUseInternalSub(Func *func)
     return this->CopyInternalSub(func);
 }
 
+bool 
+PropertySymOpnd::ShouldUsePolyEquivTypeGuard(Func *const func) const
+{
+    return this->IsPoly() && this->m_polyCacheUtil >= PolymorphicInlineCacheUtilizationThreshold && !PHASE_OFF(Js::PolyEquivTypeGuardPhase, func);
+}
+
 RegOpnd::RegOpnd(StackSym *sym, RegNum reg, IRType type)
 {
     Initialize(sym, reg, type);

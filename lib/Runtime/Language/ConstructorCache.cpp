@@ -10,9 +10,9 @@ namespace Js
 {
     ConstructorCache ConstructorCache::DefaultInstance;
 
-    ConstructorCache::ConstructorCache()
+    ConstructorCache::ConstructorCache() : PropertyGuard()
     {
-        this->content.type = nullptr;
+        this->Invalidate();
         this->content.scriptContext = nullptr;
         this->content.slotCount = 0;
         this->content.inlineSlotCount = 0;
@@ -28,10 +28,9 @@ namespace Js
         Assert(IsConsistent());
     }
 
-    ConstructorCache::ConstructorCache(ConstructorCache const * other)
+    ConstructorCache::ConstructorCache(ConstructorCache const * other) : PropertyGuard(other->GetValue())
     {
         Assert(other != nullptr);
-        this->content.type = other->content.type;
         this->content.scriptContext = other->content.scriptContext;
         this->content.slotCount = other->content.slotCount;
         this->content.inlineSlotCount = other->content.inlineSlotCount;
@@ -55,7 +54,7 @@ namespace Js
         Assert(!this->content.isPopulated || this->content.isPolymorphic);
         Assert(type->GetTypeHandler()->GetSlotCapacity() <= MaxCachedSlotCount);
         this->content.isPopulated = true;
-        this->content.type = type;
+        this->SetValue((intptr_t)type);
         this->content.scriptContext = scriptContext;
         this->content.slotCount = type->GetTypeHandler()->GetSlotCapacity();
         this->content.inlineSlotCount = type->GetTypeHandler()->GetInlineSlotCapacity();
@@ -69,7 +68,7 @@ namespace Js
         Assert(IsConsistent());
         Assert(!this->content.isPopulated);
         this->content.isPopulated = true;
-        this->guard.value = CtorCacheGuardValues::Special;
+        this->SetValue((intptr_t)CtorCacheGuardValues::Special);
         this->content.scriptContext = scriptContext;
         this->content.skipDefaultNewObject = true;
         Assert(IsConsistent());
@@ -92,14 +91,14 @@ namespace Js
 
         if (type->GetIsShared())
         {
-            this->content.type = type;
+            this->SetValue((intptr_t)type);
             this->content.typeIsFinal = true;
             this->content.pendingType = nullptr;
         }
         else
         {
             AssertMsg(false, "No one calls this part of the code?");
-            this->guard.value = CtorCacheGuardValues::Special;
+            this->SetValue((intptr_t)CtorCacheGuardValues::Special);
             this->content.pendingType = type;
             this->content.typeUpdatePending = true;
         }
@@ -114,7 +113,15 @@ namespace Js
         Assert(IsConsistent());
         Assert(this->content.isPopulated);
         Assert(IsEnabled() || NeedsTypeUpdate());
-        DynamicType* type = this->content.typeUpdatePending ? this->content.pendingType : this->content.type;
+        DynamicType* type;
+        if (this->content.typeUpdatePending)
+        {
+            type = this->content.pendingType;
+        }
+        else
+        {
+            type = reinterpret_cast<DynamicType*>(this->GetValue());
+        }
         DynamicTypeHandler* typeHandler = type->GetTypeHandler();
         // Inline slot capacity should never grow as a result of shrinking.
         Assert(typeHandler->GetInlineSlotCapacity() <= this->content.inlineSlotCount);
@@ -130,12 +137,13 @@ namespace Js
         Assert(IsConsistent());
         Assert(this->content.isPopulated);
         Assert(!IsEnabled());
-        Assert(this->guard.value == CtorCacheGuardValues::Special);
+        Assert((CtorCacheGuardValues)this->GetValue() == CtorCacheGuardValues::Special);
         Assert(this->content.typeUpdatePending);
         Assert(this->content.slotCount == this->content.pendingType->GetTypeHandler()->GetSlotCapacity());
         Assert(this->content.inlineSlotCount == this->content.pendingType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(this->content.pendingType->GetIsShared());
-        this->content.type = this->content.pendingType;
+        DynamicType* pendingType = this->content.pendingType;
+        this->SetValue((intptr_t)pendingType);
         this->content.typeIsFinal = true;
         this->content.pendingType = nullptr;
         this->content.typeUpdatePending = false;
@@ -176,10 +184,10 @@ namespace Js
     {
         if (IsDefault(this))
         {
-            Assert(this->guard.value == CtorCacheGuardValues::Invalid);
+            Assert((CtorCacheGuardValues)this->GetValue() == CtorCacheGuardValues::Invalid);
             Assert(!this->content.isPopulated);
         }
-        else if (this->guard.value == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject)
+        else if ((CtorCacheGuardValues)this->GetValue() == CtorCacheGuardValues::Special && this->content.skipDefaultNewObject)
         {
             // Do nothing.  If we skip the default object, changes to the prototype property don't affect
             // what we'll do during object allocation.
@@ -189,10 +197,9 @@ namespace Js
         }
         else
         {
-            this->guard.value = CtorCacheGuardValues::Invalid;
+            this->Invalidate();
             this->content.hasPrototypeChanged = true;
             // Make sure we don't leak the old type.
-            Assert(this->content.type == nullptr);
             this->content.pendingType = nullptr;
             Assert(this->content.pendingType == nullptr);
             Assert(IsInvalidated());

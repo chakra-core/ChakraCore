@@ -155,6 +155,7 @@ PHASE(All)
                     PHASE(DisabledObjTypeSpec)
                     PHASE(DepolymorphizeInlinees)
                     PHASE(ReuseAuxSlotPtr)
+                    PHASE(PolyEquivTypeGuard)
                     #if DBG
                         PHASE(SimulatePolyCacheWithOneTypeForFunction)
                     #endif

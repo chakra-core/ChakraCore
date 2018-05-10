@@ -22,7 +22,7 @@ JITTimeConstructorCache::JITTimeConstructorCache(const Js::JavascriptFunction* c
     m_data.guardedPropOps = 0;
     if (runtimeCache->IsNormal())
     {
-        JITType::BuildFromJsType(runtimeCache->content.type, (JITType*)&m_data.type);
+        JITType::BuildFromJsType(reinterpret_cast<Js::DynamicType*>(runtimeCache->GetValue()), (JITType*)&m_data.type);
     }
 }
 

@@ -154,6 +154,7 @@
     <ClInclude Include="ConstructorCache.h" />
     <ClInclude Include="AsmJsArrayBufferViews.h" />
     <ClInclude Include="PrototypeChainCache.h" />
+    <ClInclude Include="PropertyGuard.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">

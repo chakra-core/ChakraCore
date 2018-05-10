@@ -371,8 +371,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/TypeId.h"
 
 #include "Base/Constants.h"
-#include "Language/ConstructorCache.h"
 #include "BackendApi.h"
+#include "Language/PropertyGuard.h"
+#include "Language/ConstructorCache.h"
 #include "ByteCode/OpLayoutsCommon.h"
 #include "ByteCode/OpLayouts.h"
 #include "ByteCode/OpLayoutsAsmJs.h"
