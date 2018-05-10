@@ -42,7 +42,8 @@ namespace Js
             Method                         = 0x400000, // The function is a method
             ComputedName                   = 0x800000,
             ActiveScript                   = 0x1000000,
-            HomeObj                        = 0x2000000
+            HomeObj                        = 0x2000000,
+            CanHaveCachedScope             = 0x4000000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -82,6 +83,9 @@ namespace Js
         bool HasComputedName() const { return HasComputedName(this->attributes); }
         static bool HasHomeObj(Attributes attributes) { return (attributes & Attributes::HomeObj) != 0; }
         bool HasHomeObj() const { return HasHomeObj(this->attributes); }
+        static bool HasCachedScope(Attributes attributes) { return (attributes & Attributes::CanHaveCachedScope) != 0; }
+        bool HasCachedScope() const { return HasCachedScope(this->attributes); }
+        void SetHasCachedScope() { attributes = (Attributes)(attributes | Attributes::CanHaveCachedScope); }
 
         BOOL HasBody() const { return functionBodyImpl != NULL; }
         BOOL HasParseableInfo() const { return this->HasBody() && !this->IsDeferredDeserializeFunction(); }

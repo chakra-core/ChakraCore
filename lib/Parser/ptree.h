@@ -439,7 +439,7 @@ enum FncFlags : uint
     kFunctionIsStaticMember                     = 1 << 24,
     kFunctionIsGenerator                        = 1 << 25, // Function is an ES6 generator function
     kFunctionAsmjsMode                          = 1 << 26,
-    // Free = 1 << 27,
+    kFunctionHasCachedScope                     = 1 << 27, // Function has cached scopes
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
     kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
@@ -461,8 +461,6 @@ public:
     LPCOLESTR hint;
     uint32 hintLength;
     uint32 hintOffset;
-    bool  isNameIdentifierRef;
-    bool  nestedFuncEscapes;
     ParseNodeBlock * pnodeScopes;
     ParseNodeBlock * pnodeBodyScope;
     ParseNodePtr pnodeParams;
@@ -491,9 +489,12 @@ public:
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
     IdentPtrSet *capturedNames;
+    bool  isNameIdentifierRef;
+    bool  nestedFuncEscapes;
     bool canBeDeferred;
     bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
                                     // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
+    bool needsScopeObject;
     Js::RegSlot homeObjLocation;    // Stores the RegSlot from where the home object needs to be copied
 
     static const int32 MaxStackClosureAST = 800000;
@@ -534,6 +535,7 @@ public:
         fncFlags = kFunctionNone;
         canBeDeferred = false;
         isBodyAndParamScopeMerged = true;
+        needsScopeObject = false;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
@@ -567,10 +569,12 @@ public:
     void SetHasHomeObj(bool set = true) { SetFlags(kFunctionHasHomeObj, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
+    void SetHasCachedScope(bool set = true) { SetFlags(kFunctionHasCachedScope, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
     void ResetBodyAndParamScopeMerged() { isBodyAndParamScopeMerged = false; }
     void SetHomeObjLocation(Js::RegSlot location) { this->homeObjLocation = location; }
+    void SetNeedScopeObject(bool set = true) { needsScopeObject = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -607,10 +611,12 @@ public:
     bool HasHomeObj() const { return HasFlags(kFunctionHasHomeObj); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
+    bool HasCachedScope() const { return HasFlags(kFunctionHasCachedScope); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
     bool CanBeDeferred() const { return canBeDeferred; }
     bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
-    Js::RegSlot GetHomeObjLocation() const { return homeObjLocation; }
+    bool NeedScopeObject() const { return needsScopeObject; }
+    Js::RegSlot GetHomeObjLocation() const { return this->homeObjLocation; }
     // Only allow the normal functions to be asm.js
     bool IsAsmJsAllowed() const { return (fncFlags & ~(
         kFunctionAsmjsMode |

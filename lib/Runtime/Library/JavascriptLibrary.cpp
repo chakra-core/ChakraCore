@@ -3099,6 +3099,8 @@ namespace Js
         VirtualTableRecorder<Js::JavascriptAsyncFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptAsyncFunction);
         vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj] = VirtualTableInfo<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::Address;
         vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName] = VirtualTableInfo<Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>::Address;
+        vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndCachedScope] = VirtualTableInfo<Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>::Address;
+        vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheHomeObjCachedScopeAndComputedName] = VirtualTableInfo<Js::FunctionWithComputedName<Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>>::Address;
         VirtualTableRecorder<Js::ConcatStringMulti>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableConcatStringMulti);
         VirtualTableRecorder<Js::CompoundString>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableCompoundString);
 
@@ -5975,17 +5977,32 @@ namespace Js
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
         FunctionInfo* functionInfo = proxy->GetFunctionInfo();
-        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj())
+        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj() || functionInfo->HasCachedScope())
         {
-            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
+            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<FunctionWithHomeObj<ScriptFunction>>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
             {
                 return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithHomeObj<ScriptFunction>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<FunctionWithHomeObj<ScriptFunction>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<ScriptFunction>>, proxy, deferredPrototypeType);
             }
             else if (functionInfo->HasHomeObj())
             {
                 return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithHomeObj<ScriptFunction>, proxy, deferredPrototypeType);
             }
-
+            else if (functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<ScriptFunction>, proxy, deferredPrototypeType);
+            }
             // Has computed Name
             return RecyclerNewWithInfoBits(this->GetRecycler(), EnumFunctionClass, ScriptFunctionWithComputedName, proxy, deferredPrototypeType);
         }
@@ -5996,6 +6013,7 @@ namespace Js
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
         Assert(!proxy->GetFunctionInfo()->HasHomeObj());
+        Assert(!proxy->GetFunctionInfo()->HasCachedScope());
         if (proxy->GetFunctionInfo()->HasComputedName())
         {
             return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, AsmJsScriptFunctionWithComputedName, proxy, deferredPrototypeType);
@@ -6008,6 +6026,7 @@ namespace Js
     {
         Assert(!proxy->GetFunctionInfo()->HasComputedName());
         Assert(!proxy->GetFunctionInfo()->HasHomeObj());
+        Assert(!proxy->GetFunctionInfo()->HasCachedScope());
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, WasmScriptFunction, proxy, deferredPrototypeType);
     }
@@ -6017,17 +6036,34 @@ namespace Js
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
         FunctionInfo* functionInfo = proxy->GetFunctionInfo();
-        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj())
+        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj() || functionInfo->HasCachedScope())
         {
-            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
+            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
             {
-                return RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), FunctionWithComputedName<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>, proxy, deferredPrototypeType);
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<FunctionWithHomeObj<ScriptFunctionWithInlineCache>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<ScriptFunctionWithInlineCache>>, proxy, deferredPrototypeType);
             }
             else if (functionInfo->HasHomeObj())
             {
-                return RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), FunctionWithHomeObj<ScriptFunctionWithInlineCache>, proxy, deferredPrototypeType);
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithHomeObj<ScriptFunctionWithInlineCache>, proxy, deferredPrototypeType);
             }
-            return RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), ScriptFunctionWithInlineCacheAndComputedName, proxy, deferredPrototypeType);
+            else if (functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<ScriptFunctionWithInlineCache>, proxy, deferredPrototypeType);
+            }
+            // Has computed Name
+            return RecyclerNewWithInfoBits(this->GetRecycler(), EnumFunctionClass, ScriptFunctionWithInlineCacheAndComputedName, proxy, deferredPrototypeType);
         }
         return RecyclerNewWithInfoBits(this->GetRecycler(), (Memory::ObjectInfoBits)(EnumFunctionClass | Memory::FinalizableObjectBits), ScriptFunctionWithInlineCache, proxy, deferredPrototypeType);
     }
@@ -6036,17 +6072,34 @@ namespace Js
     {
         ScriptFunctionType* deferredPrototypeType = proxy->EnsureDeferredPrototypeType();
         FunctionInfo* functionInfo = proxy->GetFunctionInfo();
-        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj())
+        if (functionInfo->HasComputedName() || functionInfo->HasHomeObj() || functionInfo->HasCachedScope())
         {
-            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
+            if (functionInfo->HasComputedName() && functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<FunctionWithHomeObj<GeneratorVirtualScriptFunction>>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasHomeObj())
             {
                 return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithHomeObj<GeneratorVirtualScriptFunction>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasHomeObj() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<FunctionWithHomeObj<GeneratorVirtualScriptFunction>>, proxy, deferredPrototypeType);
+            }
+            else if (functionInfo->HasComputedName() && functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithComputedName<FunctionWithCachedScope<GeneratorVirtualScriptFunction>>, proxy, deferredPrototypeType);
             }
             else if (functionInfo->HasHomeObj())
             {
                 return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithHomeObj<GeneratorVirtualScriptFunction>, proxy, deferredPrototypeType);
             }
-            return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, GeneratorVirtualScriptFunctionWithComputedName, proxy, deferredPrototypeType);
+            else if (functionInfo->HasCachedScope())
+            {
+                return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, FunctionWithCachedScope<GeneratorVirtualScriptFunction>, proxy, deferredPrototypeType);
+            }
+            // Has computed Name
+            return RecyclerNewWithInfoBits(this->GetRecycler(), EnumFunctionClass, GeneratorVirtualScriptFunctionWithComputedName, proxy, deferredPrototypeType);
         }
         return RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, GeneratorVirtualScriptFunction, proxy, deferredPrototypeType);
     }

@@ -434,6 +434,7 @@ ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     this->deferredStub = nullptr;
 
     this->capturedNames = nullptr;
+    this->needsScopeObject = false;
 }
 
 ParseNodeClass::ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim)

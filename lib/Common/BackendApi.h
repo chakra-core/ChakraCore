@@ -276,7 +276,9 @@ enum VTableValue {
     VtableJavascriptAsyncFunction,
     VtableStackScriptFunction,
     VtableScriptFunctionWithInlineCacheAndHomeObj,
+    VtableScriptFunctionWithInlineCacheHomeObjAndCachedScope,
     VtableScriptFunctionWithInlineCacheHomeObjAndComputedName,
+    VtableScriptFunctionWithInlineCacheHomeObjCachedScopeAndComputedName,
     VtableConcatStringMulti,
     VtableCompoundString,
     // SIMD_JS

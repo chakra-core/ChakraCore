@@ -27,6 +27,27 @@ namespace Js
     };
 
     template <class BaseClass>
+    class FunctionWithCachedScope : public BaseClass
+    {
+    private:
+        Field(ActivationObjectEx *) cachedScopeObj;
+    protected:
+        DEFINE_VTABLE_CTOR(FunctionWithCachedScope<BaseClass>, BaseClass);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(FunctionWithCachedScope<BaseClass>);
+    public:
+        FunctionWithCachedScope(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType)
+            : BaseClass(proxy, deferredPrototypeType), cachedScopeObj(nullptr)
+        {
+            Assert(proxy->GetFunctionInfo()->HasCachedScope());
+        }
+
+        static uint32 GetOffsetOfCachedScopeObj() { return offsetof(FunctionWithCachedScope<BaseClass>, cachedScopeObj); };
+
+        virtual ActivationObjectEx *GetCachedScope() const override { return cachedScopeObj; }
+        virtual void SetCachedScope(ActivationObjectEx *obj) override { cachedScopeObj = obj; }
+    };
+
+    template <class BaseClass>
     class FunctionWithComputedName : public BaseClass
     {
     private:
@@ -79,7 +100,6 @@ namespace Js
     {
     private:
         Field(FrameDisplay*) environment;  // Optional environment, for closures
-        Field(ActivationObjectEx *) cachedScopeObj;
         Field(bool) hasInlineCaches;
 
         JavascriptString * FormatToString(JavascriptString* inputString);
@@ -109,12 +129,9 @@ namespace Js
 
         FrameDisplay* GetEnvironment() const { return environment; }
         void SetEnvironment(FrameDisplay * environment);
-        ActivationObjectEx *GetCachedScope() const { return cachedScopeObj; }
-        void SetCachedScope(ActivationObjectEx *obj) { cachedScopeObj = obj; }
         void InvalidateCachedScopeChain();
 
         static uint32 GetOffsetOfEnvironment() { return offsetof(ScriptFunction, environment); }
-        static uint32 GetOffsetOfCachedScopeObj() { return offsetof(ScriptFunction, cachedScopeObj); };
         static uint32 GetOffsetOfHasInlineCaches() { return offsetof(ScriptFunction, hasInlineCaches); };
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
@@ -137,6 +154,10 @@ namespace Js
 
         virtual Var GetComputedNameVar() const override { return nullptr; }
         virtual void SetComputedNameVar(Var computedNameVar) override { AssertMsg(false, "Should have created the FunctionWithComputedName variant"); }
+
+        virtual ActivationObjectEx *GetCachedScope() const { return nullptr; }
+        virtual void SetCachedScope(ActivationObjectEx *obj) { AssertMsg(false, "Should have created the FunctionWithCachedScope variant"); }
+
         virtual JavascriptString* GetDisplayNameImpl() const override;
         virtual bool IsAnonymousFunction() const override;
         virtual bool IsAsmJsFunction() const { return false; }
@@ -153,7 +174,7 @@ namespace Js
 
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
-        virtual void ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* ssfi, TTD::SlabAllocator& alloc);
+        void ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* ssfi, TTD::SlabAllocator& alloc);
 #endif
 
     public:

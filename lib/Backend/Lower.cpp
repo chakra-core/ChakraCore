@@ -6628,7 +6628,14 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
 
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionInfoOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfEnvironment(), envOpnd, insertBeforeInstr, isZeroed);
-    GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);
+    if (func->GetJITFunctionBody()->HasHomeObj())
+    {
+        GenerateMemInitNull(regOpnd, Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunction>>::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);
+    }
+    else
+    {
+        GenerateMemInitNull(regOpnd, Js::FunctionWithCachedScope<Js::ScriptFunction>::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);
+    }
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfHasInlineCaches(), insertBeforeInstr, isZeroed);
 }
 
@@ -24560,6 +24567,8 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::LabelInstr *labelInlineFunc = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelInlineFuncCs = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    IR::LabelInstr *labelInlineFuncCsCn = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::LabelInstr *testLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::LabelInstr *scriptFuncLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
@@ -24580,33 +24589,51 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 
     InsertObjectPoison(instanceRegOpnd, branchInstr, instr, false);
 
-    // Is this an function with inline cache and home obj??
-    IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
-    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
-    IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
-    Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
-    InsertBranch(Js::OpCode::Br, testLabel, instr);
-
-    instr->InsertBefore(labelInlineFunc);
-
-    // Is this a function with inline cache, home obj and computed name??
-    IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
-    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
-    IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
-    Lowerer::InsertMove(dstOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
-    InsertBranch(Js::OpCode::Br, testLabel, instr);
-
-    instr->InsertBefore(scriptFuncLabel);
-    IR::IndirOpnd *indirOpnd = nullptr;
-    if (func->GetJITFunctionBody()->HasComputedName())
+    if (func->GetJITFunctionBody()->HasHomeObj())
     {
-        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::ScriptFunctionWithHomeObj>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        // Is this an function with inline cache and home obj??
+        IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
+        InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
+        IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(labelInlineFunc);
+
+        // Is this a function with inline cache, home obj and computed name??
+        IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
+        InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, labelInlineFuncCs, instr);
+        IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(labelInlineFuncCs);
+
+        // Is this a function with inline cache, home obj and cached scope?
+        IR::Opnd * vtableAddrInlnHmoCs = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndCachedScope);
+        InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddrInlnHmoCs, Js::OpCode::BrNeq_A, labelInlineFuncCsCn, instr);
+        IR::IndirOpnd *indirInlnHmoCsOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlnHmoCsOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(labelInlineFuncCsCn);
+
+        // Is this a function with inline cache, home obj, cached scope and computed name?
+        IR::Opnd * vtableAddrInlnHmoCsCn = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjCachedScopeAndComputedName);
+        InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddrInlnHmoCsCn, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
+        IR::IndirOpnd *indirInlneHmoCsCnOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlneHmoCsCnOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(scriptFuncLabel);
+        IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
     }
     else
     {
-        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode
+        InsertBranch(Js::OpCode::Br, labelDone, instr);
     }
-    Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
 
     instr->InsertBefore(testLabel);
     InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instr);
@@ -26654,7 +26681,16 @@ void Lowerer::LowerBrFncCachedScopeEq(IR::Instr *instr)
 
     IR::RegOpnd *src1Reg = instr->UnlinkSrc1()->AsRegOpnd();
 
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(src1Reg, Js::ScriptFunction::GetOffsetOfCachedScopeObj(), TyMachReg, this->m_func);
+    Func* func = instr->m_func;
+    IR::IndirOpnd *indirOpnd = nullptr;
+    if (func->GetJITFunctionBody()->HasHomeObj())
+    {
+        indirOpnd = IR::IndirOpnd::New(src1Reg, Js::FunctionWithCachedScope<Js::FunctionWithHomeObj<Js::ScriptFunction>>::GetOffsetOfCachedScopeObj(), TyMachReg, this->m_func);
+    }
+    else
+    {
+        indirOpnd = IR::IndirOpnd::New(src1Reg, Js::FunctionWithCachedScope<Js::ScriptFunction>::GetOffsetOfCachedScopeObj(), TyMachReg, this->m_func);
+    }
     this->InsertCompareBranch(indirOpnd, instr->UnlinkSrc2(), opcode, false, instr->AsBranchInstr()->GetTarget(), instr->m_next);
 
     instr->Remove();
