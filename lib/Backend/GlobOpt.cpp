@@ -3414,22 +3414,40 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     break;
             }
 
-            if (profiledArrayType.IsLikelyObject() && profiledArrayType.GetObjectType() == valueType.GetObjectType())
+            if (profiledArrayType.IsLikelyObject())
             {
                 // Ideally we want to use the most specialized type seen by this path, but when that causes bailouts use the least specialized type instead.
-                if (useAggressiveSpecialization && !valueType.IsLikelyNativeIntArray() &&
-                    (profiledArrayType.HasIntElements() || (valueType.HasVarElements() && profiledArrayType.HasFloatElements())))
+                if (useAggressiveSpecialization && 
+                    profiledArrayType.GetObjectType() == valueType.GetObjectType() &&
+                    !valueType.IsLikelyNativeIntArray() &&
+                    (
+                        profiledArrayType.HasIntElements() || (valueType.HasVarElements() && profiledArrayType.HasFloatElements())
+                    ))
                 {
                     // use the more specialized type profiled by the instruction.
                     valueType = profiledArrayType.SetHasNoMissingValues(valueType.HasNoMissingValues());
                     ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
                 }
-                else if (!useAggressiveSpecialization && valueType.IsLikelyNativeArray() &&
-                    (profiledArrayType.HasVarElements() || (valueType.HasIntElements() && profiledArrayType.HasFloatElements())))
+                else if (!useAggressiveSpecialization && 
+                    (profiledArrayType.GetObjectType() != valueType.GetObjectType() ||
+                        (
+                            valueType.IsLikelyNativeArray() &&
+                            (
+                                profiledArrayType.HasVarElements() || (valueType.HasIntElements() && profiledArrayType.HasFloatElements())
+                            )
+                        )
+                    ))
                 {
                     // Merge array type we pulled from profile with type propagated by dataflow.
-                    valueType = valueType.Merge(profiledArrayType).SetHasNoMissingValues(valueType.HasNoMissingValues());
-                    ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
+                    if (profiledArrayType.IsLikelyArray())
+                    {
+                        valueType = valueType.Merge(profiledArrayType).SetHasNoMissingValues(valueType.HasNoMissingValues());
+                    }
+                    else
+                    {
+                        valueType = valueType.Merge(profiledArrayType);
+                    }
+                    ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false, true);
                 }
             }
         }
