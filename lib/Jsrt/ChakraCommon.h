@@ -230,6 +230,10 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsNoWeakRefRequired,
         /// <summary>
+        ///     The <c>Promise</c> object is still in the pending state.
+        /// </summary>
+        JsErrorPromisePending,
+        /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
         JsErrorCategoryEngine = 0x20000,

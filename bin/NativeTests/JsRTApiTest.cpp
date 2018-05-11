@@ -2676,12 +2676,12 @@ namespace JsRTApiTest
         // Create resolvable promise
         REQUIRE(JsCreatePromise(&promise, &resolve, &reject) == JsNoError);
 
-        JsPromiseState state = JsPromiseState_Pending;
+        JsPromiseState state = JsPromiseStatePending;
         REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
-        CHECK(state == JsPromiseState_Pending);
+        CHECK(state == JsPromiseStatePending);
 
         result = JS_INVALID_REFERENCE;
-        CHECK(JsGetPromiseResult(promise, &result) == JsErrorInvalidArgument);
+        CHECK(JsGetPromiseResult(promise, &result) == JsErrorPromisePending);
         CHECK(result == JS_INVALID_REFERENCE);
 
         JsValueRef num = JS_INVALID_REFERENCE;
@@ -2690,9 +2690,9 @@ namespace JsRTApiTest
         std::array<JsValueRef, 2> args{ GetUndefined(), num };
         REQUIRE(JsCallFunction(resolve, args.data(), static_cast<unsigned short>(args.size()), &result) == JsNoError);
 
-        state = JsPromiseState_Pending;
+        state = JsPromiseStatePending;
         REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
-        CHECK(state == JsPromiseState_Fulfilled);
+        CHECK(state == JsPromiseStateFulfilled);
 
         result = JS_INVALID_REFERENCE;
         REQUIRE(JsGetPromiseResult(promise, &result) == JsNoError);
@@ -2704,12 +2704,12 @@ namespace JsRTApiTest
         // Create rejectable promise
         REQUIRE(JsCreatePromise(&promise, &resolve, &reject) == JsNoError);
 
-        state = JsPromiseState_Pending;
+        state = JsPromiseStatePending;
         REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
-        CHECK(state == JsPromiseState_Pending);
+        CHECK(state == JsPromiseStatePending);
 
         result = JS_INVALID_REFERENCE;
-        CHECK(JsGetPromiseResult(promise, &result) == JsErrorInvalidArgument);
+        CHECK(JsGetPromiseResult(promise, &result) == JsErrorPromisePending);
         CHECK(result == JS_INVALID_REFERENCE);
 
         num = JS_INVALID_REFERENCE;
@@ -2718,9 +2718,9 @@ namespace JsRTApiTest
         args = { GetUndefined(), num };
         REQUIRE(JsCallFunction(reject, args.data(), static_cast<unsigned short>(args.size()), &result) == JsNoError);
 
-        state = JsPromiseState_Pending;
+        state = JsPromiseStatePending;
         REQUIRE(JsGetPromiseState(promise, &state) == JsNoError);
-        CHECK(state == JsPromiseState_Rejected);
+        CHECK(state == JsPromiseStateRejected);
 
         result = JS_INVALID_REFERENCE;
         REQUIRE(JsGetPromiseResult(promise, &result) == JsNoError);
