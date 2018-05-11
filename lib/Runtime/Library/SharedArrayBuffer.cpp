@@ -617,6 +617,8 @@ namespace Js
             {
                 return false;
             }
+
+            this->GetRecycler()->AddExternalMemoryUsage(growSize);
         }
         else
         {

@@ -2648,7 +2648,6 @@ bool Recycler::DoExternalAllocation(size_t size, ExternalAllocFunc externalAlloc
     AutoExternalAllocation externalAllocation(this, size);
     if (externalAllocFunc())
     {
-        this->AddExternalMemoryUsage(size);
         externalAllocation.allocationSucceeded = true;
         return true;
     }

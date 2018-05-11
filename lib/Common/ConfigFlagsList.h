@@ -535,6 +535,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_LowMemoryCap         (0xB900000) // 185 MB - based on memory cap for process on low-capacity device
 #define DEFAULT_CONFIG_NewPagesCapDuringBGSweeping    (15000 * 4)
 #define DEFAULT_CONFIG_MaxSingleAllocSizeInMB  (2048)
+#define DEFAULT_CONFIG_AllocationPolicyLimit    (-1)
 
 #define DEFAULT_CONFIG_MaxCodeFill          (500)
 #define DEFAULT_CONFIG_MaxLoopsPerFunction  (10)
@@ -1448,6 +1449,7 @@ FLAGNR(Boolean, RecyclerVerifyMark    , "verify concurrent gc", false)
 #endif
 FLAGR (Number,  LowMemoryCap          , "Memory cap indicating a low-memory process", DEFAULT_CONFIG_LowMemoryCap)
 FLAGNR(Number,  NewPagesCapDuringBGSweeping, "New pages count allowed to be allocated during background sweeping", DEFAULT_CONFIG_NewPagesCapDuringBGSweeping)
+FLAGR (Number,  AllocPolicyLimit      , "Memory allocation policy limit in MB (default: -1, which means no allocation policy limit).", DEFAULT_CONFIG_AllocationPolicyLimit)
 #ifdef RUNTIME_DATA_COLLECTION
 FLAGNR(String,  RuntimeDataOutputFile, "Filename to write the dynamic profile info", nullptr)
 #endif

@@ -325,7 +325,7 @@ namespace Js
         // take over ownership. a CoTaskMemAlloc'ed buffer passed in via projection.
         static ProjectionArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
-        virtual void Finalize(bool isShutdown) override {};
+        virtual void Finalize(bool isShutdown) override;
     private:
         ProjectionArrayBuffer(uint32 length, DynamicType * type);
         ProjectionArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
