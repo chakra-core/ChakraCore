@@ -3112,7 +3112,7 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
             }
             IR::Instr * defInstr = objectSym->GetInstrDef();
             IR::Opnd * src1 = defInstr->GetSrc1();
-            while (!(src1 && src1->IsSymOpnd() && src1->AsSymOpnd()->IsPropertySymOpnd()))
+            while (!(src1 && src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsPropertySym()))
             {
                 if (src1 && src1->IsRegOpnd() && src1->AsRegOpnd()->GetStackSym()->IsSingleDef())
                 {
@@ -17131,8 +17131,9 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
     }
 
     IR::Opnd * symDefInstrSrc1 = symDefInstr->GetSrc1();
-    if (symDefInstrSrc1->IsSymOpnd() && symDefInstrSrc1->AsSymOpnd()->IsPropertySymOpnd())
+    if (symDefInstrSrc1->IsSymOpnd())
     {
+        Assert(symDefInstrSrc1->AsSymOpnd()->m_sym->IsPropertySym());
         // $L1
         //      T1 = o.x  (v1|T3)
         //      T2 = T1.y (v2|T4) <-- T1 is not live in the loop landing pad
@@ -17141,7 +17142,7 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
         // Trying to make T1 live in the landing pad
 
         // o.x
-        PropertySym* propSym = symDefInstrSrc1->AsSymOpnd()->AsPropertySymOpnd()->GetPropertySym();
+        PropertySym* propSym = symDefInstrSrc1->AsSymOpnd()->m_sym->AsPropertySym();
 
         if (candidates->candidatesBv->Test(propSym->m_id))
         {

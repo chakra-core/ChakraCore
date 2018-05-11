@@ -974,12 +974,12 @@ SECOND_PASS:
                             LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
                             current->length = startOffset + length + growby;
                             current->CheckLengthvsSize();
-                        }
-                        if (current == head && HasNoMissingValues())
-                        {
-                            if (ScanForMissingValues<T>(startOffset + length, current->length))
+                            if (current == head && HasNoMissingValues())
                             {
-                                SetHasNoMissingValues(false);
+                                if (ScanForMissingValues<T>(startOffset + length, current->length))
+                                {
+                                    SetHasNoMissingValues(false);
+                                }
                             }
                         }
                     }
