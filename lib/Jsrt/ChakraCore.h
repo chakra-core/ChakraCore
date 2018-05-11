@@ -63,9 +63,9 @@ typedef enum JsModuleHostInfoKind
 /// </summary>
 typedef enum _JsPromiseState
 {
-    JsPromiseState_Pending = 0x0,
-    JsPromiseState_Fulfilled = 0x1,
-    JsPromiseState_Rejected = 0x2
+    JsPromiseStatePending = 0x0,
+    JsPromiseStateFulfilled = 0x1,
+    JsPromiseStateRejected = 0x2
 } JsPromiseState;
 
 /// <summary>
