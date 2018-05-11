@@ -5538,7 +5538,13 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             }
         }
 
-        if (isTopLevelDeferredFunc || (m_InAsmMode && m_deferAsmJs))
+        if (isTopLevelDeferredFunc ||
+            (m_InAsmMode && m_deferAsmJs) ||
+                (buildAST &&
+                pnodeFnc->IsNested() &&
+                pnodeFncSave != nullptr &&
+                m_currDeferredStub != nullptr &&
+                (m_currDeferredStub + (pnodeFncSave->nestedCount - 1))->ichMin == pnodeFnc->ichMin))
         {
             fDeferred = true;
 
@@ -5569,14 +5575,7 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 {
                     *pNeedScanRCurly = false;
                 }
-                DeferredFunctionStub* savedStub = m_currDeferredStub;
-                if (pnodeFncSave != nullptr && m_currDeferredStub != nullptr)
-                {
-                    Assert(pnodeFncSave->nestedCount != 0);
-                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->nestedCount - 1))->deferredStubs;
-                }
                 this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
-                m_currDeferredStub = savedStub;
             }
             else
             {
@@ -7283,7 +7282,7 @@ LPCOLESTR Parser::GetFunctionName(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint)
     {
         name = pNameHint;
     }
-    if (name == nullptr && pnodeFnc->IsLambda())
+    if (name == nullptr && pnodeFnc->IsLambda() || (!pnodeFnc->IsDeclaration() && !pnodeFnc->IsMethod()))
     {
         name = Js::Constants::AnonymousFunction;
     }
