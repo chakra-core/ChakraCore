@@ -474,7 +474,7 @@ namespace Js
         if (javascriptLibrary != nullptr)
         {
             javascriptLibrary->scriptContext = nullptr;
-            javascriptLibrary = nullptr;
+
             if (closed)
             {
                 // if we just closed, we haven't unpin the object yet.
@@ -484,11 +484,13 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
                 Assert(this->IsClosedNativeCodeGenerator());
 #endif
-                if (!GetThreadContext()->IsJSRT())
+                if (globalObject && !GetThreadContext()->IsJSRT() && !GetLibrary()->IsChakraEngine())
                 {
                     this->recycler->RootRelease(globalObject);
                 }
             }
+
+            javascriptLibrary = nullptr;
         }
 
         // Normally the JavascriptLibraryBase will unregister the scriptContext from the threadContext.
@@ -824,7 +826,9 @@ namespace Js
     bool ScriptContext::Close(bool inDestructor)
     {
         if (isScriptContextActuallyClosed)
+        {
             return false;
+        }
 
         InternalClose();
 
@@ -835,7 +839,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             Assert(this->IsClosedNativeCodeGenerator());
 #endif
-            if (!GetThreadContext()->IsJSRT())
+            if (!GetThreadContext()->IsJSRT() && !GetLibrary()->IsChakraEngine())
             {
                 GetRecycler()->RootRelease(globalObject);
             }

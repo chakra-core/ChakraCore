@@ -1267,10 +1267,12 @@ FLAGNR(Phases,  Memspect,              "Enables memspect tracking to perform mem
 FLAGNR(Number,  PolymorphicInlineThreshold     , "Maximum size in bytecodes of a polymorphic inline candidate", DEFAULT_CONFIG_PolymorphicInlineThreshold)
 FLAGNR(Boolean, PrimeRecycler         , "Prime the recycler first", DEFAULT_CONFIG_PrimeRecycler)
 FLAGNR(Boolean, PrivateHeap           , "Use HeapAlloc with a private heap", DEFAULT_CONFIG_PrivateHeap)
+FLAGNR(Boolean, TraceEngineRefcount   , "Output traces for ScriptEngine AddRef/Release to debug lifetime management", false)
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
 FLAGNR(Boolean, LeakStackTrace ,        "Include stack trace on leaked pinned object and heap objects", false)
 FLAGNR(Boolean, ForceMemoryLeak ,       "Fake leak some memory to test leak report and check memory leak", false)
 #endif
+FLAGNR(Boolean, DumpAfterFinalGC, "Collect a process dump after calling finalgc", false)
 FLAGNR(Boolean, ForceOldDateAPI       , "Force Chakra to use old dates API regardless of availability of a new one", DEFAULT_CONFIG_ForceOldDateAPI)
 
 FLAGNR(Number,  JitLoopBodyHotLoopThreshold    , "Number of times loop has to be iterated in jitloopbody before it is determined as hot", DEFAULT_CONFIG_JitLoopBodyHotLoopThreshold)
