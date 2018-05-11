@@ -411,7 +411,7 @@
       <files>VerifySkipNestedDeferred.js</files>
       <baseline>VerifySkipNestedDeferred.baseline</baseline>
       <compile-flags>-UseParserStateCache -ParserStateCache -ForceDeferParse -Trace:SkipNestedDeferred</compile-flags>
-      <tags>exclude_test,exclude_jshost</tags>
+      <tags>exclude_test,exclude_jshost,exclude_dynapogo</tags>
     </default>
   </test>
 </regress-exe>

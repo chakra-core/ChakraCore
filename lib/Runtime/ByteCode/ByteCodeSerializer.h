@@ -161,6 +161,9 @@ namespace Js
         static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
 
         static FunctionBody* DeserializeFunction(ScriptContext* scriptContext, DeferDeserializeFunctionInfo* deferredFunction);
+
+        // Deserialize a string from the string table based on the stringId.
+        // Note: Returns the count of characters (not bytes) of the string via the stringLength argument.
         static LPCWSTR DeserializeString(const DeferredFunctionStub* deferredStub, uint stringId, uint32& stringLength);
 
         // This lib doesn't directly depend on the generated interfaces. Ensure the same codes with a C_ASSERT

@@ -5630,17 +5630,8 @@ CHAKRA_API JsRunScriptWithParserState(
     PARAM_NOT_NULL(script);
     PARAM_NOT_NULL(parserState);
 
-    const WCHAR *url;
+    const WCHAR *url = nullptr;
     uint sourceIndex = 0;
-
-    if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
-    {
-        url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
-    }
-    else
-    {
-        return JsErrorInvalidArgument;
-    }
 
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         const byte* bytes;
@@ -5648,6 +5639,15 @@ CHAKRA_API JsRunScriptWithParserState(
         LoadScriptFlag loadScriptFlag;
 
         JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
+
+        if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+        {
+            url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
+        }
+        else
+        {
+            return JsErrorInvalidArgument;
+        }
 
         if (errorCode != JsNoError)
         {

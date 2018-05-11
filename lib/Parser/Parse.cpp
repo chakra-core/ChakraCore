@@ -3064,6 +3064,10 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         ichMin = this->GetScanner()->IchMinTok();
         iuMin = this->GetScanner()->IecpMinTok();
 
+        // If we are undeferring a function which has deferred stubs, we can check to see if the next deferred stub
+        // is a lambda at the current character. If it is, we know this LParen is the beginning of a lambda nested
+        // function and we can avoid parsing the next series of tokens as a parenthetical expression and reparsing
+        // after finding the => token.
         if (buildAST && m_currDeferredStub != nullptr && GetCurrentFunctionNode() != nullptr)
         {
             DeferredFunctionStub* stub = m_currDeferredStub + GetCurrentFunctionNode()->nestedCount;
@@ -7282,7 +7286,8 @@ LPCOLESTR Parser::GetFunctionName(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint)
     {
         name = pNameHint;
     }
-    if (name == nullptr && pnodeFnc->IsLambda() || (!pnodeFnc->IsDeclaration() && !pnodeFnc->IsMethod()))
+    if ((name == nullptr && pnodeFnc->IsLambda()) ||
+        (!pnodeFnc->IsDeclaration() && !pnodeFnc->IsMethod()))
     {
         name = Js::Constants::AnonymousFunction;
     }
