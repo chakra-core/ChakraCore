@@ -63,9 +63,9 @@ JsLessThan
 JsLessThanOrEqual
 
 JsCreateEnhancedFunction
-
 JsSetHostPromiseRejectionTracker
-
 JsGetProxyProperties
 JsSerializeParserState
 JsRunScriptWithParserState
+JsGetPromiseState
+JsGetPromiseResult
