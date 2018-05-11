@@ -44,6 +44,18 @@ namespace WasmNontrapping
     }
 }
 
+namespace SignExtends
+{
+bool IsEnabled()
+{
+#ifdef ENABLE_WASM
+    return CONFIG_FLAG(WasmSignExtends);
+#else
+    return false;
+#endif
+}
+}
+
 }
 
 
