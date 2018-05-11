@@ -1038,7 +1038,14 @@ GlobOpt::InsertByteCodeUses(IR::Instr * instr, bool includeDef)
     }
     if (!this->byteCodeUses->IsEmpty() || this->propertySymUse || dstOpnd != nullptr)
     {
-        byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
+        if (instr->GetByteCodeOffset() != Js::Constants::NoByteCodeOffset || !instr->HasBailOutInfo())
+        {
+            byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
+        }
+        else
+        {
+            byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr->m_func, instr->GetBailOutInfo()->bailOutOffset);
+        }
         if (!this->byteCodeUses->IsEmpty())
         {
             byteCodeUsesInstr->SetBV(byteCodeUses->CopyNew(instr->m_func->m_alloc));

@@ -998,9 +998,9 @@ void ByteCodeUsesInstr::AggregateFollowingByteCodeUses()
 void ByteCodeUsesInstr::AggregatePrecedingByteCodeUses()
 {
     IR::Instr * instr = this->m_prev;
-    while (instr && this->CanAggregateByteCodeUsesAcrossInstr(instr))
+    while(instr && CanAggregateByteCodeUsesAcrossInstr(instr))
     {
-        if (instr->IsByteCodeUsesInstr())
+        if (instr->IsByteCodeUsesInstr() && instr->GetByteCodeOffset() == this->GetByteCodeOffset())
         {
             IR::ByteCodeUsesInstr* precedingByteCodeUsesInstr = instr->AsByteCodeUsesInstr();
             this->Aggregate(precedingByteCodeUsesInstr);
@@ -1030,24 +1030,10 @@ void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 
 bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
 {
-    if (instr->GetByteCodeOffset() != Js::Constants::NoByteCodeOffset)
-    {
-        return (instr->GetByteCodeOffset() == this->GetByteCodeOffset()) &&
-                    (instr->IsByteCodeUsesInstr() ||
-                     instr->m_opcode == Js::OpCode::ToVar);
-    }
-    else
-    {
-        if (instr->HasBailOutInfo())
-        {
-            return (instr->GetBailOutInfo()->bailOutOffset == this->GetByteCodeOffset()) &&
-                instr->m_opcode == Js::OpCode::BailOnNotObject;
-        }
-        else
-        {
-            return (instr->m_opcode == Js::OpCode::Ld_A || instr->m_opcode == Js::OpCode::Ld_I4) && instr->GetSrc1()->IsImmediateOpnd(); // could have been inserted by PreLowerCanonicalize
-        }
-    }
+    return !instr->IsBranchInstr() && 
+        instr->m_func == this->m_func &&
+        ((instr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset) ||
+        (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
 }
 
 BailOutInfo *
@@ -2883,9 +2869,9 @@ IR::ByteCodeUsesInstr *
 Instr::GetFirstByteCodeUsesInstrBackward()
 {
     IR::Instr * prevInstr = this->m_prev;
-    while (prevInstr && this->CanAggregateByteCodeUsesAcrossInstr(prevInstr))
+    while(prevInstr && CanAggregateByteCodeUsesAcrossInstr(prevInstr))
     {
-        if (prevInstr->IsByteCodeUsesInstr())
+        if (prevInstr->IsByteCodeUsesInstr() && prevInstr->GetByteCodeOffset() == this->GetByteCodeOffset())
         {
             return prevInstr->AsByteCodeUsesInstr();
         }

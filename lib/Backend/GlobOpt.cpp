@@ -2644,7 +2644,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->InsertByteCodeUses(instr);
     }
 
-    if (!IsLoopPrePass() && instr->HasBailOutInfo())
+    if (!IsLoopPrePass() && instr->HasBailOutInfo() && !this->func->IsJitInDebugMode() && !PHASE_OFF(Js::AggregateByteCodeUsesPhase, this->func))
     {
         // Aggregate byteCodeUpwardExposedUsed of preceding ByteCodeUses instrs with the same bytecode offset.
         // This is required as different ByteCodeUses instrs may be inserted for an instr in the loop pre-pass
