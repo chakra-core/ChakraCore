@@ -26,6 +26,11 @@ namespace Wasm
         bool IsEnabled();
     };
 
+    namespace SignExtends
+    {
+        bool IsEnabled();
+    };
+
     namespace WasmTypes
     {
         enum WasmType
