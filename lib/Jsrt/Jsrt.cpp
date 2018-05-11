@@ -3910,7 +3910,7 @@ JsErrorCode RunSerializedScriptCore(
         {
             flags = fscrAllowFunctionProxy;
         }
-        if (useParserStateCache)
+        if (useParserStateCache && !CONFIG_FLAG(ForceSerialized))
         {
             flags |= fscrCreateParserState;
         }
