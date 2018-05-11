@@ -185,14 +185,14 @@ var tests = [
     {
         name: "Symbol primitive toString should throw a type error",
         body: function() {
-            assert.throws(function() { 'string' + Symbol.iterator; }, TypeError, "Symbol primitives throw on implicit string conversion", "Object doesn't support property or method 'ToString'");
+            assert.throws(function() { 'string' + Symbol.iterator; }, TypeError, "Symbol primitives throw on implicit string conversion", "No implicit conversion of Symbol to String");
         }
     },
     {
         name: "String(symbol) behavior",
         body: function() {
             assert.areEqual('Symbol(description)', String(Symbol('description')), "String(Symbol('description')) === 'Symbol(description)'");
-            assert.throws(function () { new String(Symbol('description')); }, TypeError, "Symbol as an argument to new String() throws", "Object doesn't support property or method 'ToString'");
+            assert.throws(function () { new String(Symbol('description')); }, TypeError, "Symbol as an argument to new String() throws", "No implicit conversion of Symbol to String");
         }
     },
     {
@@ -827,8 +827,8 @@ var tests = [
         body: function() {
             var x = Symbol();
 
-            assert.throws(function() { "str" + x; }, TypeError, "Adding a string and a symbol throws TypeError", "Object doesn't support property or method 'ToString'");
-            assert.throws(function() { x + "str"; }, TypeError, "Adding a symbol and a string throws TypeError", "Object doesn't support property or method 'ToString'");
+            assert.throws(function() { "str" + x; }, TypeError, "Adding a string and a symbol throws TypeError", "No implicit conversion of Symbol to String");
+            assert.throws(function() { x + "str"; }, TypeError, "Adding a symbol and a string throws TypeError", "No implicit conversion of Symbol to String");
             assert.throws(function() { 10 + x; }, TypeError, "Adding a number and a symbol throws TypeError", "Number expected");
             assert.throws(function() { x + 10; }, TypeError, "Adding a symbol and a number throws TypeError", "Number expected");
         }

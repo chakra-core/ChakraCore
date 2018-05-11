@@ -133,7 +133,7 @@ var tests = [
             testNonStringSpecifier("1/0", "URIError", "Infinity");
             testNonStringSpecifier("1.123456789012345678901", "URIError", "1.1234567890123457");
             testNonStringSpecifier("-1.123456789012345678901", "URIError", "-1.1234567890123457");
-            testNonStringSpecifier('Symbol("abc")', "TypeError", "Object doesn't support property or method 'ToString'");
+            testNonStringSpecifier('Symbol("abc")', "TypeError", "No implicit conversion of Symbol to String");
             testNonStringSpecifier("{}", "URIError", "[object Object]");
         }
     },

@@ -410,3 +410,6 @@ RT_ERROR_MSG(WASMERR_SharedNoMaximum, 7032, "", "Shared memory must have a maxim
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
+
+// Implicit Conversion Errors
+RT_ERROR_MSG(JSERR_ImplicitStrConv, 7300, "No implicit conversion of %s to String", "Cannot implicitly convert to String", kjstTypeError, 0)

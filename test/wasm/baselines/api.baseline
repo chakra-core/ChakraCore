@@ -116,7 +116,7 @@ Test 1 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 2 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 3 passed. Expected Error: TypeError: WebAssembly.Module expected
 Test 4 passed. Expected Error: Error: Doesn't support toString
-Test 5 passed. Expected Error: TypeError: Object doesn't support property or method 'ToString'
+Test 5 passed. Expected Error: TypeError: No implicit conversion of Symbol to String
 6/6 tests passed
 
 new WebAssembly.Instance tests
