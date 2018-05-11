@@ -2,12 +2,9 @@ Skipping nested deferred function 3. foo: 818...1013
 Skipping nested deferred function 4. baz: 844...983
 Skipping nested deferred function 5. onemorefoo: 874...938
 Pass: A few nested functions
-Skipping nested deferred function 7. Anonymous function: 1121...1317
 Skipping nested deferred function 8. Anonymous function: 1173...1291
-Skipping nested deferred function 9. Anonymous function: 1227...1280
 Pass: Nested unnamed function expression
 Skipping nested deferred function 11. a1: 1438...1546
-Skipping nested deferred function 12. a2: 1469...1517
 Pass: Function with nested async functions
 Skipping nested deferred function 14. g1: 1670...1785
 Skipping nested deferred function 15. g2: 1696...1744
@@ -28,7 +25,7 @@ Skipping nested deferred function 30. o.method5: 2607...2630
 Skipping nested deferred function 31. o.method6: 2643...2665
 Skipping nested deferred function 32. o[method7]: 2688...2704
 Skipping nested deferred function 33. o[method8]: 2732...2749
-Skipping nested deferred function 34. Anonymous function: 2765...2788
+Skipping nested deferred function 34. o.f8: 2765...2788
 Skipping nested deferred function 35. Anonymous function: 2804...2822
 Pass: Simple method
 Pass: Simple getter
