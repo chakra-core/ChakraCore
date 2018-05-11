@@ -59,6 +59,16 @@ typedef enum JsModuleHostInfoKind
 } JsModuleHostInfoKind;
 
 /// <summary>
+///     The possible states for a Promise object.
+/// </summary>
+typedef enum _JsPromiseState
+{
+    JsPromiseState_Pending = 0x0,
+    JsPromiseState_Fulfilled = 0x1,
+    JsPromiseState_Rejected = 0x2
+} JsPromiseState;
+
+/// <summary>
 ///     User implemented callback to fetch additional imported modules.
 /// </summary>
 /// <remarks>
@@ -631,6 +641,38 @@ CHAKRA_API
         _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
         _In_ JsSourceContext sourceContext,
         _In_ JsValueRef sourceUrl,
+        _Out_ JsValueRef *result);
+
+/// <summary>
+///     Gets the state of a given Promise object.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="promise">The Promise object.</param>
+/// <param name="state">The current state of the Promise.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetPromiseState(
+        _In_ JsValueRef promise,
+        _Out_ JsPromiseState *state);
+
+/// <summary>
+///     Gets the result of a given Promise object.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="promise">The Promise object.</param>
+/// <param name="result">The result of the Promise.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetPromiseResult(
+        _In_ JsValueRef promise,
         _Out_ JsValueRef *result);
 
 /// <summary>
