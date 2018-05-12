@@ -5841,6 +5841,8 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
             uint32 stringLength = 0;
             LPCWSTR stringVal = Js::ByteCodeSerializer::DeserializeString(stub, stringId, stringLength);
 
+            OUTPUT_TRACE_DEBUGONLY(Js::SkipNestedDeferredPhase, _u("\tPushing a reference to '%s'\n"), stringVal);
+
             IdentPtr pid = this->GetHashTbl()->PidHashNameLen(stringVal, stringLength);
             PushPidRef(pid);
         }

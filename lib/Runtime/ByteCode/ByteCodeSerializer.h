@@ -112,8 +112,11 @@ namespace Js
         int propertyCount;
         int builtInPropertyCount;
     public:
+        ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount);
         ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount);
         void PopulateLookupPropertyId(ScriptContext * scriptContext, int realArrayOffset);
+        void SetReader(ScriptContext * scriptContext, ByteCodeBufferReader * reader);
+        void Initialize(ScriptContext * scriptContext);
 
         ByteCodeBufferReader* GetReader()
         {

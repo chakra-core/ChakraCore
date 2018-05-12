@@ -551,7 +551,15 @@ public:
         if (allocateBuffer)
         {
             *bufferBytes = size;
-            *buffer = (byte*)CoTaskMemAlloc(*bufferBytes);
+            if (GenerateParserStateCache())
+            {
+                *buffer = AnewArray(scriptContext->SourceCodeAllocator(), byte, *bufferBytes);
+            }
+            else
+            {
+                *buffer = (byte*)CoTaskMemAlloc(*bufferBytes);
+            }
+
             if (*buffer == nullptr)
             {
                 return E_OUTOFMEMORY;
@@ -2128,7 +2136,7 @@ public:
         return S_OK;
     }
 
-    HRESULT AddFunction(BufferBuilderList & builder, ParseableFunctionInfo * function, SRCINFO const * srcInfo)
+    HRESULT AddFunction(BufferBuilderList & builder, ParseableFunctionInfo * function, SRCINFO const * srcInfo, ByteCodeCache* cache)
     {
         SerializedFieldList definedFields = { 0 };
 
@@ -2244,7 +2252,7 @@ public:
             && GenerateParserStateCache())
         {
             definedFields.has_deferredStubs = true;
-            AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), true);
+            AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
         }
 
 #define PrependArgSlot PrependInt16
@@ -2287,7 +2295,7 @@ public:
                     nestedBodyList->list = nestedBodyList->list->Prepend(nestedFunctionBuilder, alloc);
                     auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To Nested Function"), nestedFunctionBuilder);
                     builder.list = builder.list->Prepend(offsetToNested, alloc);
-                    AddFunction(*nestedFunctionBuilder, nestedFunction->GetParseableFunctionInfo(), srcInfo);
+                    AddFunction(*nestedFunctionBuilder, nestedFunction->GetParseableFunctionInfo(), srcInfo, cache);
                 }
             }
 
@@ -2314,13 +2322,13 @@ public:
         return S_OK;
     }
 
-    HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
+    HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo, ByteCodeCache* cache)
     {
         topFunctionId = function->GetLocalFunctionId();
-        return AddFunction(functionsTable, function, srcInfo);
+        return AddFunction(functionsTable, function, srcInfo, cache);
     }
 
-    HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, bool recursive)
+    HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, ByteCodeCache* cache, bool recursive)
     {
         AssertOrFailFast(!(deferredStubs == nullptr && stubsCount > 0));
 
@@ -2347,6 +2355,14 @@ public:
 
                 PrependUInt32(builder, _u("Captured Name Count"), capturedNamesCount);
 
+                if (cache != nullptr)
+                {
+                    currentStub->capturedNameCount = capturedNamesCount;
+                    currentStub->capturedNameSerializedIds = RecyclerNewArray(this->scriptContext->GetRecycler(), int, capturedNamesCount);
+                    currentStub->byteCodeCache = cache;
+                }
+
+                uint j = 0;
                 while (iter.IsValid())
                 {
                     // The captured names are IdentPtr allocated in Parser arena memory.
@@ -2355,9 +2371,16 @@ public:
                     const IdentPtr& pid = iter.CurrentValueReference();
                     int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), (pid->Cch() + 1) * sizeof(WCHAR));
 
+                    if (cache != nullptr)
+                    {
+                        Assert(j < capturedNamesCount);
+                        currentStub->capturedNameSerializedIds[j] = capturedNameSerializedId;
+                    }
+
                     PrependInt32(builder, _u("Captured Name"), capturedNameSerializedId);
 
                     iter.MoveNext();
+                    j++;
                 }
             }
             else
@@ -2368,7 +2391,7 @@ public:
             PrependUInt32(builder, _u("Nested Count"), currentStub->nestedCount);
             if (recursive)
             {
-                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, recursive);
+                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, cache, recursive);
             }
 
             // Each deferred stub will turn into a function after we defer-parse the parent of the stub.
@@ -4418,13 +4441,32 @@ public:
 
 };
 
-// Construct the byte code cache. Copy things needed by inline 'Lookup' functions from reader.
+ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount)
+    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr)
+{
+}
+
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount)
-    : reader(reader), propertyCount(reader->string16Count), builtInPropertyCount(builtInPropertyCount)
+    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount)
+{
+    Initialize(scriptContext);
+}
+
+void ByteCodeCache::SetReader(ScriptContext * scriptContext, ByteCodeBufferReader * reader)
+{
+    Assert(this->reader == nullptr);
+    this->reader = reader;
+
+    Initialize(scriptContext);
+}
+
+// Construct the byte code cache. Copy things needed by inline 'Lookup' functions from reader.
+void ByteCodeCache::Initialize(ScriptContext * scriptContext)
 {
     auto alloc = scriptContext->SourceCodeAllocator();
+    propertyCount = reader->string16Count;
     propertyIds = AnewArray(alloc, PropertyId, propertyCount);
-    for (auto i=0; i < propertyCount; ++i)
+    for (auto i = 0; i < propertyCount; ++i)
     {
         propertyIds[i] = -1;
     }
@@ -4432,7 +4474,7 @@ ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader
     raw = reader->raw;
 
     // Read and populate PropertyIds
-    for(int i=0; i < propertyCount; ++i)
+    for (int i = 0; i < propertyCount; ++i)
     {
         PopulateLookupPropertyId(scriptContext, i);
     }
@@ -4468,14 +4510,34 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
         return hr;
     }
 
+    ArenaAllocator* codeAllocator = nullptr;
+    ByteCodeCache* cache = nullptr;
+    if (((dwFlags & GENERATE_BYTE_CODE_PARSER_STATE) != 0) && allocateBuffer)
+    {
+        codeAllocator = scriptContext->SourceCodeAllocator();
+        cache = Anew(codeAllocator, ByteCodeCache, scriptContext, builtInPropertyCount);
+    }
+
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
     ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
     
-    hr = builder.AddTopFunctionBody(function, srcInfo);
+    hr = builder.AddTopFunctionBody(function, srcInfo, cache);
 
     if (SUCCEEDED(hr))
     {
         hr = builder.Create(allocateBuffer, buffer, bufferBytes);
+    }
+
+    if (SUCCEEDED(hr) && cache != nullptr)
+    {
+        bool isLibraryOrJsBuiltInCode = (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0;
+        ByteCodeBufferReader* reader = Anew(codeAllocator, ByteCodeBufferReader, scriptContext, *buffer, isLibraryOrJsBuiltInCode, builtInPropertyCount);
+        hr = reader->ReadHeader();
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        cache->SetReader(scriptContext, reader);
     }
 
 #if INSTRUMENT_BUFFER_INTS

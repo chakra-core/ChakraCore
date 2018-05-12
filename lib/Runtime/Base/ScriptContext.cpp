@@ -2228,10 +2228,6 @@ namespace Js
             &parserStateCacheSize, dwFlags);
         END_TEMP_ALLOCATOR(tempAllocator, this);
 
-        // The parser state cache buffer was allocated by CoTaskMemAlloc.
-        // TODO: Keep this buffer around for the PLT1 scenario by deserializing it and storing a cache.
-        AutoCoTaskMemFreePtr<byte> autoFreeBytes(parserStateCacheBuffer);
-
         if (FAILED(hr))
         {
             OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to serialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
