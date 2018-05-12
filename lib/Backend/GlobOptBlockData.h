@@ -103,6 +103,17 @@ struct StackLiteralInitFldData
 typedef JsUtil::BaseDictionary<StackSym *, StackLiteralInitFldData, JitArenaAllocator> StackLiteralInitFldDataMap;
 
 typedef SList<GlobHashBucket*, JitArenaAllocator> PRECandidatesList;
+class PRECandidates
+{
+public:
+    PRECandidates() : candidatesToProcess(nullptr), candidatesBv(nullptr), candidatesList(nullptr) {}
+
+public:
+    BVSparse<JitArenaAllocator> * candidatesToProcess;
+    BVSparse<JitArenaAllocator> * candidatesBv;
+    PRECandidatesList * candidatesList;
+};
+
 
 class GlobOptBlockData
 {
@@ -241,7 +252,7 @@ public:
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
 
 public:
-    void                    RemoveUnavailableCandidates(PRECandidatesList *candidates);
+    void                    RemoveUnavailableCandidates(PRECandidates *candidates);
 
     // Merging functions
 public:

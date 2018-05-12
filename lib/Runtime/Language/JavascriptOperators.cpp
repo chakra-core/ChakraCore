@@ -1939,7 +1939,7 @@ CommonNumber:
         Var value = nullptr;
         if (JavascriptOperators::GetRootProperty(RecyclableObject::FromVar(instance), propertyId, &value, scriptContext, info))
         {
-            if (scriptContext->IsUndeclBlockVar(value))
+            if (scriptContext->IsUndeclBlockVar(value) && scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
             }

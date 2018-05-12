@@ -1,0 +1,54 @@
+
+test1
+TestTrace fieldcopyprop [in landing pad]: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop [in landing pad]: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop [in landing pad]: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop [in landing pad]: function test1 ( (#1.1), #2) opcode: LdFld field: y 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: y 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: y 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: x 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: w 
+TestTrace fieldcopyprop: function test1 ( (#1.1), #2) opcode: LdFld field: z 
+
+test2
+TestTrace fieldcopyprop [in landing pad]: function test2 ( (#1.2), #3) opcode: LdFld field: x 
+
+testInlined
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+undefined
+2001
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
+2001
+
+test3
+10
+10
+TestTrace fieldcopyprop [in landing pad]: function Plan.prototype.size ( (#1.11), #12) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: v 
+TestTrace fieldcopyprop [in landing pad]: function Plan.prototype.execute ( (#1.13), #14) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop [in landing pad]: function Plan.prototype.constraintAt ( (#1.12), #13) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: v 
+TestTrace fieldcopyprop [in landing pad]: function OrderedCollection.prototype.at ( (#1.8), #9) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: elms 
+TestTrace fieldcopyprop: function Plan.prototype.size ( (#1.11), #12) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: v 
+TestTrace fieldcopyprop: function OrderedCollection.prototype.size ( (#1.7), #8) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: elms 
+TestTrace fieldcopyprop: function Plan.prototype.constraintAt ( (#1.12), #13) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: v 
+TestTrace fieldcopyprop: function OrderedCollection.prototype.at ( (#1.8), #9) inlined caller function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: elms 
+TestTrace fieldcopyprop: function Plan.prototype.execute ( (#1.13), #14) opcode: LdRootFld field: Direction 
+TestTrace fieldcopyprop: function Plan.prototype.execute ( (#1.13), #14) opcode: LdFld field: FORWARD 
+10

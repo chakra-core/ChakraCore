@@ -3695,6 +3695,24 @@ Loop::IsSymAssignedToInSelfOrParents(StackSym * const sym) const
     return false;
 }
 
+BasicBlock *
+Loop::GetAnyTailBlock() const
+{
+    BasicBlock * tail = nullptr;
+
+    BasicBlock * loopHeader = this->GetHeadBlock();
+    FOREACH_PREDECESSOR_BLOCK(pred, loopHeader)
+    {
+        if (this->IsDescendentOrSelf(pred->loop))
+        {
+            tail = pred;
+        }
+    } NEXT_PREDECESSOR_BLOCK;
+    
+    Assert(tail);
+    return tail;
+}
+
 #if DBG_DUMP
 uint
 Loop::GetLoopNumber() const
@@ -5216,14 +5234,14 @@ GlobOpt::CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOp
     ProcessValueKills(toBlock, toData);
 }
 
-PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
+PRECandidates * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
 {
     // Iterate over the value table looking for propertySyms which are candidates to
     // pre-load in the landing pad for field PRE
 
     GlobHashTable *valueTable = block->globOptData.symToValueMap;
     Loop *loop = block->loop;
-    PRECandidatesList *candidates = nullptr;
+    PRECandidates *candidates = JitAnew(this->tempAlloc, PRECandidates);
 
     for (uint i = 0; i < valueTable->tableSize; i++)
     {
@@ -5284,7 +5302,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             if (!landingPadValue)
             {
                 // Value should be added as initial value or already be there.
-                return nullptr;
+                continue;
             }
 
             IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
@@ -5294,12 +5312,16 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
                 continue;
             }
 
-            if (!candidates)
+            if (!candidates->candidatesList)
             {
-                candidates = Anew(alloc, PRECandidatesList, alloc);
+                candidates->candidatesList = JitAnew(alloc, PRECandidatesList, alloc);
+                candidates->candidatesToProcess = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+                candidates->candidatesBv = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
             }
 
-            candidates->Prepend(&bucket);
+            candidates->candidatesList->Prepend(&bucket);
+            candidates->candidatesToProcess->Set(propertySym->m_id);
+            candidates->candidatesBv->Set(propertySym->m_id);
 
         } NEXT_SLISTBASE_ENTRY;
     }

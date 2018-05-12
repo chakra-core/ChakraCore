@@ -448,9 +448,15 @@ Instr::SwapOpnds()
     m_src2 = opndTemp;
 }
 
+Instr *
+Instr::CopyWithoutDst()
+{
+    return Copy(false /*copyDst*/);
+}
+
 // Copy a vanilla instruction.
 Instr *
-Instr::Copy()
+Instr::Copy(bool copyDst)
 {
     Instr * instrCopy;
 
@@ -491,7 +497,7 @@ Instr::Copy()
     }
 
     Opnd * opnd = this->GetDst();
-    if (opnd)
+    if (copyDst && opnd)
     {
         instrCopy->SetDst(opnd->Copy(this->m_func));
     }
@@ -4247,7 +4253,7 @@ Instr::DumpTestTrace()
 ///----------------------------------------------------------------------------
 
 void
-Instr::DumpFieldCopyPropTestTrace()
+Instr::DumpFieldCopyPropTestTrace(bool inLandingPad)
 {
     switch (m_opcode)
     {
@@ -4264,9 +4270,15 @@ Instr::DumpFieldCopyPropTestTrace()
     case Js::OpCode::TypeofElem:
 
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(_u("TestTrace fieldcopyprop: function %s (%s) "),
+        Output::Print(_u("TestTrace fieldcopyprop"));
+        if (inLandingPad)
+        {
+            Output::Print(_u(" [%s]"), _u("in landing pad"));
+        }
+        Output::Print(_u(": function %s (%s) "),
             this->m_func->GetJITFunctionBody()->GetDisplayName(),
             this->m_func->GetDebugNumberSet(debugStringBuffer));
+
         if (this->IsInlined())
         {
             Output::Print(_u("inlined caller function %s (%s) "),

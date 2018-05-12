@@ -756,6 +756,7 @@ public:
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);
     Func *              GetFunc() const { return GetLoopTopInstr()->m_func; }
     bool                IsSymAssignedToInSelfOrParents(StackSym * const sym) const;
+    BasicBlock *        GetAnyTailBlock() const;
 #if DBG_DUMP
     bool                GetHasCall() const { return hasCall; }
     uint                GetLoopNumber() const;
