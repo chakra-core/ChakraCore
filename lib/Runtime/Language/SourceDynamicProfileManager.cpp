@@ -156,8 +156,19 @@ namespace Js
                 {
                     OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Profile saving FAILED\n"));
                 }
+                else
+                {
+                    OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Profile saving succeeded. Bytes written: %d\n"), bytesWritten);
+                }
             }
 
+            if (!isNonCachableScript)
+            {
+                if (FAILED(dataCacheWrapper->SaveWriteStream()))
+                {
+                    return 0;
+                }
+            }
             dataCacheWrapper = nullptr;
         }
 #endif
@@ -190,10 +201,6 @@ namespace Js
         {
             bytesWritten = dataCacheWrapper->BytesWrittenInBlock();
 
-            if (FAILED(dataCacheWrapper->SaveWriteStream()))
-            {
-                return 0;
-            }
 #if DBG_DUMP
             if (PHASE_TRACE1(Js::DynamicProfilePhase) && Js::Configuration::Global.flags.Verbose)
             {
@@ -218,6 +225,12 @@ namespace Js
         {
             OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Skipping save of profile. Non-cacheable resource. %s\n"), info->url);
             return false;
+        }
+
+        if (dataCacheWrapper->BlocksWritten() > 0)
+        {
+            OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Saving profile. There are other blocks in the cache. %s\n"), info->url);
+            return true;
         }
 
         if(!startupFunctions || startupFunctions->Length() <= DEFAULT_CONFIG_MinProfileCacheSize)

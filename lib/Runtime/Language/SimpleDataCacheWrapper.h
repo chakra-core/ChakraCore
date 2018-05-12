@@ -55,6 +55,10 @@ namespace Js
         // A new block begins (resets this counter to 0) when StartBlock is called.
         ULONG BytesWrittenInBlock() { return this->bytesWrittenInBlock; }
 
+        // Counter for the number of blocks written to the cache.
+        // Counts only when a new block is created via StartBlock.
+        uint BlocksWritten() { return this->blocksWritten; }
+
         // Seek the read stream to a block.
         // After this call, calls to Read or ReadArray will read bytes from the block itself.
         HRESULT SeekReadStreamToBlock(_In_ BlockType blockType, _Out_opt_ ULONG* bytesInBlock = nullptr);
@@ -140,6 +144,8 @@ namespace Js
         }
 
     private:
+        const static uint MAX_BLOCKS_ALLOWED = 0xff;
+
         bool IsWriteStreamOpen() { return this->outStream != nullptr; }
         bool IsReadStreamOpen() { return this->inStream != nullptr; }
 
@@ -160,6 +166,7 @@ namespace Js
         Field(IStream*) outStream;
         Field(IStream*) inStream;
         Field(ULONG) bytesWrittenInBlock;
+        Field(uint) blocksWritten;
     };
 }
 #endif

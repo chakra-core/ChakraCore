@@ -14,7 +14,8 @@ namespace Js
         dataCache(dataCache),
         outStream(nullptr),
         inStream(nullptr),
-        bytesWrittenInBlock(0)
+        bytesWrittenInBlock(0),
+        blocksWritten(0)
     {
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         this->dataCache->AddRef();
@@ -171,11 +172,17 @@ namespace Js
     {
         HRESULT hr = E_FAIL;
 
+        if (this->blocksWritten >= MAX_BLOCKS_ALLOWED)
+        {
+            return hr;
+        }
+
         IFFAILRET(Write(blockType));
         IFFAILRET(Write(byteCount));
 
         // Reset the bytes written for the current block
         this->bytesWrittenInBlock = 0;
+        this->blocksWritten++;
         return hr;
     }
 
