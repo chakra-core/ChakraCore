@@ -892,7 +892,6 @@ namespace Js
 
         template <typename T>
         static JavascriptString* ToLocaleString(T* obj, ScriptContext* scriptContext);
-        static JavascriptString* GetLocaleSeparator(ScriptContext* scriptContext);
 
     public:
         static uint32 GetOffsetOfArrayFlags() { return offsetof(JavascriptArray, arrayFlags); }
