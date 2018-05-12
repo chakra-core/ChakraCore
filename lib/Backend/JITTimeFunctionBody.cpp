@@ -670,6 +670,18 @@ JITTimeFunctionBody::IsLambda() const
 }
 
 bool
+JITTimeFunctionBody::HasComputedName() const
+{
+    return Js::FunctionInfo::HasComputedName(GetAttributes());
+}
+
+bool
+JITTimeFunctionBody::HasHomeObj() const
+{
+    return Js::FunctionInfo::HasHomeObj(GetAttributes());
+}
+
+bool
 JITTimeFunctionBody::HasImplicitArgIns() const
 {
     return m_bodyData.hasImplicitArgIns != FALSE;

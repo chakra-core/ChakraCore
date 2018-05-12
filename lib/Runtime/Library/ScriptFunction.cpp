@@ -40,7 +40,7 @@ namespace Js
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
-        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
+        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
         hasInlineCaches(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
@@ -121,6 +121,17 @@ namespace Js
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
         return pfuncScript;
+    }
+
+    ScriptFunction * ScriptFunction::OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj)
+    {
+        Assert(homeObj != nullptr);
+        Assert((*infoRef)->GetFunctionProxy()->GetFunctionInfo()->HasHomeObj());
+
+        ScriptFunction* scriptFunc = ScriptFunction::OP_NewScFunc(environment, infoRef);
+        scriptFunc->SetHomeObj(homeObj);
+
+        return scriptFunc;
     }
 
     void ScriptFunction::SetEnvironment(FrameDisplay * environment)
@@ -513,9 +524,9 @@ namespace Js
             extractor->MarkVisitVar(this->cachedScopeObj);
         }
 
-        if(this->homeObj != nullptr)
+        if (this->GetHomeObj() != nullptr)
         {
-            extractor->MarkVisitVar(this->homeObj);
+            extractor->MarkVisitVar(this->GetHomeObj());
         }
     }
 
@@ -581,9 +592,9 @@ namespace Js
             this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->cachedScopeObj, _u("_cachedScopeObj"));
         }
 
-        if(this->homeObj != nullptr)
+        if (this->GetHomeObj() != nullptr)
         {
-            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->homeObj, _u("_homeObj"));
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->GetHomeObj(), _u("_homeObj"));
         }
     }
 
@@ -628,9 +639,9 @@ namespace Js
         }
 
         ssfi->HomeObjId = TTD_INVALID_PTR_ID;
-        if (this->homeObj != nullptr)
+        if (this->GetHomeObj() != nullptr)
         {
-            ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->homeObj);
+            ssfi->HomeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->GetHomeObj());
         }
 
         ssfi->ComputedNameInfo = TTD_CONVERT_JSVAR_TO_TTDVAR(this->GetComputedNameVar());

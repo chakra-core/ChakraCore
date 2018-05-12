@@ -1233,11 +1233,11 @@ Js::RegSlot ByteCodeGenerator::DefineOneFunction(ParseNodeFnc *pnodeFnc, FuncInf
     // If we are in a parameter scope and it is not merged with body scope then we have to create the child function as an inner function
     if (regEnv == funcInfoParent->frameDisplayRegister || regEnv == funcInfoParent->GetEnvRegister())
     {
-        m_writer.NewFunction(pnodeFnc->location, pnodeFnc->nestedIndex, pnodeFnc->IsCoroutine());
+        m_writer.NewFunction(pnodeFnc->location, pnodeFnc->nestedIndex, pnodeFnc->IsCoroutine(), pnodeFnc->GetHomeObjLocation());
     }
     else
     {
-        m_writer.NewInnerFunction(pnodeFnc->location, pnodeFnc->nestedIndex, regEnv, pnodeFnc->IsCoroutine());
+        m_writer.NewInnerFunction(pnodeFnc->location, pnodeFnc->nestedIndex, regEnv, pnodeFnc->IsCoroutine(), pnodeFnc->GetHomeObjLocation());
     }
 
     if (funcInfoParent->IsGlobalFunction() && (this->flags & fscrEval))
@@ -8242,6 +8242,12 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
     bool isFncDecl = exprNode->nop == knopFncDecl;
     bool isClassMember = isFncDecl && exprNode->AsParseNodeFnc()->IsClassMember();
 
+    if (isFncDecl)
+    {
+        Assert(exprNode->AsParseNodeFnc()->HasHomeObj());
+        exprNode->AsParseNodeFnc()->SetHomeObjLocation(objectLocation);
+    }
+
     // Moved SetComputedNameVar before LdFld of prototype because loading the prototype undefers the function TypeHandler
     // which makes this bytecode too late to influence the function.name.
     if (nameNode->nop == knopComputedName)
@@ -8278,12 +8284,6 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
             (isClassMember ? Js::OpCode::InitClassMemberComputedName : Js::OpCode::InitComputedProperty);
 
         byteCodeGenerator->Writer()->Element(setOp, exprNode->location, objectLocation, nameNode->location, true);
-
-        // Class and object members need a reference back to the class.
-        if (isFncDecl)
-        {
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetHomeObj, exprNode->location, objectLocation);
-        }
 
         funcInfo->ReleaseLoc(exprNode);
         funcInfo->ReleaseLoc(nameNode);
@@ -8348,12 +8348,6 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
             (isClassMember ? Js::OpCode::InitClassMemberSet : Js::OpCode::InitSetFld);
 
         byteCodeGenerator->Writer()->Property(setOp, exprNode->location, objectLocation, funcInfo->FindOrAddReferencedPropertyId(propertyId));
-    }
-
-    // Class and object members need a reference back to the class.
-    if (isFncDecl)
-    {
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetHomeObj, exprNode->location, objectLocation);
     }
 
     funcInfo->ReleaseLoc(exprNode);
@@ -10981,7 +10975,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         Js::RegSlot protoLoc = funcInfo->AcquireTmpRegister(); //register set if we have Instance Methods
         int cacheId = funcInfo->FindOrAddInlineCacheId(pnodeClass->location, Js::PropertyIds::prototype, false, false);
         byteCodeGenerator->Writer()->PatchableProperty(Js::OpCode::LdFld, protoLoc, pnodeClass->location, cacheId);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetHomeObj, pnodeClass->location, protoLoc);
 
         // Static Methods
         EmitClassInitializers(pnodeClass->pnodeStaticMembers, pnodeClass->location, byteCodeGenerator, funcInfo, pnode, /*isObjectEmpty*/ false);

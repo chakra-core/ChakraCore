@@ -1229,7 +1229,8 @@ static const Js::FunctionInfo::Attributes StableFunctionInfoAttributesMask = (Js
     Js::FunctionInfo::Attributes::Method |
     Js::FunctionInfo::Attributes::Generator |
     Js::FunctionInfo::Attributes::Module |
-    Js::FunctionInfo::Attributes::ComputedName
+    Js::FunctionInfo::Attributes::ComputedName |
+    Js::FunctionInfo::Attributes::HomeObj
 );
 
 static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pnodeFnc)
@@ -1286,6 +1287,10 @@ static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pno
     if (pnodeFnc->HasComputedName() && pnodeFnc->pnodeName == nullptr)
     {
         attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ComputedName);
+    }
+    if (pnodeFnc->HasHomeObj())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::HomeObj);
     }
     return attributes;
 }
@@ -2945,6 +2950,12 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
     Js::FunctionBody * parentFunctionBody = parentFunc->byteCodeFunction->GetFunctionBody();
     Assert(parentFunctionBody != nullptr);
     bool setHasNonLocalReference = parentFunctionBody->HasAllNonLocalReferenced();
+
+    // This is required for class constructors as will be able to determine the actual home object register only after emitting InitClass
+    if (pnodeFnc->HasHomeObj() && pnodeFnc->GetHomeObjLocation() == Js::Constants::NoRegister)
+    {
+        pnodeFnc->SetHomeObjLocation(parentFunc->AssignUndefinedConstRegister());
+    }
 
     // If we have any deferred child, we need to instantiate the fake global block scope if it is not empty
     if (parentFunc->IsGlobalFunction())

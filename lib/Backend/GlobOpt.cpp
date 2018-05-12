@@ -13922,6 +13922,8 @@ swap_srcs:
     case Js::OpCode::Not_I4:
     case Js::OpCode::NewScFunc:
     case Js::OpCode::NewScGenFunc:
+    case Js::OpCode::NewScFuncHomeObj:
+    case Js::OpCode::NewScGenFuncHomeObj:
     case Js::OpCode::NewScArray:
     case Js::OpCode::NewScIntArray:
     case Js::OpCode::NewScFltArray:

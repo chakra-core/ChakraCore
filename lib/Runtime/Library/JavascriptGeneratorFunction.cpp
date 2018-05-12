@@ -120,6 +120,16 @@ namespace Js
         return genFunc;
     }
 
+    JavascriptGeneratorFunction * JavascriptGeneratorFunction::OP_NewScGenFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj)
+    {
+        Assert(homeObj != nullptr);
+        JavascriptGeneratorFunction* genFunc = JavascriptGeneratorFunction::OP_NewScGenFunc(environment, infoRef);
+
+        genFunc->SetHomeObj(homeObj);
+
+        return genFunc;
+    }
+
     Var JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

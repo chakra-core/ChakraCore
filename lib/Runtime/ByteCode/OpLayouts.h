@@ -386,6 +386,15 @@ namespace Js {
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_ElementSlotI3
+    {
+        typename SizePolicy::UnsignedType    SlotIndex;
+        typename SizePolicy::RegSlotType     Value;
+        typename SizePolicy::RegSlotType     Instance;
+        typename SizePolicy::RegSlotType     HomeObj;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_ElementCP      // As OpLayoutElementC, with space for a FastPath LoadPatch
     {
         typename SizePolicy::RegSlotType     Value;

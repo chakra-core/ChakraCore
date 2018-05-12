@@ -495,6 +495,17 @@
 
 #define PROCESS_GET_ELEM_SLOT_FB(name, func) PROCESS_GET_ELEM_SLOT_FB_COMMON(name, func,)
 
+#define PROCESS_GET_ELEM_SLOT_FB_HMO_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ElementSlotI3, suffix); \
+        SetReg(playout->Value, \
+                func((FrameDisplay*)GetNonVarReg(playout->Instance), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), GetReg(playout->HomeObj))); \
+        break; \
+    }
+
+#define PROCESS_GET_ELEM_SLOT_FB_HMO(name, func) PROCESS_GET_ELEM_SLOT_FB_HMO_COMMON(name, func,)
+
 #define PROCESS_GET_SLOT_FB_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
@@ -505,6 +516,17 @@
     }
 
 #define PROCESS_GET_SLOT_FB(name, func) PROCESS_GET_SLOT_FB_COMMON(name, func,)
+
+#define PROCESS_GET_SLOT_FB_HMO_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ElementSlot, suffix); \
+        SetReg(playout->Value, \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex), GetReg(playout->Instance))); \
+        break; \
+    }
+
+#define PROCESS_GET_SLOT_FB_HMO(name, func) PROCESS_GET_SLOT_FB_HMO_COMMON(name, func,)
 
 #define PROCESS_GET_ELEM_IMem_COMMON(name, func, suffix) \
     case OpCode::name: \
