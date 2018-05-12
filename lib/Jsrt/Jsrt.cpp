@@ -5169,7 +5169,7 @@ CHAKRA_API JsGetPromiseState(_In_ JsValueRef promise, _Out_ JsPromiseState *stat
         VALIDATE_INCOMING_REFERENCE(promise, scriptContext);
         PARAM_NOT_NULL(state);
 
-        *state = JsPromiseState_Pending;
+        *state = JsPromiseStatePending;
 
         if (!Js::JavascriptPromise::Is(promise))
         {
@@ -5182,11 +5182,11 @@ CHAKRA_API JsGetPromiseState(_In_ JsValueRef promise, _Out_ JsPromiseState *stat
         switch (status)
         {
         case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasRejection:
-            *state = JsPromiseState_Rejected;
+            *state = JsPromiseStateRejected;
             break;
 
         case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasResolution:
-            *state = JsPromiseState_Fulfilled;
+            *state = JsPromiseStateFulfilled;
             break;
         }
 
@@ -5214,7 +5214,7 @@ CHAKRA_API JsGetPromiseResult(_In_ JsValueRef promise, _Out_ JsValueRef *result)
 
         if (jsResult == nullptr)
         {
-            return JsErrorInvalidArgument;
+            return JsErrorPromisePending;
         }
 
         *result = (JsValueRef)jsResult;

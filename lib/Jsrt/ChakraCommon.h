@@ -230,6 +230,10 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsNoWeakRefRequired,
         /// <summary>
+        ///     The <c>Promise</c> object is still in the pending state.
+        /// </summary>
+        JsErrorPromisePending,
+        /// <summary>
         ///     Module was not yet evaluated when JsGetModuleNamespace was called.
         /// </summary>
         JsErrorModuleNotEvaluated,
