@@ -51,10 +51,30 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         if (IsWriteStreamOpen())
         {
+#if DBG
+            STATSTG statstg = { 0 };
+            hr = this->outStream->Stat(&statstg, STATFLAG_DEFAULT);
+            if (FAILED(hr))
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to call IStream::Stat on write stream (hr = 0x%08lx)\n"), hr);
+            }
+#endif
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Attempting to save write stream with %u bytes...\n"), statstg.cbSize.LowPart);
+
             Assert(this->dataCache != nullptr);
             hr = this->dataCache->SaveWriteDataStream(this->outStream);
+
             this->outStream->Release();
             this->outStream = nullptr;
+
+            if (FAILED(hr))
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to save write stream (hr = 0x%08lx)\n"), hr);
+            }
+            else
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully saved write stream\n"), hr);
+            }
         }
 #endif
 
@@ -173,16 +193,22 @@ namespace Js
 
     HRESULT SimpleDataCacheWrapper::ResetReadStream()
     {
-        HRESULT hr;
+        HRESULT hr = E_FAIL;
 
-        IFFAILRET(EnsureReadStream());
-
+        if (IsReadStreamOpen())
+        {
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
-        // Reset the read stream to beginning of the stream - after the header
-        LARGE_INTEGER dlibMove;
-        dlibMove.QuadPart = sizeof(DWORD) * 2;
-        IFFAILRET(this->inStream->Seek(dlibMove, STREAM_SEEK_SET, nullptr));
+            // Reset the read stream to beginning of the stream - after the header
+            LARGE_INTEGER dlibMove;
+            dlibMove.QuadPart = sizeof(DWORD) * 2;
+            IFFAILRET(this->inStream->Seek(dlibMove, STREAM_SEEK_SET, nullptr));
 #endif
+        }
+        else
+        {
+            // OpenReadStream opens to the beginning of the stream and consumes the header
+            hr = OpenReadStream();
+        }
 
         return hr;
     }

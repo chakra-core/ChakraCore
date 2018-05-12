@@ -13827,7 +13827,7 @@ void DumpCapturedNames(ParseNodeFnc* pnodeFnc, IdentPtrSet* capturedNames, Arena
     }, nullptr);
 
     sortedNames->Map([=](int index, const IdentPtr pid) -> void {
-        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
+        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u(" Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
     });
 }
 #endif

@@ -238,7 +238,7 @@ namespace Js
             }
             else
             {
-                OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Number of functions different: %d "), numberOfBitsDifferent);
+                OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Number of functions different: %d \n"), numberOfBitsDifferent);
             }
         }
         return true;

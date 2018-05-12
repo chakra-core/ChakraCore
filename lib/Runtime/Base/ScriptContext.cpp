@@ -2137,8 +2137,16 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         // Find the parser state block in the read stream and get the size of the block in bytes.
         ULONG byteCount = 0;
+        DebugOnly(auto url = !srcInfo->sourceContextInfo->isHostDynamicDocument ? srcInfo->sourceContextInfo->url : this->GetUrl());
 
-        IFFAILRET(pDataCache->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ParserState, &byteCount));
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to read parser state cache for '%s'\n"), url);
+
+        hr = pDataCache->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ParserState, &byteCount);
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to find parser state cache in the stream (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
 
         // The contract for this bytecode buffer is that it is available as long as we have this ScriptContext.
         // We will use this buffer as the string table needed to back the deferred stubs as well as bytecode
@@ -2152,7 +2160,14 @@ namespace Js
             return E_FAIL;
         }
 
-        IFFAILRET(pDataCache->ReadArray(buffer, byteCount));
+        hr = pDataCache->ReadArray(buffer, byteCount);
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to read parser state cache (wanted %lu bytes, got %lu bytes) (hr = 0x%08lx) for '%s'\n"), byteCount, pDataCache->BytesWrittenInBlock(), hr, url);
+            return hr;
+        }
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully read parser state cache (%lu bytes) for '%s'\n"), byteCount, url);
 
         if (utf8SourceInfo != nullptr)
         {
@@ -2167,8 +2182,18 @@ namespace Js
             utf8SourceInfo->SetByteCodeGenerationFlags(grfscr);
         }
 
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to deserialize parser state cache for '%s'\n"), url);
+
         FunctionBody* functionBody = nullptr;
-        IFFAILRET(Js::ByteCodeSerializer::DeserializeFromBuffer(this, grfscr, (ISourceHolder*) nullptr, srcInfo, buffer, nativeModule, &functionBody, sourceIndex));
+        hr = Js::ByteCodeSerializer::DeserializeFromBuffer(this, grfscr, (ISourceHolder*) nullptr, srcInfo, buffer, nativeModule, &functionBody, sourceIndex);
+
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to deserialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully deserialized parser state cache for '%s'\n"), url);
 
         *func = functionBody->GetParseableFunctionInfo();
 #endif
@@ -2179,6 +2204,7 @@ namespace Js
     HRESULT ScriptContext::TrySerializeParserState(
         _In_ LPCUTF8 pszSrc,
         _In_ size_t cbLength,
+        _In_ SRCINFO *srcInfo,
         _In_ Js::ParseableFunctionInfo* func,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
@@ -2191,6 +2217,9 @@ namespace Js
         byte* parserStateCacheBuffer = nullptr;
         DWORD parserStateCacheSize = 0;
         DWORD dwFlags = GENERATE_BYTE_CODE_PARSER_STATE;
+        DebugOnly(auto url = !srcInfo->sourceContextInfo->isHostDynamicDocument ? srcInfo->sourceContextInfo->url : this->GetUrl());
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to serialize parser state cache for '%s'\n"), url);
 
         BEGIN_TEMP_ALLOCATOR(tempAllocator, this, _u("ByteCodeSerializer"));
         hr = Js::ByteCodeSerializer::SerializeToBuffer(this,
@@ -2205,11 +2234,30 @@ namespace Js
 
         if (FAILED(hr))
         {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to serialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
             return hr;
         }
 
-        IFFAILRET(pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize));
-        IFFAILRET(pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize));
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully serialized parser state cache for '%s'\n"), url);
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to write parser state cache (%lu bytes) to stream for '%s'\n"), parserStateCacheSize, url);
+
+        hr = pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize);
+
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to write a block to the parser state cache data stream (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
+
+        hr = pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize);
+
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to write parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully wrote parser state cache for '%s'\n"), url);
 #endif
 
         return hr;
@@ -2246,6 +2294,14 @@ namespace Js
         if (fUseParserStateCache)
         {
             hr = TryDeserializeParserState(grfscr, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, pDataCache);
+
+            // ERROR_WRITE_PROTECT indicates we cannot cache this script for whatever reason.
+            // Disable generating and serializing the parser state cache.
+            if (hr == HRESULT_FROM_WIN32(ERROR_WRITE_PROTECT))
+            {
+                fUseParserStateCache = false;
+                grfscr &= ~fscrCreateParserState;
+            }
         }
 
         // If hydrating the parser state cache failed, let's try to do an ordinary parse
@@ -2285,7 +2341,7 @@ namespace Js
             if (fUseParserStateCache)
             {
                 Assert(*func != nullptr);
-                TrySerializeParserState(pszSrc, cbLength, *func, pDataCache);
+                TrySerializeParserState(pszSrc, cbLength, srcInfo, *func, pDataCache);
             }
         }
 #ifdef ENABLE_SCRIPT_DEBUGGING

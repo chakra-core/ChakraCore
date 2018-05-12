@@ -71,7 +71,7 @@ namespace Js
             hr = this->outStream->Write(&data, sizeof(T), &bytesWritten);
             Assert(bytesWritten == sizeof(T) || FAILED(hr) || hr == S_FALSE);
             bytesWrittenInBlock += bytesWritten;
-            // hr is S_FALSE if bytesRead < sizeOf(T)
+            // hr is S_FALSE if bytesWritten < sizeOf(T)
             if (hr == S_FALSE)
             {
                 hr = E_FAIL;
@@ -91,7 +91,7 @@ namespace Js
             hr = this->outStream->Write(data, bytesSize, &bytesWritten);
             Assert(bytesWritten == bytesSize || FAILED(hr) || hr == S_FALSE);
             bytesWrittenInBlock += bytesWritten;
-            // hr is S_FALSE if bytesRead < bytesSize
+            // hr is S_FALSE if bytesWritten < bytesSize
             if (hr == S_FALSE)
             {
                 hr = E_FAIL;
@@ -108,8 +108,9 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             ULONG bytesRead = 0;
             hr = this->inStream->Read(data, sizeof(T), &bytesRead);
-            Assert(bytesRead == sizeof(T) || FAILED(hr) || hr == S_FALSE);
-            // hr is S_FALSE if bytesRead < sizeOf(T)
+            // hr should be S_FALSE if bytesRead < sizeof(T) but this is not always the case
+            // Just assert we didn't overflow data and convert S_FALSE into a failing hr.
+            Assert(bytesRead <= sizeof(T));
             if (hr == S_FALSE)
             {
                 hr = E_FAIL;
@@ -127,8 +128,9 @@ namespace Js
             ULONG bytesSize = sizeof(T) * len;
             ULONG bytesRead = 0;
             hr = this->inStream->Read(data, bytesSize, &bytesRead);
-            Assert(bytesRead == bytesSize || FAILED(hr) || hr == S_FALSE);
-            // hr is S_FALSE if bytesRead < bytesSize
+            // hr should be S_FALSE if bytesRead < bytesSize but this is not always the case
+            // Just assert we didn't overflow data and convert S_FALSE into a failing hr.
+            Assert(bytesRead <= bytesSize);
             if (hr == S_FALSE)
             {
                 hr = E_FAIL;
