@@ -226,6 +226,8 @@ enum FunctionFlags
     ffUsesArgumentsObject              = 0x200000,
     ffDoScopeObjectCreation            = 0x400000,
     ffIsParamAndBodyScopeMerged        = 0x800000,
+    ffIsMethod                         = 0x1000000,
+    ffIsClassMember                    = 0x2000000,
 };
 
 // Kinds of constant
@@ -2184,6 +2186,8 @@ public:
             | (function->m_isEval ? ffIsEval : 0)
             | (function->m_isDynamicFunction ? ffIsDynamicFunction : 0)
             | (isAnonymous ? ffIsAnonymous : 0)
+            | (function->m_isMethod ? ffIsMethod : 0)
+            | (function->m_isClassMember ? ffIsClassMember : 0)
 #ifdef ASMJS_PLAT
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
             | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
@@ -3991,6 +3995,8 @@ public:
         (*function)->m_usesArgumentsObject = (bitflags & ffUsesArgumentsObject) ? true : false;
         (*function)->m_isEval = (bitflags & ffIsEval) ? true : false;
         (*function)->m_isDynamicFunction = (bitflags & ffIsDynamicFunction) ? true : false;
+        (*function)->m_isMethod = (bitflags & ffIsMethod) ? true : false;
+        (*function)->m_isClassMember = (bitflags & ffIsClassMember) ? true : false;
 
         // This is offsetIntoSource is the start offset in bytes as well.
         (*function)->m_cbStartOffset = (size_t) offsetIntoSource;
@@ -4262,6 +4268,8 @@ public:
         Js::LocalFunctionId relativeFunctionId = 0;
         current = ReadUInt32(current, (uint*)&relativeFunctionId);
         FunctionInfo* functionInfo =  cache->LookupFunctionInfo(this->scriptContext, relativeFunctionId);
+
+        Assert(functionInfo != nullptr);
 
         *scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(), symbolCount * sizeof(ScopeInfo::SymbolInfo), ScopeInfo, functionInfo, symbolCount);
 
