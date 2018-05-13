@@ -569,6 +569,12 @@
   </test>
   <test>
     <default>
+      <files>boundConstruction.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>CrossContextSpreadfunctionCall.js</files>
     </default>
   </test>

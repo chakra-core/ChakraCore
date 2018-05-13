@@ -26,6 +26,7 @@
 //     example: testRunner.LoadModule(source, 'samethread', false);
 //
 //   How to use assert:
+//     assert.strictEqual(expected, actual, "those two should be strictly equal (i.e. === comparison)");
 //     assert.areEqual(expected, actual, "those two should be equal (i.e. deep equality of objects using ===)");
 //     assert.areNotEqual(expected, actual, "those two should NOT be equal");
 //     assert.areAlmostEqual(expected, actual, "those two should be almost equal, numerically (allows difference by epsilon)");
@@ -407,6 +408,10 @@ var assert = function assert() {
     }
 
     return {
+        strictEqual: function strictEqual(expected, actual, message) {
+            validate(expected === actual, "strictEqual", message);
+        },
+
         areEqual: function areEqual(expected, actual, message) {
             /// <summary>
             /// IMPORTANT: NaN compares equal.<br/>

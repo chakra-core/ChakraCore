@@ -77,9 +77,6 @@ constructor trap
 constructor trap
 get trap prototype
 constructor trap
-constructor trap
-get trap prototype
-constructor trap
 true
 get trap m
 def
