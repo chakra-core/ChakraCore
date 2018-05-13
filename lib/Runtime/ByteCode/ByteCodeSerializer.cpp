@@ -139,6 +139,7 @@ struct SerializedFieldList {
     bool has_slotIdInCachedScopeToNestedIndexArray : 1;
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
+    bool has_scopeInfo : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -2255,6 +2256,14 @@ public:
             AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
         }
 
+        ScopeInfo* scopeInfo = function->GetScopeInfo();
+        if (scopeInfo != nullptr
+            && (attributes & FunctionInfo::Attributes::DeferredParse) != 0)
+        {
+            definedFields.has_scopeInfo = true;
+            AddScopeInfo(builder, scopeInfo);
+        }
+
 #define PrependArgSlot PrependInt16
 #define PrependRegSlot PrependInt32
 #define PrependCharCount PrependInt32
@@ -2326,6 +2335,66 @@ public:
     {
         topFunctionId = function->GetLocalFunctionId();
         return AddFunction(functionsTable, function, srcInfo, cache);
+    }
+
+    HRESULT AddScopeInfo(BufferBuilderList & builder, ScopeInfo* scopeInfo)
+    {
+        PrependInt32(builder, _u("ScopeInfo symbol count"), scopeInfo->symbolCount);
+
+        FunctionInfo* functionInfo = scopeInfo->functionInfo;
+        uint relativeFunctionId = 0;
+        if (functionInfo != nullptr)
+        {
+            relativeFunctionId = functionInfo->GetLocalFunctionId() - topFunctionId;
+        }
+        PrependUInt32(builder, _u("ScopeInfo FunctionInfo relative id"), relativeFunctionId);
+
+        BYTE flags = (scopeInfo->isDynamic ? 0x1 : 0)
+            | (scopeInfo->isObject ? 0x2 : 0)
+            | (scopeInfo->mustInstantiate ? 0x4 : 0)
+            | (scopeInfo->isCached ? 0x8 : 0)
+            | (scopeInfo->hasLocalInClosure ? 0x10 : 0)
+            | (scopeInfo->isGeneratorFunctionBody ? 0x20 : 0)
+            | (scopeInfo->isAsyncFunctionBody ? 0x40 : 0);
+
+        PrependByte(builder, _u("ScopeInfo flags"), flags);
+        PrependInt32(builder, _u("ScopeInfo scope type"), scopeInfo->scopeType);
+        PrependInt32(builder, _u("ScopeInfo scope id"), scopeInfo->scopeId);
+
+        for (int i = 0; i < scopeInfo->symbolCount; i++)
+        {
+            ScopeInfo::SymbolInfo* sym = scopeInfo->symbols + i;
+
+            flags = (sym->hasFuncAssignment ? 0x1 : 0)
+                | (sym->isBlockVariable ? 0x2 : 0)
+                | (sym->isConst ? 0x4 : 0)
+                | (sym->isFuncExpr ? 0x8 : 0)
+                | (sym->isModuleExportStorage ? 0x10 : 0)
+                | (sym->isModuleImport ? 0x20 : 0);
+
+            PrependByte(builder, _u("SymbolInfo flags"), flags);
+            PrependByte(builder, _u("SymbolInfo symbol type"), (BYTE)sym->symbolType);
+
+            PropertyId symPropertyId = sym->propertyId;
+            if (scopeInfo->areNamesCached)
+            {
+                Assert(sym->name != nullptr);
+                //PropertyRecord* propertyRecord = ;
+            }
+
+            PropertyId propertyId = encodePossiblyBuiltInPropertyId(symPropertyId);
+            PrependInt32(builder, _u("SymbolInfo property id"), propertyId);
+        }
+
+        bool hasParent = scopeInfo->parent != nullptr;
+        PrependBool(builder, _u("ScopeInfo has parent"), hasParent);
+
+        if (hasParent)
+        {
+            return AddScopeInfo(builder, scopeInfo->parent);
+        }
+
+        return S_OK;
     }
 
     HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, ByteCodeCache* cache, bool recursive)
@@ -3830,11 +3899,23 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
+        ScopeInfo* scopeInfo = nullptr;
+        if (definedFields->has_scopeInfo)
+        {
+            Assert(isDeferredFunction);
+            current = ReadScopeInfo(current, cache, &scopeInfo);
+        }
+
         if (!deserializeThis && !isDeferredFunction)
         {
             Assert(sourceInfo->GetSrcInfo()->moduleID == kmodGlobal);
             Assert(!deserializeNested);
             *functionProxy = DeferDeserializeFunctionInfo::New(this->scriptContext, nestedCount, functionId, cache, functionBytes, sourceInfo, displayName, displayNameLength, displayShortNameOffset, nativeModule, (FunctionInfo::Attributes)attributes);
+
+            if (deferDeserializeFunctionInfo == nullptr && !this->isLibraryCode)
+            {
+                cache->RegisterFunctionIdToFunctionInfo(this->scriptContext, functionId, (*functionProxy)->GetFunctionInfo());
+            }
 
             return S_OK;
         }
@@ -3882,6 +3963,15 @@ public:
             {
                 (*function)->SetDeferredStubs(deferredStubs);
             }
+            if (scopeInfo != nullptr)
+            {
+                (*function)->SetScopeInfo(scopeInfo);
+            }
+        }
+
+        if (deferDeserializeFunctionInfo == nullptr && !this->isLibraryCode)
+        {
+            cache->RegisterFunctionIdToFunctionInfo(this->scriptContext, functionId, (*function)->GetFunctionInfo());
         }
 
         // These fields are manually deserialized previously
@@ -4164,6 +4254,64 @@ public:
         return S_OK;
     }
 
+    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
+    {
+        int symbolCount = 0;
+        current = ReadInt32(current, &symbolCount);
+
+        Js::LocalFunctionId relativeFunctionId = 0;
+        current = ReadUInt32(current, (uint*)&relativeFunctionId);
+        FunctionInfo* functionInfo =  cache->LookupFunctionInfo(this->scriptContext, relativeFunctionId);
+
+        *scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(), symbolCount * sizeof(ScopeInfo::SymbolInfo), ScopeInfo, functionInfo, symbolCount);
+
+        BYTE flags;
+        current = ReadByte(current, &flags);
+        (*scopeInfo)->isDynamic = (flags & 0x1) != 0;
+        (*scopeInfo)->isObject = (flags & 0x2) != 0;
+        (*scopeInfo)->mustInstantiate = (flags & 0x4) != 0;
+        (*scopeInfo)->isCached = (flags & 0x8) != 0;
+        (*scopeInfo)->hasLocalInClosure = (flags & 0x10) != 0;
+        (*scopeInfo)->isGeneratorFunctionBody = (flags & 0x20) != 0;
+        (*scopeInfo)->isAsyncFunctionBody = (flags & 0x40) != 0;
+        (*scopeInfo)->areNamesCached = false;
+
+        int scopeType;
+        current = ReadInt32(current, &scopeType);
+        (*scopeInfo)->scopeType = (::ScopeType)scopeType;
+
+        current = ReadInt32(current, &(*scopeInfo)->scopeId);
+
+        for (int i = 0; i < symbolCount; i++)
+        {
+            ScopeInfo::SymbolInfo* sym = (*scopeInfo)->symbols + i;
+
+            current = ReadByte(current, &flags);
+            sym->hasFuncAssignment = (flags & 0x1) != 0;
+            sym->isBlockVariable = (flags & 0x2) != 0;
+            sym->isConst = (flags & 0x4) != 0;
+            sym->isFuncExpr = (flags & 0x8) != 0;
+            sym->isModuleExportStorage = (flags & 0x10) != 0;
+            sym->isModuleImport = (flags & 0x20) != 0;
+
+            current = ReadByte(current, (BYTE*)&sym->symbolType);
+
+            PropertyId obscuredPropertyId;
+            current = ReadInt32(current, (int*)&obscuredPropertyId);
+            sym->propertyId = cache->LookupPropertyId(obscuredPropertyId);
+        }
+
+        bool hasParent = false;
+        current = ReadBool(current, &hasParent);
+
+        if (hasParent)
+        {
+            return ReadScopeInfo(current, cache, &((*scopeInfo)->parent));
+        }
+
+        return current;
+    }
+
     const byte* ReadDeferredStubs(const byte* current, ByteCodeCache* cache, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
     {
         if (nestedCount == 0)
@@ -4216,7 +4364,7 @@ public:
         sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId += functionCount;
         sourceInfo->EnsureInitialized(functionCount);
         sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
-
+        HRESULT hr = E_FAIL;
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         bool prejit = false;
@@ -4225,7 +4373,7 @@ public:
 #endif
 
         FunctionBody* functionBody = NULL;
-        auto result = ReadFunctionBody(topFunction, (FunctionProxy **)&functionBody, sourceInfo, cache, nativeModule, true, !allowDefer /* don't deserialize nested if defer is allowed */);
+        hr = ReadFunctionBody(topFunction, (FunctionProxy **)&functionBody, sourceInfo, cache, nativeModule, true, !allowDefer /* don't deserialize nested if defer is allowed */);
 
         (*function) = functionBody;
 
@@ -4239,8 +4387,7 @@ public:
             GenerateAllFunctions(scriptContext->GetNativeCodeGenerator(), functionBody);
         }
 #endif
-
-        return result;
+        return hr;
     }
 
 
@@ -4442,12 +4589,12 @@ public:
 };
 
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount)
-    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr)
+    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr), localFunctionIdToFunctionInfoMap(nullptr)
 {
 }
 
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount)
-    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount)
+    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount), localFunctionIdToFunctionInfoMap(nullptr)
 {
     Initialize(scriptContext);
 }
@@ -4495,6 +4642,26 @@ void ByteCodeCache::PopulateLookupPropertyId(ScriptContext * scriptContext, int 
 
         propertyIds[realOffset] = propertyRecord->GetPropertyId();
     }
+}
+
+ByteCodeCache::LocalFunctionIdToFunctionInfoMap* ByteCodeCache::EnsureLocalFunctionIdToFunctionInfoMap(ScriptContext * scriptContext)
+{
+    if (this->localFunctionIdToFunctionInfoMap == nullptr)
+    {
+        this->localFunctionIdToFunctionInfoMap = Anew(scriptContext->SourceCodeAllocator(), LocalFunctionIdToFunctionInfoMap, scriptContext->SourceCodeAllocator(), 10);
+    }
+    Assert(this->localFunctionIdToFunctionInfoMap != nullptr);
+    return this->localFunctionIdToFunctionInfoMap;
+}
+
+void ByteCodeCache::RegisterFunctionIdToFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId, FunctionInfo* functionInfo)
+{
+    EnsureLocalFunctionIdToFunctionInfoMap(scriptContext)->AddNew(functionId, functionInfo);
+}
+
+FunctionInfo* ByteCodeCache::LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId)
+{
+    return EnsureLocalFunctionIdToFunctionInfoMap(scriptContext)->Lookup(functionId, nullptr);
 }
 
 // Serialize function body

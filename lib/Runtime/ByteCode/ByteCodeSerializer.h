@@ -111,12 +111,22 @@ namespace Js
         PropertyId * propertyIds;
         int propertyCount;
         int builtInPropertyCount;
+
+        typedef JsUtil::BaseDictionary<Js::LocalFunctionId, FunctionInfo*, ArenaAllocator> LocalFunctionIdToFunctionInfoMap;
+        LocalFunctionIdToFunctionInfoMap* localFunctionIdToFunctionInfoMap;
+
+    private:
+        LocalFunctionIdToFunctionInfoMap * EnsureLocalFunctionIdToFunctionInfoMap(ScriptContext * scriptContext);
+
     public:
         ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount);
         ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount);
         void PopulateLookupPropertyId(ScriptContext * scriptContext, int realArrayOffset);
         void SetReader(ScriptContext * scriptContext, ByteCodeBufferReader * reader);
         void Initialize(ScriptContext * scriptContext);
+
+        void RegisterFunctionIdToFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId, FunctionInfo* functionInfo);
+        FunctionInfo* LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId);
 
         ByteCodeBufferReader* GetReader()
         {
