@@ -5402,7 +5402,11 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 m_reparsingLambdaParams = true;
             }
 
+            DeferredFunctionStub* savedDeferredStub = m_currDeferredStub;
+            m_currDeferredStub = nullptr;
             this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags, isTopLevelDeferredFunc);
+            m_currDeferredStub = savedDeferredStub;
+
             m_reparsingLambdaParams = fLambdaParamsSave;
         }
 
@@ -5811,7 +5815,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
     {
         ParseExpressionLambdaBody<false>(pnodeFnc);
     }
-    else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr)
+    else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr && !pnodeFncParent->HasDefaultArguments())
     {
         // We've already parsed this function body for syntax errors on the initial parse of the script.
         // We have information that allows us to skip it, so do so.
