@@ -3903,7 +3903,7 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
-        ScopeInfo* scopeInfo = nullptr;
+        Field(ScopeInfo*) scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
             Assert(isDeferredFunction);
@@ -4260,7 +4260,7 @@ public:
         return S_OK;
     }
 
-    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
+    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, Field(ScopeInfo*)* scopeInfo)
     {
         int symbolCount = 0;
         current = ReadInt32(current, &symbolCount);

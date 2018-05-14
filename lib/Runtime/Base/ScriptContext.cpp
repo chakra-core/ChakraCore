@@ -2290,7 +2290,7 @@ namespace Js
         if (fUseParserStateCache)
         {
             hr = TryDeserializeParserState(grfscr, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, pDataCache);
-
+#ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             // ERROR_WRITE_PROTECT indicates we cannot cache this script for whatever reason.
             // Disable generating and serializing the parser state cache.
             if (hr == HRESULT_FROM_WIN32(ERROR_WRITE_PROTECT))
@@ -2298,6 +2298,7 @@ namespace Js
                 fUseParserStateCache = false;
                 grfscr &= ~fscrCreateParserState;
             }
+#endif
         }
 
         // If hydrating the parser state cache failed, let's try to do an ordinary parse
