@@ -195,7 +195,7 @@ private:
     {
         Assert(index >= maxIndex || backingStore[index / numPerSegment] == nullptr);
         // grow the size of the pointer array if needed
-        EnsureBaseSize(index + 1);
+        EnsureBaseSize(index);
         if (backingStore[index / numPerSegment] == nullptr)
         {
             // allocate a new segment
