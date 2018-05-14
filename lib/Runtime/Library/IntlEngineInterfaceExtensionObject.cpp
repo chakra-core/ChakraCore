@@ -1785,11 +1785,28 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         return nullptr;
 #else
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 4 && JavascriptString::Is(args[1]) && JavascriptString::Is(args[2]) && DynamicObject::Is(args[3]));
+        INTL_CHECK_ARGS(
+            args.Info.Count == 5 &&
+            JavascriptString::Is(args[1]) &&
+            JavascriptString::Is(args[2]) &&
+            DynamicObject::Is(args[3]) &&
+            JavascriptBoolean::Is(args[4])
+        );
 
         JavascriptString *left = JavascriptString::UnsafeFromVar(args[1]);
         JavascriptString *right = JavascriptString::UnsafeFromVar(args[2]);
         DynamicObject *state = DynamicObject::UnsafeFromVar(args[3]);
+        bool forStringPrototypeLocaleCompare = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
+        if (forStringPrototypeLocaleCompare)
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_localeCompare);
+            INTL_TRACE("Calling '%s'.localeCompare('%s', ...)", left->GetSz(), right->GetSz());
+        }
+        else
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Collator_Prototype_compare);
+            INTL_TRACE("Calling Collator.prototype.compare('%s', '%s')", left->GetSz(), right->GetSz());
+        }
 
         // Below, we lazy-initialize the backing UCollator on the first call to localeCompare
         // On subsequent calls, the UCollator will be cached in state.hiddenObject
@@ -2322,17 +2339,35 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
 #if defined(INTL_ICU)
         INTL_CHECK_ARGS(
-            args.Info.Count == 4 &&
+            args.Info.Count == 5 &&
             (TaggedInt::Is(args[1]) || JavascriptNumber::Is(args[1])) &&
             DynamicObject::Is(args[2]) &&
-            JavascriptBoolean::Is(args[3])
+            JavascriptBoolean::Is(args[3]) &&
+            JavascriptBoolean::Is(args[4])
         );
 
         double num = JavascriptConversion::ToNumber(args[1], scriptContext);
         DynamicObject *state = DynamicObject::UnsafeFromVar(args[2]);
-        bool toParts = JavascriptBoolean::FromVar(args[3])->GetValue();
+        bool toParts = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
+        bool forNumberPrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
         Var cachedFormatter = nullptr; // cached by EntryIntl_CacheNumberFormat
         AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
+
+        if (forNumberPrototypeToLocaleString)
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Number_Prototype_toLocaleString);
+            INTL_TRACE("Calling %f.toLocaleString(...)", num);
+        }
+        else if (toParts)
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(NumberFormat_Prototype_formatToParts);
+            INTL_TRACE("Calling NumberFormat.prototype.formatToParts(%f)", num);
+        }
+        else
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(NumberFormat_Prototype_format);
+            INTL_TRACE("Calling NumberFormat.prototype.format(%f)", num);
+        }
 
         auto fmt = static_cast<FinalizableUNumberFormat *>(cachedFormatter);
         char16 *formatted = nullptr;
@@ -2539,13 +2574,15 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 #else
         // This function vaguely implements ECMA 402 #sec-partitiondatetimepattern
         INTL_CHECK_ARGS(
-            args.Info.Count == 4 &&
-            DynamicObject::Is(args.Values[1]) &&
-            JavascriptBoolean::Is(args.Values[3])
+            args.Info.Count == 5 &&
+            DynamicObject::Is(args[1]) &&
+            (TaggedInt::Is(args[2]) || JavascriptNumber::Is(args[2])) &&
+            JavascriptBoolean::Is(args[3]) &&
+            JavascriptBoolean::Is(args[4])
         );
 
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
-        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue();
+        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
 
         // 1. Let x be TimeClip(x)
         // 2. If x is NaN, throw a RangeError exception
@@ -2553,6 +2590,23 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         if (JavascriptNumber::IsNan(date))
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidDate);
+        }
+
+        bool forDatePrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
+        if (forDatePrototypeToLocaleString)
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Date_Prototype_toLocaleString);
+            INTL_TRACE("Calling new Date(%f).toLocaleString(...)", date);
+        }
+        else if (toParts)
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(DateTimeFormat_Prototype_formatToParts);
+            INTL_TRACE("Calling DateTimeFormat.prototype.formatToParts(new Date(%f))", date);
+        }
+        else
+        {
+            CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(DateTimeFormat_Prototype_format);
+            INTL_TRACE("Calling DateTimeFormat.prototype.format(new Date(%f))", date);
         }
 
         // Below, we lazy-initialize the backing UDateFormat on the first call to format{ToParts}
@@ -2968,6 +3022,9 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             AssertOrFailFast(JavascriptNumber::Is(args[2]));
             n = JavascriptNumber::GetValue(args[2]);
         }
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PluralRules_Prototype_select);
+        INTL_TRACE("Calling PluralRules.prototype.select(%f)", n);
 
         FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
 
