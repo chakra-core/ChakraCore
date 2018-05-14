@@ -141,6 +141,8 @@ public:
         heapBlock = nullptr;
         return ptr = newPtr;
     };
+
+    void Clear() { heapBlock = nullptr; ptr = nullptr; };
 private:
     RecyclerWeakReferenceRegionItem(RecyclerWeakReferenceRegionItem<T>&) = delete;
 
