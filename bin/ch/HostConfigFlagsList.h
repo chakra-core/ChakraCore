@@ -19,5 +19,6 @@ FLAG(bool, TraceHostCallback,               "Output traces for host callbacks", 
 FLAG(bool, Test262,                         "load Test262 harness", false)
 FLAG(bool, TrackRejectedPromises,           "Enable tracking of unhandled promise rejections", false)
 FLAG(BSTR, CustomConfigFile,                "Custom config file to be used to pass in additional flags to Chakra", NULL)
+FLAG(bool, ExecuteWithBgParse,              "[No-op] Load script with bgparse (note: requires bgparse to be on as well)", false)
 #undef FLAG
 #endif

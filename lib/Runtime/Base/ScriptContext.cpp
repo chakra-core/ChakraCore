@@ -2260,6 +2260,7 @@ namespace Js
     }
 
     HRESULT ScriptContext::CompileUTF8Core(
+        __in Parser& ps,
         __in Js::Utf8SourceInfo* utf8SourceInfo,
         __in SRCINFO *srcInfo,
         __in BOOL fOriginalUTF8Code,
@@ -2275,7 +2276,6 @@ namespace Js
     )
     {
         HRESULT hr = E_FAIL;
-        Parser ps(this);
         (*func) = nullptr;
         srcLength = cchLength;
 

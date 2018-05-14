@@ -14,9 +14,13 @@
 #include "Base/ScriptContext.h"
 #include "ByteCodeSerializer.h"
 
+#define BGPARSE_FLAGS (fscrGlobalCode | fscrWillDeferFncParse | fscrCanDeferFncParse | fscrCreateParserState)
+
 // Global, process singleton
 BGParseManager* BGParseManager::s_BGParseManager = nullptr;
 DWORD           BGParseManager::s_lastCookie = 0;
+DWORD           BGParseManager::s_completed = 0;
+DWORD           BGParseManager::s_failed = 0;
 CriticalSection BGParseManager::s_staticMemberLock;
 
 // Static member management
@@ -47,6 +51,17 @@ DWORD BGParseManager::GetNextCookie()
 {
     AutoCriticalSection lock(&s_staticMemberLock);
     return ++s_lastCookie;
+}
+
+DWORD BGParseManager::IncCompleted()
+{
+    AutoCriticalSection lock(&s_staticMemberLock);
+    return ++s_completed;
+}
+DWORD BGParseManager::IncFailed()
+{
+    AutoCriticalSection lock(&s_staticMemberLock);
+    return ++s_failed;
 }
 
 
@@ -217,7 +232,16 @@ HRESULT BGParseManager::GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_
 
 // Deserializes the background parse results into this thread
 // Note: *must* run on a UI/Execution thread with an available ScriptContext
-HRESULT BGParseManager::GetParseResults(Js::ScriptContext* scriptContextUI, DWORD cookie, LPCUTF8 pszSrc, SRCINFO const * pSrcInfo, Js::ParseableFunctionInfo** ppFunc, CompileScriptException* pse, size_t& srcLength)
+HRESULT BGParseManager::GetParseResults(
+    Js::ScriptContext* scriptContextUI,
+    DWORD cookie,
+    LPCUTF8 pszSrc,
+    SRCINFO const * pSrcInfo,
+    Js::ParseableFunctionInfo** ppFunc,
+    CompileScriptException* pse,
+    size_t& srcLength,
+    Js::Utf8SourceInfo* utf8SourceInfo,
+    uint& sourceIndex)
 {
     // TODO: Is there a way to cache the environment from which serialization begins to
     // determine whether or not deserialization will succeed? Specifically, being able
@@ -232,25 +256,20 @@ HRESULT BGParseManager::GetParseResults(Js::ScriptContext* scriptContextUI, DWOR
     {
         // Synchronously wait for the job to complete
         workitem->WaitForCompletion();
+        
+        Js::FunctionBody* functionBody = nullptr;
+        hr = workitem->DeserializeParseResults(scriptContextUI, pszSrc, pSrcInfo, utf8SourceInfo, &functionBody, srcLength, sourceIndex);
+        (*ppFunc) = functionBody;
+        workitem->TransferCSE(pse);
 
-        Field(Js::FunctionBody*) functionBody = nullptr;
-        hr = workitem->GetParseHR();
         if (hr == S_OK)
         {
-            srcLength = workitem->GetParseSourceLength();
-            hr = Js::ByteCodeSerializer::DeserializeFromBuffer(
-                scriptContextUI,
-                0, // flags
-                (const byte *)pszSrc,
-                pSrcInfo,
-                workitem->GetReturnBuffer(),
-                nullptr, // nativeModule
-                &functionBody
-            );
+            BGParseManager::IncCompleted();
         }
-
-        *ppFunc = functionBody;
-        workitem->TransferCSE(pse);
+        else
+        {
+            BGParseManager::IncFailed();
+        }
     }
 
     if (PHASE_TRACE1(Js::BgParsePhase))
@@ -475,27 +494,42 @@ void BGParseWorkItem::ParseUTF8Core(Js::ScriptContext* scriptContext)
     }
 
     SRCINFO si = {
-        /* sourceContextInfo   */ sourceContextInfo,
-        /* dlnHost             */ 0,
-        /* ulColumnHost        */ 0,
-        /* lnMinHost           */ 0,
-        /* ichMinHost          */ 0,
-        /* ichLimHost          */ (ULONG)0,
-        /* ulCharOffset        */ 0,
-        /* mod                 */ 0,
-        /* grfsi               */ 0
+        sourceContextInfo,
+        0, // dlnHost
+        0, // ulColumnHost
+        0, // lnMinHost
+        0, // ichMinHost
+        static_cast<ULONG>(cb / sizeof(utf8char_t)), // ichLimHost
+        0, // ulCharOffset
+        kmodGlobal, // mod
+        0 // grfsi
     };
 
-    // Currently always called from a try-catch
     ENTER_PINNED_SCOPE(Js::Utf8SourceInfo, sourceInfo);
-    sourceInfo = Js::Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPUTF8)this->script, (int32)this->cb, static_cast<int32>(this->cb), &si, false);
-    LEAVE_PINNED_SCOPE();
+    sourceInfo = Js::Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPUTF8)this->script, (int32)this->cb, static_cast<int32>(this->cb), &si, false);    
 
-    // what's a better name for "fIsOriginalUtf8Source?" what if i want to say "isutf8source" but not "isoriginal"?
     charcount_t cchLength = 0;
     uint sourceIndex = 0;
     Js::ParseableFunctionInfo * func = nullptr;
-    this->parseHR = scriptContext->CompileUTF8Core(sourceInfo, &si, true, this->script, this->cb, fscrGlobalCode, &this->cse, cchLength, this->parseSourceLength, sourceIndex, &func, nullptr);
+
+    Parser ps(scriptContext);
+    this->parseHR = scriptContext->CompileUTF8Core(
+        ps,
+        sourceInfo,
+        &si,
+        true, // fOriginalUtf8Code
+        this->script,
+        this->cb,
+        BGPARSE_FLAGS,
+        &this->cse,
+        cchLength,
+        this->parseSourceLength,
+        sourceIndex,
+        &func,
+        nullptr // pDataCache
+    );
+
+
     if (this->parseHR == S_OK)
     {
         BEGIN_TEMP_ALLOCATOR(tempAllocator, scriptContext, _u("BGParseWorkItem"));
@@ -510,7 +544,7 @@ void BGParseWorkItem::ParseUTF8Core(Js::ScriptContext* scriptContext)
             true, // allocateBuffer
             &this->bufferReturn,
             &this->bufferReturnBytes,
-            0
+            GENERATE_BYTE_CODE_PARSER_STATE
         );
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
         Assert(this->parseHR == S_OK);
@@ -520,6 +554,51 @@ void BGParseWorkItem::ParseUTF8Core(Js::ScriptContext* scriptContext)
         Assert(this->cse.ei.bstrSource != nullptr);
         Assert(func == nullptr);
     }
+
+    LEAVE_PINNED_SCOPE();
+}
+
+// Deserializes the background parse results into this thread
+// Note: *must* run on a UI/Execution thread with an available ScriptContext
+HRESULT BGParseWorkItem::DeserializeParseResults(
+    Js::ScriptContext* scriptContextUI,
+    LPCUTF8 pszSrc,
+    SRCINFO const * pSrcInfo,
+    Js::Utf8SourceInfo* utf8SourceInfo,
+    Js::FunctionBody** functionBodyReturn,
+    size_t& srcLength,
+    uint& sourceIndex
+)
+{
+    HRESULT hr = this->parseHR;
+    if (hr == S_OK)
+    {
+        srcLength = this->parseSourceLength;
+        sourceIndex = scriptContextUI->SaveSourceNoCopy(utf8SourceInfo, (int)srcLength, false /*isCesu8*/);
+        Assert(sourceIndex != Js::Constants::InvalidSourceIndex);
+
+        Field(Js::FunctionBody*) functionBody = nullptr;
+        hr = Js::ByteCodeSerializer::DeserializeFromBuffer(
+            scriptContextUI,
+            BGPARSE_FLAGS,
+            (const byte *)pszSrc,
+            pSrcInfo,
+            this->bufferReturn,
+            nullptr, // nativeModule
+            &functionBody,
+            sourceIndex
+        );
+
+        if (hr == S_OK)
+        {
+            // The buffer is now owned by the output of DeserializeFromBuffer
+            (*functionBodyReturn) = functionBody;
+            this->bufferReturn = nullptr;
+            this->bufferReturnBytes = 0;
+        }
+    }
+
+    return hr;
 }
 
 void BGParseWorkItem::CreateCompletionEvent()
