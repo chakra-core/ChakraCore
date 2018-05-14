@@ -159,15 +159,15 @@ SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>::SetAttributes(void * addre
     // We do want the grandparent class behavior though, which actually sets the ObjectInfo bits.
     SmallFinalizableHeapBlockT<TBlockAttributes>::Base::SetAttributes(address, attributes);
 
-#ifdef RECYCLER_FINALIZE_CHECK
     if (attributes & FinalizeBit)
     {
         this->finalizeCount++;
+#ifdef RECYCLER_FINALIZE_CHECK
         HeapInfo * heapInfo = this->heapBucket->heapInfo;
         heapInfo->liveFinalizableObjectCount++;
         heapInfo->newFinalizableObjectCount++;
-    }
 #endif
+    }
 }
 
 template <class TBlockAttributes>
