@@ -230,6 +230,29 @@ enum FunctionFlags
     ffIsClassMember                    = 0x2000000,
 };
 
+enum ScopeInfoFlags : byte
+{
+    sifNone                     = 0x0,
+    sifIsDynamic                = 0x1,
+    sifIsObject                 = 0x2,
+    sifMustInstantiate          = 0x4,
+    sifIsCached                 = 0x8,
+    sifHasLocalInClosure        = 0x10,
+    sifIsGeneratorFunctionBody  = 0x20,
+    sifIsAsyncFunctionBody      = 0x40,
+};
+
+enum SymbolInfoFlags : byte
+{
+    syifNone                    = 0x0,
+    syifHasFuncAssignment        = 0x1,
+    syifIsBlockVariable          = 0x2,
+    syifIsConst                  = 0x4,
+    syifIsFuncExpr               = 0x8,
+    syifIsModuleExportStorage    = 0x10,
+    syifIsModuleImport           = 0x20,
+};
+
 // Kinds of constant
 enum ConstantType : byte
 {
@@ -2353,15 +2376,16 @@ public:
         }
         PrependUInt32(builder, _u("ScopeInfo FunctionInfo relative id"), relativeFunctionId);
 
-        BYTE flags = (scopeInfo->isDynamic ? 0x1 : 0)
-            | (scopeInfo->isObject ? 0x2 : 0)
-            | (scopeInfo->mustInstantiate ? 0x4 : 0)
-            | (scopeInfo->isCached ? 0x8 : 0)
-            | (scopeInfo->hasLocalInClosure ? 0x10 : 0)
-            | (scopeInfo->isGeneratorFunctionBody ? 0x20 : 0)
-            | (scopeInfo->isAsyncFunctionBody ? 0x40 : 0);
+        ScopeInfoFlags scopeInfoFlags = (ScopeInfoFlags)
+            ( (scopeInfo->isDynamic ? sifIsDynamic : sifNone)
+            | (scopeInfo->isObject ? sifIsObject : sifNone)
+            | (scopeInfo->mustInstantiate ? sifMustInstantiate : sifNone)
+            | (scopeInfo->isCached ? sifIsCached : sifNone)
+            | (scopeInfo->hasLocalInClosure ? sifHasLocalInClosure : sifNone)
+            | (scopeInfo->isGeneratorFunctionBody ? sifIsGeneratorFunctionBody : sifNone)
+            | (scopeInfo->isAsyncFunctionBody ? sifIsAsyncFunctionBody : sifNone));
 
-        PrependByte(builder, _u("ScopeInfo flags"), flags);
+        PrependByte(builder, _u("ScopeInfo flags"), scopeInfoFlags);
         PrependInt32(builder, _u("ScopeInfo scope type"), scopeInfo->scopeType);
         PrependInt32(builder, _u("ScopeInfo scope id"), scopeInfo->scopeId);
 
@@ -2369,14 +2393,15 @@ public:
         {
             ScopeInfo::SymbolInfo* sym = scopeInfo->symbols + i;
 
-            flags = (sym->hasFuncAssignment ? 0x1 : 0)
-                | (sym->isBlockVariable ? 0x2 : 0)
-                | (sym->isConst ? 0x4 : 0)
-                | (sym->isFuncExpr ? 0x8 : 0)
-                | (sym->isModuleExportStorage ? 0x10 : 0)
-                | (sym->isModuleImport ? 0x20 : 0);
+            SymbolInfoFlags symbolInfoFlags = (SymbolInfoFlags)
+                ( (sym->hasFuncAssignment ? syifHasFuncAssignment : syifNone)
+                | (sym->isBlockVariable ? syifIsBlockVariable : syifNone)
+                | (sym->isConst ? syifIsConst : syifNone)
+                | (sym->isFuncExpr ? syifIsFuncExpr : syifNone)
+                | (sym->isModuleExportStorage ? syifIsModuleExportStorage : syifNone)
+                | (sym->isModuleImport ? syifIsModuleImport : syifNone));
 
-            PrependByte(builder, _u("SymbolInfo flags"), flags);
+            PrependByte(builder, _u("SymbolInfo flags"), symbolInfoFlags);
             PrependByte(builder, _u("SymbolInfo symbol type"), (BYTE)sym->symbolType);
 
             PropertyId symPropertyId = sym->propertyId;
@@ -4273,15 +4298,15 @@ public:
 
         *scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(), symbolCount * sizeof(ScopeInfo::SymbolInfo), ScopeInfo, functionInfo, symbolCount);
 
-        BYTE flags;
-        current = ReadByte(current, &flags);
-        (*scopeInfo)->isDynamic = (flags & 0x1) != 0;
-        (*scopeInfo)->isObject = (flags & 0x2) != 0;
-        (*scopeInfo)->mustInstantiate = (flags & 0x4) != 0;
-        (*scopeInfo)->isCached = (flags & 0x8) != 0;
-        (*scopeInfo)->hasLocalInClosure = (flags & 0x10) != 0;
-        (*scopeInfo)->isGeneratorFunctionBody = (flags & 0x20) != 0;
-        (*scopeInfo)->isAsyncFunctionBody = (flags & 0x40) != 0;
+        ScopeInfoFlags scopeInfoFlags;
+        current = ReadByte(current, (byte*)&scopeInfoFlags);
+        (*scopeInfo)->isDynamic = (scopeInfoFlags & sifIsDynamic) != 0;
+        (*scopeInfo)->isObject = (scopeInfoFlags & sifIsObject) != 0;
+        (*scopeInfo)->mustInstantiate = (scopeInfoFlags & sifMustInstantiate) != 0;
+        (*scopeInfo)->isCached = (scopeInfoFlags & sifIsCached) != 0;
+        (*scopeInfo)->hasLocalInClosure = (scopeInfoFlags & sifHasLocalInClosure) != 0;
+        (*scopeInfo)->isGeneratorFunctionBody = (scopeInfoFlags & sifIsGeneratorFunctionBody) != 0;
+        (*scopeInfo)->isAsyncFunctionBody = (scopeInfoFlags & sifIsAsyncFunctionBody) != 0;
         (*scopeInfo)->areNamesCached = false;
 
         int scopeType;
@@ -4294,13 +4319,14 @@ public:
         {
             ScopeInfo::SymbolInfo* sym = (*scopeInfo)->symbols + i;
 
-            current = ReadByte(current, &flags);
-            sym->hasFuncAssignment = (flags & 0x1) != 0;
-            sym->isBlockVariable = (flags & 0x2) != 0;
-            sym->isConst = (flags & 0x4) != 0;
-            sym->isFuncExpr = (flags & 0x8) != 0;
-            sym->isModuleExportStorage = (flags & 0x10) != 0;
-            sym->isModuleImport = (flags & 0x20) != 0;
+            SymbolInfoFlags symbolInfoFlags;
+            current = ReadByte(current, (byte*)&symbolInfoFlags);
+            sym->hasFuncAssignment = (symbolInfoFlags & syifHasFuncAssignment) != 0;
+            sym->isBlockVariable = (symbolInfoFlags & syifIsBlockVariable) != 0;
+            sym->isConst = (symbolInfoFlags & syifIsConst) != 0;
+            sym->isFuncExpr = (symbolInfoFlags & syifIsFuncExpr) != 0;
+            sym->isModuleExportStorage = (symbolInfoFlags & syifIsModuleExportStorage) != 0;
+            sym->isModuleImport = (symbolInfoFlags & syifIsModuleImport) != 0;
 
             current = ReadByte(current, (BYTE*)&sym->symbolType);
 
@@ -4596,6 +4622,8 @@ public:
 
 };
 
+// This constructor is for allocating a ByteCodeCache without a reader (ie: before the bytecode buffer is generated).
+// SetReader() should be called before using the cache.
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount)
     : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr), localFunctionIdToFunctionInfoMap(nullptr)
 {
