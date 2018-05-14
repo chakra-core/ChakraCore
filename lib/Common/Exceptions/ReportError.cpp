@@ -4,9 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-#ifdef _MSC_VER
-inline
-#endif
+// Disable inline so that _ReturnAdddress() will get the address of the calling function.
+_NOINLINE
 void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
@@ -24,6 +23,7 @@ void ReportFatalException(
 #ifdef DISABLE_SEH
     TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
 #else
+    void * addressToBlame = _ReturnAddress();
     __try
     {
         ULONG_PTR ExceptionInformation[2];
@@ -31,7 +31,7 @@ void ReportFatalException(
         ExceptionInformation[1] = (ULONG_PTR)context;
         RaiseException(exceptionCode, EXCEPTION_NONCONTINUABLE, 2, (ULONG_PTR*)ExceptionInformation);
     }
-    __except(FatalExceptionFilter(GetExceptionInformation()))
+    __except(FatalExceptionFilter(GetExceptionInformation(), addressToBlame))
     {
     }
 #endif // DISABLE_SEH
