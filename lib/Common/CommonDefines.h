@@ -263,6 +263,9 @@
 #define RECYCLER_VISITED_HOST
 #endif
 
+
+#define ENABLE_WEAK_REFERENCE_REGIONS 1
+
 // JIT features
 
 #if DISABLE_JIT

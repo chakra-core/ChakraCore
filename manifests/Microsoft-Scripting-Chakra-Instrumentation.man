@@ -1382,11 +1382,19 @@
                     />
                 <data
                     inType="win:UInt32"
-                    name="ScannedBytes"
+                    name="ScannedCount"
                     />
                 <data
                     inType="win:UInt32"
-                    name="ClearedBytes"
+                    name="ClearedCount"
+                    />
+                <data
+                    inType="win:UInt32"
+                    name="RegionScannedCount"
+                    />
+                    <data
+                    inType="win:UInt32"
+                    name="RegionClearedCount"
                     />
                 </template>
                 <template tid="GCClearInlineCacheData">

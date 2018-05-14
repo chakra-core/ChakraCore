@@ -5876,7 +5876,11 @@ namespace Js
         AssertMsg(symbolTypeStatic, "Where's symbolTypeStatic?");
         SymbolCacheMap* symbolMap = this->EnsureSymbolMap();
         JavascriptSymbol* symbol = RecyclerNew(this->GetRecycler(), JavascriptSymbol, propertyRecord, symbolTypeStatic);
+#if ENABLE_WEAK_REFERENCE_REGIONS
+        symbolMap->Item(propertyRecord->GetPropertyId(), symbol);
+#else
         symbolMap->Item(propertyRecord->GetPropertyId(), recycler->CreateWeakReferenceHandle(symbol));
+#endif
         return symbol;
     }
 

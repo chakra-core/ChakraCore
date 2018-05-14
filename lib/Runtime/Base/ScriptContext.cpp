@@ -1690,10 +1690,18 @@ namespace Js
 
         if (propertyMap != nullptr)
         {
+#if ENABLE_WEAK_REFERENCE_REGIONS
+            TProperty* propReference = nullptr;
+#else
             RecyclerWeakReference<TProperty>* propReference = nullptr;
+#endif
             if (propertyMap->TryGetValue(propertyId, &propReference))
             {
+#if ENABLE_WEAK_REFERENCE_REGIONS
+                return propReference;
+#else
                 return propReference->Get();
+#endif
             }
         }
 
@@ -1719,7 +1727,11 @@ namespace Js
         // Library doesn't cache PropertyString instances because we might hold them in the 2-letter cache instead.
         PropertyStringCacheMap* propertyMap = this->GetLibrary()->EnsurePropertyStringMap();
         PropertyString* prop = this->GetLibrary()->CreatePropertyString(propertyRecord);
+#if ENABLE_WEAK_REFERENCE_REGIONS
+        propertyMap->Item(propertyRecord->GetPropertyId(), prop);
+#else
         propertyMap->Item(propertyRecord->GetPropertyId(), recycler->CreateWeakReferenceHandle(prop));
+#endif
         return prop;
     }
 

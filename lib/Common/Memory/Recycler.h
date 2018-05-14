@@ -155,6 +155,46 @@ template<ObjectInfoBits infoBits>
 struct InfoBitsWrapper{};
 
 
+#if ENABLE_WEAK_REFERENCE_REGIONS
+template<typename T>
+static constexpr bool is_pointer = false;
+template<typename K>
+static constexpr bool is_pointer<K*> = true;
+
+template<typename T>
+class RecyclerWeakReferenceRegionItem {
+    static_assert(is_pointer<T>, "Weak references must be to pointer types");
+    friend class Recycler;
+public:
+    RecyclerWeakReferenceRegionItem() : ptr(T()), heapBlock(nullptr) {};
+    operator T() const { return ptr; };
+    T operator=(T newPtr) {
+        Assert(ptr == nullptr); // For safety with concurrent marking, only allow setting the pointer to non-null from null
+        heapBlock = nullptr;
+        return ptr = newPtr;
+    };
+private:
+    RecyclerWeakReferenceRegionItem(RecyclerWeakReferenceRegionItem<T>&) = delete;
+
+    FieldNoBarrier(T) ptr;
+    FieldNoBarrier(HeapBlock*) heapBlock; // Note: the low bit of the heapBlock is used for background marking
+};
+
+class RecyclerWeakReferenceRegion {
+    friend class Recycler;
+public:
+    RecyclerWeakReferenceRegionItem<void*>* GetPtr() const { return ptr; }
+    size_t GetCount() const { return count; }
+    HeapBlock* GetHeapBlock() const { return arrayHeapBlock; }
+private:
+    FieldNoBarrier(RecyclerWeakReferenceRegionItem<void*>*) ptr;
+    FieldNoBarrier(size_t) count;
+    FieldNoBarrier(HeapBlock*) arrayHeapBlock;
+};
+
+#endif
+
+
 // Allocation macro
 
 #define RecyclerNew(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocInlined, T, __VA_ARGS__)
@@ -799,6 +839,9 @@ private:
 
     WeakReferenceHashTable<PrimePolicy> weakReferenceMap;
     uint weakReferenceCleanupId;
+#if ENABLE_WEAK_REFERENCE_REGIONS
+    SList<RecyclerWeakReferenceRegion, HeapAllocator> weakReferenceRegionList;
+#endif
 
     void * transientPinnedObject;
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
@@ -1347,6 +1390,11 @@ public:
 
     template<typename T>
     RecyclerWeakReference<T>* CreateWeakReferenceHandle(T* pStrongReference);
+#if ENABLE_WEAK_REFERENCE_REGIONS
+    template<typename T>
+    RecyclerWeakReferenceRegionItem<T>* CreateWeakReferenceRegion(size_t count);
+#endif
+
     uint GetWeakReferenceCleanupId() const { return weakReferenceCleanupId; }
 
     template<typename T>
@@ -1742,6 +1790,7 @@ private:
     void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);
     void BackgroundMark();
+    void BackgroundMarkWeakRefs();
     void BackgroundResetMarks();
     void PrepareBackgroundFindRoots();
     void RevertPrepareBackgroundFindRoots();

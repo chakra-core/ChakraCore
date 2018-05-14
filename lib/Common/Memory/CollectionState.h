@@ -52,6 +52,8 @@ enum CollectionState
     Collection_ConcurrentSweepPass2Wait = 0x00800000,
 #endif
 
+    Collection_WeakRefMark          = 0x01000000,
+
     // Actual states
     CollectionStateNotCollecting          = 0,                                                                // not collecting
     CollectionStateResetMarks             = Collection_Mark | Collection_ResetMarks,                          // reset marks
@@ -90,4 +92,6 @@ enum CollectionState
 #endif
     CollectionStatePostSweepRedeferralCallback = Collection_PostSweepRedeferralCallback,
     CollectionStatePostCollectionCallback = Collection_PostCollectionCallback,
+
+    CollectionStateConcurrentMarkWeakRef = Collection_ConcurrentMark | Collection_ExecutingConcurrent | Collection_WeakRefMark,
 };
