@@ -641,12 +641,21 @@ namespace Js
         }
     }
 
-    ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
+    ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type, bool isExternal) :
         buffer(buffer), bufferLength(length), ArrayBufferBase(type)
     {
         if (length > MaxArrayBufferLength)
         {
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
+        }
+
+        if (!isExternal)
+        {
+            // we take the ownership of the buffer and will have to free it so charge it to our quota.
+            if (!this->GetRecycler()->RequestExternalMemoryAllocation(length))
+            {
+                JavascriptError::ThrowOutOfMemoryError(this->GetScriptContext());
+            }
         }
     }
 
@@ -701,13 +710,6 @@ namespace Js
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         JavascriptArrayBuffer* result = RecyclerNewFinalized(recycler, JavascriptArrayBuffer, buffer, length, type);
         Assert(result);
-
-        // we take the ownership of the buffer and will have to free it so charge it to our quota.
-        if (!recycler->RequestExternalMemoryAllocation(length))
-        {
-            JavascriptError::ThrowOutOfMemoryError(result->GetScriptContext());
-        }
-
         recycler->AddExternalMemoryUsage(length);
         return result;
     }
@@ -890,12 +892,6 @@ namespace Js
         if (buffer)
         {
             result = RecyclerNewFinalized(recycler, WebAssemblyArrayBuffer, buffer, length, type);
-
-            // we take the ownership of the buffer and will have to free it so charge it to our quota.
-            if (!recycler->RequestExternalMemoryAllocation(length))
-            {
-                JavascriptError::ThrowOutOfMemoryError(result->GetScriptContext());
-            }
         }
         else
         {
@@ -1039,13 +1035,6 @@ namespace Js
     {
         Recycler* recycler = type->GetScriptContext()->GetRecycler();
         ProjectionArrayBuffer* result = RecyclerNewFinalized(recycler, ProjectionArrayBuffer, buffer, length, type);
-
-        // we take the ownership of the buffer and will have to free it so charge it to our quota.
-        if (!recycler->RequestExternalMemoryAllocation(length))
-        {
-            JavascriptError::ThrowOutOfMemoryError(result->GetScriptContext());
-        }
-
         // This is user passed [in] buffer, user should AddExternalMemoryUsage before calling jscript, but
         // I don't see we ask everyone to do this. Let's add the memory pressure here as well.
         recycler->AddExternalMemoryUsage(length);
@@ -1072,7 +1061,7 @@ namespace Js
     }
 
     ExternalArrayBuffer::ExternalArrayBuffer(byte *buffer, uint32 length, DynamicType *type)
-        : ArrayBuffer(buffer, length, type)
+        : ArrayBuffer(buffer, length, type, true)
     {
     }
 
