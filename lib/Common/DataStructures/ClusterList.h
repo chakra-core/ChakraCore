@@ -260,7 +260,7 @@ public:
         , consolidated(true)
 #endif
     {
-        backingStore = (indexType**)AllocatorNewArrayZ(TAllocator, alloc, indexType*, maxIndex / numPerSegment);
+        backingStore = AllocatorNewArrayZ(TAllocator, alloc, indexType*, maxIndex / numPerSegment);
     }
     // Merge the set containing node a and the set containing node b
     void Merge(indexType a, indexType b)
