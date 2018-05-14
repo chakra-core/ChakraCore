@@ -1592,7 +1592,7 @@ public:
         return size;
     }
 
-    uint32 AddPropertyIdsForScopeSlotArray(BufferBuilderList & builder, FunctionBody * function)
+    uint32 AddPropertyIdsForScopeSlotArray(BufferBuilderList & builder, ParseableFunctionInfo* function)
     {
         if (function->scopeSlotArraySize == 0)
         {
@@ -2096,8 +2096,6 @@ public:
             AddCacheIdToPropertyIdMap(builder, function);
             AddReferencedPropertyIdMap(builder, function);
 
-            AddPropertyIdsForScopeSlotArray(builder, function);
-
             if (function->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
             {
                 definedFields.has_slotIdInCachedScopeToNestedIndexArray = false;
@@ -2285,6 +2283,8 @@ public:
 
 #include "SerializableFunctionFields.h"
 
+        AddPropertyIdsForScopeSlotArray(builder, function);
+
         if (functionBody != nullptr)
         {
             AddFunctionBody(builder, functionBody, srcInfo, definedFields);
@@ -2383,7 +2383,7 @@ public:
             if (scopeInfo->areNamesCached)
             {
                 Assert(sym->name != nullptr);
-                //PropertyRecord* propertyRecord = ;
+                symPropertyId = sym->name->GetPropertyId();
             }
 
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(symPropertyId);
@@ -3270,7 +3270,7 @@ public:
         return current;
     }
 
-    const byte * ReadPropertyIdsForScopeSlotArray(const byte * current, FunctionBody * function)
+    const byte * ReadPropertyIdsForScopeSlotArray(const byte * current, ByteCodeCache* cache, ParseableFunctionInfo * function)
     {
         if (function->scopeSlotArraySize == 0)
         {
@@ -3288,8 +3288,8 @@ public:
         {
             int value;
             current = ReadInt32(current, &value);
-            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(value);
-            function->GetPropertyIdsForScopeSlotArray()[i] =  propertyId;
+            PropertyId propertyId = cache->LookupPropertyId(value);
+            function->GetPropertyIdsForScopeSlotArray()[i] = propertyId;
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -4010,6 +4010,8 @@ public:
         }
 #include "SerializableFunctionFields.h"
 
+        current = ReadPropertyIdsForScopeSlotArray(current, cache, *function);
+
         if (definedFields->has_ConstantCount)
         {
             FunctionBody **functionBody = (FunctionBody **)function;
@@ -4038,11 +4040,11 @@ public:
             // that here.
             if (definedFields->has_flags == false)
             {
-                (*functionBody)->flags = FunctionBody::FunctionBodyFlags::Flags_None;
+                (*function)->flags = FunctionBody::FunctionBodyFlags::Flags_None;
             }
             else
             {
-                (*functionBody)->flags = (FunctionBody::FunctionBodyFlags)((*functionBody)->flags & ~FunctionBody::Flags_StackNestedFunc);
+                (*function)->flags = (FunctionBody::FunctionBodyFlags)((*function)->flags & ~FunctionBody::Flags_StackNestedFunc);
             }
 
             if (definedFields->has_m_envDepth == false)
@@ -4143,8 +4145,6 @@ public:
             current = ReadCacheIdToPropertyIdMap(current, *functionBody);
             current = ReadReferencedPropertyIdMap(current, *functionBody);
             (*functionBody)->AllocateInlineCache();
-
-            current = ReadPropertyIdsForScopeSlotArray(current, *functionBody);
 
             if (definedFields->has_slotIdInCachedScopeToNestedIndexArray)
             {
