@@ -2376,6 +2376,11 @@ namespace Js
                         grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
                     }
 
+                    if (isDebugOrAsmJsReparse)
+                    {
+                        grfscr &= ~fscrCreateParserState; // Disable parser state cache if we're debugging or reparsing asm.js
+                    }
+
                     BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
                     {
                         CompileScriptException se;
@@ -4977,6 +4982,7 @@ namespace Js
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
+        this->SetDeferredStubs(nullptr);
         this->profiledLdLenCount = 0;
         this->profiledLdElemCount = 0;
         this->profiledStElemCount = 0;

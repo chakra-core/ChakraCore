@@ -4,9 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 // Following lines generate a baseline with flags:
-// -ForceCreateParserState -trace:CreateParserState
-//
-// Uses WScript.LoadScript so that function numbering can be easier to reason about
+// -UseParserStateCache -ParserStateCache -ForceDeferParse -Trace:CreateParserState
 
 console.log('nested function capturing var decl');
 WScript.LoadScript(`

@@ -402,8 +402,16 @@
     <default>
       <files>VerifyParserState.js</files>
       <baseline>VerifyParserState.baseline</baseline>
-      <compile-flags>-forcecreateparserstate -trace:createparserstate -forcedeferparse</compile-flags>
-      <tags>exclude_test</tags>
+      <compile-flags>-UseParserStateCache -ParserStateCache -Force:DeferParse -Trace:CreateParserState</compile-flags>
+      <tags>exclude_test,exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>VerifySkipNestedDeferred.js</files>
+      <baseline>VerifySkipNestedDeferred.baseline</baseline>
+      <compile-flags>-UseParserStateCache -ParserStateCache -Force:DeferParse -Trace:SkipNestedDeferred</compile-flags>
+      <tags>exclude_test,exclude_jshost,exclude_dynapogo</tags>
     </default>
   </test>
 </regress-exe>

@@ -6,6 +6,8 @@
 #include "FormalsUtil.h"
 #include "../Runtime/Language/SourceDynamicProfileManager.h"
 
+#include "ByteCode/ByteCodeSerializer.h"
+
 #if DBG_DUMP
 void PrintPnodeWIndent(ParseNode *pnode, int indentAmt);
 #endif
@@ -93,7 +95,6 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_currentNodeDeferredFunc(nullptr),
     m_currentNodeProg(nullptr),
     m_currDeferredStub(nullptr),
-    m_prevSiblingDeferredStub(nullptr),
     m_pCurrentAstSize(nullptr),
     m_ppnodeScope(nullptr),
     m_ppnodeExprScope(nullptr),
@@ -3062,6 +3063,23 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     {
         ichMin = this->GetScanner()->IchMinTok();
         iuMin = this->GetScanner()->IecpMinTok();
+
+        // If we are undeferring a function which has deferred stubs, we can check to see if the next deferred stub
+        // is a lambda at the current character. If it is, we know this LParen is the beginning of a lambda nested
+        // function and we can avoid parsing the next series of tokens as a parenthetical expression and reparsing
+        // after finding the => token.
+        if (buildAST && m_currDeferredStub != nullptr && GetCurrentFunctionNode() != nullptr)
+        {
+            DeferredFunctionStub* stub = m_currDeferredStub + GetCurrentFunctionNode()->nestedCount;
+            if (stub->ichMin == ichMin)
+            {
+                Assert((stub->fncFlags & kFunctionIsLambda) == kFunctionIsLambda);
+
+                pnode = ParseFncDeclCheckScope<true>(fFncLambda, /* resetParsingSuperRestrictionState*/ false);
+                break;
+            }
+        }
+
         this->GetScanner()->Scan();
         if (m_token.tk == tkRParen)
         {
@@ -4936,7 +4954,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
         pnodeFnc->lineNumber = this->GetScanner()->LineCur();
         pnodeFnc->columnNumber = CalculateFunctionColumnNumber();
         pnodeFnc->SetNested(m_currentNodeFunc != nullptr); // If there is a current function, then we're a nested function.
-        pnodeFnc->SetStrictMode(IsStrictMode()); // Inherit current strict mode -- may be overridden by the function itself if it contains a strict mode directive.        
+        pnodeFnc->SetStrictMode(IsStrictMode()); // Inherit current strict mode -- may be overridden by the function itself if it contains a strict mode directive.
 
         m_pCurrentAstSize = &pnodeFnc->astSize;
     }
@@ -5383,18 +5401,12 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
             {
                 m_reparsingLambdaParams = true;
             }
-            DeferredFunctionStub *saveDeferredStub = nullptr;
-            if (buildAST)
-            {
-                // Don't try to make use of stubs while parsing formals. Issues with arrow functions, nested functions.
-                saveDeferredStub = m_currDeferredStub;
-                m_currDeferredStub = nullptr;
-            }
+
+            DeferredFunctionStub* savedDeferredStub = m_currDeferredStub;
+            m_currDeferredStub = nullptr;
             this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags, isTopLevelDeferredFunc);
-            if (buildAST)
-            {
-                m_currDeferredStub = saveDeferredStub;
-            }
+            m_currDeferredStub = savedDeferredStub;
+
             m_reparsingLambdaParams = fLambdaParamsSave;
         }
 
@@ -5561,43 +5573,17 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
             if (buildAST)
             {
-                DeferredFunctionStub *saveCurrentStub = m_currDeferredStub;
-                if (pnodeFncSave && m_currDeferredStub)
-                {
-                    // the Deferred stub will not match for the function which are defined on lambda formals.
-                    // Since this is not determined upfront that the current function is a part of outer function or part of lambda formal until we have seen the Arrow token.
-                    // Due to that the current function may be fetching stubs from the outer function (outer of the lambda) - rather then the lambda function. The way to fix is to match
-                    // the function start with the stub. Because they should match. We need to have previous sibling concept as the lambda formals can have more than one
-                    // functions and we want to avoid getting wrong stub.
-
-                    if (pnodeFncSave->nestedCount == 1)
-                    {
-                        m_prevSiblingDeferredStub = nullptr;
-                    }
-
-                    if (m_prevSiblingDeferredStub == nullptr)
-                    {
-                        m_prevSiblingDeferredStub = (m_currDeferredStub + (pnodeFncSave->nestedCount - 1));
-                    }
-
-                    if (m_prevSiblingDeferredStub->ichMin == pnodeFnc->ichMin)
-                    {
-                        m_currDeferredStub = m_prevSiblingDeferredStub->deferredStubs;
-                        m_prevSiblingDeferredStub = nullptr;
-                    }
-                    else
-                    {
-                        m_currDeferredStub = nullptr;
-                    }
-                }
-
                 if (m_token.tk != tkLCurly && fLambda)
                 {
                     *pNeedScanRCurly = false;
                 }
+                DeferredFunctionStub* savedStub = m_currDeferredStub;
+                if (pnodeFnc->IsNested() && pnodeFncSave != nullptr && m_currDeferredStub != nullptr && pnodeFncSave->ichMin != pnodeFnc->ichMin)
+                {
+                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->nestedCount - 1))->deferredStubs;
+                }
                 this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
-
-                m_currDeferredStub = saveCurrentStub;
+                m_currDeferredStub = savedStub;
             }
             else
             {
@@ -5823,27 +5809,27 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
 
     m_ppnodeVar = &pnodeFnc->pnodeVars;
 
-    if (pnodeFncParent != nullptr
-        && m_currDeferredStub != nullptr
-        // We don't create stubs for function bodies in parameter scope.
-        && pnodeFnc->pnodeScopes->blockType != PnodeBlockType::Parameter)
+    // Don't try and skip scanning nested deferred lambdas which have only a single expression in the body.
+    // Their more-complicated text extents won't match the deferred-stub and the single expression should be fast to scan, anyway.
+    if (fLambda && !*pNeedScanRCurly)
+    {
+        ParseExpressionLambdaBody<false>(pnodeFnc);
+    }
+    else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr && !pnodeFncParent->HasDefaultArguments())
     {
         // We've already parsed this function body for syntax errors on the initial parse of the script.
         // We have information that allows us to skip it, so do so.
 
+        Assert(pnodeFncParent->nestedCount != 0);
         DeferredFunctionStub *stub = m_currDeferredStub + (pnodeFncParent->nestedCount - 1);
-        Assert(pnodeFnc->ichMin == stub->ichMin);
+
+        Assert(pnodeFnc->ichMin == stub->ichMin
+            || (stub->fncFlags & kFunctionIsAsync) == kFunctionIsAsync
+            || ((stub->fncFlags & kFunctionIsGenerator) == kFunctionIsGenerator && (stub->fncFlags & kFunctionIsMethod) == kFunctionIsMethod));
+
         if (stub->fncFlags & kFunctionCallsEval)
         {
             this->MarkEvalCaller();
-        }
-        if (stub->fncFlags & kFunctionChildCallsEval)
-        {
-            pnodeFnc->SetChildCallsEval(true);
-        }
-        if (stub->fncFlags & kFunctionHasWithStmt)
-        {
-            pnodeFnc->SetHasWithStmt(true);
         }
 
         PHASE_PRINT_TRACE1(
@@ -5852,23 +5838,26 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
             pnodeFnc->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
 
         this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
+
+        for (uint i = 0; i < stub->capturedNameCount; i++)
+        {
+            int stringId = stub->capturedNameSerializedIds[i];
+            uint32 stringLength = 0;
+            LPCWSTR stringVal = Js::ByteCodeSerializer::DeserializeString(stub, stringId, stringLength);
+
+            OUTPUT_TRACE_DEBUGONLY(Js::SkipNestedDeferredPhase, _u("\tPushing a reference to '%s'\n"), stringVal);
+
+            IdentPtr pid = this->GetHashTbl()->PidHashNameLen(stringVal, stringLength);
+            PushPidRef(pid);
+        }
+
         pnodeFnc->nestedCount = stub->nestedCount;
         pnodeFnc->deferredStub = stub->deferredStubs;
-        if (stub->fncFlags & kFunctionStrictMode)
-        {
-            pnodeFnc->SetStrictMode(true);
-        }
+        pnodeFnc->fncFlags = (FncFlags)(pnodeFnc->fncFlags | stub->fncFlags);
     }
     else
     {
-        if (fLambda && !*pNeedScanRCurly)
-        {
-            ParseExpressionLambdaBody<false>(pnodeFnc);
-        }
-        else
-        {
-            ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
-        }
+        ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
     }
 
     if (!fLambda || *pNeedScanRCurly)
@@ -7302,6 +7291,11 @@ LPCOLESTR Parser::GetFunctionName(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint)
     if (name == nullptr && pNameHint != nullptr)
     {
         name = pNameHint;
+    }
+    if (name == nullptr && (pnodeFnc->IsLambda() ||
+        (!pnodeFnc->IsDeclaration() && !pnodeFnc->IsMethod())))
+    {
+        name = Js::Constants::AnonymousFunction;
     }
     if (name == nullptr && m_functionBody != nullptr)
     {
@@ -13839,7 +13833,7 @@ void DumpCapturedNames(ParseNodeFnc* pnodeFnc, IdentPtrSet* capturedNames, Arena
     }, nullptr);
 
     sortedNames->Map([=](int index, const IdentPtr pid) -> void {
-        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u("Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
+        OUTPUT_TRACE_DEBUGONLY(Js::CreateParserStatePhase, _u(" Function %u captured name \"%s\"\n"), pnodeFnc->functionId, pid->Psz());
     });
 }
 #endif
@@ -13894,15 +13888,15 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
 
 bool Parser::IsCreatingStateCache()
 {
-    return ((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        || (CONFIG_FLAG(ForceCreateParserState))
-#endif
-        ;
+    return (((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
+        && this->m_functionBody == nullptr
+        && CONFIG_FLAG(ParserStateCache));
 }
 
 DeferredFunctionStub * Parser::BuildDeferredStubTree(ParseNodeFnc *pnodeFnc, Recycler *recycler)
 {
+    Assert(CONFIG_FLAG(ParserStateCache));
+
     uint nestedCount = pnodeFnc->nestedCount;
     if (nestedCount == 0)
     {
