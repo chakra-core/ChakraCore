@@ -682,6 +682,16 @@ bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemet
 #endif
 }
 
+
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsTelemetryProviderEnabled() const
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::IsTelemetryProviderEnabled();
+#else
+    return false;
+#endif
+}
+
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg)
 {
 #if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)

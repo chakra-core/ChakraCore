@@ -1842,6 +1842,7 @@ private:
         virtual bool TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg);
         virtual bool ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const;
         virtual DWORD ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const;
+        virtual bool IsTelemetryProviderEnabled() const;
 
     private:
         ThreadContext * tc;

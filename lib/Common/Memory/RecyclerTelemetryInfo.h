@@ -28,6 +28,7 @@ namespace Memory
         virtual LPFILETIME GetLastScriptExecutionEndTime() const = 0;
         virtual bool TransmitTelemetry(RecyclerTelemetryInfo& rti) = 0;
         virtual bool TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char* msg) = 0;
+        virtual bool IsTelemetryProviderEnabled() const = 0;
         virtual bool IsThreadBound() const = 0;
         virtual DWORD GetCurrentScriptThreadID() const = 0;
     };
@@ -94,7 +95,6 @@ namespace Memory
         inline const uint16 GetPassCount() const { return this->passCount; }
         const GUID& GetRecyclerID() const;
         bool GetIsConcurrentEnabled() const;
-        bool ShouldCaptureRecyclerTelemetry() const;
         bool IsOnScriptThread() const;
 
         AllocatorDecommitStats* GetThreadPageAllocator_decommitStats() { return &this->threadPageAllocator_decommitStats; }
@@ -109,6 +109,7 @@ namespace Memory
         DWORD mainThreadID;
         RecyclerTelemetryHostInterface * hostInterface;
         Js::Tick recyclerStartTime;
+        bool inPassActiveState;
 
         // TODO: update list below to SList.  Need to ensure we have same allocation semantics (specifically heap allocs, no exceptions on failure)
         RecyclerTelemetryGCPassStats* lastPassStats;
@@ -123,7 +124,8 @@ namespace Memory
         AllocatorDecommitStats recyclerWithBarrierPageAllocator_decommitStats;
 #endif
 
-        bool ShouldTransmit();
+        bool ShouldStartTelemetryCapture() const;
+        bool ShouldTransmit() const;
         void FreeGCPassStats();
         void Reset();
         void FillInSizeData(IdleDecommitPageAllocator* allocator, AllocatorSizes* sizes) const;
