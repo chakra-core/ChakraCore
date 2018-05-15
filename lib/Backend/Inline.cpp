@@ -1090,7 +1090,7 @@ void Inline::CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr)
     IR::Instr* previousClonedArg = clonedCallInstr;
     callInstr->IterateArgInstrs([&](IR::Instr* argInstr){
         IR::Instr* cloneArg = IR::Instr::New(argInstr->m_opcode,
-            IR::SymOpnd::New(callInstr->m_func->m_symTable->GetArgSlotSym(argInstr->GetDst()->GetStackSym()->GetArgSlotNum()), 0, TyMachPtr, callInstr->m_func),
+            IR::SymOpnd::New(callInstr->m_func->m_symTable->GetArgSlotSym(argInstr->GetDst()->GetStackSym()->GetArgSlotNum()), 0, argInstr->GetDst()->GetType(), callInstr->m_func),
             argInstr->GetSrc1(), callInstr->m_func);
         cloneArg->SetByteCodeOffset(callInstr);
         cloneArg->GetDst()->GetStackSym()->m_isArgCaptured = true;
@@ -2580,10 +2580,10 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     callInstr->InsertBefore(startCall);
 
     StackSym *symDst = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(2));
-    IR::SymOpnd* linkOpnd1 = IR::SymOpnd::New(symDst, 0, TyMachPtr, callInstr->m_func);
+    IR::SymOpnd* linkOpnd1 = IR::SymOpnd::New(symDst, 0, TyVar, callInstr->m_func);
 
     symDst = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(1));
-    IR::Opnd *linkOpnd2 = IR::SymOpnd::New(symDst, 0, TyMachPtr, callInstr->m_func);
+    IR::Opnd *linkOpnd2 = IR::SymOpnd::New(symDst, 0, TyVar, callInstr->m_func);
 
     // This keeps the stack args alive for bailout to recover
     IR::Instr* argout = IR::Instr::New(Js::OpCode::ArgOut_A_FromStackArgs, linkOpnd1, ldHeapArguments->GetDst(), startCall->GetDst(), callInstr->m_func);
@@ -2644,12 +2644,12 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     StackSym * sym;
 
     sym = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(1));
-    linkOpnd = IR::SymOpnd::New(sym, 0, TyMachPtr, callInstr->m_func);
+    linkOpnd = IR::SymOpnd::New(sym, 0, TyVar, callInstr->m_func);
     IR::Instr * argOut = IR::Instr::New(Js::OpCode::ArgOut_A, linkOpnd, explicitThisArgOut->GetSrc1(), startCall->GetDst(), callInstr->m_func);
     callInstr->InsertBefore(argOut);
 
     sym = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(2));
-    linkOpnd = IR::SymOpnd::New(sym, 0, TyMachPtr, callInstr->m_func);
+    linkOpnd = IR::SymOpnd::New(sym, 0, TyVar, callInstr->m_func);
     argOut = IR::Instr::New(Js::OpCode::ArgOut_A, linkOpnd, arrayArgOut->GetSrc1(), argOut->GetDst(), callInstr->m_func);
     callInstr->InsertBefore(argOut);
 
@@ -2702,7 +2702,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     callInstr->InsertBefore(startCall);
 
     StackSym* symDst = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(1));
-    IR::SymOpnd* linkOpnd = IR::SymOpnd::New(symDst, 0, TyMachPtr, callInstr->m_func);
+    IR::SymOpnd* linkOpnd = IR::SymOpnd::New(symDst, 0, TyVar, callInstr->m_func);
     IR::Instr* thisArgOut = IR::Instr::New(Js::OpCode::ArgOut_A, linkOpnd, explicitThisArgOut->GetSrc1(), startCall->GetDst(), callInstr->m_func);
     callInstr->InsertBefore(thisArgOut);
 
@@ -3107,7 +3107,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
         orgArgout->InsertBefore(assignInstr);
 
         StackSym *symDst = callInstr->m_func->m_symTable->GetArgSlotSym((uint16)(i));
-        IR::SymOpnd* newLinkOpnd = IR::SymOpnd::New(symDst, 0, TyMachPtr, func);
+        IR::SymOpnd* newLinkOpnd = IR::SymOpnd::New(symDst, 0, TyVar, func);
 
         clonedArgout = IR::Instr::New(Js::OpCode::ArgOut_A, newLinkOpnd, tempDst, func);
         insertBeforeInstr->SetSrc2(newLinkOpnd);
