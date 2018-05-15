@@ -262,6 +262,16 @@ public:
     {
         backingStore = AllocatorNewArrayZ(TAllocator, alloc, indexType*, maxIndex / numPerSegment);
     }
+    ~SegmentClusterList()
+    {
+        if (this->backingStore != nullptr)
+        {
+            // Reset is just a delete + nullptr on all segments
+            this->Reset();
+            AllocatorDeleteArray(TAllocator, alloc, maxIndex / numPerSegment, this->backingStore);
+            this->backingStore = nullptr;
+        }
+    }
     // Merge the set containing node a and the set containing node b
     void Merge(indexType a, indexType b)
     {
