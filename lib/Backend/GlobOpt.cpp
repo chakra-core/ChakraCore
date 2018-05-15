@@ -6778,6 +6778,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         break;
     }
     case Js::OpCode::BrFalse_I4:
+    {
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
         Assert(GetIsAsmJSFunc());
         constVal = 0;
@@ -6788,7 +6789,17 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
 
         *result = constVal == 0;
         break;
-
+    }
+    case Js::OpCode::BrOnObject_A:
+    {
+        ValueInfo *const src1ValueInfo = src1Val->GetValueInfo();
+        if (!src1ValueInfo->IsDefinite())
+        {
+            return false;
+        }
+        *result = src1ValueInfo->IsObject();
+        break;
+    }
     default:
         return false;
     }

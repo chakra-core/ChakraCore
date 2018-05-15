@@ -528,8 +528,8 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
-private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
+private:
     void                    OptBlock(BasicBlock *block);
     void                    BackwardPass(Js::Phase tag);
     void                    ForwardPass();

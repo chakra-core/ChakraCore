@@ -1144,10 +1144,6 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         }
     }
     block->upwardExposedUses = upwardExposedUses;
-    if (this->tag == Js::BackwardPhase)
-    {
-        block->successorBlockUses = upwardExposedUses ? upwardExposedUses->CopyNew(this->globOpt->alloc) : nullptr;
-    }
     block->upwardExposedFields = upwardExposedFields;
     block->typesNeedingKnownObjectLayout = typesNeedingKnownObjectLayout;
     block->byteCodeUpwardExposedUsed = byteCodeUpwardExposedUsed;
