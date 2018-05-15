@@ -3261,11 +3261,9 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                         // block, which we can keep from being cleaned up, and which will always be handled
                         // before the loop is looked at (in this phase), since it is placed after the loop.
                         AssertOrFailFast(maskingBlock->upwardExposedUses);
-                        AssertOrFailFast(maskingBlock->byteCodeUpwardExposedUsed);
                         AssertOrFailFast(maskingBlock->upwardExposedFields);
                         BVSparse<JitArenaAllocator> *symsToMask = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
                         symsToMask->Or(maskingBlock->upwardExposedUses);
-                        symsToMask->Or(maskingBlock->byteCodeUpwardExposedUsed);
                         symsToMask->Or(maskingBlock->upwardExposedFields);
                         symsToMask->And(syms);
                         // If nothing is exposed, we have nothing to mask, and nothing to do here.
@@ -3568,7 +3566,9 @@ BackwardPass::ProcessBlock(BasicBlock * block)
     if (this->tag == Js::DeadStorePhase
         // We don't need the masking blocks in asmjs/wasm mode
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsAsmJsMode()
-        && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsWasmFunction())
+        && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsWasmFunction()
+        && !block->isDead
+        && !block->isDeleted)
     {
         FOREACH_PREDECESSOR_BLOCK(blockPred, block)
         {
@@ -3580,7 +3580,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             // Note that we're doing this backwards - looking from the target into the loop. We
             // do this because this way because we're going backwards over the blocks anyway; a
             // block inserted after the branch may be impossible to correctly handle.
-            if (blockPred->loop != nullptr)
+            if (!blockPred->isDead && !blockPred->isDeleted && blockPred->loop != nullptr)
             {
                 Loop* targetLoop = block->loop;
                 Loop* startingLoop = blockPred->loop;
