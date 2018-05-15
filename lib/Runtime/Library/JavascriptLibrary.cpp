@@ -1708,7 +1708,6 @@ namespace Js
         }
 
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
-        /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
         /* No inlining                Array_ForEach        */
         library->AddMember(arrayPrototype, PropertyIds::forEach, library->EnsureArrayPrototypeForEachFunction());
@@ -1725,18 +1724,13 @@ namespace Js
             /* No inlining            Array_FindIndex      */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::findIndex,       &JavascriptArray::EntryInfo::FindIndex,         1);
         }
 
-#ifndef ENABLE_JS_BUILTINS
-        /* No inlining                Array_Entries        */
-        library->AddMember(arrayPrototype, PropertyIds::entries, library->EnsureArrayPrototypeEntriesFunction());
-
-        /* No inlining                Array_Keys           */
-        library->AddMember(arrayPrototype, PropertyIds::keys, library->EnsureArrayPrototypeKeysFunction());
-
-        JavascriptFunction *values = library->EnsureArrayPrototypeValuesFunction();
-        /* No inlining                Array_Values         */ library->AddMember(arrayPrototype, PropertyIds::values, values);
-        /* No inlining                Array_SymbolIterator */ library->AddMember(arrayPrototype, PropertyIds::_symbolIterator, values);
-#else
-        if (!scriptContext->IsJsBuiltInEnabled())
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            library->EnsureBuiltInEngineIsReady();
+        }
+        else
+#endif
         {
             /* No inlining                Array_Entries        */
             library->AddMember(arrayPrototype, PropertyIds::entries, library->EnsureArrayPrototypeEntriesFunction());
@@ -1747,13 +1741,9 @@ namespace Js
             JavascriptFunction *values = library->EnsureArrayPrototypeValuesFunction();
             /* No inlining                Array_Values         */ library->AddMember(arrayPrototype, PropertyIds::values, values);
             /* No inlining                Array_SymbolIterator */ library->AddMember(arrayPrototype, PropertyIds::_symbolIterator, values);
-        }
-        else
-        {
-            library->EnsureBuiltInEngineIsReady();
-        }
 
-#endif
+            /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter, &JavascriptArray::EntryInfo::Filter, 1);
+        }
 
         if (scriptContext->GetConfig()->IsES6UnscopablesEnabled())
         {
@@ -4632,14 +4622,16 @@ namespace Js
     bool JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
-        typeHandler->Convert(chakraLibraryObject, mode, 6);
+        typeHandler->Convert(chakraLibraryObject, mode, 8);
 
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction, 1);
-        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1); 
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::GetLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::InitInternalProperties, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties, 1);
         library->AddMember(chakraLibraryObject, PropertyIds::isArray, library->isArrayFunction);
         library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arraySpeciesCreate, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate, 2);
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arrayCreateDataPropertyOrThrow, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow, 3);
 
         return true;
     }

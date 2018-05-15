@@ -60,6 +60,8 @@ namespace Js
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_InitInternalProperties(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_InitInternalProperties));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToLengthFunction));
     NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ToIntegerFunction));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArraySpeciesCreate));
+    NoProfileFunctionInfo JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow(FORCE_NO_WRITE_BARRIER_TAG(JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow));
 
     void JsBuiltInEngineInterfaceExtensionObject::Initialize()
     {
@@ -236,6 +238,25 @@ namespace Js
         }
     }
 
+    void JsBuiltInEngineInterfaceExtensionObject::RecordCommonNativeInterfaceBuiltIns(Js::PropertyIds propertyId, ScriptContext * scriptContext, JavascriptFunction * scriptFunction)
+    {
+        PropertyId commonNativeInterfaceId;
+        switch (propertyId)
+        {
+            case PropertyIds::indexOf:
+                commonNativeInterfaceId = Js::PropertyIds::builtInJavascriptArrayEntryIndexOf;
+                break;
+
+            case PropertyIds::filter:
+                commonNativeInterfaceId = Js::PropertyIds::builtInJavascriptArrayEntryFilter;
+                break;
+
+            default:
+                return;
+        }
+
+        scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), commonNativeInterfaceId, scriptFunction);
+    }
 
     void JsBuiltInEngineInterfaceExtensionObject::RecordDefaultIteratorFunctions(Js::PropertyIds propertyId, ScriptContext * scriptContext, JavascriptFunction * iteratorFunc)
     {
@@ -347,12 +368,7 @@ namespace Js
 
         library->AddMember(prototype, functionIdentifier, scriptFunction);
 
-
-        if (functionIdentifier == PropertyIds::indexOf)
-        {
-            // Special case for Intl who requires to call the non-overriden (by the user) IndexOf function. 
-            scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), Js::PropertyIds::builtInJavascriptArrayEntryIndexOf, scriptFunction);
-        }
+        RecordCommonNativeInterfaceBuiltIns(functionIdentifier, scriptContext, scriptFunction);
 
         if (!JavascriptOperators::IsUndefinedOrNull(aliasProperty))
         {
@@ -453,5 +469,50 @@ namespace Js
         return obj;
     }
 
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArraySpeciesCreate(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        AssertOrFailFast(args.Info.Count == 3);
+
+        int64 length64 = JavascriptConversion::ToLength(args.Values[2], scriptContext);
+        if (length64 > UINT_MAX)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthConstructIncorrect);
+        }
+
+        uint32 length = static_cast<uint32>(length64);
+
+        bool isBuiltinArrayCtor = true;
+        RecyclableObject * newObj = JavascriptArray::ArraySpeciesCreate(args.Values[1], length, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor);
+        nullptr;
+
+        if (newObj == nullptr)
+        {
+            newObj = scriptContext->GetLibrary()->CreateArray(length);
+        }
+        else
+        {
+#if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
+        }
+
+        return newObj;
+    }
+
+    Var JsBuiltInEngineInterfaceExtensionObject::EntryJsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        AssertOrFailFast(args.Info.Count == 4);
+
+        RecyclableObject * obj = RecyclableObject::FromVar(args.Values[1]);
+        double index = JavascriptConversion::ToInteger(args.Values[2], scriptContext);
+        AssertOrFailFast(index >= 0);
+        JavascriptArray::BigIndex bigIndex(static_cast<uint64>(index));
+        Var item = args.Values[3];
+
+        JavascriptArray::CreateDataPropertyOrThrow(obj, bigIndex, item, scriptContext);
+        return scriptContext->GetLibrary()->GetTrue();
+    }
 #endif // ENABLE_JS_BUILTINS
 }

@@ -32,4 +32,9 @@ setlocal
     call GenByteCode.cmd
     call GenByteCode.cmd -nojit
   popd
+
+  pushd %_reporoot%\lib\Runtime\Library\JsBuiltIn
+    call GenByteCode.cmd
+    call GenByteCode.cmd -nojit
+  popd
 endlocal
