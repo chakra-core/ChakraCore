@@ -2814,7 +2814,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 // symid for the merge operations. This simplifies the later code.
                 auto getAnyDirectSymID = [](IR::Opnd const* opnd)
                 {
-                    SymID temp = (SymID)-1;
+                    SymID temp = SymID_Invalid;
                     if (opnd == nullptr)
                     {
                         return temp;
@@ -2875,7 +2875,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
                 SymID destSymID = getAnyDirectSymID(dest);
 
-                if (destSymID == (SymID)-1)
+                if (destSymID == SymID_Invalid)
                 {
                     // It looks like we have no assignment to a symbol. As this pass is to mark the
                     // symbols that are in the same set through assignment or computation, the lack

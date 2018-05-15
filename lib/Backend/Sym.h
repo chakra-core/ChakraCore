@@ -28,6 +28,7 @@ enum SymKind : BYTE
 };
 
 typedef uint32 SymID;
+constexpr SymID SymID_Invalid = (SymID)-1;
 
 
 ///---------------------------------------------------------------------------

@@ -2114,7 +2114,7 @@ void LinearScan::RecordLoopUse(Lifetime *lifetime, RegNum reg)
     // We are trying to avoid the need for compensation at the bottom of the loop if
     // the reg ends up being spilled before it is actually used.
     Loop *curLoop = this->curLoop;
-    SymID symId = (SymID)-1;
+    SymID symId = SymID_Invalid;
 
     if (lifetime)
     {
