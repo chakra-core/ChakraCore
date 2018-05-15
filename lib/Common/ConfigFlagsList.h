@@ -971,7 +971,7 @@ FLAGR (NumberSet, BailOutByteCode     , "Byte code location to insert BailOut. U
 #endif
 FLAGNR(Boolean, Benchmark             , "Disable security code which introduce variability in benchmarks", false)
 FLAGR (Boolean, BgJit                 , "Background JIT. Disable to force heuristic-based foreground JITting. (default: true)", true)
-FLAGR (Boolean, BgParse               , "Background Parse. Disable to force all parsing to occur on UI thread. (default: false)", false)
+FLAGR (Boolean, BgParse               , "Background Parse. Disable to force all parsing to occur on UI thread. (default: true)", true)
 FLAGNR(Number,  BgJitDelay            , "Delay to wait for speculative jitting before starting script execution", DEFAULT_CONFIG_BgJitDelay)
 FLAGNR(Number,  BgJitDelayFgBuffer    , "When speculatively jitting in the foreground thread, do so for (BgJitDelay - BgJitDelayBuffer) milliseconds", DEFAULT_CONFIG_BgJitDelayFgBuffer)
 FLAGNR(Number,  BgJitPendingFuncCap   , "Disable delay if pending function count larger then cap", DEFAULT_CONFIG_BgJitPendingFuncCap)

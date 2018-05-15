@@ -1308,6 +1308,7 @@ private:
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
         HRESULT CompileUTF8Core(
+            __in Parser& ps,
             __in Js::Utf8SourceInfo* utf8SourceInfo,
             __in SRCINFO *srcInfo,
             __in BOOL fOriginalUTF8Code,

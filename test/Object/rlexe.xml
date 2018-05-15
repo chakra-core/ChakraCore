@@ -44,6 +44,13 @@
   </test>
   <test>
     <default>
+      <files>Object.js</files>
+      <baseline>Object.baseline</baseline>
+      <compile-flags>-ExecuteWithBgParse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>null.js</files>
       <baseline>null.baseline</baseline>
     </default>
