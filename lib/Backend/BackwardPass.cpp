@@ -2979,7 +2979,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                         break;
                     case IR::OpndKind::OpndKindReg:
                         // If it's not type-specialized, we may dereference it.
-                        if (!(opnd->GetValueType().IsNotObject()))
+                        if (!(opnd->GetValueType().IsNotObject()) && !opnd->AsRegOpnd()->m_sym->IsTypeSpec())
                         {
                             bv->Set(opnd->AsRegOpnd()->m_sym->m_id);
                         }
@@ -3017,7 +3017,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                             for (int iter = 0; iter < list->Count(); iter++)
                             {
                                 // should be the same as OpndKindReg, since ListOpndType is RegOpnd
-                                if (!(list->Item(iter)->GetValueType().IsNotObject()))
+                                if (!(list->Item(iter)->GetValueType().IsNotObject()) && !opnd->AsRegOpnd()->m_sym->IsTypeSpec())
                                 {
                                     bv->Set(list->Item(iter)->m_sym->m_id);
                                 }
