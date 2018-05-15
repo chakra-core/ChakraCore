@@ -109,7 +109,6 @@ namespace Js {
     // Construction
     public:
                 TickDelta();
-    private:
                 TickDelta(int64 lnDelta);
 
     // Properties

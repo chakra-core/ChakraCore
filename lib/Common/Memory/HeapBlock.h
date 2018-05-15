@@ -9,6 +9,8 @@
 
 class ScriptMemoryDumper;
 
+#include "HeapBucketStats.h"
+
 namespace Memory
 {
 #ifdef RECYCLER_PAGE_HEAP
@@ -44,6 +46,7 @@ class  RecyclerSweep;
 class MarkContext;
 
 #if ENABLE_MEM_STATS
+
 #ifdef DUMP_FRAGMENTATION_STATS
 #define DUMP_FRAGMENTATION_STATS_ONLY(x) x
 #define DUMP_FRAGMENTATION_STATS_IS(x) x

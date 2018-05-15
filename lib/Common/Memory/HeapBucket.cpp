@@ -1541,7 +1541,8 @@ HeapBucketT<TBlockType>::PrepareForAllocationsDuringConcurrentSweep(TBlockType *
                 if (this->GetRecycler()->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
                 {
                     size_t currentHeapBlockCount = QueryDepthInterlockedSList(allocableHeapBlockListHead);
-                    Output::Print(_u("[GC #%d] [HeapBucket 0x%p] Starting allocations during  concurrent sweep with %d blocks. [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, currentHeapBlockCount, this->GetRecycler()->collectionState);
+                    CollectionState collectionState = this->GetRecycler()->collectionState;
+                    Output::Print(_u("[GC #%d] [HeapBucket 0x%p] Starting allocations during  concurrent sweep with %d blocks. [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, currentHeapBlockCount, collectionState);
                     Output::Print(_u("[GC #%d] [HeapBucket 0x%p] The heapBlockList has %d blocks. Total heapBlockCount is %d.\n\n"), this->GetRecycler()->collectionCount, this, HeapBlockList::Count(this->heapBlockList), this->heapBlockCount);
                 }
 #endif
@@ -1790,7 +1791,8 @@ HeapBucketT<TBlockType>::FinishConcurrentSweep()
 #ifdef RECYCLER_TRACE
         if (this->GetRecycler()->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
         {
-            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] starting FinishConcurrentSweep [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, this->GetRecycler()->collectionState);
+            CollectionState collectionState = this->GetRecycler()->collectionState;
+            Output::Print(_u("[GC #%d] [HeapBucket 0x%p] starting FinishConcurrentSweep [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, collectionState);
         }
 #endif
 
@@ -1827,7 +1829,8 @@ HeapBucketT<TBlockType>::AppendAllocableHeapBlockList(TBlockType * list)
 #ifdef RECYCLER_TRACE
     if (this->GetRecycler()->GetRecyclerFlagsTable().Trace.IsEnabled(Js::ConcurrentSweepPhase) && CONFIG_FLAG_RELEASE(Verbose))
     {
-        Output::Print(_u("[GC #%d] [HeapBucket 0x%p] in AppendAllocableHeapBlockList [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, this->GetRecycler()->collectionState);
+        CollectionState collectionState = this->GetRecycler()->collectionState;
+        Output::Print(_u("[GC #%d] [HeapBucket 0x%p] in AppendAllocableHeapBlockList [CollectionState: %d] \n"), this->GetRecycler()->collectionCount, this, collectionState);
     }
 #endif
     // Add the list to the end of the current list

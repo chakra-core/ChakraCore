@@ -5,6 +5,9 @@
 #pragma once
 
 #include "CollectionState.h"
+#include "RecyclerTelemetryInfo.h"
+#include "RecyclerWaitReason.h"
+#include "Common/ObservableValue.h"
 
 namespace Js
 {
@@ -710,6 +713,10 @@ class Recycler
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     friend class AutoProtectPages;
 #endif
+#ifdef ENABLE_BASIC_TELEMETRY
+    friend class RecyclerTelemetryInfo;
+#endif
+
 
     template <typename T> friend class RecyclerWeakReference;
     template <typename T> friend class WeakReferenceHashTable;
@@ -779,12 +786,12 @@ private:
             _recycler(recycler),
             _exitState(exitState)
         {
-            _recycler->collectionState = entryState;
+            _recycler->SetCollectionState(entryState);
         }
 
         ~AutoSwitchCollectionStates()
         {
-            _recycler->collectionState = _exitState;
+            _recycler->SetCollectionState(_exitState);
         }
 
     private:
@@ -798,7 +805,39 @@ private:
     uint collectionFinishReason;
 #endif
 
-    CollectionState collectionState;
+    class CollectionStateChangedObserver : public ObservableValueObserver<CollectionState>
+    {
+    private:
+        Recycler* recycler;
+    public:
+        CollectionStateChangedObserver(Recycler* recycler)
+        {
+            this->recycler = recycler;
+        }
+
+        virtual void ValueChanged(const CollectionState& newVal, const CollectionState& oldVal)
+        {
+#ifdef ENABLE_BASIC_TELEMETRY
+            if (oldVal == CollectionState::CollectionStateNotCollecting && newVal != CollectionState::CollectionStateNotCollecting && newVal != CollectionState::Collection_PreCollection)
+            {
+                this->recycler->GetRecyclerTelemetryInfo().StartPass();
+            }
+            else if (oldVal != CollectionState::CollectionStateNotCollecting && oldVal != CollectionState::Collection_PreCollection && newVal == CollectionState::CollectionStateNotCollecting)
+            {
+                this->recycler->GetRecyclerTelemetryInfo().EndPass();
+            }
+#endif
+        }
+    };
+
+    CollectionStateChangedObserver collectionStateChangedObserver;
+    ObservableValue<CollectionState> collectionState;
+
+    inline void SetCollectionState(CollectionState newState)
+    {
+        this->collectionState = newState;
+    }
+
     JsUtil::ThreadService *threadService;
 #if ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP
     bool allowAllocationsDuringConcurrentSweepForCollection;
@@ -1126,6 +1165,11 @@ private:
         return this->autoHeap.GetDefaultHeap();
     }
 
+    HeapInfo * GetHeapInfo()
+    {
+        return this->autoHeap.GetDefaultHeap();
+    }
+
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
 #endif
@@ -1142,6 +1186,22 @@ private:
     RecyclerWatsonTelemetryBlock localTelemetryBlock;
     RecyclerWatsonTelemetryBlock * telemetryBlock;
 #endif
+
+#ifdef ENABLE_BASIC_TELEMETRY
+private:
+    RecyclerTelemetryInfo telemetryStats;
+    GUID recyclerID;
+public:
+    GUID& GetRecyclerID() { return this->recyclerID; }
+#endif
+  
+
+public:
+    bool GetIsInScript() { return this->isInScript; }
+    bool GetIsScriptActive() { return this->isScriptActive; }
+
+private:
+
 #ifdef RECYCLER_STATS
     RecyclerCollectionStats collectionStats;
     void PrintHeapBlockStats(char16 const * name, HeapBlock::HeapBlockType type);
@@ -1170,7 +1230,8 @@ public:
 #endif
 public:
 
-    Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void(*outOfMemoryFunc)(), Js::ConfigFlagsTable& flags);
+    Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllocator * pageAllocator, void(*outOfMemoryFunc)(), Js::ConfigFlagsTable& flags, RecyclerTelemetryHostInterface* hostInterface);
+
     ~Recycler();
 
     void Initialize(const bool forceInThread, JsUtil::ThreadService *threadService, const bool deferThreadStartup = false
@@ -1785,7 +1846,10 @@ private:
 
     template <CollectionFlags flags>
     BOOL TryFinishConcurrentCollect();
-    BOOL WaitForConcurrentThread(DWORD waitTime);
+
+    BOOL WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller = RecyclerWaitReason::Other);
+    void FlushBackgroundPages();
+
     BOOL FinishConcurrentCollect(CollectionFlags flags);
     void FinishTransferSwept(CollectionFlags flags);
     BOOL FinishConcurrentCollectWrapped(CollectionFlags flags);
@@ -1881,6 +1945,10 @@ private:
     // in projection ExternalMark allowing allocating VarToDispEx. This is the common flag
     // while we have debug only flag for each of the two scenarios.
     bool isCollectionDisabled;
+
+#ifdef ENABLE_BASIC_TELEMETRY
+    RecyclerTelemetryInfo& GetRecyclerTelemetryInfo() { return this->telemetryStats; }
+#endif
 
 #ifdef TRACK_ALLOC
 public:

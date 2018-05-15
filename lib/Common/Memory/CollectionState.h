@@ -2,6 +2,12 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+#pragma once
+
+namespace Memory
+{
+
 enum CollectionState
 {
     Collection_Mark                 = 0x00000001,
@@ -95,3 +101,5 @@ enum CollectionState
 
     CollectionStateConcurrentMarkWeakRef = Collection_ConcurrentMark | Collection_ExecutingConcurrent | Collection_WeakRefMark,
 };
+
+}

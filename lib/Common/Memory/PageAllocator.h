@@ -6,6 +6,10 @@
 #include "PageAllocatorDefines.h"
 #include "Exceptions/ExceptionBase.h"
 
+#ifdef ENABLE_BASIC_TELEMETRY
+#include "AllocatorTelemetryStats.h"
+#endif
+
 #ifdef PROFILE_MEM
 struct PageMemoryData;
 #endif
@@ -746,6 +750,12 @@ public:
 #if DBG_DUMP
     char16 const * debugName;
 #endif
+
+#ifdef ENABLE_BASIC_TELEMETRY
+    AllocatorDecommitStats* GetDecommitStats() { return this->decommitStats; }
+    void SetDecommitStats(AllocatorDecommitStats* val) { this->decommitStats = val; }
+#endif
+
 protected:
     void InitVirtualAllocator(TVirtualAlloc * virtualAllocator);
 
@@ -902,6 +912,10 @@ private:
     PageMemoryData * memoryData;
 #endif
 
+#ifdef ENABLE_BASIC_TELEMETRY
+    AllocatorDecommitStats* decommitStats;
+#endif
+
     size_t usedBytes;
     PageAllocatorType type;
 
@@ -943,6 +957,14 @@ private:
     void SubUsedBytes(size_t bytes);
     void AddNumberOfSegments(size_t segmentCount);
     void SubNumberOfSegments(size_t segmentCount);
+
+public:
+    size_t GetReservedBytes() const { return this->reservedBytes; };
+    size_t GetCommittedBytes() const { return this->committedBytes; }
+    size_t GetUsedBytes() const { return this->usedBytes; }
+    size_t GetNumberOfSegments() const { return this->numberOfSegments; }
+
+private:
 
     bool RequestAlloc(size_t byteCount)
     {

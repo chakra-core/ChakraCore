@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)Api.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DateUtilities.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Event.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int32Math.cpp" />
@@ -38,6 +37,7 @@
     <ClInclude Include="NumberUtilitiesBase.h" />
     <ClInclude Include="SmartFpuControl.h" />
     <ClInclude Include="Int64Math.h" />
+    <ClInclude Include="ObservableValue.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Jobs.inl" />
