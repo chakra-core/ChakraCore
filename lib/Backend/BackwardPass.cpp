@@ -3205,7 +3205,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 // the loop and not get caught.
 
                 // This helper goes through and marks loop out-edges for a particular symbol set.
-                auto addOutEdgeMasking = [](SymID symID, Loop* loop, JitArenaAllocator *alloc)
+                static void (*addOutEdgeMasking)(SymID, Loop*, JitArenaAllocator*) = [](SymID symID, Loop* loop, JitArenaAllocator *alloc) -> void
                 {
                     // There are rare cases where we have no out-edges (the only way to leave this loop
                     // is via a return inside the jitloopbody); in this case, we don't need to mask any
@@ -3240,6 +3240,16 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                         // Get the upwardExposed information for the previous block
                         IR::LabelInstr *blockLabel = bcuInstr->m_prev->AsLabelInstr();
                         BasicBlock* maskingBlock = blockLabel->GetBasicBlock();
+                        // Since it's possible we have a multi-level loop structure (each with its own mask
+                        // instructions and dereferenced symbol list), we may be able to avoid masking some
+                        // symbols in interior loop->exterior loop edges if they're not dereferenced in the
+                        // exterior loop. This does mean, however, that we need to mask them further out.
+                        Loop* maskingBlockLoop = maskingBlock->loop;
+                        if (maskingBlockLoop != nullptr && !maskingBlockLoop->internallyDereferencedSyms->Test(symID))
+                        {
+                            addOutEdgeMasking(symID, maskingBlockLoop, alloc);
+                            continue;
+                        }
                         // Instead of looking at the previous block (inside the loop), which may be cleaned
                         // up or may yet be processed for dead stores, we instead can look at the mask/cmov
                         // block, which we can keep from being cleaned up, and which will always be handled
