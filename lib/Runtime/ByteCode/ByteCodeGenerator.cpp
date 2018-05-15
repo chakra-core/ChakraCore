@@ -1230,7 +1230,8 @@ static const Js::FunctionInfo::Attributes StableFunctionInfoAttributesMask = (Js
     Js::FunctionInfo::Attributes::Generator |
     Js::FunctionInfo::Attributes::Module |
     Js::FunctionInfo::Attributes::ComputedName |
-    Js::FunctionInfo::Attributes::HomeObj
+    Js::FunctionInfo::Attributes::HomeObj |
+    Js::FunctionInfo::Attributes::CanHaveCachedScope
 );
 
 static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pnodeFnc)
@@ -1291,6 +1292,10 @@ static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pno
     if (pnodeFnc->HasHomeObj())
     {
         attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::HomeObj);
+    }
+    if (pnodeFnc->HasCachedScope())
+    {
+        attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::CanHaveCachedScope);
     }
     return attributes;
 }
@@ -1377,7 +1382,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 {
                     parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
                 }
-                Assert((parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask) == (attributes & StableFunctionInfoAttributesMask));
+#if DBG
+                Js::FunctionInfo::Attributes stableAttr = (Js::FunctionInfo::Attributes)(parseableFunctionInfo->GetAttributes() & StableFunctionInfoAttributesMask);
+                Js::FunctionInfo::Attributes newAttr = (Js::FunctionInfo::Attributes)(attributes & StableFunctionInfoAttributesMask);
+                Assert(stableAttr == newAttr || (((stableAttr & ~Js::FunctionInfo::Attributes::CanHaveCachedScope) == newAttr) && this->IsInDebugMode()));
+#endif
             }
             else
             {
@@ -2472,7 +2481,25 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         byteCodeGenerator->SetRootFuncInfo(funcInfo);
     }
 
-    if (pnodeFnc->pnodeBody == nullptr)
+    bool doStackArgsOpt = false;
+    if (pnodeFnc->HasReferenceableBuiltInArguments() && pnodeFnc->UsesArguments())
+    {
+        funcInfo->SetHasArguments(true);
+        if (pnodeFnc->HasHeapArguments())
+        {
+            doStackArgsOpt = (!pnodeFnc->HasAnyWriteToFormals() || funcInfo->GetIsStrictMode());
+
+            //With statements - need scope object to be present.
+            if ((doStackArgsOpt && pnodeFnc->funcInfo->GetParamScope()->Count() > 1) && ((byteCodeGenerator->GetFlags() & fscrEval) ||
+                pnodeFnc->HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
+            {
+                doStackArgsOpt = false;
+            }
+            funcInfo->SetHasHeapArguments(true, !pnodeFnc->IsCoroutine() && doStackArgsOpt /*= Optimize arguments in backend*/);
+        }
+    }
+
+     if (pnodeFnc->pnodeBody == nullptr)
     {
         // This is a deferred byte code gen, so we're done.
         // Process the formal arguments, even if there's no AST for the body, to support Function.length.
@@ -2502,24 +2529,16 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         else if (pnodeFnc->UsesArguments())
         {
             // 3. the function directly references an 'arguments' identifier
-            funcInfo->SetHasArguments(true);
             funcInfo->GetParsedFunctionBody()->SetUsesArgumentsObject(true);
             if (pnodeFnc->HasHeapArguments())
             {
-                bool doStackArgsOpt = (!pnodeFnc->HasAnyWriteToFormals() || funcInfo->GetIsStrictMode());
 #ifdef PERF_HINT
                 if (PHASE_TRACE1(Js::PerfHintPhase) && !doStackArgsOpt)
                 {
                     WritePerfHint(PerfHints::HeapArgumentsDueToWriteToFormals, funcInfo->GetParsedFunctionBody(), 0);
                 }
-#endif
-
-                //With statements - need scope object to be present.
-                if ((doStackArgsOpt && pnodeFnc->funcInfo->GetParamScope()->Count() > 1) && ((byteCodeGenerator->GetFlags() & fscrEval) ||
-                    pnodeFnc->HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
+                if (!doStackArgsOpt)
                 {
-                    doStackArgsOpt = false;
-#ifdef PERF_HINT
                     if (PHASE_TRACE1(Js::PerfHintPhase))
                     {
                         if (pnodeFnc->HasWithStmt())
@@ -2527,14 +2546,13 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
                             WritePerfHint(PerfHints::HasWithBlock, funcInfo->GetParsedFunctionBody(), 0);
                         }
 
-                        if(byteCodeGenerator->GetFlags() & fscrEval)
+                        if (byteCodeGenerator->GetFlags() & fscrEval)
                         {
                             WritePerfHint(PerfHints::SrcIsEval, funcInfo->GetParsedFunctionBody(), 0);
                         }
                     }
-#endif
                 }
-                funcInfo->SetHasHeapArguments(true, !pnodeFnc->IsCoroutine() && doStackArgsOpt /*= Optimize arguments in backend*/);
+#endif
                 if (funcInfo->inArgsCount == 0)
                 {
                     // If no formals to function, no need to create the propertyid array
@@ -2646,6 +2664,33 @@ bool FuncAllowsDirectSuper(FuncInfo *funcInfo, ByteCodeGenerator *byteCodeGenera
         {
             return true;
         }
+    }
+
+    return false;
+}
+
+// TODO[ianhall]: ApplyEnclosesArgs should be in ByteCodeEmitter.cpp but that becomes complicated because it depends on VisitIndirect
+void PostCheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, ApplyCheck* applyCheck);
+void CheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, ApplyCheck* applyCheck);
+bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
+{
+    if (byteCodeGenerator->IsInDebugMode())
+    {
+        // Inspection of the arguments object will be messed up if we do ApplyArgs.
+        return false;
+    }
+
+    if (!fncDecl->HasVarArguments()
+        && fncDecl->AsParseNodeFnc()->pnodeParams == nullptr
+        && fncDecl->AsParseNodeFnc()->pnodeRest == nullptr
+        && fncDecl->AsParseNodeFnc()->nestedCount == 0)
+    {
+        ApplyCheck applyCheck;
+        applyCheck.matches = true;
+        applyCheck.sawApply = false;
+        applyCheck.insideApplyCall = false;
+        VisitIndirect<ApplyCheck>(fncDecl->AsParseNodeFnc()->pnodeBody, byteCodeGenerator, &applyCheck, &CheckApplyEnclosesArgs, &PostCheckApplyEnclosesArgs);
+        return applyCheck.matches&&applyCheck.sawApply;
     }
 
     return false;
@@ -3041,6 +3086,32 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
     }
 
     AssignFuncSymRegister(pnodeFnc, byteCodeGenerator, top);
+
+    top->SetHasCachedScope(
+        !PHASE_OFF(Js::CachedScopePhase, top->byteCodeFunction) &&
+        !top->Escapes() &&
+        (top->GetCallsEval() || top->GetChildCallsEval() || (top->GetHasArguments() && byteCodeGenerator->NeedScopeObjectForArguments(top, pnodeFnc))
+            || top->GetHasLocalInClosure() || top->bodyScope->GetHasOwnLocalInClosure() || top->paramScope->GetHasOwnLocalInClosure() // Needed because captures in body are not marked in the FuncInfo until Bind
+            || (top->funcExprScope && top->funcExprScope->GetMustInstantiate())) &&
+        (byteCodeGenerator->NeedObjectAsFunctionScope(top, top->root) || pnodeFnc->NeedScopeObject() || top->bodyScope->GetIsObject() || top->paramScope->GetIsObject()) && // Equivalent to frameObjRegister != NoRegister
+        !ApplyEnclosesArgs(pnodeFnc, byteCodeGenerator) &&
+        top->IsBodyAndParamScopeMerged() && // There maybe eval in the param scope
+        !pnodeFnc->HasDefaultArguments() &&
+        !pnodeFnc->HasDestructuredParams() &&
+        (PHASE_FORCE(Js::CachedScopePhase, top->byteCodeFunction) || !byteCodeGenerator->IsInDebugMode())
+#if ENABLE_TTD
+        && !byteCodeGenerator->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
+#endif
+    );
+    if (byteCodeGenerator->Trace())
+    {
+        Output::Print(_u("HasCachedScope is %d for %s\n"), top->hasCachedScope, top->name);
+    }
+    if (top->GetHasCachedScope())
+    {
+        pnodeFnc->SetHasCachedScope();
+        top->byteCodeFunction->GetFunctionInfo()->SetHasCachedScope();
+    }
 
     if (pnodeFnc->pnodeBody && pnodeFnc->HasReferenceableBuiltInArguments() && pnodeFnc->UsesArguments() &&
         pnodeFnc->HasHeapArguments())
@@ -5126,33 +5197,6 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     }
-}
-
-// TODO[ianhall]: ApplyEnclosesArgs should be in ByteCodeEmitter.cpp but that becomes complicated because it depends on VisitIndirect
-void PostCheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, ApplyCheck* applyCheck);
-void CheckApplyEnclosesArgs(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, ApplyCheck* applyCheck);
-bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator)
-{
-    if (byteCodeGenerator->IsInDebugMode())
-    {
-        // Inspection of the arguments object will be messed up if we do ApplyArgs.
-        return false;
-    }
-
-    if (!fncDecl->HasVarArguments()
-        && fncDecl->AsParseNodeFnc()->pnodeParams == nullptr
-        && fncDecl->AsParseNodeFnc()->pnodeRest == nullptr
-        && fncDecl->AsParseNodeFnc()->nestedCount == 0)
-    {
-        ApplyCheck applyCheck;
-        applyCheck.matches = true;
-        applyCheck.sawApply = false;
-        applyCheck.insideApplyCall = false;
-        VisitIndirect<ApplyCheck>(fncDecl->AsParseNodeFnc()->pnodeBody, byteCodeGenerator, &applyCheck, &CheckApplyEnclosesArgs, &PostCheckApplyEnclosesArgs);
-        return applyCheck.matches&&applyCheck.sawApply;
-    }
-
-    return false;
 }
 
 // TODO[ianhall]: VisitClearTmpRegs should be in ByteCodeEmitter.cpp but that becomes complicated because it depends on VisitIndirect

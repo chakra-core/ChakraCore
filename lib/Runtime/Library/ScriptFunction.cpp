@@ -40,7 +40,7 @@ namespace Js
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
-        environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr),
+        environment((FrameDisplay*)&NullFrameDisplay),
         hasInlineCaches(false)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
@@ -150,9 +150,9 @@ namespace Js
         // A function nested within this one has escaped.
         // Invalidate our own cached scope object, and walk the closure environment
         // doing this same.
-        if (this->cachedScopeObj)
+        if (this->GetCachedScope())
         {
-            this->cachedScopeObj->InvalidateCachedScope();
+            this->GetCachedScope()->InvalidateCachedScope();
         }
         FrameDisplay *pDisplay = this->environment;
         uint length = (uint)pDisplay->GetLength();
@@ -519,9 +519,9 @@ namespace Js
             extractor->MarkScriptFunctionScopeInfo(environment);
         }
 
-        if(this->cachedScopeObj != nullptr)
+        if(this->GetCachedScope() != nullptr)
         {
-            extractor->MarkVisitVar(this->cachedScopeObj);
+            extractor->MarkVisitVar(this->GetCachedScope());
         }
 
         if (this->GetHomeObj() != nullptr)
@@ -587,9 +587,9 @@ namespace Js
             }
         }
 
-        if(this->cachedScopeObj != nullptr)
+        if(this->GetCachedScope() != nullptr)
         {
-            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->cachedScopeObj, _u("_cachedScopeObj"));
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->GetCachedScope(), _u("_cachedScopeObj"));
         }
 
         if (this->GetHomeObj() != nullptr)
@@ -633,9 +633,9 @@ namespace Js
         }
 
         ssfi->CachedScopeObjId = TTD_INVALID_PTR_ID;
-        if (this->cachedScopeObj != nullptr)
+        if (this->GetCachedScope() != nullptr)
         {
-            ssfi->CachedScopeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->cachedScopeObj);
+            ssfi->CachedScopeObjId = TTD_CONVERT_VAR_TO_PTR_ID(this->GetCachedScope());
         }
 
         ssfi->HomeObjId = TTD_INVALID_PTR_ID;

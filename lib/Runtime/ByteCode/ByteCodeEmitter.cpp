@@ -1554,6 +1554,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     {
         return;
     }
+    Assert(funcInfo->byteCodeFunction->GetFunctionInfo()->HasCachedScope());
 
     Scope* currentScope = funcInfo->GetCurrentChildScope();
     uint slotCount = currentScope->GetScopeSlotCount();
@@ -3581,21 +3582,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
 
             if (bodyScope->GetIsObject())
             {
-                // Win8 908700: Disable under F12 debugger because there are too many cached scopes holding onto locals.
-                funcInfo->SetHasCachedScope(
-                    !PHASE_OFF(Js::CachedScopePhase, funcInfo->byteCodeFunction) &&
-                    !funcInfo->Escapes() &&
-                    funcInfo->frameObjRegister != Js::Constants::NoRegister &&
-                    !ApplyEnclosesArgs(pnodeFnc, this) &&
-                    funcInfo->IsBodyAndParamScopeMerged() && // There is eval in the param scope
-                    !pnodeFnc->HasDefaultArguments() &&
-                    !pnodeFnc->HasDestructuredParams() &&
-                    (PHASE_FORCE(Js::CachedScopePhase, funcInfo->byteCodeFunction) || !IsInDebugMode())
-#if ENABLE_TTD
-                    && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
-#endif
-                );
-
                 if (funcInfo->GetHasCachedScope())
                 {
                     Assert(funcInfo->funcObjRegister == Js::Constants::NoRegister);

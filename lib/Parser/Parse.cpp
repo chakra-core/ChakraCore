@@ -1746,6 +1746,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             if (ref->IsDynamicBinding())
             {
                 sym->SetNeedsScopeObject();
+                GetCurrentFunctionNode()->SetNeedScopeObject();
             }
         }
 
