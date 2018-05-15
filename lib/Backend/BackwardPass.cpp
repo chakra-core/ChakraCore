@@ -3630,7 +3630,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
                     // We need to increment the data use count since we're changing a successor.
                     blockPred->IncrementDataUseCount();
-                    BasicBlock *newBlock = this->func->m_fg->InsertAirlockBlock(this->func->m_fg->FindEdge(blockPred, block));
+                    BasicBlock *newBlock = this->func->m_fg->InsertAirlockBlock(this->func->m_fg->FindEdge(blockPred, block), true);
                     LABELNAMESET(newBlock->GetFirstInstr()->AsLabelInstr(), "Loop out-edge masking block");
                     // This is a little bit of a misuse of ByteCodeUsesInstr - we're using it as just
                     // a bitvector that we can add things to.
