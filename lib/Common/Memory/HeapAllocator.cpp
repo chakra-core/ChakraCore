@@ -582,7 +582,6 @@ MemoryLeakCheck::~MemoryLeakCheck()
         LeakRecord * current = head;
         do
         {
-
             if (enableOutput)
             {
                 Output::PrintBuffer(current->dump, wcslen(current->dump));

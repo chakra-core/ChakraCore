@@ -24,31 +24,42 @@ namespace UnifiedRegex
                 program,
                 isLiteral);
     }
+
     void RegexPattern::Finalize(bool isShutdown)
     {
-        if(isShutdown)
+        if (isShutdown)
+        {
             return;
+        }
 
         const auto scriptContext = GetScriptContext();
-        if(!scriptContext)
+        if (!scriptContext)
+        {
             return;
+        }
 
 #if DBG
-        // In JSRT, we might not have a chance to close at finalize time.
-        if(!isLiteral && !scriptContext->IsClosed() && !scriptContext->GetThreadContext()->IsJSRT())
+        // In JSRT or ChakraEngine, we might not have a chance to close at finalize time
+        if (!isLiteral && !scriptContext->IsClosed() &&
+            !scriptContext->GetThreadContext()->IsJSRT() &&
+            !scriptContext->GetLibrary()->IsChakraEngine())
         {
             const auto source = GetSource();
-            RegexPattern *p;
-            Assert(
-                !GetScriptContext()->GetDynamicRegexMap()->TryGetValue(
-                    RegexKey(source.GetBuffer(), source.GetLength(), GetFlags()),
-                    &p) || ( source.GetLength() == 0 ) ||
-                p != this);
+            RegexPattern *p = nullptr;
+
+            bool hasRegexPatternForSourceKey = GetScriptContext()->GetDynamicRegexMap()->TryGetValue(
+                RegexKey(source.GetBuffer(), source.GetLength(), GetFlags()), &p);
+            bool isSourceLengthZero = source.GetLength() == 0;
+            bool isUniquePattern = p != this;
+
+            Assert(!hasRegexPatternForSourceKey || isSourceLengthZero || isUniquePattern);
         }
 #endif
 
-        if(isShallowClone)
+        if (isShallowClone)
+        {
             return;
+        }
 
         rep.unified.program->FreeBody(scriptContext->RegexAllocator());
     }

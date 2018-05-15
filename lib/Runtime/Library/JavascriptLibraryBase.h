@@ -8,6 +8,8 @@
 // if the size changed here.
 #pragma once
 
+class ChakraEngine;
+
 namespace Js
 {
     class EngineInterfaceObject;
@@ -19,7 +21,8 @@ namespace Js
 
     public:
         JavascriptLibraryBase(GlobalObject* globalObject):
-            globalObject(globalObject)
+            globalObject(globalObject),
+            chakraEngine(nullptr)
         {
         }
         Var GetPI() { return pi; }
@@ -146,6 +149,8 @@ namespace Js
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
         PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
         PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
+
+        bool IsChakraEngine() const { return chakraEngine != nullptr; }
 
     protected:
         Field(GlobalObject*) globalObject;
@@ -314,6 +319,7 @@ namespace Js
 
     public:
         Field(ScriptContext*) scriptContext;
+        Field(ChakraEngine*) chakraEngine;
 
     private:
         virtual void Dispose(bool isShutdown) override;
