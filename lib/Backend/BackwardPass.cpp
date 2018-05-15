@@ -3227,9 +3227,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     loop->symClusterList->MapSet<BVSparse<JitArenaAllocator>*>(symID, [](SymID a, BVSparse<JitArenaAllocator> *symbols) {
                         symbols->Set(a);
                     }, syms);
+                    SymTable* symTable = loop->GetFunc()->m_symTable;
                     FOREACH_BITSET_IN_SPARSEBV(curSymID, syms)
                     {
-                        if (!loop->GetFunc()->m_symTable->Find(curSymID)->IsStackSym())
+                        Sym* potentialSym = symTable->Find(curSymID);
+                        if (potentialSym == nullptr || !potentialSym->IsStackSym())
                         {
                             syms->Clear(curSymID);
                         }
