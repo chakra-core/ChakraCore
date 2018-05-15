@@ -3380,6 +3380,12 @@ namespace Js
         // CONSIDER: Use TaggedInt instead of range of slot count to distinguish slot array with others.
         static bool Is(void* object)
         {
+            if (object == nullptr)
+            {
+                // Null slot in a frame where nothing is captured and the scope object has been eliminated
+                // by stack args optimization.
+                return false;
+            }
             size_t slotCount = *((size_t*)object);
             if(slotCount <= MaxEncodedSlotCount)
             {
