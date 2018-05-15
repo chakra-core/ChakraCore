@@ -210,6 +210,7 @@ PHASE(All)
                     PHASE(MarkTempNumber)
                     PHASE(MarkTempObject)
                     PHASE(MarkTempNumberOnTempObject)
+                PHASE(SpeculationPropagationAnalysis)
         PHASE(DumpGlobOptInstr) // Print the Globopt instr string in post lower dumps
         PHASE(Lowerer)
             PHASE(FastPath)

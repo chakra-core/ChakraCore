@@ -561,11 +561,11 @@ FlowGraph::Build(void)
 
                             // Add edge to finally block, leave block
                             this->AddEdge(currentBlock, this->finallyLabelStack->Top()->GetBasicBlock());
-                            this->AddEdge(currentBlock, leaveBlock);                            
+                            this->AddEdge(currentBlock, leaveBlock);
                         }
                     }
                 }
-            }            
+            }
             else if (instr->m_opcode == Js::OpCode::Finally)
             {
                 AssertOrFailFast(!this->finallyLabelStack->Empty());
@@ -581,7 +581,7 @@ FlowGraph::Build(void)
             block->SetBlockNum(blockNum++);
         } NEXT_BLOCK_ALL;
     }
-    
+
     this->FindLoops();
 
 #if DBG_DUMP
@@ -1739,6 +1739,14 @@ FlowGraph::Destroy(void)
             Region * predRegion = nullptr;
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
+                BasicBlock* intermediateBlock = block;
+                // Skip blocks inserted for airlock/masking purposes
+                while ((predBlock->isAirLockBlock || predBlock->isAirLockCompensationBlock) && predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == region)
+                {
+                    Assert(predBlock->GetPredList()->HasOne());
+                    intermediateBlock = predBlock;
+                    predBlock = predBlock->GetPredList()->Head()->GetPred();
+                }
                 predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
                 if (predBlock->GetLastInstr() == nullptr)
                 {
@@ -1751,7 +1759,7 @@ FlowGraph::Destroy(void)
                     case Js::OpCode::TryCatch:
                     case Js::OpCode::TryFinally:
                         AssertMsg(region->GetParent() == predRegion, "Bad region prop on entry to try-catch/finally");
-                        if (block->GetFirstInstr() == predBlock->GetLastInstr()->AsBranchInstr()->GetTarget())
+                        if (intermediateBlock->GetFirstInstr() == predBlock->GetLastInstr()->AsBranchInstr()->GetTarget())
                         {
                             if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::TryCatch)
                             {
@@ -2069,7 +2077,7 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
     Assert(region || block->GetPredList()->Count() == 0 || block->firstInstr->AsLabelInstr()->GetRegion());
 
     if (region)
-    { 
+    {
         if (!region->ehBailoutData)
         {
             region->AllocateEHBailoutData(this->func, tryInstr);
@@ -2253,15 +2261,36 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     BasicBlock * sourceBlock = edge->GetPred();
     BasicBlock * sinkBlock = edge->GetSucc();
 
+    IR::Instr * sourceLastInstr = sourceBlock->GetLastInstr();
+
+    //
+    // Normalize block
+    //
+    if(!sourceLastInstr->IsBranchInstr())
+    {
+        // There are some cases where the last instruction of a block can be not a branch;
+        // for example, if it was previously a conditional branch that was impossible to take.
+        // In these situations, we can insert an unconditional branch to fallthrough for that
+        // block, to renormalize it.
+        SListBaseCounted<FlowEdge*>* successors = sourceBlock->GetSuccList();
+        // Only handling the case for one arc left at the moment; other cases are likely bugs.
+        AssertOrFailFastMsg(successors->HasOne(), "Failed to normalize weird block before airlock");
+        FlowEdge* onlyLink = successors->Head();
+        AssertOrFailFastMsg(onlyLink == edge, "Found duplicate of edge?");
+        AssertOrFailFastMsg(onlyLink->GetSucc() == sinkBlock, "State inconsistent");
+        sourceLastInstr->InsertAfter(IR::BranchInstr::New(Js::OpCode::Br, onlyLink->GetSucc()->GetFirstInstr()->AsLabelInstr(), sourceLastInstr->m_func));
+        sourceLastInstr = sourceLastInstr->m_next;
+    }
+
     BasicBlock * sinkPrevBlock = sinkBlock->prev;
     IR::Instr *  sinkPrevBlockLastInstr = sinkPrevBlock->GetLastInstr();
-    IR::Instr * sourceLastInstr = sourceBlock->GetLastInstr();
 
     airlockBlock->loop = sinkBlock->loop;
     airlockBlock->SetBlockNum(this->blockCount++);
 #ifdef DBG
     airlockBlock->isAirLockBlock = true;
 #endif
+
     //
     // Fixup block linkage
     //
@@ -2312,6 +2341,7 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     airlockBlock->SetLastInstr(airlockBr);
 
     airlockLabel->SetByteCodeOffset(sinkLabel);
+    airlockLabel->SetRegion(sinkLabel->GetRegion());
 
     // Fixup flow out of sourceBlock
     IR::BranchInstr *sourceBr = sourceLastInstr->AsBranchInstr();
@@ -2433,6 +2463,7 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
     compBlock->SetLastInstr(compBr);
 
     compLabel->SetByteCodeOffset(sinkLabel);
+    compLabel->SetRegion(sinkLabel->GetRegion());
 
     // Fixup flow out of sourceBlock
     if (sourceLastInstr->IsBranchInstr())

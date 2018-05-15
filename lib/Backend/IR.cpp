@@ -4532,8 +4532,16 @@ Instr::Dump(IRDumpFlags flags)
             }
         }
 
-        Output::SkipToColumn(20);
-        Output::Print(_u("="));
+        if (this->isSafeToSpeculate)
+        {
+            Output::SkipToColumn(19);
+            Output::Print(_u("<=="));
+        }
+        else
+        {
+            Output::SkipToColumn(20);
+            Output::Print(_u("="));
+        }
     }
 
     PrintOpCodeName();
@@ -4610,21 +4618,22 @@ Instr::Dump(IRDumpFlags flags)
         }
     }
 
-    if (this->IsByteCodeUsesInstr())
+    if (this->IsByteCodeUsesInstr() || this->m_opcode == Js::OpCode::SpeculatedLoadFence)
     {
-        if (this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
+        ByteCodeUsesInstr* tempbcu = static_cast<ByteCodeUsesInstr*>(this);
+        if (tempbcu->GetByteCodeUpwardExposedUsed())
         {
             bool first = true;
-            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
+            FOREACH_BITSET_IN_SPARSEBV(id, tempbcu->GetByteCodeUpwardExposedUsed())
             {
                 Output::Print(first? _u("s%d") : _u(", s%d"), id);
                 first = false;
             }
             NEXT_BITSET_IN_SPARSEBV;
         }
-        if (this->AsByteCodeUsesInstr()->propertySymUse)
+        if (tempbcu->propertySymUse)
         {
-            Output::Print(_u("  PropSym: %d"), this->AsByteCodeUsesInstr()->propertySymUse->m_id);
+            Output::Print(_u("  PropSym: %d"), tempbcu->propertySymUse->m_id);
         }
     }
 

@@ -204,7 +204,7 @@ Instr::AsProfiledLabelInstr()
 inline bool
 Instr::IsByteCodeUsesInstr() const
 {
-    return GetKind() == IR::InstrKindByteCodeUses;
+    return GetKind() == IR::InstrKindByteCodeUses && m_opcode == Js::OpCode::ByteCodeUses;
 }
 
 inline ByteCodeUsesInstr *
