@@ -23128,8 +23128,8 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
     }
     else if (src1->GetValueType().IsLikelySymbol() && src2->GetValueType().IsLikelySymbol())
     {
-        this->GenerateSymbolTest(src1->AsRegOpnd(), instr, labelHelper, nullptr, false);
-        this->GenerateSymbolTest(src2->AsRegOpnd(), instr, labelHelper, nullptr, false);
+        this->GenerateSymbolTest(src1->AsRegOpnd(), instr, labelHelper, nullptr, true);
+        this->GenerateSymbolTest(src2->AsRegOpnd(), instr, labelHelper, nullptr, true);
     }
     else
     {
