@@ -1996,41 +1996,76 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
     NEXT_SLISTBASE_ENTRY_EDITING;
 }
 
-bool
-BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
-{
-    if (this->tag == Js::BackwardPhase)
-    {
-        // We don't need to fill in the bailout instruction in backward pass
-        Assert(this->func->hasBailout || !instr->HasBailOutInfo());
-        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
 
-        if (instr->IsByteCodeUsesInstr())
+StackSym*
+BackwardPass::ProcessByteCodeUsesDst(IR::ByteCodeUsesInstr * byteCodeUsesInstr)
+{
+    Assert(this->DoByteCodeUpwardExposedUsed());
+    IR::Opnd * dst = byteCodeUsesInstr->GetDst();
+    if (dst)
+    {
+        IR::RegOpnd * dstRegOpnd = dst->AsRegOpnd();
+        StackSym * dstStackSym = dstRegOpnd->m_sym->AsStackSym();
+        Assert(!dstRegOpnd->GetIsJITOptimizedReg());
+        Assert(dstStackSym->GetByteCodeRegSlot() != Js::Constants::NoRegister);
+        if (dstStackSym->GetType() != TyVar)
         {
-            // FGPeeps inserts bytecodeuses instrs with srcs.  We need to look at them to set the proper
-            // UpwardExposedUsed info and keep the defs alive.
-            // The inliner inserts bytecodeuses instrs withs dsts, but we don't want to look at them for upwardExposedUsed
-            // as it would cause real defs to look dead.  We use these for bytecodeUpwardExposedUsed info only, which is needed
-            // in the dead-store pass only.
-            //
-            // Handle the source side.
-            IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
-            if (byteCodeUpwardExposedUsed != nullptr)
-            {
-                this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
-                if (this->DoByteCodeUpwardExposedUsed())
-                {
-                    this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
-                }
-            }
-            return true;
+            dstStackSym = dstStackSym->GetVarEquivSym(nullptr);
         }
+
+        // If the current region is a Try, symbols in its write-through set shouldn't be cleared.
+        // Otherwise, symbols in the write-through set of the first try ancestor shouldn't be cleared.
+        if (!this->currentRegion ||
+            !this->CheckWriteThroughSymInRegion(this->currentRegion, dstStackSym))
+        {
+            this->currentBlock->byteCodeUpwardExposedUsed->Clear(dstStackSym->m_id);
+            return dstStackSym;
+
+        }
+    }
+    return nullptr;
+}
+
+const BVSparse<JitArenaAllocator>*
+BackwardPass::ProcessByteCodeUsesSrcs(IR::ByteCodeUsesInstr * byteCodeUsesInstr)
+{
+    Assert(this->DoByteCodeUpwardExposedUsed() || tag == Js::BackwardPhase);
+    const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
+    if (byteCodeUpwardExposedUsed && this->DoByteCodeUpwardExposedUsed())
+    {
+        this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
+    }
+    return byteCodeUpwardExposedUsed;
+}
+
+bool
+BackwardPass::ProcessByteCodeUsesInstr(IR::Instr * instr)
+{
+    if (!instr->IsByteCodeUsesInstr())
+    {
         return false;
     }
 
-    if (instr->IsByteCodeUsesInstr())
+    IR::ByteCodeUsesInstr * byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
+
+    if (this->tag == Js::BackwardPhase)
     {
+        // FGPeeps inserts bytecodeuses instrs with srcs.  We need to look at them to set the proper
+        // UpwardExposedUsed info and keep the defs alive.
+        // The inliner inserts bytecodeuses instrs withs dsts, but we don't want to look at them for upwardExposedUsed
+        // as it would cause real defs to look dead.  We use these for bytecodeUpwardExposedUsed info only, which is needed
+        // in the dead-store pass only.
+        //
+        // Handle the source side.
+        const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = ProcessByteCodeUsesSrcs(byteCodeUsesInstr);
+        if (byteCodeUpwardExposedUsed != nullptr)
+        {
+            this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
+        }
+    }
+    else
+    {
+        Assert(tag == Js::DeadStorePhase);
         Assert(instr->m_opcode == Js::OpCode::ByteCodeUses);
 #if DBG
         if (this->DoMarkTempObjectVerify() && (this->currentBlock->isDead || !this->func->hasBailout))
@@ -2053,44 +2088,22 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
 
         if (this->func->hasBailout)
         {
-            Assert(this->DoByteCodeUpwardExposedUsed());
-
             // Just collect the byte code uses, and remove the instruction
             // We are going backward, process the dst first and then the src
-            IR::Opnd * dst = instr->GetDst();
-            if (dst)
-            {
-                IR::RegOpnd * dstRegOpnd = dst->AsRegOpnd();
-                StackSym * dstStackSym = dstRegOpnd->m_sym->AsStackSym();
-                Assert(!dstRegOpnd->GetIsJITOptimizedReg());
-                Assert(dstStackSym->GetByteCodeRegSlot() != Js::Constants::NoRegister);
-                if (dstStackSym->GetType() != TyVar)
-                {
-                    dstStackSym = dstStackSym->GetVarEquivSym(nullptr);
-                }
-
-                // If the current region is a Try, symbols in its write-through set shouldn't be cleared.
-                // Otherwise, symbols in the write-through set of the first try ancestor shouldn't be cleared.
-                if (!this->currentRegion ||
-                    !this->CheckWriteThroughSymInRegion(this->currentRegion, dstStackSym))
-                {
-                    this->currentBlock->byteCodeUpwardExposedUsed->Clear(dstStackSym->m_id);
+            StackSym *dstStackSym = ProcessByteCodeUsesDst(byteCodeUsesInstr);
 #if DBG
-                    // We can only track first level function stack syms right now
-                    if (dstStackSym->GetByteCodeFunc() == this->func)
-                    {
-                        this->currentBlock->byteCodeRestoreSyms[dstStackSym->GetByteCodeRegSlot()] = nullptr;
-                    }
-#endif
-                }
+            // We can only track first level function stack syms right now
+            if (dstStackSym && dstStackSym->GetByteCodeFunc() == this->func)
+            {
+                this->currentBlock->byteCodeRestoreSyms[dstStackSym->GetByteCodeRegSlot()] = nullptr;
             }
+#endif
 
-            IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            if (byteCodeUsesInstr->GetByteCodeUpwardExposedUsed() != nullptr)
-            {
-                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->GetByteCodeUpwardExposedUsed());
+            const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = ProcessByteCodeUsesSrcs(byteCodeUsesInstr);
 #if DBG
-                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUsesInstr->GetByteCodeUpwardExposedUsed())
+            if (byteCodeUpwardExposedUsed)
+            {
+                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUpwardExposedUsed)
                 {
                     StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
                     Assert(!stackSym->IsTypeSpec());
@@ -2108,15 +2121,13 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
                     }
                 }
                 NEXT_BITSET_IN_SPARSEBV;
-#endif
             }
+#endif
 
-            if(IsCollectionPass())
+            if (IsCollectionPass())
             {
                 return true;
             }
-
-            ProcessPendingPreOpBailOutInfo(instr);
 
             PropertySym *propertySymUse = byteCodeUsesInstr->propertySymUse;
             if (propertySymUse && !this->currentBlock->isDead)
@@ -2133,13 +2144,27 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
         }
 
         this->currentBlock->RemoveInstr(instr);
-        return true;
+    }
+    return true;
+}
+
+bool
+BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
+{
+    Assert(!instr->IsByteCodeUsesInstr());
+    if (this->tag == Js::BackwardPhase)
+    {
+        // We don't need to fill in the bailout instruction in backward pass
+        Assert(this->func->hasBailout || !instr->HasBailOutInfo());
+        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
+        return false;
     }
 
     if(IsCollectionPass())
     {
         return false;
     }
+    Assert(tag == Js::DeadStorePhase);
 
     if (instr->HasBailOutInfo())
     {
@@ -2398,22 +2423,30 @@ BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
     return false;
 }
 
-void
+IR::Instr*
 BackwardPass::ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr)
 {
     Assert(!IsCollectionPass());
 
     if(!preOpBailOutInstrToProcess)
     {
-        return;
+        return currentInstr->m_prev;
     }
+    Assert(preOpBailOutInstrToProcess == currentInstr);
 
-    IR::Instr *const prevInstr = currentInstr->m_prev;
-    if(prevInstr &&
-        prevInstr->IsByteCodeUsesInstr() &&
-        prevInstr->AsByteCodeUsesInstr()->GetByteCodeOffset() == preOpBailOutInstrToProcess->GetByteCodeOffset())
+    if (!this->IsPrePass())
     {
-        return;
+        IR::Instr* prev = preOpBailOutInstrToProcess->m_prev;
+        while (prev && preOpBailOutInstrToProcess->CanAggregateByteCodeUsesAcrossInstr(prev))
+        {
+            IR::Instr* instr = prev;
+            prev = prev->m_prev;
+            if (instr->IsByteCodeUsesInstrFor(preOpBailOutInstrToProcess))
+            {
+                // If instr is a ByteCodeUsesInstr, it will remove it
+                ProcessByteCodeUsesInstr(instr);
+            }
+        }
     }
 
     // A pre-op bailout instruction was saved for bailout info processing after the instruction and relevant ByteCodeUses
@@ -2423,6 +2456,10 @@ BackwardPass::ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr)
     Assert(bailOutInfo->bailOutOffset == preOpBailOutInstrToProcess->GetByteCodeOffset());
     ProcessBailOutInfo(preOpBailOutInstrToProcess, bailOutInfo);
     preOpBailOutInstrToProcess = nullptr;
+
+    // We might have removed the prev instr if it was a ByteCodeUsesInstr
+    // Update the prevInstr on the main loop
+    return currentInstr->m_prev;
 }
 
 void
@@ -2720,7 +2757,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         MarkScopeObjSymUseForStackArgOpt();
         ProcessBailOnStackArgsOutOfActualsRange();
 
-        if (ProcessNoImplicitCallUses(instr) || this->ProcessBailOutInfo(instr))
+        if (ProcessNoImplicitCallUses(instr) || this->ProcessByteCodeUsesInstr(instr) || this->ProcessBailOutInfo(instr))
         {
             continue;
         }
@@ -3531,7 +3568,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             }
         }
 #endif
-        ProcessPendingPreOpBailOutInfo(instr);
+        instrPrev = ProcessPendingPreOpBailOutInfo(instr);
 
 #if DBG_DUMP
         if (!IsCollectionPass() && IsTraceEnabled() && Js::Configuration::Global.flags.Verbose)
