@@ -46,7 +46,6 @@
     <default>
       <files>Object.js</files>
       <baseline>Object.baseline</baseline>
-      <compile-flags>-ExecuteWithBgParse</compile-flags>
     </default>
   </test>
   <test>
