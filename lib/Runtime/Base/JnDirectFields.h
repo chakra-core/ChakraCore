@@ -605,6 +605,8 @@ ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
 ENTRY(toLength)
 ENTRY(toInteger)
+ENTRY(arraySpeciesCreate)
+ENTRY(arrayCreateDataPropertyOrThrow)
 
 // EngineInterfaceObject built-ins
 ENTRY(builtInGlobalObjectEntryIsFinite)
@@ -666,6 +668,7 @@ ENTRY(raiseObjectIsNonExtensible)
 ENTRY(raiseOptionValueOutOfRange_3)
 ENTRY(raiseOptionValueOutOfRange)
 ENTRY(raiseThis_NullOrUndefined)
+ENTRY(raiseFunctionArgument_NeedFunction)
 
 // Promise (ChakraFull)
 ENTRY(Promise)
