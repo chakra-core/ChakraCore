@@ -187,6 +187,7 @@ private:
         FirstPass,
         SecondPass
     } collectionPassSubPhase;
+    bool isLoopPrepass;
 
     class FloatSymEquivalenceClass
     {

@@ -12,7 +12,8 @@ BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
     preOpBailOutInstrToProcess(nullptr),
     considerSymAsRealUseInNoImplicitCallUses(nullptr),
     isCollectionPass(false), currentRegion(nullptr),
-    collectionPassSubPhase(CollectionPassSubPhase::None)
+    collectionPassSubPhase(CollectionPassSubPhase::None),
+    isLoopPrepass(false)
 {
     // Those are the only two phase dead store will be used currently
     Assert(tag == Js::BackwardPhase || tag == Js::DeadStorePhase);
@@ -1577,6 +1578,9 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
 
     Loop *loop = lastBlock->loop;
 
+    bool prevIsLoopPrepass = this->isLoopPrepass;
+    this->isLoopPrepass = true;
+
     // This code doesn't work quite as intended. It is meant to capture fields that are live out of a loop to limit the
     // number of implicit call bailouts the forward pass must create (only compiler throughput optimization, no impact
     // on emitted code), but because it looks only at the lexically last block in the loop, it does the right thing only
@@ -1642,6 +1646,8 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
     Assert(lastBlock);
     __analysis_assume(lastBlock);
     lastBlock->loop->hasDeadStorePrepass = true;
+
+    this->isLoopPrepass = prevIsLoopPrepass;
 
 #if DBG_DUMP
     if (this->IsTraceEnabled())
@@ -3189,7 +3195,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         if (this->tag == Js::DeadStorePhase)
         {
 #ifndef _M_ARM
-            if(block->loop)
+            if(block->loop && !this->isLoopPrepass)
             {
                 // In the second pass, we mark instructions that we go by as being safe or unsafe.
                 //
@@ -3273,7 +3279,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG_DUMP
                             if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, loop->topFunc))
                             {
-                                Output::Print(_u("Adding symbols to out-edge masking:\n"));
+                                Output::Print(_u("Adding symbols to out-edge masking for loop %u outward block %u:\n"), loop->GetLoopNumber(), maskingBlock->GetBlockNum());
                                 symsToMask->Dump();
                             }
 #endif
