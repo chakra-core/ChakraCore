@@ -3244,7 +3244,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     FOREACH_SLIST_ENTRY(IR::ByteCodeUsesInstr*, bcuInstr, loop->outwardSpeculationMaskInstrs)
                     {
                         // Get the upwardExposed information for the previous block
-                        IR::LabelInstr *blockLabel = bcuInstr->m_prev->AsLabelInstr();
+                        IR::LabelInstr *blockLabel = bcuInstr->GetBlockStartInstr()->AsLabelInstr();
                         BasicBlock* maskingBlock = blockLabel->GetBasicBlock();
                         // Since it's possible we have a multi-level loop structure (each with its own mask
                         // instructions and dereferenced symbol list), we may be able to avoid masking some
