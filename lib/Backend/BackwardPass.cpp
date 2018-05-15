@@ -1477,7 +1477,24 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
     // Since we generated the base data structures for the spectre handling, we can now
     // cross-reference them to get the full set of what may be dereferenced in the loop
     // and what is safe in speculation.
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
+    {
+        Output::Print(_u("Analysis Results for loop %u:\n"), collectionPassLoop->GetLoopNumber());
+        Output::Print(_u("ClusterList pre-consolidation: "));
+        collectionPassLoop->symClusterList->Dump();
+    }
+#endif // DBG_DUMP
     collectionPassLoop->symClusterList->Consolidate();
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
+    {
+        Output::Print(_u("ClusterList post-consolidation: "));
+        collectionPassLoop->symClusterList->Dump();
+        Output::Print(_u("Internally dereferenced syms pre-propagation: "));
+        collectionPassLoop->internallyDereferencedSyms->Dump();
+    }
+#endif // DBG_DUMP
     collectionPassLoop->symClusterList->Map<BVSparse<JitArenaAllocator>*, true>([](SymID index, SymID containingSetRoot, BVSparse<JitArenaAllocator>* bv){
         if (bv->Test(index))
         {
@@ -1490,7 +1507,14 @@ BackwardPass::ProcessLoopCollectionPass(BasicBlock *const lastBlock)
             bv->Set(index);
         }
     }, collectionPassLoop->internallyDereferencedSyms);
-#endif
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
+    {
+        Output::Print(_u("Internally dereferenced syms post-propagation: "));
+        collectionPassLoop->internallyDereferencedSyms->Dump();
+    }
+#endif // DBG_DUMP
+#endif // defined(_M_ARM)
 
     // Second pass, only needs to run if there are any inner loops, to propagate collected information into those loops
     if(firstInnerLoopHeader)
@@ -3261,6 +3285,14 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                         {
                             instr->SetIsSafeToSpeculate(true);
                             addOutEdgeMasking(symid, block->loop, this->tempAlloc);
+#if DBG_DUMP
+                            if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
+                            {
+                                Output::Print(_u("Marking instruction as safe:\n"));
+                                instr->highlight = 0x0f;
+                                instr->Dump();
+                            }
+#endif
                         }
                     }
                     else if (dest->IsSymOpnd())
@@ -3270,16 +3302,16 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                         {
                             instr->SetIsSafeToSpeculate(true);
                             addOutEdgeMasking(symid, block->loop, this->tempAlloc);
+#if DBG_DUMP
+                            if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
+                            {
+                                Output::Print(_u("Marking instruction as safe:\n"));
+                                instr->highlight = 0x0f;
+                                instr->Dump();
+                            }
+#endif
                         }
                     }
-#if DBG_DUMP
-                    if (PHASE_TRACE(Js::SpeculationPropagationAnalysisPhase, this->func))
-                    {
-                        Output::Print(_u("Marking instruction as safe:\n"));
-                        instr->highlight = 0x0f;
-                        instr->Dump();
-                    }
-#endif
                 }
                 break;
                 default:
