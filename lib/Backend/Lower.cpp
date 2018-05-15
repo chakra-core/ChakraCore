@@ -3030,7 +3030,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             // Most of the time we're not going to be able to remove any masking in a loop, and
             // this instruction can be removed.
 #ifdef _M_ARM
-            AssertMsg(false, "We shouldn't perform this hoisting on ARM");
+            AssertOrFailFastMsg(false, "We shouldn't perform this hoisting on ARM");
 #else
             if (bcuInstr->GetByteCodeUpwardExposedUsed() != nullptr && !bcuInstr->GetByteCodeUpwardExposedUsed()->IsEmpty())
             {
