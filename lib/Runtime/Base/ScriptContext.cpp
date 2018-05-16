@@ -2126,14 +2126,20 @@ namespace Js
         _In_ bool isCesu8,
         _In_opt_ NativeModule* nativeModule,
         _Out_ Js::ParseableFunctionInfo ** func,
+        _Out_ byte** parserStateCacheBuffer,
+        _Out_ DWORD* parserStateCacheByteCount,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
         HRESULT hr = E_FAIL;
 
         Assert(pDataCache != nullptr);
         Assert(func != nullptr);
+        Assert(parserStateCacheBuffer != nullptr);
+        Assert(parserStateCacheByteCount != nullptr);
 
         *func = nullptr;
+        *parserStateCacheBuffer = nullptr;
+        *parserStateCacheByteCount = 0;
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         // Find the parser state block in the read stream and get the size of the block in bytes.
@@ -2190,6 +2196,8 @@ namespace Js
 
         if (FAILED(hr))
         {
+            AdeleteArray(alloc, byteCount, buffer);
+
             OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to deserialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
             return hr;
         }
@@ -2197,6 +2205,8 @@ namespace Js
         OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully deserialized parser state cache for '%s'\n"), url);
 
         *func = functionBody->GetParseableFunctionInfo();
+        *parserStateCacheBuffer = buffer;
+        *parserStateCacheByteCount = byteCount;
 #endif
 
         return hr;
@@ -2207,6 +2217,8 @@ namespace Js
         _In_ size_t cbLength,
         _In_ SRCINFO *srcInfo,
         _In_ Js::ParseableFunctionInfo* func,
+        _In_ byte* parserStateCacheBuffer,
+        _In_ DWORD parserStateCacheByteCount,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
         HRESULT hr = E_FAIL;
@@ -2215,30 +2227,43 @@ namespace Js
         Assert(pDataCache != nullptr);
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
-        byte* parserStateCacheBuffer = nullptr;
-        DWORD parserStateCacheSize = 0;
+        byte* serializeParserStateCacheBuffer = parserStateCacheBuffer;
+        DWORD serializeParserStateCacheSize = parserStateCacheByteCount;
         DWORD dwFlags = GENERATE_BYTE_CODE_PARSER_STATE;
         DebugOnly(auto url = !srcInfo->sourceContextInfo->isHostDynamicDocument ? srcInfo->sourceContextInfo->url : this->GetUrl());
 
-        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to serialize parser state cache for '%s'\n"), url);
-
-        BEGIN_TEMP_ALLOCATOR(tempAllocator, this, _u("ByteCodeSerializer"));
-        hr = Js::ByteCodeSerializer::SerializeToBuffer(this,
-            tempAllocator, (DWORD)cbLength, pszSrc, func->GetFunctionBody(),
-            func->GetHostSrcInfo(), true, &parserStateCacheBuffer,
-            &parserStateCacheSize, dwFlags);
-        END_TEMP_ALLOCATOR(tempAllocator, this);
-
-        if (FAILED(hr))
+        // If we already have a parser state cache serialized into a buffer, we should skip creating it again
+        if (parserStateCacheBuffer == nullptr)
         {
-            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to serialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
-            return hr;
+            Assert(serializeParserStateCacheSize == 0);
+
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to serialize parser state cache for '%s'\n"), url);
+
+            BEGIN_TEMP_ALLOCATOR(tempAllocator, this, _u("ByteCodeSerializer"));
+            hr = Js::ByteCodeSerializer::SerializeToBuffer(this,
+                tempAllocator, (DWORD)cbLength, pszSrc, func->GetFunctionBody(),
+                func->GetHostSrcInfo(), true, &serializeParserStateCacheBuffer,
+                &serializeParserStateCacheSize, dwFlags);
+            END_TEMP_ALLOCATOR(tempAllocator, this);
+
+            if (FAILED(hr))
+            {
+                OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to serialize parser state cache (hr = 0x%08lx) for '%s'\n"), hr, url);
+                return hr;
+            }
+
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully serialized parser state cache for '%s'\n"), url);
+        }
+        else
+        {
+            Assert(serializeParserStateCacheSize != 0);
+
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Skip serializing parser state cache since deserialized cache is available for '%s'\n"), url);
         }
 
-        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Successfully serialized parser state cache for '%s'\n"), url);
-        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to write parser state cache (%lu bytes) to stream for '%s'\n"), parserStateCacheSize, url);
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to write parser state cache (%lu bytes) to stream for '%s'\n"), serializeParserStateCacheSize, url);
 
-        hr = pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, parserStateCacheSize);
+        hr = pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, serializeParserStateCacheSize);
 
         if (FAILED(hr))
         {
@@ -2246,7 +2271,7 @@ namespace Js
             return hr;
         }
 
-        hr = pDataCache->WriteArray(parserStateCacheBuffer, parserStateCacheSize);
+        hr = pDataCache->WriteArray(serializeParserStateCacheBuffer, serializeParserStateCacheSize);
 
         if (FAILED(hr))
         {
@@ -2287,10 +2312,12 @@ namespace Js
             && CONFIG_FLAG(ParserStateCache)
             && pDataCache != nullptr
             && !this->IsScriptContextInDebugMode();
+        byte* parserStateCacheBuffer = nullptr;
+        DWORD parserStateCacheByteCount = 0;
 
         if (fUseParserStateCache)
         {
-            hr = TryDeserializeParserState(grfscr, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, pDataCache);
+            hr = TryDeserializeParserState(grfscr, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, &parserStateCacheBuffer, &parserStateCacheByteCount, pDataCache);
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             // ERROR_WRITE_PROTECT indicates we cannot cache this script for whatever reason.
             // Disable generating and serializing the parser state cache.
@@ -2339,7 +2366,7 @@ namespace Js
             if (fUseParserStateCache)
             {
                 Assert(*func != nullptr);
-                TrySerializeParserState(pszSrc, cbLength, srcInfo, *func, pDataCache);
+                TrySerializeParserState(pszSrc, cbLength, srcInfo, *func, parserStateCacheBuffer, parserStateCacheByteCount, pDataCache);
             }
         }
 #ifdef ENABLE_SCRIPT_DEBUGGING
