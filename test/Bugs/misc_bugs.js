@@ -99,6 +99,38 @@ var tests = [
 
         assert.throws(()=> {arr.splice(4294967290, 0, 200, 201, 202, 203, 204, 205, 206);});
     }
+  },
+  {
+    name: "Passing args count near 2**16 should not fire assert (OS# 17406027)",
+    body: function () {
+      try {
+        eval.call(...(new Array(2**16)));
+      } catch (e) { }
+      
+      try {
+        eval.call(...(new Array(2**16+1)));
+      } catch (e) { }
+      
+      try {
+        var sc1 = WScript.LoadScript(`function foo() {}`, "samethread");
+        sc1.foo(...(new Array(2**16)));
+      } catch(e) { }
+      
+      try {
+        var sc2 = WScript.LoadScript(`function foo() {}`, "samethread");
+        sc2.foo(...(new Array(2**16+1)));
+      } catch(e) { }
+
+      try {
+        function foo() {}
+        Reflect.construct(foo, new Array(2**16-3));
+      } catch(e) { }
+
+      try {
+        function foo() {}
+        Reflect.construct(foo, new Array(2**16-2));
+      } catch(e) { }
+    }
   }
   
 ];
