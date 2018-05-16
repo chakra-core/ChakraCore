@@ -336,8 +336,7 @@ namespace Js
 
         if (!typeHandlerToEnumerate->IsPathTypeHandler())
         {
-            AssertMsg(false, "Can only enumerate PathTypeHandler if types don't match.");
-            Js::Throw::InternalError();
+            return typeHandlerToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
         }
 
         PathTypeHandlerBase* pathTypeToEnumerate = (PathTypeHandlerBase*)typeHandlerToEnumerate;
