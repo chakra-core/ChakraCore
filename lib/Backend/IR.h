@@ -295,6 +295,8 @@ public:
     IR::Instr *     GetNextBranchOrLabel() const;
     IR::Instr *     GetPrevRealInstr() const;
     IR::Instr *     GetPrevRealInstrOrLabel() const;
+    IR::LabelInstr *GetPrevLabelInstr() const;
+    IR::Instr *     GetBlockStartInstr() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
     IR::ByteCodeUsesInstr * GetFirstByteCodeUsesInstrBackward();
     bool            IsByteCodeUsesInstrFor(IR::Instr * instr) const;
