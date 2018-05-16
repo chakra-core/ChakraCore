@@ -34,12 +34,12 @@ namespace Memory
 
     RecyclerTelemetryInfo::~RecyclerTelemetryInfo()
     {
-        AssertOnValidThread(this, RecyclerTelemetryInfo::~RecyclerTelemetryInfo);
         if (this->hostInterface != nullptr && this->passCount > 0)
         {
+            AssertOnValidThread(this, RecyclerTelemetryInfo::~RecyclerTelemetryInfo);
             this->hostInterface->TransmitTelemetry(*this);
+            this->FreeGCPassStats();
         }
-        this->FreeGCPassStats();
     }
 
     const GUID& RecyclerTelemetryInfo::GetRecyclerID() const
@@ -195,10 +195,9 @@ namespace Memory
 
     void RecyclerTelemetryInfo::FreeGCPassStats()
     {
-        AssertOnValidThread(this, RecyclerTelemetryInfo::FreeGCPassStats);
-
         if (this->lastPassStats != nullptr)
         {
+            AssertOnValidThread(this, RecyclerTelemetryInfo::FreeGCPassStats);
             RecyclerTelemetryGCPassStats* head = this->lastPassStats->next;
             RecyclerTelemetryGCPassStats* curr = head;
 #ifdef DBG
