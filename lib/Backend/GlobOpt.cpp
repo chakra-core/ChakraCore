@@ -6505,11 +6505,18 @@ bool BoolAndIntStaticAndTypeMismatch(Value* src1Val, Value* src2Val, Js::Var src
 bool
 GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2Val, Js::Var src1Var, Js::Var src2Var, bool *result)
 {
-    auto AreSourcesEqual = [&](Value * val1, Value * val2) -> bool
+    auto AreSourcesEqual = [&](Value * val1, Value * val2, bool undefinedCmp) -> bool
     {
         // NaN !== NaN, and objects can have valueOf/toString
-        return val1->IsEqualTo(val2) &&
-            val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+        if (val1->IsEqualTo(val2))
+        {
+            if (val1->GetValueInfo()->IsUndefined())
+            {
+                return undefinedCmp;
+            }
+            return val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+        }
+        return false;
     };
 
     // Make sure GetConstantVar only returns primitives.
@@ -6523,7 +6530,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
 
     switch (instr->m_opcode)
     {
-#define BRANCHSIGNED(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
+#define BRANCHSIGNED(OPCODE,CMP,TYPE,UNSIGNEDNESS,UNDEFINEDCMP) \
     case Js::OpCode::##OPCODE: \
         if (src1Val && src2Val) \
         { \
@@ -6537,7 +6544,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             { \
                 *result = (TYPE)left64 CMP(TYPE)right64; \
             } \
-            else if (AreSourcesEqual(src1Val, src2Val)) \
+            else if (AreSourcesEqual(src1Val, src2Val, UNDEFINEDCMP)) \
             { \
                 *result = 0 CMP 0; \
             } \
@@ -6552,25 +6559,25 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         } \
         break;
 
-        BRANCHSIGNED(BrEq_I4, == , int64, false)
-        BRANCHSIGNED(BrGe_I4, >= , int64, false)
-        BRANCHSIGNED(BrGt_I4, > , int64, false)
-        BRANCHSIGNED(BrLt_I4, < , int64, false)
-        BRANCHSIGNED(BrLe_I4, <= , int64, false)
-        BRANCHSIGNED(BrNeq_I4, != , int64, false)
-        BRANCHSIGNED(BrUnGe_I4, >= , uint64, true)
-        BRANCHSIGNED(BrUnGt_I4, > , uint64, true)
-        BRANCHSIGNED(BrUnLt_I4, < , uint64, true)
-        BRANCHSIGNED(BrUnLe_I4, <= , uint64, true)
+        BRANCHSIGNED(BrEq_I4, == , int64, false, true)
+        BRANCHSIGNED(BrGe_I4, >= , int64, false, false)
+        BRANCHSIGNED(BrGt_I4, > , int64, false, false)
+        BRANCHSIGNED(BrLt_I4, < , int64, false, false)
+        BRANCHSIGNED(BrLe_I4, <= , int64, false, false)
+        BRANCHSIGNED(BrNeq_I4, != , int64, false, false)
+        BRANCHSIGNED(BrUnGe_I4, >= , uint64, true, false)
+        BRANCHSIGNED(BrUnGt_I4, > , uint64, true, false)
+        BRANCHSIGNED(BrUnLt_I4, < , uint64, true, false)
+        BRANCHSIGNED(BrUnLe_I4, <= , uint64, true, false)
 #undef BRANCHSIGNED
-#define BRANCH(OPCODE,CMP,VARCMPFUNC) \
+#define BRANCH(OPCODE,CMP,VARCMPFUNC,UNDEFINEDCMP) \
     case Js::OpCode::##OPCODE: \
         if (src1Val && src2Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&left) && \
             src2Val->GetValueInfo()->TryGetIntConstantValue(&right)) \
         { \
             *result = left CMP right; \
         } \
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val)) \
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, UNDEFINEDCMP)) \
         { \
             *result = 0 CMP 0; \
         } \
@@ -6588,14 +6595,14 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         } \
         break;
 
-    BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual)
-    BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual)
-    BRANCH(BrLt_A, <, Js::JavascriptOperators::Less)
-    BRANCH(BrNotLt_A, >= , !Js::JavascriptOperators::Less)
-    BRANCH(BrGt_A, >, Js::JavascriptOperators::Greater)
-    BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater)
-    BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual)
-    BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual)
+    BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual, /*undefinedEquality*/ false)
+    BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual, false)
+    BRANCH(BrLt_A, <, Js::JavascriptOperators::Less, false)
+    BRANCH(BrNotLt_A, >= , !Js::JavascriptOperators::Less, false)
+    BRANCH(BrGt_A, >, Js::JavascriptOperators::Greater, false)
+    BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater, false)
+    BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual, false)
+    BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual, false)
 #undef BRANCH
     case Js::OpCode::BrEq_A:
     case Js::OpCode::BrNotNeq_A:
@@ -6604,7 +6611,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         {
             *result = left == right;
         }
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, true))
         {
             *result = true;
         }
@@ -6636,7 +6643,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         {
             *result = left != right;
         }
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, true))
         {
             *result = false;
         }
@@ -6683,7 +6690,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             {
                 *result = false;
             }
-            else if (AreSourcesEqual(src1Val, src2Val))
+            else if (AreSourcesEqual(src1Val, src2Val, true))
             {
                 *result = true;
             }
@@ -6725,7 +6732,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             {
                 *result = true;
             }
-            else if (AreSourcesEqual(src1Val, src2Val))
+            else if (AreSourcesEqual(src1Val, src2Val, true))
             {
                 *result = false;
             }
