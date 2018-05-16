@@ -330,12 +330,12 @@ namespace Js
     typedef FinalizableICUObject<UPluralRules *, uplrules_close> FinalizableUPluralRules;
 
     template<typename TExecutor>
-    static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(returnLength) char16 **ret, _Out_ int *returnLength, _In_ int firstTryLength = 8)
+    static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(returnLength) char16 **ret, _Out_ int *returnLength, _In_ bool allowZeroLengthStrings = false, _In_ int firstTryLength = 8)
     {
         UErrorCode status = U_ZERO_ERROR;
         *ret = RecyclerNewArrayLeaf(recycler, char16, firstTryLength);
         *returnLength = executor(reinterpret_cast<UChar *>(*ret), firstTryLength, &status);
-        AssertOrFailFastMsg(*returnLength > 0, "Executor reported needing negative bytes");
+        AssertOrFailFast(allowZeroLengthStrings ? *returnLength >= 0 : *returnLength > 0);
         if (ICU_BUFFER_FAILURE(status))
         {
             AssertOrFailFastMsg(*returnLength >= firstTryLength, "Executor reported buffer failure but did not require additional space");
@@ -2665,6 +2665,9 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             );
         }
 
+        // We intentionally special-case the following two calls to EnsureBuffer to allow zero-length strings.
+        // See comment in GetPatternForSkeleton.
+
         char16 *formatted = nullptr;
         int formattedLen = 0;
         if (!toParts)
@@ -2673,7 +2676,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
             {
                 return udat_format(*dtf, date, buf, bufLen, nullptr, status);
-            }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+            }, scriptContext->GetRecycler(), &formatted, &formattedLen, /* allowZeroLengthStrings */ true);
             return JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext);
         }
 
@@ -2683,7 +2686,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
             return udat_formatForFields(*dtf, date, buf, bufLen, fpi, status);
-        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen, /* allowZeroLengthStrings */ true);
 
         JavascriptLibrary *library = scriptContext->GetLibrary();
         JavascriptArray* ret = library->CreateArray(0);
@@ -2807,6 +2810,14 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
         char16 *formatted = nullptr;
         int formattedLen = 0;
+
+        // OS#17513493 (OSS-Fuzz 7950): It is possible for the skeleton to be a zero-length string
+        // because [[Get]] operations are performed on the options object twice, according to spec.
+        // Follow-up spec discussion here: https://github.com/tc39/ecma402/issues/237.
+        // We need to special-case this because calling udatpg_getBestPatternWithOptions on an empty skeleton
+        // will produce an empty pattern, which causes an assert in EnsureBuffer by default.
+        // As a result, we pass a final optional parameter to EnsureBuffer to say that zero-length results are OK.
+        // TODO(jahorto): re-visit this workaround and the one in FormatDateTime upon resolution of the spec issue.
         EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
             return udatpg_getBestPatternWithOptions(
@@ -2818,7 +2829,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
                 bufLen,
                 status
             );
-        }, scriptContext->GetRecycler(), &formatted, &formattedLen);
+        }, scriptContext->GetRecycler(), &formatted, &formattedLen, /* allowZeroLengthStrings */ true);
 
         INTL_TRACE("Best pattern '%s' will be used for skeleton '%s' and langtag '%s'", formatted, skeleton->GetSz(), langtag->GetSz());
 
