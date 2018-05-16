@@ -26,9 +26,10 @@ namespace Memory
         hostInterface(hostInterface),
         lastPassStats(nullptr),
         recyclerStartTime(Js::Tick::Now()),
-        abortTelemetryCapture(false)
+        abortTelemetryCapture(false),
+        inPassActiveState(false),
+        recycler(recycler)
     {
-        this->recycler = recycler;
         mainThreadID = ::GetCurrentThreadId();
     }
 
@@ -52,10 +53,14 @@ namespace Memory
         return this->recycler->IsConcurrentEnabled();
     }
 
-    bool RecyclerTelemetryInfo::ShouldCaptureRecyclerTelemetry() const
+    bool RecyclerTelemetryInfo::ShouldStartTelemetryCapture() const
     {
-        return this->hostInterface != nullptr && this->abortTelemetryCapture == false;
+        return
+            this->hostInterface != nullptr &&
+            this->abortTelemetryCapture == false &&
+            this->hostInterface->IsTelemetryProviderEnabled();
     }
+
 
     void RecyclerTelemetryInfo::FillInSizeData(IdleDecommitPageAllocator* allocator, AllocatorSizes* sizes) const
     {
@@ -67,86 +72,86 @@ namespace Memory
 
     void RecyclerTelemetryInfo::StartPass()
     {
-        Js::Tick start = Js::Tick::Now();
-        if (!this->ShouldCaptureRecyclerTelemetry())
+        this->inPassActiveState = false;
+        if (this->ShouldStartTelemetryCapture())
         {
-            return;
-        }
-
-        AssertOnValidThread(this, RecyclerTelemetryInfo::StartPass);
+            Js::Tick start = Js::Tick::Now();
+            AssertOnValidThread(this, RecyclerTelemetryInfo::StartPass);
 #if DBG
-        // validate state of existing GC pass stats structs
-        uint16 count = 0;
-        if (this->lastPassStats != nullptr)
-        {
-            RecyclerTelemetryGCPassStats* head = this->lastPassStats->next;
-            RecyclerTelemetryGCPassStats* curr = head;
-            do
+            // validate state of existing GC pass stats structs
+            uint16 count = 0;
+            if (this->lastPassStats != nullptr)
             {
-                AssertMsg(curr->isGCPassActive == false, "unexpected value for isGCPassActive");
-                count++;
-                curr = curr->next;
-            } while (curr != head);
-        }
-        AssertMsg(count == this->passCount, "RecyclerTelemetryInfo::StartPass() - mismatch between passCount and count.");
+                RecyclerTelemetryGCPassStats* head = this->lastPassStats->next;
+                RecyclerTelemetryGCPassStats* curr = head;
+                do
+                {
+                    AssertMsg(curr->isGCPassActive == false, "unexpected value for isGCPassActive");
+                    count++;
+                    curr = curr->next;
+                } while (curr != head);
+            }
+            AssertMsg(count == this->passCount, "RecyclerTelemetryInfo::StartPass() - mismatch between passCount and count.");
 #endif
 
-        RecyclerTelemetryGCPassStats* p = HeapNewNoThrow(RecyclerTelemetryGCPassStats);
-        if (p == nullptr)
-        {
-            // failed to allocate memory - disable any further telemetry capture for this recycler 
-            // and free any existing GC stats we've accumulated
-            this->abortTelemetryCapture = true;
-            FreeGCPassStats();
-            this->hostInterface->TransmitTelemetryError(*this, "Memory Allocation Failed");
-        }
-        else
-        {
-            passCount++;
-            memset(p, 0, sizeof(RecyclerTelemetryGCPassStats));
-            if (this->lastPassStats == nullptr)
+            RecyclerTelemetryGCPassStats* p = HeapNewNoThrow(RecyclerTelemetryGCPassStats);
+            if (p == nullptr)
             {
-                p->next = p;
+                // failed to allocate memory - disable any further telemetry capture for this recycler 
+                // and free any existing GC stats we've accumulated
+                this->abortTelemetryCapture = true;
+                FreeGCPassStats();
+                this->hostInterface->TransmitTelemetryError(*this, "Memory Allocation Failed");
             }
             else
             {
-                p->next = lastPassStats->next;
-                this->lastPassStats->next = p;
-            }
-            this->lastPassStats = p;
+                this->inPassActiveState = true;
+                passCount++;
+                memset(p, 0, sizeof(RecyclerTelemetryGCPassStats));
+                if (this->lastPassStats == nullptr)
+                {
+                    p->next = p;
+                }
+                else
+                {
+                    p->next = lastPassStats->next;
+                    this->lastPassStats->next = p;
+                }
+                this->lastPassStats = p;
 
-            this->lastPassStats->isGCPassActive = true;
-            this->lastPassStats->passStartTimeTick = Js::Tick::Now();
-            GetSystemTimePreciseAsFileTime(&this->lastPassStats->passStartTimeFileTime);
-            if (this->hostInterface != nullptr)
-            {
-                LPFILETIME ft = this->hostInterface->GetLastScriptExecutionEndTime();
-                this->lastPassStats->lastScriptExecutionEndTime = *ft;
-            }
+                this->lastPassStats->isGCPassActive = true;
+                this->lastPassStats->passStartTimeTick = Js::Tick::Now();
+                GetSystemTimePreciseAsFileTime(&this->lastPassStats->passStartTimeFileTime);
+                if (this->hostInterface != nullptr)
+                {
+                    LPFILETIME ft = this->hostInterface->GetLastScriptExecutionEndTime();
+                    this->lastPassStats->lastScriptExecutionEndTime = *ft;
+                }
 
-            this->lastPassStats->processCommittedBytes_start = RecyclerTelemetryInfo::GetProcessCommittedBytes();
-            this->lastPassStats->processAllocaterUsedBytes_start = PageAllocator::GetProcessUsedBytes();
-            this->lastPassStats->isInScript = this->recycler->GetIsInScript();
-            this->lastPassStats->isScriptActive = this->recycler->GetIsScriptActive();
+                this->lastPassStats->processCommittedBytes_start = RecyclerTelemetryInfo::GetProcessCommittedBytes();
+                this->lastPassStats->processAllocaterUsedBytes_start = PageAllocator::GetProcessUsedBytes();
+                this->lastPassStats->isInScript = this->recycler->GetIsInScript();
+                this->lastPassStats->isScriptActive = this->recycler->GetIsScriptActive();
 
-            this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &this->lastPassStats->threadPageAllocator_start);
-            this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &this->lastPassStats->recyclerLeafPageAllocator_start);
-            this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &this->lastPassStats->recyclerLargeBlockPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &this->lastPassStats->threadPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &this->lastPassStats->recyclerLeafPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &this->lastPassStats->recyclerLargeBlockPageAllocator_start);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-            this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &this->lastPassStats->recyclerWithBarrierPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &this->lastPassStats->recyclerWithBarrierPageAllocator_start);
 #endif
-            this->lastPassStats->startPassProcessingElapsedTime = Js::Tick::Now() - start;
+                this->lastPassStats->startPassProcessingElapsedTime = Js::Tick::Now() - start;
+            }
+
         }
-
-
     }
 
     void RecyclerTelemetryInfo::EndPass()
     {
-        if (!this->ShouldCaptureRecyclerTelemetry())
+        if (!this->inPassActiveState)
         {
             return;
         }
+        this->inPassActiveState = false;
 
         Js::Tick start = Js::Tick::Now();
 
@@ -220,7 +225,7 @@ namespace Memory
         }
     }
 
-    bool RecyclerTelemetryInfo::ShouldTransmit()
+    bool RecyclerTelemetryInfo::ShouldTransmit() const
     {
         // for now, try to transmit telemetry when we have >= 16
         return (this->hostInterface != nullptr &&  this->passCount >= 16);
@@ -229,13 +234,13 @@ namespace Memory
     void RecyclerTelemetryInfo::IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason caller)
     {
 #ifdef DBG
-        if (this->ShouldCaptureRecyclerTelemetry())
+        if (this->inPassActiveState)
         {
             AssertMsg(this->lastPassStats != nullptr && this->lastPassStats->isGCPassActive == true, "unexpected Value in  RecyclerTelemetryInfo::IncrementUserThreadBlockedCount");
         }
 #endif
 
-        if (this->ShouldCaptureRecyclerTelemetry() && this->lastPassStats != nullptr)
+        if (this->inPassActiveState && this->lastPassStats != nullptr)
         {
             AssertOnValidThread(this, RecyclerTelemetryInfo::IncrementUserThreadBlockedCount);
             this->lastPassStats->uiThreadBlockedTimes[caller] += waitTime;
