@@ -2136,7 +2136,9 @@ namespace Js
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("construct"));
                 }
-                if (!isCtorSuperCall)
+
+                // args.Values[0] will be null in the case where NewTarget is initially provided by proxy.
+                if (!isCtorSuperCall || !args.Values[0])
                 {
                     newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
                     args.Values[0] = newThisObject;

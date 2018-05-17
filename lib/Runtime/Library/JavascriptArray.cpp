@@ -3032,6 +3032,20 @@ namespace Js
         }
     }
 
+    void JavascriptArray::CreateDataPropertyOrThrow(RecyclableObject * obj, BigIndex index, Var item, ScriptContext * scriptContext)
+    {
+        JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
+        JavascriptArray * arr = JavascriptOperators::TryFromVar<JavascriptArray>(obj);
+        if (arr != nullptr)
+        {
+            arr->GenericDirectSetItemAt(index, item);
+        }
+        else
+        {
+            JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(SetArrayLikeObjects(obj, index, item), scriptContext, index));
+        }
+    }
+
     BOOL JavascriptArray::SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem)
     {
         return pDestObj->SetItem(idxDest, aItem, Js::PropertyOperation_ThrowIfNotExtensible);

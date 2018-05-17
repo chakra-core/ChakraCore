@@ -76,9 +76,12 @@ IdleDecommitPageAllocator::EnterIdleDecommit()
 IdleDecommitSignal
 IdleDecommitPageAllocator::LeaveIdleDecommit(bool allowTimer)
 {
-
     Assert(this->idleDecommitEnterCount > 0);
     Assert(this->maxFreePageCount == maxIdleDecommitFreePageCount);
+
+#ifdef ENABLE_BASIC_TELEMETRY
+    this->GetDecommitStats()->lastLeaveDecommitRegion = Js::Tick::Now();
+#endif
 
 #ifdef IDLE_DECOMMIT_ENABLED
     Assert(!hasDecommitTimer);

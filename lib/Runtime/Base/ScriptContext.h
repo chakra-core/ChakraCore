@@ -1298,15 +1298,21 @@ private:
             _In_ bool isCesu8,
             _In_opt_ NativeModule* nativeModule,
             _Out_ Js::ParseableFunctionInfo ** func,
+            _Out_ byte** parserStateCacheBuffer,
+            _Out_ DWORD* parserStateCacheByteCount,
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
         HRESULT TrySerializeParserState(
             _In_ LPCUTF8 pszSrc,
             _In_ size_t cbLength,
+            _In_ SRCINFO *srcInfo,
             _In_ Js::ParseableFunctionInfo* func,
+            _In_ byte* parserStateCacheBuffer,
+            _In_ DWORD parserStateCacheByteCount,
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
         HRESULT CompileUTF8Core(
+            __in Parser& ps,
             __in Js::Utf8SourceInfo* utf8SourceInfo,
             __in SRCINFO *srcInfo,
             __in BOOL fOriginalUTF8Code,

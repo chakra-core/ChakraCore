@@ -514,6 +514,7 @@ ENTRY(supportedLocalesOf)
 ENTRY(tagPublicLibraryCode)
 ENTRY(winglob)
 ENTRY(platform)
+ENTRY(formatToParts)
 
 ENTRY(NumberFormat)
 ENTRY(__currency)
@@ -587,6 +588,9 @@ ENTRY(timeZoneName)
 ENTRY(weekday)
 ENTRY(year)
 
+ENTRY(PluralRules)
+ENTRY(select)
+
 // JsBuiltIns
 ENTRY(__chakraLibrary)
 ENTRY(alias)
@@ -601,6 +605,8 @@ ENTRY(registerChakraLibraryFunction)
 ENTRY(registerFunction)
 ENTRY(toLength)
 ENTRY(toInteger)
+ENTRY(arraySpeciesCreate)
+ENTRY(arrayCreateDataPropertyOrThrow)
 
 // EngineInterfaceObject built-ins
 ENTRY(builtInGlobalObjectEntryIsFinite)
@@ -662,6 +668,7 @@ ENTRY(raiseObjectIsNonExtensible)
 ENTRY(raiseOptionValueOutOfRange_3)
 ENTRY(raiseOptionValueOutOfRange)
 ENTRY(raiseThis_NullOrUndefined)
+ENTRY(raiseFunctionArgument_NeedFunction)
 
 // Promise (ChakraFull)
 ENTRY(Promise)

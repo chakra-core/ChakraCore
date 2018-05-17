@@ -35,7 +35,8 @@
 
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "Telemetry.h"
-#endif
+#include "Recycler/RecyclerTelemetryTransmitter.h"
+#endif // ENABLE_BASIC_TELEMETRY
 
 const int TotalNumberOfBuiltInProperties = Js::PropertyIds::_countJSOnlyProperty;
 
@@ -208,6 +209,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , noJsReentrancy(false)
 #endif
     , emptyStringPropertyRecord(nullptr)
+    , recyclerTelemetryHostInterface(this)
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
     hostScriptContextStack = Anew(GetThreadAlloc(), JsUtil::Stack<HostScriptContext*>, GetThreadAlloc());
@@ -662,11 +664,59 @@ public:
     }
 };
 
+LPFILETIME ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetLastScriptExecutionEndTime() const
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return &(tc->telemetryBlock->lastScriptEndTime);
+#else
+    return nullptr;
+#endif
+}
+
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemetry(RecyclerTelemetryInfo& rti)
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::TransmitRecyclerTelemetry(rti);
+#else
+    return false;
+#endif
+}
+
+
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsTelemetryProviderEnabled() const
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::IsTelemetryProviderEnabled();
+#else
+    return false;
+#endif
+}
+
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg)
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::TransmitRecyclerTelemetryError(rti, msg);
+#else
+    return false;
+#endif
+}
+
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const
+{
+    return this->tc->IsThreadBound(); 
+}
+
+
+DWORD ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const
+{
+    return this->tc->GetCurrentThreadId();
+}
+
 Recycler* ThreadContext::EnsureRecycler()
 {
     if (recycler == NULL)
     {
-        AutoRecyclerPtr newRecycler(HeapNew(Recycler, GetAllocationPolicyManager(), &pageAllocator, Js::Throw::OutOfMemory, Js::Configuration::Global.flags));
+        AutoRecyclerPtr newRecycler(HeapNew(Recycler, GetAllocationPolicyManager(), &pageAllocator, Js::Throw::OutOfMemory, Js::Configuration::Global.flags, &recyclerTelemetryHostInterface));
         newRecycler->Initialize(isOptimizedForManyInstances, &threadService); // use in-thread GC when optimizing for many instances
         newRecycler->SetCollectionWrapper(this);
 

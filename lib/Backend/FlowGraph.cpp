@@ -561,11 +561,11 @@ FlowGraph::Build(void)
 
                             // Add edge to finally block, leave block
                             this->AddEdge(currentBlock, this->finallyLabelStack->Top()->GetBasicBlock());
-                            this->AddEdge(currentBlock, leaveBlock);                            
+                            this->AddEdge(currentBlock, leaveBlock);
                         }
                     }
                 }
-            }            
+            }
             else if (instr->m_opcode == Js::OpCode::Finally)
             {
                 AssertOrFailFast(!this->finallyLabelStack->Empty());
@@ -581,7 +581,7 @@ FlowGraph::Build(void)
             block->SetBlockNum(blockNum++);
         } NEXT_BLOCK_ALL;
     }
-    
+
     this->FindLoops();
 
 #if DBG_DUMP
@@ -1739,6 +1739,14 @@ FlowGraph::Destroy(void)
             Region * predRegion = nullptr;
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
+                BasicBlock* intermediateBlock = block;
+                // Skip blocks inserted for airlock/masking purposes
+                while ((predBlock->isAirLockBlock || predBlock->isAirLockCompensationBlock) && predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == region)
+                {
+                    Assert(predBlock->GetPredList()->HasOne());
+                    intermediateBlock = predBlock;
+                    predBlock = predBlock->GetPredList()->Head()->GetPred();
+                }
                 predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
                 if (predBlock->GetLastInstr() == nullptr)
                 {
@@ -1751,7 +1759,7 @@ FlowGraph::Destroy(void)
                     case Js::OpCode::TryCatch:
                     case Js::OpCode::TryFinally:
                         AssertMsg(region->GetParent() == predRegion, "Bad region prop on entry to try-catch/finally");
-                        if (block->GetFirstInstr() == predBlock->GetLastInstr()->AsBranchInstr()->GetTarget())
+                        if (intermediateBlock->GetFirstInstr() == predBlock->GetLastInstr()->AsBranchInstr()->GetTarget())
                         {
                             if (predBlock->GetLastInstr()->m_opcode == Js::OpCode::TryCatch)
                             {
@@ -2069,7 +2077,7 @@ FlowGraph::UpdateRegionForBlockFromEHPred(BasicBlock * block, bool reassign)
     Assert(region || block->GetPredList()->Count() == 0 || block->firstInstr->AsLabelInstr()->GetRegion());
 
     if (region)
-    { 
+    {
         if (!region->ehBailoutData)
         {
             region->AllocateEHBailoutData(this->func, tryInstr);
@@ -2253,15 +2261,36 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     BasicBlock * sourceBlock = edge->GetPred();
     BasicBlock * sinkBlock = edge->GetSucc();
 
+    IR::Instr * sourceLastInstr = sourceBlock->GetLastInstr();
+
+    //
+    // Normalize block
+    //
+    if(!sourceLastInstr->IsBranchInstr())
+    {
+        // There are some cases where the last instruction of a block can be not a branch;
+        // for example, if it was previously a conditional branch that was impossible to take.
+        // In these situations, we can insert an unconditional branch to fallthrough for that
+        // block, to renormalize it.
+        SListBaseCounted<FlowEdge*>* successors = sourceBlock->GetSuccList();
+        // Only handling the case for one arc left at the moment; other cases are likely bugs.
+        AssertOrFailFastMsg(successors->HasOne(), "Failed to normalize weird block before airlock");
+        FlowEdge* onlyLink = successors->Head();
+        AssertOrFailFastMsg(onlyLink == edge, "Found duplicate of edge?");
+        AssertOrFailFastMsg(onlyLink->GetSucc() == sinkBlock, "State inconsistent");
+        sourceLastInstr->InsertAfter(IR::BranchInstr::New(Js::OpCode::Br, onlyLink->GetSucc()->GetFirstInstr()->AsLabelInstr(), sourceLastInstr->m_func));
+        sourceLastInstr = sourceLastInstr->m_next;
+    }
+
     BasicBlock * sinkPrevBlock = sinkBlock->prev;
     IR::Instr *  sinkPrevBlockLastInstr = sinkPrevBlock->GetLastInstr();
-    IR::Instr * sourceLastInstr = sourceBlock->GetLastInstr();
 
     airlockBlock->loop = sinkBlock->loop;
     airlockBlock->SetBlockNum(this->blockCount++);
 #ifdef DBG
     airlockBlock->isAirLockBlock = true;
 #endif
+
     //
     // Fixup block linkage
     //
@@ -2312,6 +2341,7 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     airlockBlock->SetLastInstr(airlockBr);
 
     airlockLabel->SetByteCodeOffset(sinkLabel);
+    airlockLabel->SetRegion(sinkLabel->GetRegion());
 
     // Fixup flow out of sourceBlock
     IR::BranchInstr *sourceBr = sourceLastInstr->AsBranchInstr();
@@ -2433,6 +2463,7 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
     compBlock->SetLastInstr(compBr);
 
     compLabel->SetByteCodeOffset(sinkLabel);
+    compLabel->SetRegion(sinkLabel->GetRegion());
 
     // Fixup flow out of sourceBlock
     if (sourceLastInstr->IsBranchInstr())
@@ -3695,6 +3726,24 @@ Loop::IsSymAssignedToInSelfOrParents(StackSym * const sym) const
     return false;
 }
 
+BasicBlock *
+Loop::GetAnyTailBlock() const
+{
+    BasicBlock * tail = nullptr;
+
+    BasicBlock * loopHeader = this->GetHeadBlock();
+    FOREACH_PREDECESSOR_BLOCK(pred, loopHeader)
+    {
+        if (this->IsDescendentOrSelf(pred->loop))
+        {
+            tail = pred;
+        }
+    } NEXT_PREDECESSOR_BLOCK;
+    
+    Assert(tail);
+    return tail;
+}
+
 #if DBG_DUMP
 uint
 Loop::GetLoopNumber() const
@@ -4439,7 +4488,7 @@ BasicBlock::CleanUpValueMaps()
     }
 }
 
-bool IsLegalOpcodeForPathDepBrFold(IR::Instr *instr)
+static bool IsLegalOpcodeForPathDepBrFold(IR::Instr *instr)
 {
     if (!instr->IsRealInstr())
     {
@@ -4449,7 +4498,9 @@ bool IsLegalOpcodeForPathDepBrFold(IR::Instr *instr)
     {
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
+    case Js::OpCode::LdFld:
     case Js::OpCode::ByteCodeUses:
+    case Js::OpCode::InlineeEnd:
         return true;
     }
 #if DBG
@@ -4462,6 +4513,56 @@ bool IsLegalOpcodeForPathDepBrFold(IR::Instr *instr)
     return false;
 }
 
+
+static bool IsCopyTypeInstr(IR::Instr *instr)
+{
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::LdC_A_I4:
+    case Js::OpCode::Ld_I4:
+    case Js::OpCode::Ld_A:
+    case Js::OpCode::StFld:
+    case Js::OpCode::LdFld:
+    case Js::OpCode::InitFld: return true;
+    default:
+        return false;
+    }
+};
+
+Value * BasicBlock::FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globOpt, GlobHashTable * localSymToValueMap, IR::Instr *instr, Sym *dstSym, Sym *srcSym)
+{
+    Value ** localDstValue = nullptr;
+    Value * srcVal = nullptr;
+    if (dstSym)
+    {
+        localDstValue = localSymToValueMap->FindOrInsertNew(dstSym);
+    }
+    Value ** localSrcValue = localSymToValueMap->Get(srcSym);
+    if (!localSrcValue)
+    {
+        Value *globalValue = this->globOptData.FindValue(srcSym);
+        if (globOpt->IsLoopPrePass() && globalValue && (!srcSym->IsStackSym() || !globOpt->IsSafeToTransferInPrepass(srcSym->AsStackSym(), globalValue->GetValueInfo())))
+        {
+            srcVal = nullptr;
+        }
+        else
+        {
+            srcVal = globalValue;
+        }
+    }
+    else
+    {
+        srcVal = *localSrcValue;
+    }
+    if (dstSym)
+    {
+        Assert(IsCopyTypeInstr(instr));
+        *localDstValue = srcVal;
+    }
+
+    return srcVal;
+}
+
 IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap)
 {
     if (!branch->GetSrc1() || !branch->GetSrc1()->GetStackSym())
@@ -4472,26 +4573,8 @@ IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, G
     Value *src1Val = nullptr, *src2Val = nullptr;
     Js::Var src1Var = nullptr, src2Var = nullptr;
 
-    auto FindValueInLocalThenGlobalValueTable = [&](StackSym *sym) -> Value *
-    {
-        Value ** srcValPtr = localSymToValueMap->Get(sym);
-        Value * srcVal = nullptr;
-        if (!srcValPtr)
-        {
-            srcVal = this->globOptData.FindValue(sym);
-        }
-        else
-        {
-            srcVal = *srcValPtr;
-        }
-        if (!srcVal)
-        {
-            return nullptr;
-        }
-        return srcVal;
-    };
+    src1Val = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, branch, nullptr, branch->GetSrc1()->GetStackSym());
 
-    src1Val = FindValueInLocalThenGlobalValueTable(branch->GetSrc1()->GetStackSym());
     if (!src1Val)
     {
         return nullptr;
@@ -4502,7 +4585,7 @@ IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, G
     {
         if (branch->GetSrc2()->GetStackSym())
         {
-            src2Val = FindValueInLocalThenGlobalValueTable(branch->GetSrc2()->GetStackSym());
+            src2Val = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, branch, nullptr, branch->GetSrc2()->GetStackSym());
         }
         if (!src2Val)
         {
@@ -4519,20 +4602,10 @@ IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, G
 
     IR::LabelInstr * newTarget = provenTrue ? branch->GetTarget() : branch->GetNextRealInstrOrLabel()->AsLabelInstr();
 
-    if (PHASE_TRACE(Js::PathDepBranchFoldingPhase, this->func))
-    {
-        Output::Print(_u("TRACE PathDependentBranchFolding: "));
-        Output::Print(_u("Can prove retarget of branch in Block %d from Block %d to Block %d in func %s\n"),
-            this->GetBlockNum(),
-            this->GetLastInstr()->IsBranchInstr() ? this->GetLastInstr()->AsBranchInstr()->GetTarget()->GetBasicBlock()->GetBlockNum() : this->GetNext()->GetBlockNum(),
-            newTarget->GetBasicBlock()->GetBlockNum(),
-            this->func->GetJITFunctionBody()->GetDisplayName());
-        Output::Flush();
-    }
     return newTarget;
 }
 
-bool
+void
 BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
 {
     IR::LabelInstr * lastBranchTarget = nullptr;
@@ -4541,24 +4614,87 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     // If we find a Ld_A, we find if the src1 already has a value in the local valueTable, if not we use the value from the pred's valueTable merge
     // For other instrs, we assign null value
     GlobHashTable * localSymToValueMap = GlobHashTable::New(globOpt->alloc, 8);
+    BVSparse<JitArenaAllocator> currentPathDefines(globOpt->alloc);
+    IR::Instr *currentInlineeEnd = nullptr, *unskippedInlineeEnd = nullptr;
+
+    auto UpdateValueForCopyTypeInstr = [&](IR::Instr *instr) {
+        if (instr->m_opcode == Js::OpCode::LdFld)
+        {
+            // Special handling for LdFld
+            Assert(instr->GetSrc1()->IsSymOpnd());
+            IR::SymOpnd *symOpnd = instr->GetSrc1()->AsSymOpnd();
+
+            if (symOpnd->m_sym->IsPropertySym())
+            {
+                PropertySym * originalPropertySym = symOpnd->m_sym->AsPropertySym();
+                Value *const objectValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, nullptr, originalPropertySym->m_stackSym);
+                Sym* objSym = objectValue ? objectValue->GetValueInfo()->GetSymStore() : nullptr;
+                PropertySym *prop = PropertySym::Find(objSym ? objSym->m_id : originalPropertySym->m_stackSym->m_id, originalPropertySym->m_propertyId, globOpt->func);
+                if (prop)
+                {
+                    FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetStackSym(), prop);
+                }
+                else
+                {
+                    Value ** localDstValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetStackSym());
+                    *localDstValue = nullptr;
+                }
+            }
+        }
+        else if (instr->GetSrc1()->GetStackSym())
+        {
+            StackSym* src1Sym = instr->GetSrc1()->GetStackSym();
+            FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
+        }
+        else if (instr->GetSrc1()->IsIntConstOpnd())
+        {
+            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
+        }
+        else if (instr->GetSrc1()->IsInt64ConstOpnd())
+        {
+            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
+        }
+        else
+        {
+            ValueType src1Value = instr->GetSrc1()->GetValueType();
+            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+            if (src1Value.IsUndefined() || src1Value.IsBoolean())
+            {
+                *localValue = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
+            }
+            else
+            {
+                *localValue = nullptr;
+            }
+        }
+    };
 
     FOREACH_INSTR_IN_BLOCK(instr, this)
     {
         if (OpCodeAttr::HasDeadFallThrough(instr->m_opcode))
         {
-            return false;
+            return;
         }
-        if (instr->GetDst())
+        if (instr->m_opcode == Js::OpCode::InlineeEnd)
         {
-            if (instr->GetDst()->GetStackSym())
+            unskippedInlineeEnd = currentInlineeEnd = instr;
+        }
+        else if (instr->GetDst())
+        {
+            if (instr->GetDst()->GetSym())
             {
-                if (instr->m_opcode == Js::OpCode::Ld_A)
+                if (IsCopyTypeInstr(instr))
+                {
+                    UpdateValueForCopyTypeInstr(instr);
+                }
+                else if(instr->m_opcode == Js::OpCode::NewScObjectLiteral)
                 {
                     Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-                    if (instr->GetSrc1()->GetSym())
+                    if (instr->GetDst()->GetValueType() == ValueType::UninitializedObject)
                     {
-                        Value **localSrc1Value = localSymToValueMap->Get(instr->GetSrc1()->GetSym());
-                        *localValue = localSrc1Value == nullptr ? this->globOptData.FindValue(instr->GetSrc1()->GetSym()) : *localSrc1Value;
+                        *localValue = globOpt->NewGenericValue(ValueType::UninitializedObject, instr->GetDst());
                     }
                 }
                 else
@@ -4572,7 +4708,7 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     } NEXT_INSTR_IN_BLOCK;
 
     IR::Instr * instr = this->GetLastInstr();
-    IR::LabelInstr * currentLabel = nullptr;
+
     /* We start from the current instruction and go on scanning for legality, as long as it is legal to skip an instruction, skip.
      * When we see an unconditional branch, start scanning from the branchTarget
      * When we see a conditional branch, check if we can prove the branch target, if we can, adjust the flowgraph, and continue in the direction of the proven target
@@ -4582,50 +4718,38 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     {
         if (!instr->IsBranchInstr() && !instr->IsLabelInstr() && !IsLegalOpcodeForPathDepBrFold(instr))
         {
-            return lastBranchTarget != nullptr;
+            return;
         }
         if (OpCodeAttr::HasDeadFallThrough(instr->m_opcode)) // BailOnNoProfile etc
         {
-            return lastBranchTarget != nullptr;
+            return;
         }
-        if (instr->GetDst())
+        if (instr->m_opcode == Js::OpCode::InlineeEnd)
+        {
+            if (currentInlineeEnd != nullptr)
+            {
+                return;
+            }
+            currentInlineeEnd = instr;
+        }
+        else if (instr->GetDst())
         {
             if (!instr->GetDst()->IsRegOpnd()) // complex dstOpnd, stop.
             {
-                return lastBranchTarget != nullptr;
+                return;
             }
+
             IR::RegOpnd *dst = instr->GetDst()->AsRegOpnd();
-            if (currentLabel)
+            currentPathDefines.Set(dst->GetStackSym()->m_id);
+
+            if (IsCopyTypeInstr(instr))
             {
-                BasicBlock * currentBlock = currentLabel->GetBasicBlock();
-                // If the dstOpnd is defined and used in the same block, it is legal, but if the successor blocks use it, stop.
-                if (currentBlock->successorBlockUses && currentBlock->successorBlockUses->Test(dst->GetStackSym()->m_id))
-                {
-                    return lastBranchTarget != nullptr;
-                }
+                UpdateValueForCopyTypeInstr(instr);
             }
-            if (instr->GetSrc1())
+            else
             {
-                // If the src of the load instruction is produced in the currentBlock, its value will not be available in the valuetable, check in local valuetable
-                Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-                if (instr->GetSrc1()->GetSym())
-                {
-                    Value **localSrc1Value = localSymToValueMap->Get(instr->GetSrc1()->GetSym());
-                    *localValue = localSrc1Value == nullptr ? this->globOptData.FindValue(instr->GetSrc1()->GetSym()) : *localSrc1Value;
-                }
-                else
-                {
-                    ValueType src1Value = instr->GetSrc1()->GetValueType();
-                    if (src1Value.IsUndefined())
-                    {
-                        *localValue = globOpt->NewGenericValue(ValueType::Undefined, instr->GetDst());
-                    }
-                    // MGTODO : handle other constants
-                    else
-                    {
-                        return lastBranchTarget != nullptr;
-                    }
-                }
+                Value ** localDstValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetStackSym());
+                *localDstValue = nullptr;
             }
         }
         if (instr->IsLabelInstr())
@@ -4633,9 +4757,8 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (instr->AsLabelInstr()->m_isLoopTop)
             {
                 // don't cross over to loops
-                return lastBranchTarget != nullptr;
+                return;
             }
-            currentLabel = instr->AsLabelInstr();
         }
         if (instr->IsBranchInstr())
         {
@@ -4647,23 +4770,50 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
                 branchTarget = branch->GetTarget();
                 if (!branchTarget)
                 {
-                    return lastBranchTarget != nullptr;
+                    return;
                 }
                 if (branchTarget->m_isLoopTop)
                 {
-                    return lastBranchTarget != nullptr;
+                    return;
                 }
             }
             else
             {
                 if (branch->GetTarget()->m_isLoopTop)
                 {
-                    return lastBranchTarget != nullptr;
+                    return;
                 }
                 branchTarget = CanProveConditionalBranch(branch, globOpt, localSymToValueMap);
                 if (!branchTarget)
                 {
-                    return lastBranchTarget != nullptr;
+                    return;
+                }
+            }
+
+            FOREACH_BITSET_IN_SPARSEBV(id, &currentPathDefines)
+            {
+                if (branchTarget->GetBasicBlock()->upwardExposedUses->Test(id))
+                {
+                    // it is used in the direction of the branch, we can't skip it
+                    return;
+                }
+            } NEXT_BITSET_IN_SPARSEBV;
+
+            if (PHASE_TRACE(Js::PathDepBranchFoldingPhase, this->func))
+            {
+                if (!branch->IsUnconditional())
+                {
+                    Output::Print(_u("TRACE PathDependentBranchFolding: "));
+                    Output::Print(_u("Can prove retarget of branch in Block %d from Block %d to Block %d in func %s\n"),
+                        this->GetBlockNum(),
+                        this->GetLastInstr()->IsBranchInstr() ? this->GetLastInstr()->AsBranchInstr()->GetTarget()->GetBasicBlock()->GetBlockNum() : this->GetNext()->GetBlockNum(),
+                        branchTarget->GetBasicBlock()->GetBlockNum(),
+                        this->func->GetJITFunctionBody()->GetDisplayName());
+                    if (globOpt->IsLoopPrePass())
+                    {
+                        Output::Print(_u("In LoopPrePass\n"));
+                    }
+                    Output::Flush();
                 }
             }
 
@@ -4692,6 +4842,11 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
                 // If the new target is a fall through label, delete the branch
                 globOpt->ConvertToByteCodeUses(this->GetLastInstr());
             }
+            if (currentInlineeEnd != nullptr && currentInlineeEnd != unskippedInlineeEnd)
+            {
+                this->GetLastInstr()->InsertBefore(currentInlineeEnd->Copy());
+                currentInlineeEnd = nullptr;
+            }
             // We are adding an unconditional branch, go over all the current successors and remove the ones that are dead now
             FOREACH_SUCCESSOR_BLOCK_EDITING(blockSucc, this, iter)
             {
@@ -4711,6 +4866,13 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             }NEXT_SUCCESSOR_BLOCK_EDITING;
             lastBranchTarget = branchTarget;
             instr = lastBranchTarget;
+#if DBG
+            if (PHASE_TRACE(Js::PathDepBranchFoldingPhase, instr->m_func) && Js::Configuration::Global.flags.Verbose)
+            {
+                Output::Print(_u("After PathDependentBranchFolding: "));
+                this->func->Dump();
+            }
+#endif
         }
         else
         {
@@ -4718,21 +4880,13 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
         }
     }
 
-    return lastBranchTarget != nullptr;
+    return;
 }
 
 bool
 BasicBlock::PathDepBranchFolding(GlobOpt* globOpt)
 {
     if (PHASE_OFF(Js::PathDepBranchFoldingPhase, this->func))
-    {
-        return false;
-    }
-    if (globOpt->IsLoopPrePass())
-    {
-        return false;
-    }
-    if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
     {
         return false;
     }
@@ -5216,14 +5370,14 @@ GlobOpt::CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOp
     ProcessValueKills(toBlock, toData);
 }
 
-PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
+PRECandidates * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc)
 {
     // Iterate over the value table looking for propertySyms which are candidates to
     // pre-load in the landing pad for field PRE
 
     GlobHashTable *valueTable = block->globOptData.symToValueMap;
     Loop *loop = block->loop;
-    PRECandidatesList *candidates = nullptr;
+    PRECandidates *candidates = JitAnew(this->tempAlloc, PRECandidates);
 
     for (uint i = 0; i < valueTable->tableSize; i++)
     {
@@ -5284,7 +5438,7 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
             if (!landingPadValue)
             {
                 // Value should be added as initial value or already be there.
-                return nullptr;
+                continue;
             }
 
             IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
@@ -5294,12 +5448,16 @@ PRECandidatesList * GlobOpt::FindBackEdgePRECandidates(BasicBlock *block, JitAre
                 continue;
             }
 
-            if (!candidates)
+            if (!candidates->candidatesList)
             {
-                candidates = Anew(alloc, PRECandidatesList, alloc);
+                candidates->candidatesList = JitAnew(alloc, PRECandidatesList, alloc);
+                candidates->candidatesToProcess = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+                candidates->candidatesBv = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
             }
 
-            candidates->Prepend(&bucket);
+            candidates->candidatesList->Prepend(&bucket);
+            candidates->candidatesToProcess->Set(propertySym->m_id);
+            candidates->candidatesBv->Set(propertySym->m_id);
 
         } NEXT_SLISTBASE_ENTRY;
     }

@@ -139,7 +139,7 @@ namespace Js
         template <typename Allocator>
         ArrayBuffer(DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type, Allocator allocator);
 
-        ArrayBuffer(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
+        ArrayBuffer(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type, bool isExternal = false);
 
         class EntryInfo
         {

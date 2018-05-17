@@ -947,11 +947,11 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
     } NEXT_BITSET_IN_SPARSEBV;
 }
 
-PRECandidatesList * GlobOpt::FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc)
+void GlobOpt::PRE::FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc)
 {
     // Find the set of PRE candidates
     BasicBlock *loopHeader = loop->GetHeadBlock();
-    PRECandidatesList *candidates = nullptr;
+    PRECandidates *candidates = nullptr;
     bool firstBackEdge = true;
 
     FOREACH_PREDECESSOR_BLOCK(blockPred, loopHeader)
@@ -963,7 +963,7 @@ PRECandidatesList * GlobOpt::FindPossiblePRECandidates(Loop *loop, JitArenaAlloc
         }
         if (firstBackEdge)
         {
-            candidates = this->FindBackEdgePRECandidates(blockPred, alloc);
+            candidates = this->globOpt->FindBackEdgePRECandidates(blockPred, alloc);
         }
         else
         {
@@ -971,24 +971,60 @@ PRECandidatesList * GlobOpt::FindPossiblePRECandidates(Loop *loop, JitArenaAlloc
         }
     } NEXT_PREDECESSOR_BLOCK;
 
-    return candidates;
+    this->candidates = candidates;
 }
 
-BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
+BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
 {
     // Insert a load for each field PRE candidate.
     PropertySym *propertySym = candidate->value->AsPropertySym();
-    StackSym *objPtrSym = propertySym->m_stackSym;
-
-    // If objPtr isn't live, we'll retry later.
-    // Another PRE candidate may insert a load for it.
-    if (!loop->landingPad->globOptData.IsLive(objPtrSym))
+    if (!candidates->candidatesToProcess->TestAndClear(propertySym->m_id))
     {
         return false;
     }
+    Value * propSymValueOnBackEdge = candidate->element;
+
+    StackSym *objPtrSym = propertySym->m_stackSym;
+    Sym * objPtrCopyPropSym = nullptr;
+
+    if (!loop->landingPad->globOptData.IsLive(objPtrSym))
+    {
+        if (PHASE_OFF(Js::MakeObjSymLiveInLandingPadPhase, this->globOpt->func))
+        {
+            return false;
+        }
+        if (objPtrSym->IsSingleDef())
+        {
+            // We can still try to do PRE if the object sym is single def, even if its not live in the landing pad.
+            // We'll have to add a def instruction for the object sym in the landing pad, and then we can continue
+            // pre-loading the current PRE candidate.
+            // Case in point:
+            // $L1            
+            //                value|symStore
+            //      t1 = o.x    (v1|t3)
+            //      t2 = t1.y   (v2|t4) <-- t1 is not live in the loop landing pad
+            //      jmp $L1
+
+            if (!InsertSymDefinitionInLandingPad(objPtrSym, loop, &objPtrCopyPropSym))
+            {
+#if DBG_DUMP
+                TraceFailedPreloadInLandingPad(loop, propertySym, _u("Failed to insert load of object sym in landing pad"));
+#endif
+                return false;
+            }
+        }
+        else
+        {
+#if DBG_DUMP
+            TraceFailedPreloadInLandingPad(loop, propertySym, _u("Object sym not live in landing pad and not single-def"));
+#endif
+            return false;
+        }
+    }
+    Assert(loop->landingPad->globOptData.IsLive(objPtrSym));
+
     BasicBlock *landingPad = loop->landingPad;
-    Value *value = candidate->element;
-    Sym *symStore = value->GetValueInfo()->GetSymStore();
+    Sym *symStore = propSymValueOnBackEdge->GetValueInfo()->GetSymStore();
 
     // The symStore can't be live into the loop
     // The symStore needs to still have the same value
@@ -1006,49 +1042,55 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     // Value should be added as initial value or already be there.
     Assert(landingPadValue);
 
-    IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
-    Assert(ldInstr);
+    IR::Instr * ldInstrInLoop = this->globOpt->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
+    Assert(ldInstrInLoop);
 
     // Create instr to put in landing pad for compensation
-    Assert(IsPREInstrCandidateLoad(ldInstr->m_opcode));
-    IR::SymOpnd *ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
+    Assert(IsPREInstrCandidateLoad(ldInstrInLoop->m_opcode));
 
-    if (ldSrc->m_sym != propertySym)
+    IR::Instr * ldInstr = InsertPropertySymPreloadWithoutDstInLandingPad(ldInstrInLoop, loop, propertySym);
+    if (!ldInstr)
     {
-        // It's possible that the propertySym but have equivalent objPtrs.  Verify their values.
-        Value *val1 = CurrentBlockData()->FindValue(ldSrc->m_sym->AsPropertySym()->m_stackSym);
-        Value *val2 = CurrentBlockData()->FindValue(propertySym->m_stackSym);
-        if (!val1 || !val2 || val1->GetValueNumber() != val2->GetValueNumber())
+        return false;
+    }
+
+    Assert(ldInstr->GetDst() == nullptr);
+    if (ldInstrInLoop->GetDst())
+    {
+        Assert(ldInstrInLoop->GetDst()->IsRegOpnd());
+        if (ldInstrInLoop->GetDst()->AsRegOpnd()->m_sym != symStore)
         {
-            return false;
+            ldInstr->SetDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->globOpt->func));
+            loop->fieldPRESymStores->Set(symStore->m_id);
+        }
+        else
+        {
+            ldInstr->SetDst(ldInstrInLoop->GetDst()->Copy(ldInstrInLoop->m_func));
+        }
+        landingPad->globOptData.liveVarSyms->Set(ldInstr->GetDst()->AsRegOpnd()->m_sym->m_id);
+    }
+
+    Value * objPtrValue = landingPad->globOptData.FindValue(objPtrSym);
+
+    objPtrCopyPropSym = objPtrCopyPropSym ? objPtrCopyPropSym : objPtrValue ? landingPad->globOptData.GetCopyPropSym(objPtrSym, objPtrValue) : nullptr;
+    if (objPtrCopyPropSym)
+    {
+        // If we inserted T4 = T1.y, and T3 is the copy prop sym for T1 in the landing pad, we need T3.y 
+        // to be live on back edges to have the merge produce a value for T3.y. Having a value for T1.y 
+        // produced from the merge is not enough as the T1.y in the loop will get obj-ptr-copy-propped to 
+        // T3.y
+
+        // T3.y
+        PropertySym *newPropSym = PropertySym::FindOrCreate(
+            objPtrCopyPropSym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->globOpt->func);
+
+        if (!landingPad->globOptData.FindValue(newPropSym))
+        {
+            landingPad->globOptData.SetValue(landingPadValue, newPropSym);
+            landingPad->globOptData.liveFields->Set(newPropSym->m_id);
+            MakePropertySymLiveOnBackEdges(newPropSym, loop, propSymValueOnBackEdge);
         }
     }
-
-    ldInstr = ldInstr->Copy();
-
-    // Consider: Shouldn't be necessary once we have copy-prop in prepass...
-    ldInstr->GetSrc1()->AsSymOpnd()->m_sym = propertySym;
-    ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
-
-    if (ldSrc->IsPropertySymOpnd())
-    {
-        IR::PropertySymOpnd *propSymOpnd = ldSrc->AsPropertySymOpnd();
-        IR::PropertySymOpnd *newPropSymOpnd;
-
-        newPropSymOpnd = propSymOpnd->AsPropertySymOpnd()->CopyWithoutFlowSensitiveInfo(this->func);
-        ldInstr->ReplaceSrc1(newPropSymOpnd);
-    }
-
-    if (ldInstr->GetDst()->AsRegOpnd()->m_sym != symStore)
-    {
-        ldInstr->ReplaceDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->func));
-        loop->fieldPRESymStores->Set(symStore->m_id);
-    }
-
-    ldInstr->GetSrc1()->SetIsJITOptimizedReg(true);
-    ldInstr->GetDst()->SetIsJITOptimizedReg(true);
-
-    landingPad->globOptData.liveVarSyms->Set(symStore->m_id);
 
     ValueType valueType(ValueType::Uninitialized);
     Value *initialValue = nullptr;
@@ -1057,15 +1099,15 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     {
         if (ldInstr->IsProfiledInstr())
         {
-            if (initialValue->GetValueNumber() == value->GetValueNumber())
+            if (initialValue->GetValueNumber() == propSymValueOnBackEdge->GetValueNumber())
             {
-                if (value->GetValueInfo()->IsUninitialized())
+                if (propSymValueOnBackEdge->GetValueInfo()->IsUninitialized())
                 {
                     valueType = ldInstr->AsProfiledInstr()->u.FldInfo().valueType;
                 }
                 else
                 {
-                    valueType = value->GetValueInfo()->Type();
+                    valueType = propSymValueOnBackEdge->GetValueInfo()->Type();
                 }
             }
             else
@@ -1085,7 +1127,7 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     if (valueType.IsLikelyNumber())
     {
         loop->likelyNumberSymsUsedBeforeDefined->Set(symStore->m_id);
-        if (DoAggressiveIntTypeSpec() ? valueType.IsLikelyInt() : valueType.IsInt())
+        if (globOpt->DoAggressiveIntTypeSpec() ? valueType.IsLikelyInt() : valueType.IsInt())
         {
             // Can only force int conversions in the landing pad based on likely-int values if aggressive int type
             // specialization is enabled
@@ -1093,44 +1135,26 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
         }
     }
 
-    // Insert in landing pad
-    if (ldInstr->HasAnyImplicitCalls())
-    {
-        IR::Instr * bailInstr = EnsureDisableImplicitCallRegion(loop);
-
-        bailInstr->InsertBefore(ldInstr);
-    }
-    else if (loop->endDisableImplicitCall)
-    {
-        loop->endDisableImplicitCall->InsertBefore(ldInstr);
-    }
-    else
-    {
-        loop->landingPad->InsertAfter(ldInstr);
-    }
-
-    ldInstr->ClearByteCodeOffset();
-    ldInstr->SetByteCodeOffset(landingPad->GetFirstInstr());
-
 #if DBG_DUMP
-    if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldPREPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
+    if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldPREPhase, this->globOpt->func->GetSourceContextId(), this->globOpt->func->GetLocalFunctionId()))
     {
         Output::Print(_u("** TRACE: Field PRE: field pre-loaded in landing pad of loop head #%-3d: "), loop->GetHeadBlock()->GetBlockNum());
         ldInstr->Dump();
         Output::Print(_u("\n"));
+        Output::Flush();
     }
 #endif
 
     return true;
 }
 
-void GlobOpt::PreloadPRECandidates(Loop *loop, PRECandidatesList *candidates)
+void GlobOpt::PRE::PreloadPRECandidates(Loop *loop)
 {
     // Insert loads in landing pad for field PRE candidates. Iterate while(changed)
     // for the o.x.y cases.
     BOOL changed = true;
 
-    if (!candidates)
+    if (!candidates || !candidates->candidatesList)
     {
         return;
     }
@@ -1140,12 +1164,17 @@ void GlobOpt::PreloadPRECandidates(Loop *loop, PRECandidatesList *candidates)
     while (changed)
     {
         changed = false;
-        FOREACH_SLIST_ENTRY_EDITING(GlobHashBucket*, candidate, (SList<GlobHashBucket*>*)candidates, iter)
+        FOREACH_SLIST_ENTRY_EDITING(GlobHashBucket*, candidate, (SList<GlobHashBucket*>*)candidates->candidatesList, iter)
         {
             if (this->PreloadPRECandidate(loop, candidate))
             {
                 changed = true;
                 iter.RemoveCurrent();
+            }
+            if (PHASE_TRACE(Js::FieldPREPhase, this->globOpt->func))
+            {
+                Output::Print(_u("============================\n"));
+                Output::Flush();
             }
         } NEXT_SLIST_ENTRY_EDITING;
     }
@@ -1158,11 +1187,8 @@ void GlobOpt::FieldPRE(Loop *loop)
         return;
     }
 
-    PRECandidatesList *candidates;
-    JitArenaAllocator *alloc = this->tempAlloc;
-
-    candidates = this->FindPossiblePRECandidates(loop, alloc);
-    this->PreloadPRECandidates(loop, candidates);
+    GlobOpt::PRE pre(this);
+    pre.FieldPRE(loop);
 }
 
 void GlobOpt::InsertValueCompensation(
@@ -2644,16 +2670,6 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->InsertByteCodeUses(instr);
     }
 
-    if (!IsLoopPrePass() && instr->HasBailOutInfo() && !this->func->IsJitInDebugMode() && !PHASE_OFF(Js::AggregateByteCodeUsesPhase, this->func))
-    {
-        // Aggregate byteCodeUpwardExposedUsed of preceding ByteCodeUses instrs with the same bytecode offset.
-        // This is required as different ByteCodeUses instrs may be inserted for an instr in the loop pre-pass
-        // and the main pass (and there may be additional instructions inserted between the two sets of 
-        // ByteCodeUses instructions), but the Backward Pass only processes immediately preceding consecutive
-        // ByteCodeUses instructions before processing a pre-op bailout.
-        instr->AggregateByteCodeUses();
-    }
-
     if (!this->IsLoopPrePass() && !isHoisted && this->IsImplicitCallBailOutCurrentlyNeeded(instr, src1Val, src2Val))
     {
         IR::BailOutKind kind = IR::BailOutOnImplicitCalls;
@@ -3064,10 +3080,50 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
         return;
     }
 
+    StackSym * objectSym = propertySym->m_stackSym;
     Value *landingPadObjPtrVal, *currentObjPtrVal;
-    landingPadObjPtrVal = loop->landingPad->globOptData.FindValue(propertySym->m_stackSym);
-    currentObjPtrVal = CurrentBlockData()->FindValue(propertySym->m_stackSym);
-    if (!currentObjPtrVal || !landingPadObjPtrVal || currentObjPtrVal->GetValueNumber() != landingPadObjPtrVal->GetValueNumber())
+    landingPadObjPtrVal = loop->landingPad->globOptData.FindValue(objectSym);
+    currentObjPtrVal = CurrentBlockData()->FindValue(objectSym);
+    
+    auto CanSetInitialValue = [&]() -> bool {
+        if (!currentObjPtrVal)
+        {
+            return false;
+        }
+        if (landingPadObjPtrVal)
+        {
+            return currentObjPtrVal->GetValueNumber() == landingPadObjPtrVal->GetValueNumber();
+        }
+        else
+        {
+            if (!objectSym->IsSingleDef())
+            {
+                return false;
+            }
+            IR::Instr * defInstr = objectSym->GetInstrDef();
+            IR::Opnd * src1 = defInstr->GetSrc1();
+            while (!(src1 && src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsPropertySym()))
+            {
+                if (src1 && src1->IsRegOpnd() && src1->AsRegOpnd()->GetStackSym()->IsSingleDef())
+                {
+                    defInstr = src1->AsRegOpnd()->GetStackSym()->GetInstrDef();
+                    src1 = defInstr->GetSrc1();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+
+            // Todo: allow other kinds of operands as src1 of instr def of the object sym of the current propertySym
+            // SymOpnd, but not PropertySymOpnd - LdSlotArr, some LdSlots (?)
+            // nullptr - NewScObject
+        }
+    };
+
+    if (!CanSetInitialValue())
     {
         // objPtr has a different value in the landing pad.
         return;
@@ -3098,6 +3154,7 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
         symStore->Dump();
         Output::Print(_u("\n    Instr: "));
         instr->Dump();
+        Output::Flush();
     }
 #endif
 
@@ -3666,7 +3723,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         //Need to update DumpFieldCopyPropTestTrace for every new opcode that is added for fieldcopyprop
         if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldCopyPropPhase))
         {
-            instr->DumpFieldCopyPropTestTrace();
+            instr->DumpFieldCopyPropTestTrace(this->isRecursiveCallOnLandingPad);
         }
 #endif
 
@@ -3807,7 +3864,7 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
     //Need to update DumpFieldCopyPropTestTrace for every new opcode that is added for fieldcopyprop
     if(Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::FieldCopyPropPhase))
     {
-        instr->DumpFieldCopyPropTestTrace();
+        instr->DumpFieldCopyPropTestTrace(this->isRecursiveCallOnLandingPad);
     }
 #endif
 
@@ -5456,6 +5513,18 @@ GlobOpt::IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue
         *isSafeToTransferInPrepass = false;
     }
 
+    if (src->IsAddrOpnd() &&
+        srcValue->GetValueInfo()->GetSymStore() &&
+        srcValue->GetValueInfo()->GetSymStore()->IsStackSym() &&
+        srcValue->GetValueInfo()->GetSymStore()->AsStackSym()->IsFromByteCodeConstantTable())
+    {
+        if (isSafeToTransferInPrepass)
+        {
+            *isSafeToTransferInPrepass = false;
+        }
+        return true;
+    }
+
     if (!src->IsRegOpnd() || !srcValue)
     {
         return false;
@@ -6426,11 +6495,18 @@ bool BoolAndIntStaticAndTypeMismatch(Value* src1Val, Value* src2Val, Js::Var src
 bool
 GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2Val, Js::Var src1Var, Js::Var src2Var, bool *result)
 {
-    auto AreSourcesEqual = [&](Value * val1, Value * val2) -> bool
+    auto AreSourcesEqual = [&](Value * val1, Value * val2, bool undefinedCmp) -> bool
     {
         // NaN !== NaN, and objects can have valueOf/toString
-        return val1->IsEqualTo(val2) &&
-            val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+        if (val1->IsEqualTo(val2))
+        {
+            if (val1->GetValueInfo()->IsUndefined())
+            {
+                return undefinedCmp;
+            }
+            return val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+        }
+        return false;
     };
 
     // Make sure GetConstantVar only returns primitives.
@@ -6439,12 +6515,12 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
     //Assert(!src2Var || !Js::JavascriptOperators::IsObject(src2Var));
 
     int64 left64, right64;
-    int left, right;
+    int32 left, right;
     int32 constVal;
 
     switch (instr->m_opcode)
     {
-#define BRANCHSIGNED(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
+#define BRANCHSIGNED(OPCODE,CMP,TYPE,UNSIGNEDNESS,UNDEFINEDCMP) \
     case Js::OpCode::##OPCODE: \
         if (src1Val && src2Val) \
         { \
@@ -6458,7 +6534,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             { \
                 *result = (TYPE)left64 CMP(TYPE)right64; \
             } \
-            else if (AreSourcesEqual(src1Val, src2Val)) \
+            else if (AreSourcesEqual(src1Val, src2Val, UNDEFINEDCMP)) \
             { \
                 *result = 0 CMP 0; \
             } \
@@ -6473,25 +6549,25 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         } \
         break;
 
-        BRANCHSIGNED(BrEq_I4, == , int64, false)
-        BRANCHSIGNED(BrGe_I4, >= , int64, false)
-        BRANCHSIGNED(BrGt_I4, > , int64, false)
-        BRANCHSIGNED(BrLt_I4, < , int64, false)
-        BRANCHSIGNED(BrLe_I4, <= , int64, false)
-        BRANCHSIGNED(BrNeq_I4, != , int64, false)
-        BRANCHSIGNED(BrUnGe_I4, >= , uint64, true)
-        BRANCHSIGNED(BrUnGt_I4, > , uint64, true)
-        BRANCHSIGNED(BrUnLt_I4, < , uint64, true)
-        BRANCHSIGNED(BrUnLe_I4, <= , uint64, true)
+        BRANCHSIGNED(BrEq_I4, == , int64, false, true)
+        BRANCHSIGNED(BrGe_I4, >= , int64, false, false)
+        BRANCHSIGNED(BrGt_I4, > , int64, false, false)
+        BRANCHSIGNED(BrLt_I4, < , int64, false, false)
+        BRANCHSIGNED(BrLe_I4, <= , int64, false, false)
+        BRANCHSIGNED(BrNeq_I4, != , int64, false, false)
+        BRANCHSIGNED(BrUnGe_I4, >= , uint64, true, false)
+        BRANCHSIGNED(BrUnGt_I4, > , uint64, true, false)
+        BRANCHSIGNED(BrUnLt_I4, < , uint64, true, false)
+        BRANCHSIGNED(BrUnLe_I4, <= , uint64, true, false)
 #undef BRANCHSIGNED
-#define BRANCH(OPCODE,CMP,VARCMPFUNC) \
+#define BRANCH(OPCODE,CMP,VARCMPFUNC,UNDEFINEDCMP) \
     case Js::OpCode::##OPCODE: \
         if (src1Val && src2Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&left) && \
             src2Val->GetValueInfo()->TryGetIntConstantValue(&right)) \
         { \
             *result = left CMP right; \
         } \
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val)) \
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, UNDEFINEDCMP)) \
         { \
             *result = 0 CMP 0; \
         } \
@@ -6509,14 +6585,14 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         } \
         break;
 
-    BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual)
-    BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual)
-    BRANCH(BrLt_A, <, Js::JavascriptOperators::Less)
-    BRANCH(BrNotLt_A, >= , !Js::JavascriptOperators::Less)
-    BRANCH(BrGt_A, >, Js::JavascriptOperators::Greater)
-    BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater)
-    BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual)
-    BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual)
+    BRANCH(BrGe_A, >= , Js::JavascriptOperators::GreaterEqual, /*undefinedEquality*/ false)
+    BRANCH(BrNotGe_A, <, !Js::JavascriptOperators::GreaterEqual, false)
+    BRANCH(BrLt_A, <, Js::JavascriptOperators::Less, false)
+    BRANCH(BrNotLt_A, >= , !Js::JavascriptOperators::Less, false)
+    BRANCH(BrGt_A, >, Js::JavascriptOperators::Greater, false)
+    BRANCH(BrNotGt_A, <= , !Js::JavascriptOperators::Greater, false)
+    BRANCH(BrLe_A, <= , Js::JavascriptOperators::LessEqual, false)
+    BRANCH(BrNotLe_A, >, !Js::JavascriptOperators::LessEqual, false)
 #undef BRANCH
     case Js::OpCode::BrEq_A:
     case Js::OpCode::BrNotNeq_A:
@@ -6525,7 +6601,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         {
             *result = left == right;
         }
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, true))
         {
             *result = true;
         }
@@ -6557,7 +6633,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         {
             *result = left != right;
         }
-        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val))
+        else if (src1Val && src2Val && AreSourcesEqual(src1Val, src2Val, true))
         {
             *result = false;
         }
@@ -6604,7 +6680,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             {
                 *result = false;
             }
-            else if (AreSourcesEqual(src1Val, src2Val))
+            else if (AreSourcesEqual(src1Val, src2Val, true))
             {
                 *result = true;
             }
@@ -6646,7 +6722,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             {
                 *result = true;
             }
-            else if (AreSourcesEqual(src1Val, src2Val))
+            else if (AreSourcesEqual(src1Val, src2Val, true))
             {
                 *result = false;
             }
@@ -6699,6 +6775,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         break;
     }
     case Js::OpCode::BrFalse_I4:
+    {
         // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
         Assert(GetIsAsmJSFunc());
         constVal = 0;
@@ -6709,7 +6786,17 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
 
         *result = constVal == 0;
         break;
-
+    }
+    case Js::OpCode::BrOnObject_A:
+    {
+        ValueInfo *const src1ValueInfo = src1Val->GetValueInfo();
+        if (!src1ValueInfo->IsDefinite())
+        {
+            return false;
+        }
+        *result = src1ValueInfo->IsObject();
+        break;
+    }
     default:
         return false;
     }
@@ -15904,6 +15991,20 @@ GlobOpt::IsPREInstrCandidateLoad(Js::OpCode opcode)
 }
 
 bool
+GlobOpt::IsPREInstrSequenceCandidateLoad(Js::OpCode opcode)
+{
+    switch (opcode)
+    {
+    default:
+        return IsPREInstrCandidateLoad(opcode);
+
+    case Js::OpCode::Ld_A:
+    case Js::OpCode::BytecodeArgOutCapture:
+        return true;
+    }
+}
+
+bool
 GlobOpt::IsPREInstrCandidateStore(Js::OpCode opcode)
 {
     switch (opcode)
@@ -17017,3 +17118,308 @@ GlobOpt::ProcessMemOp()
         }
     } NEXT_LOOP_EDITING;
 }
+
+void GlobOpt::PRE::FieldPRE(Loop *loop)
+{
+    JitArenaAllocator *alloc = this->globOpt->tempAlloc;
+
+    this->FindPossiblePRECandidates(loop, alloc);
+    this->PreloadPRECandidates(loop);
+    this->RemoveOverlyOptimisticInitialValues(loop);
+}
+
+bool
+GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym ** objPtrCopyPropSym)
+{
+    Assert(sym->IsSingleDef());
+    IR::Instr * symDefInstr = sym->GetInstrDef();
+    if (!GlobOpt::IsPREInstrSequenceCandidateLoad(symDefInstr->m_opcode))
+    {
+        return false;
+    }
+
+    IR::Opnd * symDefInstrSrc1 = symDefInstr->GetSrc1();
+    if (symDefInstrSrc1->IsSymOpnd())
+    {
+        Assert(symDefInstrSrc1->AsSymOpnd()->m_sym->IsPropertySym());
+        // $L1
+        //      T1 = o.x  (v1|T3)
+        //      T2 = T1.y (v2|T4) <-- T1 is not live in the loop landing pad
+        //      jmp $L1
+
+        // Trying to make T1 live in the landing pad
+
+        // o.x
+        PropertySym* propSym = symDefInstrSrc1->AsSymOpnd()->m_sym->AsPropertySym();
+
+        if (candidates->candidatesBv->Test(propSym->m_id))
+        {
+            // If propsym is a PRE candidate, then it must have had the same value on all back edges.
+            // So, just look up the value on one of the back edges.
+
+            BasicBlock* loopTail = loop->GetAnyTailBlock();
+            Value * valueOnBackEdge = loopTail->globOptData.FindValue(propSym);
+
+            *objPtrCopyPropSym = valueOnBackEdge->GetValueInfo()->GetSymStore();
+
+            if (candidates->candidatesToProcess->Test(propSym->m_id))
+            {
+                GlobHashBucket bucket;
+                bucket.element = valueOnBackEdge;
+                bucket.value = propSym;
+                if (!PreloadPRECandidate(loop, &bucket))
+                {
+                    return false;
+                }
+                Assert(!candidates->candidatesToProcess->Test(propSym->m_id));
+                Assert(loop->landingPad->globOptData.IsLive(valueOnBackEdge->GetValueInfo()->GetSymStore()));
+
+                // Inserted T3 = o.x
+                // Now, we want to 
+                // 1. Insert T1 = o.x
+                // 2. Insert T4 = T1.y
+                // 3. Indentify T3 as the objptr copy prop sym for T1, and make T3.y live on the back-edges
+
+                // #1 is done next. #2 and #3 are done as part of preloading T1.y
+
+                // Insert T1 = o.x
+                if (!InsertPropertySymPreloadInLandingPad(symDefInstr, loop, propSym))
+                {
+                    return false;
+                }
+                return true;
+            }
+            else
+            {
+                // o.x was already processed as a PRE candidate. If we were successful in preloading o.x,
+                // we can now insert T1 = o.x
+                if (loop->landingPad->globOptData.IsLive(*objPtrCopyPropSym))
+                {
+                    // insert T1 = o.x
+                    if (!InsertPropertySymPreloadInLandingPad(symDefInstr, loop, propSym))
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else if (symDefInstrSrc1->IsRegOpnd())
+    {
+        // T2 = T1
+        // T3 = T2.y
+        // trying to insert def of T2
+
+        // T1
+        StackSym * symDefInstrSrc1Sym = symDefInstrSrc1->AsRegOpnd()->GetStackSym();
+        if (!loop->landingPad->globOptData.IsLive(symDefInstrSrc1Sym))
+        {
+            if (symDefInstrSrc1Sym->IsSingleDef())
+            {
+                if (!InsertSymDefinitionInLandingPad(symDefInstrSrc1Sym, loop, objPtrCopyPropSym))
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            *objPtrCopyPropSym = symDefInstrSrc1Sym;
+        }
+
+        if (!(OpCodeAttr::TempNumberTransfer(symDefInstr->m_opcode) && OpCodeAttr::TempObjectTransfer(symDefInstr->m_opcode)))
+        {
+            *objPtrCopyPropSym = sym;
+        }
+        IR::Instr * instr = symDefInstr->Copy();
+        if (instr->m_opcode == Js::OpCode::BytecodeArgOutCapture)
+        {
+            instr->m_opcode = Js::OpCode::Ld_A;
+        }
+        InsertInstrInLandingPad(instr, loop);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+void
+GlobOpt::PRE::InsertInstrInLandingPad(IR::Instr * instr, Loop * loop)
+{
+    instr->GetSrc1()->SetIsJITOptimizedReg(true);
+    if (instr->GetDst())
+    {
+        instr->GetDst()->SetIsJITOptimizedReg(true);
+        loop->landingPad->globOptData.liveVarSyms->Set(instr->GetDst()->GetStackSym()->m_id);
+    }
+
+    if (instr->HasAnyImplicitCalls())
+    {
+        IR::Instr * bailInstr = globOpt->EnsureDisableImplicitCallRegion(loop);
+
+        bailInstr->InsertBefore(instr);
+    }
+    else if (loop->endDisableImplicitCall)
+    {
+        loop->endDisableImplicitCall->InsertBefore(instr);
+    }
+    else
+    {
+        loop->landingPad->InsertAfter(instr);
+    }
+
+    instr->ClearByteCodeOffset();
+    instr->SetByteCodeOffset(loop->landingPad->GetFirstInstr());
+}
+
+IR::Instr *
+GlobOpt::PRE::InsertPropertySymPreloadInLandingPad(IR::Instr * ldInstr, Loop * loop, PropertySym * propertySym)
+{
+    IR::Instr * instr = InsertPropertySymPreloadWithoutDstInLandingPad(ldInstr, loop, propertySym);
+    if (!instr)
+    {
+        return nullptr;
+    }
+
+    if (ldInstr->GetDst())
+    {
+        instr->SetDst(ldInstr->GetDst()->Copy(ldInstr->m_func));
+        instr->GetDst()->SetIsJITOptimizedReg(true);
+        loop->landingPad->globOptData.liveVarSyms->Set(instr->GetDst()->GetStackSym()->m_id);
+    }
+
+    return instr;
+}
+
+IR::Instr *
+GlobOpt::PRE::InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * ldInstr, Loop * loop, PropertySym * propertySym)
+{
+    IR::SymOpnd *ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
+
+    if (ldSrc->m_sym != propertySym)
+    {
+        // It's possible that the property syms are different but have equivalent objPtrs. Verify their values.
+        Value *val1 = globOpt->CurrentBlockData()->FindValue(ldSrc->m_sym->AsPropertySym()->m_stackSym);
+        Value *val2 = globOpt->CurrentBlockData()->FindValue(propertySym->m_stackSym);
+        if (!val1 || !val2 || val1->GetValueNumber() != val2->GetValueNumber())
+        {
+            return nullptr;
+        }
+    }
+
+    ldInstr = ldInstr->CopyWithoutDst();
+
+    // Consider: Shouldn't be necessary once we have copy-prop in prepass...
+    ldInstr->GetSrc1()->AsSymOpnd()->m_sym = propertySym;
+    ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
+
+    if (ldSrc->IsPropertySymOpnd())
+    {
+        IR::PropertySymOpnd *propSymOpnd = ldSrc->AsPropertySymOpnd();
+        IR::PropertySymOpnd *newPropSymOpnd;
+
+        newPropSymOpnd = propSymOpnd->AsPropertySymOpnd()->CopyWithoutFlowSensitiveInfo(this->globOpt->func);
+        ldInstr->ReplaceSrc1(newPropSymOpnd);
+    }
+
+    InsertInstrInLandingPad(ldInstr, loop);
+
+    return ldInstr;
+}
+
+void
+GlobOpt::PRE::MakePropertySymLiveOnBackEdges(PropertySym * propertySym, Loop * loop, Value * valueToAdd)
+{
+    BasicBlock * loopHeader = loop->GetHeadBlock();
+    FOREACH_PREDECESSOR_BLOCK(blockPred, loopHeader)
+    {
+        if (!loop->IsDescendentOrSelf(blockPred->loop))
+        {
+            // Not a loop back-edge
+            continue;
+        }
+
+        // Insert it in the value table
+        blockPred->globOptData.SetValue(valueToAdd, propertySym);
+
+        // Make it a live field
+        blockPred->globOptData.liveFields->Set(propertySym->m_id);
+    } NEXT_PREDECESSOR_BLOCK;
+}
+
+void GlobOpt::PRE::RemoveOverlyOptimisticInitialValues(Loop * loop)
+{
+    BasicBlock * landingPad = loop->landingPad;
+
+    // For a property sym whose obj ptr sym wasn't live in the landing pad, we can optmistically (if the obj ptr sym was
+    // single def) insert an initial value in the landing pad, with the hope that PRE could make the obj ptr sym live. 
+    // But, if PRE couldn't make the obj ptr sym live, we need to clear the value for the property sym from the landing pad
+
+    for (auto it = loop->initialValueFieldMap.GetIteratorWithRemovalSupport(); it.IsValid(); it.MoveNext())
+    {
+        PropertySym * propertySym = it.CurrentKey();
+
+        StackSym * objPtrSym = propertySym->m_stackSym;
+        if (!landingPad->globOptData.IsLive(objPtrSym))
+        {
+            Value * landingPadPropSymValue = landingPad->globOptData.FindValue(propertySym);
+            Assert(landingPadPropSymValue);
+            Assert(landingPadPropSymValue->GetValueNumber() == it.CurrentValue()->GetValueNumber());
+            Assert(landingPadPropSymValue->GetValueInfo()->GetSymStore() == propertySym);
+
+            landingPad->globOptData.ClearSymValue(propertySym);
+            it.RemoveCurrent();
+        }
+    }
+}
+
+#if DBG_DUMP
+void GlobOpt::PRE::TraceFailedPreloadInLandingPad(const Loop *const loop, PropertySym * propertySym, const char16* reason) const
+{
+    if (PHASE_TRACE(Js::FieldPREPhase, this->globOpt->func))
+    {
+        int32 propertyId = propertySym->m_propertyId;
+        SymID objectSymId = propertySym->m_stackSym->m_id;
+        char16 propSymStr[32];
+        switch (propertySym->m_fieldKind)
+        {
+        case PropertyKindData:
+            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            {
+                swprintf_s(propSymStr, _u("s%d->#%d"), objectSymId, propertyId);
+            }
+            else
+            {
+                Js::PropertyRecord const* fieldName = propertySym->m_func->GetInProcThreadContext()->GetPropertyRecord(propertyId);
+                swprintf_s(propSymStr, _u("s%d->%s"), objectSymId, fieldName->GetBuffer());
+            }
+            break;
+        case PropertyKindSlots:
+        case PropertyKindSlotArray:
+            swprintf_s(propSymStr, _u("s%d[%d]"), objectSymId, propertyId);
+            break;
+        case PropertyKindLocalSlots:
+            swprintf_s(propSymStr, _u("s%dl[%d]"), objectSymId, propertyId);
+            break;
+        default:
+            AssertMsg(0, "Unknown field kind");
+            break;
+        }
+
+        Output::Print(_u("** TRACE: Field PRE: "));
+        this->globOpt->func->DumpFullFunctionName();
+        Output::Print(_u(": Failed to pre-load (%s) in landing pad of loop #%d. Reason: %s "), propSymStr, loop->GetLoopNumber(), reason);
+        Output::Print(_u("\n"));
+    }
+}
+#endif

@@ -9,6 +9,7 @@
 namespace Js
 {
     class ScopeInfo;
+    class ByteCodeCache;
 };
 
 // Operator precedence levels
@@ -164,6 +165,8 @@ struct DeferredFunctionStub
     // List of deferred stubs for further nested functions.
     // Length of this list is equal to nestedCount.
     Field(DeferredFunctionStub *) deferredStubs;
+
+    Field(Js::ByteCodeCache *) byteCodeCache;
 };
 
 template <bool nullTerminated> class UTF8EncodingPolicyBase;
@@ -412,7 +415,6 @@ private:
     ParseNodeFnc * m_currentNodeDeferredFunc; // current function or NULL
     ParseNodeProg * m_currentNodeProg; // current program
     DeferredFunctionStub *m_currDeferredStub;
-    DeferredFunctionStub *m_prevSiblingDeferredStub;
     int32 * m_pCurrentAstSize;
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail

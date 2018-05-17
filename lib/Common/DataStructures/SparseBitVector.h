@@ -14,7 +14,7 @@ typedef  BVUnit64 SparseBVUnit;
         BVIndex _offset; \
         BVIndex _startIndex = _curNode->startIndex; \
         SparseBVUnit  _unit = _curNode->data; \
-        for(_offset = _unit.GetNextBit(); _offset != -1; _offset = _unit.GetNextBit()) \
+        for(_offset = _unit.GetNextBit(); _offset != BVInvalidIndex; _offset = _unit.GetNextBit()) \
         { \
             index = _startIndex + _offset; \
             _unit.Clear(_offset); \
@@ -43,7 +43,7 @@ typedef  BVUnit64 SparseBVUnit;
         BVIndex _offset; \
         BVIndex _startIndex = _curNodeEdit->startIndex; \
         SparseBVUnit  _unit = _curNodeEdit->data; \
-        for(_offset = _unit.GetNextBit(); _offset != -1; _offset = _unit.GetNextBit()) \
+        for(_offset = _unit.GetNextBit(); _offset != BVInvalidIndex; _offset = _unit.GetNextBit()) \
         { \
             index = _startIndex + _offset; \
             _unit.Clear(_offset); \
@@ -530,12 +530,12 @@ BVSparse<TAllocator>::GetNextBit(BVSparseNode *node) const
     while(0 != node)
     {
         BVIndex ret = node->data.GetNextBit();
-        if(-1 != ret)
+        if(BVInvalidIndex != ret)
         {
             return ret + node->startIndex;
         }
     }
-    return -1;
+    return BVInvalidIndex;
 }
 
 template <class TAllocator>
@@ -549,7 +549,7 @@ BVSparse<TAllocator>::GetNextBit(BVIndex i) const
         if(startIndex == node->startIndex)
         {
             BVIndex ret = node->data.GetNextBit(SparseBVUnit::Offset(i));
-            if(-1 != ret)
+            if(BVInvalidIndex != ret)
             {
                 return ret + node->startIndex;
             }
@@ -564,7 +564,7 @@ BVSparse<TAllocator>::GetNextBit(BVIndex i) const
         }
     }
 
-    return  -1;
+    return BVInvalidIndex;
 }
 
 template <class TAllocator>

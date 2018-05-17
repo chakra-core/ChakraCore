@@ -885,6 +885,7 @@ public:
 
 #ifdef ENABLE_BASIC_TELEMETRY
     GUID activityId;
+    LPFILETIME GetLastScriptExecutionEndTime() const;
 #endif
     void *tridentLoadAddress;
 
@@ -1826,6 +1827,27 @@ private:
 
     DWORD threadId;
 #endif
+
+private:
+    class ThreadContextRecyclerTelemetryHostInterface : public RecyclerTelemetryHostInterface
+    {
+    public:
+        ThreadContextRecyclerTelemetryHostInterface(ThreadContext* tc) :
+            tc(tc)
+        {
+        }
+
+        virtual LPFILETIME GetLastScriptExecutionEndTime() const;
+        virtual bool TransmitTelemetry(RecyclerTelemetryInfo& rti);
+        virtual bool TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg);
+        virtual bool ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const;
+        virtual DWORD ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const;
+        virtual bool IsTelemetryProviderEnabled() const;
+
+    private:
+        ThreadContext * tc;
+    };
+    ThreadContextRecyclerTelemetryHostInterface recyclerTelemetryHostInterface;
 };
 
 extern void(*InitializeAdditionalProperties)(ThreadContext *threadContext);

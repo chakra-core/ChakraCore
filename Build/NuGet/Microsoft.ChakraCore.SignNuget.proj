@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.props" />
+  <PropertyGroup>
+    <ProjectGuid>{2ECABA69-7F94-456F-A54B-8892464713BA}</ProjectGuid>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <OutDir>$(MSBuildThisFileDirectory)</OutDir>
+    <OutputPath>$(MSBuildThisFileDirectory)</OutputPath>
+    <OutputType>library</OutputType>
+    <NoWarn>2008</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' "/>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' "/>
+  <ItemGroup>
+    <FilesToSign Include="$(OutDir)/out/*.nupkg">
+      <Authenticode>NuGet</Authenticode>
+    </FilesToSign>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\..\packages\MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets" />
+</Project>

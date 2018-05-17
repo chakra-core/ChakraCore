@@ -338,10 +338,10 @@ void GlobOptBlockData::CloneBlockData(BasicBlock *const toBlockContext, BasicBlo
     this->OnDataInitialized(alloc);
 }
 
-void GlobOptBlockData::RemoveUnavailableCandidates(PRECandidatesList * candidates)
+void GlobOptBlockData::RemoveUnavailableCandidates(PRECandidates * candidates)
 {
     // In case of multiple back-edges to the loop, make sure the candidates are still valid.
-    FOREACH_SLIST_ENTRY_EDITING(GlobHashBucket*, candidate, candidates, iter)
+    FOREACH_SLIST_ENTRY_EDITING(GlobHashBucket*, candidate, candidates->candidatesList, iter)
     {
         Value *candidateValue = candidate->element;
         PropertySym *candidatePropertySym = candidate->value->AsPropertySym();
@@ -362,6 +362,8 @@ void GlobOptBlockData::RemoveUnavailableCandidates(PRECandidatesList * candidate
         }
 
         iter.RemoveCurrent();
+        Assert(candidates->candidatesToProcess->Test(candidatePropertySym->m_id));
+        candidates->candidatesToProcess->Clear(candidatePropertySym->m_id);
     } NEXT_SLIST_ENTRY_EDITING;
 }
 

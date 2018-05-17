@@ -429,6 +429,22 @@ var tests = [
             assert.isUndefined(withtrap.noTrap);
         }
     },
+    {
+        name: "Constructing object from a proxy object (which has proxy as target) should not fire an Assert (OS# 17516464)",
+        body() {
+            function Foo(a) {
+                this.x = a;
+            }
+            var proxy = new Proxy(Foo, {});
+            var proxy1 = new Proxy(proxy, {});
+            var proxy2 = new Proxy(proxy1, {});
+            var obj1 = new proxy2(10);
+            assert.areEqual(10, obj1.x);
+
+            var obj2 = Reflect.construct(proxy2, [20]);
+            assert.areEqual(20, obj2.x);
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

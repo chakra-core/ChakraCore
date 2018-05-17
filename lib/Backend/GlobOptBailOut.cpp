@@ -558,8 +558,9 @@ GlobOpt::TrackCalls(IR::Instr * instr)
             instr->m_func->m_hasInlineArgsOpt = true;
             InlineeFrameInfo* frameInfo = InlineeFrameInfo::New(func->m_alloc);
             instr->m_func->frameInfo = frameInfo;
-            frameInfo->floatSyms = currentBlock->globOptData.liveFloat64Syms->CopyNew(this->alloc);
-            frameInfo->intSyms = currentBlock->globOptData.liveInt32Syms->MinusNew(currentBlock->globOptData.liveLossyInt32Syms, this->alloc);
+            frameInfo->floatSyms = CurrentBlockData()->liveFloat64Syms->CopyNew(this->alloc);
+            frameInfo->intSyms = CurrentBlockData()->liveInt32Syms->MinusNew(CurrentBlockData()->liveLossyInt32Syms, this->alloc);
+            frameInfo->varSyms = CurrentBlockData()->liveVarSyms->CopyNew(this->alloc);
         }
         break;
 
@@ -769,7 +770,8 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                     if (value)
                     {
                         StackSym * copyPropSym = this->currentBlock->globOptData.GetCopyPropSym(argSym, value);
-                        if (copyPropSym)
+                        if (copyPropSym &&
+                            frameInfo->varSyms->TestEmpty() && frameInfo->varSyms->Test(copyPropSym->m_id))
                         {
                             argSym = copyPropSym;
                         }
@@ -814,6 +816,8 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
     frameInfo->intSyms = nullptr;
     JitAdelete(this->alloc, frameInfo->floatSyms);
     frameInfo->floatSyms = nullptr;
+    JitAdelete(this->alloc, frameInfo->varSyms);
+    frameInfo->varSyms = nullptr;
     frameInfo->isRecorded = true;
 }
 

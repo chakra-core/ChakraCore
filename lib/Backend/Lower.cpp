@@ -563,7 +563,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             {
                 m_lowererMD.GenerateFastScopedStFld(instr);
             }
-            Js::PropertyOperationFlags flags = static_cast<Js::PropertyOperationFlags>((instr->m_opcode == Js::OpCode::ConsoleScopedStFld ?  Js::PropertyOperation_None : Js::PropertyOperation_StrictMode) | Js::PropertyOperation_AllowUndeclInConsoleScope);
+            Js::PropertyOperationFlags flags = static_cast<Js::PropertyOperationFlags>((instr->m_opcode == Js::OpCode::ConsoleScopedStFld ? Js::PropertyOperation_None : Js::PropertyOperation_StrictMode) | Js::PropertyOperation_AllowUndeclInConsoleScope);
             instrPrev = this->LowerScopedStFld(instr, IR::HelperOp_ConsolePatchSetPropertyScoped, true, true, flags);
             break;
         }
@@ -1081,10 +1081,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 break;
             }
 #endif
-            if(instr->HasBailOutInfo())
+            if (instr->HasBailOutInfo())
             {
                 const auto bailOutKind = instr->GetBailOutKind();
-                if(bailOutKind & IR::BailOutOnResultConditions ||
+                if (bailOutKind & IR::BailOutOnResultConditions ||
                     bailOutKind == IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck)
                 {
                     const auto nonBailOutInstr = SplitBailOnResultCondition(instr);
@@ -1092,7 +1092,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     LowerBailOnResultCondition(instr, &bailOutLabel, &skipBailOutLabel);
                     LowerInstrWithBailOnResultCondition(nonBailOutInstr, bailOutKind, bailOutLabel, skipBailOutLabel);
                 }
-                else if(bailOutKind == IR::BailOnModByPowerOf2)
+                else if (bailOutKind == IR::BailOnModByPowerOf2)
                 {
                     Assert(instr->m_opcode == Js::OpCode::Rem_I4);
                     bool fastPath = GenerateSimplifiedInt4Rem(instr);
@@ -1154,12 +1154,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::LdLen_A:
         {
             bool fastPath = !noMathFastPath;
-            if(!fastPath && instr->HasBailOutInfo())
+            if (!fastPath && instr->HasBailOutInfo())
             {
                 // Some bailouts are generated around the helper call, and will work even if the fast path is disabled. Other
                 // bailouts require the fast path.
                 const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
-                if(bailOutKind & IR::BailOutKindBits)
+                if (bailOutKind & IR::BailOutKindBits)
                 {
                     fastPath = true;
                 }
@@ -1174,11 +1174,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
 
             bool instrIsInHelperBlock = false;
-            if(!fastPath)
+            if (!fastPath)
             {
                 LowerLdLen(instr, false);
             }
-            else if(GenerateFastLdLen(instr, &instrIsInHelperBlock))
+            else if (GenerateFastLdLen(instr, &instrIsInHelperBlock))
             {
                 Assert(
                     !instr->HasBailOutInfo() ||
@@ -1236,8 +1236,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             else
             {
-                 this->GenerateLdThisStrict(instr);
-                 instr->Remove();
+                this->GenerateLdThisStrict(instr);
+                instr->Remove();
             }
             break;
 
@@ -1586,13 +1586,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             // Note: under debugger (Fast F12) don't let GenerateFastStElemI which calls into ToNumber_Helper
             //       which takes double, and currently our helper wrapper doesn't support double.
             bool fastPath = !noMathFastPath && !m_func->IsJitInDebugMode();
-            if(!fastPath && instr->HasBailOutInfo())
+            if (!fastPath && instr->HasBailOutInfo())
             {
                 // Some bailouts are generated around the helper call, and will work even if the fast path is disabled. Other
                 // bailouts require the fast path.
                 const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
                 const IR::BailOutKind bailOutKindBits = bailOutKind & IR::BailOutKindBits;
-                if(bailOutKindBits & ~(IR::BailOutOnMissingValue | IR::BailOutConvertedNativeArray))
+                if (bailOutKindBits & ~(IR::BailOutOnMissingValue | IR::BailOutConvertedNativeArray))
                 {
                     fastPath = true;
                 }
@@ -1625,7 +1625,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             else if (GenerateFastStElemI(instr, &instrIsInHelperBlock))
             {
 #if DBG
-                if(instr->HasBailOutInfo())
+                if (instr->HasBailOutInfo())
                 {
                     const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
 
@@ -1634,7 +1634,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                         !(
                             bailOutKind &
                             (IR::BailOutConventionalNativeArrayAccessOnly | IR::BailOutOnArrayAccessHelperCall)
-                        ));
+                            ));
                 }
 #endif
                 this->LowerStElemI(
@@ -1653,13 +1653,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 (
                     instr->m_opcode != Js::OpCode::LdMethodElem ||
                     instr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd()->GetValueType().IsLikelyObject()
-                );
-            if(!fastPath && instr->HasBailOutInfo())
+                    );
+            if (!fastPath && instr->HasBailOutInfo())
             {
                 // Some bailouts are generated around the helper call, and will work even if the fast path is disabled. Other
                 // bailouts require the fast path.
                 const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
-                if(bailOutKind & IR::BailOutKindBits)
+                if (bailOutKind & IR::BailOutKindBits)
                 {
                     fastPath = true;
                 }
@@ -1693,7 +1693,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             else if (GenerateFastLdElemI(instr, &instrIsInHelperBlock))
             {
 #if DBG
-                if(instr->HasBailOutInfo())
+                if (instr->HasBailOutInfo())
                 {
                     const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
 
@@ -1702,7 +1702,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                         !(
                             bailOutKind &
                             (IR::BailOutConventionalNativeArrayAccessOnly | IR::BailOutOnArrayAccessHelperCall)
-                        ));
+                            ));
                 }
 #endif
                 this->LowerLdElemI(
@@ -1789,11 +1789,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 break;
             }
             m_lowererMD.ChangeToAssign(instr);
-            if(instr->HasBailOutInfo())
+            if (instr->HasBailOutInfo())
             {
                 IR::BailOutKind bailOutKind = instr->GetBailOutKind();
 
-                if(bailOutKind == IR::BailOutExpectingString)
+                if (bailOutKind == IR::BailOutExpectingString)
                 {
                     this->LowerBailOnNotString(instr);
                 }
@@ -1818,7 +1818,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             Assert(instr->GetSrc1()->GetType() == TyVar);
             if (instr->GetDst()->GetType() == TyInt32)
             {
-                if(m_lowererMD.EmitLoadInt32(instr, !(instr->HasBailOutInfo() && (instr->GetBailOutKind() == IR::BailOutOnNotPrimitive))))
+                if (m_lowererMD.EmitLoadInt32(instr, !(instr->HasBailOutInfo() && (instr->GetBailOutKind() == IR::BailOutOnNotPrimitive))))
                 {
                     // Bail out instead of calling a helper
                     Assert(instr->GetBailOutKind() == IR::BailOutIntOnly || instr->GetBailOutKind() == IR::BailOutExpectingInteger);
@@ -1852,7 +1852,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             {
                 Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
                 GenerateRuntimeError(instr, WASMERR_InvalidTypeConversion);
-                instr->ReplaceSrc1(IR::Simd128ConstOpnd::New({0,0,0,0}, instr->GetDst()->GetType(), m_func));
+                instr->ReplaceSrc1(IR::Simd128ConstOpnd::New({ 0,0,0,0 }, instr->GetDst()->GetType(), m_func));
                 LowererMD::ChangeToAssign(instr);
             }
 #endif
@@ -1869,18 +1869,18 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::ArgOut_A_Inline:
         case Js::OpCode::ArgOut_A_Dynamic:
-            {
-                // ArgOut/StartCall are normally lowered by the lowering of the associated call instr.
-                // If the call becomes unreachable, we could end up with an orphan ArgOut or StartCall.
-                // Change the ArgOut into a store to the stack for bailouts
-                instr->FreeSrc2();
-                StackSym *argSym = instr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
-                argSym->m_offset = this->m_func->StackAllocate(sizeof(Js::Var));
-                argSym->m_allocated = true;
-                argSym->m_isOrphanedArg = true;
-                this->m_lowererMD.ChangeToAssign(instr);
-            }
-            break;
+        {
+            // ArgOut/StartCall are normally lowered by the lowering of the associated call instr.
+            // If the call becomes unreachable, we could end up with an orphan ArgOut or StartCall.
+            // Change the ArgOut into a store to the stack for bailouts
+            instr->FreeSrc2();
+            StackSym *argSym = instr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+            argSym->m_offset = this->m_func->StackAllocate(sizeof(Js::Var));
+            argSym->m_allocated = true;
+            argSym->m_isOrphanedArg = true;
+            this->m_lowererMD.ChangeToAssign(instr);
+        }
+        break;
         case Js::OpCode::LoweredStartCall:
         case Js::OpCode::StartCall:
             // ArgOut/StartCall are normally lowered by the lowering of the associated call instr.
@@ -2040,12 +2040,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::BrFncEqApply:
-          LowerBrFncApply(instr,IR::HelperOp_OP_BrFncEqApply);
-          break;
+            LowerBrFncApply(instr, IR::HelperOp_OP_BrFncEqApply);
+            break;
 
         case Js::OpCode::BrFncNeqApply:
-          LowerBrFncApply(instr,IR::HelperOp_OP_BrFncNeqApply);
-          break;
+            LowerBrFncApply(instr, IR::HelperOp_OP_BrFncNeqApply);
+            break;
 
         case Js::OpCode::BrHasSideEffects:
         case Js::OpCode::BrNotHasSideEffects:
@@ -2236,147 +2236,147 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::ProfiledLoopStart:
+        {
+            Assert(m_func->DoSimpleJitDynamicProfile());
+            Assert(instr->IsJitProfilingInstr());
+
+            // Check for the helper instr from IRBuilding (it won't be there if there are no LoopEnds due to an infinite loop)
+            auto prev = instr->m_prev;
+            if (prev->IsJitProfilingInstr() && prev->AsJitProfilingInstr()->isLoopHelper)
             {
-                Assert(m_func->DoSimpleJitDynamicProfile());
-                Assert(instr->IsJitProfilingInstr());
+                auto saveOpnd = prev->UnlinkDst();
+                instrPrev = prev->m_prev;
+                prev->Remove();
 
-                // Check for the helper instr from IRBuilding (it won't be there if there are no LoopEnds due to an infinite loop)
-                auto prev = instr->m_prev;
-                if (prev->IsJitProfilingInstr() && prev->AsJitProfilingInstr()->isLoopHelper)
-                {
-                    auto saveOpnd = prev->UnlinkDst();
-                    instrPrev = prev->m_prev;
-                    prev->Remove();
-
-                    const auto starFlag = GetImplicitCallFlagsOpnd();
-                    IR::AutoReuseOpnd a(starFlag, m_func);
-                    this->InsertMove(saveOpnd, starFlag, instr);
-                    this->InsertMove(starFlag, CreateClearImplicitCallFlagsOpnd(), instr);
-                }
-                else
-                {
+                const auto starFlag = GetImplicitCallFlagsOpnd();
+                IR::AutoReuseOpnd a(starFlag, m_func);
+                this->InsertMove(saveOpnd, starFlag, instr);
+                this->InsertMove(starFlag, CreateClearImplicitCallFlagsOpnd(), instr);
+            }
+            else
+            {
 #if DBG
-                    // Double check that we indeed do not have a LoopEnd that is part of the same loop for the rest of the function
-                    auto cur = instr;
-                    auto loopNumber = instr->AsJitProfilingInstr()->loopNumber;
-                    while (cur)
-                    {
-                        Assert(cur->m_opcode != Js::OpCode::ProfiledLoopEnd || cur->IsJitProfilingInstr() && cur->AsJitProfilingInstr()->loopNumber != loopNumber);
-                        cur = cur->m_next;
-                    }
+                // Double check that we indeed do not have a LoopEnd that is part of the same loop for the rest of the function
+                auto cur = instr;
+                auto loopNumber = instr->AsJitProfilingInstr()->loopNumber;
+                while (cur)
+                {
+                    Assert(cur->m_opcode != Js::OpCode::ProfiledLoopEnd || cur->IsJitProfilingInstr() && cur->AsJitProfilingInstr()->loopNumber != loopNumber);
+                    cur = cur->m_next;
+                }
 #endif
-                }
-
-                // If we turned off fulljit, there's no reason to do this.
-                if (PHASE_OFF(Js::FullJitPhase, m_func))
-                {
-                    instr->Remove();
-                }
-                else
-                {
-                    Assert(instr->GetDst());
-                    instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleGetScheduledEntryPoint, m_func));
-                    m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateUint32Opnd(instr->AsJitProfilingInstr()->loopNumber, m_func));
-                    m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateFramePointerOpnd(m_func));
-                    this->m_lowererMD.LowerCall(instr, 0);
-                }
-                break;
             }
-        case Js::OpCode::ProfiledLoopBodyStart:
+
+            // If we turned off fulljit, there's no reason to do this.
+            if (PHASE_OFF(Js::FullJitPhase, m_func))
             {
-                Assert(m_func->DoSimpleJitDynamicProfile());
-
-                const auto loopNum = instr->AsJitProfilingInstr()->loopNumber;
-                Assert(loopNum < m_func->GetJITFunctionBody()->GetLoopCount());
-
-                auto entryPointOpnd = instr->UnlinkSrc1();
-                auto dobailout = instr->UnlinkDst();
-                const auto dobailoutType = TyUint8;
-                Assert(dobailout->GetType() == TyUint8 && sizeof(decltype(Js::SimpleJitHelpers::IsLoopCodeGenDone(nullptr))) == 1);
-
-                m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(0, TyUint32, m_func)); // zero indicates that we do not want to add flags back in
-                m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(loopNum, TyUint32, m_func));
-                m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateFramePointerOpnd(m_func));
-                instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleRecordLoopImplicitCallFlags, m_func));
-                m_lowererMD.LowerCall(instr, 0);
-
-                // Outline of JITed code:
-                //
-                // LoopStart:
-                //   entryPoint = GetScheduledEntryPoint(framePtr, loopNum)
-                // LoopBodyStart:
-                //   uint8 dobailout;
-                //   if (entryPoint) {
-                //     dobailout = IsLoopCodeGenDone(entryPoint)
-                //   } else {
-                //     dobailout = ++interpretCount >= threshold
-                //   }
-                //   // already exists from IRBuilding:
-                //   if (dobailout) {
-                //       Bailout
-                //   }
-
-                if (PHASE_OFF(Js::FullJitPhase, m_func) || !m_func->GetJITFunctionBody()->DoJITLoopBody())
-                {
-                    // If we're not doing fulljit, we've turned off JitLoopBodies, or if we don't have loop headers allocated (the function has a Try,  etc)
-                    //      just move false to dobailout
-                    this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), instr->m_next);
-                }
-                else if (m_func->GetWorkItem()->GetJITTimeInfo()->ForceJITLoopBody())
-                {
-                    // If we're forcing jit loop bodies, move true to dobailout
-                    this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), instr->m_next);
-                }
-                else
-                {
-                    // Put in the labels
-                    auto entryPointIsNull = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-                    auto checkDoBailout = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-                    instr->InsertAfter(checkDoBailout);
-                    instr->InsertAfter(entryPointIsNull);
-
-                    this->InsertCompareBranch(entryPointOpnd, IR::AddrOpnd::New(nullptr, IR::AddrOpndKindDynamicMisc, m_func), Js::OpCode::BrEq_A, false, entryPointIsNull, instr->m_next);
-
-                    // If the entry point is not null
-                    auto isCodeGenDone = IR::Instr::New(Js::OpCode::Call, dobailout, IR::HelperCallOpnd::New(IR::HelperSimpleIsLoopCodeGenDone, m_func), m_func);
-                    entryPointIsNull->InsertBefore(isCodeGenDone);
-                    m_lowererMD.LoadHelperArgument(isCodeGenDone, entryPointOpnd);
-                    m_lowererMD.LowerCall(isCodeGenDone, 0);
-                    this->InsertBranch(LowererMD::MDUncondBranchOpcode, true, checkDoBailout, entryPointIsNull);
-
-                    const auto type = TyUint32;
-                    auto countReg = IR::RegOpnd::New(type, m_func);
-                    auto countAddr = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum) + Js::LoopHeader::GetOffsetOfInterpretCount(), type, m_func);
-                    IR::AutoReuseOpnd a(countReg, m_func), b(countAddr, m_func);
-                    this->InsertAdd(false, countReg, countAddr, IR::IntConstOpnd::New(1, type, m_func, true), checkDoBailout);
-                    this->InsertMove(countAddr, countReg, checkDoBailout);
-
-                    this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), checkDoBailout);
-
-                    this->InsertCompareBranch(countReg, IR::IntConstOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderData(loopNum)->interpretCount, type, m_func), Js::OpCode::BrLt_A, checkDoBailout, checkDoBailout);
-                    this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), checkDoBailout);
-                    // fallthrough
-
-                    // Label checkDoBailout (inserted above)
-                }
+                instr->Remove();
             }
-            break;
-
-        case Js::OpCode::ProfiledLoopEnd:
+            else
             {
-                Assert(m_func->DoSimpleJitDynamicProfile());
-
-                // This is set up in IRBuilding
-                Assert(instr->GetSrc1());
-                IR::Opnd* savedFlags = instr->UnlinkSrc1();
-
-                m_lowererMD.LoadHelperArgument(instr, savedFlags);
+                Assert(instr->GetDst());
+                instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleGetScheduledEntryPoint, m_func));
                 m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateUint32Opnd(instr->AsJitProfilingInstr()->loopNumber, m_func));
                 m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateFramePointerOpnd(m_func));
-                instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleRecordLoopImplicitCallFlags, m_func));
-                m_lowererMD.LowerCall(instr, 0);
+                this->m_lowererMD.LowerCall(instr, 0);
             }
             break;
+        }
+        case Js::OpCode::ProfiledLoopBodyStart:
+        {
+            Assert(m_func->DoSimpleJitDynamicProfile());
+
+            const auto loopNum = instr->AsJitProfilingInstr()->loopNumber;
+            Assert(loopNum < m_func->GetJITFunctionBody()->GetLoopCount());
+
+            auto entryPointOpnd = instr->UnlinkSrc1();
+            auto dobailout = instr->UnlinkDst();
+            const auto dobailoutType = TyUint8;
+            Assert(dobailout->GetType() == TyUint8 && sizeof(decltype(Js::SimpleJitHelpers::IsLoopCodeGenDone(nullptr))) == 1);
+
+            m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(0, TyUint32, m_func)); // zero indicates that we do not want to add flags back in
+            m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(loopNum, TyUint32, m_func));
+            m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateFramePointerOpnd(m_func));
+            instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleRecordLoopImplicitCallFlags, m_func));
+            m_lowererMD.LowerCall(instr, 0);
+
+            // Outline of JITed code:
+            //
+            // LoopStart:
+            //   entryPoint = GetScheduledEntryPoint(framePtr, loopNum)
+            // LoopBodyStart:
+            //   uint8 dobailout;
+            //   if (entryPoint) {
+            //     dobailout = IsLoopCodeGenDone(entryPoint)
+            //   } else {
+            //     dobailout = ++interpretCount >= threshold
+            //   }
+            //   // already exists from IRBuilding:
+            //   if (dobailout) {
+            //       Bailout
+            //   }
+
+            if (PHASE_OFF(Js::FullJitPhase, m_func) || !m_func->GetJITFunctionBody()->DoJITLoopBody())
+            {
+                // If we're not doing fulljit, we've turned off JitLoopBodies, or if we don't have loop headers allocated (the function has a Try,  etc)
+                //      just move false to dobailout
+                this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), instr->m_next);
+            }
+            else if (m_func->GetWorkItem()->GetJITTimeInfo()->ForceJITLoopBody())
+            {
+                // If we're forcing jit loop bodies, move true to dobailout
+                this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), instr->m_next);
+            }
+            else
+            {
+                // Put in the labels
+                auto entryPointIsNull = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+                auto checkDoBailout = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+                instr->InsertAfter(checkDoBailout);
+                instr->InsertAfter(entryPointIsNull);
+
+                this->InsertCompareBranch(entryPointOpnd, IR::AddrOpnd::New(nullptr, IR::AddrOpndKindDynamicMisc, m_func), Js::OpCode::BrEq_A, false, entryPointIsNull, instr->m_next);
+
+                // If the entry point is not null
+                auto isCodeGenDone = IR::Instr::New(Js::OpCode::Call, dobailout, IR::HelperCallOpnd::New(IR::HelperSimpleIsLoopCodeGenDone, m_func), m_func);
+                entryPointIsNull->InsertBefore(isCodeGenDone);
+                m_lowererMD.LoadHelperArgument(isCodeGenDone, entryPointOpnd);
+                m_lowererMD.LowerCall(isCodeGenDone, 0);
+                this->InsertBranch(LowererMD::MDUncondBranchOpcode, true, checkDoBailout, entryPointIsNull);
+
+                const auto type = TyUint32;
+                auto countReg = IR::RegOpnd::New(type, m_func);
+                auto countAddr = IR::MemRefOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderAddr(loopNum) + Js::LoopHeader::GetOffsetOfInterpretCount(), type, m_func);
+                IR::AutoReuseOpnd a(countReg, m_func), b(countAddr, m_func);
+                this->InsertAdd(false, countReg, countAddr, IR::IntConstOpnd::New(1, type, m_func, true), checkDoBailout);
+                this->InsertMove(countAddr, countReg, checkDoBailout);
+
+                this->InsertMove(dobailout, IR::IntConstOpnd::New(0, dobailoutType, m_func, true), checkDoBailout);
+
+                this->InsertCompareBranch(countReg, IR::IntConstOpnd::New(m_func->GetJITFunctionBody()->GetLoopHeaderData(loopNum)->interpretCount, type, m_func), Js::OpCode::BrLt_A, checkDoBailout, checkDoBailout);
+                this->InsertMove(dobailout, IR::IntConstOpnd::New(1, dobailoutType, m_func, true), checkDoBailout);
+                // fallthrough
+
+                // Label checkDoBailout (inserted above)
+            }
+        }
+        break;
+
+        case Js::OpCode::ProfiledLoopEnd:
+        {
+            Assert(m_func->DoSimpleJitDynamicProfile());
+
+            // This is set up in IRBuilding
+            Assert(instr->GetSrc1());
+            IR::Opnd* savedFlags = instr->UnlinkSrc1();
+
+            m_lowererMD.LoadHelperArgument(instr, savedFlags);
+            m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateUint32Opnd(instr->AsJitProfilingInstr()->loopNumber, m_func));
+            m_lowererMD.LoadHelperArgument(instr, IR::Opnd::CreateFramePointerOpnd(m_func));
+            instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperSimpleRecordLoopImplicitCallFlags, m_func));
+            m_lowererMD.LowerCall(instr, 0);
+        }
+        break;
 
         case Js::OpCode::InitLoopBodyCount:
             Assert(this->m_func->IsLoopBody());
@@ -2413,7 +2413,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         {
             Js::ProfileId profileId;
             IR::Instr *profileBeforeInstr;
-            if(instr->IsJitProfilingInstr())
+            if (instr->IsJitProfilingInstr())
             {
                 profileId = instr->AsJitProfilingInstr()->profileId;
                 Assert(profileId != Js::Constants::NoProfileId);
@@ -2427,7 +2427,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
             this->LowerLdSlot(instr);
 
-            if(profileId != Js::Constants::NoProfileId)
+            if (profileId != Js::Constants::NoProfileId)
             {
                 LowerProfileLdSlot(instr->GetDst(), instr->m_func, profileId, profileBeforeInstr);
             }
@@ -2635,20 +2635,20 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             // and eventually generate the nativeOffset maps.
 #if DBG_DUMP && DBG
             // If we have a JITStatementBreakpoint, then we should break on this statement
+        {
+            uint32 statementIndex = instr->AsPragmaInstr()->m_statementIndex;
+            if (Js::Configuration::Global.flags.StatementDebugBreak.Contains(instr->m_func->GetSourceContextId(), instr->m_func->GetLocalFunctionId(), statementIndex))
             {
-                uint32 statementIndex = instr->AsPragmaInstr()->m_statementIndex;
-                if (Js::Configuration::Global.flags.StatementDebugBreak.Contains(instr->m_func->GetSourceContextId(), instr->m_func->GetLocalFunctionId(), statementIndex))
+                IR::Instr* tempinstr = instr;
+                Assert(tempinstr != nullptr);
+                // go past any labels, and then add a debug breakpoint
+                while (tempinstr->m_next != nullptr && tempinstr->m_next->m_opcode == Js::OpCode::Label)
                 {
-                    IR::Instr* tempinstr = instr;
-                    Assert(tempinstr != nullptr);
-                    // go past any labels, and then add a debug breakpoint
-                    while (tempinstr->m_next != nullptr && tempinstr->m_next->m_opcode == Js::OpCode::Label)
-                    {
-                        tempinstr = tempinstr->m_next;
-                    }
-                    this->m_lowererMD.GenerateDebugBreak(tempinstr);
+                    tempinstr = tempinstr->m_next;
                 }
+                this->m_lowererMD.GenerateDebugBreak(tempinstr);
             }
+        }
 #endif
         break;
 
@@ -2697,7 +2697,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             IR::Instr *bailOnNotArray = nullptr, *bailOnMissingValue = nullptr;
             SplitBailOnNotArray(instr, &bailOnNotArray, &bailOnMissingValue);
             IR::RegOpnd *const arrayOpnd = LowerBailOnNotArray(bailOnNotArray);
-            if(bailOnMissingValue)
+            if (bailOnMissingValue)
             {
                 LowerBailOnMissingValue(bailOnMissingValue, arrayOpnd);
             }
@@ -3022,6 +3022,43 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             GenerateThrow(instr->UnlinkSrc1(), instr);
             instr->Remove();
             break;
+
+        case Js::OpCode::SpeculatedLoadFence:
+        {
+            AssertOrFailFast(instr->m_kind == IR::InstrKindByteCodeUses);
+            IR::ByteCodeUsesInstr* bcuInstr = static_cast<IR::ByteCodeUsesInstr*>(instr);
+            // Most of the time we're not going to be able to remove any masking in a loop, and
+            // this instruction can be removed.
+#ifdef _M_ARM
+            AssertOrFailFastMsg(false, "We shouldn't perform this hoisting on ARM");
+#else
+            if (bcuInstr->GetByteCodeUpwardExposedUsed() != nullptr && !bcuInstr->GetByteCodeUpwardExposedUsed()->IsEmpty())
+            {
+                // The generated code is:
+                //
+                // cmp rax, rax
+                // for each symbol to mask:
+                // reg(sym) = cmovne reg(sym), reg(sym)
+                IR::RegOpnd* temp = IR::RegOpnd::New(TyUint8, instr->m_func);
+                InsertMove(temp, IR::IntConstOpnd::New(0, TyUint8, instr->m_func), instr);
+                IR::Instr * cmp = IR::Instr::New(Js::OpCode::CMP, instr->m_func);
+                cmp->SetSrc1(temp);
+                cmp->SetSrc2(temp);
+                instr->InsertBefore(cmp);
+                m_lowererMD.Legalize(cmp);
+                FOREACH_BITSET_IN_SPARSEBV(symid, bcuInstr->GetByteCodeUpwardExposedUsed())
+                {
+                    StackSym* thisSym = instr->m_func->m_symTable->Find(symid)->AsStackSym();
+                    IR::RegOpnd* thisSymReg = IR::RegOpnd::New(thisSym, thisSym->GetType(), instr->m_func);
+                    IR::Instr* cmov = IR::Instr::New(LowererMD::MDSpecBlockNEOpcode, thisSymReg, thisSymReg, thisSymReg, instr->m_func);
+                    instr->InsertBefore(cmov);
+                    m_lowererMD.Legalize(cmov);
+                } NEXT_BITSET_IN_SPARSEBV;
+            }
+#endif
+            instr->Remove();
+            break;
+        }
 
 #endif //ENABLE_WASM
 
@@ -16897,7 +16934,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
     // Should we poison the load of the address to/from which the store/load happens?
     bool shouldPoisonLoad = maskOpnd != nullptr
         && (
-            (!isStore &&
+            (!isStore && (!instr->IsSafeToSpeculate()) &&
                 (baseValueType.IsLikelyTypedArray()
                     ? CONFIG_FLAG_RELEASE(PoisonTypedArrayLoad)
                     : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayLoad))
@@ -17005,7 +17042,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             if (baseValueType.IsLikelyTypedArray())
             {
                 int lengthOffset;
-                lengthOffset = GetArrayOffsetOfHeadSegment(baseValueType);
+                lengthOffset = GetArrayOffsetOfLength(baseValueType);
                 headSegmentLengthOpnd = IR::IndirOpnd::New(arrayOpnd, lengthOffset, TyUint32, m_func);
                 autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
             }
@@ -23091,8 +23128,8 @@ bool Lowerer::GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *
     }
     else if (src1->GetValueType().IsLikelySymbol() && src2->GetValueType().IsLikelySymbol())
     {
-        this->GenerateSymbolTest(src1->AsRegOpnd(), instr, labelHelper, nullptr, false);
-        this->GenerateSymbolTest(src2->AsRegOpnd(), instr, labelHelper, nullptr, false);
+        this->GenerateSymbolTest(src1->AsRegOpnd(), instr, labelHelper, nullptr, true);
+        this->GenerateSymbolTest(src2->AsRegOpnd(), instr, labelHelper, nullptr, true);
     }
     else
     {
@@ -24580,33 +24617,35 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 
     InsertObjectPoison(instanceRegOpnd, branchInstr, instr, false);
 
-    // Is this an function with inline cache and home obj??
-    IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
-    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
-    IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
-    Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
-    InsertBranch(Js::OpCode::Br, testLabel, instr);
-
-    instr->InsertBefore(labelInlineFunc);
-
-    // Is this a function with inline cache, home obj and computed name??
-    IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
-    InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
-    IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
-    Lowerer::InsertMove(dstOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
-    InsertBranch(Js::OpCode::Br, testLabel, instr);
-
-    instr->InsertBefore(scriptFuncLabel);
-    IR::IndirOpnd *indirOpnd = nullptr;
-    if (func->GetJITFunctionBody()->HasComputedName())
+    if (func->GetJITFunctionBody()->HasHomeObj())
     {
-        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::ScriptFunctionWithHomeObj>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        // Is this an function with inline cache and home obj??
+        IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
+        IR::BranchInstr* inlineFuncHomObjOpndBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
+        InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjOpndBr, instr, false);
+        IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(labelInlineFunc);
+
+        // Is this a function with inline cache, home obj and computed name??
+        IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
+        IR::BranchInstr* inlineFuncHomObjCompNameBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
+        InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjCompNameBr, instr, false);
+        IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
+        InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+        instr->InsertBefore(scriptFuncLabel);
+        IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+        Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
     }
     else
     {
-        indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode 
+        InsertBranch(Js::OpCode::Br, labelDone, instr);
     }
-    Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
 
     instr->InsertBefore(testLabel);
     InsertTestBranch(instanceRegOpnd, instanceRegOpnd, Js::OpCode::BrEq_A, labelDone, instr);

@@ -111,9 +111,22 @@ namespace Js
         PropertyId * propertyIds;
         int propertyCount;
         int builtInPropertyCount;
+
+        typedef JsUtil::BaseDictionary<Js::LocalFunctionId, FunctionInfo*, ArenaAllocator> LocalFunctionIdToFunctionInfoMap;
+        LocalFunctionIdToFunctionInfoMap* localFunctionIdToFunctionInfoMap;
+
+    private:
+        LocalFunctionIdToFunctionInfoMap * EnsureLocalFunctionIdToFunctionInfoMap(ScriptContext * scriptContext);
+
     public:
+        ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount);
         ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount);
         void PopulateLookupPropertyId(ScriptContext * scriptContext, int realArrayOffset);
+        void SetReader(ScriptContext * scriptContext, ByteCodeBufferReader * reader);
+        void Initialize(ScriptContext * scriptContext);
+
+        void RegisterFunctionIdToFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId, FunctionInfo* functionInfo);
+        FunctionInfo* LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId);
 
         ByteCodeBufferReader* GetReader()
         {
@@ -161,6 +174,10 @@ namespace Js
         static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
 
         static FunctionBody* DeserializeFunction(ScriptContext* scriptContext, DeferDeserializeFunctionInfo* deferredFunction);
+
+        // Deserialize a string from the string table based on the stringId.
+        // Note: Returns the count of characters (not bytes) of the string via the stringLength argument.
+        static LPCWSTR DeserializeString(const DeferredFunctionStub* deferredStub, uint stringId, uint32& stringLength);
 
         // This lib doesn't directly depend on the generated interfaces. Ensure the same codes with a C_ASSERT
         static const HRESULT CantGenerate = 0x80020201L;

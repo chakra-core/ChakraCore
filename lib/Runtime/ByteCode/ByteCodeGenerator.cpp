@@ -3061,9 +3061,10 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
                 }
 #endif
             }
-            else if (!top->GetHasLocalInClosure())
+            else if (!top->GetHasLocalInClosure() && !(byteCodeGenerator->GetFlags() & fscrEval) && !top->byteCodeFunction->IsEval())
             {
                 //Scope object creation instr will be a MOV NULL instruction in the Lowerer - if we still decide to do StackArgs after Globopt phase.
+                //Note that if we're in eval, scoped ldfld/stfld will traverse the whole frame display, including this slot, so it can't be null.
                 top->byteCodeFunction->SetDoScopeObjectCreation(false);
             }
         }

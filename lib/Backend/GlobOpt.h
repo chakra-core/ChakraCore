@@ -420,6 +420,7 @@ private:
     class ArrayLowerBoundCheckHoistInfo;
     class ArrayUpperBoundCheckHoistInfo;
     class ArraySrcOpt;
+    class PRE;
 
     friend BackwardPass;
 #if DBG
@@ -527,20 +528,19 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
-private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
+private:
     void                    OptBlock(BasicBlock *block);
     void                    BackwardPass(Js::Phase tag);
     void                    ForwardPass();
     void                    OptLoops(Loop *loop);
     void                    TailDupPass();
     bool                    TryTailDup(IR::BranchInstr *tailBranch);
-    PRECandidatesList *     FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc);
-    PRECandidatesList *     FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc);
-    void                    PreloadPRECandidates(Loop *loop, PRECandidatesList *candidates);
-    BOOL                    PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate);
-    void                    SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym);
+    
     void                    FieldPRE(Loop *loop);
+    void                    SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym);
+    PRECandidates *         FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc);
+
     void                    CloneBlockData(BasicBlock *const toBlock, BasicBlock *const fromBlock);
     void                    CloneValues(BasicBlock *const toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
 
@@ -785,6 +785,7 @@ public:
     static bool             IsSwitchOptEnabledForIntTypeSpec(Func const * func);
     static bool             DoInlineArgsOpt(Func const * func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
+    static bool             IsPREInstrSequenceCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
     static bool             ImplicitCallFlagsAllowOpts(Loop * loop);
     static bool             ImplicitCallFlagsAllowOpts(Func const * func);
@@ -931,7 +932,7 @@ private:
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
-    void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = (SymID)-1);
+    void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
     void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);
@@ -1008,4 +1009,29 @@ private:
     IR::Instr *             GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opnd, bool isDst);
 
     friend class InvariantBlockBackwardIterator;
+};
+
+class GlobOpt::PRE
+{
+public:
+    PRE(GlobOpt * globOpt) : globOpt(globOpt) {}
+    void                    FieldPRE(Loop *loop);
+
+private:
+    void                    FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc);
+    void                    PreloadPRECandidates(Loop *loop);
+    BOOL                    PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate);
+    IR::Instr *             InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
+    IR::Instr *             InsertPropertySymPreloadInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
+    void                    InsertInstrInLandingPad(IR::Instr * instr, Loop * loop);
+    bool                    InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym ** objPtrCopyPropSym);
+    void                    MakePropertySymLiveOnBackEdges(PropertySym * propertySym, Loop * loop, Value * valueToAdd);
+    void                    RemoveOverlyOptimisticInitialValues(Loop * loop);
+#if DBG_DUMP
+    void                    TraceFailedPreloadInLandingPad(const Loop *const loop, PropertySym * propSym, const char16* reason) const;
+#endif
+
+private:
+    GlobOpt * globOpt;
+    PRECandidates * candidates;
 };

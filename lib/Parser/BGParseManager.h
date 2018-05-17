@@ -48,6 +48,8 @@ public:
     static BGParseManager* GetBGParseManager();
     static void DeleteBGParseManager();
     static DWORD GetNextCookie();
+    static DWORD IncCompleted();
+    static DWORD IncFailed();
 
     HRESULT QueueBackgroundParse(LPCUTF8 pszSrc, size_t cbLength, char16 *fullPath, DWORD* dwBgParseCookie);
     HRESULT GetInputFromCookie(DWORD cookie, LPCUTF8* ppszSrc, size_t* pcbLength);
@@ -58,7 +60,9 @@ public:
         SRCINFO const * pSrcInfo,
         Js::ParseableFunctionInfo** ppFunc,
         CompileScriptException* pse,
-        size_t& srcLength
+        size_t& srcLength,
+        Js::Utf8SourceInfo* utf8SourceInfo,
+        uint& sourceIndex
     );
     bool DiscardParseResults(DWORD cookie, void* buffer);
 
@@ -81,6 +85,8 @@ private:
     JsUtil::DoublyLinkedList<BGParseWorkItem> workitemsProcessed;
 
     static DWORD s_lastCookie;
+    static DWORD s_completed;
+    static DWORD s_failed;
     static BGParseManager* s_BGParseManager;
     static CriticalSection s_staticMemberLock;
 };
@@ -100,6 +106,15 @@ public:
     ~BGParseWorkItem();
 
     void ParseUTF8Core(Js::ScriptContext* scriptContext);
+    HRESULT DeserializeParseResults(
+        Js::ScriptContext* scriptContextUI,
+        LPCUTF8 pszSrc,
+        SRCINFO const * pSrcInfo,
+        Js::Utf8SourceInfo* utf8SourceInfo,
+        Js::FunctionBody** functionBodyReturn,
+        size_t& srcLength,
+        uint& sourceIndex
+    );
     void TransferCSE(CompileScriptException* pse);
 
     void CreateCompletionEvent();
@@ -112,9 +127,6 @@ public:
     DWORD GetCookie() const { return cookie; }
     const byte* GetScriptSrc() const { return script; }
     size_t GetScriptLength() const { return cb; }
-    byte * GetReturnBuffer() const{ return bufferReturn; }
-    HRESULT GetParseHR() const { return parseHR; }
-    size_t GetParseSourceLength() const { return parseSourceLength; }
 
 private:
     // This cookie is the public identifier for this parser work

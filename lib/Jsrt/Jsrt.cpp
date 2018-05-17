@@ -3910,7 +3910,7 @@ JsErrorCode RunSerializedScriptCore(
         {
             flags = fscrAllowFunctionProxy;
         }
-        if (useParserStateCache)
+        if (useParserStateCache && !CONFIG_FLAG(ForceSerialized))
         {
             flags |= fscrCreateParserState;
         }
@@ -5627,22 +5627,18 @@ CHAKRA_API JsRunScriptWithParserState(
     _In_ JsValueRef parserState,
     _Out_ JsValueRef *result)
 {
-    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        PARAM_NOT_NULL(script);
-        PARAM_NOT_NULL(parserState);
+    PARAM_NOT_NULL(script);
+    PARAM_NOT_NULL(parserState);
 
+    const WCHAR *url = nullptr;
+    uint sourceIndex = 0;
+
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         const byte* bytes;
         size_t cb;
         LoadScriptFlag loadScriptFlag;
 
         JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
-
-        if (errorCode != JsNoError)
-        {
-            return errorCode;
-        }
-
-        const WCHAR *url;
 
         if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
         {
@@ -5651,6 +5647,11 @@ CHAKRA_API JsRunScriptWithParserState(
         else
         {
             return JsErrorInvalidArgument;
+        }
+
+        if (errorCode != JsNoError)
+        {
+            return errorCode;
         }
 
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
@@ -5675,7 +5676,6 @@ CHAKRA_API JsRunScriptWithParserState(
             /* grfsi               */ 0
         };
 
-
         Js::Utf8SourceInfo* utf8SourceInfo = nullptr;
         scriptContext->MakeUtf8SourceInfo(bytes, cb, &si, &utf8SourceInfo, loadScriptFlag, script);
 
@@ -5687,8 +5687,6 @@ CHAKRA_API JsRunScriptWithParserState(
         ULONG grfscr = scriptContext->GetParseFlags(loadScriptFlag, utf8SourceInfo, sourceContextInfo);
         utf8SourceInfo->SetParseFlags(grfscr);
 
-        uint sourceIndex = 0;
-
         if ((loadScriptFlag & LoadScriptFlag_Utf8Source) != LoadScriptFlag_Utf8Source)
         {
             sourceIndex = scriptContext->SaveSourceNoCopy(utf8SourceInfo, static_cast<charcount_t>(utf8SourceInfo->GetCchLength()), /*isCesu8*/ true);
@@ -5699,19 +5697,26 @@ CHAKRA_API JsRunScriptWithParserState(
             sourceIndex = scriptContext->SaveSourceNoCopy(utf8SourceInfo, static_cast<charcount_t>(utf8SourceInfo->GetCchLength()), /* isCesu8*/ false);
         }
 
-        if (!Js::ExternalArrayBuffer::Is(parserState))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        byte* buffer = Js::ArrayBuffer::FromVar(parserState)->GetBuffer();
-        JsSerializedLoadScriptCallback dummy = DummyScriptLoadSourceCallbackForRunScriptWithParserState;
-
-        return RunSerializedScriptCore(
-            dummy, DummyScriptUnloadCallback,
-            sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-            buffer, parserState, sourceContext, url, false, true, result, sourceIndex);
+        return JsNoError;
     });
+
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    if (!Js::ExternalArrayBuffer::Is(parserState))
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    byte* buffer = Js::ArrayBuffer::FromVar(parserState)->GetBuffer();
+    JsSerializedLoadScriptCallback dummy = DummyScriptLoadSourceCallbackForRunScriptWithParserState;
+
+    return RunSerializedScriptCore(
+        dummy, DummyScriptUnloadCallback,
+        sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
+        buffer, parserState, sourceContext, url, false, true, result, sourceIndex);
 }
 
 #endif // _CHAKRACOREBUILD

@@ -5,12 +5,18 @@
 #pragma once
 
 namespace Js {
+    class ByteCodeBufferBuilder;
+    class ByteCodeBufferReader;
+
     //
     // ScopeInfo is used to persist Scope info of outer functions. When reparsing deferred nested
     // functions, use persisted ScopeInfo to restore outer closures.
     //
     class ScopeInfo
     {
+        friend class ByteCodeBufferBuilder;
+        friend class ByteCodeBufferReader;
+
         DECLARE_RECYCLER_VERIFY_MARK_FRIEND()
 
         struct MapSymbolData

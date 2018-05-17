@@ -429,6 +429,22 @@ inline bool Recycler::TryGetWeakReferenceHandle(T* pStrongReference, RecyclerWea
     return this->weakReferenceMap.TryGetValue((char*) pStrongReference, (RecyclerWeakReferenceBase**)weakReference);
 }
 
+#if ENABLE_WEAK_REFERENCE_REGIONS
+template<typename T>
+inline RecyclerWeakReferenceRegionItem<T>* Recycler::CreateWeakReferenceRegion(size_t count)
+{
+    RecyclerWeakReferenceRegionItem<T>* regionArray = RecyclerNewArrayLeafZ(this, RecyclerWeakReferenceRegionItem<T>, count);
+    RecyclerWeakReferenceRegion region;
+    region.ptr = reinterpret_cast<RecyclerWeakReferenceRegionItem<void*>*>(regionArray);
+    region.count = count;
+    region.arrayHeapBlock = this->FindHeapBlock(regionArray);
+    this->weakReferenceRegionList.Push(region);
+    return regionArray;
+}
+#endif
+
+
+
 inline HeapBlock*
 Recycler::FindHeapBlock(void* candidate)
 {

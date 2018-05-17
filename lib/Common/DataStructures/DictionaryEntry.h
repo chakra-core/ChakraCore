@@ -118,8 +118,20 @@ namespace JsUtil
         TKey const& Key() const  { return key; }
     };
 
+    template <class TKey>
+    class BaseKeyEntry : public ValueEntry<TKey>
+    {
+    public:
+        TKey const& Key() const { return this->value; }
+    };
+
     template <class TKey, class TValue>
     class KeyValueEntry : public BaseKeyValueEntry<TKey, TValue>
+    {
+    };
+
+    template <class TKey>
+    class KeyEntry : public BaseKeyEntry<TKey>
     {
     };
 
@@ -164,6 +176,28 @@ namespace JsUtil
         void Set(TKey const& key, TValue const& value, int hashCode)
         {
             __super::Set(key, value);
+        }
+    };
+
+    template <class TKey, template <class K> class THashKeyEntry>
+    class DefaultHashedKeyEntry : public THashKeyEntry<TKey>
+    {
+    public:
+        template<typename Comparer, typename TLookup>
+        inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
+        {
+            return Comparer::Equals(this->Key(), otherKey);
+        }
+
+        template<typename Comparer>
+        inline hash_t GetHashCode()
+        {
+            return ((Comparer::GetHashCode(this->Key()) & 0x7fffffff) << 1) | 1;
+        }
+
+        void Set(TKey const& key, int hashCode)
+        {
+            __super::Set(key);
         }
     };
 
@@ -234,4 +268,7 @@ namespace JsUtil
             return (weakReference == nullptr || weakReference->Get() == nullptr);
         }
     };
+
+    template <class TKey>
+    class SimpleDictionaryKeyEntry : public DefaultHashedKeyEntry<TKey, KeyEntry> {};
 }

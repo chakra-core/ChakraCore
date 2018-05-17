@@ -509,6 +509,14 @@
   </test>
   <test>
     <default>
+      <files>normalize.js</files>
+      <baseline>normalize.baseline</baseline>
+      <tags>exclude_noicu</tags>
+      <compile-flags>-ES6Unicode -ExecuteWithBgParse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>normalizeProp.js</files>
       <baseline>normalizeProp.baseline</baseline>
     </default>
@@ -557,6 +565,12 @@
     <default>
       <files>proxyTrapConsumeNewTarget.js</files>
       <compile-flags>-ES6Classes -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boundConstruction.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

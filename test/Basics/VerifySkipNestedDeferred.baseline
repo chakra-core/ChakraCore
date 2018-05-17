@@ -1,0 +1,65 @@
+Skipping nested deferred function 3. foo: 818...1013
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 4. baz: 844...983
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 5. onemorefoo: 874...938
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: A few nested functions
+Skipping nested deferred function 7. Anonymous function: 1121...1317
+Skipping nested deferred function 8. Anonymous function: 1173...1291
+Skipping nested deferred function 9. Anonymous function: 1227...1280
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Nested unnamed function expression
+Skipping nested deferred function 11. a1: 1438...1546
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Function with nested async functions
+Skipping nested deferred function 14. g1: 1670...1785
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 15. g2: 1696...1744
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Function with nested generator functions
+Pass: Nested concise-body lambda
+Skipping nested deferred function 19. Anonymous function: 2039...2057
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Simple nested lambda
+Skipping nested deferred function 21. Anonymous function: 2159...2175
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Nested concise-argument list lambda
+Skipping nested deferred function 23. Anonymous function: 2293...2326
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 24. Anonymous function: 2307...2324
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Couple of nested lambda
+Skipping nested deferred function 26. o.method: 2446...2468
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 27. method2: 2484...2506
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 28. o[method3]: 2528...2547
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 29. [method4]: 2573...2589
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 30. o.method5: 2607...2630
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 31. o.method6: 2643...2665
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 32. o[method7]: 2688...2704
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 33. o[method8]: 2732...2749
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 34. o.f8: 2765...2788
+SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 35. Anonymous function: 2804...2822
+SkipNestedDeferred:	Pushing a reference to 'x'
+Pass: Simple method
+Pass: Simple getter
+Pass: Computed-property named method
+Pass: Computed-property named getter
+Pass: Async method
+Pass: Generator method
+Pass: Generator method with computed-property name
+Pass: Async method with computed-property name
+Pass: Function stored in object literal property
+Pass: Lambda stored in object literal property
+Pass: Several object literal methods
+Pass: Simple function defined in eval
+Pass: Nested eval functions

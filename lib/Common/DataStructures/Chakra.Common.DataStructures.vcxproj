@@ -52,6 +52,7 @@
     <ClInclude Include="BufferBuilder.h" />
     <ClInclude Include="Cache.h" />
     <ClInclude Include="CharacterBuffer.h" />
+    <ClInclude Include="ClusterList.h" />
     <ClInclude Include="CommonDataStructuresPch.h" />
     <ClInclude Include="ContinuousPageStack.h" />
     <ClInclude Include="DefaultContainerLockPolicy.h" />

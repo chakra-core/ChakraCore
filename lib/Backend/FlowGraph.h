@@ -350,12 +350,13 @@ public:
 
     // GlobOpt Stuff
 public:
-    IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
-    bool         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
     bool         PathDepBranchFolding(GlobOpt* globOptState);
     void         MergePredBlocksValueMaps(GlobOpt* globOptState);
 private:
     void         CleanUpValueMaps();
+    void         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
+    Value *      FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globOpt, GlobHashTable * localSymToValueMap, IR::Instr *instr, Sym *dstSym, Sym *srcSym);
+    IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);
 
 #if DBG_DUMP
 public:
@@ -385,7 +386,6 @@ public:
 
     // Deadstore data
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
-    BVSparse<JitArenaAllocator> *              successorBlockUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
     BVSparse<JitArenaAllocator> *              slotDeadStoreCandidates;
@@ -431,7 +431,6 @@ private:
         isLoopHeader(false),
         hasCall(false),
         upwardExposedUses(nullptr),
-        successorBlockUses(nullptr),
         upwardExposedFields(nullptr),
         typesNeedingKnownObjectLayout(nullptr),
         slotDeadStoreCandidates(nullptr),
@@ -604,6 +603,10 @@ public:
     BasicBlock *dominatingLoopCountableBlock;
     LoopCount *loopCount;
     SymIdToStackSymMap *loopCountBasedBoundBaseSyms;
+    typedef SegmentClusterList<SymID, JitArenaAllocator> LoopSymClusterList;
+    LoopSymClusterList *symClusterList;
+    BVSparse<JitArenaAllocator> * internallyDereferencedSyms;
+    SList<IR::ByteCodeUsesInstr*> *outwardSpeculationMaskInstrs;
 
     bool                isDead : 1;
     bool                hasDeadStoreCollectionPass : 1;
@@ -730,6 +733,9 @@ public:
         dominatingLoopCountableBlock(nullptr),
         loopCount(nullptr),
         loopCountBasedBoundBaseSyms(nullptr),
+        symClusterList(nullptr),
+        internallyDereferencedSyms(nullptr),
+        outwardSpeculationMaskInstrs(nullptr),
         isDead(false),
         allFieldsKilled(false),
         isLeaf(true),
@@ -756,6 +762,7 @@ public:
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);
     Func *              GetFunc() const { return GetLoopTopInstr()->m_func; }
     bool                IsSymAssignedToInSelfOrParents(StackSym * const sym) const;
+    BasicBlock *        GetAnyTailBlock() const;
 #if DBG_DUMP
     bool                GetHasCall() const { return hasCall; }
     uint                GetLoopNumber() const;

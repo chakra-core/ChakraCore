@@ -644,7 +644,7 @@ namespace Js
         ///
         /// Call the [[Call]] method on the function object
         ///
-        return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), args);
+        return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), args, true /*useLargeArgCount*/);
     }
 
     Var JavascriptFunction::CallRootFunctionInScript(JavascriptFunction* func, Arguments args)
@@ -930,7 +930,7 @@ namespace Js
         }
         else
         {
-            functionResult = CallFunction<true>(functionObj, functionObj->GetEntryPoint(), newArgs);
+            functionResult = CallFunction<true>(functionObj, functionObj->GetEntryPoint(), newArgs, true /*useLargeArgCount*/);
         }
 
         return

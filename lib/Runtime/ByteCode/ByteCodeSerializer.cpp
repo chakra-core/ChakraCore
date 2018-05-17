@@ -139,6 +139,7 @@ struct SerializedFieldList {
     bool has_slotIdInCachedScopeToNestedIndexArray : 1;
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
+    bool has_scopeInfo : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -225,6 +226,31 @@ enum FunctionFlags
     ffUsesArgumentsObject              = 0x200000,
     ffDoScopeObjectCreation            = 0x400000,
     ffIsParamAndBodyScopeMerged        = 0x800000,
+    ffIsMethod                         = 0x1000000,
+    ffIsClassMember                    = 0x2000000,
+};
+
+enum ScopeInfoFlags : byte
+{
+    sifNone                     = 0x0,
+    sifIsDynamic                = 0x1,
+    sifIsObject                 = 0x2,
+    sifMustInstantiate          = 0x4,
+    sifIsCached                 = 0x8,
+    sifHasLocalInClosure        = 0x10,
+    sifIsGeneratorFunctionBody  = 0x20,
+    sifIsAsyncFunctionBody      = 0x40,
+};
+
+enum SymbolInfoFlags : byte
+{
+    syifNone                    = 0x0,
+    syifHasFuncAssignment        = 0x1,
+    syifIsBlockVariable          = 0x2,
+    syifIsConst                  = 0x4,
+    syifIsFuncExpr               = 0x8,
+    syifIsModuleExportStorage    = 0x10,
+    syifIsModuleImport           = 0x20,
 };
 
 // Kinds of constant
@@ -551,7 +577,15 @@ public:
         if (allocateBuffer)
         {
             *bufferBytes = size;
-            *buffer = (byte*)CoTaskMemAlloc(*bufferBytes);
+            if (GenerateParserStateCache())
+            {
+                *buffer = AnewArray(scriptContext->SourceCodeAllocator(), byte, *bufferBytes);
+            }
+            else
+            {
+                *buffer = (byte*)CoTaskMemAlloc(*bufferBytes);
+            }
+
             if (*buffer == nullptr)
             {
                 return E_OUTOFMEMORY;
@@ -1581,7 +1615,7 @@ public:
         return size;
     }
 
-    uint32 AddPropertyIdsForScopeSlotArray(BufferBuilderList & builder, FunctionBody * function)
+    uint32 AddPropertyIdsForScopeSlotArray(BufferBuilderList & builder, ParseableFunctionInfo* function)
     {
         if (function->scopeSlotArraySize == 0)
         {
@@ -2085,8 +2119,6 @@ public:
             AddCacheIdToPropertyIdMap(builder, function);
             AddReferencedPropertyIdMap(builder, function);
 
-            AddPropertyIdsForScopeSlotArray(builder, function);
-
             if (function->GetSlotIdInCachedScopeToNestedIndexArray() == nullptr)
             {
                 definedFields.has_slotIdInCachedScopeToNestedIndexArray = false;
@@ -2128,7 +2160,7 @@ public:
         return S_OK;
     }
 
-    HRESULT AddFunction(BufferBuilderList & builder, ParseableFunctionInfo * function, SRCINFO const * srcInfo)
+    HRESULT AddFunction(BufferBuilderList & builder, ParseableFunctionInfo * function, SRCINFO const * srcInfo, ByteCodeCache* cache)
     {
         SerializedFieldList definedFields = { 0 };
 
@@ -2175,6 +2207,8 @@ public:
             | (function->m_isEval ? ffIsEval : 0)
             | (function->m_isDynamicFunction ? ffIsDynamicFunction : 0)
             | (isAnonymous ? ffIsAnonymous : 0)
+            | (function->m_isMethod ? ffIsMethod : 0)
+            | (function->m_isClassMember ? ffIsClassMember : 0)
 #ifdef ASMJS_PLAT
             | (function->m_isAsmjsMode ? ffIsAsmJsMode : 0)
             | (function->m_isAsmJsFunction ? ffIsAsmJsFunction : 0)
@@ -2244,7 +2278,15 @@ public:
             && GenerateParserStateCache())
         {
             definedFields.has_deferredStubs = true;
-            AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), true);
+            AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
+        }
+
+        ScopeInfo* scopeInfo = function->GetScopeInfo();
+        if (scopeInfo != nullptr
+            && (attributes & FunctionInfo::Attributes::DeferredParse) != 0)
+        {
+            definedFields.has_scopeInfo = true;
+            AddScopeInfo(builder, scopeInfo);
         }
 
 #define PrependArgSlot PrependInt16
@@ -2264,6 +2306,8 @@ public:
 
 #include "SerializableFunctionFields.h"
 
+        AddPropertyIdsForScopeSlotArray(builder, function);
+
         if (functionBody != nullptr)
         {
             AddFunctionBody(builder, functionBody, srcInfo, definedFields);
@@ -2280,7 +2324,6 @@ public:
                 if (nestedFunction == nullptr || !nestedFunction->HasParseableInfo())
                 {
                     PrependConstantInt32(builder, _u("Empty Nested Function"), 0);
-                    ++functionCount.value;
                 }
                 else
                 {
@@ -2288,7 +2331,7 @@ public:
                     nestedBodyList->list = nestedBodyList->list->Prepend(nestedFunctionBuilder, alloc);
                     auto offsetToNested = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To Nested Function"), nestedFunctionBuilder);
                     builder.list = builder.list->Prepend(offsetToNested, alloc);
-                    AddFunction(*nestedFunctionBuilder, nestedFunction->GetParseableFunctionInfo(), srcInfo);
+                    AddFunction(*nestedFunctionBuilder, nestedFunction->GetParseableFunctionInfo(), srcInfo, cache);
                 }
             }
 
@@ -2315,13 +2358,75 @@ public:
         return S_OK;
     }
 
-    HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo)
+    HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo, ByteCodeCache* cache)
     {
         topFunctionId = function->GetLocalFunctionId();
-        return AddFunction(functionsTable, function, srcInfo);
+        return AddFunction(functionsTable, function, srcInfo, cache);
     }
 
-    HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, bool recursive)
+    HRESULT AddScopeInfo(BufferBuilderList & builder, ScopeInfo* scopeInfo)
+    {
+        PrependInt32(builder, _u("ScopeInfo symbol count"), scopeInfo->symbolCount);
+
+        FunctionInfo* functionInfo = scopeInfo->functionInfo;
+        uint relativeFunctionId = 0;
+        if (functionInfo != nullptr)
+        {
+            relativeFunctionId = functionInfo->GetLocalFunctionId() - topFunctionId;
+        }
+        PrependUInt32(builder, _u("ScopeInfo FunctionInfo relative id"), relativeFunctionId);
+
+        ScopeInfoFlags scopeInfoFlags = (ScopeInfoFlags)
+            ( (scopeInfo->isDynamic ? sifIsDynamic : sifNone)
+            | (scopeInfo->isObject ? sifIsObject : sifNone)
+            | (scopeInfo->mustInstantiate ? sifMustInstantiate : sifNone)
+            | (scopeInfo->isCached ? sifIsCached : sifNone)
+            | (scopeInfo->hasLocalInClosure ? sifHasLocalInClosure : sifNone)
+            | (scopeInfo->isGeneratorFunctionBody ? sifIsGeneratorFunctionBody : sifNone)
+            | (scopeInfo->isAsyncFunctionBody ? sifIsAsyncFunctionBody : sifNone));
+
+        PrependByte(builder, _u("ScopeInfo flags"), scopeInfoFlags);
+        PrependInt32(builder, _u("ScopeInfo scope type"), scopeInfo->scopeType);
+        PrependInt32(builder, _u("ScopeInfo scope id"), scopeInfo->scopeId);
+
+        for (int i = 0; i < scopeInfo->symbolCount; i++)
+        {
+            ScopeInfo::SymbolInfo* sym = scopeInfo->symbols + i;
+
+            SymbolInfoFlags symbolInfoFlags = (SymbolInfoFlags)
+                ( (sym->hasFuncAssignment ? syifHasFuncAssignment : syifNone)
+                | (sym->isBlockVariable ? syifIsBlockVariable : syifNone)
+                | (sym->isConst ? syifIsConst : syifNone)
+                | (sym->isFuncExpr ? syifIsFuncExpr : syifNone)
+                | (sym->isModuleExportStorage ? syifIsModuleExportStorage : syifNone)
+                | (sym->isModuleImport ? syifIsModuleImport : syifNone));
+
+            PrependByte(builder, _u("SymbolInfo flags"), symbolInfoFlags);
+            PrependByte(builder, _u("SymbolInfo symbol type"), (BYTE)sym->symbolType);
+
+            PropertyId symPropertyId = sym->propertyId;
+            if (scopeInfo->areNamesCached)
+            {
+                Assert(sym->name != nullptr);
+                symPropertyId = sym->name->GetPropertyId();
+            }
+
+            PropertyId propertyId = encodePossiblyBuiltInPropertyId(symPropertyId);
+            PrependInt32(builder, _u("SymbolInfo property id"), propertyId);
+        }
+
+        bool hasParent = scopeInfo->parent != nullptr;
+        PrependBool(builder, _u("ScopeInfo has parent"), hasParent);
+
+        if (hasParent)
+        {
+            return AddScopeInfo(builder, scopeInfo->parent);
+        }
+
+        return S_OK;
+    }
+
+    HRESULT AddDeferredStubs(BufferBuilderList & builder, DeferredFunctionStub* deferredStubs, uint stubsCount, ByteCodeCache* cache, bool recursive)
     {
         AssertOrFailFast(!(deferredStubs == nullptr && stubsCount > 0));
 
@@ -2348,17 +2453,32 @@ public:
 
                 PrependUInt32(builder, _u("Captured Name Count"), capturedNamesCount);
 
+                if (cache != nullptr)
+                {
+                    currentStub->capturedNameCount = capturedNamesCount;
+                    currentStub->capturedNameSerializedIds = RecyclerNewArray(this->scriptContext->GetRecycler(), int, capturedNamesCount);
+                    currentStub->byteCodeCache = cache;
+                }
+
+                uint j = 0;
                 while (iter.IsValid())
                 {
                     // The captured names are IdentPtr allocated in Parser arena memory.
                     // We have to convert them to indices into our string table to effectively
                     // serialize the names.
                     const IdentPtr& pid = iter.CurrentValueReference();
-                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), pid->Cch());
+                    int capturedNameSerializedId = this->GetIdOfString(pid->Psz(), (pid->Cch() + 1) * sizeof(WCHAR));
+
+                    if (cache != nullptr)
+                    {
+                        Assert(j < capturedNamesCount);
+                        currentStub->capturedNameSerializedIds[j] = capturedNameSerializedId;
+                    }
 
                     PrependInt32(builder, _u("Captured Name"), capturedNameSerializedId);
 
                     iter.MoveNext();
+                    j++;
                 }
             }
             else
@@ -2369,8 +2489,11 @@ public:
             PrependUInt32(builder, _u("Nested Count"), currentStub->nestedCount);
             if (recursive)
             {
-                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, recursive);
+                AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, cache, recursive);
             }
+
+            // Each deferred stub will turn into a function after we defer-parse the parent of the stub.
+            ++functionCount.value;
         }
 
         return S_OK;
@@ -3172,7 +3295,7 @@ public:
         return current;
     }
 
-    const byte * ReadPropertyIdsForScopeSlotArray(const byte * current, FunctionBody * function)
+    const byte * ReadPropertyIdsForScopeSlotArray(const byte * current, ByteCodeCache* cache, ParseableFunctionInfo * function)
     {
         if (function->scopeSlotArraySize == 0)
         {
@@ -3190,8 +3313,8 @@ public:
         {
             int value;
             current = ReadInt32(current, &value);
-            PropertyId propertyId = function->GetByteCodeCache()->LookupPropertyId(value);
-            function->GetPropertyIdsForScopeSlotArray()[i] =  propertyId;
+            PropertyId propertyId = cache->LookupPropertyId(value);
+            function->GetPropertyIdsForScopeSlotArray()[i] = propertyId;
         }
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -3802,7 +3925,14 @@ public:
         if (definedFields->has_deferredStubs)
         {
             Assert(isDeferredFunction);
-            current = ReadDeferredStubs(current, nestedCount, &deferredStubs, true);
+            current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
+        }
+
+        Field(ScopeInfo*) scopeInfo = nullptr;
+        if (definedFields->has_scopeInfo)
+        {
+            Assert(isDeferredFunction);
+            current = ReadScopeInfo(current, cache, &scopeInfo);
         }
 
         if (!deserializeThis && !isDeferredFunction)
@@ -3810,6 +3940,11 @@ public:
             Assert(sourceInfo->GetSrcInfo()->moduleID == kmodGlobal);
             Assert(!deserializeNested);
             *functionProxy = DeferDeserializeFunctionInfo::New(this->scriptContext, nestedCount, functionId, cache, functionBytes, sourceInfo, displayName, displayNameLength, displayShortNameOffset, nativeModule, (FunctionInfo::Attributes)attributes);
+
+            if (deferDeserializeFunctionInfo == nullptr && !this->isLibraryCode)
+            {
+                cache->RegisterFunctionIdToFunctionInfo(this->scriptContext, functionId, (*functionProxy)->GetFunctionInfo());
+            }
 
             return S_OK;
         }
@@ -3852,6 +3987,20 @@ public:
         {
             *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, (FunctionInfo::Attributes)attributes,
                         Js::FunctionBody::FunctionBodyFlags::Flags_None);
+
+            if (deferredStubs != nullptr)
+            {
+                (*function)->SetDeferredStubs(deferredStubs);
+            }
+            if (scopeInfo != nullptr)
+            {
+                (*function)->SetScopeInfo(scopeInfo);
+            }
+        }
+
+        if (deferDeserializeFunctionInfo == nullptr && !this->isLibraryCode)
+        {
+            cache->RegisterFunctionIdToFunctionInfo(this->scriptContext, functionId, (*function)->GetFunctionInfo());
         }
 
         // These fields are manually deserialized previously
@@ -3871,6 +4020,8 @@ public:
         (*function)->m_usesArgumentsObject = (bitflags & ffUsesArgumentsObject) ? true : false;
         (*function)->m_isEval = (bitflags & ffIsEval) ? true : false;
         (*function)->m_isDynamicFunction = (bitflags & ffIsDynamicFunction) ? true : false;
+        (*function)->m_isMethod = (bitflags & ffIsMethod) ? true : false;
+        (*function)->m_isClassMember = (bitflags & ffIsClassMember) ? true : false;
 
         // This is offsetIntoSource is the start offset in bytes as well.
         (*function)->m_cbStartOffset = (size_t) offsetIntoSource;
@@ -3883,6 +4034,8 @@ public:
             current = Read##serializableType(current, &(*function)->##name); \
         }
 #include "SerializableFunctionFields.h"
+
+        current = ReadPropertyIdsForScopeSlotArray(current, cache, *function);
 
         if (definedFields->has_ConstantCount)
         {
@@ -3912,11 +4065,11 @@ public:
             // that here.
             if (definedFields->has_flags == false)
             {
-                (*functionBody)->flags = FunctionBody::FunctionBodyFlags::Flags_None;
+                (*function)->flags = FunctionBody::FunctionBodyFlags::Flags_None;
             }
             else
             {
-                (*functionBody)->flags = (FunctionBody::FunctionBodyFlags)((*functionBody)->flags & ~FunctionBody::Flags_StackNestedFunc);
+                (*function)->flags = (FunctionBody::FunctionBodyFlags)((*function)->flags & ~FunctionBody::Flags_StackNestedFunc);
             }
 
             if (definedFields->has_m_envDepth == false)
@@ -4017,8 +4170,6 @@ public:
             current = ReadCacheIdToPropertyIdMap(current, *functionBody);
             current = ReadReferencedPropertyIdMap(current, *functionBody);
             (*functionBody)->AllocateInlineCache();
-
-            current = ReadPropertyIdsForScopeSlotArray(current, *functionBody);
 
             if (definedFields->has_slotIdInCachedScopeToNestedIndexArray)
             {
@@ -4134,7 +4285,68 @@ public:
         return S_OK;
     }
 
-    const byte* ReadDeferredStubs(const byte* current, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
+    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, Field(ScopeInfo*)* scopeInfo)
+    {
+        int symbolCount = 0;
+        current = ReadInt32(current, &symbolCount);
+
+        Js::LocalFunctionId relativeFunctionId = 0;
+        current = ReadUInt32(current, (uint*)&relativeFunctionId);
+        FunctionInfo* functionInfo =  cache->LookupFunctionInfo(this->scriptContext, relativeFunctionId);
+
+        Assert(functionInfo != nullptr);
+
+        *scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(), symbolCount * sizeof(ScopeInfo::SymbolInfo), ScopeInfo, functionInfo, symbolCount);
+
+        ScopeInfoFlags scopeInfoFlags;
+        current = ReadByte(current, (byte*)&scopeInfoFlags);
+        (*scopeInfo)->isDynamic = (scopeInfoFlags & sifIsDynamic) != 0;
+        (*scopeInfo)->isObject = (scopeInfoFlags & sifIsObject) != 0;
+        (*scopeInfo)->mustInstantiate = (scopeInfoFlags & sifMustInstantiate) != 0;
+        (*scopeInfo)->isCached = (scopeInfoFlags & sifIsCached) != 0;
+        (*scopeInfo)->hasLocalInClosure = (scopeInfoFlags & sifHasLocalInClosure) != 0;
+        (*scopeInfo)->isGeneratorFunctionBody = (scopeInfoFlags & sifIsGeneratorFunctionBody) != 0;
+        (*scopeInfo)->isAsyncFunctionBody = (scopeInfoFlags & sifIsAsyncFunctionBody) != 0;
+        (*scopeInfo)->areNamesCached = false;
+
+        int scopeType;
+        current = ReadInt32(current, &scopeType);
+        (*scopeInfo)->scopeType = (::ScopeType)scopeType;
+
+        current = ReadInt32(current, &(*scopeInfo)->scopeId);
+
+        for (int i = 0; i < symbolCount; i++)
+        {
+            ScopeInfo::SymbolInfo* sym = (*scopeInfo)->symbols + i;
+
+            SymbolInfoFlags symbolInfoFlags;
+            current = ReadByte(current, (byte*)&symbolInfoFlags);
+            sym->hasFuncAssignment = (symbolInfoFlags & syifHasFuncAssignment) != 0;
+            sym->isBlockVariable = (symbolInfoFlags & syifIsBlockVariable) != 0;
+            sym->isConst = (symbolInfoFlags & syifIsConst) != 0;
+            sym->isFuncExpr = (symbolInfoFlags & syifIsFuncExpr) != 0;
+            sym->isModuleExportStorage = (symbolInfoFlags & syifIsModuleExportStorage) != 0;
+            sym->isModuleImport = (symbolInfoFlags & syifIsModuleImport) != 0;
+
+            current = ReadByte(current, (BYTE*)&sym->symbolType);
+
+            PropertyId obscuredPropertyId;
+            current = ReadInt32(current, (int*)&obscuredPropertyId);
+            sym->propertyId = cache->LookupPropertyId(obscuredPropertyId);
+        }
+
+        bool hasParent = false;
+        current = ReadBool(current, &hasParent);
+
+        if (hasParent)
+        {
+            return ReadScopeInfo(current, cache, &((*scopeInfo)->parent));
+        }
+
+        return current;
+    }
+
+    const byte* ReadDeferredStubs(const byte* current, ByteCodeCache* cache, uint nestedCount, Field(DeferredFunctionStub*)* deferredStubs, bool recurse)
     {
         if (nestedCount == 0)
         {
@@ -4146,6 +4358,8 @@ public:
         for (uint i = 0; i < nestedCount; i++)
         {
             DeferredFunctionStub* nestedStub = *deferredStubs + i;
+
+            nestedStub->byteCodeCache = cache;
 
             current = ReadUInt32(current, &nestedStub->ichMin);
             current = ReadUInt32(current, (uint*)&nestedStub->fncFlags);
@@ -4165,7 +4379,7 @@ public:
 
             if (recurse)
             {
-                current = ReadDeferredStubs(current, nestedStub->nestedCount, &nestedStub->deferredStubs, recurse);
+                current = ReadDeferredStubs(current, cache, nestedStub->nestedCount, &nestedStub->deferredStubs, recurse);
             }
         }
 
@@ -4184,7 +4398,7 @@ public:
         sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId += functionCount;
         sourceInfo->EnsureInitialized(functionCount);
         sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();
-
+        HRESULT hr = E_FAIL;
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         bool prejit = false;
@@ -4193,7 +4407,7 @@ public:
 #endif
 
         FunctionBody* functionBody = NULL;
-        auto result = ReadFunctionBody(topFunction, (FunctionProxy **)&functionBody, sourceInfo, cache, nativeModule, true, !allowDefer /* don't deserialize nested if defer is allowed */);
+        hr = ReadFunctionBody(topFunction, (FunctionProxy **)&functionBody, sourceInfo, cache, nativeModule, true, !allowDefer /* don't deserialize nested if defer is allowed */);
 
         (*function) = functionBody;
 
@@ -4207,8 +4421,7 @@ public:
             GenerateAllFunctions(scriptContext->GetNativeCodeGenerator(), functionBody);
         }
 #endif
-
-        return result;
+        return hr;
     }
 
 
@@ -4409,13 +4622,34 @@ public:
 
 };
 
-// Construct the byte code cache. Copy things needed by inline 'Lookup' functions from reader.
+// This constructor is for allocating a ByteCodeCache without a reader (ie: before the bytecode buffer is generated).
+// SetReader() should be called before using the cache.
+ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount)
+    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr), localFunctionIdToFunctionInfoMap(nullptr)
+{
+}
+
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount)
-    : reader(reader), propertyCount(reader->string16Count), builtInPropertyCount(builtInPropertyCount)
+    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount), localFunctionIdToFunctionInfoMap(nullptr)
+{
+    Initialize(scriptContext);
+}
+
+void ByteCodeCache::SetReader(ScriptContext * scriptContext, ByteCodeBufferReader * reader)
+{
+    Assert(this->reader == nullptr);
+    this->reader = reader;
+
+    Initialize(scriptContext);
+}
+
+// Construct the byte code cache. Copy things needed by inline 'Lookup' functions from reader.
+void ByteCodeCache::Initialize(ScriptContext * scriptContext)
 {
     auto alloc = scriptContext->SourceCodeAllocator();
+    propertyCount = reader->string16Count;
     propertyIds = AnewArray(alloc, PropertyId, propertyCount);
-    for (auto i=0; i < propertyCount; ++i)
+    for (auto i = 0; i < propertyCount; ++i)
     {
         propertyIds[i] = -1;
     }
@@ -4423,7 +4657,7 @@ ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader
     raw = reader->raw;
 
     // Read and populate PropertyIds
-    for(int i=0; i < propertyCount; ++i)
+    for (int i = 0; i < propertyCount; ++i)
     {
         PopulateLookupPropertyId(scriptContext, i);
     }
@@ -4446,6 +4680,26 @@ void ByteCodeCache::PopulateLookupPropertyId(ScriptContext * scriptContext, int 
     }
 }
 
+ByteCodeCache::LocalFunctionIdToFunctionInfoMap* ByteCodeCache::EnsureLocalFunctionIdToFunctionInfoMap(ScriptContext * scriptContext)
+{
+    if (this->localFunctionIdToFunctionInfoMap == nullptr)
+    {
+        this->localFunctionIdToFunctionInfoMap = Anew(scriptContext->SourceCodeAllocator(), LocalFunctionIdToFunctionInfoMap, scriptContext->SourceCodeAllocator(), 10);
+    }
+    Assert(this->localFunctionIdToFunctionInfoMap != nullptr);
+    return this->localFunctionIdToFunctionInfoMap;
+}
+
+void ByteCodeCache::RegisterFunctionIdToFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId, FunctionInfo* functionInfo)
+{
+    EnsureLocalFunctionIdToFunctionInfoMap(scriptContext)->AddNew(functionId, functionInfo);
+}
+
+FunctionInfo* ByteCodeCache::LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId)
+{
+    return EnsureLocalFunctionIdToFunctionInfoMap(scriptContext)->Lookup(functionId, nullptr);
+}
+
 // Serialize function body
 HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
 {
@@ -4459,14 +4713,34 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
         return hr;
     }
 
+    ArenaAllocator* codeAllocator = nullptr;
+    ByteCodeCache* cache = nullptr;
+    if (((dwFlags & GENERATE_BYTE_CODE_PARSER_STATE) != 0) && allocateBuffer)
+    {
+        codeAllocator = scriptContext->SourceCodeAllocator();
+        cache = Anew(codeAllocator, ByteCodeCache, scriptContext, builtInPropertyCount);
+    }
+
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
     ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
     
-    hr = builder.AddTopFunctionBody(function, srcInfo);
+    hr = builder.AddTopFunctionBody(function, srcInfo, cache);
 
     if (SUCCEEDED(hr))
     {
         hr = builder.Create(allocateBuffer, buffer, bufferBytes);
+    }
+
+    if (SUCCEEDED(hr) && cache != nullptr)
+    {
+        bool isLibraryOrJsBuiltInCode = (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0;
+        ByteCodeBufferReader* reader = Anew(codeAllocator, ByteCodeBufferReader, scriptContext, *buffer, isLibraryOrJsBuiltInCode, builtInPropertyCount);
+        hr = reader->ReadHeader();
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        cache->SetReader(scriptContext, reader);
     }
 
 #if INSTRUMENT_BUFFER_INTS
@@ -4542,6 +4816,15 @@ HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * script
     LEAVE_PINNED_SCOPE();
 
     return hr;
+}
+
+LPCWSTR ByteCodeSerializer::DeserializeString(const DeferredFunctionStub* deferredStub, uint stringId, uint32& stringLength)
+{
+    ByteCodeCache* cache = deferredStub->byteCodeCache;
+    ByteCodeBufferReader* reader = cache->GetReader();
+
+    stringLength = reader->GetString16LengthById(stringId);
+    return reader->GetString16ById(stringId);
 }
 
 void ByteCodeSerializer::ReadSourceInfo(const DeferDeserializeFunctionInfo* deferredFunction, int& lineNumber, int& columnNumber, bool& m_isEval, bool& m_isDynamicFunction)

@@ -60,10 +60,7 @@ namespace Js
     void SourceDynamicProfileManager::MarkAsExecuted(LocalFunctionId functionId)
     {
         Assert(startupFunctions != nullptr);
-        //Assert(functionId <= startupFunctions->Length());
-        if (functionId >= startupFunctions->Length()) {
-            return;
-        }
+        AssertOrFailFast(functionId <= startupFunctions->Length());
         startupFunctions->Set(functionId);
     }
 
@@ -159,8 +156,19 @@ namespace Js
                 {
                     OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Profile saving FAILED\n"));
                 }
+                else
+                {
+                    OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Profile saving succeeded. Bytes written: %d\n"), bytesWritten);
+                }
             }
 
+            if (!isNonCachableScript)
+            {
+                if (FAILED(dataCacheWrapper->SaveWriteStream()))
+                {
+                    return 0;
+                }
+            }
             dataCacheWrapper = nullptr;
         }
 #endif
@@ -193,10 +201,6 @@ namespace Js
         {
             bytesWritten = dataCacheWrapper->BytesWrittenInBlock();
 
-            if (FAILED(dataCacheWrapper->SaveWriteStream()))
-            {
-                return 0;
-            }
 #if DBG_DUMP
             if (PHASE_TRACE1(Js::DynamicProfilePhase) && Js::Configuration::Global.flags.Verbose)
             {
@@ -223,6 +227,12 @@ namespace Js
             return false;
         }
 
+        if (dataCacheWrapper->BlocksWritten() > 0)
+        {
+            OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Saving profile. There are other blocks in the cache. %s\n"), info->url);
+            return true;
+        }
+
         if(!startupFunctions || startupFunctions->Length() <= DEFAULT_CONFIG_MinProfileCacheSize)
         {
             OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Skipping save of profile. Small number of functions. %s\n"), info->url);
@@ -241,7 +251,7 @@ namespace Js
             }
             else
             {
-                OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Number of functions different: %d "), numberOfBitsDifferent);
+                OUTPUT_VERBOSE_TRACE(Js::DynamicProfilePhase, _u("Number of functions different: %d \n"), numberOfBitsDifferent);
             }
         }
         return true;
