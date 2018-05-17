@@ -40,5 +40,44 @@ testRunner.runTests([
                 testWithVariants(["invalid", "INVALID", "invaLID"]);
             }
         }
+    },
+    {
+        name: "OSS-Fuzz #7950: Have option getters redefine themselves",
+        body() {
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                return;
+            }
+
+            function test(callback, optionName, optionValue, shouldCallSecondGetter) {
+                const options = {};
+                let calledSecondGetter = false;
+                Object.defineProperty(options, optionName, {
+                    get() {
+                        Object.defineProperty(options, optionName, {
+                            get() {
+                                calledSecondGetter = true;
+                                return undefined;
+                            }
+                        });
+
+                        return optionValue;
+                    },
+                    configurable: true
+                });
+
+                callback(options);
+                assert.areEqual(shouldCallSecondGetter, calledSecondGetter, "Second getter behavior was incorrect");
+            }
+
+            test((options) => assert.areEqual(1, new Intl.Collator("en-US", options).compare("A", "a")), "sensitivity", "case", false);
+            test((options) => assert.areEqual(-1, new Intl.Collator("en-US", options).compare("A", "B")), "sensitivity", "case", false);
+            test((options) => assert.areEqual(0, new Intl.Collator("en-US", options).compare("a", "\u00E2")), "sensitivity", "case", false);
+            test((options) => assert.areEqual("1000", new Intl.NumberFormat("en-US", options).format(1000)), "useGrouping", false, false);
+            test((options) => assert.areEqual("$1.50", new Intl.NumberFormat("en-US", Object.assign(options, { currency: "USD" })).format(1.5)), "style", "currency", false);
+
+            // This was the original bug - at present, all browsers format the string as "" because the value returned by the second getter dictates format selection
+            test((options) => assert.areEqual("", new Intl.DateTimeFormat("en-US", options).format()), "year", "numeric", true);
+            test((options) => assert.areEqual("", new Intl.DateTimeFormat("en-US", options).format()), "minute", "numeric", true);
+        }
     }
 ], { verbose: false });
