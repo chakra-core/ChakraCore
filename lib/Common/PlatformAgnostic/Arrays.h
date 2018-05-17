@@ -8,28 +8,22 @@ namespace PlatformAgnostic
 {
 namespace Arrays
 {
-    class Utility
-    {
 #ifndef ENABLE_GLOBALIZATION
-        class ArraysLocale
-        {
-            WCHAR commaSeparator;
-            WCHAR semicolonSeparator;
-            WCHAR localeSeparator;
 
-        public:
+    class ArrayLocalization
+    {
+        char16 localeSeparator;
 
-            ArraysLocale();
-
-            inline WCHAR GetLocaleSeparator() { return localeSeparator; }
-        };
-
-        static ArraysLocale arraysLocale;
-#endif
     public:
 
-        static size_t GetLocaleSeparator(WCHAR* szSeparator);
+        ArrayLocalization();
+
+        inline char16 GetLocaleSeparator() { return localeSeparator; }
     };
+
+#endif   
+
+    size_t GetLocaleSeparator(WCHAR* szSeparator);
 
 } // namespace Arrays
 } // namespace PlatformAgnostic

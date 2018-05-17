@@ -13,6 +13,9 @@ namespace Arrays
 {
     #define BufSize 256
 
+    static char16 commaSeparator = _u(',');
+    static char16 semicolonSeparator = _u(';');
+
     template<class T, class N = T>
     void ByteCopy(const T *from, N *to, const size_t max_length)
     {
@@ -25,12 +28,8 @@ namespace Arrays
         }
     }
 
-    Utility::ArraysLocale::ArraysLocale()
+    ArrayLocalization::ArrayLocalization()
     {
-
-        commaSeparator = WCHAR(',');
-        semicolonSeparator = WCHAR(';');
-
         char buffer[BufSize];
         char *old_locale = setlocale(LC_NUMERIC, NULL);
 
@@ -62,15 +61,15 @@ namespace Arrays
         }
     }
 
-    Utility::ArraysLocale Utility::arraysLocale;
-
-    size_t Utility::GetLocaleSeparator(WCHAR *szSeparator)
+    size_t GetLocaleSeparator(WCHAR *szSeparator)
     {
+
+        ArrayLocalization arrayLocalization;
 
         size_t count = 0;
 
         //Add ' ' after separator
-        szSeparator[count] = arraysLocale.GetLocaleSeparator();
+        szSeparator[count] = arrayLocalization.GetLocaleSeparator();
         szSeparator[++count] = ' ';
         szSeparator[++count] = '\0';
 

@@ -12,7 +12,7 @@ namespace PlatformAgnostic
 namespace Arrays
 {
 
-    size_t Utility::GetLocaleSeparator(WCHAR* szSeparator)
+    size_t GetLocaleSeparator(WCHAR* szSeparator)
     {
 
         LCID lcid = GetUserDefaultLCID();

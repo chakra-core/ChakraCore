@@ -8195,7 +8195,7 @@ Case0:
             {
                 char16 szSeparator[6];
                 // According to the document for GetLocaleInfo this is a sufficient buffer size.
-                size_t count = Arrays::Utility::GetLocaleSeparator(szSeparator);
+                size_t count = Arrays::GetLocaleSeparator(szSeparator);
 
                 JavascriptString* separator = nullptr;
 
