@@ -299,7 +299,7 @@
       <files>InlineCallbacks.js</files>
       <compile-flags>-testtrace:InlineCallbacks</compile-flags>
       <baseline>InlineCallbacks.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
     </default>
   </test>
 </regress-exe>
