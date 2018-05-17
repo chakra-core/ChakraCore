@@ -49,19 +49,15 @@ namespace Arrays
         }
     }
 
-    size_t GetLocaleSeparator(WCHAR *szSeparator)
+    bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
-
         ArrayLocalization arrayLocalization;
+        //Append ' ' after separator
+        szSeparator[*sepOutSize] = arrayLocalization.GetLocaleSeparator();
+        szSeparator[++(*sepOutSize)] = ' ';
+        szSeparator[++(*sepOutSize)] = '\0';
 
-        size_t count = 0;
-
-        //Add ' ' after separator
-        szSeparator[count] = arrayLocalization.GetLocaleSeparator();
-        szSeparator[++count] = ' ';
-        szSeparator[++count] = '\0';
-
-        return count;
+        return true;
     }
 
 } // namespace Arrays

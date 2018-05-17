@@ -12,29 +12,36 @@ namespace PlatformAgnostic
 namespace Arrays
 {
 
-    size_t GetLocaleSeparator(WCHAR* szSeparator)
+    bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
+        char16 localeName[LOCALE_NAME_MAX_LENGTH];
 
-        LCID lcid = GetUserDefaultLCID();
-        size_t count = 0;
+        int ret = GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH);
 
-        count = GetLocaleInfoW(lcid, LOCALE_SLIST, szSeparator, 5);
-        if (!count)
+        if (ret == 0)
+        {
+            AssertMsg(FALSE, "GetUserDefaultLocaleName failed");
+            return false;
+        }
+
+        *sepOutSize = GetLocaleInfoEx(localeName, LOCALE_SLIST, szSeparator, sepBufSize);
+
+        if (*sepOutSize == 0)
         {
             AssertMsg(FALSE, "GetLocaleInfo failed");
-            return count;
+            return false;
         }
         else
         {
-            // Append ' '  if necessary
-            if (count < 2 || szSeparator[count - 2] != ' ')
+            // Append ' ' if necessary
+            if (*sepOutSize < 2 || szSeparator[*sepOutSize - 2] != ' ')
             {
-                szSeparator[count - 1] = ' ';
-                szSeparator[count] = '\0';
+                szSeparator[*sepOutSize - 1] = ' ';
+                szSeparator[*sepOutSize] = '\0';
             }
         }
 
-        return count;
+        return true;
     }
 
 } // namespace Arrays

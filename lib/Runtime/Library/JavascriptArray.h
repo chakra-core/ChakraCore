@@ -126,6 +126,8 @@ namespace Js
         static ushort const MergeSegmentsLengthHeuristics = 128; // If the length is less than MergeSegmentsLengthHeuristics then try to merge the segments
         static uint64 const FiftyThirdPowerOfTwoMinusOne = 0x1FFFFFFFFFFFFF;  // 2^53-1
 
+        static uint32 const SeparatorBufferSize = 6;
+
         static const uint8 AllocationBucketsInfoSize = 3;
         // 0th colum in allocationBuckets
         static const uint8 AllocationBucketIndex = 0;

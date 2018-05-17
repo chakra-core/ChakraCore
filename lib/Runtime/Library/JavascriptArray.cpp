@@ -8193,15 +8193,16 @@ Case0:
 
             if (length > 1)
             {
-                char16 szSeparator[6];
-                // According to the document for GetLocaleInfo this is a sufficient buffer size.
-                size_t count = Arrays::GetLocaleSeparator(szSeparator);
+                uint32 sepSize = 0;
+                char16 szSeparator[SeparatorBufferSize];
+
+                bool hasLocaleSeparator = Arrays::GetLocaleSeparator(szSeparator, &sepSize, SeparatorBufferSize);
 
                 JavascriptString* separator = nullptr;
 
-                if (count != 0)
+                if (hasLocaleSeparator)
                 {
-                    separator = JavascriptString::NewCopyBuffer(szSeparator, static_cast<charcount_t>(count), scriptContext);
+                    separator = JavascriptString::NewCopyBuffer(szSeparator, static_cast<charcount_t>(sepSize), scriptContext);
                 }
                 else
                 {
