@@ -16,18 +16,6 @@ namespace Arrays
     static char16 commaSeparator = _u(',');
     static char16 semicolonSeparator = _u(';');
 
-    template<class T, class N = T>
-    void ByteCopy(const T *from, N *to, const size_t max_length)
-    {
-        size_t length = 0;
-        for (; length < max_length && (to[length] = static_cast<N>(from[length])) != 0;
-            length++);
-        if (length == max_length)
-        {
-            to[length - 1] = N(0);
-        }
-    }
-
     ArrayLocalization::ArrayLocalization()
     {
         char buffer[BufSize];
@@ -35,7 +23,7 @@ namespace Arrays
 
         if (old_locale != NULL)
         {
-            ByteCopy<char>(old_locale, buffer, BufSize);
+            memcpy(buffer, old_locale, BufSize);
 
             setlocale(LC_NUMERIC, "");
         }
