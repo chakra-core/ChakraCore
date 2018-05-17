@@ -4646,7 +4646,18 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             StackSym* src1Sym = instr->GetSrc1()->GetStackSym();
             FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
         }
-        else if (!instr->GetSrc1()->IsIntConstOpnd())
+        else if (instr->GetSrc1()->IsIntConstOpnd())
+        {
+            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+            *localValue = globOpt->NewValue(IntConstantValueInfo::New(globOpt->alloc, instr->GetSrc1()->AsIntConstOpnd()->AsInt32()));
+        }
+        else if (instr->GetSrc1()->IsInt64ConstOpnd())
+        {
+            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+            int64 intValue = instr->GetSrc1()->AsInt64ConstOpnd()->GetValue();
+            *localValue = globOpt->NewValue(Int64ConstantValueInfo::New(globOpt->alloc, intValue));
+        }
+        else
         {
             ValueType src1Value = instr->GetSrc1()->GetValueType();
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
