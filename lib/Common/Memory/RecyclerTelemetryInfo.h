@@ -10,6 +10,7 @@
 #include "Common/Tick.h"
 #include "AllocatorTelemetryStats.h"
 #include "HeapBucketStats.h"
+#include "DataStructures/SList.h"
 
 #ifdef ENABLE_BASIC_TELEMETRY
 #include "Windows.h"
@@ -50,7 +51,6 @@ namespace Memory
         Js::TickDelta endPassProcessingElapsedTime;
         Js::TickDelta computeBucketStatsElapsedTime;
         FILETIME lastScriptExecutionEndTime;
-        RecyclerTelemetryGCPassStats* next;
         Js::TickDelta uiThreadBlockedTimes[static_cast<size_t>(RecyclerWaitReason::Other) + 1];
         bool isInScript;
         bool isScriptActive;
@@ -76,6 +76,8 @@ namespace Memory
 #endif
     };
 
+    typedef SList<RecyclerTelemetryGCPassStats, HeapAllocator> GCPassStatsList;
+
     /**
      *
      */
@@ -90,12 +92,13 @@ namespace Memory
         void IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason source);
         
         inline const Js::Tick& GetRecyclerStartTime() const { return this->recyclerStartTime;  }
-        inline const RecyclerTelemetryGCPassStats* GetLastPassStats() const { return this->lastPassStats; }
+        RecyclerTelemetryGCPassStats* GetLastPassStats() const;
         inline const Js::Tick& GetLastTransmitTime() const { return this->lastTransmitTime; }
         inline const uint16 GetPassCount() const { return this->passCount; }
         const GUID& GetRecyclerID() const;
         bool GetIsConcurrentEnabled() const;
         bool IsOnScriptThread() const;
+        GCPassStatsList::Iterator GetGCPassStatsIterator() const;
 
         AllocatorDecommitStats* GetThreadPageAllocator_decommitStats() { return &this->threadPageAllocator_decommitStats; }
         AllocatorDecommitStats* GetRecyclerLeafPageAllocator_decommitStats() { return &this->recyclerLeafPageAllocator_decommitStats; }
@@ -111,8 +114,7 @@ namespace Memory
         Js::Tick recyclerStartTime;
         bool inPassActiveState;
 
-        // TODO: update list below to SList.  Need to ensure we have same allocation semantics (specifically heap allocs, no exceptions on failure)
-        RecyclerTelemetryGCPassStats* lastPassStats;
+        GCPassStatsList gcPassStats;
         Js::Tick lastTransmitTime;
         uint16 passCount;
         bool abortTelemetryCapture;

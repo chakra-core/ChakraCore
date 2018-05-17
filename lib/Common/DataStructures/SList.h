@@ -10,6 +10,8 @@
 //
 //----------------------------------------------------------------------------
 
+#pragma once
+
 class FakeCount
 {
 protected:
@@ -337,6 +339,19 @@ public:
     Field(TData, TAllocator) * PrependNode(TAllocator * allocator)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node);
+        if (newNode)
+        {
+            newNode->Next() = this->Next();
+            this->Next() = newNode;
+            this->IncrementCount();
+            return &newNode->data;
+        }
+        return nullptr;
+    }
+
+    Field(TData, TAllocator) * PrependNodeNoThrow(TAllocator * allocator)
+    {
+        Node * newNode = AllocatorNewNoThrow(TAllocator, allocator, Node);
         if (newNode)
         {
             newNode->Next() = this->Next();
