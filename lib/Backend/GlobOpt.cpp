@@ -6515,7 +6515,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
     //Assert(!src2Var || !Js::JavascriptOperators::IsObject(src2Var));
 
     int64 left64, right64;
-    int left, right;
+    int32 left, right;
     int32 constVal;
 
     switch (instr->m_opcode)
