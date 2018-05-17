@@ -1020,6 +1020,7 @@ void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
     Assert(this->m_func == byteCodeUsesInstr->m_func);
     if (byteCodeUsesInstr->byteCodeUpwardExposedUsed)
     {
+        Assert(byteCodeUsesInstr->GetDst() == nullptr);
         if (this->byteCodeUpwardExposedUsed)
         {
             this->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->byteCodeUpwardExposedUsed);
@@ -1036,7 +1037,7 @@ void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 
 bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
 {
-    return !instr->IsBranchInstr() && 
+    return !instr->EndsBasicBlock() && 
         instr->m_func == this->m_func &&
         ((instr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset) ||
         (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
@@ -2871,21 +2872,6 @@ IR::Instr *Instr::GetInsertBeforeByteCodeUsesInstr()
     return insertBeforeInstr;
 }
 
-IR::ByteCodeUsesInstr *
-Instr::GetFirstByteCodeUsesInstrBackward()
-{
-    IR::Instr * prevInstr = this->m_prev;
-    while(prevInstr && CanAggregateByteCodeUsesAcrossInstr(prevInstr))
-    {
-        if (prevInstr->IsByteCodeUsesInstr() && prevInstr->GetByteCodeOffset() == this->GetByteCodeOffset())
-        {
-            return prevInstr->AsByteCodeUsesInstr();
-        }
-        prevInstr = prevInstr->m_prev;
-    }
-    return nullptr;
-}
-
 bool
 Instr::IsByteCodeUsesInstrFor(IR::Instr * instr) const
 {
@@ -3393,22 +3379,6 @@ void Instr::Move(IR::Instr* insertInstr)
     this->ClearByteCodeOffset();
     this->SetByteCodeOffset(insertInstr);
     insertInstr->InsertBefore(this);
-}
-
-void Instr::AggregateByteCodeUses()
-{
-    // Currently, this only aggregates byteCodeUpwardExposedUsed of those ByteCodeUses instructions 
-    // associated with this instr which have at most a ToVar, Ld_A, Ld_I4, or a BailOnNotObject between them.
-    IR::ByteCodeUsesInstr * primaryByteCodeUsesInstr = this->GetFirstByteCodeUsesInstrBackward();
-    if (primaryByteCodeUsesInstr)
-    {
-        primaryByteCodeUsesInstr->AggregatePrecedingByteCodeUses();
-        if (primaryByteCodeUsesInstr != this->m_prev)
-        {
-            primaryByteCodeUsesInstr->Unlink();
-            this->InsertBefore(primaryByteCodeUsesInstr);
-        }
-    }
 }
 
 IR::Instr* Instr::GetBytecodeArgOutCapture()

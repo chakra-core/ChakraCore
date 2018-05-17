@@ -296,7 +296,6 @@ public:
     IR::Instr *     GetPrevRealInstr() const;
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::Instr *     GetInsertBeforeByteCodeUsesInstr();
-    IR::ByteCodeUsesInstr * GetFirstByteCodeUsesInstrBackward();
     bool            IsByteCodeUsesInstrFor(IR::Instr * instr) const;
     IR::LabelInstr *GetOrCreateContinueLabel(const bool isHelper = false);
     static bool     HasSymUseSrc(StackSym *sym, IR::Opnd*);
@@ -475,7 +474,6 @@ public:
     bool       UsesAllFields();
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
-    void       AggregateByteCodeUses();
 private:
     void            ClearNumber() { this->m_number = 0; }
     void            SetNumber(uint32 number);
