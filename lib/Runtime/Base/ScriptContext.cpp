@@ -2229,7 +2229,7 @@ namespace Js
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         byte* serializeParserStateCacheBuffer = parserStateCacheBuffer;
         DWORD serializeParserStateCacheSize = parserStateCacheByteCount;
-        DWORD dwFlags = GENERATE_BYTE_CODE_PARSER_STATE;
+        DWORD dwFlags = GENERATE_BYTE_CODE_PARSER_STATE | GENERATE_BYTE_CODE_ALLOC_ANEW;
         DebugOnly(auto url = !srcInfo->sourceContextInfo->isHostDynamicDocument ? srcInfo->sourceContextInfo->url : this->GetUrl());
 
         // If we already have a parser state cache serialized into a buffer, we should skip creating it again
@@ -2242,7 +2242,7 @@ namespace Js
             BEGIN_TEMP_ALLOCATOR(tempAllocator, this, _u("ByteCodeSerializer"));
             hr = Js::ByteCodeSerializer::SerializeToBuffer(this,
                 tempAllocator, (DWORD)cbLength, pszSrc, func->GetFunctionBody(),
-                func->GetHostSrcInfo(), true, &serializeParserStateCacheBuffer,
+                func->GetHostSrcInfo(), &serializeParserStateCacheBuffer,
                 &serializeParserStateCacheSize, dwFlags);
             END_TEMP_ALLOCATOR(tempAllocator, this);
 
@@ -2410,7 +2410,7 @@ namespace Js
 
                 return Js::ByteCodeSerializer::SerializeToBuffer(this,
                     alloc, static_cast<DWORD>(cSourceCodeLength), utf8Code,
-                    functionBody, functionBody->GetHostSrcInfo(), false, buffer,
+                    functionBody, functionBody->GetHostSrcInfo(), buffer,
                     bufferSize, dwFlags);
             }
             else
