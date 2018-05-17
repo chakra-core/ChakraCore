@@ -4649,13 +4649,12 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
         else if (instr->GetSrc1()->IsIntConstOpnd())
         {
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            *localValue = globOpt->NewValue(IntConstantValueInfo::New(globOpt->alloc, instr->GetSrc1()->AsIntConstOpnd()->AsInt32()));
+            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
         }
         else if (instr->GetSrc1()->IsInt64ConstOpnd())
         {
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            int64 intValue = instr->GetSrc1()->AsInt64ConstOpnd()->GetValue();
-            *localValue = globOpt->NewValue(Int64ConstantValueInfo::New(globOpt->alloc, intValue));
+            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
         }
         else
         {
