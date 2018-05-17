@@ -17042,7 +17042,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
             if (baseValueType.IsLikelyTypedArray())
             {
                 int lengthOffset;
-                lengthOffset = GetArrayOffsetOfHeadSegment(baseValueType);
+                lengthOffset = GetArrayOffsetOfLength(baseValueType);
                 headSegmentLengthOpnd = IR::IndirOpnd::New(arrayOpnd, lengthOffset, TyUint32, m_func);
                 autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
             }
