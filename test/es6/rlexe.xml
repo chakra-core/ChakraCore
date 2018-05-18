@@ -509,14 +509,6 @@
   </test>
   <test>
     <default>
-      <files>normalize.js</files>
-      <baseline>normalize.baseline</baseline>
-      <tags>exclude_noicu</tags>
-      <compile-flags>-ES6Unicode -ExecuteWithBgParse</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>normalizeProp.js</files>
       <baseline>normalizeProp.baseline</baseline>
     </default>

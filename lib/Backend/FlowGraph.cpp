@@ -1736,18 +1736,10 @@ FlowGraph::Destroy(void)
         FOREACH_BLOCK(block, this)
         {
             Region * region = block->GetFirstInstr()->AsLabelInstr()->GetRegion();
-            Region * predRegion = nullptr;
             FOREACH_PREDECESSOR_BLOCK(predBlock, block)
             {
                 BasicBlock* intermediateBlock = block;
-                // Skip blocks inserted for airlock/masking purposes
-                while ((predBlock->isAirLockBlock || predBlock->isAirLockCompensationBlock) && predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion() == region)
-                {
-                    Assert(predBlock->GetPredList()->HasOne());
-                    intermediateBlock = predBlock;
-                    predBlock = predBlock->GetPredList()->Head()->GetPred();
-                }
-                predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+                Region * predRegion = predBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
                 if (predBlock->GetLastInstr() == nullptr)
                 {
                     AssertMsg(region == predRegion, "Bad region propagation through empty block");
@@ -2255,7 +2247,7 @@ FlowGraph::InsertCompBlockToLoopList(Loop *loop, BasicBlock* compBlock, BasicBlo
 
 // Insert a block on the given edge
 BasicBlock *
-FlowGraph::InsertAirlockBlock(FlowEdge * edge)
+FlowGraph::InsertAirlockBlock(FlowEdge * edge, bool afterForward /*= false*/)
 {
     BasicBlock * airlockBlock = BasicBlock::New(this);
     BasicBlock * sourceBlock = edge->GetPred();
@@ -2341,7 +2333,12 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
     airlockBlock->SetLastInstr(airlockBr);
 
     airlockLabel->SetByteCodeOffset(sinkLabel);
-    airlockLabel->SetRegion(sinkLabel->GetRegion());
+
+    // If we have regions in play, we should update them on the airlock block appropriately
+    if (afterForward)
+    {
+        airlockLabel->SetRegion(sinkLabel->GetRegion());
+    }
 
     // Fixup flow out of sourceBlock
     IR::BranchInstr *sourceBr = sourceLastInstr->AsBranchInstr();
@@ -2362,7 +2359,7 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
             FlowEdge *dstEdge = this->FindEdge(sinkPrevBlock, sinkBlock);
             if (dstEdge) // Possibility that sourceblock may be same as sinkPrevBlock
             {
-                BasicBlock* compensationBlock = this->InsertCompensationCodeForBlockMove(dstEdge, true /*insert comp block to loop list*/, true);
+                BasicBlock* compensationBlock = this->InsertCompensationCodeForBlockMove(dstEdge, true /*insert comp block to loop list*/, true, afterForward);
                 compensationBlock->IncrementDataUseCount();
                 // We need to skip airlock compensation block in globopt as its inserted while globopt is iteration over the blocks.
                 compensationBlock->isAirLockCompensationBlock = true;
@@ -2379,7 +2376,7 @@ FlowGraph::InsertAirlockBlock(FlowEdge * edge)
 
 // Insert a block on the given edge
 BasicBlock *
-FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoopList, bool sinkBlockLoop)
+FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoopList /*=false*/, bool sinkBlockLoop /*=false*/, bool afterForward /*=false*/)
 {
     BasicBlock * compBlock = BasicBlock::New(this);
     BasicBlock * sourceBlock = edge->GetPred();
@@ -2463,7 +2460,6 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
     compBlock->SetLastInstr(compBr);
 
     compLabel->SetByteCodeOffset(sinkLabel);
-    compLabel->SetRegion(sinkLabel->GetRegion());
 
     // Fixup flow out of sourceBlock
     if (sourceLastInstr->IsBranchInstr())
@@ -2477,13 +2473,20 @@ FlowGraph::InsertCompensationCodeForBlockMove(FlowEdge * edge,  bool insertToLoo
         }
     }
 
-    bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
-        (this->func->IsSimpleJit() && this->func->hasBailout) ||
-        this->func->IsLoopBodyInTryFinally());
-
-    if (assignRegionsBeforeGlobopt)
+    if (!afterForward)
     {
-        UpdateRegionForBlockFromEHPred(compBlock);
+        bool assignRegionsBeforeGlobopt = this->func->HasTry() && (this->func->DoOptimizeTry() ||
+            (this->func->IsSimpleJit() && this->func->hasBailout) ||
+            this->func->IsLoopBodyInTryFinally());
+
+        if (assignRegionsBeforeGlobopt)
+        {
+            UpdateRegionForBlockFromEHPred(compBlock);
+        }
+    }
+    else
+    {
+        compLabel->SetRegion(sinkLabel->GetRegion());
     }
 
     return compBlock;

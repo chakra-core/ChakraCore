@@ -3264,9 +3264,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     loop->symClusterList->MapSet<BVSparse<JitArenaAllocator>*>(symID, [](SymID a, BVSparse<JitArenaAllocator> *symbols) {
                         symbols->Set(a);
                     }, syms);
+                    SymTable* symTable = loop->GetFunc()->m_symTable;
                     FOREACH_BITSET_IN_SPARSEBV(curSymID, syms)
                     {
-                        if (!loop->GetFunc()->m_symTable->Find(curSymID)->IsStackSym())
+                        Sym* potentialSym = symTable->Find(curSymID);
+                        if (potentialSym == nullptr || !potentialSym->IsStackSym())
                         {
                             syms->Clear(curSymID);
                         }
@@ -3281,7 +3283,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     FOREACH_SLIST_ENTRY(IR::ByteCodeUsesInstr*, bcuInstr, loop->outwardSpeculationMaskInstrs)
                     {
                         // Get the upwardExposed information for the previous block
-                        IR::LabelInstr *blockLabel = bcuInstr->m_prev->AsLabelInstr();
+                        IR::LabelInstr *blockLabel = bcuInstr->GetBlockStartInstr()->AsLabelInstr();
                         BasicBlock* maskingBlock = blockLabel->GetBasicBlock();
                         // Since it's possible we have a multi-level loop structure (each with its own mask
                         // instructions and dereferenced symbol list), we may be able to avoid masking some
@@ -3667,7 +3669,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
                     // We need to increment the data use count since we're changing a successor.
                     blockPred->IncrementDataUseCount();
-                    BasicBlock *newBlock = this->func->m_fg->InsertAirlockBlock(this->func->m_fg->FindEdge(blockPred, block));
+                    BasicBlock *newBlock = this->func->m_fg->InsertAirlockBlock(this->func->m_fg->FindEdge(blockPred, block), true);
                     LABELNAMESET(newBlock->GetFirstInstr()->AsLabelInstr(), "Loop out-edge masking block");
                     // This is a little bit of a misuse of ByteCodeUsesInstr - we're using it as just
                     // a bitvector that we can add things to.

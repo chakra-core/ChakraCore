@@ -420,6 +420,16 @@ class ByteCodeBufferBuilder
         return (dwFlags & GENERATE_BYTE_CODE_PARSER_STATE) != 0;
     }
 
+    bool ShouldAllocWithCoTaskMem() const
+    {
+        return (dwFlags & GENERATE_BYTE_CODE_COTASKMEMALLOC);
+    }
+
+    bool ShouldAllocWithANew() const
+    {
+        return (dwFlags & GENERATE_BYTE_CODE_ALLOC_ANEW);
+    }
+
 public:
 
     ByteCodeBufferBuilder(uint32 sourceSize, uint32 sourceCharLength, LPCUTF8 utf8Source, Utf8SourceInfo* sourceInfo, ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD dwFlags, int builtInPropertyCount)
@@ -528,7 +538,7 @@ public:
         string16ToId = Anew(alloc, TString16ToId, alloc);
     }
 
-    HRESULT Create(bool allocateBuffer, byte ** buffer, DWORD * bufferBytes)
+    HRESULT Create(byte ** buffer, DWORD * bufferBytes)
     {
         BufferBuilderList all(_u("Final"));
 
@@ -574,15 +584,16 @@ public:
         totalSize.value = size;
 
         // Allocate the bytes
-        if (allocateBuffer)
+        if (ShouldAllocWithANew() || ShouldAllocWithCoTaskMem())
         {
             *bufferBytes = size;
-            if (GenerateParserStateCache())
+            if (ShouldAllocWithANew())
             {
                 *buffer = AnewArray(scriptContext->SourceCodeAllocator(), byte, *bufferBytes);
             }
             else
             {
+                Assert(ShouldAllocWithCoTaskMem());
                 *buffer = (byte*)CoTaskMemAlloc(*bufferBytes);
             }
 
@@ -4701,7 +4712,7 @@ FunctionInfo* ByteCodeCache::LookupFunctionInfo(ScriptContext * scriptContext, L
 }
 
 // Serialize function body
-HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
+HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags)
 {
     int builtInPropertyCount = (dwFlags & GENERATE_BYTE_CODE_BUFFER_LIBRARY) != 0 ?  PropertyIds::_countJSOnlyProperty : TotalNumberOfBuiltInProperties;
 
@@ -4715,7 +4726,8 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 
     ArenaAllocator* codeAllocator = nullptr;
     ByteCodeCache* cache = nullptr;
-    if (((dwFlags & GENERATE_BYTE_CODE_PARSER_STATE) != 0) && allocateBuffer)
+    DWORD shouldUseCodeAllocator = GENERATE_BYTE_CODE_PARSER_STATE | GENERATE_BYTE_CODE_ALLOC_ANEW;
+    if ((dwFlags & shouldUseCodeAllocator) == shouldUseCodeAllocator) // does this apply for cotaskmemalloc as well?
     {
         codeAllocator = scriptContext->SourceCodeAllocator();
         cache = Anew(codeAllocator, ByteCodeCache, scriptContext, builtInPropertyCount);
@@ -4728,7 +4740,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 
     if (SUCCEEDED(hr))
     {
-        hr = builder.Create(allocateBuffer, buffer, bufferBytes);
+        hr = builder.Create(buffer, bufferBytes);
     }
 
     if (SUCCEEDED(hr) && cache != nullptr)

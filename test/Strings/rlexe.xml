@@ -214,13 +214,6 @@
   </test>
   <test>
     <default>
-      <files>long_concatstr.js</files>
-      <baseline>long_concatstr.baseline</baseline>
-      <compile-flags>-ExecuteWithBgParse</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>StringTagFunctions.js</files>
       <baseline>StringTagFunctions.baseline</baseline>
       <compile-flags>-ES6StringPrototypeFixes</compile-flags>

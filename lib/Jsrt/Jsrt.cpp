@@ -3819,7 +3819,7 @@ JsErrorCode JsSerializeScriptCore(const byte *script, size_t cb,
         // However, the PAL defines DWORD for us on linux as unsigned int so the cast is safe here.
         HRESULT hr = Js::ByteCodeSerializer::SerializeToBuffer(scriptContext,
             tempAllocator, static_cast<DWORD>(cSourceCodeLength), utf8Code,
-            functionBody, functionBody->GetHostSrcInfo(), false, &buffer,
+            functionBody, functionBody->GetHostSrcInfo(), &buffer,
             (DWORD*) bufferSize, dwFlags);
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
 
