@@ -917,12 +917,6 @@
   </test>
   <test>
     <default>
-      <files>test127.js</files>
-      <compile-flags>-ExecuteWithBgParse</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>test128.js</files>
       <baseline>test128.baseline</baseline>
       <compile-flags>-noNative</compile-flags>
