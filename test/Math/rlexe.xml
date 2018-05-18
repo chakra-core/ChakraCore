@@ -104,13 +104,6 @@
   </test>
   <test>
     <default>
-      <files>sin.js</files>
-      <baseline>sin.baseline</baseline>
-      <compile-flags>-ExecuteWithBgParse</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>sqrt.js</files>
       <baseline>sqrt.baseline</baseline>
     </default>
