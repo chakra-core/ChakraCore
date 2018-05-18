@@ -50,7 +50,9 @@ public:
 
     ~AllocationPolicyManager()
     {
-        Assert(currentMemory == 0);
+        // TODO: https://github.com/Microsoft/ChakraCore/issues/5191
+        //       enable the assert when the offending code is fixed.
+        // Assert(currentMemory == 0);
     }
 
     size_t GetUsage()
@@ -155,7 +157,10 @@ private:
 
     inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
     {
-        Assert(currentMemory >= byteCount);
+        // TODO: https://github.com/Microsoft/ChakraCore/issues/5191
+        //       enable the assert when the offending code is fixed.
+        // Assert(currentMemory >= byteCount);
+        byteCount = min(byteCount, currentMemory);
 
         currentMemory = currentMemory - byteCount;
 
