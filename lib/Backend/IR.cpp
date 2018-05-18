@@ -2854,6 +2854,42 @@ Instr::GetPrevRealInstrOrLabel() const
 
 ///----------------------------------------------------------------------------
 ///
+/// Instr::GetPrevLabelInstr
+///
+///----------------------------------------------------------------------------
+IR::LabelInstr *
+Instr::GetPrevLabelInstr() const
+{
+    IR::Instr *instr = this->m_prev;
+
+    while (!instr->IsLabelInstr())
+    {
+        instr = instr->m_prev;
+        AssertMsg(instr, "GetPrevLabelInstr() failed...");
+    }
+    return instr->AsLabelInstr();
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::GetPrevLabelInstr
+///
+///----------------------------------------------------------------------------
+IR::Instr *
+Instr::GetBlockStartInstr() const
+{
+    IR::Instr *instr = this->m_prev;
+
+    while (!instr->StartsBasicBlock())
+    {
+        instr = instr->m_prev;
+        AssertMsg(instr, "GetBlockStartInstr() failed...");
+    }
+    return instr;
+}
+
+///----------------------------------------------------------------------------
+///
 /// Instr::GetInsertBeforeByteCodeUsesInstr
 /// Finds the instruction before which new instructions can be inserted, by skipping ByteCodeUses instructions associated with
 /// this instruction.

@@ -157,9 +157,10 @@ public:
     FlowEdge *   AddEdge(BasicBlock * predBlock, BasicBlock * succBlock);
     BasicBlock * InsertCompensationCodeForBlockMove(FlowEdge * edge, // Edge where compensation code needs to be inserted
                                                     bool insertCompensationBlockToLoopList = false,
-                                                    bool sinkBlockLoop  = false // Loop to which compensation block belongs
+                                                    bool sinkBlockLoop  = false, // Loop to which compensation block belongs
+                                                    bool afterForward = false // Inserting compentation code after forward pass
                                                     );
-    BasicBlock * InsertAirlockBlock(FlowEdge * edge);
+    BasicBlock * InsertAirlockBlock(FlowEdge * edge, bool afterForward = false);
     void         InsertCompBlockToLoopList(Loop *loop, BasicBlock* compBlock, BasicBlock* targetBlock, bool postTarget);
     void         RemoveUnreachableBlocks();
     bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr);

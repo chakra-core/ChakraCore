@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>mic1msjrc1.js</files>
+      <compile-flags>-mic:1 -msjrc:1 -oopjit- -bgjit- -loopinterpretcount:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>weird1.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -werexceptionsupport -oopjit- -off:bailonnoprofile -off:cachedScope</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>weird2.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -werexceptionsupport -bgjit- -loopinterpretcount:1 -oopjit- -off:simplejit -force:inline</compile-flags>
+    </default>
+  </test>
+</regress-exe>

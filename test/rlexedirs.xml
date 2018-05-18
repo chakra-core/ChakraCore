@@ -356,4 +356,10 @@
     <tags>require_backend</tags>
   </default>
 </dir>
+<dir>
+  <default>
+    <files>FlowGraph</files>
+    <tags>require_backend</tags>
+  </default>
+</dir>
 </regress-exe>
