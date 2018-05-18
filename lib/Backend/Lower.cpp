@@ -3023,15 +3023,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instr->Remove();
             break;
 
+#endif //ENABLE_WASM
         case Js::OpCode::SpeculatedLoadFence:
         {
             AssertOrFailFast(instr->m_kind == IR::InstrKindByteCodeUses);
-            IR::ByteCodeUsesInstr* bcuInstr = static_cast<IR::ByteCodeUsesInstr*>(instr);
-            // Most of the time we're not going to be able to remove any masking in a loop, and
-            // this instruction can be removed.
 #ifdef _M_ARM
             AssertOrFailFastMsg(false, "We shouldn't perform this hoisting on ARM");
 #else
+            IR::ByteCodeUsesInstr* bcuInstr = static_cast<IR::ByteCodeUsesInstr*>(instr);
+            // Most of the time we're not going to be able to remove any masking in a loop, and
+            // this instruction can be removed.
             if (bcuInstr->GetByteCodeUpwardExposedUsed() != nullptr && !bcuInstr->GetByteCodeUpwardExposedUsed()->IsEmpty())
             {
                 // The generated code is:
@@ -3059,8 +3060,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instr->Remove();
             break;
         }
-
-#endif //ENABLE_WASM
 
         default:
 #ifdef ENABLE_WASM_SIMD
