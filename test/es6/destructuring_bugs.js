@@ -30,6 +30,9 @@ var tests = [
       assert.doesNotThrow(function () { eval("for([] = ((...a) => {}) in '' ) { }"); }, "Having a lambda function with rest parameter as initializer should not assert and is a valid syntax");
       assert.doesNotThrow(function () { eval("[[[] = [function () { }] ] = []]"); }, "Nested array has array pattern which has function expression is a valid syntax");
       assert.doesNotThrow(function () { eval("var a = ({x = 1}) => x;"); }, "Lambda has Object destructuring as parameter which has initializer on shorthand is a valid syntax");
+      assert.doesNotThrow(function () { eval("var a = (b, {x = 1}) => x;"); }, "Lambda has Object destructuring as a second parameter which has initializer on shorthand is a valid syntax");
+      assert.doesNotThrow(function () { eval("var a = ({x = 1}, b) => x;"); }, "Lambda has Object destructuring as first parameter which has initializer on shorthand is a valid syntax");
+      assert.throws(function () { eval("let a = ({name = 'foo'}, 1) = {}"); }, ReferenceError, "Object shorthand will behave as pattern when on left-hand side and should not throw syntax error");
     }
   },
   {

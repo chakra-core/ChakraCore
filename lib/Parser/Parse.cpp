@@ -8423,7 +8423,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
     this->GetScanner()->Capture(&termStart);
 
-    bool deferredErrorFoundOnLeftSide = false;
     bool savedDeferredInitError = m_hasDeferredShorthandInitError;
     m_hasDeferredShorthandInitError = false;
 
@@ -8607,7 +8606,9 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             *pfLikelyPattern = !!fLikelyPattern;
         }
 
-        if (m_token.tk == tkDArrow)
+        if (m_token.tk == tkDArrow
+            // If we have introduced shorthand error above in the ParseExpr, we need to reset if next token is the assignment.
+            || (m_token.tk == tkAsg && oplMin <= koplAsg))
         {
             m_hasDeferredShorthandInitError = false;
         }
@@ -8702,8 +8703,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             this->GetScanner()->Scan();
         }
     }
-
-    deferredErrorFoundOnLeftSide = m_hasDeferredShorthandInitError;
 
     // Process a sequence of operators and operands.
     for (;;)
@@ -8927,13 +8926,6 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
             }
         }
-    }
-
-    if (m_hasDeferredShorthandInitError && !deferredErrorFoundOnLeftSide)
-    {
-        // Raise error only if it is found not on the right side of the expression.
-        // such as  <expr> = {x = 1}
-        Error(ERRnoColon);
     }
 
     m_hasDeferredShorthandInitError = m_hasDeferredShorthandInitError || savedDeferredInitError;
