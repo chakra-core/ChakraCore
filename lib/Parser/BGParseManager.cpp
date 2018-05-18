@@ -541,10 +541,9 @@ void BGParseWorkItem::ParseUTF8Core(Js::ScriptContext* scriptContext)
             this->script,
             functionBody,
             functionBody->GetHostSrcInfo(),
-            true, // allocateBuffer
             &this->bufferReturn,
             &this->bufferReturnBytes,
-            GENERATE_BYTE_CODE_PARSER_STATE
+            GENERATE_BYTE_CODE_PARSER_STATE | GENERATE_BYTE_CODE_COTASKMEMALLOC
         );
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
         Assert(this->parseHR == S_OK);

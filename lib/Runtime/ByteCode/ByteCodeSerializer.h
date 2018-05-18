@@ -167,7 +167,7 @@ namespace Js
     struct ByteCodeSerializer
     {
         // Serialize a function body.
-        static HRESULT SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags = 0);
+        static HRESULT SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceByteLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags = 0);
 
         // Deserialize a function body. The content of utf8Source must be the same as was originally passed to SerializeToBuffer
         static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
