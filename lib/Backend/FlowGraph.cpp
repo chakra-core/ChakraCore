@@ -4620,7 +4620,8 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     BVSparse<JitArenaAllocator> currentPathDefines(globOpt->alloc);
     IR::Instr *currentInlineeEnd = nullptr, *unskippedInlineeEnd = nullptr;
 
-    auto UpdateValueForCopyTypeInstr = [&](IR::Instr *instr) {
+    auto UpdateValueForCopyTypeInstr = [&](IR::Instr *instr) -> Value* {
+        Value * dstValue = nullptr;
         if (instr->m_opcode == Js::OpCode::LdFld)
         {
             // Special handling for LdFld
@@ -4635,29 +4636,29 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
                 PropertySym *prop = PropertySym::Find(objSym ? objSym->m_id : originalPropertySym->m_stackSym->m_id, originalPropertySym->m_propertyId, globOpt->func);
                 if (prop)
                 {
-                    FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetStackSym(), prop);
+                    dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetStackSym(), prop);
                 }
                 else
                 {
                     Value ** localDstValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetStackSym());
-                    *localDstValue = nullptr;
+                    dstValue = *localDstValue = nullptr;
                 }
             }
         }
         else if (instr->GetSrc1()->GetStackSym())
         {
             StackSym* src1Sym = instr->GetSrc1()->GetStackSym();
-            FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
+            dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
         }
         else if (instr->GetSrc1()->IsIntConstOpnd())
         {
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
+            dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
         }
         else if (instr->GetSrc1()->IsInt64ConstOpnd())
         {
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
+            dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
         }
         else
         {
@@ -4665,13 +4666,14 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
             if (src1Value.IsUndefined() || src1Value.IsBoolean())
             {
-                *localValue = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
+                dstValue = *localValue = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
             }
             else
             {
-                *localValue = nullptr;
+                dstValue = *localValue = nullptr;
             }
         }
+        return dstValue;
     };
 
     FOREACH_INSTR_IN_BLOCK(instr, this)
