@@ -414,4 +414,11 @@
       <tags>exclude_test,exclude_jshost,exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_os17542375.js</files>
+      <compile-flags>-UseParserStateCache -ParserStateCache -Force:DeferParse -pageheap:2</compile-flags>
+      <tags>exclude_test,exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>
