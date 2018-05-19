@@ -15733,6 +15733,8 @@ Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert,
 
     InsertObjectPoison(srcReg, branchInstr, instrInsert, !usePoison);
 
+    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
+
     instrInsert->InsertBefore(notPropStrLabel);
 
     branchInstr = InsertCompareBranch(
