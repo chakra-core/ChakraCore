@@ -95,6 +95,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_currentNodeDeferredFunc(nullptr),
     m_currentNodeProg(nullptr),
     m_currDeferredStub(nullptr),
+    m_currDeferredStubCount(0),
     m_pCurrentAstSize(nullptr),
     m_ppnodeScope(nullptr),
     m_ppnodeExprScope(nullptr),
@@ -3068,7 +3069,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         // is a lambda at the current character. If it is, we know this LParen is the beginning of a lambda nested
         // function and we can avoid parsing the next series of tokens as a parenthetical expression and reparsing
         // after finding the => token.
-        if (buildAST && m_currDeferredStub != nullptr && GetCurrentFunctionNode() != nullptr)
+        if (buildAST && m_currDeferredStub != nullptr && GetCurrentFunctionNode() != nullptr && GetCurrentFunctionNode()->nestedCount < m_currDeferredStubCount)
         {
             DeferredFunctionStub* stub = m_currDeferredStub + GetCurrentFunctionNode()->nestedCount;
             if (stub->ichMin == ichMin)
@@ -5577,13 +5578,17 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 {
                     *pNeedScanRCurly = false;
                 }
+                uint savedStubCount = m_currDeferredStubCount;
                 DeferredFunctionStub* savedStub = m_currDeferredStub;
                 if (pnodeFnc->IsNested() && pnodeFncSave != nullptr && m_currDeferredStub != nullptr && pnodeFncSave->ichMin != pnodeFnc->ichMin)
                 {
-                    m_currDeferredStub = (m_currDeferredStub + (pnodeFncSave->nestedCount - 1))->deferredStubs;
+                    DeferredFunctionStub* childStub = m_currDeferredStub + (pnodeFncSave->nestedCount - 1);
+                    m_currDeferredStubCount = childStub->nestedCount;
+                    m_currDeferredStub = childStub->deferredStubs;
                 }
                 this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
                 m_currDeferredStub = savedStub;
+                m_currDeferredStubCount = savedStubCount;
             }
             else
             {
@@ -11859,6 +11864,7 @@ HRESULT Parser::ParseSourceWithOffset(__out ParseNodeProg ** parseTree, LPCUTF8 
     if (m_functionBody)
     {
         m_currDeferredStub = m_functionBody->GetDeferredStubs();
+        m_currDeferredStubCount = m_currDeferredStub != nullptr ? m_functionBody->GetNestedCount() : 0;
         m_InAsmMode = grfscr & fscrNoAsmJs ? false : m_functionBody->GetIsAsmjsMode();
     }
     m_deferAsmJs = !m_InAsmMode;
