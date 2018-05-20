@@ -508,6 +508,7 @@ namespace TTD
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(ExternalCallTag, None, ExternalCallEventLogEntry, nullptr, NSLogEvents::ExternalCallEventLogEntry_UnloadEventMemory, NSLogEvents::ExternalCallEventLogEntry_Emit, NSLogEvents::ExternalCallEventLogEntry_Parse);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(ExplicitLogWriteTag, None, ExplicitLogWriteEventLogEntry, nullptr, nullptr, NSLogEvents::ExplicitLogWriteEntry_Emit, NSLogEvents::ExplicitLogWriteEntry_Parse);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(TTDInnerLoopLogWriteTag, None, TTDInnerLoopLogWriteEventLogEntry, nullptr, nullptr, NSLogEvents::TTDInnerLoopLogWriteEventLogEntry_Emit, NSLogEvents::TTDInnerLoopLogWriteEventLogEntry_Parse);
+        TTD_CREATE_EVENTLIST_VTABLE_ENTRY(TTDFetchAutoTraceStatusTag, None, TTDFetchAutoTraceStatusEventLogEntry, nullptr, nullptr, NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry_Emit, NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry_Parse);
 
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY(CreateScriptContextActionTag, GlobalAPIWrapper, JsRTCreateScriptContextAction, NSLogEvents::CreateScriptContext_Execute, NSLogEvents::CreateScriptContext_UnloadEventMemory, NSLogEvents::CreateScriptContext_Emit, NSLogEvents::CreateScriptContext_Parse);
         TTD_CREATE_EVENTLIST_VTABLE_ENTRY_COMMON(SetActiveScriptContextActionTag, GlobalAPIWrapper, JsRTSingleVarArgumentAction, SetActiveScriptContext_Execute);
@@ -586,7 +587,7 @@ namespace TTD
         : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
         m_eventTimeCtr(0), m_timer(), m_topLevelCallbackEventTime(-1),
         m_eventListVTable(nullptr), m_eventList(&this->m_eventSlabAllocator), m_currentReplayEventIterator(),
-        m_modeStack(), m_currentMode(TTDMode::Invalid),
+        m_modeStack(), m_currentMode(TTDMode::Invalid), m_autoTracesEnabled(true),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator),
         m_sourceInfoCount(0), m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
@@ -877,6 +878,18 @@ namespace TTD
         {
             this->AbortReplayReturnToHost();
         }
+    }
+
+    void EventLog::RecordTTDFetchAutoTraceStatusEvent(bool status)
+    {
+        NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry* atfEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry, NSLogEvents::EventKind::TTDFetchAutoTraceStatusTag>();
+        atfEvent->IsEnabled = status;
+    }
+
+    bool EventLog::ReplayTTDFetchAutoTraceStatusLogEvent()
+    {
+        const NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry* atfEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::TTDFetchAutoTraceStatusEventLogEntry, NSLogEvents::EventKind::TTDFetchAutoTraceStatusTag>();
+        return atfEvent->IsEnabled;
     }
 
     void EventLog::RecordDateTimeEvent(double time)
@@ -2558,9 +2571,14 @@ namespace TTD
         return isInnerLoop & isEnabled;
     }
 
-    bool EventLog::SuppressDiagnosticTracesDuringInnerLoop() const
+    void EventLog::SetAutoTraceEnabled(bool enabled)
     {
-        return (this->m_currentMode & (TTDMode::DebuggerAttachedMode)) == TTDMode::DebuggerAttachedMode;
+        this->m_autoTracesEnabled = enabled;
+    }
+
+    bool EventLog::GetAutoTraceEnabled() const
+    {
+        return this->m_autoTracesEnabled;
     }
 
     void EventLog::EmitLog(const char* emitUri, size_t emitUriLength, NSLogEvents::EventLogEntry* optInnerLoopEvent)

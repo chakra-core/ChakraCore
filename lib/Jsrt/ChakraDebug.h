@@ -1016,6 +1016,17 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
+    ///     Enable or disable autotrace ability from JsRT.
+    /// </summary>
+    /// <param name="status">True to enable autotracing false to disable it.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDDiagSetAutoTraceStatus(
+            _In_ bool status
+        );
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
     ///     A way for the debugger to programatically write a trace when it is at a breakpoint.
     /// </summary>
     /// <param name="uri">The URI that the log should be written into.</param>

@@ -98,6 +98,7 @@ namespace TTD
             ExternalCallTag,
             ExplicitLogWriteTag,
             TTDInnerLoopLogWriteTag,
+            TTDFetchAutoTraceStatusTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
@@ -498,6 +499,15 @@ namespace TTD
 
         void TTDInnerLoopLogWriteEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void TTDInnerLoopLogWriteEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //A struct for recording the result of a read of the AutoTraceStatus
+        struct TTDFetchAutoTraceStatusEventLogEntry
+        {
+            bool IsEnabled;
+        };
+
+        void TTDFetchAutoTraceStatusEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void TTDFetchAutoTraceStatusEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }
 

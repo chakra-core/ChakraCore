@@ -1674,9 +1674,20 @@ LHexError:
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        if(function->GetScriptContext()->ShouldPerformRecordOrReplayAction() && !function->GetScriptContext()->GetThreadContext()->TTDLog->SuppressDiagnosticTracesDuringInnerLoop())
+        if (function->GetScriptContext()->ShouldPerformReplayAction())
         {
-            return function->GetScriptContext()->GetLibrary()->GetTrue();
+            TTD::EventLog* ttlog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+            bool isEnabled = ttlog->ReplayTTDFetchAutoTraceStatusLogEvent();
+
+            return function->GetScriptContext()->GetLibrary()->CreateBoolean(isEnabled);
+        }
+        else if (function->GetScriptContext()->ShouldPerformRecordAction())
+        {
+            TTD::EventLog* ttlog = function->GetScriptContext()->GetThreadContext()->TTDLog;
+            bool isEnabled = ttlog->GetAutoTraceEnabled();
+            ttlog->RecordTTDFetchAutoTraceStatusEvent(isEnabled);
+
+            return function->GetScriptContext()->GetLibrary()->CreateBoolean(isEnabled);
         }
         else
         {
