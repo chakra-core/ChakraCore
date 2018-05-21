@@ -9,6 +9,7 @@
 #ifdef ENABLE_BASIC_TELEMETRY
 
 #include "Recycler.h"
+#include "DataStructures/SList.h"
 #include "HeapBucketStats.h"
 #include "BucketStatsReporter.h"
 #include <psapi.h>
@@ -24,7 +25,7 @@ namespace Memory
     RecyclerTelemetryInfo::RecyclerTelemetryInfo(Recycler * recycler, RecyclerTelemetryHostInterface* hostInterface) :
         passCount(0),
         hostInterface(hostInterface),
-        lastPassStats(nullptr),
+        gcPassStats(&HeapAllocator::Instance),
         recyclerStartTime(Js::Tick::Now()),
         abortTelemetryCapture(false),
         inPassActiveState(false),
@@ -35,11 +36,14 @@ namespace Memory
 
     RecyclerTelemetryInfo::~RecyclerTelemetryInfo()
     {
-        if (this->hostInterface != nullptr && this->passCount > 0)
+        if (this->hostInterface != nullptr)
         {
             AssertOnValidThread(this, RecyclerTelemetryInfo::~RecyclerTelemetryInfo);
-            this->hostInterface->TransmitTelemetry(*this);
-            this->FreeGCPassStats();
+            if (this->gcPassStats.Empty() == false)
+            {
+                this->hostInterface->TransmitTelemetry(*this);
+                this->FreeGCPassStats();
+            }
         }
     }
 
@@ -70,6 +74,22 @@ namespace Memory
         sizes->numberOfSegments = allocator->GetNumberOfSegments();
     }
 
+    GCPassStatsList::Iterator RecyclerTelemetryInfo::GetGCPassStatsIterator() const
+    {
+        return this->gcPassStats.GetIterator();
+    }
+
+    RecyclerTelemetryGCPassStats* RecyclerTelemetryInfo::GetLastPassStats() const
+    {
+        RecyclerTelemetryGCPassStats* stats = nullptr;
+        if (this->gcPassStats.Empty() == false)
+        {
+            RecyclerTelemetryGCPassStats& ref = const_cast<RecyclerTelemetryGCPassStats&>(this->gcPassStats.Head());
+            stats = &ref;
+        }
+        return stats;
+    }
+
     void RecyclerTelemetryInfo::StartPass()
     {
         this->inPassActiveState = false;
@@ -77,25 +97,26 @@ namespace Memory
         {
             Js::Tick start = Js::Tick::Now();
             AssertOnValidThread(this, RecyclerTelemetryInfo::StartPass);
+
 #if DBG
             // validate state of existing GC pass stats structs
             uint16 count = 0;
-            if (this->lastPassStats != nullptr)
+            if (this->gcPassStats.Empty() == false)
             {
-                RecyclerTelemetryGCPassStats* head = this->lastPassStats->next;
-                RecyclerTelemetryGCPassStats* curr = head;
-                do
+                GCPassStatsList::Iterator it = this->GetGCPassStatsIterator();
+                while (it.Next())
                 {
-                    AssertMsg(curr->isGCPassActive == false, "unexpected value for isGCPassActive");
-                    count++;
-                    curr = curr->next;
-                } while (curr != head);
+                    RecyclerTelemetryGCPassStats& curr = it.Data();
+                    AssertMsg(curr.isGCPassActive == false, "unexpected value for isGCPassActive");
+                    ++count;
+                }
             }
             AssertMsg(count == this->passCount, "RecyclerTelemetryInfo::StartPass() - mismatch between passCount and count.");
 #endif
 
-            RecyclerTelemetryGCPassStats* p = HeapNewNoThrow(RecyclerTelemetryGCPassStats);
-            if (p == nullptr)
+
+            RecyclerTelemetryGCPassStats* stats = this->gcPassStats.PrependNodeNoThrow(&HeapAllocator::Instance);
+            if (stats == nullptr)
             {
                 // failed to allocate memory - disable any further telemetry capture for this recycler 
                 // and free any existing GC stats we've accumulated
@@ -107,41 +128,30 @@ namespace Memory
             {
                 this->inPassActiveState = true;
                 passCount++;
-                memset(p, 0, sizeof(RecyclerTelemetryGCPassStats));
-                if (this->lastPassStats == nullptr)
-                {
-                    p->next = p;
-                }
-                else
-                {
-                    p->next = lastPassStats->next;
-                    this->lastPassStats->next = p;
-                }
-                this->lastPassStats = p;
+                memset(stats, 0, sizeof(RecyclerTelemetryGCPassStats));
 
-                this->lastPassStats->isGCPassActive = true;
-                this->lastPassStats->passStartTimeTick = Js::Tick::Now();
-                GetSystemTimePreciseAsFileTime(&this->lastPassStats->passStartTimeFileTime);
+                stats->isGCPassActive = true;
+                stats->passStartTimeTick = Js::Tick::Now();
+                GetSystemTimePreciseAsFileTime(&stats->passStartTimeFileTime);
                 if (this->hostInterface != nullptr)
                 {
                     LPFILETIME ft = this->hostInterface->GetLastScriptExecutionEndTime();
-                    this->lastPassStats->lastScriptExecutionEndTime = *ft;
+                    stats->lastScriptExecutionEndTime = *ft;
                 }
 
-                this->lastPassStats->processCommittedBytes_start = RecyclerTelemetryInfo::GetProcessCommittedBytes();
-                this->lastPassStats->processAllocaterUsedBytes_start = PageAllocator::GetProcessUsedBytes();
-                this->lastPassStats->isInScript = this->recycler->GetIsInScript();
-                this->lastPassStats->isScriptActive = this->recycler->GetIsScriptActive();
+                stats->processCommittedBytes_start = RecyclerTelemetryInfo::GetProcessCommittedBytes();
+                stats->processAllocaterUsedBytes_start = PageAllocator::GetProcessUsedBytes();
+                stats->isInScript = this->recycler->GetIsInScript();
+                stats->isScriptActive = this->recycler->GetIsScriptActive();
 
-                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &this->lastPassStats->threadPageAllocator_start);
-                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &this->lastPassStats->recyclerLeafPageAllocator_start);
-                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &this->lastPassStats->recyclerLargeBlockPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &stats->threadPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &stats->recyclerLeafPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &stats->recyclerLargeBlockPageAllocator_start);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &this->lastPassStats->recyclerWithBarrierPageAllocator_start);
+                this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &stats->recyclerWithBarrierPageAllocator_start);
 #endif
-                this->lastPassStats->startPassProcessingElapsedTime = Js::Tick::Now() - start;
+                stats->startPassProcessingElapsedTime = Js::Tick::Now() - start;
             }
-
         }
     }
 
@@ -156,34 +166,35 @@ namespace Memory
         Js::Tick start = Js::Tick::Now();
 
         AssertOnValidThread(this, RecyclerTelemetryInfo::EndPass);
+        RecyclerTelemetryGCPassStats* lastPassStats = this->GetLastPassStats();
 
-        this->lastPassStats->isGCPassActive = false;
-        this->lastPassStats->passEndTimeTick = Js::Tick::Now();
+        lastPassStats->isGCPassActive = false;
+        lastPassStats->passEndTimeTick = Js::Tick::Now();
 
-        this->lastPassStats->processCommittedBytes_end = RecyclerTelemetryInfo::GetProcessCommittedBytes();
-        this->lastPassStats->processAllocaterUsedBytes_end = PageAllocator::GetProcessUsedBytes();
+        lastPassStats->processCommittedBytes_end = RecyclerTelemetryInfo::GetProcessCommittedBytes();
+        lastPassStats->processAllocaterUsedBytes_end = PageAllocator::GetProcessUsedBytes();
 
-        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &this->lastPassStats->threadPageAllocator_end);
-        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &this->lastPassStats->recyclerLeafPageAllocator_end);
-        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &this->lastPassStats->recyclerLargeBlockPageAllocator_end);
+        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLeafPageAllocator(), &lastPassStats->threadPageAllocator_end);
+        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerPageAllocator(), &lastPassStats->recyclerLeafPageAllocator_end);
+        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerLargeBlockPageAllocator(), &lastPassStats->recyclerLargeBlockPageAllocator_end);
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &this->lastPassStats->recyclerWithBarrierPageAllocator_end);
+        this->FillInSizeData(this->recycler->GetHeapInfo()->GetRecyclerWithBarrierPageAllocator(), &lastPassStats->recyclerWithBarrierPageAllocator_end);
 #endif
 
         // get bucket stats
         Js::Tick bucketStatsStart = Js::Tick::Now();
         BucketStatsReporter bucketReporter(this->recycler);
         this->recycler->GetHeapInfo()->GetBucketStats(bucketReporter);
-        memcpy(&this->lastPassStats->bucketStats, bucketReporter.GetTotalStats(), sizeof(HeapBucketStats));
-        this->lastPassStats->computeBucketStatsElapsedTime = Js::Tick::Now() - bucketStatsStart;
+        memcpy(&lastPassStats->bucketStats, bucketReporter.GetTotalStats(), sizeof(HeapBucketStats));
+        lastPassStats->computeBucketStatsElapsedTime = Js::Tick::Now() - bucketStatsStart;
 
-        this->lastPassStats->endPassProcessingElapsedTime = Js::Tick::Now() - start;
+        lastPassStats->endPassProcessingElapsedTime = Js::Tick::Now() - start;
 
         if (ShouldTransmit() && this->hostInterface != nullptr)
         {
             if (this->hostInterface->TransmitTelemetry(*this))
             {
-                this->lastTransmitTime = this->lastPassStats->passEndTimeTick;
+                this->lastTransmitTime = lastPassStats->passEndTimeTick;
                 Reset();
             }
         }
@@ -200,27 +211,11 @@ namespace Memory
 
     void RecyclerTelemetryInfo::FreeGCPassStats()
     {
-        if (this->lastPassStats != nullptr)
+        if (this->gcPassStats.Empty() == false)
         {
+            AssertMsg(this->passCount > 0, "unexpected value for passCount");
             AssertOnValidThread(this, RecyclerTelemetryInfo::FreeGCPassStats);
-            RecyclerTelemetryGCPassStats* head = this->lastPassStats->next;
-            RecyclerTelemetryGCPassStats* curr = head;
-#ifdef DBG
-            uint16 freeCount = 0;
-#endif
-            do
-            {
-                RecyclerTelemetryGCPassStats* next = curr->next;
-                HeapDelete(curr);
-                curr = next;
-#ifdef DBG
-                freeCount++;
-#endif
-            } while (curr != head);
-#ifdef DBG
-            AssertMsg(freeCount == this->passCount, "Unexpected mismatch between freeCount and passCount");
-#endif
-            this->lastPassStats = nullptr;
+            this->gcPassStats.Clear();
             this->passCount = 0;
         }
     }
@@ -233,17 +228,18 @@ namespace Memory
 
     void RecyclerTelemetryInfo::IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason caller)
     {
+        RecyclerTelemetryGCPassStats* lastPassStats = this->GetLastPassStats();
 #ifdef DBG
         if (this->inPassActiveState)
         {
-            AssertMsg(this->lastPassStats != nullptr && this->lastPassStats->isGCPassActive == true, "unexpected Value in  RecyclerTelemetryInfo::IncrementUserThreadBlockedCount");
+            AssertMsg(lastPassStats != nullptr && lastPassStats->isGCPassActive == true, "unexpected Value in  RecyclerTelemetryInfo::IncrementUserThreadBlockedCount");
         }
 #endif
 
-        if (this->inPassActiveState && this->lastPassStats != nullptr)
+        if (this->inPassActiveState && lastPassStats != nullptr)
         {
             AssertOnValidThread(this, RecyclerTelemetryInfo::IncrementUserThreadBlockedCount);
-            this->lastPassStats->uiThreadBlockedTimes[caller] += waitTime;
+            lastPassStats->uiThreadBlockedTimes[caller] += waitTime;
         }
     }
 
