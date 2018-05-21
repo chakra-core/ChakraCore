@@ -108,12 +108,12 @@ namespace Js
         PropertyId propertyId,
         ScriptContext* requestContext)
     {
-        if (!info || !CacheOperators::CanCachePropertyRead(info, info->GetInstance(), requestContext))
+        RecyclableObject* originalObj = JavascriptOperators::TryFromVar<RecyclableObject>(originalInstance);
+        if (!info || !originalObj || !CacheOperators::CanCachePropertyRead(info, info->GetInstance(), requestContext))
         {
             return;
         }
 
-        Assert(RecyclableObject::Is(originalInstance));
         Assert(DynamicType::Is(info->GetInstance()->GetTypeId()));
 
         DynamicObject * dynamicInstance = DynamicObject::FromVar(info->GetInstance());
@@ -122,11 +122,7 @@ namespace Js
         dynamicInstance->GetDynamicType()->GetTypeHandler()->PropertyIndexToInlineOrAuxSlotIndex(info->GetPropertyIndex(), &slotIndex, &isInlineSlot);
 
         const bool isProto = info->GetInstance() != originalInstance;
-        if(isProto &&
-            (
-                !RecyclableObject::Is(originalInstance) ||
-                RecyclableObject::FromVar(originalInstance)->GetScriptContext() != requestContext
-            ))
+        if (isProto && originalObj->GetScriptContext() != requestContext)
         {
             // Don't need to cache if the beginning property is number etc.
             return;
@@ -147,7 +143,7 @@ namespace Js
             isProto,
             dynamicInstance,
             false,
-            RecyclableObject::FromVar(originalInstance)->GetType(),
+            originalObj->GetType(),
             nullptr,
             propertyId,
             slotIndex,
