@@ -6,6 +6,9 @@
 #include "FormalsUtil.h"
 #include "../Runtime/Language/SourceDynamicProfileManager.h"
 
+// TODO(t-huyan): remove this after debugging
+#include <iostream>
+
 #if DBG_DUMP
 void PrintPnodeWIndent(ParseNode *pnode, int indentAmt);
 #endif
@@ -4316,6 +4319,7 @@ template<bool buildAST>
 ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLength, tokens declarationType)
 {
     ParseNodeBin * pnodeArg = nullptr;
+	ParseNodePtr pnodeSpread = nullptr;
     ParseNodePtr pnodeName = nullptr;
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -4390,6 +4394,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         charcount_t idHintIchMin = static_cast<charcount_t>(this->GetScanner()->IecpMinTok());
         charcount_t idHintIchLim = static_cast<charcount_t>(this->GetScanner()->IecpLimTok());
         bool wrapInBrackets = false;
+		bool useSpread = false;
         switch (m_token.tk)
         {
         default:
@@ -4460,6 +4465,11 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
             isComputedName = true;
             break;
+
+		case tkEllipsis:
+			std::cout << "Spread here" << std::endl;
+			useSpread = true;
+			break;
         }
 
         if (pFullNameHint == nullptr)
@@ -4476,10 +4486,14 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             }
         }
 
-        RestorePoint atPid;
-        this->GetScanner()->Capture(&atPid);
+		RestorePoint atPid;
 
-        this->GetScanner()->ScanForcingPid();
+		// Only move to next token if spread op was not seen
+		if (!useSpread)
+		{
+			this->GetScanner()->Capture(&atPid);
+			this->GetScanner()->ScanForcingPid();
+		}
 
         if (isGenerator && m_token.tk != tkLParen)
         {
@@ -4488,7 +4502,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
         if (tkColon == m_token.tk)
         {
-            // It is a syntax error is the production of the form __proto__ : <> occurs more than once. From B.3.1 in spec.
+            // It is a syntax error if the production of the form __proto__ : <> occurs more than once. From B.3.1 in spec.
             // Note that previous scan is important because only after that we can determine we have a variable.
             if (!isComputedName && pidHint == wellKnownPropertyPids.__proto__)
             {
@@ -4623,7 +4637,20 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 pnodeArg = CreateBinNode(knopMember, pnodeName, pnodeFnc);
             }
         }
-        else if (nullptr != pidHint) //Its either tkID/tkStrCon/tkFloatCon/tkIntCon
+		else if (useSpread)
+		{
+			pnodeSpread = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */ TRUE);
+			std::cout << "Using Spread" << std::endl;
+			if (buildAST)
+			{
+				//if (pnodeArg->nop == knopEllipsis)
+				//{
+				//	(*spreadCount)++;
+				//}
+				this->CheckArguments(pnodeSpread);
+			}
+		}
+        else if (nullptr != pidHint) //It's either tkID/tkStrCon/tkFloatCon/tkIntCon
         {
             Assert(pidHint->Psz() != nullptr);
 
@@ -4730,16 +4757,23 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
         if (buildAST)
         {
-            Assert(pnodeArg->pnode2 != nullptr);
-            if (pnodeArg->pnode2->nop == knopFncDecl)
-            {
-                Assert(fullNameHintLength >= shortNameOffset);
-                ParseNodeFnc * pnodeFunc = pnodeArg->pnode2->AsParseNodeFnc();
-                pnodeFunc->hint = pFullNameHint;
-                pnodeFunc->hintLength = fullNameHintLength;
-                pnodeFunc->hintOffset = shortNameOffset;
-            }
-            AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeArg);
+			if (useSpread)
+			{
+				AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeSpread);
+			}
+			else
+			{
+				Assert(pnodeArg->pnode2 != nullptr);
+				if (pnodeArg->pnode2->nop == knopFncDecl)
+				{
+					Assert(fullNameHintLength >= shortNameOffset);
+					ParseNodeFnc * pnodeFunc = pnodeArg->pnode2->AsParseNodeFnc();
+					pnodeFunc->hint = pFullNameHint;
+					pnodeFunc->hintLength = fullNameHintLength;
+					pnodeFunc->hintOffset = shortNameOffset;
+				}
+				AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeArg);
+			}
         }
         pidHint = nullptr;
         pFullNameHint = nullptr;
