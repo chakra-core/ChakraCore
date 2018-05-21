@@ -16,6 +16,8 @@ namespace Js
         static SingleCharString* New(char16 ch, ScriptContext* scriptContext);
         static SingleCharString* New(char16 ch, ScriptContext* scriptContext, ArenaAllocator* arena);
 
+        virtual void const * GetOriginalStringReference() override;
+
     protected:
         DEFINE_VTABLE_CTOR(SingleCharString, JavascriptString);
 

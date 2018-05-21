@@ -34,4 +34,10 @@ namespace Js
         return Anew(arena, SingleCharString, ch,
             scriptContext->GetLibrary()->GetStringTypeStatic());
     }
+
+    void const * SingleCharString::GetOriginalStringReference()
+    {
+        // The owning allocation for the string buffer is the string itself
+        return this;
+    }
 }

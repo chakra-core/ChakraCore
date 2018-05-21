@@ -37,6 +37,13 @@ namespace Js
         const char16 * subString = string->GetString() + start;
         void const * originalFullStringReference = string->GetOriginalStringReference();
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
+        AssertMsg(AutoSystemInfo::IsJscriptModulePointer((void*)originalFullStringReference)
+            || recycler->IsValidObject((void*)originalFullStringReference)
+            || (VirtualTableInfo<PropertyRecord>::HasVirtualTable((void*)originalFullStringReference) && ((PropertyRecord*)originalFullStringReference)->IsBound()),
+            "Owning pointer for SubString must be static or GC pointer, or property record bound by thread allocator");
+#endif
+
         return RecyclerNew(recycler, SubString, originalFullStringReference, subString, length, scriptContext);
     }
 
@@ -69,7 +76,7 @@ namespace Js
         return UnsafeGetBuffer();
     }
 
-    const void * SubString::GetOriginalStringReference()
+    void const * SubString::GetOriginalStringReference()
     {
         if (originalFullStringReference != nullptr)
         {
