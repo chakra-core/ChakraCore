@@ -8,6 +8,7 @@
 
 #include "ByteCode/ByteCodeSerializer.h"
 
+
 #if DBG_DUMP
 void PrintPnodeWIndent(ParseNode *pnode, int indentAmt);
 #endif
@@ -4485,7 +4486,6 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             break;
 
 		case tkEllipsis:
-			std::cout << "Spread here" << std::endl;
 			useSpread = true;
 			break;
         }
@@ -4664,7 +4664,6 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 		else if (useSpread)
 		{
 			pnodeSpread = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */ TRUE);
-			std::cout << "Using Spread" << std::endl;
 			if (buildAST)
 			{
 				//if (pnodeArg->nop == knopEllipsis)
