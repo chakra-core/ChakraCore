@@ -514,7 +514,7 @@ GlobOpt::OptBlock(BasicBlock *block)
             if (instr->GetBailOutInfo() == oldBailOutInfo)
             {
                 instr->PromoteAuxBailOut();
-                FillBailOutInfo(block, instr->GetBailOutInfo());
+                FillBailOutInfo(block, instr);
             }
             else
             {
@@ -2425,7 +2425,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
     {
-        this->FillBailOutInfo(this->currentBlock, instr->GetBailOutInfo());
+        this->FillBailOutInfo(this->currentBlock, instr);
     }
 
     this->instrCountSinceLastCleanUp++;
@@ -2789,7 +2789,7 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                 bailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject, IR::BailOutOnTaggedValue, instr, instr->m_func);
                 if (!this->IsLoopPrePass())
                 {
-                    FillBailOutInfo(this->currentBlock, bailOutInstr->GetBailOutInfo());
+                    FillBailOutInfo(this->currentBlock, bailOutInstr);
                 }
                 IR::RegOpnd *srcOpnd = regOpnd;
                 if (!srcOpnd)
@@ -11698,7 +11698,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
 
                 // Fill in bail out info if the FromVar is a bailout instr, and it wasn't hoisted as invariant.
                 // If it was hoisted, the invariant code will fill out the bailout info with the loop landing pad bailout info.
-                this->FillBailOutInfo(block, newInstr->GetBailOutInfo());
+                this->FillBailOutInfo(block, newInstr);
 
                 if(valueInfo)
                 {
@@ -15579,7 +15579,7 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
                 {
                     if (!this->prePassLoop)
                     {
-                        FillBailOutInfo(this->currentBlock, instr->GetBailOutInfo());
+                        FillBailOutInfo(this->currentBlock, instr);
                     }
                     // Already processed.
                     return instr;
@@ -15598,7 +15598,7 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
 
                 if (!this->currentBlock->loop)
                 {
-                    FillBailOutInfo(this->currentBlock, instr->GetBailOutInfo());
+                    FillBailOutInfo(this->currentBlock, instr);
                 }
                 else
                 {

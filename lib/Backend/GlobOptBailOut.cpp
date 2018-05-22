@@ -1022,6 +1022,27 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
     this->CaptureValues(block, bailOutInfo);
 }
 
+void
+GlobOpt::FillBailOutInfo(BasicBlock *block, _In_ IR::Instr * instr)
+{
+    AssertMsg(!this->isCallHelper, "Bail out can't be inserted the middle of CallHelper sequence");
+    Assert(instr->HasBailOutInfo());
+
+    if (this->isRecursiveCallOnLandingPad)
+    {
+        Assert(block->IsLandingPad());
+        Loop * loop = block->next->loop;
+        EnsureBailTarget(loop);
+        if (instr->GetBailOutInfo() != loop->bailOutInfo)
+        {
+            instr->ReplaceBailOutInfo(loop->bailOutInfo);
+        }
+        return;
+    }
+
+    FillBailOutInfo(block, instr->GetBailOutInfo());
+}
+
 IR::ByteCodeUsesInstr *
 GlobOpt::InsertByteCodeUses(IR::Instr * instr, bool includeDef)
 {
@@ -1374,7 +1395,7 @@ GlobOpt::GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind k
     {
         this->currentBlock->SetLastInstr(bailOutInstr);
     }
-    FillBailOutInfo(this->currentBlock, bailOutInstr->GetBailOutInfo());
+    FillBailOutInfo(this->currentBlock, bailOutInstr);
     *pInstr = bailOutInstr;
 }
 
@@ -1393,7 +1414,7 @@ GlobOpt::GenerateBailAtOperation(IR::Instr * *const pInstr, const IR::BailOutKin
     {
         this->currentBlock->SetLastInstr(bailOutInstr);
     }
-    FillBailOutInfo(currentBlock, bailOutInstr->GetBailOutInfo());
+    FillBailOutInfo(currentBlock, bailOutInstr);
     *pInstr = bailOutInstr;
 }
 

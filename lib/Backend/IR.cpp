@@ -1216,9 +1216,10 @@ Instr::ReplaceBailOutInfo(BailOutInfo *newBailOutInfo)
         Assert(false);
         __assume(UNREACHED);
     }
-    Assert(!oldBailOutInfo->wasCloned && !oldBailOutInfo->wasCopied);
+    
     if (oldBailOutInfo->bailOutInstr == this)
     {
+        Assert(!oldBailOutInfo->wasCloned && !oldBailOutInfo->wasCopied);
         JitArenaAllocator * alloc = this->m_func->m_alloc;
         oldBailOutInfo->Clear(alloc);
         JitAdelete(alloc, oldBailOutInfo);
