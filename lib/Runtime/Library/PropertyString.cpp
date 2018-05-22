@@ -54,7 +54,7 @@ namespace Js
         return static_cast<PropertyString *>(aValue);
     }
 
-    void const * PropertyString::GetOriginalStringReference()
+    const void * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer
         return this->propertyRecordUsageCache.GetPropertyRecord();

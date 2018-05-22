@@ -22,6 +22,7 @@ namespace Js
         void GetPropertyRecordImpl(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary = false);
         virtual void CachePropertyRecord(_In_ PropertyRecord const* propertyRecord) override;
         void CachePropertyRecordImpl(_In_ PropertyRecord const* propertyRecord);
+        virtual void const * GetOriginalStringReference() override;
 
         virtual RecyclableObject* CloneToScriptContext(ScriptContext* requestContext) override;
 

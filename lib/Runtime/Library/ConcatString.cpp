@@ -200,6 +200,14 @@ namespace Js
         this->SetBuffer(propertyRecord->GetBuffer());
     }
 
+    void const * LiteralStringWithPropertyStringPtr::GetOriginalStringReference()
+    {
+        // If we have a property record, it's the string owner. Otherwise,
+        // the string is guaranteed to itself be an allocation block (as
+        // was asserted during the constructor).
+        return this->propertyRecord != nullptr ? static_cast<const void*>(this->propertyRecord) : this->GetString();
+    }
+
     RecyclableObject* LiteralStringWithPropertyStringPtr::CloneToScriptContext(ScriptContext* requestContext)
     {
         if (this->propertyRecord == nullptr)
