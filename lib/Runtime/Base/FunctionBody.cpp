@@ -728,7 +728,6 @@ namespace Js
         SetCountField(CounterFields::ConstantCount, 1);
 
         proxy->UpdateFunctionBodyImpl(this);
-        this->SetDeferredStubs(proxy->GetDeferredStubs());
 
         this->m_defaultEntryPointInfo = RecyclerNewFinalized(scriptContext->GetRecycler(),
             FunctionEntryPointInfo, this, scriptContext->CurrentThunk, scriptContext->GetThreadContext());
@@ -1456,6 +1455,7 @@ namespace Js
         CopyDeferParseField(m_inParamCount);
         CopyDeferParseField(m_grfscr);
         other->SetScopeInfo(this->GetScopeInfo());
+        other->SetDeferredStubs(this->GetDeferredStubs());
         CopyDeferParseField(m_utf8SourceHasBeenSet);
 #if DBG
         CopyDeferParseField(deferredParseNextFunctionId);
@@ -4993,7 +4993,6 @@ namespace Js
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
-        this->SetDeferredStubs(nullptr);
         this->profiledLdLenCount = 0;
         this->profiledLdElemCount = 0;
         this->profiledStElemCount = 0;

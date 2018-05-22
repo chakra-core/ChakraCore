@@ -2770,7 +2770,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 
     if (funcInfo->root->pnodeBody == nullptr)
     {
-        if (!PHASE_OFF1(Js::SkipNestedDeferredPhase) && (this->GetFlags() & fscrCreateParserState) == fscrCreateParserState)
+        if (!PHASE_OFF1(Js::SkipNestedDeferredPhase) && (this->GetFlags() & fscrCreateParserState) == fscrCreateParserState && deferParseFunction->GetCompileCount() == 0)
         {
             deferParseFunction->BuildDeferredStubs(funcInfo->root);
         }
@@ -2779,10 +2779,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
     }
 
     Js::FunctionBody* byteCodeFunction = funcInfo->GetParsedFunctionBody();
-    // We've now done a full parse of this function, so we no longer need to remember the extents
-    // and attributes of the top-level nested functions. (The above code has run for all of those,
-    // so they have pointers to the stub sub-trees they need.)
-    byteCodeFunction->SetDeferredStubs(nullptr);
 
     try
     {
