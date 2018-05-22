@@ -226,6 +226,7 @@ namespace TTD
         //The current mode the system is running in (and a stack of mode push/pops that we use to generate it)
         TTModeStack m_modeStack;
         TTDMode m_currentMode;
+        bool m_autoTracesEnabled;
 
         //The snapshot extractor that this log uses
         SnapshotExtractor m_snapExtractor;
@@ -392,6 +393,12 @@ namespace TTD
 
         //Replay a event that writes the log to a given uri
         void ReplayEmitLogEvent();
+
+        //Record that we are accessing the TTDFetchAutoTraceStatus and what the value is
+        void RecordTTDFetchAutoTraceStatusEvent(bool status);
+
+        //Replay that we are accessing the TTDFetchAutoTraceStatus
+        bool ReplayTTDFetchAutoTraceStatusLogEvent();
 
         //Log a time that is fetched during date operations
         void RecordDateTimeEvent(double time);
@@ -605,7 +612,8 @@ namespace TTD
         void InnerLoopEmitLog(const TTDebuggerSourceLocation& writeLocation, const char* emitUri, size_t emitUriLength);
 
         bool CanWriteInnerLoopTrace() const;
-        bool SuppressDiagnosticTracesDuringInnerLoop() const;
+        void SetAutoTraceEnabled(bool enabled);
+        bool GetAutoTraceEnabled() const;
 
         void EmitLog(const char* emitUri, size_t emitUriLength, NSLogEvents::EventLogEntry* optInnerLoopEvent = nullptr);
         void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);

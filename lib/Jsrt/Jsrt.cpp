@@ -4695,6 +4695,27 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
 #endif
 }
 
+CHAKRA_API JsTTDDiagSetAutoTraceStatus(_In_ bool status)
+{
+#if !ENABLE_TTD
+    return JsErrorCategoryUsage;
+#else
+    JsrtContext *currentContext = JsrtContext::GetCurrent();
+    JsErrorCode cCheck = CheckContext(currentContext, JSRT_MAYBE_TRUE);
+    TTDAssert(cCheck == JsNoError, "Must have valid context when setting auto trace status.");
+
+    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
+    ThreadContext* threadContext = scriptContext->GetThreadContext();
+
+    if (threadContext->IsRuntimeInTTDMode())
+    {
+        threadContext->TTDLog->SetAutoTraceEnabled(status);
+    }
+
+    return JsNoError;
+#endif
+}
+
 #ifdef _CHAKRACOREBUILD
 
 template <class SrcChar, class DstChar>

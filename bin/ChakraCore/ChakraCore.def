@@ -46,6 +46,7 @@ JsTTDMoveToTopLevelEvent
 JsTTDReplayExecution
 
 JsTTDDiagWriteLog
+JsTTDDiagSetAutoTraceStatus
 
 JsInitializeModuleRecord
 JsParseModuleSource
