@@ -8345,6 +8345,7 @@ bool Parser::IsTerminateToken()
         m_token.tk == tkSColon ||
         m_token.tk == tkColon ||
         m_token.tk == tkComma ||
+        m_token.tk == tkIN ||
         m_token.tk == tkLimKwd ||
         this->GetScanner()->FHadNewLine());
 }
