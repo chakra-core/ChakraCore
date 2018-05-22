@@ -4723,8 +4723,6 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
 
             if (IsCopyTypeInstr(instr))
             {
-                UpdateValueForCopyTypeInstr(instr);
-
                 Value *dstValue = UpdateValueForCopyTypeInstr(instr);
                 if (instr->m_opcode == Js::OpCode::LdFld && !dstValue)
                 {
