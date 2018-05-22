@@ -119,85 +119,6 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
-HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID localImageBase)
-{
-    byte remoteImageHeader[0x1000];
-    MEMORY_BASIC_INFORMATION remoteImageInfo;
-    SIZE_T resultBytes = VirtualQueryEx(process, (LPCVOID)remoteImageBase, &remoteImageInfo, sizeof(remoteImageInfo));
-    if (resultBytes != sizeof(remoteImageInfo))
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (remoteImageInfo.BaseAddress != (PVOID)remoteImageBase)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (remoteImageInfo.Type != MEM_IMAGE)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (remoteImageInfo.State != MEM_COMMIT)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    if (!ReadProcessMemory(process, remoteImageBase, remoteImageHeader, sizeof(remoteImageHeader), &resultBytes))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    if (resultBytes < sizeof(remoteImageHeader))
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    PIMAGE_DOS_HEADER localDosHeader = (PIMAGE_DOS_HEADER)localImageBase;
-    PIMAGE_NT_HEADERS localNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)localDosHeader + localDosHeader->e_lfanew);
-
-    PIMAGE_DOS_HEADER remoteDosHeader = (PIMAGE_DOS_HEADER)remoteImageHeader;
-    PIMAGE_NT_HEADERS remoteNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)remoteDosHeader + remoteDosHeader->e_lfanew);
-
-    uintptr_t remoteHeaderMax = (uintptr_t)remoteImageHeader + sizeof(remoteImageHeader);
-    uintptr_t remoteMaxRead = (uintptr_t)remoteNtHeader + sizeof(IMAGE_NT_HEADERS);
-    if (remoteMaxRead >= remoteHeaderMax || remoteMaxRead < (uintptr_t)remoteImageHeader)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    if (localNtHeader->FileHeader.NumberOfSections != remoteNtHeader->FileHeader.NumberOfSections)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (localNtHeader->FileHeader.NumberOfSymbols != remoteNtHeader->FileHeader.NumberOfSymbols)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (localNtHeader->OptionalHeader.CheckSum != remoteNtHeader->OptionalHeader.CheckSum)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-    if (localNtHeader->OptionalHeader.SizeOfImage != remoteNtHeader->OptionalHeader.SizeOfImage)
-    {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
-    }
-
-    return S_OK;
-}
-
 HRESULT
 ServerConnectProcess(
     handle_t binding,
@@ -229,16 +150,6 @@ ServerConnectProcess(
         return E_ACCESSDENIED;
     }
 #endif
-    hr = CheckModuleAddress(targetHandle, (LPCVOID)chakraBaseAddress, (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
-    hr = CheckModuleAddress(targetHandle, (LPCVOID)crtBaseAddress, (LPCVOID)AutoSystemInfo::Data.GetCRTHandle());
-    if (FAILED(hr))
-    {
-        return hr;
-    }
     return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
 }
 
