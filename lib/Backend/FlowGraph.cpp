@@ -4524,9 +4524,7 @@ static bool IsCopyTypeInstr(IR::Instr *instr)
     case Js::OpCode::LdC_A_I4:
     case Js::OpCode::Ld_I4:
     case Js::OpCode::Ld_A:
-    case Js::OpCode::StFld:
-    case Js::OpCode::LdFld:
-    case Js::OpCode::InitFld: return true;
+    case Js::OpCode::LdFld: return true;
     default:
         return false;
     }
@@ -4686,30 +4684,6 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
         {
             unskippedInlineeEnd = currentInlineeEnd = instr;
         }
-        else if (instr->GetDst())
-        {
-            if (instr->GetDst()->GetSym())
-            {
-                if (IsCopyTypeInstr(instr))
-                {
-                    UpdateValueForCopyTypeInstr(instr);
-                }
-                else if(instr->m_opcode == Js::OpCode::NewScObjectLiteral)
-                {
-                    Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-                    if (instr->GetDst()->GetValueType() == ValueType::UninitializedObject)
-                    {
-                        *localValue = globOpt->NewGenericValue(ValueType::UninitializedObject, instr->GetDst());
-                    }
-                }
-                else
-                {
-                    // complex instr, can't track value, insert nullptr
-                    Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-                    *localValue = nullptr;
-                }
-            }
-        }
     } NEXT_INSTR_IN_BLOCK;
 
     IR::Instr * instr = this->GetLastInstr();
@@ -4750,6 +4724,13 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (IsCopyTypeInstr(instr))
             {
                 UpdateValueForCopyTypeInstr(instr);
+
+                Value *dstValue = UpdateValueForCopyTypeInstr(instr);
+                if (instr->m_opcode == Js::OpCode::LdFld && !dstValue)
+                {
+                    // We cannot skip a LdFld if we didnt find its valueInfo in the localValueTable
+                    return;
+                }
             }
             else
             {
@@ -4850,6 +4831,14 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (currentInlineeEnd != nullptr && currentInlineeEnd != unskippedInlineeEnd)
             {
                 this->GetLastInstr()->InsertBefore(currentInlineeEnd->Copy());
+                if (currentInlineeEnd->m_func->m_hasInlineArgsOpt)
+                {
+                    globOpt->RecordInlineeFrameInfo(currentInlineeEnd);
+                }
+                globOpt->EndTrackingOfArgObjSymsForInlinee();
+
+                Assert(globOpt->currentBlock->globOptData.inlinedArgOutSize >= currentInlineeEnd->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
+                globOpt->currentBlock->globOptData.inlinedArgOutSize -= currentInlineeEnd->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
                 currentInlineeEnd = nullptr;
             }
             // We are adding an unconditional branch, go over all the current successors and remove the ones that are dead now
