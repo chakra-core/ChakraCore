@@ -506,16 +506,23 @@ namespace Js
             funcBody->SetCallbackInfoList(list);
         }
 
-        CallbackInfo * info = FindCallbackInfo(funcBody, callSiteId);
-        if (info == nullptr)
+        CallbackInfoList::EditingIterator iter = list->GetEditingIterator();
+        while (iter.Next())
         {
-            info = RecyclerNewStructZ(funcBody->GetScriptContext()->GetRecycler(), CallbackInfo);
-            info->callSiteId = callSiteId;
-            info->sourceId = NoSourceId;
-            info->canInlineCallback = true;
-            list->Prepend(info);
+            Field(CallbackInfo*) callbackInfo = iter.Data();
+            if (callbackInfo->callSiteId == callSiteId)
+            {
+                return callbackInfo;
+            }
         }
 
+        // Callsite is not already in the list, so add it to the end.
+        CallbackInfo * info = info = RecyclerNewStructZ(funcBody->GetScriptContext()->GetRecycler(), CallbackInfo);
+        info->callSiteId = callSiteId;
+        info->sourceId = NoSourceId;
+        info->canInlineCallback = true;
+
+        iter.InsertBefore(info);
         return info;
     }
 

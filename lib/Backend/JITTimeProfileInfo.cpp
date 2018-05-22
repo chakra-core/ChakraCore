@@ -93,20 +93,22 @@ JITTimeProfileInfo::InitializeJITProfileData(
     else
     {
         data->profiledCallbackCount = static_cast<Js::ProfileId>(callbackInfoList->Count());
-        data->callbackData = AnewArrayZ(alloc, CallbackInfoIDL, data->profiledCallbackCount);
-
-        size_t callbackInfoIndex = 0;
-        FOREACH_SLIST_ENTRY(Field(Js::CallbackInfo *), callbackInfo, callbackInfoList)
+        if (data->profiledCallbackCount > 0)
         {
-            memcpy_s(
-                &data->callbackData[callbackInfoIndex],
-                sizeof(CallbackInfoIDL),
-                callbackInfo,
-                sizeof(Js::CallbackInfo)
-            );
-            ++callbackInfoIndex;
+            data->callbackData = AnewArrayZ(alloc, CallbackInfoIDL, data->profiledCallbackCount);
+            Js::CallbackInfoList::Iterator iter = callbackInfoList->GetIterator();
+            for (Js::ProfileId callbackInfoIndex = 0; callbackInfoIndex < data->profiledCallbackCount; ++callbackInfoIndex)
+            {
+                iter.Next();
+                Js::CallbackInfo * info = iter.Data();
+                memcpy_s(
+                    &data->callbackData[callbackInfoIndex],
+                    sizeof(CallbackInfoIDL),
+                    info,
+                    sizeof(Js::CallbackInfo)
+                );
+            }
         }
-        NEXT_SLIST_ENTRY
     }
 
     CompileAssert(sizeof(BVUnitIDL) == sizeof(BVUnit));
