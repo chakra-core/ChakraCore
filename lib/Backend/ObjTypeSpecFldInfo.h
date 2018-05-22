@@ -137,6 +137,7 @@ public:
         m_data.polymorphicInfoArray = polymorphicInfoArray->GetRaw();
     }
 
+    void SetUsesAuxSlot(bool usesAuxSlot);
     bool UsesAuxSlot() const;
     bool UsesAccessor() const;
     bool IsRootObjectNonConfigurableFieldLoad() const;
@@ -199,6 +200,7 @@ public:
 
     Js::PropertyId GetPropertyId() const;
     uint16 GetSlotIndex() const;
+    void SetSlotIndex(uint16 slotIndex);
     uint16 * GetSlotIndices() const;
     uint16 GetFixedFieldCount() const;
 
