@@ -4024,7 +4024,7 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
-        Field(ScopeInfo*) scopeInfo = nullptr;
+        ScopeInfo* scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
             Assert(attributes & (FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::CanDefer));
@@ -4381,7 +4381,7 @@ public:
         return S_OK;
     }
 
-    const byte* ReadOneScopeInfo(const byte* current, ByteCodeCache* cache, Field(ScopeInfo*)* scopeInfo)
+    const byte* ReadOneScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
     {
         int symbolCount = 0;
         current = ReadInt32(current, &symbolCount);
@@ -4440,13 +4440,15 @@ public:
 
         if (hasParent)
         {
-            return ReadScopeInfo(current, cache, &((*scopeInfo)->parent));
+            ScopeInfo* parent = nullptr;
+            current = ReadScopeInfo(current, cache, &parent);
+            (*scopeInfo)->parent = parent;
         }
 
         return current;
     }
 
-    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, Field(ScopeInfo*)* scopeInfo)
+    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
     {
         LocalScopeInfoId localScopeInfoId;
         current = ReadUInt32(current, (uint*)&localScopeInfoId);
