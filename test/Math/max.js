@@ -180,3 +180,14 @@ function findMaxInArray()
 }
 findMaxInArray();
 findMaxInArray();
+
+function OS17429610()
+{
+    var obj0 = {};
+    for (var __loopvar1 = 6; __loopvar1 < 10; __loopvar1++) {
+        this.prop1 = Math.max(this.prop1, obj0)
+    }
+}
+OS17429610()
+OS17429610()
+OS17429610()

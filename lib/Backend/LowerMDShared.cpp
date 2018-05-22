@@ -8127,28 +8127,44 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 
             bool min = instr->m_opcode == Js::OpCode::InlineMathMin ? true : false;
 
+            bool dstEqualsSrc1 = dst->IsEqual(src1);
+            bool dstEqualsSrc2 = dst->IsEqual(src2);
+
+            IR::Opnd * otherSrc = src2;
+            IR::Opnd * compareSrc1 = src1;
+            IR::Opnd * compareSrc2 = src2;
+
+            if (dstEqualsSrc2)
+            {
+                otherSrc = src1;
+                compareSrc1 = src2;
+                compareSrc2 = src1;
+            }
+            if (!dstEqualsSrc1 && !dstEqualsSrc2)
+            {
+                //MOV dst, src1;
+                this->m_lowerer->InsertMove(dst, src1, instr);
+            }
+
             // CMP src1, src2
             if(dst->IsInt32())
-            {
-                //MOV dst, src2;
-                Assert(!dst->IsEqual(src2));
-                this->m_lowerer->InsertMove(dst, src2, instr);
+            {                
                 if(min)
                 {
                     // JLT $continueLabel
-                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrGt_I4, doneLabel, src1, src2, instr->m_func);
+                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrLt_I4, doneLabel, compareSrc1, compareSrc2, instr->m_func);
                     instr->InsertBefore(branchInstr);
                     LowererMDArch::EmitInt4Instr(branchInstr);
                 }
                 else
                 {
                     // JGT $continueLabel
-                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrLt_I4, doneLabel, src1, src2, instr->m_func);
+                    branchInstr = IR::BranchInstr::New(Js::OpCode::BrGt_I4, doneLabel, compareSrc1, compareSrc2, instr->m_func);
                     instr->InsertBefore(branchInstr);
                     LowererMDArch::EmitInt4Instr(branchInstr);
                 }
                 // MOV dst, src1
-                this->m_lowerer->InsertMove(dst, src1, instr);
+                this->m_lowerer->InsertMove(dst, otherSrc, instr);
             }
             else if(dst->IsFloat())
             {
@@ -8177,22 +8193,18 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 //
                 // $doneLabel
 
-                //MOVSD/MOVSS dst, src1;
-                Assert(!dst->IsEqual(src1));
-
-                this->m_lowerer->InsertMove(dst, src1, instr);
                 if(min)
                 {
-                    this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
+                    this->m_lowerer->InsertCompareBranch(compareSrc1, compareSrc2, Js::OpCode::BrLt_A, doneLabel, instr); // Lowering of BrLt_A for floats is done to JA with operands swapped
                 }
                 else
                 {
-                    this->m_lowerer->InsertCompareBranch(src1, src2, Js::OpCode::BrGt_A, doneLabel, instr);
+                    this->m_lowerer->InsertCompareBranch(compareSrc1, compareSrc2, Js::OpCode::BrGt_A, doneLabel, instr);
                 }
 
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelNegZeroAndNaNCheckHelper, instr->m_func));
 
-                this->m_lowerer->InsertMove(dst, src2, instr);
+                this->m_lowerer->InsertMove(dst, otherSrc, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNegZeroAndNaNCheckHelper);
@@ -8200,10 +8212,10 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JP, labelNaNHelper, instr->m_func));
 
                 IR::LabelInstr *isNeg0Label = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-                NegZeroBranching(min ? src2 : src1, instr, isNeg0Label, doneLabel);
+                NegZeroBranching(min ? compareSrc2 : compareSrc1, instr, isNeg0Label, doneLabel);
                 instr->InsertBefore(isNeg0Label);
 
-                this->m_lowerer->InsertMove(dst, src2, instr);
+                this->m_lowerer->InsertMove(dst, otherSrc, instr);
                 instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JMP, doneLabel, instr->m_func));
 
                 instr->InsertBefore(labelNaNHelper);
