@@ -292,9 +292,15 @@ namespace Js {
            {
                return taggedInt;
            }
-
 #if FLOATVAR
-           return value;
+           if (typeId == TypeIds_Number)
+           {
+               // NaN could have sign bit set, but that isn't observable so canonicalize to positive NaN
+               double numberValue = JavascriptNumber::GetValue(value);
+               return JavascriptNumber::IsNan(numberValue)
+                   ? JavascriptNumber::ToVar(JavascriptNumber::NaN)
+                   : value;
+           }
 #else
            return nullptr;
 #endif
