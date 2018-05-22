@@ -475,7 +475,6 @@ GlobOpt::OptBlock(BasicBlock *block)
     PrepareLoopArrayCheckHoist();
 
     block->MergePredBlocksValueMaps(this);
-    block->PathDepBranchFolding(this);
 
     this->intOverflowCurrentlyMattersInRange = true;
     this->intOverflowDoesNotMatterRange = this->currentBlock->intOverflowDoesNotMatterRange;
@@ -612,6 +611,8 @@ GlobOpt::OptBlock(BasicBlock *block)
             isPerformingLoopBackEdgeCompensation = false;
         }
     }
+
+    block->PathDepBranchFolding(this);
 
 #if DBG
     // The set of live lossy int32 syms should be a subset of all live int32 syms
@@ -6776,8 +6777,6 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
     }
     case Js::OpCode::BrFalse_I4:
     {
-        // this path would probably work outside of asm.js, but we should verify that if we ever hit this scenario
-        Assert(GetIsAsmJSFunc());
         constVal = 0;
         if (!src1Val->GetValueInfo()->TryGetIntConstantValue(&constVal))
         {

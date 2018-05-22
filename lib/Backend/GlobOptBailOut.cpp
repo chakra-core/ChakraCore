@@ -468,6 +468,19 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 }
 
 void
+GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
+{
+    if (instr->m_func->m_hasInlineArgsOpt)
+    {
+        RecordInlineeFrameInfo(instr);
+    }
+    EndTrackingOfArgObjSymsForInlinee();
+
+    Assert(this->currentBlock->globOptData.inlinedArgOutSize >= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
+    this->currentBlock->globOptData.inlinedArgOutSize -= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
+}
+
+void
 GlobOpt::TrackCalls(IR::Instr * instr)
 {
     // Keep track of out params for bailout
@@ -576,14 +589,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         break;
 
     case Js::OpCode::InlineeEnd:
-        if (instr->m_func->m_hasInlineArgsOpt)
-        {
-            RecordInlineeFrameInfo(instr);
-        }
-        EndTrackingOfArgObjSymsForInlinee();
-
-        Assert(this->currentBlock->globOptData.inlinedArgOutSize >= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
-        this->currentBlock->globOptData.inlinedArgOutSize -= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
+        ProcessInlineeEnd(instr);
         break;
 
     case Js::OpCode::InlineeMetaArg:

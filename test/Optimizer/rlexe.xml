@@ -1532,4 +1532,11 @@
       <compile-flags> -loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bugsimplepathbrfoldgetter.js</files>
+      <baseline>bugsimplepathbrfoldgetter.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
+    </default>
+  </test>
 </regress-exe>
