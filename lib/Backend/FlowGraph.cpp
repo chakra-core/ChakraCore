@@ -4831,14 +4831,7 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (currentInlineeEnd != nullptr && currentInlineeEnd != unskippedInlineeEnd)
             {
                 this->GetLastInstr()->InsertBefore(currentInlineeEnd->Copy());
-                if (currentInlineeEnd->m_func->m_hasInlineArgsOpt)
-                {
-                    globOpt->RecordInlineeFrameInfo(currentInlineeEnd);
-                }
-                globOpt->EndTrackingOfArgObjSymsForInlinee();
-
-                Assert(globOpt->currentBlock->globOptData.inlinedArgOutSize >= currentInlineeEnd->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
-                globOpt->currentBlock->globOptData.inlinedArgOutSize -= currentInlineeEnd->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
+                globOpt->ProcessInlineeEnd(currentInlineeEnd);
                 currentInlineeEnd = nullptr;
             }
             // We are adding an unconditional branch, go over all the current successors and remove the ones that are dead now
