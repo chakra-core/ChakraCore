@@ -100,6 +100,8 @@ namespace Js
         SerializedFuncInfoArray(uint offset, int count);
     };
 
+    typedef uint LocalScopeInfoId;
+
 #pragma pack(pop)
 
     // Holds information about the deserialized bytecode cache. Contains fast inline functions
@@ -111,12 +113,17 @@ namespace Js
         PropertyId * propertyIds;
         int propertyCount;
         int builtInPropertyCount;
+        uint scopeInfoCount;
+        const byte** scopeInfoRelativeOffsets;
 
         typedef JsUtil::BaseDictionary<Js::LocalFunctionId, FunctionInfo*, ArenaAllocator> LocalFunctionIdToFunctionInfoMap;
         LocalFunctionIdToFunctionInfoMap* localFunctionIdToFunctionInfoMap;
+        typedef JsUtil::BaseDictionary<LocalScopeInfoId, ScopeInfo*, ArenaAllocator> LocalScopeInfoIdToScopeInfoMap;
+        LocalScopeInfoIdToScopeInfoMap* localScopeInfoIdToScopeInfoMap;
 
     private:
         LocalFunctionIdToFunctionInfoMap * EnsureLocalFunctionIdToFunctionInfoMap(ScriptContext * scriptContext);
+        LocalScopeInfoIdToScopeInfoMap * EnsureLocalScopeInfoIdToScopeInfoMap(ScriptContext * scriptContext);
 
     public:
         ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount);
@@ -127,6 +134,7 @@ namespace Js
 
         void RegisterFunctionIdToFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId, FunctionInfo* functionInfo);
         FunctionInfo* LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId);
+        ScopeInfo* LookupScopeInfo(ScriptContext * scriptContext, LocalScopeInfoId scopeInfoId);
 
         ByteCodeBufferReader* GetReader()
         {
