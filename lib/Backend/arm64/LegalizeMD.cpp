@@ -376,13 +376,14 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
             Lowerer::HoistIndirIndexOpndAsAdd(instr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         }
     }
-    else if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
+    else if (indirOpnd->GetIndexOpnd() != nullptr && offset != 0)
     {
         // Can't have both offset and index, so hoist the offset and try again.
         IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
         if (instr->m_opcode == Js::OpCode::LEA)
         {
+            AssertOrFailFastMsg(indirOpnd->GetBaseOpnd() != nullptr && indirOpnd->GetBaseOpnd()->GetSize() == TySize[TyMachPtr], "Base operand of LEA must have pointer-width!");
             correctSize(instr, indirOpnd);
         }
         return;
@@ -408,6 +409,7 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
     {
         // Only one opcode with this form right now
         Assert(instr->m_opcode == Js::OpCode::LEA);
+        AssertOrFailFastMsg(indirOpnd->GetBaseOpnd() != nullptr && indirOpnd->GetBaseOpnd()->GetSize() == TySize[TyMachPtr], "Base operand of LEA must have pointer-width!");
         if (offset != 0)
         {
             // Should have already handled this case
