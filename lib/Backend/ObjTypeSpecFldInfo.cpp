@@ -77,6 +77,14 @@ ObjTypeSpecFldInfo::TryDepolymorphication(JITTypeHolder type, uint16 slotIndex, 
     }
 }
 
+void
+ObjTypeSpecFldInfo::SetUsesAuxSlot(bool usesAuxSlot)
+{
+    ObjTypeSpecFldInfoFlags flags = GetFlags();
+    flags.usesAuxSlot = usesAuxSlot;
+    m_data.flags = flags.flags;
+}
+
 bool
 ObjTypeSpecFldInfo::UsesAuxSlot() const
 {
@@ -198,6 +206,13 @@ uint16
 ObjTypeSpecFldInfo::GetSlotIndex() const
 {
     return m_data.slotIndex;
+}
+
+void
+ObjTypeSpecFldInfo::SetSlotIndex(uint16 slotIndex)
+{
+    Assert(m_data.slotIndex == Js::Constants::NoSlot || m_data.slotIndex == slotIndex);
+    m_data.slotIndex = slotIndex;
 }
 
 uint16

@@ -1170,6 +1170,9 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 opnd->SetSlotIndex(slotIndex);
                 opnd->SetUsesAuxSlot(auxSlot);
 
+                opnd->GetObjTypeSpecInfo()->SetSlotIndex(slotIndex);
+                opnd->GetObjTypeSpecInfo()->SetUsesAuxSlot(auxSlot);
+
                 isSpecialized = true;
                 if (isTypeCheckedOut)
                 {
