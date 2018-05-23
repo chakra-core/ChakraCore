@@ -867,7 +867,8 @@ private:
     void                    EndTrackCall(IR::Instr * instr);
     void                    EndTrackingOfArgObjSymsForInlinee();
     void                    FillBailOutInfo(BasicBlock *block, BailOutInfo *bailOutInfo);
-
+    void                    FillBailOutInfo(BasicBlock *block, _In_ IR::Instr * instr);
+    
     static void             MarkNonByteCodeUsed(IR::Instr * instr);
     static void             MarkNonByteCodeUsed(IR::Opnd * opnd);
 
