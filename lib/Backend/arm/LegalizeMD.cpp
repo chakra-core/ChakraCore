@@ -266,7 +266,7 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
 
     if (indirOpnd->GetIndexOpnd() != NULL && offset != 0)
     {
-        IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
         return;
     }
@@ -288,7 +288,7 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
     }
 
     // Offset is too large, so hoist it and replace it with an index, only valid for Thumb & Thumb2
-    IR::Instr *addInstr = instr->HoistIndirOffset(indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+    IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
     LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
 }
 
@@ -334,7 +334,7 @@ void LegalizeMD::LegalizeSymOffset(
         }
 
         IR::RegOpnd *baseOpnd = IR::RegOpnd::New(NULL, baseReg, TyMachPtr, instr->m_func);
-        IR::Instr* instrAdd = instr->HoistSymOffsetAsAdd(symOpnd, baseOpnd, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        IR::Instr* instrAdd = Lowerer::HoistSymOffsetAsAdd(instr, symOpnd, baseOpnd, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
         return;
     }
@@ -351,7 +351,7 @@ void LegalizeMD::LegalizeSymOffset(
     }
     else
     {
-        newInstr = instr->HoistSymOffset(symOpnd, baseReg, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+        newInstr = Lowerer::HoistSymOffset(instr, symOpnd, baseReg, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
         LegalizeMD::LegalizeInstr(newInstr, fPostRegAlloc);
     }
 }
@@ -621,14 +621,14 @@ void LegalizeMD::LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *
             indexOpnd = newIndexOpnd;
         }
 
-        insertInstr->HoistIndirIndexOpndAsAdd(indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
+        Lowerer::HoistIndirIndexOpndAsAdd(insertInstr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
     }
 
     if (IS_CONST_UINT10((offset < 0? -offset: offset)))
     {
         return;
     }
-    IR::Instr* instrAdd = insertInstr->HoistIndirOffsetAsAdd(indirOpnd, indirOpnd->GetBaseOpnd(), offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+    IR::Instr* instrAdd = Lowerer::HoistIndirOffsetAsAdd(insertInstr, indirOpnd, indirOpnd->GetBaseOpnd(), offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
     LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
 }
 

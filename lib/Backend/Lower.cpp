@@ -14881,6 +14881,110 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
     return arrayOpnd;
 }
 
+///----------------------------------------------------------------------------
+///
+/// Instr::HoistIndirOffset
+///
+///     Replace the offset of the given indir with a new symbol, which becomes the indir index.
+///     Assign the new symbol by creating an assignment from the constant offset.
+///
+///----------------------------------------------------------------------------
+
+IR::Instr *Lowerer::HoistIndirOffset(IR::Instr* instr, IR::IndirOpnd *indirOpnd, RegNum regNum)
+{
+    int32 offset = indirOpnd->GetOffset();
+    if (indirOpnd->GetIndexOpnd())
+    {
+        Assert(indirOpnd->GetBaseOpnd());
+        return Lowerer::HoistIndirOffsetAsAdd(instr, indirOpnd, indirOpnd->GetBaseOpnd(), offset, regNum);
+    }
+    IR::IntConstOpnd *offsetOpnd = IR::IntConstOpnd::New(offset, TyInt32, instr->m_func);
+    IR::RegOpnd *indexOpnd = IR::RegOpnd::New(StackSym::New(TyMachReg, instr->m_func), regNum, TyMachReg, instr->m_func);
+
+#if defined(DBG) && defined(_M_ARM)
+    if (regNum == SCRATCH_REG)
+    {
+        AssertMsg(indirOpnd->GetBaseOpnd()->GetReg()!= SCRATCH_REG, "Why both are SCRATCH_REG");
+        if (instr->GetSrc1() && instr->GetSrc1()->IsRegOpnd())
+        {
+            Assert(instr->GetSrc1()->AsRegOpnd()->GetReg() != SCRATCH_REG);
+        }
+        if (instr->GetSrc2() && instr->GetSrc2()->IsRegOpnd())
+        {
+            Assert(instr->GetSrc2()->AsRegOpnd()->GetReg() != SCRATCH_REG);
+        }
+        if (instr->GetDst() && instr->GetDst()->IsRegOpnd())
+        {
+            Assert(instr->GetDst()->AsRegOpnd()->GetReg() != SCRATCH_REG);
+        }
+    }
+#endif
+    // Clear the offset and add a new reg as the index.
+    indirOpnd->SetOffset(0);
+    indirOpnd->SetIndexOpnd(indexOpnd);
+
+    IR::Instr *instrAssign = Lowerer::InsertMove(indexOpnd, offsetOpnd, instr);
+    indexOpnd->m_sym->SetIsIntConst(offset);
+    return instrAssign;
+}
+
+IR::Instr *Lowerer::HoistIndirOffsetAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum)
+{
+        IR::RegOpnd *newBaseOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, instr->m_func), regNum, TyMachPtr, instr->m_func);
+
+        IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(offset, TyInt32, instr->m_func);
+        IR::Instr * instrAdd = Lowerer::InsertAdd(false, newBaseOpnd, baseOpnd, src2, instr);
+
+        orgOpnd->ReplaceBaseOpnd(newBaseOpnd);
+        orgOpnd->SetOffset(0);
+
+        return instrAdd;
+}
+
+IR::Instr *Lowerer::HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::Opnd *indexOpnd, RegNum regNum)
+{
+        IR::RegOpnd *newBaseOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, instr->m_func), regNum, TyMachPtr, instr->m_func);
+
+        IR::Instr * instrAdd = Lowerer::InsertAdd(false, newBaseOpnd, baseOpnd, indexOpnd->UseWithNewType(TyMachPtr, instr->m_func), instr);
+
+        orgOpnd->ReplaceBaseOpnd(newBaseOpnd);
+        orgOpnd->SetIndexOpnd(nullptr);
+
+        return instrAdd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::HoistSymOffset
+///
+///     Replace the given sym with an indir using the given base and offset.
+///     (This is used, for instance, to hoist a sym offset that is too large to encode.)
+///
+///----------------------------------------------------------------------------
+
+IR::Instr *Lowerer::HoistSymOffset(IR::Instr *instr, IR::SymOpnd *symOpnd, RegNum baseReg, uint32 offset, RegNum regNum)
+{
+    IR::RegOpnd *baseOpnd = IR::RegOpnd::New(nullptr, baseReg, TyMachPtr, instr->m_func);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(baseOpnd, offset, symOpnd->GetType(), instr->m_func);
+    if (symOpnd == instr->GetDst())
+    {
+        instr->ReplaceDst(indirOpnd);
+    }
+    else
+    {
+        instr->ReplaceSrc(symOpnd, indirOpnd);
+    }
+
+    return Lowerer::HoistIndirOffset(instr, indirOpnd, regNum);
+}
+
+IR::Instr *Lowerer::HoistSymOffsetAsAdd(IR::Instr* instr, IR::SymOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum)
+{
+        IR::IndirOpnd *newIndirOpnd = IR::IndirOpnd::New(baseOpnd->AsRegOpnd(), 0, TyMachPtr, instr->m_func);
+        instr->Replace(orgOpnd, newIndirOpnd); // Replace SymOpnd with IndirOpnd
+        return Lowerer::HoistIndirOffsetAsAdd(instr, newIndirOpnd, baseOpnd, offset, regNum);
+}
+
 IR::LabelInstr *Lowerer::InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr)
 {
     Assert(insertBeforeInstr);

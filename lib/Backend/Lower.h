@@ -362,6 +362,12 @@ private:
     void            GenerateFastBrBReturn(IR::Instr * instr);
 
 public:
+    static IR::Instr *Lowerer::HoistIndirOffset(IR::Instr* instr, IR::IndirOpnd *indirOpnd, RegNum regNum);
+    static IR::Instr *Lowerer::HoistIndirOffsetAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
+    static IR::Instr *Lowerer::HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::Opnd *indexOpnd, RegNum regNum);
+    static IR::Instr *Lowerer::HoistSymOffset(IR::Instr *instr, IR::SymOpnd *symOpnd, RegNum baseReg, uint32 offset, RegNum regNum);
+    static IR::Instr *Lowerer::HoistSymOffsetAsAdd(IR::Instr* instr, IR::SymOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
+
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
     static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = true);
