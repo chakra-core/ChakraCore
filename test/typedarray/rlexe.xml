@@ -407,4 +407,9 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <tags>typedarray</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>typeofDetached.js</files>
+    </default>
+  </test>
 </regress-exe>
