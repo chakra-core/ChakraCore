@@ -1479,6 +1479,12 @@
   </test>
   <test>
     <default>
+      <files>test149.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit- -force:fixdataprops -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>IsIn_ArrayNoMissingValues.js</files>
       <baseline>IsIn_ArrayNoMissingValues.baseline</baseline>
       <compile-flags>-testtrace:BoundCheckElimination</compile-flags>

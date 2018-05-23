@@ -784,8 +784,6 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                     }
                 }
 
-                GlobOptBlockData& globOptData = this->currentBlock->globOptData;
-
                 if (frameInfo->intSyms->TestEmpty() && frameInfo->intSyms->Test(argSym->m_id))
                 {
                     // Var version of the sym is not live, use the int32 version
@@ -800,7 +798,7 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
                 }
                 else
                 {
-                    Assert(globOptData.liveVarSyms->Test(argSym->m_id));
+                    Assert(frameInfo->varSyms->Test(argSym->m_id));
                 }
 
                 if (argSym->IsConst() && !argSym->IsInt64Const())
