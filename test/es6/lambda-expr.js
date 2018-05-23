@@ -33,3 +33,6 @@ catch (e)
 {
     print(e.message);
 }
+
+// Legal case, lambda in object inside for()
+for (var i = () => {} in {});
