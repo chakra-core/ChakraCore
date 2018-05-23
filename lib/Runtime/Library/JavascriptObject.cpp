@@ -2060,4 +2060,111 @@ namespace Js
         }
         return returnValue;
     }
+
+	/*static*/
+	void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext)
+	{
+		// 1. Assert Type(to) is Object.
+		// 2. Assert Type(excluded) is List.
+		// 3. If from is undefined or null, let keys be a new empty List
+		// 4. Else,
+		//		a. Let from be ToObject(source).
+		//		b. Let keys be from.[[OwnpropertyKeys]]().
+		// 5. Repeat for each element nextKey of keys in List order,
+		//		a. Let found be false.
+		//		b. Repeat for each element e of excluded,
+		//			i. If e is not empty and SameValue(e, nextKey) is true, then
+		//				1. Set found to true.
+		//		c. If found is false, then
+		//			i. Let desc be from.[[GetOwnProperty]](nextKey).
+		//			ii. If desc is not undefined and desc.[[Enumerable]] is true, then
+		//				1. Let propValue be Get(from, nextKey).
+		//				2. Perform CreateDataProperty(to, nextKey, propValue).
+		// 6. Return target (target is returned in pointer).
+		Assert(JavascriptOperators::IsObject(to));
+		RecyclableObject* from = nullptr;
+		if (!JavascriptConversion::ToObject(source, scriptContext, &from))
+		{
+			if (JavascriptOperators::IsUndefinedOrNull(source))
+			{
+				return;
+			}
+			JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.CopyDataPropertiesHelper"));
+		}
+
+#if ENABLE_COPYONACCESS_ARRAY
+		JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
+#endif
+		// if proxy, take slow path by calling [[OwnPropertyKeys]] on source
+		if (JavascriptProxy::Is(from))
+		{
+			CopyDataPropertiesForProxyObjects(from, to, excluded, excludedLength, scriptContext);
+		}
+		// else use enumerator to extract keys from source
+		else
+		{
+			CopyDataPropertiesForGenericObjects(from, to, excluded, excludedLength, scriptContext);
+		}
+	}
+
+	/*static*/
+	void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext)
+	{
+		// Steps 4 and 5 of CopyDataPropertiesHelper
+
+		EnumeratorCache* cache = scriptContext->GetLibrary()->GetObjectAssignCache(from->GetType());
+		JavascriptStaticEnumerator enumerator;
+		if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols | EnumeratorFlags::UseCache, scriptContext, cache))
+		{
+			// Nothing to enumerate, continue with the nextSource.
+			return;
+		}
+
+		PropertyId nextKey = Constants::NoProperty;
+		Var propValue = nullptr;
+		JavascriptString * propertyName = nullptr;
+
+		// Enumerate through each property of properties and fetch the property descriptor
+		while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
+		{
+			if (nextKey == Constants::NoProperty)
+			{
+				PropertyRecord const * propertyRecord = nullptr;
+
+				scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
+				nextKey = propertyRecord->GetPropertyId();
+			}
+			PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
+
+
+			// If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
+			//
+			// Whenever possible, our enumerator populates the cache, so we should generally get a cache hit here
+			PropertyValueInfo getPropertyInfo;
+			if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */, false /* OutputExistence */>(from, from, &propValue, scriptContext, &getPropertyInfo))
+			{
+				if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
+				{
+					JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+				}
+			}
+
+			// Similarly, try to set the property using our cache to avoid having to do the full work of SetProperty
+			PropertyValueInfo setPropertyInfo;
+			if (propertyString == nullptr || !propertyString->TrySetPropertyFromCache(to, propValue, scriptContext, PropertyOperation_ThrowIfNonWritable, &setPropertyInfo))
+			{
+				if (!JavascriptOperators::SetProperty(to, to, nextKey, propValue, &setPropertyInfo, scriptContext, PropertyOperation_ThrowIfNonWritable))
+				{
+					JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.assign"));
+				}
+			}
+		}
+	}
+
+	/*static*/
+	void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext)
+	{
+		// Steps 4 and 5 of CopyDataPropertiesHelper
+
+	}
 }
