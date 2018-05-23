@@ -2608,8 +2608,15 @@ CommonNumber:
 #endif
         Js::TypeId instanceType = JavascriptOperators::GetTypeId(instance);
         // Fast path for native and typed arrays.
-        if ( (instanceType == TypeIds_NativeIntArray || instanceType == TypeIds_NativeFloatArray) || (instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Uint64Array) )
+        bool isNativeArray = instanceType == TypeIds_NativeIntArray || instanceType == TypeIds_NativeFloatArray;
+        bool isTypedArray = instanceType >= TypeIds_Int8Array && instanceType <= TypeIds_Uint64Array;
+        if (isNativeArray || isTypedArray)
         {
+            // Check if the typed array is detached to prevent an exception in GetOwnItem
+            if (isTypedArray && TypedArrayBase::IsDetachedTypedArray(instance))
+            {
+                return FALSE;
+            }
             RecyclableObject* object = RecyclableObject::FromVar(instance);
             Var member = nullptr;
 
@@ -4504,7 +4511,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         ScriptContext* scriptContext,
         PropertyOperationFlags flags)
     {
-        
+
         INT_PTR vt = (INT_PTR)nullptr;
         vt = VirtualTableInfoBase::GetVirtualTable(instance);
 
@@ -4565,7 +4572,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         PropertyOperationFlags flags,
         double dValue)
     {
-        
+
         INT_PTR vt = (INT_PTR)nullptr;
         vt = VirtualTableInfoBase::GetVirtualTable(instance);
 
