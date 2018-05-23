@@ -421,4 +421,11 @@
       <tags>exclude_test,exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_os16855035.js</files>
+      <compile-flags>-UseParserStateCache -ParserStateCache -Force:DeferParse -Force:Redeferral -CollectGarbage</compile-flags>
+      <tags>exclude_test,exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>
