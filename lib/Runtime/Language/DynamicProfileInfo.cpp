@@ -476,6 +476,20 @@ namespace Js
         }
     }
 
+    CallbackInfoList::EditingIterator TryFindCallbackInfoIterator(CallbackInfoList * list, ProfileId callSiteId)
+    {
+        CallbackInfoList::EditingIterator iter = list->GetEditingIterator();
+        while (iter.Next())
+        {
+            if (iter.Data()->callSiteId == callSiteId)
+            {
+                return iter;
+            }
+        }
+
+        return iter;
+    }
+
     CallbackInfo * DynamicProfileInfo::FindCallbackInfo(FunctionBody * funcBody, ProfileId callSiteId)
     {
         CallbackInfoList * list = funcBody->GetCallbackInfoList();
@@ -484,14 +498,11 @@ namespace Js
             return nullptr;
         }
 
-        FOREACH_SLIST_ENTRY(Field(CallbackInfo *), callbackInfo, list)
+        CallbackInfoList::EditingIterator iter = TryFindCallbackInfoIterator(list, callSiteId);
+        if (iter.IsValid())
         {
-            if (callbackInfo->callSiteId == callSiteId)
-            {
-                return callbackInfo;
-            }
+            return iter.Data();
         }
-        NEXT_SLIST_ENTRY;
 
         return nullptr;
     }
@@ -506,14 +517,10 @@ namespace Js
             funcBody->SetCallbackInfoList(list);
         }
 
-        CallbackInfoList::EditingIterator iter = list->GetEditingIterator();
-        while (iter.Next())
+        CallbackInfoList::EditingIterator iter = TryFindCallbackInfoIterator(list, callSiteId);
+        if (iter.IsValid())
         {
-            Field(CallbackInfo*) callbackInfo = iter.Data();
-            if (callbackInfo->callSiteId == callSiteId)
-            {
-                return callbackInfo;
-            }
+            return iter.Data();
         }
 
         // Callsite is not already in the list, so add it to the end.
