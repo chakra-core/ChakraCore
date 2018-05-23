@@ -265,11 +265,6 @@ public:
     void            FreeSrc2();
     Opnd *          ReplaceSrc2(Opnd * newSrc);
     Instr *         HoistSrc2(Js::OpCode assignOpcode, RegNum regNum = RegNOREG, StackSym *newSym = nullptr);
-    Instr *         HoistIndirOffset(IndirOpnd *indirOpnd, RegNum regNum = RegNOREG);
-    Instr *         HoistSymOffset(SymOpnd *symOpnd, RegNum baseReg, uint32 offset, RegNum regNum = RegNOREG);
-    Instr *         HoistIndirOffsetAsAdd(IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset,  RegNum regNum);
-    Instr *         HoistSymOffsetAsAdd(SymOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset,  RegNum regNum);
-    Instr *         HoistIndirIndexOpndAsAdd(IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::Opnd *indexOpnd, RegNum regNum);
     IndirOpnd *     HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpCode);
     Opnd *          UnlinkSrc(Opnd *src);
     Opnd *          ReplaceSrc(Opnd *oldSrc, Opnd * newSrc);

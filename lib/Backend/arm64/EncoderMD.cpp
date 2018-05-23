@@ -152,6 +152,7 @@ void EncoderMD::CanonicalizeLea(IR::Instr * instr)
         indirOpnd->Free(this->m_func);
     }
     instr->m_opcode = Js::OpCode::ADD;
+    Assert(instr->GetSrc1()->GetSize() == instr->GetSrc2()->GetSize());
 }
 
 bool
