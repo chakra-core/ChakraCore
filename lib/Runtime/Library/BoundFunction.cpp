@@ -142,12 +142,25 @@ namespace Js
                 Var newTargetVar = args.GetNewTarget();
                 AssertOrFailFastMsg(JavascriptOperators::IsConstructor(newTargetVar), "newTarget must be a constructor");
                 RecyclableObject* newTarget = RecyclableObject::UnsafeFromVar(newTargetVar);
-                args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(newTarget, scriptContext);
+
+                // Class constructors expect newTarget to be in args slot 0 (usually "this"),
+                // because "this" is not constructed until we reach the most-super superclass.
+                FunctionInfo* functionInfo = JavascriptOperators::GetConstructorFunctionInfo(targetFunction, scriptContext);
+                if (functionInfo && functionInfo->IsClassConstructor())
+                {
+                    args.Values[0] = newVarInstance = newTarget;
+                }
+                else
+                {
+                    args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(newTarget, scriptContext);
+                }
             }
             else if (!JavascriptProxy::Is(targetFunction))
             {
-                // no new target and target is not a proxy can make a new object in a "normal" way
-                args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(targetFunction, scriptContext);
+                // No new target and target is not a proxy can make a new object in a "normal" way.
+                // NewScObjectNoCtor will either construct an object or return targetFunction depending
+                // on whether targetFunction is a class constructor.
+                args.Values[0] = newVarInstance = JavascriptOperators::NewScObjectNoCtor(targetFunction, scriptContext);
             }
             else
             {
