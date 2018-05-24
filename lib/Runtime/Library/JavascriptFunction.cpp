@@ -224,7 +224,7 @@ namespace Js
                     &Parser::ValidateSourceElementList);
             }
 
-            pfuncScript = scriptContext->GetGlobalObject()->EvalHelper(scriptContext, sourceString, sourceLen, moduleID, fscrNil, Constants::FunctionCode, TRUE, TRUE, strictMode);
+            pfuncScript = scriptContext->GetGlobalObject()->EvalHelper(scriptContext, sourceString, sourceLen, moduleID, fscrCanDeferFncParse, Constants::FunctionCode, TRUE, TRUE, strictMode);
 
             // Indicate that this is a top-level function. We don't pass the fscrGlobalCode flag to the eval helper,
             // or it will return the global function that wraps the declared function body, as though it were an eval.
