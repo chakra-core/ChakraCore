@@ -353,8 +353,16 @@ namespace Js
 
     Var JavascriptOperators::TypeofElem_UInt32(Var instance, uint32 index, ScriptContext* scriptContext)
     {
-        if (JavascriptOperators::IsNumberFromNativeArray(instance, index, scriptContext))
-            return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
+        try
+        {
+            if (JavascriptOperators::IsNumberFromNativeArray(instance, index, scriptContext))
+                return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
+        }
+        catch (const JavascriptException& err)
+        {
+            err.GetAndClear();  // discard exception object
+            return scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
 
 #if FLOATVAR
         return TypeofElem(instance, Js::JavascriptNumber::ToVar(index, scriptContext), scriptContext);
@@ -367,8 +375,16 @@ namespace Js
 
     Var JavascriptOperators::TypeofElem_Int32(Var instance, int32 index, ScriptContext* scriptContext)
     {
-        if (JavascriptOperators::IsNumberFromNativeArray(instance, index, scriptContext))
-            return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
+        try
+        {
+            if (JavascriptOperators::IsNumberFromNativeArray(instance, index, scriptContext))
+                return scriptContext->GetLibrary()->GetNumberTypeDisplayString();
+        }
+        catch (const JavascriptException& err)
+        {
+            err.GetAndClear();  // discard exception object
+            return scriptContext->GetLibrary()->GetUndefinedDisplayString();
+        }
 
 #if FLOATVAR
         return TypeofElem(instance, Js::JavascriptNumber::ToVar(index, scriptContext), scriptContext);
