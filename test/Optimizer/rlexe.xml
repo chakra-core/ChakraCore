@@ -1504,14 +1504,6 @@
   </test>
   <test>
     <default>
-      <files>mul_rejit_bug.js</files>
-      <baseline>mul_rejit_bug.baseline</baseline>
-      <compile-flags>-mic:1 -oopjit- -bgJit- -off:simplejit -trace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_nonative</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>testsimplepathbrfold.js</files>
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit- -trace:pathdepbranchfolding -bgjit-</compile-flags>
       <baseline>testsimplepathbrfold.baseline</baseline>
