@@ -11,12 +11,12 @@ namespace PlatformAgnostic
 {
 namespace Arrays
 {
-
+    // Potential candidate for optimization 
     bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutSize, uint32 sepBufSize)
     {
-        char16 localeName[LOCALE_NAME_MAX_LENGTH];
+        char16 localeName[LOCALE_NAME_MAX_LENGTH] = { 0 };
 
-        int ret = GetUserDefaultLocaleName(localeName, LOCALE_NAME_MAX_LENGTH);
+        int ret = GetUserDefaultLocaleName(localeName, _countof(localeName));
 
         if (ret == 0)
         {
