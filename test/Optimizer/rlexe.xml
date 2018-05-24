@@ -1550,4 +1550,10 @@
       <tags>exclude_dynapogo,exclude_nonative</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>rembug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1  -loopinterpretcount:1 -oopjit- -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

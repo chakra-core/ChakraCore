@@ -1211,7 +1211,7 @@ namespace Js
         /* allow one op of the modulus to be optimized - anyway */
         if (divideTypeInfo[profileId].IsUninitialized())
         {
-            divideTypeInfo[profileId] = ValueType::GetInt(true);
+            divideTypeInfo[profileId] = isModByPowerOf2 ? ValueType::GetInt(true) : ValueType::Float;
         }
         else
         {
