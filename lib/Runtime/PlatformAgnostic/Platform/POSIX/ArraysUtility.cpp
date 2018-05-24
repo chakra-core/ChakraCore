@@ -11,7 +11,6 @@ namespace PlatformAgnostic
 {
 namespace Arrays
 {
-    #define BufSize 256
 
     static char16 commaSeparator = _u(',');
     static char16 semicolonSeparator = _u(';');

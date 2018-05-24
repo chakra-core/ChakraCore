@@ -8194,9 +8194,9 @@ Case0:
             if (length > 1)
             {
                 uint32 sepSize = 0;
-                char16 szSeparator[SeparatorBufferSize];
+                char16 szSeparator[Arrays::SeparatorBufferSize];
 
-                bool hasLocaleSeparator = Arrays::GetLocaleSeparator(szSeparator, &sepSize, SeparatorBufferSize);
+                bool hasLocaleSeparator = Arrays::GetLocaleSeparator(szSeparator, &sepSize, Arrays::SeparatorBufferSize);
 
                 JavascriptString* separator = nullptr;
 
