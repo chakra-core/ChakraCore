@@ -30,7 +30,7 @@ namespace Js
     // as many times as necessary to write the data into the cache.
     // To read a block of data, call SeekReadStreamToBlock (optionally fetching the size of this
     // block) and then call Read or ReadArray as necessary to read the data from the cache.
-    class SimpleDataCacheWrapper
+    class SimpleDataCacheWrapper : public FinalizableObject
     {
     public:
         enum BlockType : byte
@@ -42,9 +42,6 @@ namespace Js
 
         // Does an AddRef on dataCache
         SimpleDataCacheWrapper(IActiveScriptDataCache* dataCache);
-
-        // Does Release on dataCache
-        ~SimpleDataCacheWrapper() { this->Close(); }
 
         // Begin to write a block into the cache.
         // Note: Must be called before writing bytes into the block as the block header is
@@ -142,6 +139,10 @@ namespace Js
 #endif
             return hr;
         }
+
+        virtual void Dispose(bool isShutdown) override { Close(); }
+        virtual void Finalize(bool isShutdown) override { }
+        virtual void Mark(Recycler * recycler) override { }
 
     private:
         const static uint MAX_BLOCKS_ALLOWED = 0xff;
