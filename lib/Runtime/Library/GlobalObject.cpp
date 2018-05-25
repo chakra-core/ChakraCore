@@ -601,11 +601,16 @@ namespace Js
         bool found = useEvalMap && scriptContext->IsInEvalMap(key, isIndirect, &pfuncScript);
         if (!found || (!isIndirect && pfuncScript->GetEnvironment() != &NullFrameDisplay))
         {
-            uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode | fscrCanDeferFncParse;
+            uint32 grfscr = additionalGrfscr | fscrReturnExpression | fscrEval | fscrEvalCode | fscrGlobalCode;
 
             if (isLibraryCode)
             {
                 grfscr |= fscrIsLibraryCode;
+            }
+
+            if (!(grfscr & fscrConsoleScopeEval))
+            {
+                grfscr |= fscrCanDeferFncParse;
             }
 
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
