@@ -2839,7 +2839,10 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         if(IsCollectionPass())
         {
 #ifndef _M_ARM
-            if (this->collectionPassSubPhase == CollectionPassSubPhase::FirstPass)
+            if (
+                   this->collectionPassSubPhase == CollectionPassSubPhase::FirstPass
+                && !this->func->IsSimpleJit()
+                )
             {
                 // In the collection pass we do multiple passes over loops. In these passes we keep
                 // track of sets of symbols, such that we can know whether or not they are used in
@@ -3232,7 +3235,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         if (this->tag == Js::DeadStorePhase)
         {
 #ifndef _M_ARM
-            if(block->loop && !this->isLoopPrepass)
+            if(
+                   block->loop
+                && !this->isLoopPrepass
+                && !this->func->IsSimpleJit()
+                )
             {
                 // In the second pass, we mark instructions that we go by as being safe or unsafe.
                 //
@@ -3602,12 +3609,17 @@ BackwardPass::ProcessBlock(BasicBlock * block)
     NEXT_INSTR_BACKWARD_IN_BLOCK_EDITING;
 
 #ifndef _M_ARM
-    if (this->tag == Js::DeadStorePhase
+    if (
+           this->tag == Js::DeadStorePhase
+        // We don't do the masking in simplejit due to reduced perf concerns and the issues
+        // with handling try/catch structures with late-added blocks
+        && !this->func->IsSimpleJit()
         // We don't need the masking blocks in asmjs/wasm mode
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsAsmJsMode()
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsWasmFunction()
         && !block->isDead
-        && !block->isDeleted)
+        && !block->isDeleted
+        )
     {
         FOREACH_PREDECESSOR_BLOCK(blockPred, block)
         {

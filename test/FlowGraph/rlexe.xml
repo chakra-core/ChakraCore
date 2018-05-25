@@ -9,13 +9,19 @@
   <test>
     <default>
       <files>weird1.js</files>
-      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -werexceptionsupport -oopjit- -off:bailonnoprofile -off:cachedScope</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -oopjit- -off:bailonnoprofile -off:cachedScope</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>weird2.js</files>
-      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -werexceptionsupport -bgjit- -loopinterpretcount:1 -oopjit- -off:simplejit -force:inline</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -bgjit- -loopinterpretcount:1 -oopjit- -off:simplejit -force:inline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>for_of_try_catch.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -bgjit- -oopjit- -off:jitloopbody</compile-flags>
     </default>
   </test>
 </regress-exe>
