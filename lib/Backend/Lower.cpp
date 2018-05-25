@@ -3051,7 +3051,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 {
                     StackSym* thisSym = instr->m_func->m_symTable->Find(symid)->AsStackSym();
                     IR::RegOpnd* thisSymReg = IR::RegOpnd::New(thisSym, thisSym->GetType(), instr->m_func);
-                    IR::Instr* cmov = IR::Instr::New(LowererMD::MDSpecBlockNEOpcode, thisSymReg, thisSymReg, thisSymReg, instr->m_func);
+                    Js::OpCode specBlockOp = thisSymReg->IsFloat() ? LowererMD::MDSpecBlockFNEOpcode : LowererMD::MDSpecBlockNEOpcode;
+                    IR::Instr* cmov = IR::Instr::New(specBlockOp, thisSymReg, thisSymReg, thisSymReg, instr->m_func);
                     instr->InsertBefore(cmov);
                     m_lowererMD.Legalize(cmov);
                 } NEXT_BITSET_IN_SPARSEBV;

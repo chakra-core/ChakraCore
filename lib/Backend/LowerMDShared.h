@@ -81,6 +81,7 @@ public:
     static const Js::OpCode MDImulOpcode;
     static const Js::OpCode MDLea;
     static const Js::OpCode MDSpecBlockNEOpcode;
+    static const Js::OpCode MDSpecBlockFNEOpcode;
 
     UINT FloatPrefThreshold;
 

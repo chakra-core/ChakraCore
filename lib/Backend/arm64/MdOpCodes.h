@@ -108,6 +108,9 @@ MACRO(LDARGOUTSZ, Reg1,       0,              UNUSED,   LEGAL_REG1,     UNUSED, 
 //VFP instructions:
 MACRO(FABS,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FADD,        Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
+// FCSELcc src1, src2 -- select src1 if cc or src2 if not
+MACRO(FCSELEQ,     Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
+MACRO(FCSELNE,     Reg3,      0,              UNUSED,   LEGAL_REG3,     UNUSED,   D___)
 MACRO(FCMP,        Reg1,      OpSideEffect,   UNUSED,   LEGAL_REG3_ND,  UNUSED,   D___)
 MACRO(FCVT,        Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)
 MACRO(FCVTM,       Reg2,      0,              UNUSED,   LEGAL_REG2,     UNUSED,   D___)

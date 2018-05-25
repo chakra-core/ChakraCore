@@ -19,6 +19,7 @@ const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::Call;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::MUL;
 const Js::OpCode LowererMD::MDLea = Js::OpCode::LEA;
 const Js::OpCode LowererMD::MDSpecBlockNEOpcode = Js::OpCode::CSELNE;
+const Js::OpCode LowererMD::MDSpecBlockFNEOpcode = Js::OpCode::FCSELNE;
 
 template<typename T>
 inline void Swap(T& x, T& y)
