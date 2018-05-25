@@ -199,6 +199,9 @@ struct StringIndexRecord
 
 typedef JsUtil::BaseDictionary<ByteBuffer*, IndexEntry, ArenaAllocator, PrimeSizePolicy, DefaultComparer> TString16ToId;
 
+static LocalScopeInfoId InvalidLocalScopeInfoId = 0xFFFFFFFF;
+typedef JsUtil::BaseDictionary<Js::ScopeInfo*, LocalScopeInfoId, ArenaAllocator> ScopeInfoToScopeInfoIdMap;
+
 // Boolean flags on the FunctionBody
 enum FunctionFlags
 {
@@ -381,6 +384,7 @@ class ByteCodeBufferBuilder
     BufferBuilderRelativeOffset string16sOffset;
     BufferBuilderRelativeOffset lineInfoCacheOffset;
     BufferBuilderRelativeOffset functionsOffset;
+    BufferBuilderRelativeOffset scopeInfoOffset;
     BufferBuilderInt32 string16Count;
     BufferBuilderList string16IndexTable;
     BufferBuilderList string16Table;
@@ -391,9 +395,13 @@ class ByteCodeBufferBuilder
     BufferBuilderRaw lineByteOffsetCacheBuffer;
     BufferBuilderInt32 functionCount;
     BufferBuilderList functionsTable;
+    BufferBuilderInt32 scopeInfoCount;
+    BufferBuilderList scopeInfoTable;
+    BufferBuilderList scopeInfoRelativeOffsets;
     // End File Layout ---------------------------------
     ArenaAllocator * alloc;
     TString16ToId * string16ToId;
+    ScopeInfoToScopeInfoIdMap* scopeInfoToScopeInfoIdMap;
     int nextString16Id;
     int topFunctionId;
     LPCUTF8 utf8Source;
@@ -459,6 +467,10 @@ public:
           lineInfoHasByteCache(_u("Line Info Has Byte Cache"), sourceInfo->GetLineOffsetCache()->GetLineByteOffsetBuffer() != nullptr),
           lineByteOffsetCacheBuffer(_u("Line Info Byte Cache"), lineInfoCacheCount.value * sizeof(charcount_t), (byte *)sourceInfo->GetLineOffsetCache()->GetLineByteOffsetBuffer()),
           functionsTable(_u("Functions")),
+          scopeInfoOffset(_u("Offset of ScopeInfos"), &scopeInfoCount),
+          scopeInfoCount(_u("ScopeInfo Count"), 0),
+          scopeInfoRelativeOffsets(_u("ScopeInfo Relative Offsets")),
+          scopeInfoTable(_u("ScopeInfo Table")),
           nextString16Id(builtInPropertyCount), // Reserve the built-in property ids
           topFunctionId(0),
           utf8Source(utf8Source),
@@ -536,6 +548,7 @@ public:
         }
 #endif
         string16ToId = Anew(alloc, TString16ToId, alloc);
+        scopeInfoToScopeInfoIdMap = Anew(alloc, ScopeInfoToScopeInfoIdMap, alloc);
     }
 
     HRESULT Create(byte ** buffer, DWORD * bufferBytes)
@@ -545,9 +558,14 @@ public:
         // Reverse the lists
         string16IndexTable.list = string16IndexTable.list->ReverseCurrentList();
         string16Table.list = string16Table.list->ReverseCurrentList();
+        scopeInfoTable.list = scopeInfoTable.list->ReverseCurrentList();
+        scopeInfoRelativeOffsets.list = scopeInfoRelativeOffsets.list->ReverseCurrentList();
 
         // Prepend all sections (in reverse order because of prepend)
-        all.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(&functionsTable, alloc);
+        all.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(&scopeInfoTable, alloc);
+        all.list = all.list->Prepend(&scopeInfoRelativeOffsets, alloc);
+        all.list = all.list->Prepend(&scopeInfoCount, alloc);
+        all.list = all.list->Prepend(&functionsTable, alloc);
         all.list = all.list->Prepend(&functionCount, alloc);
         if (lineByteOffsetCacheBuffer.raw != nullptr)
         {
@@ -559,6 +577,7 @@ public:
         all.list = all.list->Prepend(&alignedString16Table, alloc);
         all.list = all.list->Prepend(&string16IndexTable, alloc);
         all.list = all.list->Prepend(&string16Count, alloc);
+        all.list = all.list->Prepend(&scopeInfoOffset, alloc);
         all.list = all.list->Prepend(&functionsOffset, alloc);
         all.list = all.list->Prepend(&lineInfoCacheOffset, alloc);
         all.list = all.list->Prepend(&string16sOffset, alloc);
@@ -2284,7 +2303,7 @@ public:
         }
 
         DeferredFunctionStub* deferredStubs = function->GetDeferredStubs();
-        if (deferredStubs != nullptr 
+        if (deferredStubs != nullptr
             && (attributes & FunctionInfo::Attributes::DeferredParse) != 0
             && GenerateParserStateCache())
         {
@@ -2294,7 +2313,7 @@ public:
 
         ScopeInfo* scopeInfo = function->GetScopeInfo();
         if (scopeInfo != nullptr
-            && (attributes & FunctionInfo::Attributes::DeferredParse) != 0)
+            && (attributes & (FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::CanDefer)) != 0)
         {
             definedFields.has_scopeInfo = true;
             AddScopeInfo(builder, scopeInfo);
@@ -2375,9 +2394,13 @@ public:
         return AddFunction(functionsTable, function, srcInfo, cache);
     }
 
-    HRESULT AddScopeInfo(BufferBuilderList & builder, ScopeInfo* scopeInfo)
+    HRESULT AddOneScopeInfo(BufferBuilderList & builder, ScopeInfo* scopeInfo, LocalScopeInfoId parentId = InvalidLocalScopeInfoId)
     {
-        PrependInt32(builder, _u("ScopeInfo symbol count"), scopeInfo->symbolCount);
+        BufferBuilderInt32* startOfScopeInfo = nullptr;
+        PrependInt32(builder, _u("ScopeInfo symbol count"), scopeInfo->symbolCount, &startOfScopeInfo);
+
+        BufferBuilderRelativeOffset* offsetToScopeInfo = Anew(alloc, BufferBuilderRelativeOffset, _u("Offset To ScopeInfo"), startOfScopeInfo);
+        this->scopeInfoRelativeOffsets.list = this->scopeInfoRelativeOffsets.list->Prepend(offsetToScopeInfo, alloc);
 
         FunctionInfo* functionInfo = scopeInfo->functionInfo;
         uint relativeFunctionId = 0;
@@ -2388,29 +2411,31 @@ public:
         PrependUInt32(builder, _u("ScopeInfo FunctionInfo relative id"), relativeFunctionId);
 
         ScopeInfoFlags scopeInfoFlags = (ScopeInfoFlags)
-            ( (scopeInfo->isDynamic ? sifIsDynamic : sifNone)
-            | (scopeInfo->isObject ? sifIsObject : sifNone)
-            | (scopeInfo->mustInstantiate ? sifMustInstantiate : sifNone)
-            | (scopeInfo->isCached ? sifIsCached : sifNone)
-            | (scopeInfo->hasLocalInClosure ? sifHasLocalInClosure : sifNone)
-            | (scopeInfo->isGeneratorFunctionBody ? sifIsGeneratorFunctionBody : sifNone)
-            | (scopeInfo->isAsyncFunctionBody ? sifIsAsyncFunctionBody : sifNone));
+            ((scopeInfo->isDynamic ? sifIsDynamic : sifNone)
+                | (scopeInfo->isObject ? sifIsObject : sifNone)
+                | (scopeInfo->mustInstantiate ? sifMustInstantiate : sifNone)
+                | (scopeInfo->isCached ? sifIsCached : sifNone)
+                | (scopeInfo->hasLocalInClosure ? sifHasLocalInClosure : sifNone)
+                | (scopeInfo->isGeneratorFunctionBody ? sifIsGeneratorFunctionBody : sifNone)
+                | (scopeInfo->isAsyncFunctionBody ? sifIsAsyncFunctionBody : sifNone));
 
         PrependByte(builder, _u("ScopeInfo flags"), scopeInfoFlags);
         PrependInt32(builder, _u("ScopeInfo scope type"), scopeInfo->scopeType);
         PrependInt32(builder, _u("ScopeInfo scope id"), scopeInfo->scopeId);
+
+        OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("Adding ScopeInfo (0x%p). Flags: %u. Type: %d. ScopeId: %d. Symbol count: %u\n"), scopeInfo, scopeInfoFlags, scopeInfo->scopeType, scopeInfo->scopeId, scopeInfo->symbolCount);
 
         for (int i = 0; i < scopeInfo->symbolCount; i++)
         {
             ScopeInfo::SymbolInfo* sym = scopeInfo->symbols + i;
 
             SymbolInfoFlags symbolInfoFlags = (SymbolInfoFlags)
-                ( (sym->hasFuncAssignment ? syifHasFuncAssignment : syifNone)
-                | (sym->isBlockVariable ? syifIsBlockVariable : syifNone)
-                | (sym->isConst ? syifIsConst : syifNone)
-                | (sym->isFuncExpr ? syifIsFuncExpr : syifNone)
-                | (sym->isModuleExportStorage ? syifIsModuleExportStorage : syifNone)
-                | (sym->isModuleImport ? syifIsModuleImport : syifNone));
+                ((sym->hasFuncAssignment ? syifHasFuncAssignment : syifNone)
+                    | (sym->isBlockVariable ? syifIsBlockVariable : syifNone)
+                    | (sym->isConst ? syifIsConst : syifNone)
+                    | (sym->isFuncExpr ? syifIsFuncExpr : syifNone)
+                    | (sym->isModuleExportStorage ? syifIsModuleExportStorage : syifNone)
+                    | (sym->isModuleImport ? syifIsModuleImport : syifNone));
 
             PrependByte(builder, _u("SymbolInfo flags"), symbolInfoFlags);
             PrependByte(builder, _u("SymbolInfo symbol type"), (BYTE)sym->symbolType);
@@ -2424,6 +2449,8 @@ public:
 
             PropertyId propertyId = encodePossiblyBuiltInPropertyId(symPropertyId);
             PrependInt32(builder, _u("SymbolInfo property id"), propertyId);
+
+            OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("\t\tSymbolInfo (0x%p). Flags: %u. Type: %d. PropertyId: %u (%u)\n"), sym, symbolInfoFlags, sym->symbolType, sym->propertyId, symPropertyId);
         }
 
         bool hasParent = scopeInfo->parent != nullptr;
@@ -2431,8 +2458,55 @@ public:
 
         if (hasParent)
         {
-            return AddScopeInfo(builder, scopeInfo->parent);
+            // Prepend an int32 here as a placeholder in case we need to add more bytes into builder for the parent
+            auto entry = Anew(alloc, BufferBuilderInt32, _u("ScopeInfo parent LocalId"), InvalidLocalScopeInfoId);
+            builder.list = builder.list->Prepend(entry, alloc);
+
+            // If we were not passed a valid pointer id, try and look it up in the map
+            if (parentId == InvalidLocalScopeInfoId)
+            {
+                parentId = GetScopeInfoId(scopeInfo->parent);
+            }
+
+            // Update our placeholder with the real id of the parent
+            entry->value = parentId;
         }
+
+        return S_OK;
+    }
+
+    LocalScopeInfoId GetScopeInfoId(ScopeInfo* scopeInfo)
+    {
+        LocalScopeInfoId localScopeInfoId = InvalidLocalScopeInfoId;
+        if (scopeInfoToScopeInfoIdMap->TryGetValue(scopeInfo, &localScopeInfoId))
+        {
+            Assert(localScopeInfoId != InvalidLocalScopeInfoId);
+        }
+        else
+        {
+            Assert(scopeInfoToScopeInfoIdMap->Count() == this->scopeInfoCount.value);
+
+            if (scopeInfo->parent != nullptr)
+            {
+                GetScopeInfoId(scopeInfo->parent);
+            }
+
+            // If the ScopeInfo wasn't already in the table, add a mapping for it.
+            localScopeInfoId = this->scopeInfoCount.value++;
+            scopeInfoToScopeInfoIdMap->AddNew(scopeInfo, localScopeInfoId);
+
+            OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("Mapping ScopeInfo 0x%p to local id %u\n"), scopeInfo, localScopeInfoId);
+
+            AddOneScopeInfo(this->scopeInfoTable, scopeInfo);
+        }
+
+        return localScopeInfoId;
+    }
+
+    HRESULT AddScopeInfo(BufferBuilderList & builder, ScopeInfo* scopeInfo)
+    {
+        LocalScopeInfoId localScopeInfoId = GetScopeInfoId(scopeInfo);
+        PrependInt32(builder, _u("ScopeInfo LocalId"), localScopeInfoId);
 
         return S_OK;
     }
@@ -2529,6 +2603,7 @@ public:
     int expectedOpCodeCount;
     int firstFunctionId;
     int functionCount;
+    uint scopeInfoCount;
     const byte * string16s;
     int string16Count;
     const unaligned StringIndexRecord * string16IndexTable;
@@ -2538,6 +2613,8 @@ public:
     const charcount_t * lineCharacterOffsetCacheBuffer;
     const charcount_t * lineByteOffsetCacheBuffer;
     const byte * functions;
+    const byte * scopeInfoTable;
+    const byte * scopeInfoRelativeOffsets;
     int sourceSize;
     int sourceCharLength;
     Utf8SourceInfo *utf8SourceInfo;
@@ -2560,6 +2637,7 @@ public:
         expectedOpCodeCount((int)OpCode::Count),
         firstFunctionId(0),
         functionCount(0),
+        scopeInfoCount(0),
         string16s(nullptr),
         string16Count(0),
         string16IndexTable(nullptr),
@@ -2569,6 +2647,8 @@ public:
         lineCharacterOffsetCacheBuffer(nullptr),
         lineByteOffsetCacheBuffer(nullptr),
         functions(nullptr),
+        scopeInfoTable(nullptr),
+        scopeInfoRelativeOffsets(nullptr),
         sourceSize(0),
         sourceCharLength(0),
         utf8SourceInfo(nullptr),
@@ -3049,6 +3129,7 @@ public:
         current = ReadOffsetAsPointer(current, &string16s);
         current = ReadOffsetAsPointer(current, &lineInfoCaches);
         current = ReadOffsetAsPointer(current, &functions);
+        current = ReadOffsetAsPointer(current, &scopeInfoRelativeOffsets);
 
         // Read strings header
         string16IndexTable = (StringIndexRecord*)ReadInt32(string16s, &string16Count);
@@ -3070,6 +3151,10 @@ public:
         uint32 string16TableOffset = (uint32)(string16Table - raw);
         string16TableOffset = ::Math::Align(string16TableOffset, (uint32)sizeof(char16));
         string16Table = raw + string16TableOffset;
+
+        // Consume ScopeInfo count and advance to the relative offsets
+        scopeInfoRelativeOffsets = ReadUInt32(scopeInfoRelativeOffsets, &scopeInfoCount);
+        scopeInfoTable = scopeInfoRelativeOffsets + sizeof(uint32) * scopeInfoCount;
 
         return S_OK;
     }
@@ -3939,10 +4024,10 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
-        Field(ScopeInfo*) scopeInfo = nullptr;
+        ScopeInfo* scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
-            Assert(isDeferredFunction);
+            Assert(attributes & (FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::CanDefer));
             current = ReadScopeInfo(current, cache, &scopeInfo);
         }
 
@@ -3997,7 +4082,7 @@ public:
         else
         {
             *function = ParseableFunctionInfo::New(this->scriptContext, nestedCount, firstFunctionId + functionId, utf8SourceInfo, displayName, displayNameLength, displayShortNameOffset, (FunctionInfo::Attributes)attributes,
-                        Js::FunctionBody::FunctionBodyFlags::Flags_None);
+                Js::FunctionBody::FunctionBodyFlags::Flags_None);
 
             if (deferredStubs != nullptr)
             {
@@ -4296,7 +4381,7 @@ public:
         return S_OK;
     }
 
-    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, Field(ScopeInfo*)* scopeInfo)
+    const byte* ReadOneScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
     {
         int symbolCount = 0;
         current = ReadInt32(current, &symbolCount);
@@ -4326,6 +4411,8 @@ public:
 
         current = ReadInt32(current, &(*scopeInfo)->scopeId);
 
+        OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("Reading ScopeInfo. Flags: %u. Type: %d. ScopeId: %d. Symbol count: %d\n"), scopeInfoFlags, scopeType, (*scopeInfo)->scopeId, symbolCount);
+
         for (int i = 0; i < symbolCount; i++)
         {
             ScopeInfo::SymbolInfo* sym = (*scopeInfo)->symbols + i;
@@ -4344,6 +4431,8 @@ public:
             PropertyId obscuredPropertyId;
             current = ReadInt32(current, (int*)&obscuredPropertyId);
             sym->propertyId = cache->LookupPropertyId(obscuredPropertyId);
+
+            OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("\t\tSymbolInfo. Flags: %u. Type: %d. PropertyId: %u\n"), symbolInfoFlags, sym->symbolType, sym->propertyId);
         }
 
         bool hasParent = false;
@@ -4351,8 +4440,20 @@ public:
 
         if (hasParent)
         {
-            return ReadScopeInfo(current, cache, &((*scopeInfo)->parent));
+            ScopeInfo* parent = nullptr;
+            current = ReadScopeInfo(current, cache, &parent);
+            (*scopeInfo)->parent = parent;
         }
+
+        return current;
+    }
+
+    const byte* ReadScopeInfo(const byte* current, ByteCodeCache* cache, ScopeInfo** scopeInfo)
+    {
+        LocalScopeInfoId localScopeInfoId;
+        current = ReadUInt32(current, (uint*)&localScopeInfoId);
+
+        *scopeInfo = cache->LookupScopeInfo(this->scriptContext, localScopeInfoId);
 
         return current;
     }
@@ -4636,12 +4737,12 @@ public:
 // This constructor is for allocating a ByteCodeCache without a reader (ie: before the bytecode buffer is generated).
 // SetReader() should be called before using the cache.
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, int builtInPropertyCount)
-    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr), localFunctionIdToFunctionInfoMap(nullptr)
+    : reader(nullptr), propertyCount(0), builtInPropertyCount(builtInPropertyCount), raw(nullptr), propertyIds(nullptr), localFunctionIdToFunctionInfoMap(nullptr), localScopeInfoIdToScopeInfoMap(nullptr), scopeInfoCount(0), scopeInfoRelativeOffsets(nullptr)
 {
 }
 
 ByteCodeCache::ByteCodeCache(ScriptContext * scriptContext, ByteCodeBufferReader * reader, int builtInPropertyCount)
-    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount), localFunctionIdToFunctionInfoMap(nullptr)
+    : reader(reader), propertyCount(0), builtInPropertyCount(builtInPropertyCount), localFunctionIdToFunctionInfoMap(nullptr), localScopeInfoIdToScopeInfoMap(nullptr), scopeInfoCount(0), scopeInfoRelativeOffsets(nullptr)
 {
     Initialize(scriptContext);
 }
@@ -4671,6 +4772,21 @@ void ByteCodeCache::Initialize(ScriptContext * scriptContext)
     for (int i = 0; i < propertyCount; ++i)
     {
         PopulateLookupPropertyId(scriptContext, i);
+    }
+
+    scopeInfoCount = reader->scopeInfoCount;
+    if (scopeInfoCount > 0)
+    {
+        scopeInfoRelativeOffsets = AnewArray(alloc, const byte*, scopeInfoCount);
+
+        const byte* current = reader->scopeInfoRelativeOffsets;
+        for (uint i = 0; i < scopeInfoCount; i++)
+        {
+            const byte* ptr = nullptr;
+            current = reader->ReadOffsetAsPointer(current, &ptr);
+
+            scopeInfoRelativeOffsets[i] = ptr;
+        }
     }
 }
 
@@ -4709,6 +4825,35 @@ void ByteCodeCache::RegisterFunctionIdToFunctionInfo(ScriptContext * scriptConte
 FunctionInfo* ByteCodeCache::LookupFunctionInfo(ScriptContext * scriptContext, LocalFunctionId functionId)
 {
     return EnsureLocalFunctionIdToFunctionInfoMap(scriptContext)->Lookup(functionId, nullptr);
+}
+
+ByteCodeCache::LocalScopeInfoIdToScopeInfoMap * ByteCodeCache::EnsureLocalScopeInfoIdToScopeInfoMap(ScriptContext * scriptContext)
+{
+    if (this->localScopeInfoIdToScopeInfoMap == nullptr)
+    {
+        this->localScopeInfoIdToScopeInfoMap = Anew(scriptContext->SourceCodeAllocator(), LocalScopeInfoIdToScopeInfoMap, scriptContext->SourceCodeAllocator(), 10);
+    }
+    Assert(this->localScopeInfoIdToScopeInfoMap != nullptr);
+    return this->localScopeInfoIdToScopeInfoMap;
+}
+
+ScopeInfo* ByteCodeCache::LookupScopeInfo(ScriptContext * scriptContext, LocalScopeInfoId scopeInfoId)
+{
+    ScopeInfo* scopeInfo = nullptr;
+    if (!EnsureLocalScopeInfoIdToScopeInfoMap(scriptContext)->TryGetValue(scopeInfoId, &scopeInfo))
+    {
+        Assert(scopeInfoId < scopeInfoCount);
+
+        const byte* current = scopeInfoRelativeOffsets[scopeInfoId];
+        reader->ReadOneScopeInfo(current, this, &scopeInfo);
+
+        Assert(scopeInfo != nullptr);
+
+        EnsureLocalScopeInfoIdToScopeInfoMap(scriptContext)->AddNew(scopeInfoId, scopeInfo);
+
+        OUTPUT_VERBOSE_TRACE(Js::ByteCodeSerializationPhase, _u("ScopeInfo id %u mapped to 0x%p\n"), scopeInfoId, scopeInfo);
+    }
+    return scopeInfo;
 }
 
 // Serialize function body
