@@ -742,7 +742,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     uint16 firstNonEmptyCacheIndex = UINT16_MAX;
     uint16 slotIndex = 0;
     bool areEquivalent = true;
-    bool canDepolymorphize = topFunctionBody != functionBody && !PHASE_OFF(Js::DepolymorphizeInlineesPhase, topFunctionBody);
+    bool canDepolymorphize = topFunctionBody != functionBody && PHASE_ON(Js::DepolymorphizeInlineesPhase, topFunctionBody);
     bool usesAuxSlot = false;
     bool isProto = false;
     bool isAccessor = false;
