@@ -42,7 +42,6 @@ namespace Js
         isRootModule(false),
         hadNotifyHostReady(false),
         localExportSlots(nullptr),
-        numPendingChildrenModule(0),
         moduleId(InvalidModuleIndex),
         localSlotCount(InvalidSlotCount),
         promise(nullptr),
@@ -225,6 +224,11 @@ namespace Js
 
     void SourceTextModuleRecord::NotifyParentsAsNeeded()
     {
+        if (notifying)
+        {
+            return;
+        }
+        notifying = true;
         // Notify the parent modules that this child module is either in fault state or finished.
         if (this->parentModuleList != nullptr)
         {
@@ -233,6 +237,7 @@ namespace Js
                 parentModule->OnChildModuleReady(this, this->errorObject);
             });
         }
+        notifying = false;
         SetParentsNotified();
     }
 
@@ -326,7 +331,7 @@ namespace Js
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("PrepareForModuleDeclarationInitialization(%s)\n"), this->GetSpecifierSz());
         HRESULT hr = NO_ERROR;
 
-        if (numPendingChildrenModule == 0)
+        if (ConfirmChildrenParsed())
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
@@ -355,12 +360,6 @@ namespace Js
                 }
             }
         }
-#if DBG
-        else
-        {
-            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\tnumPendingChildrenModule=(%d)\n"), numPendingChildrenModule);
-        }
-#endif
         return hr;
     }
 
@@ -399,12 +398,6 @@ namespace Js
         }
         else
         {
-            if (numPendingChildrenModule == 0)
-            {
-                return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
-            }
-            numPendingChildrenModule--;
-
             hr = PrepareForModuleDeclarationInitialization();
         }
         return hr;
@@ -715,21 +708,52 @@ namespace Js
         {
             parentRecord->childrenModuleSet->AddNew(moduleName, this);
 
-            if (!this->WasParsed())
+            if (this->parentModuleList == nullptr)
             {
-                if (this->parentModuleList == nullptr)
-                {
-                    Recycler* recycler = GetScriptContext()->GetRecycler();
-                    this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
-                }
+                Recycler* recycler = GetScriptContext()->GetRecycler();
+                this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+            }
 
-                if (!this->parentModuleList->Contains(parentRecord))
-                {
-                    this->parentModuleList->Add(parentRecord);
-                    parentRecord->numPendingChildrenModule++;
-                }
+            if (!this->parentModuleList->Contains(parentRecord))
+            {
+                this->parentModuleList->Add(parentRecord);
             }
         }
+    }
+
+    bool SourceTextModuleRecord::ConfirmChildrenParsed()
+    {
+        if (!this->WasParsed())
+        {
+            return false;
+        }
+        if (confirmedReady || this->ParentsNotified())
+        {
+            return true;
+        }
+        bool result = true;
+        confirmedReady = true;
+        EnsureChildModuleSet(GetScriptContext());
+        childrenModuleSet->EachValue([&](SourceTextModuleRecord* childModuleRecord) {
+            if (childModuleRecord->ParentsNotified())
+            {
+                return false;
+            }
+            else
+            {
+                if (childModuleRecord->ConfirmChildrenParsed())
+                {
+                    return false;
+                }
+                else
+                {
+                    result = false;
+                    return true;
+                }
+            }
+        });
+        confirmedReady = false;
+        return result;
     }
 
     void SourceTextModuleRecord::EnsureChildModuleSet(ScriptContext *scriptContext)
@@ -751,16 +775,9 @@ namespace Js
         if (requestedModuleList != nullptr)
         {
             EnsureChildModuleSet(scriptContext);
-            ArenaAllocator* allocator = scriptContext->GeneralAllocator();
-            SList<LPCOLESTR> * moduleRecords = Anew(allocator, SList<LPCOLESTR>, allocator);
 
-            // Reverse the order for the host. So, host can read the files top-down
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
                 LPCOLESTR moduleName = specifier->Psz();
-                return !moduleRecords->Prepend(moduleName);
-            });
-
-            moduleRecords->MapUntil([&](LPCOLESTR moduleName) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
                 bool itemFound = childrenModuleSet->TryGetValue(moduleName, &moduleRecord);
@@ -787,7 +804,6 @@ namespace Js
                 }
                 return false;
             });
-            moduleRecords->Clear();
 
             if (FAILED(hr))
             {

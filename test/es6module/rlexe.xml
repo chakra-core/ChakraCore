@@ -140,6 +140,12 @@
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>multiple-roots-circular.js</files>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
   <test>
     <default>
       <files>GetModuleNamespace.js</files>

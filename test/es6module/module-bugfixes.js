@@ -67,6 +67,32 @@ var tests = [
             let functionBody = "import 'module_4570_dep1.js';"
             testRunner.LoadModule(functionBody);
         }
+    },
+    {
+        name: "Issue 5171: Incorrect module load order",
+        body: function() {
+            WScript.RegisterModuleSource("obj.js", `export const obj = {a:false, b: false, c: false};`);
+            WScript.RegisterModuleSource("a.js",`
+                import {obj} from "obj.js";
+                assert.isTrue(obj.b);
+                assert.isFalse(obj.c);
+                assert.isFalse(obj.a);
+                obj.a = true;`);
+            WScript.RegisterModuleSource("b.js",`
+                import {obj} from "obj.js";
+                assert.isFalse(obj.b);
+                assert.isFalse(obj.c);
+                assert.isFalse(obj.a);
+                obj.b = true;`);
+            WScript.RegisterModuleSource("c.js",`
+                import {obj} from "obj.js";
+                assert.isTrue(obj.b);
+                assert.isFalse(obj.c);
+                assert.isTrue(obj.a);
+                obj.c = true;`);
+            const start = 'import "b.js"; import "a.js"; import "c.js";';
+            testRunner.LoadModule(start);
+        }
     }
 ];
 
