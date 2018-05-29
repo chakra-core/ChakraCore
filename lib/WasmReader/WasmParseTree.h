@@ -49,6 +49,25 @@ namespace Wasm
             Any
         };
 
+#ifdef ENABLE_WASM_SIMD
+#define WASM_M128_CHECK_TYPE Wasm::WasmTypes::M128
+#else
+#define WASM_M128_CHECK_TYPE Wasm::WasmTypes::Limit
+#endif
+
+        template<WasmType... T>
+        struct CompileAssertCases
+        {
+            __declspec(noreturn) CompileAssertCases() { CompileAssertMsg(0, "WasmTypes missing in switch-case"); }
+        };
+        template<WasmType... T>
+        struct CompileAssertCasesNoFailFast
+        {
+            CompileAssertCasesNoFailFast() { CompileAssertMsg(0, "WasmTypes missing in switch-case"); }
+        };
+        __declspec(noreturn) CompileAssertCases<I32, I64, F32, F64, WASM_M128_CHECK_TYPE>::CompileAssertCases() { AssertOrFailFastMsg(UNREACHED, "The WasmType case should have been handled"); }
+        CompileAssertCasesNoFailFast<I32, I64, F32, F64, WASM_M128_CHECK_TYPE>::CompileAssertCasesNoFailFast() { AssertMsg(UNREACHED, "The WasmType case should have been handled"); }
+
         extern const char16* const strIds[Limit];
 
         bool IsLocalType(WasmTypes::WasmType type);
