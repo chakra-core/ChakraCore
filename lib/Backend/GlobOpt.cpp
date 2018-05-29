@@ -12746,6 +12746,8 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+    const bool isVirtualTypedArray = valueInfo->IsOptimizedVirtualTypedArray();
+
     Loop *implicitCallsLoop;
     if(currentBlock->next && !currentBlock->next->isDeleted && currentBlock->next->isLoopHeader)
     {
@@ -12760,7 +12762,7 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
         implicitCallsLoop = currentBlock->loop;
     }
 
-    if(isJsArray)
+    if(isJsArray || isVirtualTypedArray)
     {
         if(!DoArrayCheckHoist(valueInfo->Type(), implicitCallsLoop))
         {
@@ -12779,7 +12781,7 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
 #endif
 
-    if(!isJsArray)
+    if(!isJsArray && !isVirtualTypedArray)
     {
         return;
     }
@@ -12815,11 +12817,13 @@ GlobOpt::DoTrackCopiedValueForKills(Value *const value)
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+    const bool isVirtualTypedArray = valueInfo->IsOptimizedVirtualTypedArray();
+
 #if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock);
 #endif
 
-    if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
+    if(!isJsArray && !isVirtualTypedArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
         return;
     }
@@ -12862,11 +12866,13 @@ GlobOpt::DoTrackMergedValueForKills(
     const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
     Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
+    const bool isVirtualTypedArray = valueInfo->IsOptimizedVirtualTypedArray();
+
 #if DBG
     VerifyArrayValueInfoForTracking(valueInfo, isJsArray, currentBlock, true);
 #endif
 
-    if(!isJsArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
+    if(!isJsArray && !isVirtualTypedArray && !(valueInfo->IsArrayValueInfo() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym()))
     {
         return;
     }
@@ -12899,6 +12905,7 @@ GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const valu
 
     const bool trackOldValueInfo =
         oldValueInfo->IsArrayOrObjectWithArray() ||
+        oldValueInfo->IsOptimizedVirtualTypedArray() ||
         (
             oldValueInfo->IsOptimizedTypedArray() &&
             oldValueInfo->IsArrayValueInfo() &&
@@ -12915,6 +12922,7 @@ GlobOpt::TrackValueInfoChangeForKills(BasicBlock *const block, Value *const valu
 
     const bool trackNewValueInfo =
         newValueInfo->IsArrayOrObjectWithArray() ||
+        newValueInfo->IsOptimizedVirtualTypedArray() ||
         (
             newValueInfo->IsOptimizedTypedArray() &&
             newValueInfo->IsArrayValueInfo() &&
@@ -12983,6 +12991,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             ValueInfo *const valueInfo = value->GetValueInfo();
             Assert(
                 valueInfo->IsArrayOrObjectWithArray() ||
+                valueInfo->IsOptimizedVirtualTypedArray() ||
                 valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
             if (valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsOptimizedVirtualTypedArray())
             {
@@ -13008,6 +13017,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             ValueInfo *const valueInfo = value->GetValueInfo();
             Assert(
                 valueInfo->IsArrayOrObjectWithArray() ||
+                valueInfo->IsOptimizedVirtualTypedArray() ||
                 valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
             if(!valueInfo->IsArrayOrObjectWithArray() || !valueInfo->HasNoMissingValues())
             {
@@ -13028,6 +13038,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             ValueInfo *const valueInfo = value->GetValueInfo();
             Assert(
                 valueInfo->IsArrayOrObjectWithArray() ||
+                valueInfo->IsOptimizedVirtualTypedArray() ||
                 valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
             if(!valueInfo->IsArrayOrObjectWithArray() || valueInfo->HasVarElements())
             {
@@ -13054,6 +13065,7 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
         ValueInfo *valueInfo = value->GetValueInfo();
         Assert(
             valueInfo->IsArrayOrObjectWithArray() ||
+            valueInfo->IsOptimizedVirtualTypedArray() ||
             valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
         if(!valueInfo->IsArrayOrObjectWithArray())
         {
@@ -13129,8 +13141,9 @@ GlobOpt::ProcessValueKills(BasicBlock *const block, GlobOptBlockData *const bloc
         ValueInfo *const valueInfo = value->GetValueInfo();
         Assert(
             valueInfo->IsArrayOrObjectWithArray() ||
+            valueInfo->IsOptimizedVirtualTypedArray() ||
             valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
-        if(valueInfo->IsArrayOrObjectWithArray())
+        if(valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsOptimizedVirtualTypedArray())
         {
             ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
             continue;
@@ -13163,18 +13176,21 @@ GlobOpt::ProcessValueKillsForLoopHeaderAfterBackEdgeMerge(BasicBlock *const bloc
         ValueInfo *valueInfo = value->GetValueInfo();
         Assert(
             valueInfo->IsArrayOrObjectWithArray() ||
+            valueInfo->IsOptimizedVirtualTypedArray() ||
             valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
 
         const bool isJsArray = valueInfo->IsArrayOrObjectWithArray();
         Assert(!isJsArray == valueInfo->IsOptimizedTypedArray());
 
-        if(isJsArray ? loopKills.KillsValueType(valueInfo->Type()) : loopKills.KillsTypedArrayHeadSegmentLengths())
+        const bool isVirtualTypedArray = valueInfo->IsOptimizedVirtualTypedArray();
+
+        if((isJsArray || isVirtualTypedArray) ? loopKills.KillsValueType(valueInfo->Type()) : loopKills.KillsTypedArrayHeadSegmentLengths())
         {
             // Hoisting array checks and other related things for this type is disabled for the loop due to the kill, as
             // compensation code is currently not added on back-edges. When merging values from a back-edge, the array value
             // type cannot be definite, as that may require adding compensation code on the back-edge if the optimization pass
             // chooses to not optimize the array.
-            if(isJsArray)
+            if(isJsArray || isVirtualTypedArray)
             {
                 ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
             }
