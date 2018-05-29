@@ -126,8 +126,10 @@ namespace Js
 
         static Var GetToStringTagValue(RecyclableObject *thisArg, ScriptContext *scriptContext);
 
-		static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext);
-		static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext);
-		static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, size_t excludedLength, ScriptContext* scriptContext);
+		static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+		static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+		static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+
+		static BOOL CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext);
     };
 }
