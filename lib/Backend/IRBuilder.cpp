@@ -431,8 +431,6 @@ IRBuilder::Build()
 
     AssertMsg(sizeof(SymID) >= sizeof(Js::RegSlot), "sizeof(SymID) != sizeof(Js::RegSlot)!!");
 
-    offset = m_functionStartOffset;
-
     // Skip the last EndOfBlock opcode
     Assert(!OpCodeAttr::HasMultiSizeLayout(Js::OpCode::EndOfBlock));
     uint32 lastOffset = m_func->GetJITFunctionBody()->GetByteCodeLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
@@ -489,7 +487,7 @@ IRBuilder::Build()
     if (m_func->IsJitInDebugMode())
     {
         // This is first bailout in the function, the locals at stack have not initialized to undefined, so do not restore them.
-        this->InsertBailOutForDebugger(offset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep, nullptr);
+        this->InsertBailOutForDebugger(m_functionStartOffset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep, nullptr);
     }
 
 #ifdef BAILOUT_INJECTION
@@ -497,11 +495,7 @@ IRBuilder::Build()
     IR::Instr * lastInstr = m_lastInstr;
 #endif
 
-    if (m_statementReader.AtStatementBoundary(&m_jnReader))
-    {
-        statementIndex = this->AddStatementBoundary(statementIndex, offset);
-    }
-
+    offset = Js::Constants::NoByteCodeOffset;
     if (!this->IsLoopBody())
     {
         IR::Instr *instr;
@@ -544,7 +538,7 @@ IRBuilder::Build()
         {
             IR::RegOpnd *funcExprScopeOpnd = BuildDstOpnd(funcExprScopeReg);
             instr = IR::Instr::New(Js::OpCode::NewPseudoScope, funcExprScopeOpnd, m_func);
-            this->AddInstr(instr, (uint)-1);
+            this->AddInstr(instr, offset);
         }
 
         Js::RegSlot closureReg = m_func->GetJITFunctionBody()->GetLocalClosureReg();
@@ -593,7 +587,7 @@ IRBuilder::Build()
                 this->AddInstr(
                     IR::Instr::New(
                         Js::OpCode::InitLocalClosure, this->BuildDstOpnd(m_func->GetLocalClosureSym()->m_id), m_func),
-                    (uint32)-1);
+                    offset);
 
                 this->AddInstr(
                     IR::Instr::New(
@@ -601,7 +595,7 @@ IRBuilder::Build()
                         this->BuildFieldOpnd(
                             Js::OpCode::StSlot, m_func->GetLocalClosureSym()->m_id, 0, (Js::PropertyIdIndexType)-1, PropertyKindSlots),
                         closureOpnd, m_func),
-                    (uint32)-1);
+                    offset);
             }
         }
 
@@ -658,17 +652,23 @@ IRBuilder::Build()
                     this->AddInstr(
                         IR::Instr::New(
                             Js::OpCode::InitLocalClosure, this->BuildDstOpnd(m_func->GetLocalFrameDisplaySym()->m_id), m_func),
-                        (uint32)-1);
+                        offset);
 
                     this->AddInstr(
                         IR::Instr::New(
                             Js::OpCode::StSlot,
                             this->BuildFieldOpnd(Js::OpCode::StSlot, m_func->GetLocalFrameDisplaySym()->m_id, 0, (Js::PropertyIdIndexType)-1, PropertyKindSlots),
                             dstOpnd, m_func),
-                        (uint32)-1);
+                        offset);
                 }
             }
         }
+    }
+
+    offset = m_functionStartOffset;
+    if (m_statementReader.AtStatementBoundary(&m_jnReader))
+    {
+        statementIndex = this->AddStatementBoundary(statementIndex, offset);
     }
 
     // For label instr we can add bailout only after all labels were finalized. Put to list/add in the end.
