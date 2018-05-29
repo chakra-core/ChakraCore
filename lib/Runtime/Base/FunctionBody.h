@@ -879,7 +879,9 @@ namespace Js
             CodeGenRuntimeData = 11,
             PolymorphicInlineCachesHead = 12,     // DList of all polymorphic inline caches that aren't finalized yet
             PropertyIdsForScopeSlotArray = 13,    // For SourceInfo
+#if ENABLE_PROFILE_INFO
             PolymorphicCallSiteInfoHead  = 14,
+#endif
             AuxBlock = 15,                        // Optional auxiliary information
             AuxContextBlock = 16,                 // Optional auxiliary context specific information
             ReferencedPropertyIdMap = 17,
@@ -890,7 +892,9 @@ namespace Js
             ForInCacheArray = 22,
             SlotIdInCachedScopeToNestedIndexArray = 23,
             CodeGenCallbackRuntimeData = 24,
+#if ENABLE_PROFILE_INFO
             CallbackArgOutInfoList = 25,
+#endif
 
             Max,
             Invalid = 0xff
@@ -920,7 +924,9 @@ namespace Js
         AuxPointerTypeEntry(AuxPointerType::CodeGenRuntimeData, Field(FunctionCodeGenRuntimeData*)*);
         AuxPointerTypeEntry(AuxPointerType::PolymorphicInlineCachesHead, FunctionBodyPolymorphicInlineCache*);
         AuxPointerTypeEntry(AuxPointerType::PropertyIdsForScopeSlotArray, Js::PropertyId*);
+#if ENABLE_PROFILE_INFO
         AuxPointerTypeEntry(AuxPointerType::PolymorphicCallSiteInfoHead , PolymorphicCallSiteInfo*);
+#endif
         AuxPointerTypeEntry(AuxPointerType::AuxBlock, ByteBlock*);
         AuxPointerTypeEntry(AuxPointerType::AuxContextBlock, ByteBlock*);
         AuxPointerTypeEntry(AuxPointerType::ReferencedPropertyIdMap, PropertyId*);
@@ -931,7 +937,9 @@ namespace Js
         AuxPointerTypeEntry(AuxPointerType::ForInCacheArray, EnumeratorCache*);
         AuxPointerTypeEntry(AuxPointerType::SlotIdInCachedScopeToNestedIndexArray, Js::AuxArray<uint32>*);
         AuxPointerTypeEntry(AuxPointerType::CodeGenCallbackRuntimeData, Field(FunctionCodeGenRuntimeData*)*);
+#if ENABLE_PROFILE_INFO
         AuxPointerTypeEntry(AuxPointerType::CallbackArgOutInfoList, CallbackInfoList*);
+#endif
 #undef AuxPointerTypeEntry
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
