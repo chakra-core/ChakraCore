@@ -2127,6 +2127,7 @@ namespace Js
 		// Enumerate through each property of properties and fetch the property descriptor
 		while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
 		{
+			//TODO[huaiyudavid]: what's this do?
 			if (nextKey == Constants::NoProperty)
 			{
 				PropertyRecord const * propertyRecord = nullptr;
@@ -2134,6 +2135,9 @@ namespace Js
 				scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
 				nextKey = propertyRecord->GetPropertyId();
 			}
+
+			// Insert code here
+
 			PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
 
 
