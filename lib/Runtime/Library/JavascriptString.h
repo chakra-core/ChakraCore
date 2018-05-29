@@ -29,11 +29,14 @@ namespace Js
     bool IsValidCharCount(size_t charCount);
     const charcount_t k_InvalidCharCount = static_cast<charcount_t>(-1);
 
-    class JavascriptString _ABSTRACT : public RecyclableObject
+    class JavascriptString : public RecyclableObject
     {
         friend Lowerer;
         friend LowererMD;
         friend bool IsValidCharCount(size_t);
+
+        JavascriptString() = delete;
+        JavascriptString(JavascriptString&) = delete;
 
     private:
         Field(const char16*) m_pszValue;         // Flattened, '\0' terminated contents

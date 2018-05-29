@@ -82,7 +82,7 @@ namespace Js
     // Usage pattern:
     //   // Create concat tree using one of non-abstract derived classes.
     //   JavascriptString* result = concatTree->GetString();    // At this time we flatten the tree into 1 actual wchat_t* string.
-    class ConcatStringBase _ABSTRACT : public LiteralString // vtable will be switched to LiteralString's vtable after flattening
+    class ConcatStringBase : public LiteralString // vtable will be switched to LiteralString's vtable after flattening
     {
         friend JavascriptString;
 
