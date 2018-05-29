@@ -57,7 +57,7 @@ public:
 
 class ThreadContext;
 
-class InterruptPoller _ABSTRACT
+class InterruptPoller
 {
     // Interface with a polling object located in the hosting layer.
 

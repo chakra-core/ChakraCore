@@ -5,7 +5,7 @@
 #pragma once
 // This class is used to communicate between ThreadContext and JavascriptThreadService
 
-class ThreadServiceWrapper _ABSTRACT
+class ThreadServiceWrapper
 {
 public:
     virtual bool ScheduleNextCollectOnExit() = 0;

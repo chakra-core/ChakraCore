@@ -1180,8 +1180,10 @@ namespace JsUtil
 
     protected:
         template<class TDictionary, class Leaf>
-        class IteratorBase _ABSTRACT
+        class IteratorBase
         {
+            IteratorBase() = delete;
+
         protected:
             EntryType *const entries;
             int entryIndex;

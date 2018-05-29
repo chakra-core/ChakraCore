@@ -498,13 +498,6 @@ DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
 #include <stdint.h>
 #endif
 
-// MSVC specific keywords
-#if defined(_MSC_VER)
-#define _ABSTRACT abstract
-#else
-#define _ABSTRACT
-#endif
-
 // `typename QualifiedName` declarations outside of template code not supported before MSVC 2015 update 1
 #if defined(_MSC_VER) && _MSC_VER < 1910
 #define _TYPENAME

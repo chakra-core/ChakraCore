@@ -4814,6 +4814,7 @@ void JsReentLock::MutateArrayObject(Js::Var arrayObject)
     }
 }
 
+
 void JsReentLock::MutateArrayObject()
 {
     if (CONFIG_FLAG(EnableArrayTypeMutation))
