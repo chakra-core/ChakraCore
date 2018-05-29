@@ -16452,13 +16452,15 @@ void
 GlobOpt::OptHoistUpdateValueType(
     Loop* loop,
     IR::Instr* instr,
-    IR::Opnd* srcOpnd,
+    IR::Opnd** srcOpndPtr /* All code paths that change src, should update srcOpndPtr*/,
     Value* opndVal)
 {
-    if (opndVal == nullptr || instr->m_opcode == Js::OpCode::FromVar)
+    if (opndVal == nullptr || instr->m_opcode == Js::OpCode::FromVar || srcOpndPtr == nullptr || *srcOpndPtr == nullptr)
     {
         return;
     }
+
+    IR::Opnd* srcOpnd = *srcOpndPtr;
 
     Sym* opndSym = srcOpnd->GetSym();;
 
@@ -16472,8 +16474,11 @@ GlobOpt::OptHoistUpdateValueType(
 
         if (srcOpnd->GetValueType() != opndValueTypeInLandingPad)
         {
+            srcOpnd->SetValueType(opndValueTypeInLandingPad);
+
             if (instr->m_opcode == Js::OpCode::SetConcatStrMultiItemBE)
             {
+                Assert(!opndSym->IsPropertySym());
                 Assert(!opndValueTypeInLandingPad.IsString());
                 Assert(instr->GetDst());
 
@@ -16484,6 +16489,9 @@ GlobOpt::OptHoistUpdateValueType(
                     IR::Instr::New(Js::OpCode::Conv_PrimStr, strOpnd, srcOpnd->Use(instr->m_func), instr->m_func);
                 instr->ReplaceSrc(srcOpnd, strOpnd);
 
+                // Replace above will free srcOpnd, so reassign it
+                *srcOpndPtr = srcOpnd = reinterpret_cast<IR::Opnd *>(strOpnd);
+
                 if (loop->bailOutInfo->bailOutInstr)
                 {
                     loop->bailOutInfo->bailOutInstr->InsertBefore(convPrimStrInstr);
@@ -16492,9 +16500,10 @@ GlobOpt::OptHoistUpdateValueType(
                 {
                     landingPad->InsertAfter(convPrimStrInstr);
                 }
-            }
 
-            srcOpnd->SetValueType(opndValueTypeInLandingPad);
+                // If we came here opndSym can't be PropertySym
+                return;
+            }
         }
 
 
@@ -16528,7 +16537,7 @@ GlobOpt::OptHoistInvariant(
     if (src1)
     {
         // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
-        OptHoistUpdateValueType(loop, instr, src1, src1Val);
+        OptHoistUpdateValueType(loop, instr, &src1, src1Val);
 
         if (src1->IsRegOpnd())
         {
@@ -16538,7 +16547,7 @@ GlobOpt::OptHoistInvariant(
         IR::Opnd* src2 = instr->GetSrc2();
         if (src2)
         {
-            OptHoistUpdateValueType(loop, instr, src2, src2Val);
+            OptHoistUpdateValueType(loop, instr, &src2, src2Val);
 
             if (src2->IsRegOpnd())
             {
