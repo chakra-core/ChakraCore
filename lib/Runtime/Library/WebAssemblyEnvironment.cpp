@@ -150,10 +150,7 @@ void WebAssemblyEnvironment::SetGlobalInternal(uint32 offset, T val)
 
 Wasm::WasmConstLitNode WebAssemblyEnvironment::GetGlobalValue(Wasm::WasmGlobal* global) const
 {
-    if (!global)
-    {
-        Js::Throw::InternalError();
-    }
+    AssertOrFailFast(global);
     Wasm::WasmConstLitNode cnst;
     uint32 offset = module->GetOffsetForGlobal(global);
 
@@ -163,18 +160,18 @@ Wasm::WasmConstLitNode WebAssemblyEnvironment::GetGlobalValue(Wasm::WasmGlobal* 
     case Wasm::WasmTypes::I64: cnst.i64 = GetGlobalInternal<int64>(offset); break;
     case Wasm::WasmTypes::F32: cnst.f32 = GetGlobalInternal<float>(offset); break;
     case Wasm::WasmTypes::F64: cnst.f64 = GetGlobalInternal<double>(offset); break;
+#ifdef ENABLE_WASM_SIMD
+    case Wasm::WasmTypes::M128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
+#endif
     default:
-        Js::Throw::InternalError();
+        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
     }
     return cnst;
 }
 
 void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::WasmConstLitNode cnst)
 {
-    if (!global)
-    {
-        Js::Throw::InternalError();
-    }
+    AssertOrFailFast(global);
     uint32 offset = module->GetOffsetForGlobal(global);
 
     switch (global->GetType())
@@ -183,8 +180,11 @@ void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::Wasm
     case Wasm::WasmTypes::I64: SetGlobalInternal<int64>(offset, cnst.i64); break;
     case Wasm::WasmTypes::F32: SetGlobalInternal<float>(offset, cnst.f32); break;
     case Wasm::WasmTypes::F64: SetGlobalInternal<double>(offset, cnst.f64); break;
+#ifdef ENABLE_WASM_SIMD
+    case Wasm::WasmTypes::M128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
+#endif
     default:
-        Js::Throw::InternalError();
+        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
     }
 }
 

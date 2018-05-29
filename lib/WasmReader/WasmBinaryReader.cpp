@@ -692,6 +692,8 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += Simd::VEC_WIDTH;
         break;
 #endif
+    default:
+        WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
     }
 }
 

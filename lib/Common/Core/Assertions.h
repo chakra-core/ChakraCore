@@ -95,6 +95,10 @@ extern int IsInAssert;
 #define CompileAssert(e) static_assert(e, #e)
 #endif
 
+#ifndef CompileAssertMsg
+#define CompileAssertMsg(e, msg) static_assert(e, msg)
+#endif
+
 // We set IsPointer<T>::IsTrue to true if T is a pointer type
 // Otherwise, it's set to false
 template <class T>
