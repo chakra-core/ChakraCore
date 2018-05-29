@@ -2919,26 +2919,29 @@ NativeCodeGenerator::GatherCodeGenData(
 
             if (PHASE_ENABLED(InlineCallbacksPhase, functionBody))
             {
-                Js::FunctionInfo *const callbackInfo = inliningDecider.InlineCallback(functionBody, profiledCallSiteId, recursiveInlineDepth);
-                if (callbackInfo != nullptr)
+                if (!isJitTimeDataComputed)
                 {
-                    Js::FunctionBody *const callbackBody = callbackInfo->GetFunctionBody();
-                    if (callbackBody != nullptr && callbackBody != functionBody)
+                    Js::FunctionInfo *const callbackInfo = inliningDecider.InlineCallback(functionBody, profiledCallSiteId, recursiveInlineDepth);
+                    if (callbackInfo != nullptr)
                     {
-                        Js::FunctionCodeGenJitTimeData * callbackJitTimeData = jitTimeData->AddCallbackInlinee(recycler, profiledCallSiteId, callbackInfo);
-                        Js::FunctionCodeGenRuntimeData * callbackRuntimeData = IsInlinee ? runtimeData->EnsureCallbackInlinee(recycler, profiledCallSiteId, callbackBody) : functionBody->EnsureCallbackInlineeCodeGenRuntimeData(recycler, profiledCallSiteId, callbackBody);
+                        Js::FunctionBody *const callbackBody = callbackInfo->GetFunctionBody();
+                        if (callbackBody != nullptr && callbackBody != functionBody)
+                        {
+                            Js::FunctionCodeGenJitTimeData * callbackJitTimeData = jitTimeData->AddCallbackInlinee(recycler, profiledCallSiteId, callbackInfo);
+                            Js::FunctionCodeGenRuntimeData * callbackRuntimeData = IsInlinee ? runtimeData->EnsureCallbackInlinee(recycler, profiledCallSiteId, callbackBody) : functionBody->EnsureCallbackInlineeCodeGenRuntimeData(recycler, profiledCallSiteId, callbackBody);
 
-                        GatherCodeGenData<true>(
-                            recycler,
-                            topFunctionBody,
-                            callbackBody,
-                            entryPoint,
-                            inliningDecider,
-                            objTypeSpecFldInfoList,
-                            callbackJitTimeData,
-                            callbackRuntimeData);
+                            GatherCodeGenData<true>(
+                                recycler,
+                                topFunctionBody,
+                                callbackBody,
+                                entryPoint,
+                                inliningDecider,
+                                objTypeSpecFldInfoList,
+                                callbackJitTimeData,
+                                callbackRuntimeData);
 
-                        AddInlineCacheStats(jitTimeData, callbackJitTimeData);
+                            AddInlineCacheStats(jitTimeData, callbackJitTimeData);
+                        }
                     }
                 }
             }
