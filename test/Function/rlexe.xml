@@ -449,4 +449,10 @@
       <compile-flags>-force:deferparse -force:redeferral</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_os17698041.js</files>
+      <compile-flags>-off:deferparse -force:redeferral -collectgarbage -parserstatecache -useparserstatecache</compile-flags>
+    </default>
+  </test>
 </regress-exe>
