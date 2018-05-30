@@ -177,12 +177,13 @@ namespace Js
             // OACR thinks that this can change between here and the check in the for loop below
             const unsigned int argCount = args.Info.Count;
 
-            if ((boundFunction->count + args.GetArgCountWithExtraArgs()) > CallInfo::kMaxCountArgs)
+            uint32 newArgCount = UInt32Math::Add(boundFunction->count, args.GetLargeArgCountWithExtraArgs());
+            if (newArgCount > CallInfo::kMaxCountArgs)
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
 
-            Field(Var) *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), boundFunction->count + args.GetArgCountWithExtraArgs());
+            Field(Var) *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), newArgCount);
 
             uint index = 0;
 
@@ -218,7 +219,7 @@ namespace Js
             actualArgs = Arguments(args.Info, unsafe_write_barrier_cast<Var*>(newValues));
             actualArgs.Info.Count = boundFunction->count + argCount;
 
-            Assert(index == actualArgs.GetArgCountWithExtraArgs());
+            Assert(index == actualArgs.GetLargeArgCountWithExtraArgs());
         }
         else
         {
