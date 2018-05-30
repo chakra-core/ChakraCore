@@ -1146,6 +1146,8 @@ public:
 #ifdef NTBUILD
     void SetTelemetryBlock(RecyclerWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
 #endif
+    
+    uint GetPinnedObjectCount() const { return this->pinnedObjectMap.Count(); }
 
     void Prime();
     void* GetOwnerContext() { return (void*) this->collectionWrapper; }

@@ -622,7 +622,7 @@ private:
     bool reentrancySafeOrHandled;
     bool isInReentrancySafeRegion;
 
-    AllocationPolicyManager * allocationPolicyManager;
+    AllocationPolicyManager * allocationPolicyManager; 
 
     JsUtil::ThreadService threadService;
 #if ENABLE_NATIVE_CODEGEN
@@ -855,6 +855,11 @@ public:
     PageAllocator * GetPageAllocator() { return &pageAllocator; }
 
     AllocationPolicyManager * GetAllocationPolicyManager() { return allocationPolicyManager; }
+
+    // used for diagnosing abnormally high number of closed, but still formally reachable script contexts
+    // at the time of failfast due to allocation limits.
+    // high number may indicate that context leaks have occured.
+    uint closedScriptContextCount;
 
 #if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
