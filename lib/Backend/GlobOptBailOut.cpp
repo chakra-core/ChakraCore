@@ -1372,24 +1372,10 @@ GlobOpt::MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Va
 void
 GlobOpt::GenerateBailAfterOperation(IR::Instr * *const pInstr, IR::BailOutKind kind)
 {
-    Assert(pInstr);
+    Assert(pInstr && *pInstr);
 
     IR::Instr* instr = *pInstr;
-    Assert(instr);
-
-    IR::Instr * nextInstr = instr->GetNextRealInstrOrLabel();
-    uint32 currentOffset = instr->GetByteCodeOffset();
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() == currentOffset)
-    {
-        nextInstr = nextInstr->GetNextRealInstrOrLabel();
-    }
-    // This can happen due to break block removal
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() < currentOffset)
-    {
-        nextInstr = nextInstr->GetNextRealInstrOrLabel();
-    }
+    IR::Instr * nextInstr = instr->GetNextByteCodeInstr();
     IR::Instr * bailOutInstr = instr->ConvertToBailOutInstr(nextInstr, kind);
     if (this->currentBlock->GetLastInstr() == instr)
     {
