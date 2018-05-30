@@ -3688,12 +3688,12 @@ BOOL Lowerer::IsSmallObject(uint32 length)
     return HeapInfo::IsSmallObject(HeapInfo::GetAlignedSizeNoCheck(allocSize));
 }
 
-void
+bool
 Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func) || CONFIG_FLAG(ForceES5Array))
     {
-        return;
+        return false;
     }
 
     Func * func = this->m_func;
@@ -3708,7 +3708,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     {
         if (!IsSmallObject<Js::JavascriptNativeIntArray>(length))
         {
-            return;
+            return false;
         }
         GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
@@ -3726,7 +3726,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     {
         if (!IsSmallObject<Js::JavascriptNativeFloatArray>(length))
         {
-            return;
+            return false;
         }
         GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
@@ -3750,7 +3750,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     {
         if (!IsSmallObject<Js::JavascriptArray>(length))
         {
-            return;
+            return false;
         }
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
         headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed);
@@ -3770,6 +3770,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     instr->InsertBefore(helperLabel);
 
     instr->InsertAfter(doneLabel);
+    return true;
 }
 
 void
@@ -4031,12 +4032,12 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * arrayLenOpnd, Js::Array
 }
 
 
-void
+bool
 Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone, bool isNoArgs)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func))
     {
-        return;
+        return false;
     }
 
     Func * func = this->m_func;
@@ -4096,17 +4097,18 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     // Skip pass the helper call
     InsertBranch(Js::OpCode::Br, labelDone, instr);
     instr->InsertBefore(helperLabel);
+    return true;
 }
 
 
 template <typename ArrayType>
-void
+bool
 Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, IR::LabelInstr* helperLabel,
                    IR::LabelInstr* labelDone, IR::Opnd* lengthOpnd, uint32 offsetOfCallSiteIndex, uint32 offsetOfWeakFuncRef)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func))
     {
-        return;
+        return false;
     }
 
     Func * func = this->m_func;
@@ -4200,6 +4202,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 
     Lowerer::InsertBranch(Js::OpCode::Br, labelDone, instr);
     instr->InsertBefore(helperLabel);
+    return true;
 }
 
 void
@@ -5272,26 +5275,29 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
             AssertMsg(linkSym->IsArgSlotSym(), "Not an argSlot symbol...");
             linkOpnd = argInstr->GetSrc2();
 
-            bool emittedFastPath = true;
+            bool emittedFastPath = false;
             // 2a. If 1st parameter is a variable, emit fast path with checks
             if (opndOfArrayCtor->IsRegOpnd())
             {
-                // 3. GenerateFastPath
-                if (arrayInfo && arrayInfo->IsNativeIntArray())
+                if (!opndOfArrayCtor->AsRegOpnd()->IsNotInt())
                 {
-                    GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeIntArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
-                                                            Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex(),
-                                                            Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef());
-                }
-                else if (arrayInfo && arrayInfo->IsNativeFloatArray())
-                {
-                    GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeFloatArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
-                                                              Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex(),
-                                                              Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef());
-                }
-                else
-                {
-                    GenerateProfiledNewScObjArrayFastPath<Js::JavascriptArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor, 0, 0);
+                    // 3. GenerateFastPath
+                    if (arrayInfo && arrayInfo->IsNativeIntArray())
+                    {
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeIntArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
+                                                                Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex(),
+                                                                Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef());
+                    }
+                    else if (arrayInfo && arrayInfo->IsNativeFloatArray())
+                    {
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeFloatArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
+                                                                  Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex(),
+                                                                  Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef());
+                    }
+                    else
+                    {
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor, 0, 0);
+                    }
                 }
             }
             // 2b. If 1st parameter is a constant, it is in range 0 and upperBoundValue (inclusive)
@@ -5300,11 +5306,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                 int32 length = linkSym->GetIntConstValue();
                 if (length >= 0 && length <= upperBoundValue)
                 {
-                    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone, false);
-                }
-                else
-                {
-                    emittedFastPath = false;
+                    emittedFastPath = GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone, false);
                 }
             }
             // Since we emitted fast path above, move the startCall/argOut instruction right before helper
