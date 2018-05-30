@@ -317,7 +317,9 @@ FlowGraph::Build(void)
 
             Assert(leaveTarget->labelRefs.HasOne());
             IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, finallyLabel, instr->m_func);
-            leaveTarget->labelRefs.Head()->InsertBefore(brOnException);
+            IR::BranchInstr * leaveInstr = leaveTarget->labelRefs.Head();
+            brOnException->SetByteCodeOffset(leaveInstr);
+            leaveInstr->InsertBefore(brOnException);
 
             instrPrev = instr->m_prev;
         }

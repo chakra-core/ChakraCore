@@ -2715,7 +2715,10 @@ Instr::GetNextByteCodeInstr() const
         {
             IR::BranchInstr* branchInstr = nextInstr->AsBranchInstr();
             AssertMsg(branchInstr->IsUnconditional(), "We can't know which branch to take on a conditionnal branch");
-            return branchInstr->GetTarget();
+            if (branchInstr->IsUnconditional())
+            {
+                return branchInstr->GetTarget();
+            }
         }
         return nextInstr->GetNextRealInstrOrLabel();
     };
