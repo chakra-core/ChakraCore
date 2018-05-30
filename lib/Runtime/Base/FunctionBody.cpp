@@ -1433,6 +1433,11 @@ namespace Js
         {
             other->SetIsJsBuiltInCode();
         }
+
+#define CopyDeferParseField(field) other->field = this->field;
+        CopyDeferParseField(deferredPrototypeType);
+        CopyDeferParseField(undeferredFunctionType);
+#undef CopyDeferParseField
     }
 
     void ParseableFunctionInfo::Copy(ParseableFunctionInfo * other)
@@ -1466,8 +1471,6 @@ namespace Js
         other->SetCachedSourceStringWeakRef(this->GetCachedSourceStringWeakRef());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
-        CopyDeferParseField(deferredPrototypeType);
-        CopyDeferParseField(undeferredFunctionType);
 
         other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
 
