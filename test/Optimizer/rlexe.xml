@@ -1490,6 +1490,12 @@
   </test>
   <test>
     <default>
+      <files>test151.js</files>
+      <compile-flags>-off:usefixeddataprops -off:objtypespec</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>IsIn_ArrayNoMissingValues.js</files>
       <baseline>IsIn_ArrayNoMissingValues.baseline</baseline>
       <compile-flags>-testtrace:BoundCheckElimination</compile-flags>

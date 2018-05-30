@@ -1710,8 +1710,7 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
             PropertySym *newProp = PropertySym::FindOrCreate(
                 copySym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->func);
 
-            if (!this->IsLoopPrePass() || 
-                 (IsSafeToTransferInPrepass(objSym, val->GetValueInfo()) && IsSafeToTransferInPrepass(copySym, val->GetValueInfo())))
+            if (!this->IsLoopPrePass() || SafeToCopyPropInPrepass(objSym, copySym, val))
             {
 #if DBG_DUMP
                 if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::GlobOptPhase, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()))
