@@ -988,7 +988,7 @@ namespace Js
     Var
     FunctionBody::GetFormalsPropIdArrayOrNullObj()
     {
-        Var formalsPropIdArray = this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray);
+        Var formalsPropIdArray = this->GetAuxPtrWithLock<AuxPointerType::FormalsPropIdArray>();
         if (formalsPropIdArray == nullptr)
         {
             return GetScriptContext()->GetLibrary()->GetNull();
@@ -1001,16 +1001,16 @@ namespace Js
     {
         if (checkForNull)
         {
-            Assert(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
+            Assert(this->GetAuxPtrWithLock<AuxPointerType::FormalsPropIdArray>());
         }
-        return static_cast<PropertyIdArray*>(this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray));
+        return this->GetAuxPtrWithLock<AuxPointerType::FormalsPropIdArray>();
     }
 
     void
     FunctionBody::SetFormalsPropIdArray(PropertyIdArray * propIdArray)
     {
-        AssertMsg(propIdArray == nullptr || this->GetAuxPtrWithLock(AuxPointerType::FormalsPropIdArray) == nullptr, "Already set?");
-        this->SetAuxPtr(AuxPointerType::FormalsPropIdArray, propIdArray);
+        AssertMsg(propIdArray == nullptr || this->GetAuxPtrWithLock<AuxPointerType::FormalsPropIdArray>() == nullptr, "Already set?");
+        this->SetAuxPtr<AuxPointerType::FormalsPropIdArray>(propIdArray);
     }
 
     ByteBlock*
@@ -1907,7 +1907,7 @@ namespace Js
             {
                 return string;
             }
-            this->SetAuxPtr(AuxPointerType::CachedSourceString, nullptr);
+            this->SetAuxPtr<AuxPointerType::CachedSourceString>(nullptr);
         }
         return nullptr;
     }
@@ -1923,13 +1923,13 @@ namespace Js
 
     RecyclerWeakReference<JavascriptString> * ParseableFunctionInfo::GetCachedSourceStringWeakRef()
     {
-        return static_cast<RecyclerWeakReference<JavascriptString> *>(this->GetAuxPtr(AuxPointerType::CachedSourceString));
+        return this->GetAuxPtr<AuxPointerType::CachedSourceString>();
     }
 
     void ParseableFunctionInfo::SetCachedSourceStringWeakRef(RecyclerWeakReference<JavascriptString> * weakRef)
     {
         Assert(this->GetCachedSourceString() == nullptr);
-        this->SetAuxPtr(AuxPointerType::CachedSourceString, weakRef);
+        this->SetAuxPtr<AuxPointerType::CachedSourceString>(weakRef);
     }
 
     FunctionInfoArray ParseableFunctionInfo::GetNestedFuncArray()
@@ -2053,12 +2053,12 @@ namespace Js
     // Function object type list methods
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::GetFunctionObjectTypeList() const
     {
-        return static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::FunctionObjectTypeList));
+        return this->GetAuxPtr<AuxPointerType::FunctionObjectTypeList>();
     }
 
     void FunctionProxy::SetFunctionObjectTypeList(FunctionProxy::FunctionTypeWeakRefList* list)
     {
-        this->SetAuxPtr(AuxPointerType::FunctionObjectTypeList, list);
+        this->SetAuxPtr<AuxPointerType::FunctionObjectTypeList>(list);
     }
 
     template <typename Fn>
@@ -4036,7 +4036,7 @@ namespace Js
 //        Assert(CanDoStackNestedFunc());
         Assert(parentFunctionBody->DoStackNestedFunc());
 
-        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionInfo));
+        this->SetAuxPtr<AuxPointerType::StackNestedFuncParent>(this->GetScriptContext()->GetRecycler()->CreateWeakReferenceHandle(parentFunctionInfo));
     }
 
     FunctionInfo * FunctionBody::GetStackNestedFuncParentStrongRef()
@@ -4047,12 +4047,12 @@ namespace Js
 
     RecyclerWeakReference<FunctionInfo> * FunctionBody::GetStackNestedFuncParent()
     {
-        return static_cast<RecyclerWeakReference<FunctionInfo>*>(this->GetAuxPtr(AuxPointerType::StackNestedFuncParent));
+        return this->GetAuxPtr<AuxPointerType::StackNestedFuncParent>();
     }
 
     FunctionInfo * FunctionBody::GetAndClearStackNestedFuncParent()
     {
-        if (this->GetAuxPtr(AuxPointerType::StackNestedFuncParent))
+        if (this->GetAuxPtr<AuxPointerType::StackNestedFuncParent>())
         {
             FunctionInfo * parentFunctionInfo = GetStackNestedFuncParentStrongRef();
             ClearStackNestedFuncParent();
@@ -4063,7 +4063,7 @@ namespace Js
 
     void FunctionBody::ClearStackNestedFuncParent()
     {
-        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, nullptr);
+        this->SetAuxPtr<AuxPointerType::StackNestedFuncParent>(nullptr);
     }
 
     void FunctionBody::CreateCacheIdToPropertyIdMap(uint rootObjectLoadInlineCacheStart, uint rootObjectLoadMethodInlineCacheStart,
@@ -5157,7 +5157,7 @@ namespace Js
 
         // Set other state back to before parse as well
         this->SetStackNestedFunc(false);
-        this->SetAuxPtr(AuxPointerType::StackNestedFuncParent, nullptr);
+        this->SetAuxPtr<AuxPointerType::StackNestedFuncParent>(nullptr);
         this->SetReparsed(true);
 #if DBG
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -6053,18 +6053,18 @@ namespace Js
         {
             return;
         }
-        this->SetAuxPtr(AuxPointerType::ForInCacheArray, AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), EnumeratorCache, profiledForInLoopCount));
+        this->SetAuxPtr<AuxPointerType::ForInCacheArray>(AllocatorNewArrayZ(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), EnumeratorCache, profiledForInLoopCount));
     }
 
     EnumeratorCache * FunctionBody::GetForInCache(uint index)
     {
         Assert(index < this->GetProfiledForInLoopCount());
-        return &((EnumeratorCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray))[index];
+        return &this->GetAuxPtr<AuxPointerType::ForInCacheArray>()[index];
     }
 
     EnumeratorCache * FunctionBody::GetForInCacheArray()
     {
-        return ((EnumeratorCache *)this->GetAuxPtrWithLock(AuxPointerType::ForInCacheArray));
+        return this->GetAuxPtrWithLock<AuxPointerType::ForInCacheArray>();
     }
 
     void FunctionBody::CleanUpForInCache(bool isShutdown)
@@ -6074,7 +6074,7 @@ namespace Js
         {
             return;
         }
-        EnumeratorCache * forInCacheArray = (EnumeratorCache *)this->GetAuxPtr(AuxPointerType::ForInCacheArray);
+        EnumeratorCache * forInCacheArray = this->GetAuxPtr<AuxPointerType::ForInCacheArray>();
         if (forInCacheArray)
         {
             if (isShutdown)
@@ -6084,7 +6084,7 @@ namespace Js
             else
             {
                 AllocatorDeleteArray(CacheAllocator, this->GetScriptContext()->GetEnumeratorAllocator(), profiledForInLoopCount, forInCacheArray);
-                this->SetAuxPtr(AuxPointerType::ForInCacheArray, nullptr);
+                this->SetAuxPtr<AuxPointerType::ForInCacheArray>(nullptr);
             }
         }
     }
@@ -6360,7 +6360,7 @@ namespace Js
     AsmJsFunctionInfo* FunctionBody::AllocateAsmJsFunctionInfo()
     {
         Assert( !this->GetAsmJsFunctionInfo() );
-        this->SetAuxPtr(AuxPointerType::AsmJsFunctionInfo, RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
+        this->SetAuxPtr<AuxPointerType::AsmJsFunctionInfo>(RecyclerNew( m_scriptContext->GetRecycler(), AsmJsFunctionInfo));
         return this->GetAsmJsFunctionInfo();
     }
 
@@ -6368,7 +6368,7 @@ namespace Js
     {
         Assert( !this->GetAsmJsModuleInfo() );
         Recycler* rec = m_scriptContext->GetRecycler();
-        this->SetAuxPtr(AuxPointerType::AsmJsModuleInfo, RecyclerNew(rec, AsmJsModuleInfo, rec));
+        this->SetAuxPtr<AuxPointerType::AsmJsModuleInfo>(RecyclerNew(rec, AsmJsModuleInfo, rec));
         return this->GetAsmJsModuleInfo();
     }
 #endif
@@ -6528,11 +6528,11 @@ namespace Js
         return runtimeData;
     }
 
+    template<Js::FunctionProxy::AuxPointerType auxType>
     FunctionCodeGenRuntimeData * FunctionBody::EnsureCodeGenRuntimeDataCommon(
         Recycler *const recycler,
         __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
-        FunctionBody *const inlinee,
-        AuxPointerType auxType)
+        FunctionBody *const inlinee)
     {
         Assert(recycler);
         Assert(profiledCallSiteId < profiledCallSiteCount);
@@ -6544,7 +6544,7 @@ namespace Js
             this->SetAuxPtr(auxType, codeGenRuntimeData);
         }
 
-        Field(FunctionCodeGenRuntimeData *)* codeGenRuntimeData = static_cast<Field(FunctionCodeGenRuntimeData *)*>(this->GetAuxPtr(auxType));
+        Field(FunctionCodeGenRuntimeData *)* codeGenRuntimeData = this->GetAuxPtr<auxType>();
         Field(FunctionCodeGenRuntimeData *) const inlineeData = codeGenRuntimeData[profiledCallSiteId];
         if (inlineeData == nullptr)
         {
@@ -6577,7 +6577,7 @@ namespace Js
         __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
         FunctionBody *const inlinee)
     {
-        return EnsureCodeGenRuntimeDataCommon(recycler, profiledCallSiteId, inlinee, AuxPointerType::CodeGenRuntimeData);
+        return EnsureCodeGenRuntimeDataCommon<AuxPointerType::CodeGenRuntimeData>(recycler, profiledCallSiteId, inlinee);
     }
 
     FunctionCodeGenRuntimeData * FunctionBody::EnsureCallbackInlineeCodeGenRuntimeData(
@@ -6585,7 +6585,7 @@ namespace Js
         __in_range(0, profiledCallSiteCount - 1) const ProfileId profiledCallSiteId,
         FunctionBody *const inlinee)
     {
-        return EnsureCodeGenRuntimeDataCommon(recycler, profiledCallSiteId, inlinee, AuxPointerType::CodeGenCallbackRuntimeData);
+        return EnsureCodeGenRuntimeDataCommon<AuxPointerType::CodeGenCallbackRuntimeData>(recycler, profiledCallSiteId, inlinee);
     }
 
     const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
@@ -6740,12 +6740,12 @@ namespace Js
     }
     FunctionEntryPointInfo *FunctionBody::GetSimpleJitEntryPointInfo() const
     {
-        return static_cast<FunctionEntryPointInfo *>(this->GetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo));
+        return this->GetAuxPtr<AuxPointerType::SimpleJitEntryPointInfo>();
     }
 
     void FunctionBody::SetSimpleJitEntryPointInfo(FunctionEntryPointInfo *const entryPointInfo)
     {
-        this->SetAuxPtr(AuxPointerType::SimpleJitEntryPointInfo, entryPointInfo);
+        this->SetAuxPtr<AuxPointerType::SimpleJitEntryPointInfo>(entryPointInfo);
     }
 
 
