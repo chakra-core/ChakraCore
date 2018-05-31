@@ -565,6 +565,7 @@ private:
     bool                    IsPrepassSrcValueInfoPrecise(IR::Opnd *const src, Value *const srcValue, bool * canTransferValueNumberToDst = nullptr) const;
     bool                    IsPrepassSrcValueInfoPrecise(IR::Instr *const instr, Value *const src1Value, Value *const src2Value, bool * canTransferValueNumberToDst = nullptr) const;
     bool                    IsSafeToTransferInPrepass(StackSym * const sym, ValueInfo *const srcValueInfo) const;
+    bool                    SafeToCopyPropInPrepass(StackSym * const originalSym, StackSym * const copySym, Value *const value) const;
     Value *                 CreateDstUntransferredIntValue(const int32 min, const int32 max, IR::Instr *const instr, Value *const src1Value, Value *const src2Value);
     Value *                 CreateDstUntransferredValue(const ValueType desiredValueType, IR::Instr *const instr, Value *const src1Value, Value *const src2Value);
     Value *                 ValueNumberTransferDst(IR::Instr *const instr, Value *src1Val);

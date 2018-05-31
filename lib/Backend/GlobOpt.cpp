@@ -5560,6 +5560,30 @@ GlobOpt::IsSafeToTransferInPrepass(StackSym * const srcSym, ValueInfo *const src
         !currentBlock->loop->IsSymAssignedToInSelfOrParents(srcSym);
 }
 
+bool
+GlobOpt::SafeToCopyPropInPrepass(StackSym * const originalSym, StackSym * const copySym, Value *const value) const
+{
+    Assert(this->currentBlock->globOptData.GetCopyPropSym(originalSym, value) == copySym);
+
+    // In the following example, to copy-prop s2 into s1, it is not enough to check if s1 and s2 are safe to transfer.
+    // In fact, both s1 and s2 are safe to transfer, but it is not legal to copy prop s2 into s1. 
+    //
+    // s1 = s2
+    // $Loop:
+    //   s3 = s1
+    //   s2 = s4
+    //   Br $Loop
+    //
+    // In general, requirements for copy-propping in prepass are more restricted than those for transferring values.
+    // For copy prop in prepass, if the original sym is live on back-edge, then the copy-prop sym should not be written to
+    // in the loop (or its parents)
+    
+    ValueInfo* const valueInfo = value->GetValueInfo();
+    return IsSafeToTransferInPrepass(originalSym, valueInfo) &&
+        IsSafeToTransferInPrepass(copySym, valueInfo) &&
+        (!currentBlock->loop->regAlloc.liveOnBackEdgeSyms->Test(originalSym->m_id) || !currentBlock->loop->IsSymAssignedToInSelfOrParents(copySym));
+}
+
 Value *GlobOpt::CreateDstUntransferredIntValue(
     const int32 min,
     const int32 max,
