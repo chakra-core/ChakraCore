@@ -130,6 +130,12 @@ var tests = [
         function foo() {}
         Reflect.construct(foo, new Array(2**16-2));
       } catch(e) { }
+
+      try {
+        function foo() {}
+        var bar = foo.bind({}, 1);
+        new bar(...(new Array(2**16+1)))
+      } catch(e) { }
     }
   }
   
