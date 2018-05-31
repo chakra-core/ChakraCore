@@ -720,6 +720,11 @@ DWORD ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetCurrentScri
     return this->tc->GetCurrentThreadId();
 }
 
+uint ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetClosedContextCount() const
+{
+	return this->tc->closedScriptContextCount;
+}
+
 Recycler* ThreadContext::EnsureRecycler()
 {
     if (recycler == NULL)
