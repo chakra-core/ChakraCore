@@ -876,6 +876,7 @@ private:
         uint32 *pShortNameOffset = nullptr,
         _Inout_opt_ IdentToken* pToken = nullptr,
         bool fUnaryOrParen = false,
+        BOOL fCanAssignToCall = TRUE,
         _Out_opt_ BOOL* pfCanAssign = nullptr,
         _Inout_opt_ BOOL* pfLikelyPattern = nullptr,
         _Out_opt_ bool* pfIsDotOrIndex = nullptr,
@@ -886,6 +887,7 @@ private:
         BOOL fAllowCall, 
         BOOL fInNew, 
         BOOL isAsyncExpr,
+        BOOL fCanAssignToCallResult,
         BOOL *pfCanAssign, 
         _Inout_ IdentToken* pToken, 
         _Out_opt_ bool* pfIsDotOrIndex = nullptr);

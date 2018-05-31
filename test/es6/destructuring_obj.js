@@ -142,7 +142,7 @@ var tests = [
       assert.doesNotThrow(function () { eval("let a; ({a:((((a1))))} = {a:20})"); }, "Object expression pattern with parens is valid syntax");
       assert.doesNotThrow(function () { eval("let a, r1; ({a:a1 = r1} = {})"); }, "Object expression pattern with defaults as reference is valid syntax");
       assert.doesNotThrow(function () { eval("let a, r1; ({a:a1 = r1 = 44} = {})"); }, "Object expression pattern with chained assignments as defaults is valid syntax");
-      assert.throws(function () { eval("let a, r1; ({a:(a1 = r1) = 44} = {})"); }, SyntaxError, "Object expression pattern with chained assignments but paren in between is not valid syntax", "Expected ')'");
+      assert.throws(function () { eval("let a, r1; ({a:(a1 = r1) = 44} = {})"); }, ReferenceError, "Object expression pattern with chained assignments but paren in between is not valid syntax", "Invalid left-hand side in assignment");
       assert.doesNotThrow(function () { eval("var a; `${({a} = {})}`"); }, "Object expression pattern inside a string template is valid syntax");
       assert.throws(function () { eval("for (let {x} = {} of []) {}"); }, SyntaxError, "for.of has declaration pattern with initializer is not valid syntax", "for-of loop head declarations cannot have an initializer");
       assert.throws(function () { eval("for (let {x} = {} in []) {}"); }, SyntaxError, "for.in has declaration pattern with initializer is not valid syntax", "for-in loop head declarations cannot have an initializer");
