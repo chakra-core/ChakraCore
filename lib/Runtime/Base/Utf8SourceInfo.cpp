@@ -59,6 +59,25 @@ namespace Js
 #endif
     }
 
+    LPCUTF8 Utf8SourceInfo::GetSourceFromHolder(const char16 * reason) const
+    {
+        LPCUTF8 toReturn = nullptr;
+        if (GetScriptContext()->GetThreadContext()->IsScriptActive())
+        {
+            BEGIN_LEAVE_SCRIPT(GetScriptContext())
+                toReturn = this->sourceHolder->GetSource(reason);
+            END_LEAVE_SCRIPT(GetScriptContext())
+        }
+        else
+        {
+            // Saving the exception state as we could go to host here.
+            BEGIN_NO_EXCEPTION
+                toReturn = this->sourceHolder->GetSource(reason);
+            END_NO_EXCEPTION
+        }
+        return toReturn;
+    }
+
     LPCUTF8 Utf8SourceInfo::GetSource(const char16 * reason) const
     {
         AssertMsg(this->sourceHolder != nullptr, "We have no source mapper.");
@@ -71,9 +90,41 @@ namespace Js
         else
 #endif
         {
-            return sourceHolder->GetSource(reason == nullptr ? _u("Utf8SourceInfo::GetSource") : reason);
+            return GetSourceFromHolder(reason == nullptr ? _u("Utf8SourceInfo::GetSource") : reason);
         }
     }
+#ifdef ENABLE_SCRIPT_DEBUGGING
+    void Utf8SourceInfo::SetInDebugMode(bool inDebugMode)
+    {
+        AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");
+
+        AssertMsg(this->sourceHolder != nullptr, "We have no source holder.");
+
+        AssertMsg(this->m_isInDebugMode != inDebugMode, "Why are we setting same value");
+
+        this->m_isInDebugMode = inDebugMode;
+
+        if (!this->sourceHolder->IsDeferrable())
+        {
+            return;
+        }
+
+        if (inDebugMode)
+        {
+            this->debugModeSource = GetSourceFromHolder(_u("Entering Debug Mode"));
+            this->debugModeSourceLength = this->sourceHolder->GetByteLength(_u("Entering Debug Mode"));
+            this->debugModeSourceIsEmpty = !this->HasSource() || this->debugModeSource == nullptr;
+            this->EnsureLineOffsetCache();
+        }
+        else
+        {
+            // If debugModeSourceIsEmpty is false, that means debugModeSource isn't nullptr or we aren't in debug mode.
+            this->debugModeSourceIsEmpty = false;
+            this->debugModeSource = nullptr;
+            this->debugModeSourceLength = 0;
+        }
+    }
+#endif
 
     size_t Utf8SourceInfo::GetCbLength(const char16 * reason) const
     {
