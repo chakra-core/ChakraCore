@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+#include "Core/CRC.h"
 
 #include "X86Encode.h"
 
@@ -1431,7 +1432,7 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint * bufferC
                     Assert(*(uint32 *)relocAddress == 0);
                     *(uint32 *)relocAddress = offset;
                 }
-                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, offset);
+                *bufferCRC = CalculateCRC(*bufferCRC, offset);
                 break;
             }
         case RelocTypeBranch:
@@ -1466,7 +1467,7 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint * bufferC
                         Encoder::EnsureRelocEntryIntegrity(codeBufferAddress, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(uint32), (ptrdiff_t)labelInstr->GetPC() - ((ptrdiff_t)reloc->m_ptr + 4));
                     }
                 }
-                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, pcrel);
+                *bufferCRC = CalculateCRC(*bufferCRC, pcrel);
                 break;
             }
         case RelocTypeLabelUse:
@@ -1484,7 +1485,7 @@ EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint * bufferC
                 {
                     Encoder::EnsureRelocEntryIntegrity(codeBufferAddress, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(size_t), targetAddress, false);
                 }
-                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, offset);
+                *bufferCRC = CalculateCRC(*bufferCRC, offset);
                 break;
             }
         case RelocTypeLabel:
