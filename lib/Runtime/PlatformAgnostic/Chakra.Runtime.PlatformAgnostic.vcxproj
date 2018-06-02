@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
@@ -44,8 +44,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DateTime.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\DaylightHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\HiResTimer.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp"/>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\UnicodeText.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\NumbersUtility.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\ArraysUtility.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\SystemInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\Thread.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Platform\Windows\PerfTrace.cpp" />

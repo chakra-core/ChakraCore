@@ -744,6 +744,7 @@ namespace PlatformAgnostic
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/Numbers.h"
+#include "PlatformAgnostic/Arrays.h"
 #include "PlatformAgnostic/SystemInfo.h"
 #include "PlatformAgnostic/Thread.h"
 #include "PlatformAgnostic/AssemblyCommon.h"
