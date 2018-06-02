@@ -7573,9 +7573,10 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     // as long as there are other objects with types equivalent on the properties referenced by this code. The type is kept alive until entry point
     // installation by the JIT transfer data, and after that by the equivalent type cache, so it will stay alive unless or until it gets evicted
     // from the cache.
-    if (directCheckType != nullptr)
+    if (!doEquivTypeCheck)
     {
-        PinTypeRef(directCheckType, directCheckType.t, instrChk, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
+        Assert(monoType != nullptr);
+        PinTypeRef(monoType, monoType.t, instrChk, propertySymOpnd->m_sym->AsPropertySym()->m_propertyId);
     }
 
     return typeOpnd;
