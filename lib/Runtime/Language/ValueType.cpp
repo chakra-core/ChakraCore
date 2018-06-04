@@ -498,8 +498,8 @@ bool ValueType::IsLikelyPrimitive() const
 bool ValueType::IsSimilar(ValueType v) const
 {
     // Remove bits we don't care for comparison
-    ValueType left = Verify(bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
-    ValueType right = Verify(v.bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely));
+    ValueType left = Verify(bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely | Bits::Null | Bits::Undefined));
+    ValueType right = Verify(v.bits & ~(Bits::NoMissingValues | Bits::CanBeTaggedValue | Bits::Likely | Bits::Null | Bits::Undefined));
     return left == right;
 }
 #endif

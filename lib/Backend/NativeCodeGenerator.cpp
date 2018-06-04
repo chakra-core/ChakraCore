@@ -399,8 +399,10 @@ private:
 //static
 void NativeCodeGenerator::Jit_TransitionFromSimpleJit(void *const framePointer)
 {
+    JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(TransitionFromSimpleJit);
     TransitionFromSimpleJit(
         Js::ScriptFunction::FromVar(Js::JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject));
+    JIT_HELPER_END(TransitionFromSimpleJit);
 }
 
 //static

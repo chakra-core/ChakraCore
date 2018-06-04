@@ -1216,7 +1216,7 @@ namespace Js
         }
         else
         {
-             threadContext->ClearDisableImplicitFlags();
+            threadContext->ClearDisableImplicitFlags();
 #if DBG
             if (scriptContext)
             {

@@ -171,6 +171,12 @@
   </test>
   <test>
     <default>
+      <files>bug_OS_13412380.js</files>
+      <tags>BugFix,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>copy-prop-stack-slot.js</files>
       <baseline>copy-prop-stack-slot.baseline</baseline>
     </default>

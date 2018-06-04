@@ -74,7 +74,11 @@ namespace Js
         if (iter != nullptr)
         {
             JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
-                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), weakSetObject, nextItem);
+                }
+                END_SAFE_REENTRANT_CALL
             });
         }
 

@@ -358,7 +358,12 @@ namespace Js
 #endif
         }
 
-        varResult = CALL_FUNCTION(pfuncScript->GetScriptContext()->GetThreadContext(), pfuncScript, CallInfo(1), varThis);
+        ThreadContext * threadContext = pfuncScript->GetScriptContext()->GetThreadContext();
+        BEGIN_SAFE_REENTRANT_CALL(threadContext)
+        {
+            varResult = CALL_FUNCTION(threadContext, pfuncScript, CallInfo(1), varThis);
+        }
+        END_SAFE_REENTRANT_CALL
 
         debugManager->UpdateConsoleScope(dummyObject, scriptContext);
 

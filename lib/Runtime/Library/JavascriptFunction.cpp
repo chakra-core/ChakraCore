@@ -19,8 +19,8 @@ extern "C" PVOID __guard_check_icall_fptr;
 extern "C" void __cdecl _alloca_probe_16();
 #endif
 
-namespace Js
-{
+using namespace Js;
+
     // The VS2013 linker treats this as a redefinition of an already
     // defined constant and complains. So skip the declaration if we're compiling
     // with VS2013 or below.
@@ -144,6 +144,14 @@ namespace Js
     }
 #endif
 
+    static char16 const funcName[] = _u("function anonymous");
+    static char16 const genFuncName[] = _u("function* anonymous");
+    static char16 const asyncFuncName[] = _u("async function anonymous");
+    static char16 const openFormals[] = _u("(");
+    static char16 const closeFormals[] = _u("\n)");
+    static char16 const openFuncBody[] = _u(" {");
+    static char16 const closeFuncBody[] = _u("\n}");
+    
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
         JavascriptLibrary* library = function->GetLibrary();
@@ -445,7 +453,11 @@ namespace Js
             argArray = args.Values[2];
         }
 
-        return CalloutHelper<false>(pFunc, thisVar, /* overridingNewTarget = */nullptr, argArray, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CalloutHelper<false>(pFunc, thisVar, /* overridingNewTarget = */nullptr, argArray, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     template <bool isConstruct>
@@ -563,12 +575,20 @@ namespace Js
 
     Var JavascriptFunction::ApplyHelper(RecyclableObject* function, Var thisArg, Var argArray, ScriptContext* scriptContext)
     {
-        return CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, argArray, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, argArray, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptFunction::ConstructHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext)
     {
-        return CalloutHelper<true>(function, thisArg, overridingNewTarget, argArray, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CalloutHelper<true>(function, thisArg, overridingNewTarget, argArray, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptFunction::EntryBind(RecyclableObject* function, CallInfo callInfo, ...)
@@ -644,7 +664,11 @@ namespace Js
         ///
         /// Call the [[Call]] method on the function object
         ///
-        return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), args, true /*useLargeArgCount*/);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return JavascriptFunction::CallFunction<true>(pFunc, pFunc->GetEntryPoint(), args, true /*useLargeArgCount*/);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptFunction::CallRootFunctionInScript(JavascriptFunction* func, Arguments args)
@@ -739,7 +763,11 @@ namespace Js
         if (inScript)
         {
             Assert(!(args.Info.Flags & CallFlags_New));
-            return JavascriptFunction::CallFunction<true>(obj, obj->GetEntryPoint(), args);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                return JavascriptFunction::CallFunction<true>(obj, obj->GetEntryPoint(), args);
+            }
+            END_SAFE_REENTRANT_CALL
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -765,10 +793,13 @@ namespace Js
             scriptContext->VerifyAlive(true);
             try
             {
-                varResult =
-                    args.Info.Flags & CallFlags_New ?
-                    CallAsConstructor(obj, /* overridingNewTarget = */nullptr, args, scriptContext) :
-                    CallFunction<true>(obj, obj->GetEntryPoint(), args);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    varResult = args.Info.Flags & CallFlags_New ?
+                            JavascriptFunction::CallAsConstructor(obj, /* overridingNewTarget = */nullptr, args, scriptContext) :
+                            JavascriptFunction::CallFunction<true>(obj, obj->GetEntryPoint(), args);
+                }
+                END_SAFE_REENTRANT_CALL
 
                 // A recent compiler bug 150148 can incorrectly eliminate catch block, temporary workaround
                 if (threadContext == NULL)
@@ -973,7 +1004,11 @@ namespace Js
 
         RUNTIME_ARGUMENTS(args, spreadIndices, function, callInfo);
 
-        return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
+        BEGIN_SAFE_REENTRANT_CALL(function->GetScriptContext()->GetThreadContext())
+        {
+            return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     uint JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1337,13 +1372,11 @@ dbl_align:
         //(so that the asm code can assume 0 or more values will go on the stack: putting -1 values on the stack is unhealthy).
         if (argCount == 0)
         {
-            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
-                entryPoint, (JavascriptFunction*)function, args.Info);
+            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(), entryPoint, (JavascriptFunction*)function, args.Info);
         }
         else if (argCount == 1)
         {
-            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
-                entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
+            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(), entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
         }
         else
         {
@@ -1552,6 +1585,7 @@ dbl_align:
     __declspec (naked)
     void JavascriptFunction::CheckAlignment()
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(ScrFunc_CheckAlignment);
         _asm
         {
             test esp, 0x4
@@ -1560,11 +1594,14 @@ dbl_align:
 LABEL1:
             call Throw::InternalError
         }
+        JIT_HELPER_END(ScrFunc_CheckAlignment);
     }
 #else
     void JavascriptFunction::CheckAlignment()
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(ScrFunc_CheckAlignment);
         // Note: in order to enable this on ARM, uncomment/fix code in LowerMD.cpp (LowerEntryInstr).
+        JIT_HELPER_END(ScrFunc_CheckAlignment);
     }
 #endif
 
@@ -1628,19 +1665,19 @@ LABEL1:
         Assert(functionInfo);
         try
         {
-        functionInfo->GetFunctionBody()->AddDeferParseAttribute();
-        functionInfo->GetFunctionBody()->ResetEntryPoint();
-        functionInfo->GetFunctionBody()->ResetInParams();
+            functionInfo->GetFunctionBody()->AddDeferParseAttribute();
+            functionInfo->GetFunctionBody()->ResetEntryPoint();
+            functionInfo->GetFunctionBody()->ResetInParams();
 
-        FunctionBody * funcBody = functionInfo->Parse(functionRef);
+            FunctionBody * funcBody = functionInfo->Parse(functionRef);
 
-#if ENABLE_PROFILE_INFO
-        // This is the first call to the function, ensure dynamic profile info
-        funcBody->EnsureDynamicProfileInfo();
-#endif
+    #if ENABLE_PROFILE_INFO
+            // This is the first call to the function, ensure dynamic profile info
+            funcBody->EnsureDynamicProfileInfo();
+    #endif
 
-        (*functionRef)->UpdateUndeferredBody(funcBody);
-    }
+            (*functionRef)->UpdateUndeferredBody(funcBody);
+        }
         catch (JavascriptException&)
         {
             Js::Throw::FatalInternalError();
@@ -2737,7 +2774,11 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-                *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
+                }
+                END_SAFE_REENTRANT_CALL
             }
             return true;
         }
@@ -2819,7 +2860,11 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-                *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
+                }
+                END_SAFE_REENTRANT_CALL
             }
             return true;
         }
@@ -3473,10 +3518,10 @@ LABEL1:
                 JavascriptExceptionOperators::OP_Throw(string, scriptContext);
             }
 #endif
-            JavascriptExceptionOperators::OP_Throw(JavascriptNumber::New(hr, scriptContext), scriptContext);
+            return JavascriptNumber::New(hr, scriptContext);
         }
         return scriptContext->GetLibrary()->GetUndefined();
     }
 #endif
 
-}
+

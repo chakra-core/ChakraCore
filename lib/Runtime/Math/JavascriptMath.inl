@@ -9,16 +9,19 @@ namespace Js
 {
         inline Var JavascriptMath::Increment(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Increment);
             return Increment_Full(aRight, scriptContext);
         }
 
         inline Var JavascriptMath::Decrement(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Decrement);
             return Decrement_Full(aRight, scriptContext);
         }
 
         inline Var JavascriptMath::Negate(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Negate);
             return
                 (TaggedInt::Is(aRight) && aRight != TaggedInt::ToVarUnchecked(0) && aRight != TaggedInt::MinVal()) ?
                     TaggedInt::NegateUnchecked(aRight) :
@@ -27,6 +30,7 @@ namespace Js
 
         inline Var JavascriptMath::Not(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Not);
             return
                 TaggedInt::Is(aRight) ?
                 TaggedInt::Not(aRight,scriptContext) :
@@ -36,6 +40,7 @@ namespace Js
 
         inline Var JavascriptMath::Or(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Or);
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
                 TaggedInt::Or(aLeft,aRight) :
@@ -44,6 +49,7 @@ namespace Js
 
         inline Var JavascriptMath::And(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_And);
 #if FLOATVAR
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
@@ -62,6 +68,7 @@ namespace Js
 
         inline Var JavascriptMath::ShiftLeft(Var aLeft,Var aRight,ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftLeft);
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
                 TaggedInt::ShiftLeft(aLeft, aRight,scriptContext) :
@@ -70,6 +77,7 @@ namespace Js
 
         inline Var JavascriptMath::ShiftRight(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftRight);
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
                 TaggedInt::ShiftRight(aLeft, aRight) :
@@ -78,6 +86,7 @@ namespace Js
 
         inline Var JavascriptMath::ShiftRightU(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftRightU);
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
                 TaggedInt::ShiftRightU(aLeft, aRight, scriptContext) :
@@ -86,6 +95,7 @@ namespace Js
 
         inline Var JavascriptMath::Xor(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Xor);
             return
                 TaggedInt::IsPair(aLeft, aRight) ?
                 TaggedInt::Xor(aLeft, aRight) :
@@ -169,6 +179,7 @@ namespace Js
 
         inline Var JavascriptMath::Add(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Add);
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
                 TaggedInt::Add(aLeft, aRight, scriptContext) :
@@ -177,6 +188,7 @@ namespace Js
 
         inline Var JavascriptMath::Subtract(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Subtract);
             return
                 TaggedInt::IsPair(aLeft,aRight) ?
                 TaggedInt::Subtract(aLeft, aRight, scriptContext) :
@@ -197,6 +209,7 @@ namespace Js
 
         inline Var JavascriptMath::Multiply(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Multiply);
             if (TaggedInt::IsPair(aLeft, aRight))
             {
                 return TaggedInt::Multiply(aLeft, aRight, scriptContext);
@@ -209,6 +222,7 @@ namespace Js
 
         inline Var JavascriptMath::Exponentiation(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Exponentiation);
             return Exponentiation_Full(aLeft, aRight, scriptContext);
         }
 
@@ -225,6 +239,7 @@ namespace Js
 
         inline Var JavascriptMath::Divide(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Divide);
             // The TaggedInt,TaggedInt case is handled within Divide_Full
             return Divide_Full(aLeft, aRight, scriptContext);
         }
@@ -245,6 +260,7 @@ namespace Js
 
         inline Var JavascriptMath::Modulus(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Modulus);
             return Modulus_Full(aLeft, aRight, scriptContext);
         }
 
@@ -258,6 +274,7 @@ namespace Js
 #if defined(_M_ARM32_OR_ARM64)
         inline int32 JavascriptMath::ToInt32Core(double T1)
         {
+            JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Conv_ToInt32Core);
             // Try the int32 conversion first and only do the more expensive (& closer to spec)
             // i64 conversion if it fails.
             __int32 i32 = (__int32)T1;
@@ -275,6 +292,7 @@ namespace Js
 #else
         inline int32 JavascriptMath::ToInt32Core(double T1)
         {
+            JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Conv_ToInt32Core);
             // ES5 Spec for ToUInt32
             //
             //  T3 = sign(T1) * floor(abs(T1))
@@ -332,6 +350,7 @@ namespace Js
 
         inline int32 JavascriptMath::ToInt32_NoObjects(Var aValue, ScriptContext* scriptContext, bool& isObject)
         {
+            JIT_HELPER_NOT_REENTRANT_HEADER(Conv_ToInt32_NoObjects, reentrancylock, scriptContext->GetThreadContext());
             if (JavascriptOperators::IsObject(aValue))
             {
                 isObject = true; // jitted code should bailout
@@ -344,9 +363,10 @@ namespace Js
 
         inline int32 JavascriptMath::ToInt32(Var aValue, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Conv_ToInt32);
             return
                 TaggedInt::Is(aValue) ?
                 TaggedInt::ToInt32(aValue) :
                 ToInt32_Full(aValue, scriptContext);
         }
-}
+};

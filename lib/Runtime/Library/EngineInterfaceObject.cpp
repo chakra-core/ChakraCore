@@ -434,7 +434,11 @@ namespace Js
 
         newArgs.Info.Count = args.Info.Count - 2;
 
-        return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
 #ifndef GlobalBuiltIn

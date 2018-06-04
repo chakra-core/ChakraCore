@@ -6,8 +6,8 @@
 #include "RuntimeLibraryPch.h"
 
 
-namespace Js
-{
+using namespace Js;
+
     #pragma region CompoundString::Block
     #ifndef IsJsDiag
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -583,14 +583,18 @@ namespace Js
 
     CompoundString * CompoundString::JitClone(CompoundString * cs)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_CompoundStringCloneForConcat);
         Assert(Is(cs));
         return cs->Clone(false);
+        JIT_HELPER_END(Op_CompoundStringCloneForConcat);
     }
 
     CompoundString * CompoundString::JitCloneForAppending(CompoundString * cs)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_CompoundStringCloneForAppending);
         Assert(Is(cs));
         return cs->Clone(true);
+        JIT_HELPER_END(Op_CompoundStringCloneForAppending);
     }
 
     bool CompoundString::Is(RecyclableObject *const object)
@@ -1250,4 +1254,3 @@ namespace Js
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     #endif
     #pragma endregion
-}

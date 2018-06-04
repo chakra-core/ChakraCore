@@ -777,14 +777,22 @@ namespace Js
                 JavascriptFunction* func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
-                    return JavascriptString::FromVar(func->CallFunction(args));
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptString::FromVar(func->CallFunction(args));
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
                 // Initialize Number.prototype.toLocaleString
                 scriptContext->GetLibrary()->InitializeIntlForNumberPrototype();
                 func = intlExtensionObject->GetNumberToLocaleString();
                 if (func)
                 {
-                    return JavascriptString::FromVar(func->CallFunction(args));
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptString::FromVar(func->CallFunction(args));
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
         }

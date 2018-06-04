@@ -160,7 +160,11 @@ namespace Js
                 // No new target and target is not a proxy can make a new object in a "normal" way.
                 // NewScObjectNoCtor will either construct an object or return targetFunction depending
                 // on whether targetFunction is a class constructor.
-                args.Values[0] = newVarInstance = JavascriptOperators::NewScObjectNoCtor(targetFunction, scriptContext);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    args.Values[0] = newVarInstance = JavascriptOperators::NewScObjectNoCtor(targetFunction, scriptContext);
+                }
+                END_SAFE_REENTRANT_CALL
             }
             else
             {
@@ -229,9 +233,14 @@ namespace Js
             }
         }
 
-        // Number of arguments are allowed to be more than Constants::MaxAllowedArgs in runtime. Need to use the larger argcount logic for this call.
-        Var aReturnValue = JavascriptFunction::CallFunction<true>(targetFunction, targetFunction->GetEntryPoint(), actualArgs, /* useLargeArgCount */ true);
-
+        Var aReturnValue = nullptr;
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            // Number of arguments are allowed to be more than Constants::MaxAllowedArgs in runtime. Need to use the larger argcount logic for this call.
+            aReturnValue = JavascriptFunction::CallFunction<true>(targetFunction, targetFunction->GetEntryPoint(), actualArgs, /* useLargeArgCount */ true);
+        }
+        END_SAFE_REENTRANT_CALL
+        
         //
         // [[Construct]] and call returned a non-object
         // return the newly created var instance

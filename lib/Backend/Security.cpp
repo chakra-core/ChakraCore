@@ -302,14 +302,14 @@ Security::DontEncode(IR::Opnd *opnd)
         IR::IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
         return indirOpnd->m_dontEncode || indirOpnd->GetOffset() == 0;
     }
+    case IR::OpndKindInt64Const:
+        return false;
     case IR::OpndKindList:
     {
         // We should only have RegOpnd in the ListOpnd therefore, we don't need to encode anything
         Assert(opnd->AsListOpnd()->All([](IR::ListOpndType* opnd) { return DontEncode(opnd); }));
         return true;
     }
-    case IR::OpndKindInt64Const:
-        return false;
     default:
         return true;
     }
@@ -587,7 +587,7 @@ Security::EncodeValue(IR::Instr * instr, IR::Opnd *opnd, IntConstType constValue
 
 #if TARGET_64
 size_t
-Security::EncodeAddress(IR::Instr * instr, IR::Opnd *opnd, size_t value, _Out_ IR::RegOpnd **pNewOpnd)
+Security::EncodeAddress(IR::Instr * instr, IR::Opnd *opnd, size_t value,  _Out_ IR::RegOpnd **pNewOpnd)
 {
     IR::Instr   *instrNew = nullptr;
     IR::RegOpnd *regOpnd = IR::RegOpnd::New(TyMachReg, instr->m_func);

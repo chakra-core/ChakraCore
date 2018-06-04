@@ -740,31 +740,31 @@ namespace Js
         }
         else
         {
-        double current = JavascriptConversion::ToNumber(args[1], scriptContext);
-        if(JavascriptNumber::IsNan(current))
-        {
-            return scriptContext->GetLibrary()->GetNaN();
-        }
-
-        for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
-        {
-            double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
-            if(JavascriptNumber::IsNan(compare))
+            double current = JavascriptConversion::ToNumber(args[1], scriptContext);
+            if (JavascriptNumber::IsNan(current))
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
 
+            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+            {
+                double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
+                if (JavascriptNumber::IsNan(compare))
+                {
+                    return scriptContext->GetLibrary()->GetNaN();
+                }
+
                 // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
                 // call to test this comparison.
                 if ((compare == 0 && JavascriptNumber::IsNegZero(current)) ||
-                current < compare )
-            {
-                current = compare;
+                    current < compare)
+                {
+                    current = compare;
+                }
             }
-        }
 
-        return JavascriptNumber::ToVarNoCheck(current, scriptContext);
-    }
+            return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+        }
     }
 
 
@@ -820,31 +820,31 @@ namespace Js
         }
         else
         {
-        double current = JavascriptConversion::ToNumber(args[1], scriptContext);
-        if(JavascriptNumber::IsNan(current))
-        {
-            return scriptContext->GetLibrary()->GetNaN();
-        }
-
-        for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
-        {
-            double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
-            if(JavascriptNumber::IsNan(compare))
+            double current = JavascriptConversion::ToNumber(args[1], scriptContext);
+            if (JavascriptNumber::IsNan(current))
             {
                 return scriptContext->GetLibrary()->GetNaN();
             }
 
+            for (uint idxArg = 2; idxArg < args.Info.Count; idxArg++)
+            {
+                double compare = JavascriptConversion::ToNumber(args[idxArg], scriptContext);
+                if (JavascriptNumber::IsNan(compare))
+                {
+                    return scriptContext->GetLibrary()->GetNaN();
+                }
+
                 // In C++, -0.0f == 0.0f; however, in ES, -0.0f < 0.0f. Thus, use additional library 
                 // call to test this comparison.
                 if ((current == 0 && JavascriptNumber::IsNegZero(compare)) ||
-                current > compare )
-            {
-                current = compare;
+                    current > compare)
+                {
+                    current = compare;
+                }
             }
-        }
 
-        return JavascriptNumber::ToVarNoCheck(current, scriptContext);
-    }
+            return JavascriptNumber::ToVarNoCheck(current, scriptContext);
+        }
     }
 
 

@@ -367,7 +367,9 @@ public:
     bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult, bool checkWouldTrap);
     bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRType type);
     IR::Instr*      GetNextArg();
-
+#if DBG
+    bool            ShouldEmitIntRangeCheck();
+#endif
     // Iterates argument chain
     template<class Fn>
     bool IterateArgInstrs(Fn callback)

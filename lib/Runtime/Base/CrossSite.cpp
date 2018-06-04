@@ -464,7 +464,11 @@ namespace Js
 
         if (callerHostScriptContext == calleeHostScriptContext || (callerHostScriptContext == nullptr && !calleeHostScriptContext->HasCaller()))
         {
-            return JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
+            BEGIN_SAFE_REENTRANT_CALL(targetScriptContext->GetThreadContext())
+            {
+                 return JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
+            }
+            END_SAFE_REENTRANT_CALL
         }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
@@ -536,7 +540,11 @@ namespace Js
             }
             wasDispatchExCallerPushed = TRUE;
 
+            BEGIN_SAFE_REENTRANT_CALL(targetScriptContext->GetThreadContext())
+            {
             result = JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
+            }
+            END_SAFE_REENTRANT_CALL
             ScriptContext* callerScriptContext = callerHostScriptContext->GetScriptContext();
             result = CrossSite::MarshalVar(callerScriptContext, result);
         },

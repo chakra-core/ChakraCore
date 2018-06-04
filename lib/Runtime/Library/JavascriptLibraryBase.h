@@ -149,6 +149,7 @@ namespace Js
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
         PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
         PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
+        PropertyId GetPropertyIdSymbolUnscopables() { return PropertyIds::_symbolUnscopables; };
 
         bool IsChakraEngine() const { return chakraEngine != nullptr; }
 

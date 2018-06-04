@@ -4542,6 +4542,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 {
                     this->GetScanner()->Capture(&atExpression);
 
+                    int saveNextBlockId = m_nextBlockId;
+
                     // It is possible that we might encounter the shorthand init error. Lets find that out.
                     bool savedDeferredInitError = m_hasDeferredShorthandInitError;
                     m_hasDeferredShorthandInitError = false;
@@ -4553,6 +4555,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
                     ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false /*fUnaryOrParen*/,
                         TRUE, nullptr /*pfCanAssign*/, &fLikelyPattern);
+
+                     m_nextBlockId = saveNextBlockId;
 
                     this->GetScanner()->SeekTo(atExpression);
 
@@ -4704,7 +4708,6 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 }
 
                 bool couldBeObjectPattern = !isObjectPattern && m_token.tk == tkAsg;
-
                 // Saving the current state as we may change the isObjectPattern down below.
                 bool oldState = isObjectPattern;
 

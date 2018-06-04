@@ -722,7 +722,11 @@ namespace Js
     {
         int flags = CallFlags_Value;
         Arguments args(CallInfo((CallFlags)flags, (ushort)nbArgs), paramsAddr);
-        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), args);
+        BEGIN_SAFE_REENTRANT_CALL(function->GetScriptContext()->GetThreadContext())
+        {
+            return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), args);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     namespace AsmJsJitTemplate

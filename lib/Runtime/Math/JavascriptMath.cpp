@@ -2,10 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-namespace Js
-{
+using namespace Js;
+
         Var JavascriptMath::Negate_Full(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Negate_Full);
             // Special case for zero. Must return -0
             if( aRight == TaggedInt::ToVarUnchecked(0) )
             {
@@ -14,10 +15,13 @@ namespace Js
 
             double value = Negate_Helper(aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(value, scriptContext);
+            JIT_HELPER_END(Op_Negate_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Negate_Full, Op_Negate)
 
         Var JavascriptMath::Negate_InPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_NegateInPlace);
             // Special case for zero. Must return -0
             if( aRight == TaggedInt::ToVarUnchecked(0) )
             {
@@ -26,27 +30,34 @@ namespace Js
 
             double value = Negate_Helper(aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(value, scriptContext, result);
+            JIT_HELPER_END(Op_NegateInPlace);
         }
 
         Var JavascriptMath::Not_Full(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Not_Full);
 #if _M_IX86
             AssertMsg(!TaggedInt::Is(aRight), "Should be detected");
 #endif
             int nValue = JavascriptConversion::ToInt32(aRight, scriptContext);
             return JavascriptNumber::ToVar(~nValue, scriptContext);
+            JIT_HELPER_END(Op_Not_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Not_Full, Op_Not)
 
         Var JavascriptMath::Not_InPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_NotInPlace);
             AssertMsg(!TaggedInt::Is(aRight), "Should be detected");
 
             int nValue = JavascriptConversion::ToInt32(aRight, scriptContext);
             return JavascriptNumber::ToVarInPlace(~nValue, scriptContext, result);
+            JIT_HELPER_END(Op_NotInPlace);
         }
 
         Var JavascriptMath::Increment_InPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_IncrementInPlace);
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Increment(aRight, scriptContext);
@@ -54,10 +65,12 @@ namespace Js
 
             double inc = Increment_Helper(aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(inc, scriptContext, result);
+            JIT_HELPER_END(Op_IncrementInPlace);
         }
 
         Var JavascriptMath::Increment_Full(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Increment_Full);
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Increment(aRight, scriptContext);
@@ -65,10 +78,13 @@ namespace Js
 
             double inc = Increment_Helper(aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(inc, scriptContext);
+            JIT_HELPER_END(Op_Increment_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Increment_Full, Op_Increment)
 
         Var JavascriptMath::Decrement_InPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_DecrementInPlace);
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Decrement(aRight, scriptContext);
@@ -76,10 +92,12 @@ namespace Js
 
             double dec = Decrement_Helper(aRight,scriptContext);
             return JavascriptNumber::InPlaceNew(dec, scriptContext, result);
+            JIT_HELPER_END(Op_DecrementInPlace);
         }
 
         Var JavascriptMath::Decrement_Full(Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Decrement_Full);
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Decrement(aRight, scriptContext);
@@ -87,80 +105,105 @@ namespace Js
 
             double dec = Decrement_Helper(aRight,scriptContext);
             return JavascriptNumber::ToVarNoCheck(dec, scriptContext);
+            JIT_HELPER_END(Op_Decrement_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Decrement_Full, Op_Decrement)
 
         Var JavascriptMath::And_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_And_Full);
             int32 value = And_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVar(value, scriptContext);
+            JIT_HELPER_END(Op_And_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_And_Full, Op_And)
 
         Var JavascriptMath::And_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_AndInPlace);
             int32 value = And_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
+            JIT_HELPER_END(Op_AndInPlace);
         }
 
         Var JavascriptMath::Or_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Or_Full);
             int32 value = Or_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVar(value, scriptContext);
+            JIT_HELPER_END(Op_Or_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Or_Full, Op_Or)
 
         Var JavascriptMath::Or_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_OrInPlace);
             int32 value = Or_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVarInPlace(value, scriptContext, result);
+            JIT_HELPER_END(Op_OrInPlace);
         }
 
         Var JavascriptMath::Xor_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Xor_Full);
             int32 nLeft = TaggedInt::Is(aLeft) ? TaggedInt::ToInt32(aLeft) : JavascriptConversion::ToInt32(aLeft, scriptContext);
             int32 nRight = TaggedInt::Is(aRight) ? TaggedInt::ToInt32(aRight) : JavascriptConversion::ToInt32(aRight, scriptContext);
 
             return JavascriptNumber::ToVar(nLeft ^ nRight,scriptContext);
+            JIT_HELPER_END(Op_Xor_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Xor_Full, Op_Xor)
 
         Var JavascriptMath::Xor_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext,  JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_XorInPlace);
             int32 nLeft = TaggedInt::Is(aLeft) ? TaggedInt::ToInt32(aLeft) : JavascriptConversion::ToInt32(aLeft, scriptContext);
             int32 nRight = TaggedInt::Is(aRight) ? TaggedInt::ToInt32(aRight) : JavascriptConversion::ToInt32(aRight, scriptContext);
 
             return JavascriptNumber::ToVarInPlace(nLeft ^ nRight, scriptContext, result);
+            JIT_HELPER_END(Op_XorInPlace);
         }
 
         Var JavascriptMath::ShiftLeft_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftLeft_Full);
             int32 nValue    = JavascriptConversion::ToInt32(aLeft, scriptContext);
             uint32 nShift   = JavascriptConversion::ToUInt32(aRight, scriptContext);
             int32 nResult   = nValue << (nShift & 0x1F);
 
             return JavascriptNumber::ToVar(nResult,scriptContext);
+            JIT_HELPER_END(Op_ShiftLeft_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_ShiftLeft_Full, Op_ShiftLeft)
 
         Var JavascriptMath::ShiftRight_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftRight_Full);
             int32 nValue    = JavascriptConversion::ToInt32(aLeft, scriptContext);
             uint32 nShift   = JavascriptConversion::ToUInt32(aRight, scriptContext);
 
             int32 nResult   = nValue >> (nShift & 0x1F);
 
             return JavascriptNumber::ToVar(nResult,scriptContext);
+            JIT_HELPER_END(Op_ShiftRight_Full);
         }
 
         Var JavascriptMath::ShiftRightU_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ShiftRightU_Full);
             uint32 nValue   = JavascriptConversion::ToUInt32(aLeft, scriptContext);
             uint32 nShift   = JavascriptConversion::ToUInt32(aRight, scriptContext);
 
             uint32 nResult  = nValue >> (nShift & 0x1F);
 
             return JavascriptNumber::ToVar(nResult,scriptContext);
+            JIT_HELPER_END(Op_ShiftRightU_Full);
         }
 
 #if FLOATVAR
         Var JavascriptMath::Add_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Add_Full);
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -198,10 +241,12 @@ namespace Js
             }
 
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, nullptr, false);
+            JIT_HELPER_END(Op_Add_Full);
          }
 #else
         Var JavascriptMath::Add_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Add_Full);
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -271,10 +316,14 @@ namespace Js
             }
 
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, nullptr, false);
+            JIT_HELPER_END(Op_Add_Full);
         }
 #endif
+        JIT_HELPER_TEMPLATE(Op_Add_Full, Op_Add)
+
         Var JavascriptMath::Add_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_AddInPlace);
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -317,10 +366,12 @@ namespace Js
             }
 
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, result, false);
+            JIT_HELPER_END(Op_AddInPlace);
         }
 
         Var JavascriptMath::AddLeftDead(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber *result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_AddLeftDead);
             if (JavascriptOperators::GetTypeId(aLeft) == TypeIds_String)
             {
                 JavascriptString* leftString = JavascriptString::UnsafeFromVar(aLeft);
@@ -367,6 +418,7 @@ StringCommon:
                 return JavascriptNumber::ToVarMaybeInPlace(JavascriptNumber::GetValue(aLeft) + JavascriptNumber::GetValue(aRight), scriptContext, result);
             }
             return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, result, true);
+            JIT_HELPER_END(Op_AddLeftDead);
         }
 
         Var JavascriptMath::Add_FullHelper_Wrapper(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result, bool leftIsDead)
@@ -418,6 +470,7 @@ StringCommon:
 
         Var JavascriptMath::MulAddLeft(Var mulLeft, Var mulRight, Var addLeft, ScriptContext* scriptContext,  JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_MulAddLeft);
             if(TaggedInt::Is(mulLeft))
             {
                 if(TaggedInt::Is(mulRight))
@@ -470,11 +523,13 @@ StringCommon:
             {
                 return JavascriptMath::Add_Full(addLeft, aMul, scriptContext);
             }
+            JIT_HELPER_END(Op_MulAddLeft);
         }
 
         Var JavascriptMath::MulAddRight(Var mulLeft, Var mulRight, Var addRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            if(TaggedInt::Is(mulLeft))
+            JIT_HELPER_REENTRANT_HEADER(Op_MulAddRight);
+            if (TaggedInt::Is(mulLeft))
             {
                 if(TaggedInt::Is(mulRight))
                 {
@@ -526,11 +581,13 @@ StringCommon:
             {
                 return JavascriptMath::Add_Full(aMul, addRight, scriptContext);
             }
+            JIT_HELPER_END(Op_MulAddRight);
         }
 
         Var JavascriptMath::MulSubLeft(Var mulLeft, Var mulRight, Var subLeft, ScriptContext* scriptContext, JavascriptNumber* result)
         {
-            if(TaggedInt::Is(mulLeft))
+            JIT_HELPER_REENTRANT_HEADER(Op_MulSubLeft);
+            if (TaggedInt::Is(mulLeft))
             {
                 if(TaggedInt::Is(mulRight))
                 {
@@ -582,10 +639,12 @@ StringCommon:
             {
                 return JavascriptMath::Subtract_Full(subLeft, aMul, scriptContext);
             }
+            JIT_HELPER_END(Op_MulSubLeft);
         }
 
         Var JavascriptMath::MulSubRight(Var mulLeft, Var mulRight, Var subRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_MulSubRight);
             if(TaggedInt::Is(mulLeft))
             {
                 if(TaggedInt::Is(mulRight))
@@ -638,6 +697,7 @@ StringCommon:
             {
                 return JavascriptMath::Subtract_Full(aMul, subRight, scriptContext);
             }
+            JIT_HELPER_END(Op_MulSubRight);
         }
 
         Var inline JavascriptMath::Add_DoubleHelper(double dblLeft, Var addRight, ScriptContext* scriptContext, JavascriptNumber*result)
@@ -730,18 +790,24 @@ StringCommon:
 
         Var JavascriptMath::Subtract_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Subtract_Full);
             double difference = Subtract_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(difference, scriptContext);
+            JIT_HELPER_END(Op_Subtract_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Subtract_Full, Op_Subtract)
 
         Var JavascriptMath::Subtract_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_SubtractInPlace);
             double difference = Subtract_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(difference, scriptContext, result);
+            JIT_HELPER_END(Op_SubtractInPlace);
         }
 
         Var JavascriptMath::Divide_Full(Var aLeft,Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Divide_Full);
             // If both arguments are TaggedInt, then try to do integer division
             // This case is not handled by the lowerer.
             if (TaggedInt::IsPair(aLeft, aRight))
@@ -750,26 +816,34 @@ StringCommon:
             }
 
             return JavascriptNumber::NewInlined( Divide_Helper(aLeft, aRight, scriptContext), scriptContext );
+            JIT_HELPER_END(Op_Divide_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Divide_Full, Op_Divide)
 
         Var JavascriptMath::Exponentiation_Full(Var aLeft, Var aRight, ScriptContext *scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Exponentiation_Full);
             double x = JavascriptConversion::ToNumber(aLeft, scriptContext);
             double y = JavascriptConversion::ToNumber(aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(Math::Pow(x, y), scriptContext);
+            JIT_HELPER_END(Op_Exponentiation_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Exponentiation_Full, Op_Exponentiation)
 
         Var JavascriptMath::Exponentiation_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ExponentiationInPlace);
             // The IEEE 754 floating point spec ensures that NaNs are preserved in all operations
             double dblLeft = JavascriptConversion::ToNumber(aLeft, scriptContext);
             double dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
 
             return JavascriptNumber::InPlaceNew(Math::Pow(dblLeft, dblRight), scriptContext, result);
+            JIT_HELPER_END(Op_ExponentiationInPlace);
         }
 
         Var JavascriptMath::Multiply_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Multiply_Full);
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -801,10 +875,13 @@ StringCommon:
             }
             double product = Multiply_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(product, scriptContext);
+            JIT_HELPER_END(Op_Multiply_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Multiply_Full, Op_Multiply)
 
         Var JavascriptMath::Multiply_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_MultiplyInPlace);
             if(JavascriptNumber::Is(aLeft))
             {
                 if(JavascriptNumber::Is(aRight))
@@ -833,10 +910,12 @@ StringCommon:
 
             double product = Multiply_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(product, scriptContext, result);
+            JIT_HELPER_END(Op_MultiplyInPlace);
         }
 
         Var JavascriptMath::Divide_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_DivideInPlace);
             // If both arguments are TaggedInt, then try to do integer division
             // This case is not handled by the lowerer.
             if (TaggedInt::IsPair(aLeft, aRight))
@@ -846,10 +925,12 @@ StringCommon:
 
             double quotient = Divide_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(quotient, scriptContext, result);
+            JIT_HELPER_END(Op_DivideInPlace);
         }
 
         Var JavascriptMath::Modulus_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_Modulus_Full);
             // If both arguments are TaggedInt, then try to do integer modulus.
             // This case is not handled by the lowerer.
             if (TaggedInt::IsPair(aLeft, aRight))
@@ -859,10 +940,13 @@ StringCommon:
 
             double remainder = Modulus_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::ToVarNoCheck(remainder, scriptContext);
+            JIT_HELPER_END(Op_Modulus_Full);
         }
+        JIT_HELPER_TEMPLATE(Op_Modulus_Full, Op_Modulus)
 
         Var JavascriptMath::Modulus_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_ModulusInPlace);
             Assert(aLeft != nullptr);
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
@@ -876,21 +960,27 @@ StringCommon:
 
             double remainder = Modulus_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(remainder, scriptContext, result);
+            JIT_HELPER_END(Op_ModulusInPlace);
         }
 
 
         Var JavascriptMath::FinishOddDivByPow2(int32 value, ScriptContext *scriptContext)
         {
+            JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_FinishOddDivByPow2);
             return JavascriptNumber::New((double)(value + 0.5), scriptContext);
+            JIT_HELPER_END(Op_FinishOddDivByPow2);
         }
 
         Var JavascriptMath::FinishOddDivByPow2_InPlace(int32 value, ScriptContext *scriptContext, JavascriptNumber* result)
         {
+            JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_FinishOddDivByPow2InPlace);
             return JavascriptNumber::InPlaceNew((double)(value + 0.5), scriptContext, result);
+            JIT_HELPER_END(Op_FinishOddDivByPow2InPlace);
         }
 
         Var JavascriptMath::MaxInAnArray(RecyclableObject * function, CallInfo callInfo, ...)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_MaxInAnArray);
             PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
             ARGUMENTS(args, callInfo);
@@ -907,7 +997,12 @@ StringCommon:
                 {
                     return scriptContext->GetLibrary()->GetNegativeInfinite();
                 }
-                return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                }
+                END_SAFE_REENTRANT_CALL
             }
 
             if (JavascriptNativeArray::Is(typeId))
@@ -925,7 +1020,11 @@ StringCommon:
                 if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
                     argsArray->GetHead()->length != len)
                 {
-                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
 
                 return argsArray->FindMinOrMax(scriptContext, true /*findMax*/);
@@ -941,14 +1040,20 @@ StringCommon:
                 Var max = argsArray->FindMinOrMax(scriptContext, typeId, true /*findMax*/);
                 if (max == nullptr)
                 {
-                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
                 return max;
             }
+            JIT_HELPER_END(Op_MaxInAnArray);
         }
 
         Var JavascriptMath::MinInAnArray(RecyclableObject * function, CallInfo callInfo, ...)
         {
+            JIT_HELPER_REENTRANT_HEADER(Op_MinInAnArray);
             PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
             ARGUMENTS(args, callInfo);
@@ -965,7 +1070,12 @@ StringCommon:
                 {
                     return scriptContext->GetLibrary()->GetPositiveInfinite();
                 }
-                return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                }
+                END_SAFE_REENTRANT_CALL
             }
 
             if (JavascriptNativeArray::Is(typeId))
@@ -983,7 +1093,11 @@ StringCommon:
                 if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
                     argsArray->GetHead()->length != len)
                 {
-                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
 
                 return argsArray->FindMinOrMax(scriptContext, false /*findMax*/);
@@ -999,10 +1113,15 @@ StringCommon:
                 Var min = argsArray->FindMinOrMax(scriptContext, typeId, false /*findMax*/);
                 if (min == nullptr)
                 {
-                    return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
                 return min;
             }
+            JIT_HELPER_END(Op_MinInAnArray);
         }
 
         void InitializeRandomSeeds(uint64 *seed0, uint64 *seed1, ScriptContext *scriptContext)
@@ -1073,6 +1192,7 @@ StringCommon:
 
         double JavascriptMath::Random(ScriptContext *scriptContext)
         {
+            JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(DirectMath_Random);
             uint64 seed0;
             uint64 seed1;
 
@@ -1120,6 +1240,7 @@ StringCommon:
             OUTPUT_TRACE(Js::PRNGPhase, _u("[PRNG:%x] RAND %I64x\n"), scriptContext, *((uint64 *)&res));
 #endif
             return res;
+            JIT_HELPER_END(DirectMath_Random);
         }
 
         uint32 JavascriptMath::ToUInt32(double T1)
@@ -1149,4 +1270,9 @@ StringCommon:
 
             return JavascriptConversion::ToInt32_Full(aValue, scriptContext);
         }
-}
+        // Unable to put JIT_HELPER macro in .inl file, do instantiation here
+        JIT_HELPER_TEMPLATE(Conv_ToInt32Core, Conv_ToInt32Core)
+        JIT_HELPER_TEMPLATE(Conv_ToInt32_NoObjects, Conv_ToInt32_NoObjects)
+        JIT_HELPER_TEMPLATE(Conv_ToInt32, Conv_ToInt32)
+        JIT_HELPER_TEMPLATE(Op_ShiftRight, Op_ShiftRight)
+        JIT_HELPER_TEMPLATE(Op_ShiftRightU, Op_ShiftRightU)

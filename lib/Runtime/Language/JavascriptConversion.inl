@@ -14,6 +14,7 @@ namespace Js {
 
     inline BOOL JavascriptConversion::ToBoolean(Var aValue,ScriptContext* scriptContext)
     {
+        JIT_HELPER_NOT_REENTRANT_HEADER(Conv_ToBoolean, reentrancylock, scriptContext->GetThreadContext());
         if (TaggedInt::Is(aValue))
         {
             return aValue != reinterpret_cast<Var>(AtomTag_IntPtr);
@@ -73,6 +74,7 @@ namespace Js {
 
     inline uint32 JavascriptConversion::ToUInt32(Var aValue, ScriptContext* scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Conv_ToUInt32);
         return
             TaggedInt::Is(aValue) ?
             TaggedInt::ToUInt32(aValue) :

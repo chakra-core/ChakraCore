@@ -22,5 +22,13 @@ o join
 [object Object]
 
 
-6. Object: no join, replaced Object.prototype.toString
+6. Object: no join with toStringTag
+[object Replaced @@toStringTag]
+
+
+7. Object: no join with getter toStringTag
+[object Replaced @@toStringTag with a getter]
+
+
+8. Object: no join, replaced Object.prototype.toString
 [object Object]

@@ -1063,13 +1063,14 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
 //    }
 //#endif
 
+    //First calculate the local stack
     if (this->m_func->HasInlinee())
     {
         // Allocate the inlined arg out stack in the locals. Allocate an additional slot so that
         // we can unconditionally clear the first slot past the current frame.
         this->m_func->m_localStackHeight += this->m_func->GetInlineeArgumentStackSize();
     }
-    //First calculate the local stack
+
     if (hasTry)
     {
         // If there's a try in the function, then the locals area must be 8-byte-aligned. That's because
@@ -2192,6 +2193,9 @@ IR::Instr *
 LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut,
                               IR::Opnd *opndInstance, IR::PropertySymOpnd *propSymOpnd, bool isHelperContinuation)
 {
+#if DBG
+    this->m_lowerer->ReconcileWithLowererStateOnHelperCall(callInstr, helperMethod);
+#endif
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {

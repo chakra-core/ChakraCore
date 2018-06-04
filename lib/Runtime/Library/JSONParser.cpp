@@ -183,7 +183,11 @@ namespace JSON
         args.Values[0] = holder;
         args.Values[1] = name;
         args.Values[2] = value;
-        value = Js::JavascriptFunction::CallFunction<true>(reviver, reviver->GetEntryPoint(), args);
+        BEGIN_SAFE_REENTRANT_CALL(reviver->GetScriptContext()->GetThreadContext())
+        {
+            value = Js::JavascriptFunction::CallFunction<true>(reviver, reviver->GetEntryPoint(), args);
+        }
+        END_SAFE_REENTRANT_CALL
         return value;
     }
 

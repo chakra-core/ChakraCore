@@ -2,12 +2,12 @@
 <regress-exe>
 <dir>
   <default>
-    <files>UnitTestFramework</files>
+    <files>262</files>
   </default>
 </dir>
 <dir>
   <default>
-    <files>262</files>
+    <files>UnitTestFramework</files>
   </default>
 </dir>
 <dir>

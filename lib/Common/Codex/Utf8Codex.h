@@ -274,6 +274,7 @@ namespace utf8
         {
             if (!countBytesOnly)
             {
+                CodexAssertOrFailFast(ptr < bufferEnd);
                 *ptr = static_cast<utf8char_t>(ch);
             }
             return ptr + 1;

@@ -1478,7 +1478,7 @@ namespace Js
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             Var replaceVar = threadContext->ExecuteImplicitCall(replacefn, ImplicitCall_Accessor, [=]()->Js::Var
             {
-            Var pThis = scriptContext->GetLibrary()->GetUndefined();
+                Var pThis = scriptContext->GetLibrary()->GetUndefined();
                 return CALL_FUNCTION(threadContext, replacefn, CallInfo(4), pThis, match, JavascriptNumber::ToVar((int)indexMatched, scriptContext), input);
             });
             JavascriptString* replace = JavascriptConversion::ToString(replaceVar, scriptContext);
@@ -1605,7 +1605,8 @@ namespace Js
         bool unicode = wcsstr(flags->GetString(), _u("u")) != nullptr;
         flags = AppendStickyToFlagsIfNeeded(flags, scriptContext);
 
-        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(speciesConstructor, defaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+        bool isDefaultConstructor = speciesConstructor == defaultConstructor;
+        Var regEx = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(speciesConstructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
         {
             Js::Var args[] = { speciesConstructor, thisObj, flags };
             Js::CallInfo callInfo(Js::CallFlags_New, _countof(args));

@@ -24,10 +24,7 @@ enum JnHelperMethod
 {
 #define HELPERCALL(Name, Address, Attributes) Helper##Name,
 #include "JnHelperMethodList.h"
-#undef HELPERCALL
-
     JnHelperMethodCount
-
 };
 
 class HelperCallOpnd;
@@ -54,16 +51,10 @@ char16 const* GetMethodName(JnHelperMethod helperMethod);
 namespace HelperMethodAttributes
 {
 
-// [Flags]
-enum HelperMethodAttribute : BYTE
-{
-    AttrNone        = 0x00,
-    AttrCanThrow    = 0x01,     // Can throw non-OOM / non-SO exceptions. Under debugger / Fast F12, these helpers are wrapped with try-catch wrapper.
-    AttrInVariant   = 0x02,     // The method is "const" method that can be hoisted.
-};
-
 bool CanThrow(IR::JnHelperMethod helper);
 
 bool IsInVariant(IR::JnHelperMethod helper);
+
+bool CanBeReentrant(IR::JnHelperMethod helper);
 
 } // namespace HelperMethodAttributes.

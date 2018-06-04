@@ -8,8 +8,7 @@
 #ifdef ENABLE_WASM
 #include "WasmLimits.h"
 
-namespace Js
-{
+using namespace Js;
 
 WebAssemblyMemory::WebAssemblyMemory(ArrayBufferBase* buffer, uint32 initial, uint32 maximum, DynamicType * type) :
     DynamicObject(type),
@@ -220,12 +219,15 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
 int32
 WebAssemblyMemory::GrowHelper(WebAssemblyMemory * mem, uint32 deltaPages)
 {
+    JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_GrowWasmMemory);
     return mem->GrowInternal(deltaPages);
+    JIT_HELPER_END(Op_GrowWasmMemory);
 }
 
 #if DBG
 void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint32 offset, Js::ArrayBufferView::ViewType viewType, uint32 bytecodeOffset, ScriptContext* context)
 {
+    JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_WasmMemoryTraceWrite);
     // Must call after the write
     Assert(mem);
     Output::Print(_u("#%04x "), bytecodeOffset);
@@ -265,6 +267,7 @@ void WebAssemblyMemory::TraceMemWrite(WebAssemblyMemory* mem, uint32 index, uint
         Assert(UNREACHED);
     }
     return;
+    JIT_HELPER_END(Op_WasmMemoryTraceWrite);
 }
 #endif
 
@@ -378,5 +381,4 @@ bool WebAssemblyMemory::IsSharedMemory() const
 }
 #endif
 
-} // namespace Js
 #endif // ENABLE_WASM

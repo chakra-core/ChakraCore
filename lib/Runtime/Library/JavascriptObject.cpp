@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-namespace Js
-{
+using namespace Js;
+
     Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -73,6 +73,7 @@ namespace Js
 
     Var JavascriptObject::EntryHasOwnProperty(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        JIT_HELPER_REENTRANT_HEADER(Object_HasOwnProperty);
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -104,6 +105,7 @@ namespace Js
         }
 
         return scriptContext->GetLibrary()->GetFalse();
+        JIT_HELPER_END(Object_HasOwnProperty);
     }
 
     Var JavascriptObject::EntryPropertyIsEnumerable(RecyclableObject* function, CallInfo callInfo, ...)
@@ -357,7 +359,17 @@ namespace Js
         }
 
         RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
-        return CALL_FUNCTION(scriptContext->GetThreadContext(), toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
+        if (toStringFunc == scriptContext->GetLibrary()->GetObjectToStringFunction())
+        {
+            return ToStringHelper(thisValue, scriptContext);
+        }
+        else
+        {
+            return scriptContext->GetThreadContext()->ExecuteImplicitCall(toStringFunc, Js::ImplicitCall_ToPrimitive, [=]()->Js::Var
+            {
+                return CALL_FUNCTION(scriptContext->GetThreadContext(), toStringFunc, CallInfo(CallFlags_Value, 1), thisValue);
+            });
+        }
     }
 
     Var JavascriptObject::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2060,4 +2072,3 @@ namespace Js
         }
         return returnValue;
     }
-}

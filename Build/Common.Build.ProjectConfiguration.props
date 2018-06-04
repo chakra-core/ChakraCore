@@ -43,6 +43,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|CHPE">
+      <Configuration>Debug</Configuration>
+      <Platform>CHPE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Test|CHPE">
+      <Configuration>Test</Configuration>
+      <Platform>CHPE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|CHPE">
+      <Configuration>Release</Configuration>
+      <Platform>CHPE</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>

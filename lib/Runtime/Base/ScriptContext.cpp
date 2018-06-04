@@ -4611,8 +4611,11 @@ namespace Js
                     }
                     __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
                     {
-                        // This can be an apply call or a spread so we have to use the large arg count
-                        aReturn = JavascriptFunction::CallFunction<true>(function, origEntryPoint, args, /* useLargeArgCount */ true);
+                        aReturn = scriptContext->GetThreadContext()->SafeReentrantCall([=]()->Js::Var
+                        {
+                            // This can be an apply call or a spread so we have to use the large arg count
+                            return JavascriptFunction::CallFunction<true>(function, origEntryPoint, args, /* useLargeArgCount */ true);
+                        });
                     }
                     __FINALLY
                     {
@@ -4625,8 +4628,11 @@ namespace Js
                     // Can we update return address to a thunk that sends Exit event and then jmp to entry instead of Calling it.
                     // Saves stack space and it might be something we would be doing anyway for handling profile.Start/stop
                     // which can come anywhere on the stack.
-                    // This can be an apply call or a spread so we have to use the large arg count
-                    aReturn = JavascriptFunction::CallFunction<true>(function, origEntryPoint, args, /* useLargeArgCount */ true);
+                    aReturn = scriptContext->GetThreadContext()->SafeReentrantCall([=]()->Js::Var
+                    {
+                        // This can be an apply call or a spread so we have to use the large arg count
+                        return JavascriptFunction::CallFunction<true>(function, origEntryPoint, args, /* useLargeArgCount */ true);
+                    });
                 }
             }
         }
@@ -4679,7 +4685,11 @@ namespace Js
         AutoRegisterIgnoreExceptionWrapper autoWrapper(scriptContext->GetThreadContext());
 
         Var aReturn = HelperOrLibraryMethodWrapper<true>(scriptContext, [=] {
-            return JavascriptFunction::CallFunction<true>(function, entryPoint, args, /* useLargeArgCount */ true);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                return JavascriptFunction::CallFunction<true>(function, entryPoint, args, /* useLargeArgCount */ true);
+            }
+            END_SAFE_REENTRANT_CALL
         });
 
         return aReturn;

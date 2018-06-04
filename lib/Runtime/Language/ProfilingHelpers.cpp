@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
-namespace Js
-{
+using namespace Js;
+
 #if ENABLE_PROFILE_INFO
     Var ProfilingHelpers::ProfiledLdElem(
         const Var base,
@@ -15,6 +15,7 @@ namespace Js
         bool didArrayAccessHelperCall,
         bool bailedOutOnArraySpecialization)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdElem);
         Assert(base);
         Assert(varIndex);
         Assert(functionBody);
@@ -141,6 +142,7 @@ namespace Js
 
         functionBody->GetDynamicProfileInfo()->RecordElementLoadAsProfiled(functionBody, profileId);
         return element;
+        JIT_HELPER_END(ProfiledLdElem);
     }
 
     Var ProfilingHelpers::ProfiledLdElem_FastPath(
@@ -219,7 +221,10 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStElem_DefaultFlags);
+        JIT_HELPER_SAME_ATTRIBUTES(ProfiledStElem_DefaultFlags, ProfiledStElem);
         ProfiledStElem(base, varIndex, value, functionBody, profileId, PropertyOperation_None, false, false);
+        JIT_HELPER_END(ProfiledStElem_DefaultFlags);
     }
 
     void ProfilingHelpers::ProfiledStElem(
@@ -232,6 +237,7 @@ namespace Js
         bool didArrayAccessHelperCall,
         bool bailedOutOnArraySpecialization)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStElem);
         Assert(base);
         Assert(varIndex);
         Assert(value);
@@ -386,6 +392,7 @@ namespace Js
         }
 
         functionBody->GetDynamicProfileInfo()->RecordElementStoreAsProfiled(functionBody, profileId);
+        JIT_HELPER_END(ProfiledStElem);
     }
 
     void ProfilingHelpers::ProfiledStElem_FastPath(
@@ -466,6 +473,7 @@ namespace Js
         FunctionBody *const functionBody,
         const ProfileId profileId)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledNewScArray);
         Assert(functionBody);
         Assert(profileId != Constants::NoProfileId);
 
@@ -506,6 +514,7 @@ namespace Js
 #endif
 
         return array;
+        JIT_HELPER_END(ProfiledNewScArray);
     }
 
     Var ProfilingHelpers::ProfiledNewScObjArray_Jit(
@@ -517,13 +526,16 @@ namespace Js
         ...)
     {
         ARGUMENTS(args, callee, framePointer, profileId, arrayProfileId, callInfo);
+        ScriptFunction* func = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArray);
         return
             ProfiledNewScObjArray(
                 callee,
                 args,
-                ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject),
+                func,
                 profileId,
                 arrayProfileId);
+        JIT_HELPER_END(ProfiledNewScObjArray);
     }
 
     Var ProfilingHelpers::ProfiledNewScObjArraySpread_Jit(
@@ -540,6 +552,7 @@ namespace Js
         Js::ScriptFunction *function = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ScriptContext* scriptContext = function->GetScriptContext();
 
+        JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArraySpread);
         // GetSpreadSize ensures that spreadSize < 2^24
         uint32 spreadSize = 0;
         if (spreadIndices != nullptr)
@@ -584,6 +597,7 @@ namespace Js
                     profileId,
                     arrayProfileId);
         }
+        JIT_HELPER_END(ProfiledNewScObjArraySpread);
     }
 
     Var ProfilingHelpers::ProfiledNewScObjArray(
@@ -700,21 +714,33 @@ namespace Js
                 inlineCacheIndex);
             // We need to record information here, most importantly so that we handle array subclass
             // creation properly, since optimizing those cases is important
-            Var retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+            Var retVal = nullptr;
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+            }
+            END_SAFE_REENTRANT_CALL
+            
             profileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retVal);
             return retVal;
         }
 
-        return JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     void ProfilingHelpers::ProfileLdSlot(const Var value, FunctionBody *const functionBody, const ProfileId profileId)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(ProfileLdSlot);
         Assert(value);
         Assert(functionBody);
         Assert(profileId != Constants::NoProfileId);
 
         functionBody->GetDynamicProfileInfo()->RecordSlotLoad(functionBody, profileId, value);
+        JIT_HELPER_END(ProfileLdSlot);
     }
 
     Var ProfilingHelpers::ProfiledLdLen_Jit(
@@ -724,6 +750,7 @@ namespace Js
         const ProfileId profileId,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdLen);
         ScriptFunction * const scriptFunction = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         FunctionBody * functionBody = scriptFunction->GetFunctionBody();
         DynamicProfileInfo * profileInfo = functionBody->GetDynamicProfileInfo();
@@ -740,6 +767,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdLen);
     }
 
     Var ProfilingHelpers::ProfiledLdFld_Jit(
@@ -748,6 +776,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -758,6 +787,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdFld);
     }
 
     Var ProfilingHelpers::ProfiledLdSuperFld_Jit(
@@ -766,7 +796,8 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer,
         const Var thisInstance)
-        {
+    {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdSuperFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -777,6 +808,7 @@ namespace Js
             inlineCacheIndex,
             scriptFunction->GetFunctionBody(),
             thisInstance);
+        JIT_HELPER_END(ProfiledLdSuperFld);
     }
 
     Var ProfilingHelpers::ProfiledLdFldForTypeOf_Jit(
@@ -785,6 +817,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdFldForTypeOf);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
@@ -794,6 +827,7 @@ namespace Js
             GetInlineCache(scriptFunction, inlineCacheIndex),
             inlineCacheIndex,
             scriptFunction->GetFunctionBody());
+        JIT_HELPER_END(ProfiledLdFldForTypeOf);
     }
 
 
@@ -803,6 +837,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld_CallApplyTarget);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -813,6 +848,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdFld_CallApplyTarget);
     }
 
     Var ProfilingHelpers::ProfiledLdMethodFld_Jit(
@@ -821,6 +857,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdMethodFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -831,6 +868,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdMethodFld);
     }
 
     Var ProfilingHelpers::ProfiledLdRootFld_Jit(
@@ -839,6 +877,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -849,6 +888,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdRootFld);
     }
 
     Var ProfilingHelpers::ProfiledLdRootFldForTypeOf_Jit(
@@ -857,6 +897,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFldForTypeOf);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
@@ -866,6 +907,7 @@ namespace Js
             GetInlineCache(scriptFunction, inlineCacheIndex),
             inlineCacheIndex,
             scriptFunction->GetFunctionBody());
+        JIT_HELPER_END(ProfiledLdRootFldForTypeOf);
     }
 
     Var ProfilingHelpers::ProfiledLdRootMethodFld_Jit(
@@ -874,6 +916,7 @@ namespace Js
         const InlineCacheIndex inlineCacheIndex,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootMethodFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
@@ -884,6 +927,7 @@ namespace Js
                 inlineCacheIndex,
                 scriptFunction->GetFunctionBody(),
                 instance);
+        JIT_HELPER_END(ProfiledLdRootMethodFld);
     }
 
     template<bool Root, bool Method, bool CallApplyTarget>
@@ -1040,6 +1084,7 @@ namespace Js
         const Var value,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
@@ -1051,6 +1096,7 @@ namespace Js
             PropertyOperation_None,
             scriptFunction,
             instance);
+        JIT_HELPER_END(ProfiledStFld);
     }
 
     void ProfilingHelpers::ProfiledStSuperFld_Jit(
@@ -1061,6 +1107,7 @@ namespace Js
         void *const framePointer,
         const Var thisInstance)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStSuperFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
@@ -1072,6 +1119,7 @@ namespace Js
             PropertyOperation_None,
             scriptFunction,
             thisInstance);
+        JIT_HELPER_END(ProfiledStSuperFld);
     }
 
     void ProfilingHelpers::ProfiledStFld_Strict_Jit(
@@ -1081,6 +1129,7 @@ namespace Js
         const Var value,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStFld_Strict);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
@@ -1092,6 +1141,7 @@ namespace Js
             PropertyOperation_StrictMode,
             scriptFunction,
             instance);
+        JIT_HELPER_END(ProfiledStFld_Strict);
     }
 
     void ProfilingHelpers::ProfiledStRootFld_Jit(
@@ -1101,6 +1151,7 @@ namespace Js
         const Var value,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
@@ -1112,6 +1163,7 @@ namespace Js
             PropertyOperation_Root,
             scriptFunction,
             instance);
+        JIT_HELPER_END(ProfiledStRootFld);
     }
 
     void ProfilingHelpers::ProfiledStRootFld_Strict_Jit(
@@ -1121,6 +1173,7 @@ namespace Js
         const Var value,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld_Strict);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
@@ -1132,6 +1185,7 @@ namespace Js
             PropertyOperation_StrictModeRoot,
             scriptFunction,
             instance);
+        JIT_HELPER_END(ProfiledStRootFld_Strict);
     }
 
     template<bool Root>
@@ -1270,6 +1324,7 @@ namespace Js
         const Var value,
         void *const framePointer)
     {
+        JIT_HELPER_REENTRANT_HEADER(ProfiledInitFld);
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledInitFld(
@@ -1279,6 +1334,7 @@ namespace Js
             inlineCacheIndex,
             value,
             scriptFunction->GetFunctionBody());
+        JIT_HELPER_END(ProfiledInitFld);
     }
 
     void ProfilingHelpers::ProfiledInitFld(
@@ -1384,4 +1440,3 @@ namespace Js
                 : scriptFunction->GetFunctionBody()->GetInlineCache(inlineCacheIndex);
     }
 #endif
-}

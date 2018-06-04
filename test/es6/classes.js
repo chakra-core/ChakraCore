@@ -176,6 +176,7 @@ var tests = [
           }, TypeError, "Undefined prototype");
 
       assert.doesNotThrow(function () { eval("class Foo extends new Proxy(class Bar {},{}){}"); });
+      assert.doesNotThrow(function () { eval("class Foo2 extends new Proxy(class Bar2 {},{has() {return true;}}){}"); });
     }
   },
   {

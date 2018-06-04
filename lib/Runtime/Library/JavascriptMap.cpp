@@ -115,7 +115,11 @@ Var JavascriptMap::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
             }
 
             // CONSIDER: if adder is the default built-in, fast path it and skip the JS call?
-            CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 3), mapObject, key, value);
+            }
+            END_SAFE_REENTRANT_CALL
         });
     }
 
@@ -191,7 +195,11 @@ Var JavascriptMap::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
         Var key = iterator.Current().Key();
         Var value = iterator.Current().Value();
 
-        CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, key, map);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     return scriptContext->GetLibrary()->GetUndefined();

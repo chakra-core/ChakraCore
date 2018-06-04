@@ -93,7 +93,11 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     if (iter != nullptr)
     {
         JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
-            CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+            }
+            END_SAFE_REENTRANT_CALL
         });
     }
 
@@ -194,7 +198,11 @@ Var JavascriptSet::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     {
         Var value = iterator.Current();
 
-        CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     return scriptContext->GetLibrary()->GetUndefined();

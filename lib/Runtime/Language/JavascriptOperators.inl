@@ -155,9 +155,9 @@ namespace Js
     }
 
     template <typename Fn>
-    Var JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, Var defaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction)
+    Var JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, bool isDefaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction)
     {
-        if (constructor != defaultConstructor)
+        if (!isDefaultConstructor)
         {
             return threadContext->ExecuteImplicitCall(constructor, Js::ImplicitCall_Accessor, [=]()->Js::Var
             {
@@ -166,7 +166,11 @@ namespace Js
         }
         else
         {
-            return newObjectCreationFunction();
+            BEGIN_SAFE_REENTRANT_CALL(threadContext)
+            {
+                return newObjectCreationFunction();
+            }
+            END_SAFE_REENTRANT_CALL
         }
     }
 }

@@ -453,6 +453,9 @@ public:
     virtual bool AsyncHostOperationStart(void *) = 0;
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) = 0;
 #endif
+#if DBG
+    virtual void CheckJsReentrancyOnDispose() = 0;
+#endif
 
     BOOL GetIsScriptContextCloseGCPending()
     {
@@ -502,6 +505,9 @@ public:
 #if DBG || defined(PROFILE_EXEC)
     virtual bool AsyncHostOperationStart(void *) override { return false; };
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) override {};
+#endif
+#if DBG
+    virtual void CheckJsReentrancyOnDispose() override {}
 #endif
     static DefaultRecyclerCollectionWrapper Instance;
 

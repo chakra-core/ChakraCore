@@ -32,7 +32,10 @@
     <Midl Include="$(MsBuildThisFileDirectory)ChakraJIT.idl">
       <OutputDirectory>$(IntDir)</OutputDirectory>
       <AdditionalOptions>%(AdditionalOptions) /acf "$(MsBuildThisFileDirectory)ChakraJIT.acf" /prefix client "Client" server "Server"</AdditionalOptions>
-      <AdditionalIncludeDirectories>..\Common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        $(MSBuildThisFileDirectory)..\Common;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
     </Midl>
   </ItemGroup>
   <ItemGroup>

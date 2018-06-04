@@ -1572,6 +1572,7 @@ Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
 void
 Func::EnsureEquivalentTypeGuards()
 {
+    AssertMsg(!PHASE_OFF(Js::EquivObjTypeSpecPhase, this), "Why do we have equivalent type guards if we don't do equivalent object type spec?");
     if (this->equivalentTypeGuards == nullptr)
     {
         this->equivalentTypeGuards = JitAnew(this->m_alloc, EquivalentTypeGuardList, this->m_alloc);

@@ -188,10 +188,10 @@ private:
     bool                            IsInt64Constant() const;
     const IntConstantValueInfo *    AsIntConstant() const;
     const Int64ConstantValueInfo *  AsInt64Constant() const;
-    bool                            IsIntRange() const;
-    const IntRangeValueInfo *       AsIntRange() const;
 
 public:
+    bool                            IsIntRange() const;
+    const IntRangeValueInfo *       AsIntRange() const;
     bool                            IsIntBounded() const;
     const IntBoundedValueInfo *     AsIntBounded() const;
     bool                            IsFloatConstant() const;

@@ -72,11 +72,15 @@ namespace Js
         // 9. Let completion be Call(executor, undefined, << resolvingFunctions.[[Resolve]], resolvingFunctions.[[Reject]] >>).
         try
         {
-            CALL_FUNCTION(scriptContext->GetThreadContext(),
-                executor, CallInfo(CallFlags_Value, 3),
-                library->GetUndefined(),
-                resolve,
-                reject);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                CALL_FUNCTION(scriptContext->GetThreadContext(),
+                        executor, CallInfo(CallFlags_Value, 3),
+                        library->GetUndefined(),
+                        resolve,
+                        reject);
+            }
+            END_SAFE_REENTRANT_CALL
         }
         catch (const JavascriptException& err)
         {
@@ -225,10 +229,16 @@ namespace Js
 
                 RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
 
-                Var nextPromise = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    resolveFunc, Js::CallInfo(CallFlags_Value, 2),
-                    constructorObject,
-                    next);
+                ThreadContext * threadContext = scriptContext->GetThreadContext();
+                Var nextPromise = nullptr;
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    nextPromise = CALL_FUNCTION(threadContext,
+                                        resolveFunc, Js::CallInfo(CallFlags_Value, 2),
+                                        constructorObject,
+                                        next);
+                }
+                END_SAFE_REENTRANT_CALL
 
                 JavascriptPromiseAllResolveElementFunction* resolveElement = library->CreatePromiseAllResolveElementFunction(EntryAllResolveElementFunction, index, values, promiseCapability, remainingElementsWrapper);
 
@@ -250,11 +260,15 @@ namespace Js
 
                 RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
 
-                CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    thenFunc, Js::CallInfo(CallFlags_Value, 3),
-                    nextPromiseObject,
-                    resolveElement,
-                    promiseCapability->GetReject());
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    CALL_FUNCTION(scriptContext->GetThreadContext(),
+                        thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                        nextPromiseObject,
+                        resolveElement,
+                        promiseCapability->GetReject());
+                }
+                END_SAFE_REENTRANT_CALL
 
                 index++;
             });
@@ -325,11 +339,15 @@ namespace Js
 
         RecyclableObject* func = RecyclableObject::FromVar(funcVar);
 
-        return CALL_FUNCTION(scriptContext->GetThreadContext(),
-            func, Js::CallInfo(CallFlags_Value, 3),
-            promise,
-            undefinedVar,
-            onRejected);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                    func, Js::CallInfo(CallFlags_Value, 3),
+                    promise,
+                    undefinedVar,
+                    onRejected);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     // Promise.race as described in ES 2015 Section 25.4.4.3
@@ -389,10 +407,16 @@ namespace Js
 
                 RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
 
-                Var nextPromise = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    resolveFunc, Js::CallInfo(CallFlags_Value, 2),
-                    constructorObject,
-                    next);
+                ThreadContext * threadContext = scriptContext->GetThreadContext();
+                Var nextPromise = nullptr;
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    nextPromise = CALL_FUNCTION(threadContext,
+                                    resolveFunc, Js::CallInfo(CallFlags_Value, 2),
+                                    constructorObject,
+                                    next);
+                }
+                END_SAFE_REENTRANT_CALL
 
                 RecyclableObject* nextPromiseObject;
 
@@ -410,11 +434,15 @@ namespace Js
 
                 RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
 
-                CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    thenFunc, Js::CallInfo(CallFlags_Value, 3),
-                    nextPromiseObject,
-                    promiseCapability->GetResolve(),
-                    promiseCapability->GetReject());
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    CALL_FUNCTION(threadContext,
+                        thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                        nextPromiseObject,
+                        promiseCapability->GetResolve(),
+                        promiseCapability->GetReject());
+                }
+                END_SAFE_REENTRANT_CALL
 
             });
         }
@@ -626,11 +654,15 @@ namespace Js
         }
         RecyclableObject* func = RecyclableObject::UnsafeFromVar(funcVar);
 
-        return CALL_FUNCTION(scriptContext->GetThreadContext(),
-            func, Js::CallInfo(CallFlags_Value, 3),
-            promise,
-            thenFinally,
-            catchFinally);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                func, Js::CallInfo(CallFlags_Value, 3),
+                promise,
+                thenFinally,
+                catchFinally);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     // ThenFinallyFunction as described in draft ES2018 #sec-thenfinallyfunctions
@@ -651,7 +683,13 @@ namespace Js
         Assert(JavascriptConversion::IsCallable(thenFinallyFunction->GetOnFinally()));
 
         // 3. Let result be ? Call(onFinally, undefined)
-        Var result = CALL_FUNCTION(scriptContext->GetThreadContext(), thenFinallyFunction->GetOnFinally(), CallInfo(CallFlags_Value, 1), library->GetUndefined());
+        Var result = nullptr;
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            result = CALL_FUNCTION(scriptContext->GetThreadContext(), thenFinallyFunction->GetOnFinally(), CallInfo(CallFlags_Value, 1), library->GetUndefined());
+        }
+        END_SAFE_REENTRANT_CALL
+        Assert(result);
 
         // 4. Let C be F.[[Constructor]]
         // 5. Assert IsConstructor(C)
@@ -687,10 +725,14 @@ namespace Js
 
         RecyclableObject* func = RecyclableObject::FromVar(funcVar);
 
-        return CALL_FUNCTION(scriptContext->GetThreadContext(),
-            func, Js::CallInfo(CallFlags_Value, 2),
-            promiseVar,
-            thunkFinallyFunction);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                func, Js::CallInfo(CallFlags_Value, 2),
+                promiseVar,
+                thunkFinallyFunction);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     // valueThunk Function as referenced within draft ES2018 #sec-thenfinallyfunctions
@@ -893,10 +935,14 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
             try
             {
-                handlerResult = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
-                    undefinedVar,
-                    argument);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    handlerResult = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                                        handler, Js::CallInfo(Js::CallFlags::CallFlags_Value, 2),
+                                        undefinedVar,
+                                        argument);
+                }
+                END_SAFE_REENTRANT_CALL
             }
             catch (const JavascriptException& err)
             {
@@ -925,10 +971,14 @@ namespace Js
 
         RecyclableObject* handlerFunc = RecyclableObject::FromVar(handler);
 
-        return CALL_FUNCTION(scriptContext->GetThreadContext(),
-            handlerFunc, CallInfo(CallFlags_Value, 2),
-            undefinedVar,
-            value);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                    handlerFunc, CallInfo(CallFlags_Value, 2),
+                    undefinedVar,
+                    value);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptPromise::TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext)
@@ -980,8 +1030,15 @@ namespace Js
 
     Var JavascriptPromise::CreateThenPromise(JavascriptPromise* sourcePromise, RecyclableObject* fulfillmentHandler, RecyclableObject* rejectionHandler, ScriptContext* scriptContext)
     {
-        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(sourcePromise, scriptContext->GetLibrary()->GetPromiseConstructor(), scriptContext);
-        JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
+        JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetPromiseConstructor();
+        RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(sourcePromise, defaultConstructor, scriptContext);
+        AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
+
+        bool isDefaultConstructor = constructor == defaultConstructor;
+        JavascriptPromiseCapability* promiseCapability = (JavascriptPromiseCapability*)JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->JavascriptPromiseCapability*
+        {
+            return NewPromiseCapability(constructor, scriptContext);
+        });
 
         JavascriptPromiseReaction* resolveReaction = JavascriptPromiseReaction::New(promiseCapability, fulfillmentHandler, scriptContext);
         JavascriptPromiseReaction* rejectReaction = JavascriptPromiseReaction::New(promiseCapability, rejectionHandler, scriptContext);
@@ -1038,11 +1095,15 @@ namespace Js
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
             try
             {
-                return CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
-                    thenable,
-                    resolve,
-                    reject);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    return CALL_FUNCTION(scriptContext->GetThreadContext(),
+                            thenFunction, Js::CallInfo(Js::CallFlags::CallFlags_Value, 3),
+                            thenable,
+                            resolve,
+                            reject);
+                }
+                END_SAFE_REENTRANT_CALL
             }
             catch (const JavascriptException& err)
             {
@@ -1192,7 +1253,11 @@ namespace Js
         Var argument = asyncSpawnStepArgumentExecutorFunction->GetArgument();
 
         JavascriptFunction* next = function->GetScriptContext()->GetLibrary()->EnsureGeneratorNextFunction();
-        return CALL_FUNCTION(function->GetScriptContext()->GetThreadContext(), next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
+        BEGIN_SAFE_REENTRANT_CALL(function->GetScriptContext()->GetThreadContext())
+        {
+            return CALL_FUNCTION(function->GetScriptContext()->GetThreadContext(), next, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), argument);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptPromise::EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1201,7 +1266,11 @@ namespace Js
 
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
         JavascriptFunction* throw_ = function->GetScriptContext()->GetLibrary()->EnsureGeneratorThrowFunction();
-        return CALL_FUNCTION(function->GetScriptContext()->GetThreadContext(), throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
+        BEGIN_SAFE_REENTRANT_CALL(function->GetScriptContext()->GetThreadContext())
+        {
+            return CALL_FUNCTION(function->GetScriptContext()->GetThreadContext(), throw_, CallInfo(CallFlags_Value, 2), asyncSpawnStepArgumentExecutorFunction->GetGenerator(), asyncSpawnStepArgumentExecutorFunction->GetArgument());
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptPromise::EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1243,6 +1312,8 @@ namespace Js
     void JavascriptPromise::AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject)
     {
         ScriptContext* scriptContext = gen->GetScriptContext();
+        BEGIN_SAFE_REENTRANT_REGION(scriptContext->GetThreadContext())
+
         JavascriptLibrary* library = scriptContext->GetLibrary();
         Var undefinedVar = library->GetUndefined();
 
@@ -1298,6 +1369,8 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
         CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseThen), CallInfo(CallFlags_Value, 3), promise, successFunction, failFunction);
+
+        END_SAFE_REENTRANT_REGION
     }
 
 #if ENABLE_TTD
@@ -1419,7 +1492,11 @@ namespace Js
 
         RecyclableObject* constructorFunc = RecyclableObject::FromVar(constructor);
 
-        return CreatePromiseCapabilityRecord(constructorFunc, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return CreatePromiseCapabilityRecord(constructorFunc, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     // CreatePromiseCapabilityRecord as described in ES6.0 (draft 29) Section 25.4.1.6.1

@@ -2645,6 +2645,7 @@ void BailOutRecord::CheckPreemptiveRejit(Js::FunctionBody* executeFunction, IR::
 
 Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
 {
+    JIT_HELPER_REENTRANT_HEADER(NoSaveRegistersBailOutForElidedYield);
     Js::JavascriptCallStackLayout * const layout = Js::JavascriptCallStackLayout::FromFramePointer(framePointer);
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ScriptFunction * function = *functionRef;
@@ -2689,6 +2690,7 @@ Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
     }
 
     return aReturn;
+    JIT_HELPER_END(NoSaveRegistersBailOutForElidedYield);
 }
 
 BranchBailOutRecord::BranchBailOutRecord(uint32 trueBailOutOffset, uint32 falseBailOutOffset, Js::RegSlot resultByteCodeReg, IR::BailOutKind kind, Func * bailOutFunc)
@@ -2875,3 +2877,4 @@ void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator,
     rowToInsert->regSlot = regSlot;
     *lastUpdatedRowIndex = length++;
 }
+

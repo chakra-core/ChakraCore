@@ -55,6 +55,22 @@ guarded_call(function () {
     echo(Array.prototype.toString.apply(o));
 });
 
+scenario("Object: no join with toStringTag");
+var o = {
+    [Symbol.toStringTag]: "Replaced @@toStringTag"
+};
+guarded_call(function () {
+    echo(Array.prototype.toString.apply(o));
+});
+
+scenario("Object: no join with getter toStringTag");
+var o = {
+    get [Symbol.toStringTag]() {return "Replaced @@toStringTag with a getter";}
+};
+guarded_call(function () {
+    echo(Array.prototype.toString.apply(o));
+});
+
 scenario("Object: no join, replaced Object.prototype.toString");
 var o = {};
 Object.prototype.toString = function () { return "replaced Object.prototype.toString"; }

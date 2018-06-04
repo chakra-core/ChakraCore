@@ -6,9 +6,10 @@
 #include "Common/UInt32Math.h"
 #include "Common/NumberUtilities.inl"
 #include <intsafe.h>
+#include "Core/JitHelperUtils.h"
 
-namespace Js
-{
+using namespace Js;
+
     // The VS2013 linker treats this as a redefinition of an already
     // defined constant and complains. So skip the declaration if we're compiling
     // with VS2013 or below.
@@ -338,6 +339,7 @@ namespace Js
 
     double NumberUtilities::Modulus(double dblLeft, double dblRight)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_Rem_Double);
         double value = 0;
 
         if (!Js::NumberUtilities::IsFinite(dblRight))
@@ -365,6 +367,7 @@ namespace Js
         }
 
         return value;
+        JIT_HELPER_END(Op_Rem_Double);
     }
 
     int32 NumberUtilities::LwFromDblNearest(double dbl)
@@ -693,4 +696,3 @@ namespace Js
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
     template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
     template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
-}

@@ -395,7 +395,7 @@ namespace TTD
         threadContext->TTDContext->LoadInvertedRootMap(objToLogIdMap);
 
         //We extract all the global code function bodies with the context so clear their marks now
-        for(int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
+        for (int32 i = 0; i < threadContext->TTDContext->GetTTDContexts().Count(); ++i)
         {
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
             JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);
@@ -404,30 +404,30 @@ namespace TTD
             Js::ScriptContext* ctx = threadContext->TTDContext->GetTTDContexts().Item(i);
             ctx->TTDContextInfo->GetLoadedSources(nullptr, topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
-            for(int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
+            for (int32 j = 0; j < topLevelScriptLoad.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelScriptLoad.Item(j).ContextSpecificBodyPtrId);
-                if(this->m_marks.IsMarked(body))
+                if (this->m_marks.IsMarked(body))
                 {
                     liveTopLevelBodies.Add(body);
                     this->m_marks.ClearMark(body);
                 }
             }
 
-            for(int32 j = 0; j < topLevelNewFunction.Count(); ++j)
+            for (int32 j = 0; j < topLevelNewFunction.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelNewFunction.Item(j).ContextSpecificBodyPtrId);
-                if(this->m_marks.IsMarked(body))
+                if (this->m_marks.IsMarked(body))
                 {
                     liveTopLevelBodies.Add(body);
                     this->m_marks.ClearMark(body);
                 }
             }
 
-            for(int32 j = 0; j < topLevelEval.Count(); ++j)
+            for (int32 j = 0; j < topLevelEval.Count(); ++j)
             {
                 Js::FunctionBody* body = TTD_COERCE_PTR_ID_TO_FUNCTIONBODY(topLevelEval.Item(j).ContextSpecificBodyPtrId);
-                if(this->m_marks.IsMarked(body))
+                if (this->m_marks.IsMarked(body))
                 {
                     liveTopLevelBodies.Add(body);
                     this->m_marks.ClearMark(body);

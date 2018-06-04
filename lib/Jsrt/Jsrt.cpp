@@ -2120,7 +2120,11 @@ CHAKRA_API JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ JsValueRef b
             return JsErrorInvalidArgument;
         }
 
-        *result = Js::JavascriptFunction::CallAsConstructor(constructorFunc, /* overridingNewTarget = */nullptr, args, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            *result = Js::JavascriptFunction::CallAsConstructor(constructorFunc, /* overridingNewTarget = */nullptr, args, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -2793,7 +2797,11 @@ CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValue
         //TTDAssert(!Js::ScriptFunction::Is(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
         //
 
-        *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            *result = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, scriptContext);
+        }
+        END_SAFE_REENTRANT_CALL
         Assert(*result == nullptr || !Js::CrossSite::NeedMarshalVar(*result, scriptContext));
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
@@ -3441,8 +3449,8 @@ CHAKRA_API JsIdle(_Out_opt_ unsigned int *nextIdleTick)
 
 CHAKRA_API JsSetPromiseContinuationCallback(_In_opt_ JsPromiseContinuationCallback promiseContinuationCallback, _In_opt_ void *callbackState)
 {
-    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        scriptContext->GetLibrary()->SetNativeHostPromiseContinuationFunction((Js::JavascriptLibrary::PromiseContinuationCallback) promiseContinuationCallback, callbackState);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
+        scriptContext->GetLibrary()->SetNativeHostPromiseContinuationFunction((Js::JavascriptLibrary::PromiseContinuationCallback)promiseContinuationCallback, callbackState);
         return JsNoError;
     },
     /*allowInObjectBeforeCollectCallback*/true);

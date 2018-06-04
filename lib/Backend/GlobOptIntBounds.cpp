@@ -3164,3 +3164,82 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         upperHoistInfo.SetLoopCount(loopCount, maxMagnitudeChange);
     }
 }
+
+#if DBG
+void
+GlobOpt::EmitIntRangeChecks(IR::Instr* instr, IR::Opnd* opnd)
+{
+    if (!opnd || 
+        (!opnd->IsRegOpnd() && !opnd->IsIndirOpnd()) ||
+        (opnd->IsIndirOpnd() && !opnd->AsIndirOpnd()->GetIndexOpnd()))
+    {
+        return;
+    }
+
+    IR::RegOpnd * regOpnd = opnd->IsRegOpnd() ? opnd->AsRegOpnd() : opnd->AsIndirOpnd()->GetIndexOpnd();
+    if (!(regOpnd->IsInt32() || regOpnd->IsUInt32()))
+    {
+        return;
+    }
+    
+    StackSym * sym = regOpnd->GetStackSym();
+    if (sym->IsTypeSpec())
+    {
+        sym = sym->GetVarEquivSym_NoCreate();
+    }
+    
+    Value * value = CurrentBlockData()->FindValue(sym);
+
+    if (!value)
+    {
+        return;
+    }
+
+    int32 lowerBound = INT_MIN;
+    int32 upperBound = INT_MAX;
+    
+    if (value->GetValueInfo()->IsIntBounded())
+    {
+        lowerBound = value->GetValueInfo()->AsIntBounded()->Bounds()->ConstantLowerBound();
+        upperBound = value->GetValueInfo()->AsIntBounded()->Bounds()->ConstantUpperBound();
+    }
+    else if (value->GetValueInfo()->IsIntRange())
+    {
+        lowerBound = value->GetValueInfo()->AsIntRange()->LowerBound();
+        upperBound = value->GetValueInfo()->AsIntRange()->UpperBound();
+    }
+    else
+    {
+        return;
+    }
+
+    const auto EmitBoundCheck = [&](Js::OpCode opcode, int32 bound)
+    {
+        IR::Opnd * boundOpnd = IR::IntConstOpnd::New(bound, TyInt32, instr->m_func, true /*dontEncode*/);
+        IR::Instr * boundCheckInstr = IR::Instr::New(opcode, instr->m_func);
+        boundCheckInstr->SetSrc1(regOpnd);
+        boundCheckInstr->SetSrc2(boundOpnd);
+        instr->InsertBefore(boundCheckInstr);
+    };
+
+    if (lowerBound > INT_MIN)
+    {
+        EmitBoundCheck(Js::OpCode::CheckLowerIntBound, lowerBound);
+    }
+    if (upperBound < INT_MAX)
+    {
+        EmitBoundCheck(Js::OpCode::CheckUpperIntBound, upperBound);
+    }
+}
+
+void
+GlobOpt::EmitIntRangeChecks(IR::Instr* instr)
+{
+    // currently validating for dst only if its IndirOpnd
+    EmitIntRangeChecks(instr, instr->GetSrc1());
+    if (instr->GetDst()->IsIndirOpnd())
+    {
+        EmitIntRangeChecks(instr, instr->GetDst());
+    }
+}
+#endif

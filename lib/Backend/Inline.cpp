@@ -405,7 +405,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         instrNext = builtInInlineCandidateOpCode != 0 ?
                             this->InlineBuiltInFunction(instr, inlineeData, builtInInlineCandidateOpCode, inlinerData, symThis, &isInlined, profileId, recursiveInlineDepth) :
                             this->InlineScriptFunction(instr, inlineeData, symThis, profileId, &isInlined, callbackDefInstr, recursiveInlineDepth);
-                         if (!isInlined && hasDstUsedBuiltInReturnType)
+                        if (!isInlined && hasDstUsedBuiltInReturnType)
                         {
                             // We haven't actually inlined the builtin, we need to revert the value type to likely
                             instr->GetDst()->UnsetValueTypeFixed();

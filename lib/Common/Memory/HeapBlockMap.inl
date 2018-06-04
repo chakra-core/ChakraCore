@@ -412,7 +412,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
             }
 
             ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
-    }
+        }
         break;
 #ifdef RECYCLER_VISITED_HOST
     case HeapBlock::HeapBlockType::SmallRecyclerVisitedHostBlockType:
@@ -423,7 +423,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((SmallRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
+            ((SmallRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
     case HeapBlock::HeapBlockType::MediumRecyclerVisitedHostBlockType:
@@ -434,7 +434,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
+            ((MediumRecyclerVisitedHostHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(realCandidate, markContext);
         }
         break;
 #endif
