@@ -111,6 +111,8 @@ namespace Js
         static bool IsPrototypeOf(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
         static bool IsPrototypeOfStopAtProxy(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
 
+		static void SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext);
+
     private:
         template <bool tryCopy>
         static void AssignHelper(Var fromArg, RecyclableObject* to, ScriptContext* scriptContext);
@@ -125,5 +127,11 @@ namespace Js
         static Var DefinePropertiesHelperForProxyObjects(RecyclableObject* object, RecyclableObject* properties, ScriptContext* scriptContext);
 
         static Var GetToStringTagValue(RecyclableObject *thisArg, ScriptContext *scriptContext);
+
+		static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+		static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+		static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+
+		static BOOL CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext);
     };
 }

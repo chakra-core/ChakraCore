@@ -1643,7 +1643,7 @@ namespace Js
 
     void JavascriptObject::AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
-         JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
+        JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
 
         //      c. Repeat for each element nextKey of keys in List order,
         //          i. Let desc be from.[[GetOwnProperty]](nextKey).
@@ -2060,4 +2060,195 @@ namespace Js
         }
         return returnValue;
     }
+
+	/*static*/
+	void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext)
+	{
+		// 1. Assert Type(to) is Object.
+		// 2. Assert Type(excluded) is List.
+		// 3. If from is undefined or null, let keys be a new empty List
+		// 4. Else,
+		//		a. Let from be ToObject(source).
+		//		b. Let keys be from.[[OwnpropertyKeys]]().
+		// 5. Repeat for each element nextKey of keys in List order,
+		//		a. Let found be false.
+		//		b. Repeat for each element e of excluded,
+		//			i. If e is not empty and SameValue(e, nextKey) is true, then
+		//				1. Set found to true.
+		//		c. If found is false, then
+		//			i. Let desc be from.[[GetOwnProperty]](nextKey).
+		//			ii. If desc is not undefined and desc.[[Enumerable]] is true, then
+		//				1. Let propValue be Get(from, nextKey).
+		//				2. Perform CreateDataProperty(to, nextKey, propValue).
+		// 6. Return target (target is returned in pointer).
+		Assert(JavascriptOperators::IsObject(to));
+		RecyclableObject* from = nullptr;
+		if (!JavascriptConversion::ToObject(source, scriptContext, &from))
+		{
+			if (JavascriptOperators::IsUndefinedOrNull(source))
+			{
+				return;
+			}
+			JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.CopyDataPropertiesHelper"));
+		}
+
+#if ENABLE_COPYONACCESS_ARRAY
+		JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
+#endif
+		// if proxy, take slow path by calling [[OwnPropertyKeys]] on source
+		if (JavascriptProxy::Is(from))
+		{
+			CopyDataPropertiesForProxyObjects(from, to, excluded, excludedLength, scriptContext);
+		}
+		// else use enumerator to extract keys from source
+		else
+		{
+			CopyDataPropertiesForGenericObjects(from, to, excluded, excludedLength, scriptContext);
+		}
+	}
+
+	/*static*/
+	void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext)
+	{
+		// Steps 4 and 5 of CopyDataPropertiesHelper
+
+		EnumeratorCache* cache = scriptContext->GetLibrary()->GetObjectAssignCache(from->GetType());
+		JavascriptStaticEnumerator enumerator;
+		if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols | EnumeratorFlags::UseCache, scriptContext, cache))
+		{
+			// Nothing to enumerate, continue with the nextSource.
+			return;
+		}
+
+		PropertyId nextKey = Constants::NoProperty;
+		Var propValue = nullptr;
+		JavascriptString * propertyName = nullptr;
+
+		// Enumerate through each property of properties and fetch the property descriptor
+		while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
+		{
+			// Make sure nextKey is defined for the current propertyName
+			if (nextKey == Constants::NoProperty)
+			{
+				PropertyRecord const * propertyRecord = nullptr;
+
+				scriptContext->GetOrAddPropertyRecord(propertyName, &propertyRecord);
+				nextKey = propertyRecord->GetPropertyId();
+			}
+
+			bool found = false;
+			for (uint32 i = 0; i < excludedLength; i++)
+			{
+				if (excluded[i] == nextKey)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+			{
+				PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
+
+				// If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
+				//
+				// Whenever possible, our enumerator populates the cache, so we should generally get a cache hit here
+				PropertyValueInfo getPropertyInfo;
+				if (propertyString == nullptr || !propertyString->TryGetPropertyFromCache<true /* OwnPropertyOnly */, false /* OutputExistence */>(from, from, &propValue, scriptContext, &getPropertyInfo))
+				{
+					if (!JavascriptOperators::GetOwnProperty(from, nextKey, &propValue, scriptContext, &getPropertyInfo))
+					{
+						JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.CopyDataProperties"));
+					}
+				}
+
+				//TODO[t-huyan]: potentially use caching to improve efficiency? (see AssignForGenericObjects implementation)
+				if (!CreateDataProperty(to, nextKey, propValue, scriptContext))
+				{
+					JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.CopyDataProperties"));
+				}
+			}
+		}
+	}
+
+	/*static*/
+	void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext)
+	{
+		// Steps 4 and 5 of CopyDataPropertiesHelper
+		JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
+		uint32 length = keys->GetLength();
+		Var nextKey;
+		const PropertyRecord* propertyRecord = nullptr;
+		PropertyId propertyId;
+		Var propValue = nullptr;
+		for (uint32 j = 0; j < length; j++)
+		{
+			PropertyDescriptor propertyDescriptor;
+			nextKey = keys->DirectGetItem(j);
+			AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+			// Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
+			JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
+			propertyId = propertyRecord->GetPropertyId();
+			AssertMsg(propertyId != Constants::NoProperty, "CopyDataPropertiesForProxyObjects - OwnPropertyKeys returned a propertyId with value NoProperty.");
+
+			bool found = false;
+			for (uint32 i = 0; i < excludedLength; i++)
+			{
+				if (excluded[i] == propertyId)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+			{
+				if (JavascriptOperators::GetOwnPropertyDescriptor(from, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
+				{
+					if (propertyDescriptor.IsEnumerable())
+					{
+						if (!JavascriptOperators::GetOwnProperty(from, propertyId, &propValue, scriptContext, nullptr))
+						{
+							JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.CopyDataProperties"));
+						}
+						if (!CreateDataProperty(to, propertyId, propValue, scriptContext))
+						{
+							JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedObject, _u("Object.CopyDataProperties"));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	BOOL JavascriptObject::CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext)
+	{
+		// 1. Assert: Type(obj) is Object
+		// 2. Assert: IsPropertyKey(key) is true
+		Assert(JavascriptOperators::IsObject(obj));
+
+		// 3. Let newDesc be the PropertyDescriptor{[[Value]]: V, [[Writable]]: true, [[Enumerable]]: true, [[Configurable]]: true}.
+		PropertyDescriptor newDesc;
+		newDesc.SetValue(value);
+		newDesc.SetWritable(true);
+		newDesc.SetEnumerable(true);
+		newDesc.SetConfigurable(true);
+
+		// 4. Return ? O.[[DefineOwnProperty]](P, newDesc). 
+		return DefineOwnPropertyHelper(obj, key, newDesc, scriptContext);
+	}
+
+	void JavascriptObject::SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext)
+	{
+		RecyclableObject* target = nullptr;
+		if (!JavascriptConversion::ToObject(to, scriptContext, &target))
+		{
+			if (JavascriptOperators::IsUndefinedOrNull(to))
+			{
+				return;
+			}
+			JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.SpreadObjectLiteral"));
+		}
+		CopyDataPropertiesHelper(source, target, nullptr, 0, scriptContext);
+	}
 }
