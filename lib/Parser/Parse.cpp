@@ -4486,7 +4486,14 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             break;
 
 		case tkEllipsis:
-			useSpread = true;
+			if (CONFIG_FLAG(ES2019ObjectSpread))
+			{
+				useSpread = true;
+			}
+			else 
+			{
+				Error(ERRnoMemberIdent);
+			}
 			break;
         }
 

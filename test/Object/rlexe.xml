@@ -450,4 +450,10 @@
       <baseline>assign.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ObjectSpread.js</files>
+      <compile-flags>-args summary -endargs -NoNative</compile-flags>
+    </default>
+  </test>
 </regress-exe>

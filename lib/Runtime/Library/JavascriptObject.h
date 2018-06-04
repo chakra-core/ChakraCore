@@ -111,6 +111,8 @@ namespace Js
         static bool IsPrototypeOf(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
         static bool IsPrototypeOfStopAtProxy(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
 
+		static void SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext);
+
     private:
         template <bool tryCopy>
         static void AssignHelper(Var fromArg, RecyclableObject* to, ScriptContext* scriptContext);
