@@ -5794,8 +5794,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JavascriptProxy * proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
+            // Proxies require special handling, so go to main NewScObject path
             Arguments args(CallInfo(CallFlags_New, 1), &instance);
-            return proxy->ConstructorTrap(args, requestContext, 0);
+            return JavascriptOperators::NewScObject(instance, args, requestContext, nullptr);
         }
 
         FunctionInfo* functionInfo = JavascriptOperators::GetConstructorFunctionInfo(instance, requestContext);

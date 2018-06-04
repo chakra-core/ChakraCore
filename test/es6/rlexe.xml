@@ -84,6 +84,11 @@
   </test>
   <test>
     <default>
+      <files>newProxy.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>es6IsConcatSpreadable.js</files>
       <compile-flags>-es6tolength -args summary -endargs</compile-flags>
     </default>
