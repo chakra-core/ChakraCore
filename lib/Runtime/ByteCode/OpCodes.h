@@ -720,105 +720,107 @@ MACRO_BACKEND_ONLY(     NoImplicitCallUses, Empty,          None)
 MACRO_BACKEND_ONLY(     NoIntOverflowBoundary, Empty,       None)
 
 MACRO_BACKEND_ONLY(     EndCallForPolymorphicInlinee, Empty,  OpSideEffect|OpDeadFallThrough)
-MACRO_BACKEND_ONLY(     InlineeStart,       Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineeEnd,         Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineeMetaArg,     Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineBuiltInStart, Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineBuiltInEnd,   Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineNonTrackingBuiltInEnd, Empty, OpSideEffect)
-MACRO_BACKEND_ONLY(     InlineMathAcos,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathAsin,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathAtan,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathAtan2,    Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathCos,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathExp,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathLog,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathPow,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathSin,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathSqrt,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineMathTan,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpProducesNumber|OpCanCSE)
+MACRO_BACKEND_ONLY(InlineeStart, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineeEnd, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineeMetaArg, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineBuiltInStart, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineBuiltInEnd, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineNonTrackingBuiltInEnd, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(InlineMathAcos, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathAsin, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathAtan, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathAtan2, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathCos, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathExp, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathLog, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathPow, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathSin, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathSqrt, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineMathTan, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpProducesNumber | OpCanCSE)
 
 // IE11 inline built-ins
 // TODO: put these upfront so that all built-ins are sorted.
-MACRO_BACKEND_ONLY(     InlineMathAbs,       Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathClz,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Ctz,                 Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Clz,                 Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathCeil,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpBailOutRec|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathFloor,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpBailOutRec|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathMax,       Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathImul,      Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathMin,       Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathRandom,    Empty,          OpSideEffect|OpInlinableBuiltIn|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathRound,     Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpBailOutRec|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineMathFround,    Empty,          OpInlinableBuiltIn|OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     InlineStringCharAt,  Empty,          OpInlinableBuiltIn|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineStringCharCodeAt, Empty,       OpInlinableBuiltIn|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineStringCodePointAt, Empty,      OpInlinableBuiltIn|OpCanCSE)
-MACRO_BACKEND_ONLY(     InlineArrayPop,      Empty,          OpSideEffect|OpInlinableBuiltIn|OpHasImplicitCall)
-MACRO_BACKEND_ONLY(     InlineArrayPush,     Empty,          OpSideEffect|OpInlinableBuiltIn|OpHasImplicitCall)
-MACRO_BACKEND_ONLY(     InlineFunctionApply, Empty,          OpSideEffect|OpInlinableBuiltIn)
-MACRO_BACKEND_ONLY(     InlineFunctionCall,  Empty,          OpSideEffect|OpInlinableBuiltIn)
-MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInlinableBuiltIn)
+MACRO_BACKEND_ONLY(InlineMathAbs, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathClz, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(Ctz, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(Clz, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathCeil, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpBailOutRec | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathFloor, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpBailOutRec | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathMax, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathImul, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathMin, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathRandom, Empty, OpSideEffect | OpInlinableBuiltIn | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathRound, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpBailOutRec | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineMathFround, Empty, OpInlinableBuiltIn | OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(InlineStringCharAt, Empty, OpInlinableBuiltIn | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineStringCharCodeAt, Empty, OpInlinableBuiltIn | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineStringCodePointAt, Empty, OpInlinableBuiltIn | OpCanCSE)
+MACRO_BACKEND_ONLY(InlineArrayPop, Empty, OpSideEffect | OpInlinableBuiltIn | OpHasImplicitCall)
+MACRO_BACKEND_ONLY(InlineArrayPush, Empty, OpSideEffect | OpInlinableBuiltIn | OpHasImplicitCall)
+MACRO_BACKEND_ONLY(InlineFunctionApply, Empty, OpSideEffect | OpInlinableBuiltIn)
+MACRO_BACKEND_ONLY(InlineFunctionCall, Empty, OpSideEffect | OpInlinableBuiltIn)
+MACRO_BACKEND_ONLY(InlineRegExpExec, Empty, OpSideEffect | OpInlinableBuiltIn)
 
-MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
-MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
-MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
-MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
-MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(CallIFixed, Empty, OpSideEffect | OpUseAllFields | OpCallInstr | OpInlineCallInstr)
+MACRO_BACKEND_ONLY(CheckFixedFld, Empty, OpFastFldInstr | OpTempObjectSources | OpCanCSE)
+MACRO_BACKEND_ONLY(CheckPropertyGuardAndLoadType, Empty, OpFastFldInstr | OpTempObjectSources | OpDoNotTransfer)
+MACRO_BACKEND_ONLY(CheckObjType, Empty, OpFastFldInstr | OpTempObjectSources | OpCanCSE)
+MACRO_BACKEND_ONLY(AdjustObjType, Empty, OpSideEffect)
 
-                                                                                                            // Edge inline built-ins
+// Edge inline built-ins
 #ifdef ENABLE_DOM_FAST_PATH
-MACRO_BACKEND_ONLY(     DOMFastPathGetter,   Empty,          OpCanCSE)  // unlike other builtins, we don't know the return type
-MACRO_BACKEND_ONLY(     DOMFastPathSetter,   Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(DOMFastPathGetter, Empty, OpCanCSE)  // unlike other builtins, we don't know the return type
+MACRO_BACKEND_ONLY(DOMFastPathSetter, Empty, OpSideEffect)
 #endif
-MACRO_BACKEND_ONLY(     ExtendArg_A,         Empty,          OpCanCSE)  // extend a list of arguments to be passed to functions.
+MACRO_BACKEND_ONLY(ExtendArg_A, Empty, OpCanCSE)  // extend a list of arguments to be passed to functions.
 
 #ifdef _M_X64
-MACRO_BACKEND_ONLY(     PrologStart,        Empty,          None)
-MACRO_BACKEND_ONLY(     PrologEnd,          Empty,          None)
-MACRO_BACKEND_ONLY(     LdArgSize,          Empty,          None)
-MACRO_BACKEND_ONLY(     LdSpillSize,        Empty,          None)
+MACRO_BACKEND_ONLY(PrologStart, Empty, None)
+MACRO_BACKEND_ONLY(PrologEnd, Empty, None)
+MACRO_BACKEND_ONLY(LdArgSize, Empty, None)
+MACRO_BACKEND_ONLY(LdSpillSize, Empty, None)
 #endif
 
 #if DBG_DUMP
-MACRO_BACKEND_ONLY(     LdRoot,             Empty,          None)       // Load root object
-MACRO_BACKEND_ONLY(     LdModuleRoot,       Empty,          None)       // Load module root with given moduleID
-MACRO_BACKEND_ONLY(     LdNullDisplay,      Empty,          None)       // Load the null frame display
-MACRO_BACKEND_ONLY(     LdStrictNullDisplay,Empty,          None)       // Load the strict null frame display
+MACRO_BACKEND_ONLY(LdRoot, Empty, None)       // Load root object
+MACRO_BACKEND_ONLY(LdModuleRoot, Empty, None)       // Load module root with given moduleID
+MACRO_BACKEND_ONLY(LdNullDisplay, Empty, None)       // Load the null frame display
+MACRO_BACKEND_ONLY(LdStrictNullDisplay, Empty, None)       // Load the strict null frame display
 #endif
 
-MACRO(                  SpreadArrayLiteral, Reg2Aux,        OpSideEffect|OpHasImplicitCall)
-MACRO_BACKEND_ONLY(     LdSpreadIndices,    Empty,          None)
+MACRO(SpreadArrayLiteral, Reg2Aux, OpSideEffect | OpHasImplicitCall)
+MACRO_BACKEND_ONLY(LdSpreadIndices, Empty, None)
 
-MACRO_EXTEND_WMS(       ClearAttributes,    ElementU,       None)
+MACRO_EXTEND_WMS(ClearAttributes, ElementU, None)
 
-MACRO_EXTEND_WMS(       LdHomeObj,          Reg1,           OpSideEffect)
-MACRO_EXTEND_WMS(       LdFuncObj,          Reg1,           OpSideEffect)
-MACRO_EXTEND_WMS(       LdHomeObjProto,     Reg2,           OpSideEffect)
-MACRO_EXTEND_WMS(       LdFuncObjProto,     Reg2,           OpSideEffect)
-MACRO_EXTEND_WMS(       SetHomeObj,         Reg2,           OpSideEffect)
+MACRO_EXTEND_WMS(LdHomeObj, Reg1, OpSideEffect)
+MACRO_EXTEND_WMS(LdFuncObj, Reg1, OpSideEffect)
+MACRO_EXTEND_WMS(LdHomeObjProto, Reg2, OpSideEffect)
+MACRO_EXTEND_WMS(LdFuncObjProto, Reg2, OpSideEffect)
+MACRO_EXTEND_WMS(SetHomeObj, Reg2, OpSideEffect)
 
-MACRO_EXTEND_WMS(       ImportCall,         Reg2,           OpSideEffect|OpHasImplicitCall)
+MACRO_EXTEND_WMS(ImportCall, Reg2, OpSideEffect | OpHasImplicitCall)
 
-MACRO_BACKEND_ONLY(     BrFncCachedScopeEq, Reg2,           None)
-MACRO_BACKEND_ONLY(     BrFncCachedScopeNeq,Reg2,           None)
+MACRO_BACKEND_ONLY(BrFncCachedScopeEq, Reg2, None)
+MACRO_BACKEND_ONLY(BrFncCachedScopeNeq, Reg2, None)
 
-MACRO_BACKEND_ONLY(     GeneratorResumeJumpTable, Reg1,     OpSideEffect)
-MACRO_BACKEND_ONLY(     RestoreOutParam,    Empty,          None)
+MACRO_BACKEND_ONLY(GeneratorResumeJumpTable, Reg1, OpSideEffect)
+MACRO_BACKEND_ONLY(RestoreOutParam, Empty, None)
 
-MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
-MACRO_BACKEND_ONLY(     FrameDisplayCheck,  Empty,          OpCanCSE)
-MACRO_EXTEND(           BeginBodyScope,     Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(SlotArrayCheck, Empty, OpCanCSE)
+MACRO_BACKEND_ONLY(FrameDisplayCheck, Empty, OpCanCSE)
+MACRO_EXTEND(BeginBodyScope, Empty, OpSideEffect)
 
-MACRO_BACKEND_ONLY(     PopCnt,             Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Copysign_A,         Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Trunc_A,            Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     Nearest_A,          Empty,          OpTempNumberSources|OpCanCSE|OpProducesNumber)
-MACRO_BACKEND_ONLY(     ThrowRuntimeError,  Empty,          OpSideEffect)
-MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
-MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
-MACRO_BACKEND_ONLY(     TrapIfUnalignedAccess, Reg3,        OpSideEffect)
+MACRO_BACKEND_ONLY(PopCnt, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(Copysign_A, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(Trunc_A, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(Nearest_A, Empty, OpTempNumberSources | OpCanCSE | OpProducesNumber)
+MACRO_BACKEND_ONLY(ThrowRuntimeError, Empty, OpSideEffect)
+MACRO_BACKEND_ONLY(TrapIfMinIntOverNegOne, Reg3, OpSideEffect)
+MACRO_BACKEND_ONLY(TrapIfZero, Reg3, OpSideEffect)
+MACRO_BACKEND_ONLY(TrapIfUnalignedAccess, Reg3, OpSideEffect)
+
+MACRO_EXTEND_WMS(SpreadObjectLiteral, Reg2, OpSideEffect)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

@@ -2237,4 +2237,18 @@ namespace Js
 		// 4. Return ? O.[[DefineOwnProperty]](P, newDesc). 
 		return DefineOwnPropertyHelper(obj, key, newDesc, scriptContext);
 	}
+
+	void JavascriptObject::SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext)
+	{
+		RecyclableObject* target = nullptr;
+		if (!JavascriptConversion::ToObject(to, scriptContext, &target))
+		{
+			if (JavascriptOperators::IsUndefinedOrNull(to))
+			{
+				return;
+			}
+			JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Object.SpreadObjectLiteral"));
+		}
+		CopyDataPropertiesHelper(source, target, nullptr, 0, scriptContext);
+	}
 }

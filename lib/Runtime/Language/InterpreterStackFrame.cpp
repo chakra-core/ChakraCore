@@ -389,6 +389,16 @@
 
 #define PROCESS_A2toXXMemNonVar(name, func) PROCESS_A2toXXMemNonVar_COMMON(name, func,)
 
+#define PROCESS_A2toXXMem_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg2, suffix); \
+        func(GetReg(playout->R0), GetReg(playout->R1), GetScriptContext()); \
+        break; \
+    }
+
+#define PROCESS_A2toXXMem(name, func) PROCESS_A2toXXMem_COMMON(name, func,)
+
 #define PROCESS_A1NonVarToA1_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \

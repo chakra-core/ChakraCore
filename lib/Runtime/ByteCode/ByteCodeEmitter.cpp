@@ -8368,6 +8368,16 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
     }
 }
 
+void EmitObjectSpreadNode(ParseNode *spreadNode, Js::RegSlot objectLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+{
+	Js::RegSlot fromObjectLocation;
+	ParseNode *exprNode = spreadNode->AsParseNodeUni()->pnode1;
+	Emit(exprNode, byteCodeGenerator, funcInfo, false);
+	fromObjectLocation = exprNode->location;
+	byteCodeGenerator->Writer()->Reg2(Js::OpCode::SpreadObjectLiteral, fromObjectLocation, objectLocation);
+	funcInfo->ReleaseLoc(exprNode);
+}
+
 void EmitClassInitializers(ParseNode *memberList, Js::RegSlot objectLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, ParseNode* parentNode, bool isObjectEmpty)
 {
     if (memberList != nullptr)
@@ -8402,14 +8412,14 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
     typedef JsUtil::BaseHashSet<Js::PropertyId, ArenaAllocator, PowerOf2SizePolicy> PropertyIdSet;
     PropertyIdSet* propertyIds = Anew(byteCodeGenerator->GetAllocator(), PropertyIdSet, byteCodeGenerator->GetAllocator(), 17);
 
-    bool hasComputedName = false;
+    bool hasComputedNameOrSpread = false;
     if (memberList != nullptr)
     {
         while (memberList->nop == knopList)
-        {
-            if (memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->nop == knopComputedName)
+		{
+            if (memberList->AsParseNodeBin()->pnode1->nop == knopEllipsis || memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->nop == knopComputedName)
             {
-                hasComputedName = true;
+                hasComputedNameOrSpread = true;
                 break;
             }
 
@@ -8422,7 +8432,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
             memberList = memberList->AsParseNodeBin()->pnode2;
         }
 
-        if (memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedName)
+        if (memberList->nop != knopEllipsis && memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedNameOrSpread)
         {
             propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value))
@@ -8455,7 +8465,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
         unsigned int argIndex = 0;
         while (memberList->nop == knopList)
         {
-            if (memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->nop == knopComputedName)
+            if (memberList->AsParseNodeBin()->pnode1->nop == knopEllipsis || memberList->AsParseNodeBin()->pnode1->AsParseNodeBin()->pnode1->nop == knopComputedName)
             {
                 break;
             }
@@ -8468,7 +8478,7 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
             memberList = memberList->AsParseNodeBin()->pnode2;
         }
 
-        if (memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedName)
+        if (memberList->nop != knopEllipsis && memberList->AsParseNodeBin()->pnode1->nop != knopComputedName && !hasComputedNameOrSpread)
         {
             propertyId = memberList->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->GetPropertyId();
             if (!byteCodeGenerator->GetScriptContext()->IsNumericPropertyId(propertyId, &value) && propertyIds->Remove(propertyId))
@@ -8497,20 +8507,37 @@ void EmitObjectInitializers(ParseNode *memberList, Js::RegSlot objectLocation, B
         while (memberList->nop == knopList)
         {
             ParseNode *memberNode = memberList->AsParseNodeBin()->pnode1;
+			if (memberNode->nop == knopEllipsis) 
+			{
+				//TODO[t-huyan]:emit spread
+				byteCodeGenerator->StartSubexpression(memberNode);
+				EmitObjectSpreadNode(memberNode, objectLocation, byteCodeGenerator, funcInfo);
+				byteCodeGenerator->EndSubexpression(memberNode);
+			}
+			else
+			{
+				if (memberNode->AsParseNodeBin()->pnode1->nop == knopComputedName)
+				{
+					useStore = true;
+				}
 
-            if (memberNode->AsParseNodeBin()->pnode1->nop == knopComputedName)
-            {
-                useStore = true;
-            }
-
-            byteCodeGenerator->StartSubexpression(memberNode);
-            EmitMemberNode(memberNode, objectLocation, byteCodeGenerator, funcInfo, nullptr, useStore);
-            byteCodeGenerator->EndSubexpression(memberNode);
-            memberList = memberList->AsParseNodeBin()->pnode2;
+				byteCodeGenerator->StartSubexpression(memberNode);
+				EmitMemberNode(memberNode, objectLocation, byteCodeGenerator, funcInfo, nullptr, useStore);
+				byteCodeGenerator->EndSubexpression(memberNode);
+			}
+			memberList = memberList->AsParseNodeBin()->pnode2;
         }
 
         byteCodeGenerator->StartSubexpression(memberList);
-        EmitMemberNode(memberList, objectLocation, byteCodeGenerator, funcInfo, nullptr, useStore);
+		if (memberList->nop == knopEllipsis)
+		{
+			//TODO[t-huyan]:emit spread
+			EmitObjectSpreadNode(memberList, objectLocation, byteCodeGenerator, funcInfo);
+		}
+		else
+		{
+			EmitMemberNode(memberList, objectLocation, byteCodeGenerator, funcInfo, nullptr, useStore);
+		}
         byteCodeGenerator->EndSubexpression(memberList);
     }
 }
@@ -10046,14 +10073,17 @@ void TrackMemberNodesInObjectForIntConstants(ByteCodeGenerator *byteCodeGenerato
     while (memberList != nullptr)
     {
         ParseNodePtr memberNode = memberList->nop == knopList ? memberList->AsParseNodeBin()->pnode1 : memberList;
-        ParseNodePtr memberNameNode = memberNode->AsParseNodeBin()->pnode1;
-        ParseNodePtr memberValNode = memberNode->AsParseNodeBin()->pnode2;
+		if (memberNode->nop != knopEllipsis)
+		{
+			ParseNodePtr memberNameNode = memberNode->AsParseNodeBin()->pnode1;
+			ParseNodePtr memberValNode = memberNode->AsParseNodeBin()->pnode2;
 
-        if (memberNameNode->nop != knopComputedName && memberValNode->nop == knopInt)
-        {
-            Js::PropertyId propertyId = memberNameNode->AsParseNodeStr()->pid->GetPropertyId();
-            TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, true, propertyId);
-        }
+			if (memberNameNode->nop != knopComputedName && memberValNode->nop == knopInt)
+			{
+				Js::PropertyId propertyId = memberNameNode->AsParseNodeStr()->pid->GetPropertyId();
+				TrackIntConstantsOnGlobalUserObject(byteCodeGenerator, true, propertyId);
+			}
+		}
 
         memberList = memberList->nop == knopList ? memberList->AsParseNodeBin()->pnode2 : nullptr;
     }
@@ -10250,7 +10280,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     case knopEllipsis:
     {
         Emit(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo, false);
-        // Transparently pass the location of the array.
+        // Transparently pass the location of the object or array.
         pnode->location = pnode->AsParseNodeUni()->pnode1->location;
         break;
     }
