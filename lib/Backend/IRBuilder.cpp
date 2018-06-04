@@ -1877,9 +1877,11 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
 
     switch (newOpcode)
     {
+    case Js::OpCode::SpreadObjectLiteral:
+        // fall through
     case Js::OpCode::SetComputedNameVar:
     {
-        IR::Instr *instr = IR::Instr::New(Js::OpCode::SetComputedNameVar, m_func);
+        IR::Instr *instr = IR::Instr::New(newOpcode, m_func);
         instr->SetSrc1(this->BuildSrcOpnd(R0));
         instr->SetSrc2(src1Opnd);
         this->AddInstr(instr, offset);

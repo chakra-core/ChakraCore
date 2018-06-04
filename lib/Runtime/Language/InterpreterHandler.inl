@@ -396,6 +396,8 @@ EXDEF3_WMS(CUSTOM,                  ClearAttributes,            OP_ClearAttribut
 EXDEF3_WMS(CUSTOM,                  EmitTmpRegCount,            OP_EmitTmpRegCount, Unsigned1)
 #endif
 EXDEF2    (EMPTY,                   BeginBodyScope,             OP_BeginBodyScope)
+EXDEF2_WMS(A2toXXMem,               SpreadObjectLiteral,        JavascriptObject::SpreadObjectLiteral)
+
 
 #endif
 

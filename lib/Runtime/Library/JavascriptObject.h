@@ -111,11 +111,17 @@ namespace Js
         static bool IsPrototypeOf(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
         static bool IsPrototypeOfStopAtProxy(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
 
+        static void SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext);
+
     private:
-        template <bool tryCopy>
-        static void AssignHelper(Var fromArg, RecyclableObject* to, ScriptContext* scriptContext);
-        static void AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
-        static void AssignForProxyObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext);
+        template <bool tryCopy, bool assign>
+        static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, ScriptContext* scriptContext, PropertyId* excluded = nullptr, uint32 excludedLength = 0);
+        template <bool assign>
+        static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+        template <bool assign>
+        static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+
+        static BOOL CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext);
         static JavascriptArray* CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties);
 
         static void ModifyGetterSetterFuncName(const PropertyRecord * propertyRecord, const PropertyDescriptor& descriptor, ScriptContext* scriptContext);
@@ -125,5 +131,7 @@ namespace Js
         static Var DefinePropertiesHelperForProxyObjects(RecyclableObject* object, RecyclableObject* properties, ScriptContext* scriptContext);
 
         static Var GetToStringTagValue(RecyclableObject *thisArg, ScriptContext *scriptContext);
+
+        
     };
 }

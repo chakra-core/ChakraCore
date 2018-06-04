@@ -512,6 +512,8 @@ HELPERCALL(EnsureFunctionProxyDeferredPrototypeType, &Js::FunctionProxy::EnsureF
 HELPERCALL(SpreadArrayLiteral, Js::JavascriptArray::SpreadArrayArgs, 0)
 HELPERCALL(SpreadCall, Js::JavascriptFunction::EntrySpreadCall, 0)
 
+HELPERCALL(SpreadObjectLiteral, Js::JavascriptObject::SpreadObjectLiteral, 0)
+
 HELPERCALLCHK(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)

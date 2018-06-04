@@ -450,4 +450,22 @@
       <baseline>assign.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ObjectSpread_Simple.js</files>
+      <compile-flags>-args summary -endargs -NoNative -ES2018ObjectSpread</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ObjectSpread_JIT.js</files>
+      <compile-flags>-args summary -endargs -ES2018ObjectSpread -bgjit -maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ObjectSpread_Limits.js</files>
+      <compile-flags>-args summary -endargs -ES2018ObjectSpread</compile-flags>
+    </default>
+  </test>
 </regress-exe>

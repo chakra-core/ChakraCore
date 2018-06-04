@@ -4,6 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 
-// {2E95A003-1442-404F-98D5-D5C973B8A719}
+// {3EB30F58-66E0-404B-BAE8-1D3CD23F866F}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x2E95A003, 0x1442, 0x404F, { 0x98, 0xD5, 0xD5, 0xC9, 0x73, 0xB8, 0xA7, 0x19 } };
+{ 0x3EB30F58, 0x66E0, 0x404B, { 0xBA, 0xE8, 0x1D, 0x3C, 0xD2, 0x3F, 0x86, 0x6F } };
