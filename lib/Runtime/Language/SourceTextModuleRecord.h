@@ -43,6 +43,7 @@ namespace Js
 
         HRESULT ResolveExternalModuleDependencies();
         void EnsureChildModuleSet(ScriptContext *scriptContext);
+        bool ConfirmChildrenParsed();
 
         void* GetHostDefined() const { return hostDefined; }
         void SetHostDefined(void* hostObj) { hostDefined = hostObj; }
@@ -116,6 +117,8 @@ namespace Js
         const static uint InvalidSlotIndex = 0xffffffff;
         // TODO: move non-GC fields out to avoid false reference?
         // This is the parsed tree resulted from compilation.
+        Field(bool) confirmedReady = false;
+        Field(bool) notifying = false;
         Field(bool) wasParsed;
         Field(bool) wasDeclarationInitialized;
         Field(bool) parentsNotified;
@@ -136,7 +139,6 @@ namespace Js
         Field(LocalExportMap*) localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
         Field(LocalExportMap*) localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
         Field(LocalExportIndexList*) localExportIndexList; // from index to propertyId: for typehandler.
-        Field(uint) numPendingChildrenModule;
         Field(ExportedNames*) exportedNames;
         Field(ResolvedExportMap*) resolvedExportMap;
 
