@@ -2488,7 +2488,7 @@ ParseNodePtr Parser::ParseImport()
         ParseNodePtr pnode = ParseImportCall<buildAST>();
         BOOL fCanAssign;
         IdentToken token;
-        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, &fCanAssign, &token);
+        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, TRUE, &fCanAssign, &token);
     }
 
     this->GetScanner()->SeekTo(parsedImport);
@@ -2917,6 +2917,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     uint32 *pShortNameOffset,
     _Inout_opt_ IdentToken* pToken /*= nullptr*/,
     bool fUnaryOrParen /*= false*/,
+    BOOL fCanAssignToCall /*= TRUE*/,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
     _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/,
@@ -3255,7 +3256,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         }
         else
         {
-            ParseNodePtr pnodeExpr = ParseTerm<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset, nullptr, false, nullptr, nullptr, nullptr, plastRParen);
+            ParseNodePtr pnodeExpr = ParseTerm<buildAST>(FALSE, pNameHint, pHintLength, pShortNameOffset, nullptr, false, TRUE, nullptr, nullptr, nullptr, plastRParen);
             if (buildAST)
             {
                 pnode = CreateCallNode(knopNew, pnodeExpr, nullptr);
@@ -3413,7 +3414,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         break;
     }
 
-    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
+    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, fCanAssignToCall, &fCanAssign, &term, pfIsDotOrIndex);
 
     if (savedTopAsyncRef != nullptr &&
         this->m_token.tk == tkDArrow)
@@ -3528,6 +3529,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
     BOOL fAllowCall,
     BOOL fInNew,
     BOOL isAsyncExpr,
+    BOOL fCanAssignToCallResult,
     BOOL *pfCanAssign,
     _Inout_ IdentToken* pToken,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr */)
@@ -3671,7 +3673,10 @@ ParseNodePtr Parser::ParsePostfixOperators(
             }
             if (pfCanAssign)
             {
-                *pfCanAssign = FALSE;
+                *pfCanAssign = fCanAssignToCallResult && 
+                               (m_sourceContextInfo ?
+                                !PHASE_ON_RAW(Js::EarlyErrorOnAssignToCallPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId) :
+                                !PHASE_ON1(Js::EarlyErrorOnAssignToCallPhase));
             }
             if (pfIsDotOrIndex)
             {
@@ -4547,7 +4552,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                     // First identify that the current expression is indeed the object/array literal. Otherwise we will just use the ParsrExpr to parse that.
 
                     ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false /*fUnaryOrParen*/,
-                        nullptr /*pfCanAssign*/, &fLikelyPattern);
+                        TRUE, nullptr /*pfCanAssign*/, &fLikelyPattern);
 
                     this->GetScanner()->SeekTo(atExpression);
 
@@ -8408,6 +8413,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     RestorePoint termStart;
     uint32 hintLength = 0;
     uint32 hintOffset = 0;
+    BOOL fLikelyPattern = FALSE;
 
     ParserState parserState;
 
@@ -8508,7 +8514,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             if ((nop == knopIncPre || nop == knopDecPre) && (m_token.tk != tkDArrow))
             {
-                if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
+                if (!fCanAssign && 
+                    (m_sourceContextInfo 
+                     ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
+                     : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
                 {
                     Error(JSERR_CantAssignTo);
                 }
@@ -8604,8 +8613,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     else
     {
         ichMin = this->GetScanner()->IchMinTok();
-        BOOL fLikelyPattern = FALSE;
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, TRUE, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -8680,7 +8688,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         if (!this->GetScanner()->FHadNewLine() &&
             (tkInc == m_token.tk || tkDec == m_token.tk))
         {
-            if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
+            if (!fCanAssign && 
+                (m_sourceContextInfo 
+                 ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
+                 : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
                 Error(JSERR_CantAssignTo);
             }
@@ -8764,7 +8775,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
                 break;
             }
-            if (m_token.tk != tkDArrow && !fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
+            if (m_token.tk != tkDArrow && !fCanAssign && 
+                (m_sourceContextInfo 
+                 ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
+                 : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
                 Error(JSERR_CantAssignTo);
                 // No recovery necessary since this is a semantic, not structural, error.
@@ -8789,7 +8803,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         // Precedence is high enough. Consume the operator token.
         this->GetScanner()->Scan();
-        fCanAssign = FALSE;
+        fCanAssign = !!fLikelyPattern;
 
         // Special case the "?:" operator
         if (nop == knopQmark)
@@ -9896,7 +9910,10 @@ LRestart:
                     Error(ERRForInNoInitAllowed);
                 }
             }
-            if (!fCanAssign && PHASE_ON1(Js::EarlyReferenceErrorsPhase))
+            if (!fCanAssign && 
+                (m_sourceContextInfo 
+                 ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
+                 : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
                 Error(JSERR_CantAssignTo);
             }
@@ -12723,7 +12740,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             BOOL fCanAssign;
             IdentToken token;
             // Look for postfix operator
-            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, &fCanAssign, &token);
+            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, TRUE, &fCanAssign, &token);
         }
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID || m_token.tk == tkTHIS)
@@ -12741,7 +12758,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             IdentToken token;
             // We aren't declaring anything, so scan the ID reference manually.
             pnodeElem = ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false,
-                &fCanAssign);
+                FALSE, &fCanAssign);
 
             // In this destructuring case we can force error here as we cannot assign.
 

@@ -1462,7 +1462,7 @@
   <test>
     <default>
       <files>test146.js</files>
-      <compile-flags>-off:bailonnoprofile</compile-flags>
+      <compile-flags>-off:bailonnoprofile -off:earlyreferenceerrors</compile-flags>
     </default>
   </test>
   <test>

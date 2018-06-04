@@ -206,6 +206,7 @@
   <test>
     <default>
       <files>implicit_nosideeffect.js</files>
+      <compile-flags>-off:earlyreferenceerrors</compile-flags>
       <baseline>implicit_nosideeffect.baseline</baseline>
     </default>
   </test>

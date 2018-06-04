@@ -55,7 +55,7 @@
     <default>
       <files>randombug.js</files>
       <baseline>randombug.baseline</baseline>
-      <compile-flags>-CollectGarbage -ExtendedErrorStackForTestHost</compile-flags>
+      <compile-flags>-CollectGarbage -ExtendedErrorStackForTestHost -off:earlyreferenceerrors</compile-flags>
     </default>
   </test>
   <test>
