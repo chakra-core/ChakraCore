@@ -230,7 +230,26 @@ var tests = [
             };
 
             var obj = Proxy.revocable({}, handler);
-            assert.throws( () => { Object.getOwnPropertyDescriptor(obj.proxy, 'a'); }, TypeError);
+            Object.getOwnPropertyDescriptor(obj.proxy, 'a');
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in getOwnPropertyDescriptor trap, undefined argument",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                getOwnPropertyDescriptor: function (a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+
+                    // used to cause AV
+                    a[undefined] = new String();
+                }
+            };
+
+            var obj = Proxy.revocable({}, handler);
+            Object.getOwnPropertyDescriptor(obj.proxy);
             assert.isTrue(trapCalled);
         }
     },

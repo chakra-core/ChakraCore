@@ -231,8 +231,8 @@ namespace Js
         template <class Fn, class GetPropertyIdFunc>
         BOOL GetPropertyTrap(Var instance, PropertyDescriptor* propertyDescriptor, Fn fn, GetPropertyIdFunc getPropertyId, ScriptContext* requestContext);
 
-        template <class Fn, class GetPropertyIdFunc>
-        BOOL GetPropertyDescriptorTrap(Var originalInstance, Fn fn, GetPropertyIdFunc getPropertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext);
+        template <class Fn>
+        BOOL GetPropertyDescriptorTrap(Var originalInstance, Fn fn, PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext);
 
 #if ENABLE_TTD
     public:

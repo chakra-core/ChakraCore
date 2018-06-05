@@ -195,8 +195,8 @@ namespace Js
         target = nullptr;
     }
 
-    template <class Fn, class GetPropertyIdFunc>
-    BOOL JavascriptProxy::GetPropertyDescriptorTrap(Var originalInstance, Fn fn, GetPropertyIdFunc getPropertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
+    template <class Fn>
+    BOOL JavascriptProxy::GetPropertyDescriptorTrap(Var originalInstance, Fn fn, PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -233,7 +233,6 @@ namespace Js
             return fn(targetObj);
         }
 
-        PropertyId propertyId = getPropertyId();
         Var propertyName = GetName(requestContext, propertyId);
 
         Assert(JavascriptString::Is(propertyName) || JavascriptSymbol::Is(propertyName));
@@ -254,9 +253,8 @@ namespace Js
         //11. Let targetDesc be the result of calling the[[GetOwnProperty]] internal method of target with argument P.
         //12. ReturnIfAbrupt(targetDesc).
         PropertyDescriptor targetDescriptor;
-        BOOL hasProperty;
+        BOOL hasProperty = JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, &targetDescriptor);
 
-        hasProperty = JavascriptOperators::GetOwnPropertyDescriptor(targetObj, getPropertyId(), requestContext, &targetDescriptor);
         //13. If trapResultObj is undefined, then
         //a.If targetDesc is undefined, then return undefined.
         //b.If targetDesc.[[Configurable]] is false, then throw a TypeError exception.
@@ -274,7 +272,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
-            if (!target->IsExtensible())
+            if (!targetObj->IsExtensible())
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
@@ -1250,7 +1248,10 @@ namespace Js
     {
         if (target == nullptr)
         {
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u(""));
+			// We only can get here through GetOwnPropertyDescriptor, which would check that proxy is not revoked and throw if necessary.
+			// It may still be possible for the `target` to become null after the validation, for example if a trap handler revokes the proxy.
+			// Just return FALSE in such cases.
+			return FALSE;
         }
 
         return target->GetDefaultPropertyDescriptor(descriptor);
@@ -1675,8 +1676,8 @@ namespace Js
         auto fn = [&](RecyclableObject *targetObj)-> BOOL {
             return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, propertyDescriptor);
         };
-        auto getPropertyId = [&]() -> PropertyId {return propertyId; };
-        BOOL foundProperty = proxy->GetPropertyDescriptorTrap(obj, fn, getPropertyId, propertyDescriptor, requestContext);
+
+		BOOL foundProperty = proxy->GetPropertyDescriptorTrap(obj, fn, propertyId, propertyDescriptor, requestContext);
         return foundProperty;
     }
 
