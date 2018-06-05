@@ -18,7 +18,7 @@ template charcount_t ChangeStringLinguisticCase<false, false>(const char16* sour
 namespace Internal
 {
 
-int LogicalStringCompareImpl(const char16* p1, const char16* p2);
+int LogicalStringCompareImpl(const char16* p1, int p1size, const char16* p2, int p2size);
 
 }; // namespace Internal
 }; // namespace UnicodeText

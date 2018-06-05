@@ -72,6 +72,12 @@ namespace PlatformAgnostic
                 return num;
             }
 
+            template <typename CharType>
+            bool isNull(__in CharType c)
+            {
+                return c == '\0';
+            }
+
             ///
             /// Implementation of CompareString(NORM_IGNORECASE | SORT_DIGITSASNUMBERS)
             /// This code is in the common library so that we can unit test it on Windows too
@@ -88,14 +94,18 @@ namespace PlatformAgnostic
             ///     Otherwise, they're the same to continue scanning
             ///  else they're both not numbers:
             ///     Compare lexically till we find a number
+            ///  if either of the strings current character is a null character continue scanning
             /// The algorithm treats the characters in a case-insensitive manner
             ///
-            int LogicalStringCompareImpl(const char16* p1, const char16* p2)
+            int LogicalStringCompareImpl(const char16* p1, int p1size, const char16* p2, int p2size)
             {
                 Assert(p1 != nullptr);
                 Assert(p2 != nullptr);
 
-                while (*p1 && *p2)
+                const char16* str1End = p1 + p1size;
+                const char16* str2End = p2 + p2size;
+
+                while (p1 < str1End && p2 < str2End)
                 {
                     bool isDigit1 = isDigit(*p1);
                     bool isDigit2 = isDigit(*p2);
@@ -169,6 +179,16 @@ namespace PlatformAgnostic
 
                             p1++; p2++;
                         }
+                    }
+
+                    while (isNull(*p1) && p1 < str1End)
+                    {
+                        p1++;
+                    }
+
+                    while (isNull(*p2) && p2 < str2End)
+                    {
+                        p2++;
                     }
                 }
 

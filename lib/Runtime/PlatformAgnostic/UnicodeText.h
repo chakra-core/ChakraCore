@@ -231,6 +231,6 @@ namespace PlatformAgnostic
         //     -1 - string1 is greater than string2
         //     +1 - string1 is lesser than string2
         //
-        int LogicalStringCompare(const char16* string1, const char16* string2);
+        int LogicalStringCompare(const char16* string1, int str1size, const char16* string2, int str2size);
     };
 };
