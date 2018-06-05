@@ -134,7 +134,7 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
                 }
                 charcount_t len;
                 LPWSTR ws = str.GetWideString(&len);
-                LPWSTR wsNoNull = new WCHAR[len + 1];
+                LPWSTR wsNoNull = new WCHAR[((size_t)len) + 1];
                 charcount_t newIndex = 0;
                 for (charcount_t j = 0; j < len; j++)
                 {
