@@ -2704,6 +2704,38 @@ Instr::GetNextBranchOrLabel() const
     return instr;
 }
 
+IR::Instr *
+Instr::GetNextByteCodeInstr() const
+{
+    IR::Instr * nextInstr = GetNextRealInstrOrLabel();
+    uint32 currentOffset = GetByteCodeOffset();
+    const auto getNext = [](IR::Instr* nextInstr) -> IR::Instr*
+    {
+        if (nextInstr->IsBranchInstr())
+        {
+            IR::BranchInstr* branchInstr = nextInstr->AsBranchInstr();
+            AssertMsg(branchInstr->IsUnconditional(), "We can't know which branch to take on a conditionnal branch");
+            if (branchInstr->IsUnconditional())
+            {
+                return branchInstr->GetTarget();
+            }
+        }
+        return nextInstr->GetNextRealInstrOrLabel();
+    };
+    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+        nextInstr->GetByteCodeOffset() == currentOffset)
+    {
+        nextInstr = getNext(nextInstr);
+    }
+    // This can happen due to break block removal
+    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+        nextInstr->GetByteCodeOffset() < currentOffset)
+    {
+        nextInstr = getNext(nextInstr);
+    }
+    return nextInstr;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Instr::GetPrevRealInstr

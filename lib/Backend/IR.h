@@ -288,6 +288,7 @@ public:
     IR::Instr *     GetNextRealInstr() const;
     IR::Instr *     GetNextRealInstrOrLabel() const;
     IR::Instr *     GetNextBranchOrLabel() const;
+    IR::Instr *     GetNextByteCodeInstr() const;
     IR::Instr *     GetPrevRealInstr() const;
     IR::Instr *     GetPrevRealInstrOrLabel() const;
     IR::LabelInstr *GetPrevLabelInstr() const;

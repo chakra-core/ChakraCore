@@ -270,4 +270,9 @@
       <files>bug13674598.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug17449647.js</files>
+    </default>
+  </test>
 </regress-exe>
