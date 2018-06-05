@@ -195,8 +195,7 @@ namespace Js
         target = nullptr;
     }
 
-    template <class Fn>
-    BOOL JavascriptProxy::GetPropertyDescriptorTrap(Var originalInstance, Fn fn, PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
+    BOOL JavascriptProxy::GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -223,6 +222,7 @@ namespace Js
 
         Assert((static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyCount() == 0 ||
             (static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyId(GetScriptContext(), 0) == InternalPropertyIds::WeakMapKeyMap);
+
         JavascriptFunction* gOPDMethod = GetMethodHelper(PropertyIds::getOwnPropertyDescriptor, requestContext);
 
         //7. If trap is undefined, then
@@ -230,7 +230,7 @@ namespace Js
         if (nullptr == gOPDMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
             resultDescriptor->SetFromProxy(false);
-            return fn(targetObj);
+            return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, resultDescriptor);
         }
 
         Var propertyName = GetName(requestContext, propertyId);
@@ -276,6 +276,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
+
             return FALSE;
         }
 
@@ -1244,19 +1245,6 @@ namespace Js
         return trapResult;
     }
 
-    BOOL JavascriptProxy::GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor)
-    {
-        if (target == nullptr)
-        {
-			// We only can get here through GetOwnPropertyDescriptor, which would check that proxy is not revoked and throw if necessary.
-			// It may still be possible for the `target` to become null after the validation, for example if a trap handler revokes the proxy.
-			// Just return FALSE in such cases.
-			return FALSE;
-        }
-
-        return target->GetDefaultPropertyDescriptor(descriptor);
-    }
-
     // 7.3.12 in ES 2015. While this should have been no observable behavior change. Till there is obvious change warrant this
     // to be moved to JavascriptOperators, let's keep it in proxy only first.
     BOOL JavascriptProxy::TestIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext)
@@ -1673,12 +1661,7 @@ namespace Js
     BOOL JavascriptProxy::GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
-        auto fn = [&](RecyclableObject *targetObj)-> BOOL {
-            return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, propertyDescriptor);
-        };
-
-		BOOL foundProperty = proxy->GetPropertyDescriptorTrap(obj, fn, propertyId, propertyDescriptor, requestContext);
-        return foundProperty;
+        return proxy->GetPropertyDescriptorTrap(propertyId, propertyDescriptor, requestContext);
     }
 
 

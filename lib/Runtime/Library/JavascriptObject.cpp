@@ -674,12 +674,12 @@ using namespace Js;
         if (obj->IsExternal())
         {
             isPropertyDescriptorDefined = obj->HasOwnProperty(propertyId) ?
-                JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : obj->GetDefaultPropertyDescriptor(propertyDescriptor);
+                JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : 
+                FALSE;
         }
         else
         {
-            isPropertyDescriptorDefined = JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) ||
-                obj->GetDefaultPropertyDescriptor(propertyDescriptor);
+            isPropertyDescriptorDefined = JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor);
         }
         return isPropertyDescriptorDefined;
     }

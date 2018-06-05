@@ -313,13 +313,6 @@ namespace Js
         // Do nothing
     }
 
-    BOOL RecyclableObject::GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor)
-    {
-        // By default, when GetOwnPropertyDescriptor is called for a nonexistent property,
-        // return undefined.
-        return false;
-    }
-
     HRESULT RecyclableObject::QueryObjectInterface(REFIID riid, void **ppvObj)
     {
         Assert(!this->GetScriptContext()->GetThreadContext()->IsScriptActive());
