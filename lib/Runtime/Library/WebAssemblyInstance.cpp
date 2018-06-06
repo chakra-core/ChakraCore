@@ -276,17 +276,20 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
                 case Wasm::WasmTypes::I32:
                     obj = JavascriptNumber::ToVar(cnst.i32, scriptContext);
                     break;
+                case Wasm::WasmTypes::I64:
+                    JavascriptError::ThrowTypeErrorVar(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion, _u("i64"), _u("Var"));
                 case Wasm::WasmTypes::F32:
                     obj = JavascriptNumber::New(cnst.f32, scriptContext);
                     break;
                 case Wasm::WasmTypes::F64:
                     obj = JavascriptNumber::New(cnst.f64, scriptContext);
                     break;
-                case Wasm::WasmTypes::I64:
-                    JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
+#ifdef ENABLE_WASM_SIMD
+                case Wasm::WasmTypes::M128:
+                    JavascriptError::ThrowTypeErrorVar(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion, _u("m128"), _u("Var"));
+#endif
                 default:
-                    Assert(UNREACHED);
-                    break;
+                    Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
                 }
             }
             JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), obj, scriptContext);
@@ -416,9 +419,12 @@ void WebAssemblyInstance::LoadImports(
             case Wasm::WasmTypes::I32: cnst.i32 = JavascriptConversion::ToInt32(prop, ctx); break;
             case Wasm::WasmTypes::F32: cnst.f32 = (float)JavascriptConversion::ToNumber(prop, ctx); break;
             case Wasm::WasmTypes::F64: cnst.f64 = JavascriptConversion::ToNumber(prop, ctx); break;
-            case Wasm::WasmTypes::I64: Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
+            case Wasm::WasmTypes::I64: Js::JavascriptError::ThrowTypeErrorVar(ctx, WASMERR_InvalidTypeConversion, _u("Var"), _u("i64"));
+#ifdef ENABLE_WASM_SIMD
+            case Wasm::WasmTypes::M128: Js::JavascriptError::ThrowTypeErrorVar(ctx, WASMERR_InvalidTypeConversion, _u("Var"), _u("m128"));
+#endif
             default:
-                Js::Throw::InternalError();
+                Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
             }
             env->SetGlobalValue(global, cnst);
             break;

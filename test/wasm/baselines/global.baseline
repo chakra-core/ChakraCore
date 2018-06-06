@@ -58,6 +58,6 @@ import: 78.145
 impInit: 78.145
 
 Invalid cases
-Should be invalid type conversion: Invalid WebAssembly type conversion
-Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid type conversion: Invalid WebAssembly type conversion Var to i64
+Should be invalid type conversion: Invalid WebAssembly type conversion i64 to Var
 Should be invalid init expr: initializer expression can only use imported globals

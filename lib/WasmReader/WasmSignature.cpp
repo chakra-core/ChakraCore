@@ -155,6 +155,7 @@ Js::ArgSlot WasmSignature::GetParamSize(Js::ArgSlot index) const
         break;
 #endif
     default:
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Invalid param type"));
     }
 }
