@@ -14376,16 +14376,6 @@ GlobOpt::OptIsInvariant(
     case Js::OpCode::BailOnNotStackArgs:
         return false;
 
-        // Usually not worth hoisting these
-    case Js::OpCode::Ld_A:
-    case Js::OpCode::Ld_I4:
-    case Js::OpCode::LdC_A_I4:
-        if(!forceInvariantHoisting)
-        {
-            return false;
-        }
-        break;
-
         // Can't hoist these outside the function it's for. The LdArgumentsFromFrame for an inlinee depends on the inlinee meta arg
         // that holds the arguments object, which is only initialized at the start of the inlinee. So, can't hoist this outside the
         // inlinee.
