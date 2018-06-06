@@ -44,6 +44,10 @@ namespace JsDiag
 
 namespace JsUtil
 {
+    struct contentStruct
+    {
+        Field(int) cs;
+    };
     class NoResizeLock
     {
     public:
@@ -53,9 +57,7 @@ namespace JsUtil
         void _Releases_lock_(cs.cs) EndResize() {}
     private:
         // For prefast analysis, we need to have a somewhat similar shape for both locks
-        struct {
-            Field(int) cs;
-        } cs;
+        Field(contentStruct) cs;
     };
 
     class AsymetricResizeLock
