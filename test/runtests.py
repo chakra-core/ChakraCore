@@ -101,8 +101,17 @@ repo_root = os.path.dirname(test_root)
 if args.override_test_root:
     test_root = os.path.realpath(args.override_test_root)
 
-# arch: x86, x64
-arch = 'x86' if args.x86 else ('x64' if args.x64 else ('arm' if args.arm else ('arm64' if args.arm64 else None)))
+# arch: x86, x64, arm, arm64
+arch = None
+if args.x86:
+    arch = 'x86'
+elif args.x64:
+    arch = 'x64'
+elif args.arm:
+    arch = 'arm'
+elif args.arm64:
+    arch = 'arm64'
+
 if arch == None:
     arch = os.environ.get('_BuildArch', 'x86')
 if sys.platform != 'win32':
@@ -147,10 +156,10 @@ binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
         build = "VcBuild.SWB" if args.swb else "VcBuild"
-        binary = os.path.join('Build', build, 'bin', '{}_{}'.format(arch, flavor), binary_name)
+        binary = os.path.join(repo_root, 'Build', build, 'bin', '{}_{}'.format(arch, flavor), binary_name)
     else:
-        binary = os.path.join('out', '{0}'.format(flavor), binary_name)
-    binary = os.path.join(repo_root, binary)
+        binary = os.path.join(repo_root, 'out', flavor, binary_name)
+
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
     sys.exit(1)
