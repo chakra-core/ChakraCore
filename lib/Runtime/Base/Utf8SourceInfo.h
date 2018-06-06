@@ -15,6 +15,8 @@ namespace Js
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;
+
+        LPCUTF8 GetSourceFromHolder(const char16 * reason) const;
     public:
         bool HasSource() const { return !this->sourceHolder->IsEmpty(); }
 
@@ -52,36 +54,7 @@ namespace Js
         }
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
-        void SetInDebugMode(bool inDebugMode)
-        {
-            AssertMsg(!GetIsLibraryCode(), "Shouldn't call SetInDebugMode for Library code.");
-
-            AssertMsg(this->sourceHolder != nullptr, "We have no source holder.");
-
-            AssertMsg(this->m_isInDebugMode != inDebugMode, "Why are we setting same value");
-
-            this->m_isInDebugMode = inDebugMode;
-
-            if (!this->sourceHolder->IsDeferrable())
-            {
-                return;
-            }
-
-            if (inDebugMode)
-            {
-                this->debugModeSource = this->sourceHolder->GetSource(_u("Entering Debug Mode"));
-                this->debugModeSourceLength = this->sourceHolder->GetByteLength(_u("Entering Debug Mode"));
-                this->debugModeSourceIsEmpty = !this->HasSource() || this->debugModeSource == nullptr;
-                this->EnsureLineOffsetCache();
-            }
-            else
-            {
-                // If debugModeSourceIsEmpty is false, that means debugModeSource isn't nullptr or we aren't in debug mode.
-                this->debugModeSourceIsEmpty = false;
-                this->debugModeSource = nullptr;
-                this->debugModeSourceLength = 0;
-            }
-        }
+        void SetInDebugMode(bool inDebugMode);
 #endif
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
