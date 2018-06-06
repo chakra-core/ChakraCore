@@ -254,6 +254,27 @@ var tests = [
         }
     },
     {
+        name: "Assertion validation : revoking the proxy in getOwnPropertyDescriptor trap, not undefined return",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                getOwnPropertyDescriptor: function (a, b, c) {
+                    trapCalled = true;
+                    let result = Object.getOwnPropertyDescriptor(obj, 'proxy');
+
+                    obj.revoke();
+
+                    // used to cause AV
+                    return result;
+                }
+            };
+
+            var obj = Proxy.revocable({}, handler);
+            Object.getOwnPropertyDescriptor(obj.proxy);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
         name: "Assertion validation : revoking the proxy by invoking getOwnPropertyDescriptor trap but no handler present",
         body() {
             var trapCalled = false;

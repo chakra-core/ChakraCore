@@ -272,6 +272,8 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
+
+            // do not use "target" here, the trap may have caused it to change
             if (!targetObj->IsExtensible())
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
@@ -292,7 +294,8 @@ namespace Js
         //i.Throw a TypeError exception.
         //22. Return resultDesc.
 
-        BOOL isTargetExtensible = target->IsExtensible();
+        // do not use "target" here, the trap may have caused it to change
+        BOOL isTargetExtensible = targetObj->IsExtensible();
         BOOL toProperty = JavascriptOperators::ToPropertyDescriptor(getResult, resultDescriptor, requestContext);
         if (!toProperty && isTargetExtensible)
         {
