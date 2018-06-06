@@ -253,7 +253,11 @@ namespace Js
 
         // don't need to leave script here, ExternalFunctionThunk will
         Assert(externalFunction->wrappedMethod->GetFunctionInfo()->GetOriginalEntryPoint() == JavascriptExternalFunction::ExternalFunctionThunk);
-        return JavascriptFunction::CallFunction<true>(externalFunction->wrappedMethod, externalFunction->wrappedMethod->GetEntryPoint(), args);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            return JavascriptFunction::CallFunction<true>(externalFunction->wrappedMethod, externalFunction->wrappedMethod->GetEntryPoint(), args);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     Var JavascriptExternalFunction::DefaultExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
@@ -316,16 +320,16 @@ namespace Js
             marshallingMayBeNeeded = Js::RecyclableObject::Is(result);
             if (marshallingMayBeNeeded)
             {
-                Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
+            Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
 
-                // For JSRT, we could get result marshalled in different context.
-                bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
+            // For JSRT, we could get result marshalled in different context.
+            bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();
                 marshallingMayBeNeeded = obj->GetScriptContext() != scriptContext;
                 if (!isJSRT && marshallingMayBeNeeded)
-                {
-                    Js::Throw::InternalError();
-                }
+            {
+                Js::Throw::InternalError();
             }
+        }
         }
 
         if (scriptContext->HasRecordedException())

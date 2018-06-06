@@ -1343,7 +1343,11 @@ case_2:
                 JavascriptFunction* func = intlExtensionObject->GetStringLocaleCompare();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
 
                 // String.prototype.localeCompare/Intl.Collator was not initialized yet, so we need to manually initialize it here
@@ -1351,7 +1355,11 @@ case_2:
                 func = intlExtensionObject->GetStringLocaleCompare();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
         }
@@ -2658,7 +2666,6 @@ case_2:
                 return scriptContext->GetLibrary()->GetTrue();
             }
         }
-
         LEAVE_PINNED_SCOPE();   //  pSearch
         LEAVE_PINNED_SCOPE();  //  pThis
 
@@ -2875,15 +2882,15 @@ case_2:
 
         if (pch < pchEnd)
         {
-        switch (*pch)
-        {
-        case '-':
-            isNegative = true;
-            // Fall through.
-        case '+':
+            switch (*pch)
+            {
+            case '-':
+                isNegative = true;
+                // Fall through.
+            case '+':
                 pch++;
-            break;
-        }
+                break;
+            }
         }
 
         if (0 == radix)
@@ -3348,6 +3355,7 @@ case_2:
         return builder.ToString();
     }
 
+
     int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)
     {
         int result = -1;
@@ -3531,7 +3539,7 @@ case_2:
                 // Quick check for first character.
                 if (stringSz[i] == substringSz[0])
                 {
-                    if (substringLen == 1 || wmemcmp(stringSz + i + 1, substringSz + 1, substringLen - 1) == 0)
+                    if (substringLen == 1 || wmemcmp(stringSz + i + 1, substringSz + 1, (substringLen - 1)) == 0)
                     {
                         return i + start;
                     }

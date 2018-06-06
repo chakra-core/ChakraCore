@@ -497,6 +497,17 @@ var tests = [
         var k = it.next();
         assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
     }
+  },
+  {
+    name: "re-parsing the expression in pattern should work fine",
+    body: function () {
+        function test1(){
+
+          function bar() { this.x = ({ y1: { z1:z1 = ((arguments)) } } = {}); { } }
+          for (var y in {}) { };
+        };
+        test1();
+    }
   }
 ];
 

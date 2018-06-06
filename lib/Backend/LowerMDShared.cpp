@@ -645,6 +645,9 @@ IR::Instr *
 LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut,
                               IR::Opnd *opndBailOutArg, IR::PropertySymOpnd *propSymOpnd, bool isHelperContinuation)
 {
+#if DBG
+    this->m_lowerer->ReconcileWithLowererStateOnHelperCall(callInstr, helperMethod);
+#endif
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
@@ -884,8 +887,8 @@ LowererMD::LowerRet(IR::Instr * retInstr)
     }
     if (needsRetReg)
     {
-        Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
-        retInstr->SetSrc1(retReg);
+    Lowerer::InsertMove(retReg, retInstr->UnlinkSrc1(), retInstr);
+    retInstr->SetSrc1(retReg);
     }
     return retInstr;
 }
@@ -5541,6 +5544,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
 
     return labelDone;
 }
+
 
 void
 LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, IR::Instr * instrBailOut, IR::LabelInstr * labelBailOut)

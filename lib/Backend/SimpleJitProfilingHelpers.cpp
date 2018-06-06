@@ -4,10 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-namespace Js
-{
+using namespace Js;
+
     void SimpleJitHelpers::ProfileParameters(void* framePtr)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfileParameters);
         auto layout = JavascriptCallStackLayout::FromFramePointer(framePtr);
         FunctionBody* executeFunction = layout->functionObject->GetFunctionBody();
         const auto dynamicInfo = executeFunction->GetDynamicProfileInfo();
@@ -39,23 +40,29 @@ namespace Js
         }
 
         // Clearing of the implicit call flags is done in jitted code
+        JIT_HELPER_END(SimpleProfileParameters);
     }
 
     void SimpleJitHelpers::CleanImplicitCallFlags(FunctionBody* body)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleCleanImplicitCallFlags);
         // Probably could inline this straight into JITd code.
         auto flags = body->GetScriptContext()->GetThreadContext()->GetImplicitCallFlags();
 
         body->GetDynamicProfileInfo()->RecordImplicitCallFlags(flags);
+        JIT_HELPER_END(SimpleCleanImplicitCallFlags);
     }
 
     void SimpleJitHelpers::ProfileCall_DefaultInlineCacheIndex(void* framePtr, ProfileId profileId, Var retval, JavascriptFunction* callee, CallInfo info)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfileCall_DefaultInlineCacheIndex);
         ProfileCall(framePtr, profileId, Constants::NoInlineCacheIndex, retval, callee, info);
+        JIT_HELPER_END(SimpleProfileCall_DefaultInlineCacheIndex);
     }
 
     void SimpleJitHelpers::ProfileCall(void* framePtr, ProfileId profileId, InlineCacheIndex inlineCacheIndex, Var retval, Var callee, CallInfo info)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfileCall);
         JavascriptFunction* caller = JavascriptCallStackLayout::FromFramePointer(framePtr)->functionObject;
 
         FunctionBody* callerFunctionBody = caller->GetFunctionBody();
@@ -72,20 +79,24 @@ namespace Js
         {
             dynamicProfileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retval);
         }
+        JIT_HELPER_END(SimpleProfileCall);
     }
 
     void SimpleJitHelpers::ProfileReturnTypeCall(void* framePtr, ProfileId profileId, Var retval, JavascriptFunction*callee, CallInfo info)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfileReturnTypeCall);
         Assert(info.Flags & CallFlags_Value);
         JavascriptFunction* caller = JavascriptCallStackLayout::FromFramePointer(framePtr)->functionObject;
 
         FunctionBody* functionBody = caller->GetFunctionBody();
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         dynamicProfileInfo->RecordReturnType(functionBody, profileId, retval);
+        JIT_HELPER_END(SimpleProfileReturnTypeCall);
     }
 
     Var SimpleJitHelpers::ProfiledStrictLdThis(Var thisVar, FunctionBody* functionBody)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfiledStrictLdThis);
         //Adapted from InterpreterStackFrame::OP_ProfiledStrictLdThis
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         TypeId typeId = JavascriptOperators::GetTypeId(thisVar);
@@ -99,11 +110,13 @@ namespace Js
 
         dynamicProfileInfo->RecordThisInfo(thisVar, ThisType_Simple);
         return thisVar;
+        JIT_HELPER_END(SimpleProfiledStrictLdThis);
     }
 
 
     Var SimpleJitHelpers::ProfiledLdThis(Var thisVar, int moduleID, FunctionBody* functionBody)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfiledLdThis);
         //Adapted from InterpreterStackFrame::OP_ProfiledLdThis
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         TypeId typeId = JavascriptOperators::GetTypeId(thisVar);
@@ -122,23 +135,29 @@ namespace Js
         dynamicProfileInfo->RecordThisInfo(thisVar, ThisType_Mapped);
 
         return thisVar;
+        JIT_HELPER_END(SimpleProfiledLdThis);
     }
 
     Var SimpleJitHelpers::ProfiledSwitch(FunctionBody* functionBody, ProfileId profileId, Var exp)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleProfiledSwitch);
         functionBody->GetDynamicProfileInfo()->RecordSwitchType(functionBody, profileId, exp);
         return exp;
+        JIT_HELPER_END(SimpleProfiledSwitch);
     }
 
     Var SimpleJitHelpers::ProfiledDivide(FunctionBody* functionBody, ProfileId profileId, Var aLeft, Var aRight)
     {
+        JIT_HELPER_REENTRANT_HEADER(SimpleProfiledDivide);
         Var result = JavascriptMath::Divide(aLeft, aRight,functionBody->GetScriptContext());
         functionBody->GetDynamicProfileInfo()->RecordDivideResultType(functionBody, profileId, result);
         return result;
+        JIT_HELPER_END(SimpleProfiledDivide);
     }
 
     Var SimpleJitHelpers::ProfiledRemainder(FunctionBody* functionBody, ProfileId profileId, Var aLeft, Var aRight)
     {
+        JIT_HELPER_REENTRANT_HEADER(SimpleProfiledRemainder);
         if(TaggedInt::IsPair(aLeft, aRight))
         {
             int nLeft    = TaggedInt::ToInt32(aLeft);
@@ -154,12 +173,15 @@ namespace Js
         }
         functionBody->GetDynamicProfileInfo()->RecordModulusOpType(functionBody, profileId, /*isModByPowerOf2*/ false);
         return JavascriptMath::Modulus(aLeft, aRight,functionBody->GetScriptContext());
+        JIT_HELPER_END(SimpleProfiledRemainder);
     }
 
     void SimpleJitHelpers::StoreArrayHelper(Var arr, uint32 index, Var value)
     {
         //Adapted from InterpreterStackFrame::OP_SetArrayItemC_CI4
         JavascriptArray* array = JavascriptArray::FromAnyArray(arr);
+        ScriptContext* scriptContext = array->GetScriptContext();
+        JIT_HELPER_NOT_REENTRANT_HEADER(SimpleStoreArrayHelper, reentrancylock, scriptContext->GetThreadContext());
 
         TypeId typeId = array->GetTypeId();
         if (typeId == TypeIds_NativeIntArray)
@@ -174,10 +196,12 @@ namespace Js
         {
             array->SetArrayLiteralItem(index, value);
         }
+        JIT_HELPER_END(SimpleStoreArrayHelper);
     }
 
     void SimpleJitHelpers::StoreArraySegHelper(Var arr, uint32 index, Var value)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleStoreArraySegHelper);
         //Adapted from InterpreterStackFrame::OP_SetArraySegmentItem_CI4
         SparseArraySegment<Var> * segment = (SparseArraySegment<Var> *)arr;
 
@@ -185,10 +209,12 @@ namespace Js
         Assert(index < segment->length);
 
         segment->elements[index] = value;
+        JIT_HELPER_END(SimpleStoreArraySegHelper);
     }
 
     LoopEntryPointInfo* SimpleJitHelpers::GetScheduledEntryPoint(void* framePtr, uint loopnum)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleGetScheduledEntryPoint);
         auto layout = JavascriptCallStackLayout::FromFramePointer(framePtr);
         FunctionBody* functionBody = layout->functionObject->GetFunctionBody();
 
@@ -207,10 +233,12 @@ namespace Js
         // The entry point has been scheduled, it is finished, or something else. Just return the entry point and the
         //   SimpleJitted function will check this on each iteration.
         return entryPointInfo;
+        JIT_HELPER_END(SimpleGetScheduledEntryPoint);
     }
 
     bool SimpleJitHelpers::IsLoopCodeGenDone(LoopEntryPointInfo* info)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleIsLoopCodeGenDone);
         // It is possible for this work item to be removed from the queue after we found out that it was at some point in the queue.
         // In that case, we must manually increment the interpretCount. Once the work item gets scheduled again, it will trigger
         // a bailout when the threshold is reached.
@@ -221,10 +249,12 @@ namespace Js
         }
 
         return info->IsCodeGenDone();
+        JIT_HELPER_END(SimpleIsLoopCodeGenDone);
     }
 
     void SimpleJitHelpers::RecordLoopImplicitCallFlags(void* framePtr, uint loopNum, int restoreCallFlags)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SimpleRecordLoopImplicitCallFlags);
         auto layout = JavascriptCallStackLayout::FromFramePointer(framePtr);
         FunctionBody* functionBody = layout->functionObject->GetFunctionBody();
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
@@ -241,5 +271,5 @@ namespace Js
         // If the caller doesn't want to add in any call flags they will pass zero in restoreCallFlags.
         //    and since ORing with 0 is idempotent, we can just OR it either way
         *flags = (ImplicitCallFlags)(restoreCallFlags | fls);
+        JIT_HELPER_END(SimpleRecordLoopImplicitCallFlags);
     }
-}

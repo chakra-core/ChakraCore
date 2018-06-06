@@ -148,6 +148,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)IntConstMath.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EquivalentTypeSet.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)IntConstMath.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)arm64\ARM64UnwindEncoder.cpp">
       <Filter>arm64</Filter>
     </ClCompile>
@@ -374,6 +375,7 @@
     <ClInclude Include="IntConstMath.h" />
     <ClInclude Include="JavascriptNativeOperators.h" />
     <ClInclude Include="EquivalentTypeSet.h" />
+    <ClInclude Include="IntConstMath.h" />
     <ClInclude Include="arm64\MdOpCodes.h">
       <Filter>arm64</Filter>
     </ClInclude>

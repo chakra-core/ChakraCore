@@ -164,7 +164,11 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
         WasmScriptFunction* start = environment.GetWasmFunction(startFuncIdx);
         Js::CallInfo info(Js::CallFlags_New, 1);
         Js::Arguments startArg(info, (Var*)&start);
-        Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
+        }
+        END_SAFE_REENTRANT_CALL
     }
 
     return newInstance;

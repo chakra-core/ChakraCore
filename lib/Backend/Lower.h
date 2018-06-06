@@ -19,6 +19,14 @@ enum RoundMode : BYTE {
     RoundModeHalfToEven = 2
 };
 
+#if DBG
+enum HelperCallCheckState : BYTE {
+    HelperCallCheckState_None = 0,
+    HelperCallCheckState_ImplicitCallsBailout = 1 << 0,
+    HelperCallCheckState_NoHelperCalls = 1 << 1
+};
+
+#endif
 #if defined(_M_IX86) || defined(_M_AMD64)
 #include "LowerMDShared.h"
 #elif defined(_M_ARM32_OR_ARM64)
@@ -50,6 +58,11 @@ public:
 #ifdef RECYCLER_WRITE_BARRIER_JIT
         m_func->m_lowerer = this;
 #endif
+#if DBG
+        this->helperCallCheckState = HelperCallCheckState_None;
+        this->oldHelperCallCheckState = HelperCallCheckState_None;
+#endif
+        
     }
     ~Lowerer()
     {
@@ -149,7 +162,6 @@ private:
     bool            LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link);
     void            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     IR::Instr *     GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr);
-    void            GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     void            GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* propertySymOpnd);
     void            GenerateAdjustSlots(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
@@ -418,7 +430,6 @@ public:
         return IR::IntConstOpnd::New(argCount | (flags << 24), TyMachReg, func, true);
 #endif
     }
-
 private:
     IR::IndirOpnd* GenerateFastElemICommon(
         _In_ IR::Instr* elemInstr,
@@ -750,6 +761,11 @@ private:
     void MarkConstantAddressRegOpndLiveOnBackEdge(IR::LabelInstr * loopTop);
 #if DBG
     static void LegalizeVerifyRange(IR::Instr * instrStart, IR::Instr * instrLast);
+    void        ReconcileWithLowererStateOnHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMethod);
+    void        ClearAndSaveImplicitCallCheckOnHelperCallCheckState();
+    void        RestoreImplicitCallCheckOnHelperCallCheckState();
+    IR::Instr*  LowerCheckLowerIntBound(IR::Instr * instr);
+    IR::Instr*  LowerCheckUpperIntBound(IR::Instr * instr);
 #endif
 
     IR::Instr *     LowerGetCachedFunc(IR::Instr *instr);
@@ -802,4 +818,10 @@ private:
     BVSparse<JitArenaAllocator> * initializedTempSym;
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
+
+#if DBG
+    HelperCallCheckState helperCallCheckState;
+    HelperCallCheckState oldHelperCallCheckState;
+    Js::OpCode m_currentInstrOpCode;
+#endif
 };

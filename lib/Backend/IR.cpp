@@ -2649,6 +2649,10 @@ Instr::IsRealInstr() const
     case Js::OpCode::StatementBoundary:
     case Js::OpCode::NoImplicitCallUses:
     case Js::OpCode::NoIntOverflowBoundary:
+#if DBG
+    case Js::OpCode::CheckLowerIntBound:
+    case Js::OpCode::CheckUpperIntBound:
+#endif
         return false;
 
     default:
@@ -3526,7 +3530,7 @@ uint Instr::GetAsmJsArgOutSize()
         Assert(UNREACHED);
         return 0;
     }
-}
+    }
 
 uint Instr::GetArgOutSize(bool getInterpreterArgOutCount)
 {
@@ -4593,6 +4597,19 @@ PrintByteCodeOffsetEtc:
     }
 }
 
+#if DBG
+bool
+Instr::ShouldEmitIntRangeCheck()
+{
+    // currently only emitting int range check for opnds of instructions with following opcodes:
+    return m_opcode == Js::OpCode::ToVar ||
+        m_opcode == Js::OpCode::LdElemI_A ||
+        m_opcode == Js::OpCode::LdMethodElem ||
+        m_opcode == Js::OpCode::StElemI_A ||
+        m_opcode == Js::OpCode::StElemI_A_Strict ||
+        m_opcode == Js::OpCode::StElemC;
+}
+#endif
 ///----------------------------------------------------------------------------
 ///
 /// LabelInstr::Dump

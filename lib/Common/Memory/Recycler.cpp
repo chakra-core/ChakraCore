@@ -3447,44 +3447,50 @@ bool
 Recycler::FinishDisposeObjectsWrapped()
 {
     const BOOL allowDisposeFlag = flags & CollectOverride_AllowDispose;
-    if (allowDisposeFlag && this->NeedDispose())
+
+    if (allowDisposeFlag)
     {
-        if ((flags & CollectHeuristic_TimeIfScriptActive) == CollectHeuristic_TimeIfScriptActive)
+        // Disposing objects can have reentrancy, make sure there is no reentrancy lock when calling Dispose
+        DebugOnly(collectionWrapper->CheckJsReentrancyOnDispose());
+        if (this->NeedDispose())
         {
-            if (!this->NeedDisposeTimed())
+            if ((flags & CollectHeuristic_TimeIfScriptActive) == CollectHeuristic_TimeIfScriptActive)
             {
-                return false;
+                if (!this->NeedDisposeTimed())
+                {
+                    return false;
+                }
             }
-        }
 
-        this->allowDispose = true;
-        this->inDisposeWrapper = true;
+            this->allowDispose = true;
+            this->inDisposeWrapper = true;
 
 #ifdef RECYCLER_TRACE
-        if (GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase))
-        {
-            Output::Print(_u("%04X> RC(%p): %s\n"), this->mainThreadId, this, _u("Process delayed dispose object"));
-        }
+            if (GetRecyclerFlagsTable().Trace.IsEnabled(Js::RecyclerPhase))
+            {
+                Output::Print(_u("%04X> RC(%p): %s\n"), this->mainThreadId, this, _u("Process delayed dispose object"));
+            }
 #endif
 
-        collectionWrapper->DisposeObjects(this);
+            collectionWrapper->DisposeObjects(this);
 
-        // Dispose may get into message loop and cause a reentrant GC. If those don't allow reentrant
-        // it will get added to a pending collect request.
+            // Dispose may get into message loop and cause a reentrant GC. If those don't allow reentrant
+            // it will get added to a pending collect request.
 
-        // FinishDisposedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
-        // and won't check NeedExhaustiveRepeatCollect(), need to check it here to honor those requests
+            // FinishDisposedObjectsWrapped/DisposeObjectsWrapped is called at a place that might not be during a collection
+            // and won't check NeedExhaustiveRepeatCollect(), need to check it here to honor those requests
 
-         if (!this->CollectionInProgress() && NeedExhaustiveRepeatCollect() && ((flags & CollectOverride_NoExhaustiveCollect) != CollectOverride_NoExhaustiveCollect))
-        {
+            if (!this->CollectionInProgress() && NeedExhaustiveRepeatCollect() && ((flags & CollectOverride_NoExhaustiveCollect) != CollectOverride_NoExhaustiveCollect))
+            {
 #ifdef RECYCLER_TRACE
-            CaptureCollectionParam((CollectionFlags)(flags & ~CollectMode_Partial), true);
+                CaptureCollectionParam((CollectionFlags)(flags & ~CollectMode_Partial), true);
 #endif
-            DoCollectWrapped((CollectionFlags)(flags & ~CollectMode_Partial));
-        }
+                DoCollectWrapped((CollectionFlags)(flags & ~CollectMode_Partial));
+            }
 
-        this->inDisposeWrapper = false;
-        return true;
+            this->inDisposeWrapper = false;
+            return true;
+        }
     }
     return false;
 }
@@ -4901,6 +4907,13 @@ bool Recycler::AbortConcurrent(bool restoreState)
         }
         else
         {
+            // If we are shutting down and the wait for concurrent thread failed we fail fast
+            // to avoid any use-after-free of the objects in the HeapAllocator's private heap.
+            if (!restoreState)
+            {
+                AssertOrFailFastMsg(ret != WAIT_FAILED, "Wait for concurrent thread failed in AbortConcurrent.");
+            }
+
             // Even if we weren't asked to restore states, we need to clean up the pending guest arena
             CleanupPendingUnroot();
 
@@ -4987,7 +5000,7 @@ Recycler::FinalizeConcurrent(bool restoreState)
         SetThreadPriority(this->concurrentThread, THREAD_PRIORITY_NORMAL);
         // In case the thread already died, wait for that too
         DWORD fRet = WaitForMultipleObjectsEx(2, handle, FALSE, INFINITE, FALSE);
-        AssertMsg(fRet != WAIT_FAILED, "Check handles passed to WaitForMultipleObjectsEx.");
+        AssertOrFailFastMsg(fRet != WAIT_FAILED, "Wait for concurrent thread failed. Check handles passed to WaitForMultipleObjectsEx.");
     }
 
     // Shutdown parallel threads and return the handle for them so the caller can
@@ -5947,12 +5960,12 @@ Recycler::FinishTransferSwept(CollectionFlags flags)
     SetCollectionState(CollectionStateTransferSwept);
 
 #if ENABLE_BACKGROUND_PAGE_FREEING
-        if (CONFIG_FLAG(EnableBGFreeZero))
-        {
-            // We should have zeroed all the pages in the background thread
-            Assert(!autoHeap.HasZeroQueuedPages());
-            autoHeap.FlushBackgroundPages();
-        }
+    if (CONFIG_FLAG(EnableBGFreeZero))
+    {
+        // We should have zeroed all the pages in the background thread
+        Assert(!autoHeap.HasZeroQueuedPages());
+        autoHeap.FlushBackgroundPages();
+    }
 #endif
 
     GCETW(GC_FLUSHZEROPAGE_STOP, (this));

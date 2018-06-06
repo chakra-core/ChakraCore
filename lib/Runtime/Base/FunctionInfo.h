@@ -169,7 +169,7 @@ namespace Js
         {
             if (functionInfo && canDefer)
             {
-                functionInfo->SetAttributes((FunctionInfo::Attributes(functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer)));
+                functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer));
             }
         }
     private:

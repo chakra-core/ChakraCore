@@ -2189,7 +2189,12 @@ namespace Js
             }
 
             Js::Arguments arguments(calleeInfo, newValues);
-            Var aReturnValue = JavascriptFunction::CallFunction<true>(targetObj, targetObj->GetEntryPoint(), arguments);
+            Var aReturnValue = nullptr;
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                aReturnValue = JavascriptFunction::CallFunction<true>(targetObj, targetObj->GetEntryPoint(), arguments);
+            }
+            END_SAFE_REENTRANT_CALL
             // If this is constructor call, return the actual object instead of function result
             if ((callInfo.Flags & CallFlags_New) && !JavascriptOperators::IsObject(aReturnValue))
             {
@@ -2230,7 +2235,12 @@ namespace Js
             varArgs[3] = argList;
         }
 
-        Var trapResult = callMethod->CallFunction(arguments);
+        Var trapResult = nullptr;
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            trapResult = callMethod->CallFunction(arguments);
+        }
+        END_SAFE_REENTRANT_CALL
         if (args.Info.Flags & CallFlags_New)
         {
             if (!Js::JavascriptOperators::IsObject(trapResult))

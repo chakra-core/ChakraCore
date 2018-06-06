@@ -130,7 +130,7 @@ namespace Js
         static JavascriptRegExp* CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext);
         static JavascriptRegExp* CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext);
         static UnifiedRegex::RegexPattern* CreatePattern(Var aValue, Var options, ScriptContext *scriptContext);
-        static Var OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext);
+        static Var OP_NewRegEx(UnifiedRegex::RegexPattern* aCompiledRegex, ScriptContext* scriptContext);
 
         JavascriptString *ToString(bool sourceOnly = false);
 

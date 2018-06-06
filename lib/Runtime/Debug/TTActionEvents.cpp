@@ -847,12 +847,12 @@ namespace TTD
             TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(jsFunctionVar, ctx);
 
             //remove implicit constructor function as first arg in callInfo and argument loop below
-            for(uint32 i = 1; i < ccAction->ArgCount; ++i)
+            for (uint32 i = 1; i < ccAction->ArgCount; ++i)
             {
-                 Js::Var argi = InflateVarInReplay(executeContext, ccAction->ArgArray[i]);
-                 TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(argi, ctx);
+                Js::Var argi = InflateVarInReplay(executeContext, ccAction->ArgArray[i]);
+                TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(argi, ctx);
 
-                 ccAction->ExecArgs[i - 1] = argi;
+                ccAction->ExecArgs[i - 1] = argi;
             }
 
             Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
@@ -864,7 +864,12 @@ namespace TTD
             //TTDAssert(!Js::ScriptFunction::Is(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
             //
 
-            Js::Var res = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, ctx);
+            Js::Var res = nullptr;
+            BEGIN_SAFE_REENTRANT_CALL(ctx->GetThreadContext())
+            {
+                res = Js::JavascriptFunction::CallAsConstructor(jsFunction, /* overridingNewTarget = */nullptr, jsArgs, ctx);
+            }
+            END_SAFE_REENTRANT_CALL
             Assert(res == nullptr || !Js::CrossSite::NeedMarshalVar(res, ctx));
 
             JsRTActionHandleResultForReplay<JsRTConstructCallAction, EventKind::ConstructCallActionTag>(executeContext, evt, res);

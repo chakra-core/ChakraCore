@@ -7,8 +7,8 @@
 #include "Library/ProfileString.h"
 #include "Library/SingleCharString.h"
 
-namespace Js
-{
+using namespace Js;
+
     CharStringCache::CharStringCache() : charStringCache(nullptr)
     {
         ClearArray(charStringCacheA);
@@ -35,6 +35,7 @@ namespace Js
 
     JavascriptString* CharStringCache::GetStringForChar(char16 c)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(GetStringForChar);
 #ifdef PROFILE_STRINGS
         StringProfiler::RecordSingleCharStringRequest(JavascriptLibrary::FromCharStringCache(this)->GetScriptContext());
 #endif
@@ -44,7 +45,9 @@ namespace Js
         }
 
         return GetStringForCharW(c);
+        JIT_HELPER_END(GetStringForChar);
     }
+    JIT_HELPER_TEMPLATE(GetStringForChar, GetStringForCharCodePoint)
 
     JavascriptString* CharStringCache::GetStringForCharW(char16 c)
     {
@@ -82,4 +85,3 @@ namespace Js
         // TODO: perhaps do some sort of cache for supplementary characters
         return str;
     }
-};

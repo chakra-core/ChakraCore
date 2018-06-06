@@ -1273,11 +1273,13 @@ void HeapBlockMap64::ForEachNodeInAddressRange(void * address, size_t pageCount,
 {
     uint lowerBitsAddress = ::Math::PointerCastToIntegralTruncate<uint>(address);
     uint nodePages = HeapBlockMap64::PagesPer4GB - lowerBitsAddress / AutoSystemInfo::PageSize;
+
     if (pageCount < nodePages)
     {
         nodePages = (uint)pageCount;
     }
 
+    // TODO: the loop is no longer needed as we are limiting the recycler object to be less than 2GB
     do
     {
         Node * node = FindNode(address);
@@ -1289,7 +1291,7 @@ void HeapBlockMap64::ForEachNodeInAddressRange(void * address, size_t pageCount,
         {
             break;
         }
-        address = (void *)((size_t)address + (nodePages * AutoSystemInfo::PageSize));
+        address = (void *)((size_t)address + ((size_t)nodePages * AutoSystemInfo::PageSize));
         nodePages = HeapBlockMap64::PagesPer4GB;
         if (pageCount < HeapBlockMap64::PagesPer4GB)
         {

@@ -314,7 +314,7 @@ template <SweepMode mode>
 TBlockType *
 SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(Recycler * recycler, TBlockType * list)
 {
-    TBlockType * tail;
+    TBlockType * tail = nullptr;
     HeapBlockList::ForEachEditing(list, [this, recycler, &tail](TBlockType * heapBlock)
     {
         // Note, page heap blocks are never swept concurrently

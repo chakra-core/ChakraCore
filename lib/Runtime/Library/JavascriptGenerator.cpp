@@ -128,7 +128,11 @@ namespace Js
 
             try
             {
-                result = JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    result = JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
+                }
+                END_SAFE_REENTRANT_CALL
                 helper.DidNotThrow();
             }
             catch (const JavascriptException& err)

@@ -585,11 +585,11 @@ namespace Js
 
     void DynamicObject::ChangeType()
     {
+        // Allocation won't throw any more, otherwise we should use AutoDisableInterrupt to guard here
         AutoDisableInterrupt autoDisableInterrupt(this->GetScriptContext()->GetThreadContext());
-        
+
         Assert(!GetDynamicType()->GetIsShared() || GetTypeHandler()->GetIsShared());
         this->type = this->DuplicateType();
-        
         autoDisableInterrupt.Completed();
     }
 

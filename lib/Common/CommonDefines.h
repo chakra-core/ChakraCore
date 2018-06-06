@@ -157,10 +157,10 @@
 #ifdef _WIN32
 // dep: TIME_ZONE_INFORMATION, DaylightTimeHelper, Windows.Globalization
 #define ENABLE_GLOBALIZATION
+// dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 // #ifndef __clang__
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 // #endif
-
 #define ENABLE_CUSTOM_ENTROPY
 #endif
 
@@ -178,7 +178,7 @@
 #endif
 
 #if defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-#define RECYCLER_PAGE_HEAP                          // PageHeap support, on by default, off in ChakraCore release build
+#define RECYCLER_PAGE_HEAP                          // PageHeap support
 #endif
 
 #define USE_FEWER_PAGES_PER_BLOCK 1
@@ -186,9 +186,9 @@
 #ifndef ENABLE_VALGRIND
 #define ENABLE_CONCURRENT_GC 1
 #ifdef _WIN32
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 1 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Only takes effect when ENABLE_CONCURRENT_GC is enabled.
 #else
-#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP 0 // Needs ENABLE_CONCURRENT_GC to be enabled for this to be enabled.
+#define ENABLE_ALLOCATIONS_DURING_CONCURRENT_SWEEP_USE_SLIST 1 // Use Interlocked SLIST for allocableHeapBlockList
 #endif
 #else
 #define ENABLE_CONCURRENT_GC 0
@@ -212,7 +212,7 @@
 #define USE_VPM_TABLE 1
 #endif
 
-// xplat-todo: fix up vpm.64b.h generation to generate correctly
+
 // templatized code
 #if defined(_MSC_VER) && !defined(__clang__)
 #define USE_STATIC_VPM 1 // Disable to force generation at runtime

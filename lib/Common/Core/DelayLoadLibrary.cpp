@@ -120,7 +120,7 @@ NtdllLibrary::NTSTATUS NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * Dyn
             RangeBase,
             RangeEnd);
 #if _M_X64
-        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("Register: [%d] Begin: %llx, End: %x, Unwind: %llx, RangeBase: %llx, RangeEnd: %llx, table: %llx, Status: %x\n"),
+        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("[%d]Register: Begin: %llx, End: %x, Unwind: %llx, RangeBase: %llx, RangeEnd: %llx, table: %llx, Status: %x\n"),
            GetCurrentThreadId(), FunctionTable->BeginAddress, FunctionTable->EndAddress, FunctionTable->UnwindInfoAddress, RangeBase, RangeEnd, *DynamicTable, status);
 #endif
         Assert((status >= 0 && *DynamicTable != nullptr) || status == 0xC000009A /*STATUS_INSUFFICIENT_RESOURCES*/);
@@ -145,7 +145,7 @@ VOID NtdllLibrary::DeleteGrowableFunctionTable( _In_ PVOID DynamicTable )
         }
         deleteGrowableFunctionTable(DynamicTable);
 
-        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("UnRegister: [%d] table: %llx\n"), GetCurrentThreadId(), DynamicTable);
+        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("[%d]UnRegister: table: %llx\n"), GetCurrentThreadId(), DynamicTable);
     }
 }
 

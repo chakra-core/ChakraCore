@@ -1317,7 +1317,10 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, scriptContext->GetPropertyName(PropertyIds::toISOString)->GetBuffer());
         }
         RecyclableObject* toISOFunc = RecyclableObject::FromVar(toISO);
-        return CALL_FUNCTION(scriptContext->GetThreadContext(), toISOFunc, CallInfo(1), thisObj);
+        return scriptContext->GetThreadContext()->ExecuteImplicitCall(toISOFunc, Js::ImplicitCall_Accessor, [=]()->Js::Var
+        {
+            return CALL_FUNCTION(scriptContext->GetThreadContext(), toISOFunc, CallInfo(1), thisObj);
+        });
     }
 
     Var JavascriptDate::EntryToLocaleDateString(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1350,7 +1353,11 @@ namespace Js
                 JavascriptFunction* func = extensionObject->GetDateToLocaleDateString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
 
                 // Initialize Date.prototype.toLocaleDateString
@@ -1358,7 +1365,11 @@ namespace Js
                 func = extensionObject->GetDateToLocaleDateString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
         }
@@ -1400,14 +1411,22 @@ namespace Js
                 JavascriptFunction* func = extensionObject->GetDateToLocaleString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
                 // Initialize Date.prototype.toLocaleString
                 scriptContext->GetLibrary()->InitializeIntlForDatePrototype();
                 func = extensionObject->GetDateToLocaleString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
         }
@@ -1460,14 +1479,22 @@ namespace Js
                 JavascriptFunction* func = extensionObject->GetDateToLocaleTimeString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
                 // Initialize Date.prototype.toLocaleTimeString
                 scriptContext->GetLibrary()->InitializeIntlForDatePrototype();
                 func = extensionObject->GetDateToLocaleTimeString();
                 if (func)
                 {
-                    return func->CallFunction(args);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        return func->CallFunction(args);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
         }

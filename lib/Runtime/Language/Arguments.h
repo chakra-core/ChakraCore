@@ -95,26 +95,26 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define MUTATE_ARRAY_OBJECT(reentrancyLock) 
 #endif
 
-#if ENABLE_JS_REENTRANCY_CHECK && DBG && ENABLE_NATIVE_CODEGEN
+#if ENABLE_JS_REENTRANCY_CHECK
+#define JS_REENTRANCY_CHECK(threadContext, ...) \
+    (threadContext->CheckAndResetReentrancySafeOrHandled(), \
+    threadContext->AssertJsReentrancy(), \
+    __VA_ARGS__);
+#if DBG && ENABLE_NATIVE_CODEGEN
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
-    (threadContext->AssertJsReentrancy(), \
+    (threadContext->CheckAndResetReentrancySafeOrHandled(), \
+    threadContext->AssertJsReentrancy(), \
     CheckIsExecutable(function, function->GetEntryPoint()), \
-    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
-#elif ENABLE_JS_REENTRANCY_CHECK
-#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
-    (threadContext->AssertJsReentrancy(), \
     CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
 #else
 #define CALL_FUNCTION(threadContext, function, callInfo, ...) \
-    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__);
+    (threadContext->CheckAndResetReentrancySafeOrHandled(), \
+    threadContext->AssertJsReentrancy(), \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
 #endif
-
-#if ENABLE_JS_REENTRANCY_CHECK
-#define JS_REENTRANCY_CHECK(threadContext, ...) \
-    (threadContext->AssertJsReentrancy(), \
-    __VA_ARGS__);
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
-    (threadContext->AssertJsReentrancy(), \
+    (threadContext->CheckAndResetReentrancySafeOrHandled(), \
+    threadContext->AssertJsReentrancy(), \
     CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
 #define JS_REENTRANT(reentrancyLock, ...) \
     reentrancyLock.unlock(); \
@@ -131,10 +131,21 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define JS_REENTRANCY_LOCK(reentrancyLock, threadContext) \
     JsReentLock reentrancyLock(threadContext);
 #else
+#if DBG && ENABLE_NATIVE_CODEGEN
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    (threadContext->CheckAndResetReentrancySafeOrHandled(),\
+    CheckIsExecutable(function, function->GetEntryPoint()), \
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
+#else
+#define CALL_FUNCTION(threadContext, function, callInfo, ...) \
+    (threadContext->CheckAndResetReentrancySafeOrHandled(),\
+    CALL_FUNCTION_NOASSERT(function, callInfo, ##__VA_ARGS__));
+#endif
 #define JS_REENTRANCY_CHECK(threadContext, ...) \
     __VA_ARGS__;
 #define CALL_ENTRYPOINT(threadContext, entryPoint, function, callInfo, ...) \
-    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__);
+    (threadContext->CheckAndResetReentrancySafeOrHandled(), \
+    CALL_ENTRYPOINT_NOASSERT(entryPoint, function, callInfo, ##__VA_ARGS__));
 #define JS_REENTRANT(reentrancyLock, ...) \
     __VA_ARGS__;
 #define JS_REENTRANT_NO_MUTATE(reentrancyLock, ...) \

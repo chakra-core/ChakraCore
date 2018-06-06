@@ -1827,9 +1827,9 @@ void ByteCodeGenerator::InitScopeSlotArray(FuncInfo * funcInfo)
         {
             if (sym->NeedsSlotAlloc(this, funcInfo))
             {
-                    // All properties should get correct propertyId here.
-                    Assert(sym->HasScopeSlot()); // We can't allocate scope slot now. Any symbol needing scope slot must have allocated it before this point.
-                    setPropertyIdForScopeSlotArray(sym->GetScopeSlot(), sym->EnsurePosition(funcInfo));
+                // All properties should get correct propertyId here.
+                Assert(sym->HasScopeSlot()); // We can't allocate scope slot now. Any symbol needing scope slot must have allocated it before this point.
+                setPropertyIdForScopeSlotArray(sym->GetScopeSlot(), sym->EnsurePosition(funcInfo));
             }
         };
 
@@ -11564,7 +11564,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->StartStatement(pnodeCatch);
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Nop);
             byteCodeGenerator->EndStatement(pnodeCatch);
-
             if (funcInfo->byteCodeFunction->IsCoroutine())
             {
                 byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);

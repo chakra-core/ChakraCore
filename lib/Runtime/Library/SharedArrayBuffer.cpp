@@ -176,11 +176,17 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(currentBuffer, scriptContext->GetLibrary()->GetSharedArrayBufferConstructor(), scriptContext);
+            JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetSharedArrayBufferConstructor();
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(currentBuffer, defaultConstructor, scriptContext);
+            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newbyteLength, scriptContext) };
-            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            Js::Var newVar = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            bool isDefaultConstructor = constructor == defaultConstructor;
+            Js::Var newVar = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            {
+                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newbyteLength, scriptContext) };
+                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            });
 
             if (!SharedArrayBuffer::Is(newVar))
             {

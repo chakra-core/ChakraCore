@@ -174,6 +174,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
 #if DBG
         IR::Instr * verifyLegalizeInstrNext = instr->m_next;
+        m_currentInstrOpCode = instr->m_opcode;
 #endif
 
         // If we have debugger bailout as part of real instr (not separate BailForDebugger instr),
@@ -235,6 +236,24 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         {
             // Always use the slow path, so we can track property accesses
             noFieldFastPath = true;
+        }
+#endif
+
+#if DBG
+        if (instr->HasBailOutInfo())
+        {
+            IR::BailOutKind bailoutKind = instr->GetBailOutKind();
+            if (BailOutInfo::IsBailOutOnImplicitCalls(bailoutKind))
+            {
+                this->helperCallCheckState = (HelperCallCheckState)(this->helperCallCheckState | HelperCallCheckState_ImplicitCallsBailout);
+            }
+            
+            if ((bailoutKind & IR::BailOutOnArrayAccessHelperCall) != 0 &&
+                instr->m_opcode != Js::OpCode::Memcopy &&
+                instr->m_opcode != Js::OpCode::Memset)
+            {
+                this->helperCallCheckState = (HelperCallCheckState)(this->helperCallCheckState | HelperCallCheckState_NoHelperCalls);
+            }
         }
 #endif
 
@@ -2993,6 +3012,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerSlotArrayCheck(instr);
             break;
 
+#if DBG
+        case Js::OpCode::CheckLowerIntBound:
+            instrPrev = this->LowerCheckLowerIntBound(instr);
+            break;
+
+        case Js::OpCode::CheckUpperIntBound:
+            instrPrev = this->LowerCheckUpperIntBound(instr);
+            break;
+#endif
 #ifdef ENABLE_WASM
         case Js::OpCode::Copysign_A:
             m_lowererMD.GenerateCopysign(instr);
@@ -3081,6 +3109,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #if DBG
         LegalizeVerifyRange(instrPrev ? instrPrev->m_next : instrStart,
             verifyLegalizeInstrNext ? verifyLegalizeInstrNext->m_prev : nullptr);
+        this->helperCallCheckState = HelperCallCheckState_None;
 #endif
     } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
 
@@ -8062,53 +8091,6 @@ Lowerer::GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr)
 }
 
 void
-Lowerer::GenerateNonWritablePropertyCheck(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut)
-{
-    IR::Opnd *opnd;
-    IR::Instr *instr;
-
-    // Generate a check for non-writable properties, on the model of the work done by PatchPutValueetc.
-    // Inline the check on the bit in the prototype object's type. If that check fails, call the helper.
-    // If the helper finds a non-writable property, bail out, as we're counting on being able to add the property.
-
-    JITTypeHolder typeWithoutProperty(propertySymOpnd->GetInitialType());
-    Assert(typeWithoutProperty != nullptr);
-    intptr_t protoAddr = typeWithoutProperty->GetPrototypeAddr();
-    Assert(protoAddr != 0);
-
-    // s1 = MOV [proto->type].ptr
-    IR::RegOpnd *typeOpnd = IR::RegOpnd::New(TyMachReg, this->m_func);
-    opnd = IR::MemRefOpnd::New((char*)protoAddr + Js::RecyclableObject::GetOffsetOfType(), TyMachReg,
-        this->m_func, IR::AddrOpndKindDynamicObjectTypeRef);
-    InsertMove(typeOpnd, opnd, instrInsert);
-
-    //      TEST [s1->areThisAndPrototypesEnsuredToHaveOnlyWritableDataProperties].u8, 1
-    //     JNE $continue
-    IR::LabelInstr *labelContinue = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    opnd = IR::IndirOpnd::New(typeOpnd, (int32)Js::Type::OffsetOfWritablePropertiesFlag(), TyUint8, this->m_func);
-    InsertTestBranch(opnd, IR::IntConstOpnd::New(1, TyUint8, this->m_func), Js::OpCode::BrNeq_A, labelContinue, instrInsert);
-
-    // $Lhelper:
-    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
-    instrInsert->InsertBefore(labelHelper);
-
-    //     s2 = CALL DoProtoCheck, prototype
-    opnd = IR::AddrOpnd::New(protoAddr, IR::AddrOpndKindDynamicVar, this->m_func, true);
-    m_lowererMD.LoadHelperArgument(instrInsert, opnd);
-
-    opnd = IR::HelperCallOpnd::New(IR::HelperCheckProtoHasNonWritable, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::Call, IR::RegOpnd::New(TyUint8, this->m_func), opnd, this->m_func);
-    instrInsert->InsertBefore(instr);
-    opnd = instr->GetDst();
-    m_lowererMD.LowerCall(instr, 0);
-
-    InsertTestBranch(opnd, opnd, Js::OpCode::BrEq_A, labelBailOut, instrInsert);
-
-    // $Lcontinue:
-    instrInsert->InsertBefore(labelContinue);
-}
-
-void
 Lowerer::GenerateAdjustSlots(IR::Instr *instrInsert, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType)
 {
     IR::RegOpnd *baseOpnd = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
@@ -9851,7 +9833,6 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
         IR::IndirOpnd::New(indexesOpnd, enumeratedCountOpnd, IndirScale4, TyUint32, this->m_func), instr);
     InsertMove(GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorObjectIndex(), TyUint32),
         objectIndexOpnd, instr);
-
     // INC enumeratedCountOpnd
     // MOV forInEnumeratorOpnd->enumerator.enumeratedCount, enumeratedCountOpnd
     InsertAdd(false, enumeratedCountOpnd, enumeratedCountOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), instr);
@@ -10645,8 +10626,8 @@ Lowerer::LowerLdSlot(IR::Instr *instr)
     srcOpnd->Free(this->m_func);
 
     instr->SetSrc1(srcNew);
-    m_lowererMD.ChangeToAssign(instr);
-}
+        m_lowererMD.ChangeToAssign(instr);
+    }
 
 IR::Instr *
 Lowerer::LowerChkUndecl(IR::Instr *instr)
@@ -16191,6 +16172,7 @@ Lowerer::GenerateLookUpInIndexCacheHelper(
 
         size_t slotIndexOffset = CheckLocal ? offsetof(Js::InlineCache, u.local.slotIndex) : offsetof(Js::InlineCache, u.proto.slotIndex);
         IR::IndirOpnd* slotOffsetIndir = IR::IndirOpnd::New(inlineCacheOpnd, (int32)slotIndexOffset, TyUint16, m_func);
+        // overflow check: not needed here, we don't allocate anything with hitrate
         InsertMove(opndSlotIndex, slotOffsetIndir, insertInstr);
     }
 
@@ -20966,7 +20948,6 @@ Lowerer::LowerInlineSpreadArgOutLoopUsingRegisters(IR::Instr *callInstr, IR::Reg
     Loop * loop = startLoopLabel->GetLoop();
     loop->regAlloc.liveOnBackEdgeSyms->Set(indexOpnd->m_sym->m_id);
     loop->regAlloc.liveOnBackEdgeSyms->Set(arrayElementsStartOpnd->m_sym->m_id);
-
     InsertSub(false, indexOpnd, indexOpnd, IR::IntConstOpnd::New(1, TyInt8, func), callInstr);
 
     IR::IndirOpnd *elemPtrOpnd = IR::IndirOpnd::New(arrayElementsStartOpnd, indexOpnd, this->m_lowererMD.GetDefaultIndirScale(), TyMachPtr, func);
@@ -24390,6 +24371,11 @@ Lowerer::GenerateFastBrTypeOf(IR::Instr *branch, IR::RegOpnd *object, IR::IntCon
             branch->InsertBefore(helper);
             typeOf->Unlink();
             branch->InsertBefore(typeOf);
+            if (branch->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(branch->GetBailOutKind()) &&
+                (!typeOf->HasBailOutInfo() || !BailOutInfo::IsBailOutOnImplicitCalls(typeOf->GetBailOutKind())))
+            {
+                typeOf = AddBailoutToHelperCallInstr(typeOf, branch->GetBailOutInfo(), branch->GetBailOutKind(), branch);
+            }
             LowerUnaryHelperMem(typeOf, IR::HelperOp_Typeof);
         }
     }
@@ -24530,6 +24516,11 @@ Lowerer::GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntCo
             compare->InsertBefore(helper);
             typeOf->Unlink();
             compare->InsertBefore(typeOf);
+            if (compare->HasBailOutInfo() && BailOutInfo::IsBailOutOnImplicitCalls(compare->GetBailOutKind()) &&
+                (!typeOf->HasBailOutInfo() || !BailOutInfo::IsBailOutOnImplicitCalls(typeOf->GetBailOutKind())))
+            {
+                typeOf = AddBailoutToHelperCallInstr(typeOf, compare->GetBailOutInfo(), compare->GetBailOutKind(), compare);
+            }
             LowerUnaryHelperMem(typeOf, IR::HelperOp_Typeof);
         }
 
@@ -25180,7 +25171,6 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     instr->InsertBefore(onOverflowInsertBeforeInstr);
     onOverflowInsertBeforeInstr->InsertBefore(callInstr);
     this->m_lowererMD.LowerCall(callInstr, 0);
-
     dstOpnd->SetOffset(dstOpnd->GetOffset() * sizeof(Js::JavascriptString *) + Js::ConcatStringMulti::GetOffsetOfSlots());
 
     LowererMD::ChangeToWriteBarrierAssign(instr, func);
@@ -27741,7 +27731,15 @@ Lowerer::LoadIndexFromLikelyFloat(
 
     IR::Instr * helperCall = IR::Instr::New(Js::OpCode::Call, int32IndexOpnd, this->m_func);
     insertBeforeInstr->InsertBefore(helperCall);
+
+#if DBG
+    // This call to Conv_ToUint32Core wont be reentrant as we would only call it for floats
+    this->ClearAndSaveImplicitCallCheckOnHelperCallCheckState();
+#endif
     m_lowererMD.ChangeToHelperCall(helperCall, IR::HelperConv_ToUInt32Core);
+#if DBG
+    this->RestoreImplicitCallCheckOnHelperCallCheckState();
+#endif
 
     // main path
     insertBeforeInstr->InsertBefore(doneConvUint32);
@@ -28019,5 +28017,112 @@ Lowerer::LegalizeVerifyRange(IR::Instr * instrStart, IR::Instr * instrLast)
         LowererMD::Legalize<true>(verifyLegalizeInstr);
     }
     NEXT_INSTR_IN_RANGE;
+}
+
+void
+Lowerer::ReconcileWithLowererStateOnHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMethod)
+{
+    AssertMsg((this->helperCallCheckState & HelperCallCheckState_NoHelperCalls) == 0, "Emitting an helper call when we didn't allow helper calls");
+    if (HelperMethodAttributes::CanBeReentrant(helperMethod))
+    {
+        if (this->helperCallCheckState & HelperCallCheckState_ImplicitCallsBailout)
+        {
+            if (!callInstr->HasBailOutInfo() ||
+                !BailOutInfo::IsBailOutOnImplicitCalls(callInstr->GetBailOutKind()))
+            {
+                Output::Print(_u("HelperMethod : %s\n"), IR::GetMethodName(helperMethod));
+                AssertMsg(false, "Helper call doesn't have BailOutOnImplicitCalls when it should");
+            }
+        }
+
+        if (!OpCodeAttr::HasImplicitCall(m_currentInstrOpCode) && !OpCodeAttr::OpndHasImplicitCall(m_currentInstrOpCode)
+            // Special case where we allow support implicit calls, but FromVar says it doesn't have implicit calls
+            && m_currentInstrOpCode != Js::OpCode::FromVar
+        )
+        {
+            Output::Print(_u("HelperMethod : %s, OpCode: %s"), IR::GetMethodName(helperMethod), Js::OpCodeUtil::GetOpCodeName(m_currentInstrOpCode));
+            callInstr->DumpByteCodeOffset();
+            Output::Print(_u("\n"));
+            AssertMsg(false, "OpCode and Helper implicit call attribute mismatch");
+        }
+    }
+}
+
+void
+Lowerer::ClearAndSaveImplicitCallCheckOnHelperCallCheckState()
+{
+    this->oldHelperCallCheckState = this->helperCallCheckState;
+    this->helperCallCheckState = HelperCallCheckState(this->helperCallCheckState & ~HelperCallCheckState_ImplicitCallsBailout);
+}
+
+void
+Lowerer::RestoreImplicitCallCheckOnHelperCallCheckState()
+{
+    if (this->oldHelperCallCheckState & HelperCallCheckState_ImplicitCallsBailout)
+    {
+        this->helperCallCheckState = HelperCallCheckState(this->helperCallCheckState | HelperCallCheckState_ImplicitCallsBailout);
+        this->oldHelperCallCheckState = HelperCallCheckState_None;
+    }
+}
+
+IR::Instr*
+Lowerer::LowerCheckLowerIntBound(IR::Instr * instr)
+{
+    IR::Instr * instrPrev = instr->m_prev;
+
+    IR::LabelInstr * continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false /*isOpHelper*/);
+
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    InsertCompareBranch(instr->GetSrc1(), instr->GetSrc2(), Js::OpCode::BrGe_A, continueLabel, instr);
+
+    IR::Instr* helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+    instr->InsertBefore(helperCallInstr);
+    m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::HelperIntRangeCheckFailure);
+
+    instr->InsertAfter(continueLabel);
+    
+    instr->Remove();
+
+    return instrPrev;
+}
+
+IR::Instr*
+Lowerer::LowerCheckUpperIntBound(IR::Instr * instr)
+{
+    bool lowerBoundCheckPresent = instr->m_prev->m_opcode == Js::OpCode::CheckLowerIntBound;
+    IR::Instr * instrPrev = lowerBoundCheckPresent ? instr->m_prev->m_prev : instr->m_prev;
+
+    IR::Instr * lowerBoundCheckInstr = lowerBoundCheckPresent ? instr->m_prev : nullptr;
+
+    IR::LabelInstr * continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false /*isOpHelper*/);
+    IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, true /*isOpHelper*/);
+    
+    Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
+    if (lowerBoundCheckInstr)
+    {
+        InsertCompareBranch(instr->UnlinkSrc1(), instr->UnlinkSrc2(), Js::OpCode::BrGt_A, helperLabel, instr);
+
+        Assert(lowerBoundCheckInstr->GetSrc1()->IsInt32() || lowerBoundCheckInstr->GetSrc1()->IsUInt32());
+        InsertCompareBranch(lowerBoundCheckInstr->UnlinkSrc1(), lowerBoundCheckInstr->UnlinkSrc2(), Js::OpCode::BrGe_A, continueLabel, instr);
+    }
+    else
+    {
+        InsertCompareBranch(instr->UnlinkSrc1(), instr->UnlinkSrc2(), Js::OpCode::BrLe_A, continueLabel, instr);
+    }
+
+    instr->InsertBefore(helperLabel);
+    IR::Instr* helperCallInstr = IR::Instr::New(LowererMD::MDCallOpcode, instr->m_func);
+    instr->InsertBefore(helperCallInstr);
+    m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::HelperIntRangeCheckFailure);
+
+    instr->InsertAfter(continueLabel);
+
+    instr->Remove();
+    if (lowerBoundCheckInstr)
+    {
+        lowerBoundCheckInstr->Remove();
+    }
+
+    return instrPrev;
 }
 #endif

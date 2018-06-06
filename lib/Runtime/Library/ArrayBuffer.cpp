@@ -513,11 +513,17 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(arrayBuffer, scriptContext->GetLibrary()->GetArrayBufferConstructor(), scriptContext);
+            JavascriptFunction* defaultConstructor = scriptContext->GetLibrary()->GetArrayBufferConstructor();
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(arrayBuffer, defaultConstructor, scriptContext);
+            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            Js::Var constructorArgs[] = {constructor, JavascriptNumber::ToVar(byteLength, scriptContext)};
-            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            Js::Var newVar = JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            bool isDefaultConstructor = constructor == defaultConstructor;
+            Js::Var newVar = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            {
+                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(byteLength, scriptContext) };
+                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+            });
 
             if (!ArrayBuffer::Is(newVar)) // 24.1.4.3: 19.If new does not have an [[ArrayBufferData]] internal slot throw a TypeError exception.
             {

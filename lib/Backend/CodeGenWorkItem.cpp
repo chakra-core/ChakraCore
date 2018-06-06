@@ -218,7 +218,7 @@ void CodeGenWorkItem::OnWorkItemProcessFail(NativeCodeGenerator* codeGen)
                 {
                     if (!DelayDeletingFunctionTable::AddEntry(functionTable))
                     {
-                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), functionTable);
+                        PHASE_PRINT_TESTTRACE1(Js::XDataPhase, _u("[%d]OnWorkItemProcessFail: Failed to add to slist, table: %llx\n"), GetCurrentThreadId(), functionTable);
                         DelayDeletingFunctionTable::DeleteFunctionTable(functionTable);
                     }
                 }

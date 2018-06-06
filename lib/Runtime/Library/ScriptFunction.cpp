@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-namespace Js
-{
+using namespace Js;
+
     ScriptFunctionBase::ScriptFunctionBase(DynamicType * type) :
         JavascriptFunction(type)
     {}
@@ -72,8 +72,8 @@ namespace Js
         AssertMsg(infoRef!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         AssertMsg(functionProxy!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
-
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
+        JIT_HELPER_NOT_REENTRANT_HEADER(ScrFunc_OP_NewScFunc, reentrancylock, scriptContext->GetThreadContext());
 
         ScriptFunction * pfuncScript = nullptr;
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
@@ -121,17 +121,20 @@ namespace Js
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
         return pfuncScript;
+        JIT_HELPER_END(ScrFunc_OP_NewScFunc);
     }
 
     ScriptFunction * ScriptFunction::OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj)
     {
         Assert(homeObj != nullptr);
         Assert((*infoRef)->GetFunctionProxy()->GetFunctionInfo()->HasHomeObj());
+        JIT_HELPER_NOT_REENTRANT_HEADER(ScrFunc_OP_NewScFuncHomeObj, reentrancylock, (*infoRef)->GetFunctionProxy()->GetScriptContext()->GetThreadContext());
 
         ScriptFunction* scriptFunc = ScriptFunction::OP_NewScFunc(environment, infoRef);
         scriptFunc->SetHomeObj(homeObj);
 
         return scriptFunc;
+        JIT_HELPER_END(ScrFunc_OP_NewScFuncHomeObj);
     }
 
     void ScriptFunction::SetEnvironment(FrameDisplay * environment)
@@ -331,7 +334,6 @@ namespace Js
         JavascriptString * returnStr = nullptr;
 
         EnterPinnedScope((volatile void**)& inputString);
-
         const char16 * inputStr = inputString->GetString();
         const char16 * paramStr = wcschr(inputStr, _u('('));
 
@@ -1027,4 +1029,3 @@ namespace Js
         }
         SetHasInlineCaches(false);
     }
-}

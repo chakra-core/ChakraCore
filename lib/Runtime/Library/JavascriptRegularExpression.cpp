@@ -8,8 +8,8 @@
 #include "DebugWriter.h"
 #include "RegexPattern.h"
 
-namespace Js
-{
+using namespace Js;
+
     JavascriptRegExp::JavascriptRegExp(UnifiedRegex::RegexPattern* pattern, DynamicType* type) :
         DynamicObject(type),
         pattern(pattern),
@@ -395,6 +395,7 @@ namespace Js
 
     JavascriptRegExp* JavascriptRegExp::CreateRegEx(Var aValue, Var options, ScriptContext *scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_CoerseRegex);
         // This is called as helper from OpCode::CoerseRegEx. If aValue is regex pattern /a/, CreatePattern converts
         // it to pattern "/a/" instead of "a". So if we know that aValue is regex, then just return the same object
         if (JavascriptRegExp::Is(aValue))
@@ -405,6 +406,7 @@ namespace Js
         {
             return CreateRegExNoCoerce(aValue, options, scriptContext);
         }
+        JIT_HELPER_END(Op_CoerseRegex);
     }
 
     JavascriptRegExp* JavascriptRegExp::CreateRegExNoCoerce(Var aValue, Var options, ScriptContext *scriptContext)
@@ -627,10 +629,10 @@ namespace Js
         return thisRegularExpression;
     }
 
-    Var JavascriptRegExp::OP_NewRegEx(Var aCompiledRegex, ScriptContext* scriptContext)
+    Var JavascriptRegExp::OP_NewRegEx(UnifiedRegex::RegexPattern* aCompiledRegex, ScriptContext* scriptContext)
     {
         JavascriptRegExp * pNewInstance =
-            RecyclerNew(scriptContext->GetRecycler(),JavascriptRegExp,((UnifiedRegex::RegexPattern*)aCompiledRegex),
+            RecyclerNew(scriptContext->GetRecycler(), JavascriptRegExp, aCompiledRegex,
             scriptContext->GetLibrary()->GetRegexType());
         return pNewInstance;
     }
@@ -1599,4 +1601,3 @@ namespace Js
         this->lastIndexVar = lastVar;
     }
 #endif
-} // namespace Js

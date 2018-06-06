@@ -8,8 +8,8 @@
 #include "../WasmReader/WasmReaderPch.h"
 #include "Language/WebAssemblySource.h"
 
-namespace Js
-{
+using namespace Js;
+
 Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...)
 {
     PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -228,7 +228,12 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
     }
 
     RecyclableObject* arrayBufferFunc = RecyclableObject::FromVar(arrayBufferProp);
-    Var arrayBufferRes = CALL_FUNCTION(scriptContext->GetThreadContext(), arrayBufferFunc, Js::CallInfo(CallFlags_Value, 1), responseObject);
+    Var arrayBufferRes = nullptr;
+    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+    {
+        arrayBufferRes = CALL_FUNCTION(scriptContext->GetThreadContext(), arrayBufferFunc, Js::CallInfo(CallFlags_Value, 1), responseObject);
+    }
+    END_SAFE_REENTRANT_CALL
 
     // Make sure res.arrayBuffer() is a Promise
     if (!JavascriptPromise::Is(arrayBufferRes))
@@ -294,10 +299,12 @@ WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
 void
 WebAssembly::CheckSignature(ScriptContext * scriptContext, Wasm::WasmSignature * sig1, Wasm::WasmSignature * sig2)
 {
+    JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_CheckWasmSignature);
     if (!sig1->IsEquivalent(sig2))
     {
         JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_SignatureMismatch);
     }
+    JIT_HELPER_END(Op_CheckWasmSignature);
 }
 
 uint
@@ -306,5 +313,4 @@ WebAssembly::GetSignatureSize()
     return sizeof(Wasm::WasmSignature);
 }
 
-}
 #endif // ENABLE_WASM

@@ -667,7 +667,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_TraceAsyncDebugCalls     (false)
 #define DEFAULT_CONFIG_ForcePostLowerGlobOptInstrString (false)
 #define DEFAULT_CONFIG_EnumerateSpecialPropertiesInDebugger (true)
-#define DEFAULT_CONFIG_ESDynamicImport         (false)
 
 #define DEFAULT_CONFIG_MaxJITFunctionBytecodeByteLength (4800000)
 #define DEFAULT_CONFIG_MaxJITFunctionBytecodeCount (120000)
@@ -719,6 +718,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_MinBailOutsBeforeRejitForLoops 2         // Minimum number of bailouts for a single bailout record after which a rejit is considered
 #define DEFAULT_CONFIG_RejitMaxBailOutCount 500         // Maximum number of bailouts for a single bailout record after which rejit is forced.
 
+#if DBG
+#define DEFAULT_CONFIG_ValidateIntRanges (false)
+#endif
 
 #define DEFAULT_CONFIG_Sse                  (-1)
 
@@ -739,7 +741,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
-#define DEFAULT_CONFIG_OOPJITMissingOpts (true)
+#define DEFAULT_CONFIG_OOPJITMissingOpts (false)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
 #define DEFAULT_CONFIG_CrashOnOOPJITFailure (false)
 #define DEFAULT_CONFIG_ForceJITCFGCheck (false)
@@ -1140,6 +1142,7 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 propert
 
 // When we enable ES6RegExSymbols check all String and Regex built-ins which are inlined in JIT and make sure the helper
 // sets implicit call flag before calling into script
+// Also, the corresponding helpers in JnHelperMethodList.h should be marked as being reentrant
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
 
 FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
@@ -1149,6 +1152,7 @@ FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Objec
 #ifndef COMPILE_DISABLE_ESSharedArrayBuffer
     #define COMPILE_DISABLE_ESSharedArrayBuffer 0
 #endif
+
 FLAGPR_REGOVR_EXP(Boolean, ES6, ESSharedArrayBuffer    , "Enable SharedArrayBuffer"                                 , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
@@ -1408,6 +1412,9 @@ FLAGNR(Boolean, ProfileEvalMap        , "Profile eval map statistics", false)
 FLAGNR(Boolean, ProfileBailOutRecordMemory, "Profile bailout record memory statistics", false)
 #endif
 
+#if DBG
+FLAGNR(Boolean, ValidateIntRanges, "Validate at runtime int ranges/bounds determined by the globopt", DEFAULT_CONFIG_ValidateIntRanges)
+#endif
 FLAGNR(Number,  RejitMaxBailOutCount, "Maximum number of bailouts for a bailout record after which rejit is forced", DEFAULT_CONFIG_RejitMaxBailOutCount)
 FLAGNR(Number,  CallsToBailoutsRatioForRejit, "Ratio of function calls to bailouts above which a rejit is considered", DEFAULT_CONFIG_CallsToBailoutsRatioForRejit)
 FLAGNR(Number,  LoopIterationsToBailoutsRatioForRejit, "Ratio of loop iteration count to bailouts above which a rejit of the loop body is considered", DEFAULT_CONFIG_LoopIterationsToBailoutsRatioForRejit)
@@ -1536,7 +1543,7 @@ FLAGR (Number,  DynamicRegexMruListSize, "Size of the MRU list for dynamic regex
 
 FLAGR (Boolean, OptimizeForManyInstances, "Optimize script engine for many instances (low memory footprint per engine, assume low spare CPU cycles) (default: false)", DEFAULT_CONFIG_OptimizeForManyInstances)
 FLAGNR(Boolean, EnableArrayTypeMutation, "Enable force array type mutation on re-entrant region", DEFAULT_CONFIG_EnableArrayTypeMutation)
-FLAGNR(Number,  ArrayMutationTestSeed, "Seed used for the array mutation", 0)
+FLAGNR(Number, ArrayMutationTestSeed, "Seed used for the array mutation", 0)
 FLAGNR(Phases,  TestTrace             , "Test trace for the given phase", )
 FLAGNR(Boolean, EnableEvalMapCleanup, "Enable cleaning up the eval map", true)
 #ifdef PROFILE_MEM

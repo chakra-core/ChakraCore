@@ -2710,6 +2710,15 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         this->CommitCapturedValuesCandidate();
     }
 
+#if DBG
+    if (CONFIG_FLAG(ValidateIntRanges) && !IsLoopPrePass())
+    {
+        if (instr->ShouldEmitIntRangeCheck())
+        {
+            this->EmitIntRangeChecks(instr);
+        }
+    }
+#endif
     return instrNext;
 }
 

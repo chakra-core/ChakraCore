@@ -4,8 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeTypePch.h"
 
-namespace Js
-{
+using namespace Js;
+
     BigPropertyIndex
     DynamicTypeHandler::GetPropertyIndexFromInlineSlotIndex(uint inlineSlot)
     {
@@ -636,6 +636,7 @@ namespace Js
         const PropertyIndex newInlineSlotCapacity,
         const int newAuxSlotCapacity)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(AdjustSlots);
         Assert(object);
 
         // The JIT may call AdjustSlots multiple times on the same object, even after changing its type to the new type. Check
@@ -649,6 +650,7 @@ namespace Js
         }
 
         AdjustSlots(object, newInlineSlotCapacity, newAuxSlotCapacity);
+        JIT_HELPER_END(AdjustSlots);
     }
 
     void DynamicTypeHandler::AdjustSlots(
@@ -865,4 +867,3 @@ namespace Js
         Output::Print(_u("%*sisNotPathTypeHandlerOrHasUserDefinedCtor: %d\n"), fieldIndent, padding, static_cast<int>(this->isNotPathTypeHandlerOrHasUserDefinedCtor));
     }
 #endif
-}

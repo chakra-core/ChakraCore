@@ -549,6 +549,8 @@ MACRO_BACKEND_ONLY(     LdHandlerScope,     Reg1,           OpHasImplicitCall)  
 MACRO_BACKEND_ONLY(     LdFrameDisplay,     Reg3,           None)           // Set up a frame display for this function and its parent frames
 #if DBG
 MACRO_BACKEND_ONLY(     LdFrameDisplayNoParent,Reg1,        None)           // Set up a frame display for this function and its parent frames
+MACRO_BACKEND_ONLY(     CheckLowerIntBound, Reg2,           None)           // Check if the value of the operand is greater than or equal to the lower bound determined by the globopt for it
+MACRO_BACKEND_ONLY(     CheckUpperIntBound, Reg2,           None)           // Check if the value of the operand is lesser than or equal to the upper bound determined by the globopt for it
 #endif
 MACRO_WMS(              LdInnerFrameDisplay,Reg3,           None)        // Set up a frame display for this function and its parent frames -- this is for an inner scope, not the function-level scope
 MACRO_WMS(              LdInnerFrameDisplayNoParent,Reg2,   None)        // Set up a frame display for this function and its parent frames -- this is for an inner scope, not the function-level scope

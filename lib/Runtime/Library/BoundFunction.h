@@ -72,6 +72,6 @@ namespace Js
         Field(RecyclableObject*)   targetFunction;
         Field(Var)                 boundThis;
         Field(uint)                count;
-        Field(Field(Var)*)                boundArgs;
+        Field(Field(Var)*)         boundArgs;
     };
 } // namespace Js

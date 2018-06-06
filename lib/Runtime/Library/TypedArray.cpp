@@ -573,7 +573,10 @@ namespace Js
                         (iteratorFn != scriptContext->GetLibrary()->EnsureArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
-                        Var iterator = CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                        Var iterator = scriptContext->GetThreadContext()->ExecuteImplicitCall(iteratorFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+                        {
+                            return CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                        });
 
                         if (!JavascriptOperators::IsObject(iterator))
                         {
@@ -725,7 +728,12 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("[TypedArray]"));
         }
 
-        Var object = TypedArrayBase::CreateNewInstance(args, scriptContext, sizeof(TypeName), TypedArray<TypeName, clamped, virtualAllocated>::Create);
+        Var object = nullptr;
+        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        {
+            object = TypedArray::CreateNewInstance(args, scriptContext, sizeof(TypeName), TypedArray<TypeName, clamped, virtualAllocated>::Create);
+        }
+        END_SAFE_REENTRANT_CALL
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
@@ -1637,11 +1645,17 @@ namespace Js
 
         if (scriptContext->GetConfig()->IsES6SpeciesEnabled())
         {
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, TypedArrayBase::GetDefaultConstructor(this, scriptContext), scriptContext);
+            JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(this, scriptContext);
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(this, defaultConstructor, scriptContext);
+            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
-            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newTypedArray = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext));
+            bool isDefaultConstructor = constructor == defaultConstructor;
+            newTypedArray = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            { 
+                Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
+                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
+            }));
         }
         else
         {
@@ -1671,6 +1685,7 @@ namespace Js
         }
 
         RecyclableObject* constructor = RecyclableObject::FromVar(args[0]);
+        bool isDefaultConstructor = JavascriptLibrary::IsTypedArrayConstructor(constructor, scriptContext);
         RecyclableObject* items = nullptr;
 
         if (args.Info.Count < 2 || !JavascriptConversion::ToObject(args[1], scriptContext, &items))
@@ -1724,10 +1739,12 @@ namespace Js
                 JsUtil::List<Var, ArenaAllocator>* tempList = IteratorToList(iterator, scriptContext, tempAlloc);
 
                 uint32 len = tempList->Count();
-
-                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
-                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-                newObj = TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
+                newObj = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+                {
+                    Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
+                    Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                    return TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
+                });
 
                 TypedArrayBase* newTypedArrayBase = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
                 JavascriptArray* newArr = nullptr;
@@ -1747,7 +1764,10 @@ namespace Js
                         Assert(mapFnThisArg != nullptr);
 
                         Var kVar = JavascriptNumber::ToVar(k, scriptContext);
-                        kValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
+                        kValue = scriptContext->GetThreadContext()->ExecuteImplicitCall(mapFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+                        {
+                            return CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
+                        });
                     }
 
                     // We're likely to have constructed a new TypedArray, but the constructor could return any object
@@ -1780,9 +1800,12 @@ namespace Js
                 itemsArray = JavascriptOperators::TryFromVar<JavascriptArray>(items);
             }
 
-            Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
-            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
+            newObj = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            {
+                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(len, scriptContext) };
+                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
+            });
 
             TypedArrayBase* newTypedArrayBase = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
             JavascriptArray* newArr = nullptr;
@@ -1816,7 +1839,10 @@ namespace Js
                     Assert(mapFnThisArg != nullptr);
 
                     Var kVar = JavascriptNumber::ToVar(k, scriptContext);
-                    kValue = CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
+                    kValue = scriptContext->GetThreadContext()->ExecuteImplicitCall(mapFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
+                    {
+                        return CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar);
+                    });
                 }
 
                 // If constructor built a TypedArray (likely) or Array (maybe likely) we can do a more direct set operation
@@ -1891,7 +1917,11 @@ namespace Js
             Var chakraLibObj = JavascriptOperators::OP_GetProperty(library->GetGlobalObject(), PropertyIds::__chakraLibrary, scriptContext);
             Var argsIt[] = { chakraLibObj, args[0], TaggedInt::ToVarUnchecked((int)kind) };
             CallInfo callInfo(CallFlags_Value, 3);
-            return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), Js::Arguments(callInfo, argsIt));
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), Js::Arguments(callInfo, argsIt));
+            }
+            END_SAFE_REENTRANT_CALL
         }
         else
 #endif
@@ -1994,11 +2024,15 @@ namespace Js
                 // We know that the TypedArray.HasItem will be true because k < length and we can skip the check in the TypedArray version of filter.
                 element = typedArrayBase->DirectGetItem(k);
 
-                selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                    callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    JavascriptNumber::ToVar(k, scriptContext),
-                    typedArrayBase);
+                BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                {
+                    selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                                    callBackFn, CallInfo(flags, 4), thisArg,
+                                    element,
+                                    JavascriptNumber::ToVar(k, scriptContext),
+                                    typedArrayBase);
+                }
+                END_SAFE_REENTRANT_CALL
 
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
@@ -2008,12 +2042,17 @@ namespace Js
 
             uint32 captured = tempList->Count();
 
-            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(
-                typedArrayBase, TypedArrayBase::GetDefaultConstructor(args[0], scriptContext), scriptContext);
+            JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(args[0], scriptContext);
+            RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(typedArrayBase, defaultConstructor, scriptContext);
+            AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
-            Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
-            Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
-            newObj = RecyclableObject::FromVar(TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), captured, scriptContext));
+            bool isDefaultConstructor = constructor == defaultConstructor;
+            newObj = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            {
+                Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
+                Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
+                return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), captured, scriptContext);
+            }));
 
             TypedArrayBase* newArr = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
             if (newArr)
@@ -2108,12 +2147,16 @@ namespace Js
 
             Var element = typedArrayBase->DirectGetItem(k);
 
-            CALL_FUNCTION(scriptContext->GetThreadContext(),
-                callBackFn, CallInfo(CallFlags_Value, 4),
-                thisArg,
-                element,
-                JavascriptNumber::ToVar(k, scriptContext),
-                typedArrayBase);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                CALL_FUNCTION(scriptContext->GetThreadContext(),
+                    callBackFn, CallInfo(CallFlags_Value, 4),
+                    thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    typedArrayBase);
+            }
+            END_SAFE_REENTRANT_CALL
         }
 
         return scriptContext->GetLibrary()->GetUndefined();
@@ -2391,11 +2434,16 @@ namespace Js
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             double dblResult;
-            Var retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
-                compFn, CallInfo(CallFlags_Value, 3),
-                undefined,
-                JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
-                JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
+            Var retVal = nullptr;
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                            compFn, CallInfo(CallFlags_Value, 3),
+                            undefined,
+                            JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
+                            JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
+            }
+            END_SAFE_REENTRANT_CALL
 
             Assert(TypedArrayBase::Is(contextArray[0]));
             if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))

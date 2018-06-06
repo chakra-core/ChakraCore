@@ -458,7 +458,7 @@ namespace Js
         static Var NewScObjectNoArg(Var instance, ScriptContext* requestContext);
         static Var NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         template <typename Fn>
-        static Var NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, Var defaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction);
+        static Var NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, bool isDefaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction);
         static Var AddVarsToArraySegment(SparseArraySegment<Var> * segment, const Js::VarArray *vars);
         static void AddIntsToArraySegment(SparseArraySegment<int32> * segment, const Js::AuxArray<int32> *ints);
         static void AddFloatsToArraySegment(SparseArraySegment<double> * segment, const Js::AuxArray<double> *doubles);

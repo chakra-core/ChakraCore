@@ -98,8 +98,8 @@ protected:
         { \
             void * __frameAddr = nullptr; \
             GET_CURRENT_FRAME_ID(__frameAddr); \
-            Js::LeaveScriptObject<stackProbe, leaveForHost, isFPUControlRestoreNeeded> __leaveScriptObject(scriptContext, __frameAddr);
-
+            Js::LeaveScriptObject<stackProbe, leaveForHost, isFPUControlRestoreNeeded> __leaveScriptObject(scriptContext, __frameAddr); \
+            AutoReentrancyHandler autoReentrancyHandler(scriptContext->GetThreadContext());
 #define LEAVE_SCRIPT_END_EX(scriptContext) \
             if (scriptContext != nullptr) \
                 {   \
@@ -165,6 +165,17 @@ protected:
         Assert(!scriptContext->HasRecordedException()); \
         END_LEAVE_SCRIPT(scriptContext)
 
+#define BEGIN_SAFE_REENTRANT_CALL(threadContext) \
+    { \
+        AutoReentrancyHandler autoReentrancyHandler(threadContext);
+
+#define END_SAFE_REENTRANT_CALL }
+
+#define BEGIN_SAFE_REENTRANT_REGION(threadContext) \
+    { \
+        AutoReentrancySafeRegion autoReentrancySafeRegion(threadContext);
+
+#define END_SAFE_REENTRANT_REGION }
 // Keep in sync with CollectGarbageCallBackFlags in scriptdirect.idl
 
 enum RecyclerCollectCallBackFlags
@@ -607,6 +618,9 @@ private:
 #if ENABLE_JS_REENTRANCY_CHECK
     bool noJsReentrancy;
 #endif
+private:
+    bool reentrancySafeOrHandled;
+    bool isInReentrancySafeRegion;
 
     AllocationPolicyManager * allocationPolicyManager;
 
@@ -977,6 +991,7 @@ public:
     virtual void AsyncHostOperationEnd(bool wasInAsync, void *) override;
 #endif
 #if DBG
+    virtual void CheckJsReentrancyOnDispose() override;
     bool IsInAsyncHostOperation() const;
 #endif
 
@@ -1561,6 +1576,7 @@ public:
     template <class Fn>
     inline Js::Var ExecuteImplicitCall(Js::RecyclableObject * function, Js::ImplicitCallFlags flags, Fn implicitCall)
     {
+        AutoReentrancyHandler autoReentrancyHandler(this);
 
         Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::GetAttributes(function);
 
@@ -1766,9 +1782,29 @@ public:
             Js::Throw::FatalJsReentrancyError();
         }
     }
+#else
+    void AssertJsReentrancy() {}
 #endif
 
 public:
+    void CheckAndResetReentrancySafeOrHandled()
+    {
+        AssertOrFailFast(reentrancySafeOrHandled || isInReentrancySafeRegion);
+        SetReentrancySafeOrHandled(false);
+    }
+
+    void SetReentrancySafeOrHandled(bool val) { reentrancySafeOrHandled = val; }
+    bool GetReentrancySafeOrHandled() { return reentrancySafeOrHandled; }
+    void SetIsInReentrancySafeRegion(bool val) { isInReentrancySafeRegion = val; }
+    bool GetIsInReentrancySafeRegion() { return isInReentrancySafeRegion; }
+
+    template <typename Fn>
+    Js::Var SafeReentrantCall(Fn fn)
+    {
+        AutoReentrancyHandler autoReentrancyHandler(this);
+        return fn();
+    }
+
     bool IsEntryPointToBuiltInOperationIdCacheInitialized()
     {
         return entryPointToBuiltInOperationIdCache.Count() != 0;
@@ -1886,6 +1922,44 @@ private:
     bool m_operationCompleted;
     bool m_interruptDisableState;
     bool m_explicitCompletion;
+};
+
+class AutoReentrancyHandler
+{
+    ThreadContext * m_threadContext;
+    bool m_savedReentrancySafeOrHandled;
+
+public:
+    AutoReentrancyHandler(ThreadContext * threadContext)
+    {
+        m_threadContext = threadContext;
+        m_savedReentrancySafeOrHandled = threadContext->GetReentrancySafeOrHandled();
+        threadContext->SetReentrancySafeOrHandled(true);
+    }
+
+    ~AutoReentrancyHandler()
+    {
+        m_threadContext->SetReentrancySafeOrHandled(m_savedReentrancySafeOrHandled);
+    }
+};
+
+class AutoReentrancySafeRegion
+{
+    ThreadContext * m_threadContext;
+    bool m_savedIsInReentrancySafeRegion;
+
+public:
+    AutoReentrancySafeRegion(ThreadContext * threadContext)
+    {
+        m_threadContext = threadContext;
+        m_savedIsInReentrancySafeRegion = threadContext->GetIsInReentrancySafeRegion();
+        threadContext->SetIsInReentrancySafeRegion(true);
+    }
+
+    ~AutoReentrancySafeRegion()
+    {
+        m_threadContext->SetIsInReentrancySafeRegion(m_savedIsInReentrancySafeRegion);
+    }
 };
 
 #if ENABLE_JS_REENTRANCY_CHECK

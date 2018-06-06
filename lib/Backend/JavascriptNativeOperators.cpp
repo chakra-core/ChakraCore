@@ -4,22 +4,20 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-namespace Js
-{
+using namespace Js;
+
 #if ENABLE_NATIVE_CODEGEN
     void * JavascriptNativeOperators::Op_SwitchStringLookUp(JavascriptString* str, Js::BranchDictionaryWrapper<JavascriptString*>* branchTargets, uintptr_t funcStart, uintptr_t funcEnd)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_SwitchStringLookUp);
         void* defaultTarget = branchTargets->defaultTarget;
         Js::BranchDictionaryWrapper<JavascriptString*>::BranchDictionary& stringDictionary = branchTargets->dictionary;
         void* target = stringDictionary.Lookup(str, defaultTarget);
         uintptr_t utarget = (uintptr_t)target;
 
-        if ((utarget - funcStart) > (funcEnd - funcStart))
-        {
-            AssertMsg(false, "Switch string dictionary jump target outside of function");
-            Throw::FatalInternalError();
-        }
+        AssertOrFailFastMsg((utarget - funcStart) <= (funcEnd - funcStart), "Switch string dictionary jump target outside of function");
         return target;
+        JIT_HELPER_END(Op_SwitchStringLookUp);
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -70,7 +68,7 @@ namespace Js
     }
 #endif
 
-    bool JavascriptNativeOperators::IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex)
+    bool JavascriptNativeOperators::IsStaticTypeObjTypeSpecEquivalent(const Js::TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex)
     {
         uint propertyCount = equivalenceRecord.propertyCount;
         Js::EquivalentPropertyEntry* properties = equivalenceRecord.properties;
@@ -94,40 +92,50 @@ namespace Js
 
     bool JavascriptNativeOperators::CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(CheckIfTypeIsEquivalentForFixedField);
+        JIT_HELPER_SAME_ATTRIBUTES(CheckIfTypeIsEquivalentForFixedField, CheckIfTypeIsEquivalent);
         if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated_DuringSweep)
         {
             return false;
         }
         return CheckIfTypeIsEquivalent(type, guard);
+        JIT_HELPER_END(CheckIfTypeIsEquivalentForFixedField);
     }
 
     bool JavascriptNativeOperators::CheckIfPolyTypeIsEquivalentForFixedField(Type* type, JitPolyEquivalentTypeGuard* guard, uint8 index)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(CheckIfPolyTypeIsEquivalentForFixedField);
+        JIT_HELPER_SAME_ATTRIBUTES(CheckIfPolyTypeIsEquivalentForFixedField, CheckIfPolyTypeIsEquivalent);
         if (guard->GetPolyValue(index) == PropertyGuard::GuardValue::Invalidated_DuringSweep)
         {
             return false;
         }
         return CheckIfPolyTypeIsEquivalent(type, guard, index);
+        JIT_HELPER_END(CheckIfPolyTypeIsEquivalentForFixedField);
     }
 
     bool JavascriptNativeOperators::CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard)
     {
+        JIT_HELPER_NOT_REENTRANT_HEADER(CheckIfTypeIsEquivalent, reentrancylock, type->GetScriptContext()->GetThreadContext());
         bool result = EquivalenceCheckHelper(type, guard, guard->GetValue());
         if (result)
         {
             guard->SetTypeAddr((intptr_t)type);
         }
         return result;
+        JIT_HELPER_END(CheckIfTypeIsEquivalent);
     }
 
     bool JavascriptNativeOperators::CheckIfPolyTypeIsEquivalent(Type* type, JitPolyEquivalentTypeGuard* guard, uint8 index)
     {
+        JIT_HELPER_NOT_REENTRANT_HEADER(CheckIfPolyTypeIsEquivalent, reentrancylock, type->GetScriptContext()->GetThreadContext());
         bool result = EquivalenceCheckHelper(type, guard, guard->GetPolyValue(index));
         if (result)
         {
             guard->SetPolyValue((intptr_t)type, index);
         }
         return result;
+        JIT_HELPER_END(CheckIfPolyTypeIsEquivalent);
     }
 
     bool JavascriptNativeOperators::EquivalenceCheckHelper(Type* type, JitEquivalentTypeGuard* guard, intptr_t guardValue)
@@ -362,50 +370,67 @@ namespace Js
 
     Var JavascriptNativeOperators::OP_GetElementI_JIT_ExpectingNativeFloatArray(Var instance, Var index, ScriptContext *scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_ExpectingNativeFloatArray);
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
 
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, true, false);
         return JavascriptOperators::OP_GetElementI_JIT(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_ExpectingNativeFloatArray);
     }
 
     Var JavascriptNativeOperators::OP_GetElementI_JIT_ExpectingVarArray(Var instance, Var index, ScriptContext *scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_ExpectingVarArray);
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
 
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
         return JavascriptOperators::OP_GetElementI_JIT(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_ExpectingVarArray);
     }
 
     Var JavascriptNativeOperators::OP_GetElementI_UInt32_ExpectingNativeFloatArray(Var instance, uint32 index, ScriptContext* scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_UInt32_ExpectingNativeFloatArray);
 #if ENABLE_PROFILE_INFO
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, true, false);
 #endif
         return JavascriptOperators::OP_GetElementI_UInt32(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_UInt32_ExpectingNativeFloatArray);
     }
 
     Var JavascriptNativeOperators::OP_GetElementI_UInt32_ExpectingVarArray(Var instance, uint32 index, ScriptContext* scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_UInt32_ExpectingVarArray);
 #if ENABLE_PROFILE_INFO
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
 #endif
         return JavascriptOperators::OP_GetElementI_UInt32(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_UInt32_ExpectingVarArray);
     }
 
     Var JavascriptNativeOperators::OP_GetElementI_Int32_ExpectingNativeFloatArray(Var instance, int32 index, ScriptContext* scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_Int32_ExpectingNativeFloatArray);
 #if ENABLE_PROFILE_INFO
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, true, false);
 #endif
         return JavascriptOperators::OP_GetElementI_Int32(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_Int32_ExpectingNativeFloatArray);
     }
 
     Var JavascriptNativeOperators::OP_GetElementI_Int32_ExpectingVarArray(Var instance, int32 index, ScriptContext* scriptContext)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_GetElementI_Int32_ExpectingVarArray);
 #if ENABLE_PROFILE_INFO
         JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(instance, false, true);
 #endif
         return JavascriptOperators::OP_GetElementI_Int32(instance, index, scriptContext);
+        JIT_HELPER_END(Op_GetElementI_Int32_ExpectingVarArray);
     }
+#if DBG
+    void JavascriptNativeOperators::IntRangeCheckFailure()
+    {
+        AssertOrFailFastMsg(false, "Int range determined by the GlobOpt invalid at runtime");
+    }
+#endif
 
-};

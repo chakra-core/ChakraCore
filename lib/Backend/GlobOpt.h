@@ -921,6 +921,8 @@ private:
     bool                    IsPropertySymId(SymID symId) const;
     
     static void             AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr);
+    void                    EmitIntRangeChecks(IR::Instr* instr);
+    void                    EmitIntRangeChecks(IR::Instr* instr, IR::Opnd* opnd);
 #endif
 
     StackSym *              EnsureObjectTypeSym(StackSym * objectSym);

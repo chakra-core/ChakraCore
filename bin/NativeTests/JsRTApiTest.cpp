@@ -2488,9 +2488,12 @@ namespace JsRTApiTest
         {
             errorCode = JsInitializeModuleRecord(referencingModule, specifier, &moduleRecord);
             REQUIRE(errorCode == JsNoError);
+            *dependentModuleRecord = moduleRecord;
         }
-
-        *dependentModuleRecord = moduleRecord;
+        else
+        {
+            *dependentModuleRecord = nullptr;
+        }
         return JsNoError;
     }
 

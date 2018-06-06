@@ -6,7 +6,7 @@
 // They become nameless compile time known PropertyRecords, stored as static
 // fields on the InternalPropertyRecords class.
 
-// NOTE: When new property is added here, please evaluate if the property;s value needs to be restored to nullptr
+// NOTE: When new property is added here, please evaluate if the property's value needs to be restored to nullptr
 // when it gets reset to undefined inside DynamicObject::ResetObject()
 
 INTERNALPROPERTY(TypeOfPrototypeObjectInlined)     // Used to store the type of the prototype object in the prototype objects slots. Only DynamicTypes having TypeIds_Object are saved in this slot.

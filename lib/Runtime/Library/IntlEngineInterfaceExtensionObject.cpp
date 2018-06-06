@@ -745,7 +745,14 @@ namespace Js
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             Js::ImplicitCallFlags saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-            JavascriptFunction::CallRootFunctionInScript(function, Js::Arguments(callInfo, args));
+
+            Js::Arguments arguments(callInfo, args);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                JavascriptFunction::CallRootFunctionInScript(function, arguments);
+            }
+            END_SAFE_REENTRANT_CALL
+
             scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
 
             // Delete prototypes on functions if initialized Intl object

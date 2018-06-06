@@ -145,6 +145,10 @@ namespace Js
 
         static Var OP_GetElementI_Int32_ExpectingNativeFloatArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
         static Var OP_GetElementI_Int32_ExpectingVarArray(Var instance, int32 aElementIndex, ScriptContext* scriptContext);
+
+#if DBG
+        static void IntRangeCheckFailure();
+#endif
     private:
         static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
         static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
