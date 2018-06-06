@@ -54,6 +54,17 @@ namespace Js
             ~TryCatchFrameAddrStack();
         };
 
+        class HasBailedOutPtrStack
+        {
+        private:
+            bool * m_prevHasBailedOutPtr;
+            ThreadContext* m_threadContext;
+
+        public:
+            HasBailedOutPtrStack(ScriptContext* scriptContext, bool *hasBailedOutPtr);
+            ~HasBailedOutPtrStack();
+        };
+
         class PendingFinallyExceptionStack
         {
         private:

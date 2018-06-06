@@ -1044,10 +1044,12 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
 
-    bool * hasBailOutBit = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
-    if (hasBailOutBit != nullptr && bailOutRecord->ehBailoutData)
+    bool * hasBailedOutBitPtr = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
+    Assert(!bailOutRecord->ehBailoutData || hasBailedOutBitPtr ||
+        bailOutRecord->ehBailoutData->ht == Js::HandlerType::HT_Finally /* When we bailout from inlinee in non exception finally, we maynot see hasBailedOutBitPtr*/);
+    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData)
     {
-        *hasBailOutBit = true;
+        *hasBailedOutBitPtr = true;
     }
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
@@ -1087,11 +1089,14 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
     BailOutReturnValue bailOutReturnValue;
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, true, branchValue);
-    bool * hasBailOutBit = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
-    if (hasBailOutBit != nullptr && bailOutRecord->ehBailoutData)
+    bool * hasBailedOutBitPtr = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
+    Assert(!bailOutRecord->ehBailoutData || hasBailedOutBitPtr ||
+        bailOutRecord->ehBailoutData->ht == Js::HandlerType::HT_Finally /* When we bailout from inlinee in non exception finally, we maynot see hasBailedOutBitPtr*/);
+    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData)
     {
-        *hasBailOutBit = true;
+        *hasBailedOutBitPtr = true;
     }
+
     uint32 result = BailOutFromLoopBodyHelper(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset,
         bailOutKind, nullptr, registerSaves, &bailOutReturnValue);
     ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
