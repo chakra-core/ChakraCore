@@ -54,7 +54,7 @@ namespace JsUtil
     private:
         // For prefast analysis, we need to have a somewhat similar shape for both locks
         struct {
-            int cs;
+            Field(int) cs;
         } cs;
     };
 
