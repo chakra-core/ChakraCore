@@ -8246,37 +8246,6 @@ Case0:
     }
 #endif
 
-    JavascriptString* JavascriptArray::GetLocaleSeparator(ScriptContext* scriptContext)
-    {
-#ifdef ENABLE_GLOBALIZATION
-        LCID lcid = GetUserDefaultLCID();
-        int count = 0;
-        char16 szSeparator[6];
-
-        // According to the document for GetLocaleInfo this is a sufficient buffer size.
-        count = GetLocaleInfoW(lcid, LOCALE_SLIST, szSeparator, 5);
-        if( !count)
-        {
-            AssertMsg(FALSE, "GetLocaleInfo failed");
-            return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
-        }
-        else
-        {
-            // Append ' '  if necessary
-            if( count < 2 || szSeparator[count-2] != ' ')
-            {
-                szSeparator[count-1] = ' ';
-                szSeparator[count] = '\0';
-            }
-
-            return JavascriptString::NewCopyBuffer(szSeparator, count, scriptContext);
-        }
-#else
-        // xplat-todo: Support locale-specific separator
-        return scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
-#endif
-    }
-
     template <typename T>
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
     {
@@ -8318,7 +8287,21 @@ Case0:
 
             if (length > 1)
             {
-                JavascriptString* separator = GetLocaleSeparator(scriptContext);
+                uint32 sepSize = 0;
+                char16 szSeparator[Arrays::SeparatorBufferSize];
+
+                bool hasLocaleSeparator = Arrays::GetLocaleSeparator(szSeparator, &sepSize, Arrays::SeparatorBufferSize);
+
+                JavascriptString* separator = nullptr;
+
+                if (hasLocaleSeparator)
+                {
+                    separator = JavascriptString::NewCopyBuffer(szSeparator, static_cast<charcount_t>(sepSize), scriptContext);
+                }
+                else
+                {
+                    separator = scriptContext->GetLibrary()->GetCommaSpaceDisplayString();
+                }
 
                 for (uint32 i = 1; i < length; i++)
                 {
