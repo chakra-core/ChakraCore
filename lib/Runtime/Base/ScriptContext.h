@@ -1439,12 +1439,8 @@ private:
         BOOL IsNativeAddress(void * codeAddr);
 #endif
 
-        uint SaveSourceCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8);
-        bool SaveSourceCopy(Utf8SourceInfo* const sourceInfo, int cchLength, bool isCesu8, uint * index);
-
         uint SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8);
 
-        void CloneSources(ScriptContext* sourceContext);
         Utf8SourceInfo* GetSource(uint sourceIndex);
 
         uint SourceCount() const { return (uint)sourceList->Count(); }
@@ -1536,8 +1532,6 @@ private:
 
         void FreeFunctionEntryPoint(Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress);
 
-    private:
-        uint CloneSource(Utf8SourceInfo* info);
     public:
         void RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId);
         void InvalidateProtoCaches(const PropertyId propertyId);
