@@ -195,8 +195,7 @@ namespace Js
         target = nullptr;
     }
 
-    template <class Fn, class GetPropertyIdFunc>
-    BOOL JavascriptProxy::GetPropertyDescriptorTrap(Var originalInstance, Fn fn, GetPropertyIdFunc getPropertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
+    BOOL JavascriptProxy::GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -223,6 +222,7 @@ namespace Js
 
         Assert((static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyCount() == 0 ||
             (static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyId(GetScriptContext(), 0) == InternalPropertyIds::WeakMapKeyMap);
+
         JavascriptFunction* gOPDMethod = GetMethodHelper(PropertyIds::getOwnPropertyDescriptor, requestContext);
 
         //7. If trap is undefined, then
@@ -230,10 +230,9 @@ namespace Js
         if (nullptr == gOPDMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
             resultDescriptor->SetFromProxy(false);
-            return fn(targetObj);
+            return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, resultDescriptor);
         }
 
-        PropertyId propertyId = getPropertyId();
         Var propertyName = GetName(requestContext, propertyId);
 
         Assert(JavascriptString::Is(propertyName) || JavascriptSymbol::Is(propertyName));
@@ -254,9 +253,8 @@ namespace Js
         //11. Let targetDesc be the result of calling the[[GetOwnProperty]] internal method of target with argument P.
         //12. ReturnIfAbrupt(targetDesc).
         PropertyDescriptor targetDescriptor;
-        BOOL hasProperty;
+        BOOL hasProperty = JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, &targetDescriptor);
 
-        hasProperty = JavascriptOperators::GetOwnPropertyDescriptor(targetObj, getPropertyId(), requestContext, &targetDescriptor);
         //13. If trapResultObj is undefined, then
         //a.If targetDesc is undefined, then return undefined.
         //b.If targetDesc.[[Configurable]] is false, then throw a TypeError exception.
@@ -274,10 +272,13 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
-            if (!target->IsExtensible())
+
+            // do not use "target" here, the trap may have caused it to change
+            if (!targetObj->IsExtensible())
             {
                 JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getOwnPropertyDescriptor"));
             }
+
             return FALSE;
         }
 
@@ -293,7 +294,8 @@ namespace Js
         //i.Throw a TypeError exception.
         //22. Return resultDesc.
 
-        BOOL isTargetExtensible = target->IsExtensible();
+        // do not use "target" here, the trap may have caused it to change
+        BOOL isTargetExtensible = targetObj->IsExtensible();
         BOOL toProperty = JavascriptOperators::ToPropertyDescriptor(getResult, resultDescriptor, requestContext);
         if (!toProperty && isTargetExtensible)
         {
@@ -1246,16 +1248,6 @@ namespace Js
         return trapResult;
     }
 
-    BOOL JavascriptProxy::GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor)
-    {
-        if (target == nullptr)
-        {
-            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u(""));
-        }
-
-        return target->GetDefaultPropertyDescriptor(descriptor);
-    }
-
     // 7.3.12 in ES 2015. While this should have been no observable behavior change. Till there is obvious change warrant this
     // to be moved to JavascriptOperators, let's keep it in proxy only first.
     BOOL JavascriptProxy::TestIntegrityLevel(IntegrityLevel integrityLevel, RecyclableObject* obj, ScriptContext* scriptContext)
@@ -1672,12 +1664,7 @@ namespace Js
     BOOL JavascriptProxy::GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
-        auto fn = [&](RecyclableObject *targetObj)-> BOOL {
-            return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, requestContext, propertyDescriptor);
-        };
-        auto getPropertyId = [&]() -> PropertyId {return propertyId; };
-        BOOL foundProperty = proxy->GetPropertyDescriptorTrap(obj, fn, getPropertyId, propertyDescriptor, requestContext);
-        return foundProperty;
+        return proxy->GetPropertyDescriptorTrap(propertyId, propertyDescriptor, requestContext);
     }
 
 

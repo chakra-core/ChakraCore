@@ -116,7 +116,6 @@ namespace Js
         virtual BOOL IsExtensible() override;
         virtual BOOL PreventExtensions() override;
         virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor) { }
-        virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor) override;
         virtual BOOL Seal() override;
         virtual BOOL Freeze() override;
         virtual BOOL IsSealed() override;
@@ -231,8 +230,7 @@ namespace Js
         template <class Fn, class GetPropertyIdFunc>
         BOOL GetPropertyTrap(Var instance, PropertyDescriptor* propertyDescriptor, Fn fn, GetPropertyIdFunc getPropertyId, ScriptContext* requestContext);
 
-        template <class Fn, class GetPropertyIdFunc>
-        BOOL GetPropertyDescriptorTrap(Var originalInstance, Fn fn, GetPropertyIdFunc getPropertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext);
+        BOOL GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor* resultDescriptor, ScriptContext* requestContext);
 
 #if ENABLE_TTD
     public:
