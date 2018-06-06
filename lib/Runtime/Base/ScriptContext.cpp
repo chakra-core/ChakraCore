@@ -2672,25 +2672,6 @@ namespace Js
     }
 #endif
 
-    bool ScriptContext::SaveSourceCopy(Utf8SourceInfo* const sourceInfo, int cchLength, bool isCesu8, uint * index)
-    {
-        HRESULT hr = S_OK;
-        BEGIN_TRANSLATE_OOM_TO_HRESULT
-        {
-            *index = this->SaveSourceCopy(sourceInfo, cchLength, isCesu8);
-        }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
-        return hr == S_OK;
-    }
-
-    uint ScriptContext::SaveSourceCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8)
-    {
-        Utf8SourceInfo* newSource = Utf8SourceInfo::Clone(this, sourceInfo);
-
-        return SaveSourceNoCopy(newSource, cchLength, isCesu8);
-    }
-
-
     uint ScriptContext::SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8)
     {
         Assert(sourceInfo->GetScriptContext() == this);
@@ -2710,23 +2691,6 @@ namespace Js
             AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
             return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
         }
-    }
-
-    void ScriptContext::CloneSources(ScriptContext* sourceContext)
-    {
-        sourceContext->sourceList->Map([=](int index, RecyclerWeakReference<Utf8SourceInfo>* sourceInfo)
-        {
-            Utf8SourceInfo* info = sourceInfo->Get();
-            if (info)
-            {
-                CloneSource(info);
-            }
-        });
-    }
-
-    uint ScriptContext::CloneSource(Utf8SourceInfo* info)
-    {
-        return this->SaveSourceCopy(info, info->GetCchLength(), info->GetIsCesu8());
     }
 
     Utf8SourceInfo* ScriptContext::GetSource(uint index)

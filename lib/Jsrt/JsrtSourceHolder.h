@@ -103,11 +103,6 @@ namespace Js
                         || memcmp(this->GetSource(_u("Equal Comparison")), other->GetSource(_u("Equal Comparison")), this->GetByteLength(_u("Equal Comparison"))) == 0));
         }
 
-        virtual ISourceHolder* Clone(ScriptContext *scriptContext) override
-        {
-            return RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtSourceHolder, this->scriptLoadCallback, this->scriptUnloadCallback, this->sourceContext);
-        }
-
         virtual hash_t GetHashCode() override
         {
             LPCUTF8 source = GetSource(_u("Hash Code Calculation"));
