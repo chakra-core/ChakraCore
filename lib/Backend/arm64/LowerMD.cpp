@@ -241,6 +241,13 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
             regArg->Free(this->m_func);
             instrArg->Remove();
         }
+        else if (instrArg->m_opcode == Js::OpCode::ExtendArg_A)
+        {
+            if (instrArg->GetSrc1()->IsRegOpnd())
+            {
+                m_lowerer->addToLiveOnBackEdgeSyms->Set(instrArg->GetSrc1()->AsRegOpnd()->GetStackSym()->m_id);
+            }
+        }
     }
 
     switch (helperMethod)
