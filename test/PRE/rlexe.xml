@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
-  <!-- OS bug 17559989 -->
-  <!-- <test>
+   <test>
     <default>
       <files>pre1.js</files>
       <baseline>pre1.baseline</baseline>
       <tags>exclude_forceserialized,exclude_dynapogo</tags>
       <compile-flags>-testtrace:fieldcopyprop -oopjit-</compile-flags>
     </default>
-  </test> -->
+  </test> 
 </regress-exe>
