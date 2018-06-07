@@ -111,6 +111,7 @@
     <ClInclude Include="AutoAllocatorObjectPtr.h" />
     <ClInclude Include="AutoPtr.h" />
     <ClInclude Include="BucketStatsReporter.h" />
+    <ClInclude Include="CollectionFlags.h" />
     <ClInclude Include="CollectionState.h" />
     <ClInclude Include="CommonMemoryPch.h" />
     <ClInclude Include="CustomHeap.h" />
