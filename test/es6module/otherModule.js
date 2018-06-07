@@ -4,5 +4,5 @@
 //-------------------------------------------------------------------------------------------------------
 
 //test that dynamic import works from module
-//this file is imported only once - dynamicly from another module to check that the host is notified for that
+//this file is imported only once - dynamically from another module to check that the host is notified for that
 export const success = true;

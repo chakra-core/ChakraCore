@@ -452,6 +452,10 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
                 parserStateCache,
                 nullptr);
         }
+        else if (HostConfigFlags::flags.Module)
+        {
+            runScript = WScriptJsrt::ModuleEntryPoint(fileName, fileContents, fullPath);
+        }
         else // bufferValue == nullptr && parserStateCache == nullptr
         {
             JsValueRef scriptSource;

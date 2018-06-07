@@ -10,6 +10,7 @@ class WScriptJsrt
 public:
     static bool Initialize();
     static bool Uninitialize();
+    static JsErrorCode ModuleEntryPoint(LPCSTR fileName, LPCSTR fileContent, LPCSTR fullName);
 
     class CallbackMessage : public MessageBase
     {

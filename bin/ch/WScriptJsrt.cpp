@@ -435,6 +435,11 @@ void WScriptJsrt::GetDir(LPCSTR fullPathNarrow, std::string *fullDirNarrow)
     *fullDirNarrow = result;
 }
 
+JsErrorCode WScriptJsrt::ModuleEntryPoint(LPCSTR fileName, LPCSTR fileContent, LPCSTR fullName)
+{
+    return LoadModuleFromString(fileName, fileContent, fullName, true);
+}
+
 JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileContent, LPCSTR fullName, bool isFile)
 {
     DWORD_PTR dwSourceCookie = WScriptJsrt::GetNextSourceContext();
