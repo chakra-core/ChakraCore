@@ -9011,8 +9011,6 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
     instr->UnlinkDst();
     instr->UnlinkSrc1();
 
-    IR::Opnd *indexOpnd = dst->AsIndirOpnd()->UnlinkIndexOpnd();
-
     Assert(
         helperMethod == IR::HelperOP_InitElemGetter ||
         helperMethod == IR::HelperOP_InitElemSetter ||
@@ -9023,8 +9021,19 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
         helperMethod == IR::HelperOp_InitClassMemberSetComputedName
         );
 
+    IR::IndirOpnd* dstIndirOpnd = dst->AsIndirOpnd();
+
+    IR::Opnd *indexOpnd = dstIndirOpnd->UnlinkIndexOpnd();
+
     if (indexOpnd && indexOpnd->GetType() != TyVar)
     {
+        Assert(
+            helperMethod != IR::HelperOP_InitElemGetter &&
+            helperMethod != IR::HelperOP_InitElemSetter &&
+            helperMethod != IR::HelperOp_InitClassMemberGetComputedName &&
+            helperMethod != IR::HelperOp_InitClassMemberSetComputedName
+        );
+
         if (indexOpnd->GetType() == TyInt32)
         {
             helperMethod =

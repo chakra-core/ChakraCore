@@ -10972,9 +10972,15 @@ GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOp
 {
     Assert(indirOpnd != nullptr || indexOpnd == instr->GetSrc1());
 
+    bool isGetterOrSetter = instr->m_opcode == Js::OpCode::InitGetElemI ||
+        instr->m_opcode == Js::OpCode::InitSetElemI ||
+        instr->m_opcode == Js::OpCode::InitClassMemberGetComputedName ||
+        instr->m_opcode == Js::OpCode::InitClassMemberSetComputedName;
+
     if ((indexOpnd->GetValueType().IsInt()
         ? !IsTypeSpecPhaseOff(func)
-        : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec()) && !GetIsAsmJSFunc()) // typespec is disabled for asmjs
+        : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec() && !isGetterOrSetter) // typespec is disabled for getters, setters
+        && !GetIsAsmJSFunc()) // typespec is disabled for asmjs
     {
         StackSym *const indexVarSym = indexOpnd->m_sym;
         Value *const indexValue = CurrentBlockData()->FindValue(indexVarSym);
