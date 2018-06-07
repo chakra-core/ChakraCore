@@ -182,7 +182,7 @@ namespace Js
         WaiterList();
         void Cleanup();
 
-        bool AddAndSuspendWaiter(DWORD_PTR waiter, uint32 timeout);
+        bool _Requires_lock_held_(csForAccess.cs) AddAndSuspendWaiter(DWORD_PTR waiter, uint32 timeout);
         void RemoveWaiter(DWORD_PTR waiter);
         uint32 RemoveAndWakeWaiters(int32 count);
 
@@ -194,7 +194,7 @@ namespace Js
 
         Waiters * m_waiters;
 
-        // Below CS is used for synchronizig access in wait/wake API
+        // Below CS is used for synchronizing access in wait/wake API
         CriticalSection csForAccess;
     };
 }
