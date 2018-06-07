@@ -14251,7 +14251,7 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
     }
     else if (sym->IsPropertySym())
     {
-        if (!loop->landingPad->globOptData.liveFields->Test(sym->m_id))
+        if (!loop->landingPad->globOptData.liveFields->Test(sym->AsPropertySym()->m_stackSym->m_id))
         {
             return false;
         }
