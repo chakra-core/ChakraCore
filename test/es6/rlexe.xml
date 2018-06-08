@@ -1480,4 +1480,10 @@
     <baseline>supersetter.baseline</baseline>
   </default>
 </test>
+<test>
+  <default>
+    <files>bug_OS16649604.js</files>
+    <compile-flags>-args summary -endargs</compile-flags>
+  </default>
+</test>
 </regress-exe>
