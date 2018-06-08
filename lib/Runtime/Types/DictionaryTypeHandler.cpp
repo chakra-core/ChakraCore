@@ -1548,7 +1548,7 @@ namespace Js
     }
 
     template <typename T>
-    _Success_(return) BOOL DictionaryTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, __out Var* getter, __out Var* setter)
+    _Check_return_ _Success_(return) BOOL DictionaryTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter)
     {
         DictionaryPropertyDescriptor<T>* descriptor;
         ScriptContext* scriptContext = instance->GetScriptContext();

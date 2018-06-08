@@ -591,7 +591,7 @@ namespace Js
         return FALSE;
     }
   
-    BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         PropertyDescriptor result;
         if (getter != nullptr)

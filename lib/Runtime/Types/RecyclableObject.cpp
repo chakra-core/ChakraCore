@@ -482,7 +482,7 @@ namespace Js
         return false;
     }
 
-    _Success_(return) BOOL RecyclableObject::GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL RecyclableObject::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext * requestContext)
     {
         return false;
     }

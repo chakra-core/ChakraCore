@@ -2681,7 +2681,7 @@ CommonNumber:
         return FALSE;
     }
 
-    BOOL JavascriptOperators::GetAccessors(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, Var* getter, Var* setter)
+    BOOL _Check_return_ _Success_(return) JavascriptOperators::GetAccessors(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, _Out_ Var* getter, _Out_ Var* setter)
     {
         RecyclableObject* object = instance;
         while (!JavascriptOperators::IsNull(object))
