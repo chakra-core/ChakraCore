@@ -185,6 +185,12 @@
   </test>
   <test>
     <default>
+       <files>hasBailedOutBug2.js</files>
+       <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
        <files>StackOverflow.js</files>
     </default>
   </test>
