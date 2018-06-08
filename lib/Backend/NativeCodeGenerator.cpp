@@ -1192,12 +1192,14 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     workItem->GetEntryPoint()->SetCodeGenRecorded((Js::JavascriptMethod)jitWriteData.thunkAddress, (Js::JavascriptMethod)jitWriteData.codeAddress, jitWriteData.codeSize, (void *)this);
 
+#if DBG_DUMP
     if (PHASE_DUMP(Js::EncoderPhase, workItem->GetFunctionBody()) && Js::Configuration::Global.flags.Verbose && !JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         workItem->GetEntryPoint()->DumpNativeOffsetMaps();
         workItem->GetEntryPoint()->DumpNativeThrowSpanSequence();
         Output::Flush();
     }
+#endif
 
     if (jitWriteData.hasBailoutInstr != FALSE)
     {
