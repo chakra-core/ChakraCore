@@ -797,8 +797,6 @@ Encoder::Encode()
 
     if (PHASE_DUMP(Js::EncoderPhase, m_func) && Js::Configuration::Global.flags.Verbose && !m_func->IsOOPJIT())
     {
-        m_func->GetInProcJITEntryPointInfo()->DumpNativeOffsetMaps();
-        m_func->GetInProcJITEntryPointInfo()->DumpNativeThrowSpanSequence();
         this->DumpInlineeFrameMap(m_func->GetJITOutput()->GetCodeAddress());
         Output::Flush();
     }
