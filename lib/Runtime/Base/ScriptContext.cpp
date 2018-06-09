@@ -39,6 +39,7 @@
 
 #include "ByteCode/ByteCodeSerializer.h"
 #include "Language/SimpleDataCacheWrapper.h"
+#include "Core/CRC.h"
 
 namespace Js
 {
@@ -2119,6 +2120,7 @@ namespace Js
 
     HRESULT ScriptContext::TryDeserializeParserState(
         _In_ ULONG grfscr,
+        _In_ uint sourceCRC,
         _In_ charcount_t cchLength,
         _In_ SRCINFO *srcInfo,
         _In_ Js::Utf8SourceInfo* utf8SourceInfo,
@@ -2143,17 +2145,36 @@ namespace Js
 
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
         // Find the parser state block in the read stream and get the size of the block in bytes.
-        ULONG byteCount = 0;
+        ULONG blockByteCount = 0;
         DebugOnly(auto url = !srcInfo->sourceContextInfo->isHostDynamicDocument ? srcInfo->sourceContextInfo->url : this->GetUrl());
 
         OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to read parser state cache for '%s'\n"), url);
 
-        hr = pDataCache->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ParserState, &byteCount);
+        hr = pDataCache->SeekReadStreamToBlock(SimpleDataCacheWrapper::BlockType_ParserState, &blockByteCount);
         if (FAILED(hr))
         {
             OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to find parser state cache in the stream (hr = 0x%08lx) for '%s'\n"), hr, url);
             return hr;
         }
+
+        uint expectedCRC = 0;
+        hr = pDataCache->Read(&expectedCRC);
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to read CRC value (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Computed CRC value = 0x%08lx (expected CRC value = 0x%08lx) for '%s'\n"), sourceCRC, expectedCRC, url);
+
+        if (expectedCRC != sourceCRC)
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Fail CRC check, discarding parser state cache for '%s'\n"), url);
+            return E_FAIL;
+        }
+
+        // The block includes a 4-byte CRC before the parser state cache.
+        ULONG byteCount = blockByteCount - sizeof(uint);
 
         // The contract for this bytecode buffer is that it is available as long as we have this ScriptContext.
         // We will use this buffer as the string table needed to back the deferred stubs as well as bytecode
@@ -2213,6 +2234,7 @@ namespace Js
     }
 
     HRESULT ScriptContext::TrySerializeParserState(
+        _In_ uint sourceCRC,
         _In_ LPCUTF8 pszSrc,
         _In_ size_t cbLength,
         _In_ SRCINFO *srcInfo,
@@ -2263,11 +2285,21 @@ namespace Js
 
         OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Trying to write parser state cache (%lu bytes) to stream for '%s'\n"), serializeParserStateCacheSize, url);
 
-        hr = pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, serializeParserStateCacheSize);
+        hr = pDataCache->StartBlock(Js::SimpleDataCacheWrapper::BlockType_ParserState, serializeParserStateCacheSize + sizeof(uint));
 
         if (FAILED(hr))
         {
             OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to write a block to the parser state cache data stream (hr = 0x%08lx) for '%s'\n"), hr, url);
+            return hr;
+        }
+
+        hr = pDataCache->Write(sourceCRC);
+
+        OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Computed CRC value = 0x%08lx for '%s'\n"), sourceCRC, url);
+
+        if (FAILED(hr))
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::DataCachePhase, _u(" Failed to write CRC data to the data stream (hr = 0x%08lx) for '%s'\n"), hr, url);
             return hr;
         }
 
@@ -2314,10 +2346,12 @@ namespace Js
             && !this->IsScriptContextInDebugMode();
         byte* parserStateCacheBuffer = nullptr;
         DWORD parserStateCacheByteCount = 0;
+        uint computedSourceCRC = 0;
 
         if (fUseParserStateCache)
         {
-            hr = TryDeserializeParserState(grfscr, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, &parserStateCacheBuffer, &parserStateCacheByteCount, pDataCache);
+            computedSourceCRC = CalculateCRC(0, cbLength, (void*)pszSrc);
+            hr = TryDeserializeParserState(grfscr, computedSourceCRC, cchLength, srcInfo, utf8SourceInfo, sourceIndex, isCesu8, nullptr, func, &parserStateCacheBuffer, &parserStateCacheByteCount, pDataCache);
 #ifdef ENABLE_WININET_PROFILE_DATA_CACHE
             // ERROR_WRITE_PROTECT indicates we cannot cache this script for whatever reason.
             // Disable generating and serializing the parser state cache.
@@ -2366,7 +2400,7 @@ namespace Js
             if (fUseParserStateCache)
             {
                 Assert(*func != nullptr);
-                TrySerializeParserState(pszSrc, cbLength, srcInfo, *func, parserStateCacheBuffer, parserStateCacheByteCount, pDataCache);
+                TrySerializeParserState(computedSourceCRC, pszSrc, cbLength, srcInfo, *func, parserStateCacheBuffer, parserStateCacheByteCount, pDataCache);
             }
         }
 #ifdef ENABLE_SCRIPT_DEBUGGING

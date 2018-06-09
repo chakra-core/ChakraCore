@@ -25,3 +25,31 @@ unsigned int CalculateCRC32(const char* in)
     }
     return crc ^ (unsigned int)-1;
 }
+
+uint CalculateCRC(uint bufferCRC, size_t data)
+{
+#if defined(_WIN32) || defined(__SSE4_2__)
+#if defined(_M_IX86)
+    if (AutoSystemInfo::Data.SSE4_2Available())
+    {
+        return _mm_crc32_u32(bufferCRC, data);
+    }
+#elif defined(_M_X64)
+    if (AutoSystemInfo::Data.SSE4_2Available())
+    {
+        //CRC32 always returns a 32-bit result
+        return (uint)_mm_crc32_u64(bufferCRC, data);
+    }
+#endif
+#endif
+    return CalculateCRC32(bufferCRC, data);
+}
+
+uint CalculateCRC(uint bufferCRC, size_t count, _In_reads_bytes_(count) void * buffer)
+{
+    for (uint index = 0; index < count; index++)
+    {
+        bufferCRC = CalculateCRC(bufferCRC, *((BYTE*)buffer + index));
+    }
+    return bufferCRC;
+}

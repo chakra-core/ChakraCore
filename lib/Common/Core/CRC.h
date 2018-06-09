@@ -51,3 +51,7 @@ static const unsigned int crc_32_tab[] =
 unsigned int CalculateCRC32(unsigned int bufferCRC, size_t data);
 
 unsigned int CalculateCRC32(const char* in);
+
+uint CalculateCRC(uint bufferCRC, size_t data);
+
+uint CalculateCRC(uint bufferCRC, size_t count, _In_reads_bytes_(count) void * buffer);

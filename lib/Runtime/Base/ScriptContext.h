@@ -1291,6 +1291,7 @@ private:
 
         HRESULT TryDeserializeParserState(
             _In_ ULONG grfscr,
+            _In_ uint sourceCRC,
             _In_ charcount_t cchLength,
             _In_ SRCINFO *srcInfo,
             _In_ Js::Utf8SourceInfo* utf8SourceInfo,
@@ -1303,6 +1304,7 @@ private:
             _In_ Js::SimpleDataCacheWrapper* pDataCache);
 
         HRESULT TrySerializeParserState(
+            _In_ uint sourceCRC,
             _In_ LPCUTF8 pszSrc,
             _In_ size_t cbLength,
             _In_ SRCINFO *srcInfo,
