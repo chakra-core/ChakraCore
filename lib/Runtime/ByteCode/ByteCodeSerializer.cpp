@@ -2378,9 +2378,6 @@ public:
 #endif
         }
 
-        // Increment the function count
-        ++functionCount.value;
-
         // Reverse to put prepended items in correct order
         builder.list = builder.list->ReverseCurrentList();
         PrependStruct<SerializedFieldList>(builder, _u("Serialized Field List"), &definedFields);
@@ -2391,6 +2388,7 @@ public:
     HRESULT AddTopFunctionBody(FunctionBody * function, SRCINFO const * srcInfo, ByteCodeCache* cache)
     {
         topFunctionId = function->GetLocalFunctionId();
+        functionCount.value = srcInfo->sourceContextInfo->nextLocalFunctionId;
         return AddFunction(functionsTable, function, srcInfo, cache);
     }
 
@@ -2576,9 +2574,6 @@ public:
             {
                 AddDeferredStubs(builder, currentStub->deferredStubs, currentStub->nestedCount, cache, recursive);
             }
-
-            // Each deferred stub will turn into a function after we defer-parse the parent of the stub.
-            ++functionCount.value;
         }
 
         return S_OK;
