@@ -5821,12 +5821,14 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
     ParseNodePtr *ppnodeVarSave = m_ppnodeVar;
 
     m_ppnodeVar = &pnodeFnc->pnodeVars;
+    bool parsedOrSkipped = false;
 
     // Don't try and skip scanning nested deferred lambdas which have only a single expression in the body.
     // Their more-complicated text extents won't match the deferred-stub and the single expression should be fast to scan, anyway.
     if (fLambda && !*pNeedScanRCurly)
     {
         ParseExpressionLambdaBody<false>(pnodeFnc);
+        parsedOrSkipped = true;
     }
     else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr && !pnodeFncParent->HasDefaultArguments())
     {
@@ -5840,35 +5842,52 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
             || (stub->fncFlags & kFunctionIsAsync) == kFunctionIsAsync
             || ((stub->fncFlags & kFunctionIsGenerator) == kFunctionIsGenerator && (stub->fncFlags & kFunctionIsMethod) == kFunctionIsMethod));
 
-        if (stub->fncFlags & kFunctionCallsEval)
+        if (stub->fncFlags & kFunctionHasWithStmt)
         {
-            this->MarkEvalCaller();
+            // If the function we want to skip past has a with statement, we won't correctly be able to mark which names are referenced
+            // from inside the with statement so we'll fail to correctly store and load from scope slots.
+            // Fallback to a regular scan of the function by not setting parsedOrSkipped.
+
+            PHASE_PRINT_TRACE1(
+                Js::SkipNestedDeferredPhase,
+                _u("Not skipping nested deferred function due to with statement %d. %s: %d...%d\n"),
+                pnodeFnc->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
+        }
+        else
+        {
+            if (stub->fncFlags & kFunctionCallsEval)
+            {
+                this->MarkEvalCaller();
+            }
+
+            PHASE_PRINT_TRACE1(
+                Js::SkipNestedDeferredPhase,
+                _u("Skipping nested deferred function %d. %s: %d...%d\n"),
+                pnodeFnc->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
+
+            this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
+
+            for (uint i = 0; i < stub->capturedNameCount; i++)
+            {
+                int stringId = stub->capturedNameSerializedIds[i];
+                uint32 stringLength = 0;
+                LPCWSTR stringVal = Js::ByteCodeSerializer::DeserializeString(stub, stringId, stringLength);
+
+                OUTPUT_TRACE_DEBUGONLY(Js::SkipNestedDeferredPhase, _u("\tPushing a reference to '%s'\n"), stringVal);
+
+                IdentPtr pid = this->GetHashTbl()->PidHashNameLen(stringVal, stringLength);
+                PushPidRef(pid);
+            }
+
+            pnodeFnc->nestedCount = stub->nestedCount;
+            pnodeFnc->fncFlags = (FncFlags)(pnodeFnc->fncFlags | stub->fncFlags);
+            parsedOrSkipped = true;
         }
 
-        PHASE_PRINT_TRACE1(
-            Js::SkipNestedDeferredPhase,
-            _u("Skipping nested deferred function %d. %s: %d...%d\n"),
-            pnodeFnc->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
-
-        this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
-
-        for (uint i = 0; i < stub->capturedNameCount; i++)
-        {
-            int stringId = stub->capturedNameSerializedIds[i];
-            uint32 stringLength = 0;
-            LPCWSTR stringVal = Js::ByteCodeSerializer::DeserializeString(stub, stringId, stringLength);
-
-            OUTPUT_TRACE_DEBUGONLY(Js::SkipNestedDeferredPhase, _u("\tPushing a reference to '%s'\n"), stringVal);
-
-            IdentPtr pid = this->GetHashTbl()->PidHashNameLen(stringVal, stringLength);
-            PushPidRef(pid);
-        }
-
-        pnodeFnc->nestedCount = stub->nestedCount;
         pnodeFnc->deferredStub = stub->deferredStubs;
-        pnodeFnc->fncFlags = (FncFlags)(pnodeFnc->fncFlags | stub->fncFlags);
     }
-    else
+
+    if (!parsedOrSkipped)
     {
         ParseStmtList<false>(nullptr, nullptr, SM_DeferredParse, true /* isSourceElementList */);
     }
