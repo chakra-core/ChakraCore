@@ -1905,12 +1905,11 @@ LABEL1:
             RecyclerHeapObjectInfo heapObject;
             Recycler* recycler = threadContext->GetRecycler();
 
-            bool isFuncObjHeapAllocated = recycler->FindHeapObject(func, FindHeapObjectFlags_NoFlags, heapObject); // recheck if this needs to be removed
             bool isEntryPointHeapAllocated = recycler->FindHeapObject(func->GetEntryPointInfo(), FindHeapObjectFlags_NoFlags, heapObject);
             bool isFunctionBodyHeapAllocated = recycler->FindHeapObject(func->GetFunctionBody(), FindHeapObjectFlags_NoFlags, heapObject);
 
             // ensure that all our objects are heap allocated
-            if (!(isFuncObjHeapAllocated && isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
+            if (!(isEntryPointHeapAllocated && isFunctionBodyHeapAllocated))
             {
                 return nullptr;
             }

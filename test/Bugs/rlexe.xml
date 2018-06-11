@@ -484,4 +484,9 @@
       <compile-flags>-forceNative -forcejitloopbody -off:aggressiveinttypespec -off:ArrayCheckHoist</compile-flags> 
     </default> 
   </test> 
+  <test>
+    <default>
+      <files>bug17785360.js</files>
+    </default>
+  </test> 
 </regress-exe>
