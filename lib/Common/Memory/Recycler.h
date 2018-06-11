@@ -30,6 +30,10 @@ class JavascriptThreadService;
 struct RecyclerMemoryData;
 #endif
 
+#if DBG
+class ThreadContext;
+#endif
+
 namespace Memory
 {
 // NOTE: There is perf lab test infrastructure that takes a dependency on the events in this enumeration. Any modifications may cause
@@ -650,6 +654,10 @@ struct CollectionParam
 #if ENABLE_CONCURRENT_GC
 class RecyclerParallelThread
 {
+#if DBG
+    friend class ThreadContext;
+#endif
+
 public:
     typedef void (Recycler::* WorkFunc)();
 
@@ -1914,7 +1922,9 @@ private:
     friend class HeapInfo;
     friend class HeapInfoManager;
     friend class LargeHeapBucket;
-
+#if DBG
+    friend class ThreadContext;
+#endif
     template <typename TBlockType>
     friend class HeapBucketT;
     template <typename TBlockType>
