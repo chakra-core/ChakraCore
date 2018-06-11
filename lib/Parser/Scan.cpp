@@ -19,11 +19,10 @@ int CountNewlines(LPCOLESTR psz, int cch)
         switch (*psz++)
         {
         case _u('\xD'):
-            if (*psz == _u('\xA'))
+            if (cch != 0 && *psz == _u('\xA'))
             {
                 ++psz;
-                if (0 == cch--)
-                    break;
+                --cch;
             }
             // fall-through
         case _u('\xA'):
