@@ -139,8 +139,8 @@ namespace Memory
                     LPFILETIME ft = this->hostInterface->GetLastScriptExecutionEndTime();
                     stats->lastScriptExecutionEndTime = *ft;
 
-					stats->closedContextCount = this->hostInterface->GetClosedContextCount();
-				}
+                    stats->closedContextCount = this->hostInterface->GetClosedContextCount();
+                }
 
                 stats->processCommittedBytes_start = RecyclerTelemetryInfo::GetProcessCommittedBytes();
                 stats->processAllocaterUsedBytes_start = PageAllocator::GetProcessUsedBytes();
@@ -155,8 +155,8 @@ namespace Memory
 #endif
                 stats->startPassProcessingElapsedTime = Js::Tick::Now() - start;
 
-				stats->pinnedObjectCount = this->recycler->pinnedObjectMap.Count();
-			}
+                stats->pinnedObjectCount = this->recycler->pinnedObjectMap.Count();
+            }
         }
     }
 

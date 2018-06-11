@@ -1884,7 +1884,7 @@ private:
         virtual bool ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const;
         virtual DWORD ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const;
         virtual bool IsTelemetryProviderEnabled() const;
-		virtual uint GetClosedContextCount() const;
+        virtual uint GetClosedContextCount() const;
 
     private:
         ThreadContext * tc;
