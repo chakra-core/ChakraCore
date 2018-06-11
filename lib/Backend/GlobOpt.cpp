@@ -3437,7 +3437,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
 
         // This block uses per-instruction profile information on array types to optimize using the best available profile
         // information and to prevent infinite bailouts by ensuring array type information is updated on bailouts.
-        if (valueType.IsLikelyArray() && !valueType.IsObject() && instr->IsProfiledInstr())
+        if (valueType.IsLikelyArray() && !valueType.IsDefinite() && !valueType.IsObject() && instr->IsProfiledInstr())
         {
             // See if we have profile data for the array type
             IR::ProfiledInstr *const profiledInstr = instr->AsProfiledInstr();
