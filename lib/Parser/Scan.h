@@ -12,7 +12,7 @@ namespace Js
 #include "Windows.Globalization.h"
 #endif
 
-int CountNewlines(LPCOLESTR psz, int cch = -1);
+int CountNewlines(LPCOLESTR psz);
 
 class Parser;
 struct ParseContext;
