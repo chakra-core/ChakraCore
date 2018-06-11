@@ -336,8 +336,8 @@ PHASE(All)
             PHASE(ObjectHeaderInliningForObjectLiterals)
             PHASE(ObjectHeaderInliningForEmptyObjects)
         PHASE(OptUnknownElementName)
-#if DBG_DUMP
         PHASE(TypePropertyCache)
+#if DBG_DUMP
         PHASE(InlineSlots)
 #endif
         PHASE(DynamicProfile)
