@@ -212,7 +212,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , recyclerTelemetryHostInterface(this)
     , reentrancySafeOrHandled(false)
     , isInReentrancySafeRegion(false)
-	, closedScriptContextCount(0)
+    , closedScriptContextCount(0)
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
     hostScriptContextStack = Anew(GetThreadAlloc(), JsUtil::Stack<HostScriptContext*>, GetThreadAlloc());
@@ -723,7 +723,7 @@ DWORD ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetCurrentScri
 
 uint ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetClosedContextCount() const
 {
-	return this->tc->closedScriptContextCount;
+    return this->tc->closedScriptContextCount;
 }
 
 Recycler* ThreadContext::EnsureRecycler()
