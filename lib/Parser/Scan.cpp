@@ -10,19 +10,18 @@
 *  a given character can be part of an identifier, and so on.
 */
 
-int CountNewlines(LPCOLESTR psz, int cch)
+int CountNewlines(LPCOLESTR psz)
 {
     int cln = 0;
 
-    while (0 != *psz && 0 != cch--)
+    while (0 != *psz)
     {
         switch (*psz++)
         {
         case _u('\xD'):
-            if (cch != 0 && *psz == _u('\xA'))
+            if (*psz == _u('\xA'))
             {
                 ++psz;
-                --cch;
             }
             // fall-through
         case _u('\xA'):
