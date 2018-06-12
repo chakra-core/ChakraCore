@@ -716,6 +716,12 @@
   </test>
   <test>
     <default>
+      <files>memop_missingValues.js</files>
+      <compile-flags>-mmoc:0</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug4587739.js</files>
       <compile-flags>-mic:1 -off:simplejit</compile-flags>
     </default>
