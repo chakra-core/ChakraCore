@@ -489,4 +489,11 @@
       <files>bug17785360.js</files>
     </default>
   </test> 
+  <test>
+    <default>
+      <files>bug_OS17530048.js</files>
+      <tags>exclude_jshost</tags>
+      <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
+    </default>
+  </test>
 </regress-exe>
