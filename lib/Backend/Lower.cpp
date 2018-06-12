@@ -14877,7 +14877,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
 
 ///----------------------------------------------------------------------------
 ///
-/// Instr::HoistIndirOffset
+/// Lowerer::HoistIndirOffset
 ///
 ///     Replace the offset of the given indir with a new symbol, which becomes the indir index.
 ///     Assign the new symbol by creating an assignment from the constant offset.
@@ -14927,7 +14927,10 @@ IR::Instr *Lowerer::HoistIndirOffsetAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOp
         IR::RegOpnd *newBaseOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, instr->m_func), regNum, TyMachPtr, instr->m_func);
 
         IR::IntConstOpnd *src2 = IR::IntConstOpnd::New(offset, TyInt32, instr->m_func);
-        IR::Instr * instrAdd = Lowerer::InsertAdd(false, newBaseOpnd, baseOpnd, src2, instr);
+
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::Add_A, newBaseOpnd, baseOpnd, src2, instr->m_func);
+        LowererMD::ChangeToAdd(instrAdd, false);
+        instr->InsertBefore(instrAdd);
 
         orgOpnd->ReplaceBaseOpnd(newBaseOpnd);
         orgOpnd->SetOffset(0);
@@ -14939,7 +14942,9 @@ IR::Instr *Lowerer::HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *or
 {
         IR::RegOpnd *newBaseOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, instr->m_func), regNum, TyMachPtr, instr->m_func);
 
-        IR::Instr * instrAdd = Lowerer::InsertAdd(false, newBaseOpnd, baseOpnd, indexOpnd->UseWithNewType(TyMachPtr, instr->m_func), instr);
+        IR::Instr * instrAdd = IR::Instr::New(Js::OpCode::Add_A, newBaseOpnd, baseOpnd, indexOpnd->UseWithNewType(TyMachPtr, instr->m_func), instr->m_func);
+        LowererMD::ChangeToAdd(instrAdd, false);
+        instr->InsertBefore(instrAdd);
 
         orgOpnd->ReplaceBaseOpnd(newBaseOpnd);
         orgOpnd->SetIndexOpnd(nullptr);
@@ -14949,7 +14954,7 @@ IR::Instr *Lowerer::HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *or
 
 ///----------------------------------------------------------------------------
 ///
-/// Instr::HoistSymOffset
+/// Lowerer::HoistSymOffset
 ///
 ///     Replace the given sym with an indir using the given base and offset.
 ///     (This is used, for instance, to hoist a sym offset that is too large to encode.)

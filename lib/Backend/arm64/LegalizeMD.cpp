@@ -373,7 +373,8 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
                 indexOpnd = newIndexOpnd;
             }
 
-            Lowerer::HoistIndirIndexOpndAsAdd(instr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            IR::Instr * instrAdd = Lowerer::HoistIndirIndexOpndAsAdd(instr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
+            LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
         }
     }
     else if (indirOpnd->GetIndexOpnd() != nullptr && offset != 0)
