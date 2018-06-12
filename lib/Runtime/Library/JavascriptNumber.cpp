@@ -673,7 +673,7 @@ namespace Js
         {
             return ToStringNan(scriptContext);
         }
-        if(value >= 1e21)
+        if(value >= 1e21 || value <= -1e21)
         {
             return ToStringRadix10(value, scriptContext);
         }
