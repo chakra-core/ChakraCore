@@ -185,7 +185,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (m_workItem->Type() == JsFunctionType &&
         GetJITFunctionBody()->DoBackendArgumentsOptimization() &&
-        !GetJITFunctionBody()->HasTry())
+        (!GetJITFunctionBody()->HasTry() || this->DoOptimizeTry()))
     {
         // doBackendArgumentsOptimization bit is set when there is no eval inside a function
         // as determined by the bytecode generator.
