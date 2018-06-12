@@ -367,7 +367,13 @@ namespace Js
                 JavascriptFunction::IsBuiltinProperty(objectWithProperty, propertyId));
         }
 
-        const bool includeTypePropertyCache = IncludeTypePropertyCache && !isRoot;
+        const bool includeTypePropertyCache = 
+            IncludeTypePropertyCache && 
+            !isRoot && 
+            (info->GetFunctionBody()
+                 ? !PHASE_OFF(Js::TypePropertyCachePhase, info->GetFunctionBody())
+                 : !PHASE_OFF1(Js::TypePropertyCachePhase)
+            );
         bool createTypePropertyCache = false;
         PolymorphicInlineCache *polymorphicInlineCache = info->GetPolymorphicInlineCache();
         if(!polymorphicInlineCache && info->GetFunctionBody())
