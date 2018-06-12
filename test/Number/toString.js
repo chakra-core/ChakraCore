@@ -11,6 +11,7 @@ runTest('new Number(0)');
 runTest('0.9999999999999999e21');
 runTest('1e21');
 runTest('1.0000000000000001e21');
+runTest('-1.0000000000000001e21');
 
 function runTest(numberToTestAsString)
 {

@@ -182,3 +182,26 @@ n.toPrecision(2):  1.0e+21
 n.toPrecision(5):  1.0000e+21
 n.toPrecision(20):  1.0000000000000001000e+21
 
+Test: -1.0000000000000001e21
+n.toString():  -1.0000000000000001e+21
+n.toString(10):  -1.0000000000000001e+21
+n.toString(8):  -154327115334273650400000
+n.toString(2):  -1101100011010111001001101011011100010111011110101000100000000000000000
+n.toString(16):  -3635c9adc5dea20000
+n.toString(25):  -11l25a0000007fbb
+n.toFixed():  -1.0000000000000001e+21
+n.toFixed(0):  -1.0000000000000001e+21
+n.toFixed(2):  -1.0000000000000001e+21
+n.toFixed(5):  -1.0000000000000001e+21
+n.toFixed(20):  -1.0000000000000001e+21
+RangeError: The number of fractional digits is out of range
+RangeError: The number of fractional digits is out of range
+n.toExponential():  -1.0000000000000001e+21
+n.toExponential(undefined):  -1.0000000000000001e+21
+n.toExponential(2):  -1.00e+21
+n.toExponential(5):  -1.00000e+21
+n.toPrecision():  -1.0000000000000001e+21
+n.toPrecision(2):  -1.0e+21
+n.toPrecision(5):  -1.0000e+21
+n.toPrecision(20):  -1.0000000000000001000e+21
+
