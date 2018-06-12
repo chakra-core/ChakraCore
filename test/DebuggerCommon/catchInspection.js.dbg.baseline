@@ -939,5 +939,54 @@
       "foo6": "function <large string>",
       "foo7": "function <large string>"
     }
+  },
+  {
+    "this": {
+      "Symbol.toStringTag": "string global",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "c": "number 3"
+    },
+    "scopes0": {
+      "b": "number 2"
+    },
+    "scopes1": {
+      "a": "number 1"
+    },
+    "globals": {
+      "Symbol.toStringTag": "string global",
+      "top": "Object {...}",
+      "startTest": "function <large string>",
+      "bar": "function <large string>",
+      "bar2": "function <large string>",
+      "foo": "function <large string>",
+      "foo1": "function <large string>",
+      "foo10": "function <large string>",
+      "foo11": "function <large string>",
+      "foo2": "function <large string>",
+      "foo3": "function <large string>",
+      "foo5": "function <large string>",
+      "foo6": "function <large string>",
+      "foo7": "function <large string>"
+    }
   }
 ]

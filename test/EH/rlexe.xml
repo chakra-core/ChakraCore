@@ -204,4 +204,10 @@
        <files>tfjitloopbug.js</files>
   </default>
   </test>
+  <test>
+    <default>
+      <files>optional-catch-binding.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

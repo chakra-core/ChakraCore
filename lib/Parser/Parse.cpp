@@ -9751,15 +9751,21 @@ ParseNodeCatch * Parser::ParseCatch()
             ichMin = this->GetScanner()->IchMinTok();
         }
         this->GetScanner()->Scan(); //catch
-        ChkCurTok(tkLParen, ERRnoLparen); //catch(
 
         bool isPattern = false;
-        if (tkID != m_token.tk)
+        bool hasParam = false;
+
+        if (tkLParen == m_token.tk)
         {
-            isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
-            if (!isPattern)
+            hasParam = true;
+            this->GetScanner()->Scan(); //catch(
+            if (tkID != m_token.tk)
             {
-                IdentifierExpectedError(m_token);
+                isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
+                if (!isPattern)
+                {
+                    IdentifierExpectedError(m_token);
+                }
             }
         }
 
@@ -9807,7 +9813,7 @@ ParseNodeCatch * Parser::ParseCatch()
                 pnode->scope = scope;
             }
         }
-        else
+        else if (hasParam)
         {
             if (IsStrictMode())
             {
@@ -9851,13 +9857,24 @@ ParseNodeCatch * Parser::ParseCatch()
 
             this->GetScanner()->Scan();
         }
+        else
+        {
+            if (buildAST)
+            {
+                pnode->scope = pnodeCatchScope->scope;
+            }
+        }
 
         charcount_t ichLim;
         if (buildAST)
         {
             ichLim = this->GetScanner()->IchLimTok();
         }
-        ChkCurTok(tkRParen, ERRnoRparen); //catch(id[:expr])
+
+        if (hasParam)
+        {
+            ChkCurTok(tkRParen, ERRnoRparen); //catch(id[:expr])
+        }
 
         if (tkLCurly != m_token.tk)
         {
@@ -13878,7 +13895,9 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
         Output::Print(_u("ComputedProperty\n"));
         PrintPnodeWIndent(pnode->AsParseNodeUni()->pnode1, indentAmt + INDENT_SIZE);
         break;
-
+    case knopParamPattern:
+        PrintPnodeWIndent(pnode->AsParseNodeParamPattern()->pnode1, indentAmt);
+        break;
         //PTNODE(knopMember     , ":"            ,None    ,Bin  ,fnopBin)
     case knopMember:
     case knopMemberShort:
@@ -14159,7 +14178,7 @@ void PrintFormalsWIndent(ParseNode *pnodeArgs, int indentAmt)
 {
     for (ParseNode *pnode = pnodeArgs; pnode != nullptr; pnode = pnode->GetFormalNext())
     {
-        PrintPnodeWIndent(pnode->nop == knopParamPattern ? pnode->AsParseNodeParamPattern()->pnode1 : pnode, indentAmt);
+        PrintPnodeWIndent(pnode, indentAmt);
     }
 }
 

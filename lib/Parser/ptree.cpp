@@ -602,7 +602,7 @@ ParseNodeTry::ParseNodeTry(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 }
 
 ParseNodeCatch::ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim)
-    : ParseNodeStmt(nop, ichMin, ichLim)
+    : ParseNodeStmt(nop, ichMin, ichLim), pnodeParam(nullptr)
 {
 }
 

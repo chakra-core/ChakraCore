@@ -3455,7 +3455,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             ParseNodeCatch * pnodeCatchScope = pnodeScope->AsParseNodeCatch();
             PreVisitCatch(pnodeCatchScope, byteCodeGenerator);
 
-            if (pnodeCatchScope->GetParam()->nop != knopParamPattern)
+            if (pnodeCatchScope->HasParam() && !pnodeCatchScope->HasPatternParam())
             {
                 Visit(pnodeCatchScope->GetParam(), byteCodeGenerator, prefix, postfix);
             }
@@ -3636,11 +3636,10 @@ void PreVisitCatch(ParseNodeCatch *pnodeCatch, ByteCodeGenerator *byteCodeGenera
 {
     // Push the catch scope and add the catch expression to it.
     byteCodeGenerator->StartBindCatch(pnodeCatch);
-
-    ParseNode * pnodeParam = pnodeCatch->GetParam();
-    if (pnodeParam->nop == knopParamPattern)
+    
+    if (pnodeCatch->HasPatternParam())
     {
-        ParseNodeParamPattern * pnodeParamPattern = pnodeParam->AsParseNodeParamPattern();
+        ParseNodeParamPattern * pnodeParamPattern = pnodeCatch->GetParam()->AsParseNodeParamPattern();
         Parser::MapBindIdentifier(pnodeParamPattern->pnode1, [&](ParseNodePtr item)
         {
             Symbol *sym = item->AsParseNodeVar()->sym;
@@ -3655,9 +3654,9 @@ void PreVisitCatch(ParseNodeCatch *pnodeCatch, ByteCodeGenerator *byteCodeGenera
             sym->SetIsBlockVar(true);
         });
     }
-    else
+    else if (pnodeCatch->HasParam())
     {
-        ParseNodeName * pnodeName = pnodeParam->AsParseNodeName();
+        ParseNodeName * pnodeName = pnodeCatch->GetParam()->AsParseNodeName();
         Symbol *sym = *pnodeName->GetSymRef();
         Assert(sym->GetScope() == pnodeCatch->scope);
 #if DBG_DUMP
@@ -3670,6 +3669,7 @@ void PreVisitCatch(ParseNodeCatch *pnodeCatch, ByteCodeGenerator *byteCodeGenera
         sym->SetIsCatch(true);
         pnodeName->sym = sym;
     }
+    
     // This call will actually add the nested function symbols to the enclosing function scope (which is what we want).
     AddFunctionsToScope(pnodeCatch->pnodeScopes, byteCodeGenerator);
 }
