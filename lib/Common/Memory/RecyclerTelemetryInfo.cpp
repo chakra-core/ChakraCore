@@ -90,7 +90,7 @@ namespace Memory
         return stats;
     }
 
-    void RecyclerTelemetryInfo::StartPass()
+    void RecyclerTelemetryInfo::StartPass(CollectionState collectionState)
     {
         this->inPassActiveState = false;
         if (this->ShouldStartTelemetryCapture())
@@ -130,6 +130,7 @@ namespace Memory
                 passCount++;
                 memset(stats, 0, sizeof(RecyclerTelemetryGCPassStats));
 
+                stats->startPassCollectionState = collectionState;
                 stats->isGCPassActive = true;
                 stats->passStartTimeTick = Js::Tick::Now();
                 GetSystemTimePreciseAsFileTime(&stats->passStartTimeFileTime);
@@ -155,7 +156,7 @@ namespace Memory
         }
     }
 
-    void RecyclerTelemetryInfo::EndPass()
+    void RecyclerTelemetryInfo::EndPass(CollectionState collectionState)
     {
         if (!this->inPassActiveState)
         {
@@ -168,6 +169,10 @@ namespace Memory
         AssertOnValidThread(this, RecyclerTelemetryInfo::EndPass);
         RecyclerTelemetryGCPassStats* lastPassStats = this->GetLastPassStats();
 
+        lastPassStats->endPassCollectionState = collectionState;
+        lastPassStats->collectionStartReason = this->recycler->collectionStartReason;
+        lastPassStats->collectionFinishReason = this->recycler->collectionFinishReason;
+        lastPassStats->collectionStartFlags = this->recycler->collectionStartFlags;
         lastPassStats->isGCPassActive = false;
         lastPassStats->passEndTimeTick = Js::Tick::Now();
 

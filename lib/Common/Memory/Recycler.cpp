@@ -5810,7 +5810,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 
     const DWORD waitTime = forceInThread? INFINITE : RecyclerHeuristic::FinishConcurrentCollectWaitTime(this->GetRecyclerFlagsTable());
     GCETW(GC_FINISHCONCURRENTWAIT_START, (this, waitTime));
-    const BOOL waited = WaitForConcurrentThread(waitTime);
+    const BOOL waited = WaitForConcurrentThread(waitTime, RecyclerWaitReason::FinishConcurrentCollect);
     GCETW(GC_FINISHCONCURRENTWAIT_STOP, (this, !waited));
     if (!waited)
     {

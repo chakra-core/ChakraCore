@@ -130,6 +130,7 @@
     <ClInclude Include="HeapBucketStats.h" />
     <ClInclude Include="RecyclerWaitReason.h" />
     <ClInclude Include="RecyclerWaitReasonInc.h" />
+    <ClInclude Include="CollectionFlags.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HeapBlock.inl" />

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "CommonDefines.h"
+#include "CollectionFlags.h"
 #include "RecyclerWaitReason.h"
 #include "Common/Tick.h"
 #include "AllocatorTelemetryStats.h"
@@ -45,6 +46,11 @@ namespace Memory
     struct RecyclerTelemetryGCPassStats
     {
         FILETIME passStartTimeFileTime;
+        CollectionState startPassCollectionState;
+        CollectionState endPassCollectionState;
+        ETWEventGCActivationTrigger collectionStartReason;
+        ETWEventGCActivationTrigger collectionFinishReason;
+        CollectionFlags collectionStartFlags;
         Js::Tick passStartTimeTick;
         Js::Tick passEndTimeTick;
         Js::TickDelta startPassProcessingElapsedTime;
@@ -87,8 +93,8 @@ namespace Memory
         RecyclerTelemetryInfo(Recycler* recycler, RecyclerTelemetryHostInterface* hostInterface);
         ~RecyclerTelemetryInfo();
 
-        void StartPass();
-        void EndPass();
+        void StartPass(CollectionState collectionState);
+        void EndPass(CollectionState collectionState);
         void IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason source);
         
         inline const Js::Tick& GetRecyclerStartTime() const { return this->recyclerStartTime;  }
