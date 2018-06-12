@@ -3573,14 +3573,14 @@ GetTestInfoFromNode
 
             if (childNode->Data != NULL && childNode->Data[0] != '\0')
             {
-                char * data = childNode->Data;
-                if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
-                {
-                    // Make sure sourcepath is not relative, if relative make it full path
-                    data = MakeFullPath(fileName, data);
-                    ASSERT(data != NULL);
-                }
-                testInfo->data[i] = data;
+               char * data = childNode->Data;
+               if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
+               {
+                  // Make sure sourcepath is not relative, if relative make it full path
+                  data = MakeFullPath(fileName, data);
+                  ASSERT(data != NULL);
+               }
+               testInfo->data[i] = data;
             }
             else
             {
@@ -3592,18 +3592,20 @@ GetTestInfoFromNode
                // Validate the timeout string now to fail early so we don't run any tests when there is an error.
                if (!IsTimeoutStringValid(testInfo->data[i])) {
                   CFG_ERROR_EX(fileName, node->LineNumber,
-                     "Invalid timeout specified. Cannot parse or too large.\n", NULL);
+                    "Invalid timeout specified. Cannot parse or too large.\n", NULL);
                   childNode->Dump();
                   return FALSE;
                }
-
             }
          }
       }
       if (i == TIK_TIMEOUT && TestTimeout != NULL)
       {
-          // Overriding the timeout value with the command line value
-          testInfo->data[i] = TestTimeout;
+         // Overriding the timeout value with the command line value (if the command line value is larger)
+         if (testInfo->data[i] < TestTimeout)
+         {
+            testInfo->data[i] = TestTimeout;
+         }
       }
    }
 
