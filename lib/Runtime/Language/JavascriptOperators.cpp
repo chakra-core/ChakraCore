@@ -1806,10 +1806,12 @@ CommonNumber:
 
         DynamicTypeHandler* handler = DynamicObject::UnsafeFromVar(instance)->GetDynamicType()->GetTypeHandler();
 
-        // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers and DictionaryTypeHandlers, because only these types have the right behavior
-        // when the missing property is later added: path types guarantee a type change, and DictionaryTypeHandlerBase::AddProperty explicitly invalidates all prototype caches for the
-        // property.  (We don't support other types only because we haven't needed to yet; we do not anticipate any difficulties in adding the cache-invalidation logic there if that changes.)
-        if (!handler->IsPathTypeHandler() && !handler->IsDictionaryTypeHandler())
+        // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers, because only these types have the right behavior
+        // when the missing property is later added. DictionaryTypeHandler's introduce the possibility that a stale TypePropertyCache entry with isMissing==true can
+        // be left in the cache after the property has been installed in the object's prototype chain. Other changes to optimize accesses to objects that don't
+        // override special symbols make it unnecessary to introduce an invalidation scheme to deal with DictionaryTypeHandler's.
+
+        if (!handler->IsPathTypeHandler())
         {
             return;
         }

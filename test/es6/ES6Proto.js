@@ -99,6 +99,35 @@ var tests = [
             assert.areEqual(p, Object.getPrototypeOf(o), "[[Prototype]] slot of o was changed to p");
         }
     },
+    {
+        name: "__proto__ plus missing property",
+        body: function () {
+            function main() {
+                var l0 = {
+                    a: -1,
+                    b: 0x414141,
+                };
+                l0.a = (l0.a) + (l0.a);
+
+                l0.y = {};
+                l0.__defineGetter__('z', function () {
+                    delete l0.a;
+                    return 5;
+                });
+                l0.a = (l0.a) - (l0.z);
+
+                l0.__proto__ = l0.y;
+                l0.z = (l0.z) / (l0.a);
+                var o = {};
+                o.a = 42;
+                l0.y.__proto__ = o;
+                return l0.a;
+            }
+            for (var i = 0; i < 20; i++) {
+                assert.areEqual(42, main(), "Missing property on local instance should be found in prototype chain");
+            }
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
