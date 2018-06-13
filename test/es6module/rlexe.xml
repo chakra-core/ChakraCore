@@ -161,4 +161,12 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>passmodule.js</files>
+      <!-- This test is designed for ch only - to test the -module flag. -->
+      <compile-flags>-module</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

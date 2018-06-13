@@ -17,6 +17,7 @@ FLAG(bool, IgnoreScriptErrorCode,           "Don't return error code on script e
 FLAG(bool, MuteHostErrorMsg,                "Mute host error output, e.g. module load failures", false)
 FLAG(bool, TraceHostCallback,               "Output traces for host callbacks", false)
 FLAG(bool, Test262,                         "load Test262 harness", false)
+FLAG(bool, Module,                          "load the script as a module", false)
 FLAG(bool, TrackRejectedPromises,           "Enable tracking of unhandled promise rejections", false)
 FLAG(BSTR, CustomConfigFile,                "Custom config file to be used to pass in additional flags to Chakra", NULL)
 FLAG(bool, ExecuteWithBgParse,              "[No-op] Load script with bgparse (note: requires bgparse to be on as well)", false)

@@ -5,8 +5,6 @@
 
 // Tests that circular overlapping module dependencies are all loaded before execution
 
-WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
-
 WScript.RegisterModuleSource("mod0.js", "print('pass')");
 WScript.RegisterModuleSource("mod1.js", "import 'mod2.js';");
 WScript.RegisterModuleSource("mod2.js", "import 'mod0.js';");
