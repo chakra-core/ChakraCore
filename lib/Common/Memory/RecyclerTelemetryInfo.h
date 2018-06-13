@@ -33,6 +33,7 @@ namespace Memory
         virtual bool IsTelemetryProviderEnabled() const = 0;
         virtual bool IsThreadBound() const = 0;
         virtual DWORD GetCurrentScriptThreadID() const = 0;
+        virtual uint GetClosedContextCount() const = 0;
     };
 
 #ifdef ENABLE_BASIC_TELEMETRY
@@ -61,6 +62,8 @@ namespace Memory
         bool isInScript;
         bool isScriptActive;
         bool isGCPassActive;
+        uint closedContextCount;
+        uint pinnedObjectCount;
 
         size_t processAllocaterUsedBytes_start;
         size_t processAllocaterUsedBytes_end;
