@@ -25,9 +25,16 @@ RuntimeThreadData::RuntimeThreadData()
     this->hevntInitialScriptCompleted = CreateEvent(NULL, TRUE, FALSE, NULL);
     this->hevntReceivedBroadcast = CreateEvent(NULL, FALSE, FALSE, NULL);
     this->hevntShutdown = CreateEvent(NULL, TRUE, FALSE, NULL);
+    this->hSemaphore = nullptr;
+    this->hThread = nullptr;
 
     this->sharedContent = nullptr;
     this->receiveBroadcastCallbackFunc = nullptr;
+
+    this->runtime = nullptr;
+    this->context = nullptr;
+
+    this->parent = nullptr;
 
     this->leaving = false;
 

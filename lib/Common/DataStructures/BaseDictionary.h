@@ -44,20 +44,29 @@ namespace JsDiag
 
 namespace JsUtil
 {
+    struct contentStruct
+    {
+        Field(int) cs;
+    };
     class NoResizeLock
     {
     public:
-        void BeginResize() {}
-        void EndResize() {}
+#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+        void _Acquires_lock_(cs.cs) BeginResize() {}
+#pragma prefast(suppress:__WARNING_FAILING_TO_RELEASE_MEDIUM_CONFIDENCE)
+        void _Releases_lock_(cs.cs) EndResize() {}
+    private:
+        // For prefast analysis, we need to have a somewhat similar shape for both locks
+        Field(contentStruct) cs;
     };
 
     class AsymetricResizeLock
     {
     public:
-        void BeginResize() { cs.Enter(); }
-        void EndResize() { cs.Leave(); }
-        void LockResize() { cs.Enter(); }
-        void UnlockResize() { cs.Leave(); }
+        void _Acquires_lock_(cs.cs) BeginResize() { cs.Enter(); }
+        void _Releases_lock_(cs.cs) EndResize() { cs.Leave(); }
+        void _Acquires_lock_(cs.cs) LockResize() { cs.Enter(); }
+        void _Releases_lock_(cs.cs) UnlockResize() { cs.Leave(); }
     private:
         CriticalSection cs;
     };
@@ -117,8 +126,10 @@ namespace JsUtil
         class AutoDoResize
         {
         public:
-            AutoDoResize(Lock& lock) : lock(lock) { lock.BeginResize(); };
-            ~AutoDoResize() { lock.EndResize(); };
+#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+            _Acquires_lock_(this->lock.cs.cs) AutoDoResize(Lock& lock) : lock(lock) { this->lock.BeginResize(); };
+#pragma prefast(suppress:__WARNING_CALLER_FAILING_TO_HOLD_MEDIUM_CONFIDENCE)
+            _Releases_lock_(this->lock.cs.cs) ~AutoDoResize() { this->lock.EndResize(); };
         private:
             Lock& lock;
         };
@@ -671,12 +682,12 @@ namespace JsUtil
             DoCopy(other);
         }
 
-        void LockResize()
+        void _Acquires_lock_(this->cs.cs) LockResize()
         {
             __super::LockResize();
         }
 
-        void UnlockResize()
+        void _Releases_lock_(this->cs.cs) UnlockResize()
         {
             __super::UnlockResize();
         }
@@ -1573,12 +1584,12 @@ namespace JsUtil
             this->DoCopy(other);
         }
 
-        void LockResize()
+        void _Acquires_lock_(this->cs.cs) LockResize()
         {
             __super::LockResize();
         }
 
-        void UnlockResize()
+        void _Releases_lock_(this->cs.cs) UnlockResize()
         {
             __super::UnlockResize();
         }

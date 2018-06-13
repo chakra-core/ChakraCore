@@ -11,7 +11,7 @@ namespace Js
     SIMDValue SIMDBool32x4Operation::OpBool32x4(bool x, bool y, bool z, bool w)
     {
         X86SIMDValue x86Result;
-        x86Result.m128i_value = _mm_set_epi32(w * -1, z * -1, y * -1, x * -1);
+        x86Result.m128i_value = _mm_set_epi32(w?-1:0, z?-1:0, y?-1:0, x?-1:0);
         return X86SIMDValue::ToSIMDValue(x86Result);
     }
 

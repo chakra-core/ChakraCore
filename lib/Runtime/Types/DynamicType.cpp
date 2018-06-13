@@ -497,7 +497,7 @@ namespace Js
         return GetTypeHandler()->SetAccessors(this, propertyId, getter, setter, flags);
     }
 
-    BOOL DynamicObject::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
+    _Success_(return) BOOL DynamicObject::GetAccessors(PropertyId propertyId, __out Var *getter, __out Var *setter, ScriptContext * requestContext)
     {
         return GetTypeHandler()->GetAccessors(this, propertyId, getter, setter);
     }
