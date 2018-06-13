@@ -621,7 +621,8 @@ void LegalizeMD::LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *
             indexOpnd = newIndexOpnd;
         }
 
-        Lowerer::HoistIndirIndexOpndAsAdd(insertInstr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
+        IR::Instr * instrAdd = Lowerer::HoistIndirIndexOpndAsAdd(insertInstr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc? SCRATCH_REG : RegNOREG);
+        LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
     }
 
     if (IS_CONST_UINT10((offset < 0? -offset: offset)))
