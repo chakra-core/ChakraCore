@@ -55,16 +55,14 @@ void ExceptionCheck::SetHandledExceptionType(ExceptionType e)
 {
     Assert((e & ExceptionType_DisableCheck) == 0 || e == ExceptionType_DisableCheck);
     Assert(IsEmpty());
-#if DBG
-    if(!(e == ExceptionType_None ||
-         e == ExceptionType_DisableCheck ||
-         !JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext() ||
-         (e & ExceptionType_JavascriptException) == ExceptionType_JavascriptException ||
-         e == ExceptionType_HasStackProbe))
-    {
-        Assert(false);
-    }
-#endif
+
+    // If script is active, we don't want any scope to try to handle OOM on its own, just let script handle it.
+    Assert(e == ExceptionType_None ||
+        e == ExceptionType_DisableCheck ||
+        !JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext() ||
+        (e & ExceptionType_JavascriptException) == ExceptionType_JavascriptException ||
+        e == ExceptionType_HasStackProbe);
+
     data.handledExceptionType = e;
 }
 
