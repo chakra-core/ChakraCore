@@ -274,8 +274,13 @@ namespace Js
         this->Setter = (descriptor.Setter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Setter;
         this->IsAccessor = descriptor.IsAccessor;
 
+        // Not strictly required, PreventFalseReference must always be 1
+        this->PreventFalseReference = descriptor.PreventFalseReference;
+        this->IsShadowed = descriptor.IsShadowed;
+
 #if ENABLE_FIXED_FIELDS
         this->IsInitialized = descriptor.IsInitialized;
+        this->IsOnlyOneAccessorInitialized = descriptor.IsOnlyOneAccessorInitialized;
         this->IsFixed = descriptor.IsFixed;
         this->UsedAsFixed = descriptor.UsedAsFixed;
 #endif
