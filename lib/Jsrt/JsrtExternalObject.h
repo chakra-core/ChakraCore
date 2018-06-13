@@ -27,14 +27,16 @@
 class JsrtExternalType sealed : public Js::DynamicType
 {
 public:
-    JsrtExternalType(JsrtExternalType *type) : Js::DynamicType(type), jsFinalizeCallback(type->jsFinalizeCallback) {}
-    JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeCallback finalizeCallback);
+    JsrtExternalType(JsrtExternalType *type) : Js::DynamicType(type), jsTraceCallback(type->jsTraceCallback), jsFinalizeCallback(type->jsFinalizeCallback) {}
+    JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback);
 
     //Js::PropertyId GetNameId() const { return ((Js::PropertyRecord *)typeDescription.className)->GetPropertyId(); }
+    JsTraceCallback GetJsTraceCallback() const { return this->jsTraceCallback; }
     JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
 
 private:
-    FieldNoBarrier(JsFinalizeCallback) jsFinalizeCallback;
+    FieldNoBarrier(JsTraceCallback const) jsTraceCallback;
+    FieldNoBarrier(JsFinalizeCallback const) jsFinalizeCallback;
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalType, &Js::Type::DumpObjectFunction);
 
@@ -50,10 +52,11 @@ public:
     static bool Is(Js::Var value);
     static JsrtExternalObject * FromVar(Js::Var value);
     static JsrtExternalObject * UnsafeFromVar(Js::Var value);
-    static JsrtExternalObject * Create(void *data, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext);
+    static JsrtExternalObject * Create(void *data, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 
+    void Mark(Recycler * recycler) override;
     void Finalize(bool isShutdown) override;
     void Dispose(bool isShutdown) override;
 

@@ -123,6 +123,7 @@
     JsCopyStringOneByte
     JsGetDataViewInfo
     JsCreateExternalObjectWithPrototype
+    JsCreateTracedExternalObjectWithPrototype
     JsObjectGetProperty
     JsObjectHasProperty
     JsObjectSetProperty
@@ -130,4 +131,6 @@
     JsObjectHasOwnProperty
     JsObjectGetOwnPropertyDescriptor
     JsObjectDefineProperty
+    JsSetRuntimeBeforeSweepCallback
+    JsTraceExternalReference
 #endif

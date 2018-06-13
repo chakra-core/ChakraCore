@@ -1200,6 +1200,7 @@ public:
 #endif
 
     // FindRoots
+    void TryExternalMarkNonInterior(void * candidate);
     void TryMarkNonInterior(void* candidate, void* parentReference = nullptr);
     void TryMarkInterior(void *candidate, void* parentReference = nullptr);
 

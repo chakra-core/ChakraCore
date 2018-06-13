@@ -185,7 +185,8 @@ enum RecyclerCollectCallBackFlags
     Collect_Begin_Partial            = 0x21,
     Collect_Begin_Concurrent_Partial = Collect_Begin_Concurrent | Collect_Begin_Partial,
     Collect_End                      = 0x02,
-    Collect_Wait                     = 0x04     // callback can be from another thread
+    Collect_Wait                     = 0x04,     // callback can be from another thread
+    Collect_Begin_Sweep              = 0x08
 };
 typedef void (__cdecl *RecyclerCollectCallBackFunction)(void * context, RecyclerCollectCallBackFlags flags);
 

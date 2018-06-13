@@ -458,7 +458,16 @@ namespace Js
         Field(void *) nativeHostPromiseContinuationFunctionState;
 
         typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
-        typedef JsUtil::WeakReferenceDictionary<uintptr_t, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
+        struct JsrtExternalCallbacks
+        {
+            JsrtExternalCallbacks() : traceCallback(0), finalizeCallback(0) {}
+            JsrtExternalCallbacks(uintptr_t traceCallback, uintptr_t finalizeCallback) : traceCallback(traceCallback), finalizeCallback(finalizeCallback) {}
+            uintptr_t traceCallback;
+            uintptr_t finalizeCallback;
+
+            operator hash_t() const { return (hash_t)(traceCallback ^ finalizeCallback); }
+        };
+        typedef JsUtil::WeakReferenceDictionary<JsrtExternalCallbacks, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
 
         Field(void *) bindRefChunkBegin;
         Field(Field(void*)*) bindRefChunkCurrent;
@@ -902,8 +911,8 @@ namespace Js
         JavascriptExternalFunction* CreateIdMappedExternalFunction(MethodType entryPoint, DynamicType *pPrototypeType);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, RecyclableObject * prototype);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors);
-        DynamicType* GetCachedJsrtExternalType(uintptr_t finalizeCallback);
-        void CacheJsrtExternalType(uintptr_t finalizeCallback, DynamicType* dynamicType);
+        DynamicType* GetCachedJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback);
+        void CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, DynamicType* dynamicType);
         static DynamicTypeHandler * GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext);
         DynamicType * CreateDeferredPrototypeGeneratorFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared = false);

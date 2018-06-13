@@ -223,7 +223,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
         prototypeObject = Js::RecyclableObject::FromVar(prototype);
     }
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, prototypeObject, ctx);
+    *object = JsrtExternalObject::Create(nullptr, nullptr, nullptr, prototypeObject, ctx);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1303,7 +1303,8 @@ CHAKRA_API JsCreateObject(_Out_ JsValueRef *object)
     });
 }
 
-CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
+CHAKRA_API JsCreateTracedExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object)
@@ -1320,12 +1321,20 @@ CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
             prototypeObject = Js::RecyclableObject::FromVar(prototype);
         }
 
-        *object = JsrtExternalObject::Create(data, finalizeCallback, prototypeObject, scriptContext);
+        *object = JsrtExternalObject::Create(data, traceCallback, finalizeCallback, prototypeObject, scriptContext);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
         return JsNoError;
     });
+}
+
+CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object)
+{
+    return JsCreateTracedExternalObjectWithPrototype(data, nullptr, finalizeCallback, prototype, object);
 }
 
 CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallback finalizeCallback, _Out_ JsValueRef *object)
@@ -2663,6 +2672,10 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
+        if (Js::JavascriptProxy::Is(object))
+        {
+            object = Js::JavascriptProxy::FromVar(object)->GetTarget();
+        }
         *value = JsrtExternalObject::Is(object);
     }
     END_JSRT_NO_EXCEPTION
@@ -2675,6 +2688,10 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
+        if (Js::JavascriptProxy::Is(object))
+        {
+            object = Js::JavascriptProxy::FromVar(object)->GetTarget();
+        }
         if (JsrtExternalObject::Is(object))
         {
             *data = JsrtExternalObject::FromVar(object)->GetSlotData();
@@ -2694,6 +2711,10 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
+        if (Js::JavascriptProxy::Is(object))
+        {
+            object = Js::JavascriptProxy::FromVar(object)->GetTarget();
+        }
         if (JsrtExternalObject::Is(object))
         {
             JsrtExternalObject::FromVar(object)->SetSlotData(data);
@@ -5748,6 +5769,27 @@ CHAKRA_API JsRunScriptWithParserState(
         dummy, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
         buffer, parserState, sourceContext, url, false, true, result, sourceIndex);
+}
+
+CHAKRA_API JsSetRuntimeBeforeSweepCallback(_In_ JsRuntimeHandle runtime, _In_opt_ void *callbackState, _In_ JsBeforeSweepCallback beforeSweepCallback)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtime);
+
+        JsrtRuntime::FromHandle(runtime)->SetBeforeSweepCallback(beforeSweepCallback, callbackState);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsTraceExternalReference(_In_ JsRuntimeHandle runtime, _In_ JsValueRef value)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtime);
+
+        Recycler * recycler = JsrtRuntime::FromHandle(runtime)->GetThreadContext()->GetRecycler();
+        recycler->TryExternalMarkNonInterior(value);
+        return JsNoError;
+    });
 }
 
 #endif // _CHAKRACOREBUILD

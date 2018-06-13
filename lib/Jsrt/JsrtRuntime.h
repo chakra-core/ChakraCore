@@ -38,6 +38,7 @@ public:
 
     void CloseContexts();
     void SetBeforeCollectCallback(JsBeforeCollectCallback beforeCollectCallback, void * callbackContext);
+    void SetBeforeSweepCallback(JsBeforeSweepCallback beforeCollectCallback, void * callbackContext);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     void SetSerializeByteCodeForLibrary(bool set) { serializeByteCodeForLibrary = set; }
@@ -65,8 +66,10 @@ private:
     JsrtContext * contextList;
     ThreadContext::CollectCallBack * collectCallback;
     JsBeforeCollectCallback beforeCollectCallback;
+    JsBeforeSweepCallback beforeSweepCallback;
     JsrtThreadService threadService;
-    void * callbackContext;
+    void * beforeCollectCallbackContext;
+    void * beforeSweepCallbackContext;
     bool useIdle;
     bool dispatchExceptions;
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

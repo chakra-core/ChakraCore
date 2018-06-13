@@ -4235,7 +4235,7 @@ namespace Js
         return function;
     }
 
-    DynamicType* JavascriptLibrary::GetCachedJsrtExternalType(uintptr_t finalizeCallback)
+    DynamicType* JavascriptLibrary::GetCachedJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback)
     {
         RecyclerWeakReference<DynamicType>* dynamicTypeWeakRef = nullptr;
         DynamicType* dynamicType = nullptr;
@@ -4245,16 +4245,16 @@ namespace Js
             // Register for periodic cleanup
             scriptContext->RegisterWeakReferenceDictionary(jsrtExternalTypesCache);
         }
-        if (jsrtExternalTypesCache->TryGetValue(finalizeCallback, &dynamicTypeWeakRef))
+        if (jsrtExternalTypesCache->TryGetValue(JsrtExternalCallbacks(traceCallback, finalizeCallback), &dynamicTypeWeakRef))
         {
             dynamicType = dynamicTypeWeakRef->Get();
         }
         return dynamicType;
     }
 
-    void JavascriptLibrary::CacheJsrtExternalType(uintptr_t finalizeCallback, DynamicType* dynamicTypeToCache)
+    void JavascriptLibrary::CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, DynamicType* dynamicTypeToCache)
     {
-        jsrtExternalTypesCache->Item(finalizeCallback, recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
+      jsrtExternalTypesCache->Item(JsrtExternalCallbacks(traceCallback, finalizeCallback), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
 
     void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)

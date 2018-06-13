@@ -692,6 +692,14 @@ typedef unsigned short uint16_t;
     typedef void (CHAKRA_CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
 
     /// <summary>
+    ///     A trace callback.
+    /// </summary>
+    /// <param name="data">
+    ///     The external data that was passed in when creating the object being traced.
+    /// </param>
+    typedef void (CHAKRA_CALLBACK *JsTraceCallback)(_In_opt_ void *data);
+
+    /// <summary>
     ///     A finalizer callback.
     /// </summary>
     /// <param name="data">

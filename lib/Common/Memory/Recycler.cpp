@@ -2103,6 +2103,13 @@ Recycler::CheckAllocExternalMark() const
 #endif
 
 void
+Recycler::TryExternalMarkNonInterior(void* candidate)
+{
+    Assert(!this->IsConcurrentExecutingState());
+    this->TryMarkNonInterior(candidate);
+}
+
+void
 Recycler::TryMarkNonInterior(void* candidate, void* parentReference)
 {
 #ifdef HEAP_ENUMERATION_VALIDATION

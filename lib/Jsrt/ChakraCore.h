@@ -1001,6 +1001,31 @@ CHAKRA_API
         _Out_ JsValueRef *object);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some external data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object);
+
+/// <summary>
 ///     Gets an object's property.
 /// </summary>
 /// <remarks>
@@ -1270,6 +1295,20 @@ CHAKRA_API
         _In_ JsParseScriptAttributes parseAttributes,
         _In_ JsValueRef parserState,
         _Out_ JsValueRef * result);
+
+typedef void (CHAKRA_CALLBACK *JsBeforeSweepCallback)(_In_opt_ void *callbackState);
+
+CHAKRA_API
+    JsSetRuntimeBeforeSweepCallback(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_opt_ void *callbackState,
+        _In_ JsBeforeSweepCallback beforeSweepCallback);
+
+CHAKRA_API
+    JsTraceExternalReference(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ JsValueRef value
+    );
 
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_
