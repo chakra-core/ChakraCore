@@ -2324,7 +2324,7 @@ namespace Js
 #ifdef PROFILE_TYPES
             scriptContext->convertPathToDictionaryExceededLengthCount++;
 #endif
-            return TryConvertToSimpleDictionaryType(instance, GetPathLength() + 1)->SetPropertyWithAttributes(instance, propertyId, value, PropertyDynamicTypeDefaults, info, PropertyOperation_None, possibleSideEffects);
+            return TryConvertToSimpleDictionaryType(instance, GetPathLength() + 1)->SetPropertyWithAttributes(instance, propertyId, value, ObjectSlotAttributesToPropertyAttributes(attr), info, PropertyOperation_None, possibleSideEffects);
         }
 
         PropertyIndex index;
