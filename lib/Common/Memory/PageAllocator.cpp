@@ -1948,10 +1948,13 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::DecommitNow(bool all)
     if (this->decommitStats != nullptr)
     {
         this->decommitStats->numDecommitCalls++;
-        Js::TickDelta delta = Js::Tick::Now() - this->decommitStats->lastLeaveDecommitRegion;
-        if (delta > this->decommitStats->maxDeltaBetweenDecommitRegionLeaveAndDecommit)
+        if (this->decommitStats->lastLeaveDecommitRegion.ToMicroseconds() > 0)
         {
-            this->decommitStats->maxDeltaBetweenDecommitRegionLeaveAndDecommit = delta;
+            Js::TickDelta delta = Js::Tick::Now() - this->decommitStats->lastLeaveDecommitRegion;
+            if (delta > this->decommitStats->maxDeltaBetweenDecommitRegionLeaveAndDecommit)
+            {
+                this->decommitStats->maxDeltaBetweenDecommitRegionLeaveAndDecommit = delta;
+            }
         }
     }
 #endif

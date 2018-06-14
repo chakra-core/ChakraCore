@@ -14,6 +14,15 @@ struct AllocatorDecommitStats
     int64 numDecommitCalls;
     int64 numPagesDecommitted;
     int64 numFreePageCount;
+
+    AllocatorDecommitStats() :
+        lastLeaveDecommitRegion(),
+        maxDeltaBetweenDecommitRegionLeaveAndDecommit(0),
+        numDecommitCalls(0),
+        numPagesDecommitted(0),
+        numFreePageCount(0)
+    {}
+
 };
 
 struct AllocatorSizes
