@@ -39,6 +39,11 @@
   </test>
   <test>
     <default>
+      <files>clampNumericQuantifier.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>rx1.js</files>
       <baseline>rx1.baseline</baseline>
     </default>
