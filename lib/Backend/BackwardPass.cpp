@@ -107,9 +107,7 @@ BackwardPass::DoMarkTempObjectVerify() const
 bool
 BackwardPass::DoDeadStore(Func* func)
 {
-    return
-        !PHASE_OFF(Js::DeadStorePhase, func) &&
-        (!func->HasTry() || func->DoOptimizeTry());
+    return !PHASE_OFF(Js::DeadStorePhase, func);
 }
 
 bool
@@ -124,8 +122,7 @@ bool
 BackwardPass::DoDeadStoreSlots() const
 {
     // only dead store fields if glob opt is on to generate the trackable fields bitvector
-    return (tag == Js::DeadStorePhase && this->func->DoGlobOpt()
-        && (!this->func->HasTry()));
+    return (tag == Js::DeadStorePhase && this->func->DoGlobOpt());
 }
 
 // Whether dead store is enabled for given func and sym.
