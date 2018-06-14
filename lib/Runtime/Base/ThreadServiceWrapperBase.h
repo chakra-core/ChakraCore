@@ -41,10 +41,29 @@ protected:
     virtual bool OnScheduleIdleCollect(uint delta, bool scheduleAsTask) = 0;
     virtual void OnFinishIdleCollect() = 0;
     virtual bool ShouldFinishConcurrentCollectOnIdleCallback() = 0;
+    virtual void AddRefThreadService() { /* do nothing */ };
+    virtual void ReleaseThreadService() { /* do nothing */ };
 
     ThreadContext *GetThreadContext() { return threadContext; }
 
 private:
+    class AutoAddRefReleaseThreadService
+    {
+    public:
+        AutoAddRefReleaseThreadService(ThreadServiceWrapperBase * threadService)
+        {
+            this->threadService = threadService;
+            threadService->AddRefThreadService();
+        }
+
+        ~AutoAddRefReleaseThreadService()
+        {
+            threadService->ReleaseThreadService();
+        }
+
+        ThreadServiceWrapperBase * threadService;
+    };
+
     static const unsigned int IdleTicks = 1000; // 1 second
     static const unsigned int IdleFinishTicks = 100; // 100 ms;
 
