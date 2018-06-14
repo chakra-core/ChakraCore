@@ -321,7 +321,7 @@ namespace Js
 
     void JavascriptWeakMap::Clear()
     {
-        keySet.Map([&](RecyclableObject* key, bool value, const RecyclerWeakReference<RecyclableObject>* weakRef) {
+        keySet.Map([&](RecyclableObject* key, bool value, WeakType weakRef) {
             WeakMapKeyMap* keyMap = GetWeakMapKeyMapFromKey(key);
 
             // It may be the case that a CEO has been reset and the keyMap is now null.

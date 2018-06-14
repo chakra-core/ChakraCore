@@ -47,40 +47,53 @@ namespace JsUtil
 
 #if ENABLE_WEAK_REFERENCE_REGIONS
 
-    template <class TKey>
-    class WeakRefRegionValueDictionaryEntry : public SimpleDictionaryKeyEntry<TKey>
-    {
-    public:
-        void Clear()
-        {
-            this->value = TKey();
-        }
-    };
-
-    // TODO: It would be good to adapt WeaklyReferencedKeyDictionary to also use WeakRefRegions
-    //       One possibility is to create a BaseSplitDictionary which has the collections of
-    //       buckets, entries, and RecyclerWeakReferenceRegionItems, and then the entries are
-    //       either value/next or key/next pairs, with the weak ref region storing the keys or
-    //       values in a weak manner. 
     template <
-        class TKey,
-        class TValue,
+        class TEntry,
+        class TWeak,
+        bool keyIsWeak,
         class SizePolicy = PowerOf2SizePolicy,
         template <typename ValueOrKey> class Comparer = DefaultComparer,
         typename Lock = NoResizeLock,
         class AllocType = Recycler // Should always be recycler; this is to sufficiently confuse the RecyclerChecker
     >
-    class WeakReferenceRegionDictionary : protected Lock, public IWeakReferenceDictionary
+    class SplitWeakDictionary : protected Lock, public IWeakReferenceDictionary
     {
-        typedef WeakRefRegionValueDictionaryEntry<TKey> EntryType;
-        typedef RecyclerWeakReferenceRegionItem<TValue> ValueType;
-
-        typedef typename AllocatorInfo<Recycler, TValue>::AllocatorFunc EntryAllocatorFuncType;
-
     private:
+        template <typename T1, typename T2, bool second>
+        struct Select;
+        
+        template <typename T1, typename T2>
+        struct Select<T1, T2, false>
+        {
+            typedef T1 type;
+        };
+
+        template <typename T1, typename T2>
+        struct Select<T1, T2, true>
+        {
+            typedef T2 type;
+        };
+
+        typedef typename Select<TEntry, TWeak, keyIsWeak>::type TBKey;
+        typedef typename Select<TEntry, TWeak, !keyIsWeak>::type TBValue;
+
+        typedef typename AllocatorInfo<Recycler, TEntry>::AllocatorFunc EntryAllocatorFuncType;
+
+        enum InsertOperations
+        {
+            Insert_Add,          // FatalInternalError if the item already exist in debug build
+            Insert_AddNew,          // Ignore add if the item already exist
+            Insert_Item             // Replace the item if it already exist
+        };
+
+    protected:
+
+        typedef ValueEntry<TEntry> EntryType;
+        typedef RecyclerWeakReferenceRegionItem<TWeak> WeakType;
+
         Field(int*) buckets;
         Field(EntryType*) entries;
-        Field(ValueType*) values;
+        Field(WeakType*) weakRefs;
         FieldNoBarrier(Recycler*) alloc;
         Field(int) size;
         Field(uint) bucketCount;
@@ -89,16 +102,11 @@ namespace JsUtil
         Field(int) freeCount;
         Field(int) modFunctionIndex;
 
+    private:
         static const int FreeListSentinel = -2;
 
-        PREVENT_COPY(WeakReferenceRegionDictionary);
+        PREVENT_COPY(SplitWeakDictionary);
 
-        enum InsertOperations
-        {
-            Insert_Add,          // FatalInternalError if the item already exist in debug build
-            Insert_AddNew,          // Ignore add if the item already exist
-            Insert_Item             // Replace the item if it already exist
-        };
 
         class AutoDoResize
         {
@@ -110,19 +118,13 @@ namespace JsUtil
         };
 
     public:
+        // Allow SplitWeakDictionary field to be inlined in classes with DEFINE_VTABLE_CTOR_MEMBER_INIT
+        SplitWeakDictionary(VirtualTableInfoCtorEnum) { }
 
-        virtual void Cleanup() override
-        {
-            this->MapAndRemoveIf([](EntryType& entry, ValueType& value)
-            {
-                return value == nullptr;
-            });
-        }
-
-        WeakReferenceRegionDictionary(Recycler* allocator, int capacity = 0)
+        SplitWeakDictionary(Recycler* allocator, int capacity = 0)
             : buckets(nullptr),
             entries(nullptr),
-            values(nullptr),
+            weakRefs(nullptr),
             alloc(allocator),
             size(0),
             bucketCount(0),
@@ -131,8 +133,8 @@ namespace JsUtil
             freeCount(0),
             modFunctionIndex(UNKNOWN_MOD_INDEX)
         {
-            Assert(reinterpret_cast<void*>(this) == reinterpret_cast<void*>((IWeakReferenceDictionary*)this));
             Assert(allocator);
+            Assert(reinterpret_cast<void*>(this) == reinterpret_cast<void*>((IWeakReferenceDictionary*)this));
 
             // If initial capacity is negative or 0, lazy initialization on
             // the first insert operation is performed.
@@ -140,6 +142,14 @@ namespace JsUtil
             {
                 Initialize(capacity);
             }
+        }
+
+        virtual void Cleanup() override
+        {
+            this->MapAndRemoveIf([](EntryType& entry, WeakType& weakRef)
+            {
+                return weakRef == nullptr;
+            });
         }
 
         inline int Capacity() const
@@ -152,68 +162,13 @@ namespace JsUtil
             return count - freeCount;
         }
 
-        TValue Item(const TKey& key)
-        {
-            int i = FindEntry(key);
-            Assert(i >= 0);
-            return values[i];
-        }
-
-        const TValue Item(const TKey& key) const
-        {
-            int i = FindEntry(key);
-            Assert(i >= 0);
-            return values[i];
-        }
-
-        int Add(const TKey& key, const TValue& value)
-        {
-            return Insert<Insert_Add>(key, value);
-        }
-
-        int AddNew(const TKey& key, const TValue& value)
-        {
-            return Insert<Insert_AddNew>(key, value);
-        }
-
-        int Item(const TKey& key, const TValue& value)
-        {
-            return Insert<Insert_Item>(key, value);
-        }
-
-        bool Contains(KeyValuePair<TKey, TValue> keyValuePair)
-        {
-            int i = FindEntry(keyValuePair.Key());
-            if (i >= 0 && Comparer<TValue>::Equals(values[i], keyValuePair.Value()))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        bool Remove(KeyValuePair<TKey, TValue> keyValuePair)
-        {
-            int i, last;
-            uint targetBucket;
-            if (FindEntryWithKey(keyValuePair.Key(), &i, &last, &targetBucket))
-            {
-                const TValue &value = values[i];
-                if (Comparer<TValue>::Equals(value, keyValuePair.Value()))
-                {
-                    RemoveAt(i, last, targetBucket);
-                    return true;
-                }
-            }
-            return false;
-        }
-
         void Clear()
         {
             if (count > 0)
             {
                 memset(buckets, -1, bucketCount * sizeof(buckets[0]));
                 memset(entries, 0, sizeof(EntryType) * size);
-                memset(values, 0, sizeof(ValueType) * size); // TODO: issues with background threads?
+                memset(weakRefs, 0, sizeof(WeakType) * size); // TODO: issues with background threads?
                 count = 0;
                 freeCount = 0;
             }
@@ -225,7 +180,7 @@ namespace JsUtil
             this->bucketCount = 0;
             this->buckets = nullptr;
             this->entries = nullptr;
-            this->values = nullptr;
+            this->weakRefs = nullptr;
             this->count = 0;
             this->freeCount = 0;
             this->modFunctionIndex = UNKNOWN_MOD_INDEX;
@@ -234,91 +189,6 @@ namespace JsUtil
         void Reset()
         {
             ResetNoDelete();
-        }
-
-        bool ContainsKey(const TKey& key) const
-        {
-            return FindEntry(key) >= 0;
-        }
-
-        template <typename TLookup>
-        inline const TValue& LookupWithKey(const TLookup& key, const TValue& defaultValue) const
-        {
-            int i = FindEntryWithKey(key);
-            if (i >= 0)
-            {
-                return values[i];
-            }
-            return defaultValue;
-        }
-
-        inline const TValue& Lookup(const TKey& key, const TValue& defaultValue) const
-        {
-            return LookupWithKey<TKey>(key, defaultValue);
-        }
-
-        template <typename TLookup>
-        bool TryGetValue(const TLookup& key, TValue* value) const
-        {
-            int i = FindEntryWithKey(key);
-            if (i >= 0)
-            {
-                *value = values[i];
-                return true;
-            }
-            return false;
-        }
-
-
-        bool TryGetValueAndRemove(const TKey& key, TValue* value)
-        {
-            int i, last;
-            uint targetBucket;
-            if (FindEntryWithKey(key, &i, &last, &targetBucket))
-            {
-                *value = values[i];
-                RemoveAt(i, last, targetBucket);
-                return true;
-            }
-            return false;
-        }
-
-        const TValue& GetValueAt(const int index) const
-        {
-            Assert(index >= 0);
-            Assert(index < count);
-
-            return values[index];
-        }
-
-        TKey const& GetKeyAt(const int index) const
-        {
-            Assert(index >= 0);
-            Assert(index < count);
-
-            return entries[index].Key();
-        }
-
-        bool TryGetValueAt(int index, TValue * value) const
-        {
-            if (index >= 0 && index < count)
-            {
-                *value = values[index];
-                return true;
-            }
-            return false;
-        }
-
-        bool Remove(const TKey& key)
-        {
-            int i, last;
-            uint targetBucket;
-            if (FindEntryWithKey(key, &i, &last, &targetBucket))
-            {
-                RemoveAt(i, last, targetBucket);
-                return true;
-            }
-            return false;
         }
 
         // Returns whether the dictionary was resized or not
@@ -346,6 +216,121 @@ namespace JsUtil
             return count;
         }
 
+        TBValue Item(const TBKey& key)
+        {
+            int i = FindEntry(key);
+            Assert(i >= 0);
+            return values[i];
+        }
+
+        const TBValue Item(const TBKey& key) const
+        {
+            int i = FindEntry(key);
+            Assert(i >= 0);
+            return values[i];
+        }
+
+        int Add(const TBKey& key, const TBValue& value)
+        {
+            return Insert<Insert_Add>(key, value);
+        }
+
+        int AddNew(const TBKey& key, const TBValue& value)
+        {
+            return Insert<Insert_AddNew>(key, value);
+        }
+
+        int Item(const TBKey& key, const TBValue& value)
+        {
+            return Insert<Insert_Item>(key, value);
+        }
+
+        bool Contains(KeyValuePair<TBKey, TBValue> keyValuePair)
+        {
+            int i = FindEntry(keyValuePair.Key());
+            TBValue val = this->GetValue<keyIsWeak>(i);
+            if (i >= 0 && Comparer<TBValue>::Equals(val, keyValuePair.Value()))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        bool ContainsKey(const TBKey& key) const
+        {
+            return FindEntry(key) >= 0;
+        }
+
+        template <typename TLookup>
+        inline const TBValue& LookupWithKey(const TLookup& key, const TBValue& defaultValue) 
+        {
+            int i = FindEntryWithKey(key);
+            if (i >= 0)
+            {
+                return this->GetValue<keyIsWeak>(i);
+            }
+            return defaultValue;
+        }
+
+        inline const TBValue& Lookup(const TBKey& key, const TBValue& defaultValue) 
+        {
+            return LookupWithKey<TBKey>(key, defaultValue);
+        }
+
+        template <typename TLookup>
+        bool TryGetValue(const TLookup& key, TBValue* value) 
+        {
+            int i = FindEntryWithKey(key);
+            if (i >= 0)
+            {
+                *value = this->GetValue<keyIsWeak>(i);
+                return true;
+            }
+            return false;
+        }
+
+
+        bool TryGetValueAndRemove(const TBKey& key, TBValue* value)
+        {
+            int i, last;
+            uint targetBucket;
+            if (FindEntryWithKey(key, &i, &last, &targetBucket))
+            {
+                *value = this->GetValue<keyIsWeak>(i);
+                RemoveAt(i, last, targetBucket);
+                return true;
+            }
+            return false;
+        }
+
+        bool Remove(const TBKey& key)
+        {
+            int i, last;
+            uint targetBucket;
+            if (FindEntryWithKey(key, &i, &last, &targetBucket))
+            {
+                RemoveAt(i, last, targetBucket);
+                return true;
+            }
+            return false;
+        }
+
+        bool Remove(KeyValuePair<TBKey, TBValue> keyValuePair)
+        {
+            int i, last;
+            uint targetBucket;
+            if (FindEntryWithKey(keyValuePair.Key(), &i, &last, &targetBucket))
+            {
+                const TBValue& value = this->GetValue<keyIsWeak>(i);
+                if (Comparer<TBValue>::Equals(value, keyValuePair.Value()))
+                {
+                    RemoveAt(i, last, targetBucket);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         int GetLastIndex()
         {
             return count - 1;
@@ -361,7 +346,33 @@ namespace JsUtil
             __super::UnlockResize();
         }
 
-    private:
+    protected:
+
+        template<class Fn>
+        void MapAndRemoveIf(Fn fn)
+        {
+            for (uint i = 0; i < bucketCount; i++)
+            {
+                if (buckets[i] != -1)
+                {
+                    for (int currentIndex = buckets[i], lastIndex = -1; currentIndex != -1;)
+                    {
+                        // If the predicate says we should remove this item
+                        if (fn(entries[currentIndex], weakRefs[currentIndex]) == true)
+                        {
+                            const int nextIndex = entries[currentIndex].next;
+                            RemoveAt(currentIndex, lastIndex, i);
+                            currentIndex = nextIndex;
+                        }
+                        else
+                        {
+                            lastIndex = currentIndex;
+                            currentIndex = entries[currentIndex].next;
+                        }
+                    }
+                }
+            }
+        }
 
         template <typename TLookup>
         static hash_t GetHashCodeWithKey(const TLookup& key)
@@ -369,11 +380,6 @@ namespace JsUtil
             // set last bit to 1 to avoid false positive to make hash appears to be a valid recycler address.
             // In the same line, 0 should be use to indicate a non-existing entry.
             return TAGHASH(Comparer<TLookup>::GetHashCode(key));
-        }
-
-        static hash_t GetHashCode(const TKey& key)
-        {
-            return GetHashCodeWithKey<TKey>(key);
         }
 
         static uint GetBucket(hash_t hashCode, int bucketCount, int modFunctionIndex)
@@ -411,8 +417,53 @@ namespace JsUtil
             return FreeListSentinel - freeEntry.next;
         }
 
+        void Initialize(int capacity)
+        {
+            // minimum capacity is 4
+            int initSize = max(capacity, 4);
+            int modIndex = UNKNOWN_MOD_INDEX;
+            uint initBucketCount = SizePolicy::GetBucketSize(initSize, &modIndex);
+            AssertMsg(initBucketCount > 0, "Size returned by policy should be greater than 0");
+
+            int* newBuckets = nullptr;
+            EntryType* newEntries = nullptr;
+            WeakType* newWeakRefs = nullptr;
+            Allocate(&newBuckets, &newEntries, &newWeakRefs, initBucketCount, initSize);
+
+            // Allocation can throw - assign only after allocation has succeeded.
+            this->buckets = newBuckets;
+            this->entries = newEntries;
+            this->weakRefs = newWeakRefs;
+            this->bucketCount = initBucketCount;
+            this->size = initSize;
+            this->modFunctionIndex = modIndex;
+            Assert(this->freeCount == 0);
+        }
+
+        inline void RemoveAt(const int i, const int last, const uint targetBucket)
+        {
+            if (last < 0)
+            {
+                buckets[targetBucket] = entries[i].next;
+            }
+            else
+            {
+                entries[last].next = entries[i].next;
+            }
+            entries[i].Clear();
+            weakRefs[i].Clear();
+            SetNextFreeEntryIndex(entries[i], freeCount == 0 ? -1 : freeList);
+            freeList = i;
+            freeCount++;
+        }
+
+        inline int FindEntry(const TBKey& key)
+        {
+            return FindEntryWithKey<TBKey>(key);
+        }
+
         template <typename LookupType>
-        inline int FindEntryWithKey(const LookupType& key) const
+        inline int FindEntryWithKey(const LookupType& key)
         {
             int * localBuckets = buckets;
             if (localBuckets != nullptr)
@@ -420,22 +471,23 @@ namespace JsUtil
                 hash_t hashCode = GetHashCodeWithKey<LookupType>(key);
                 uint targetBucket = this->GetBucket(hashCode);
                 EntryType * localEntries = entries;
-                for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
+                for (int i = localBuckets[targetBucket], last = -1; i >= 0;)
                 {
-                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
+                    TBKey k = this->GetKey<keyIsWeak>(i);
+                    if (this->RemoveIfCollected<keyIsWeak>(k, &i, last, targetBucket))
+                    {
+                        continue;
+                    }
+                    if (Comparer<TBKey>::Equals(k, key))
                     {
                         return i;
                     }
 
+                    last = i;
+                    i = localEntries[i].next;
                 }
             }
-
             return -1;
-        }
-
-        inline int FindEntry(const TKey& key) const
-        {
-            return FindEntryWithKey<TKey>(key);
         }
 
         template <typename LookupType>
@@ -448,70 +500,108 @@ namespace JsUtil
                 *targetBucket = this->GetBucket(hashCode);
                 *last = -1;
                 EntryType * localEntries = entries;
-                for (*i = localBuckets[*targetBucket]; *i >= 0; *last = *i, *i = localEntries[*i].next)
+                for (*i = localBuckets[*targetBucket]; *i >= 0;)
                 {
-                    if (localEntries[*i].template KeyEquals<Comparer<TKey>>(key, hashCode))
+                    TBKey k = this->GetKey<keyIsWeak>(*i);
+                    if (this->RemoveIfCollected<keyIsWeak>(k, i, *last, *targetBucket))
+                    {
+                        continue;
+                    }
+                    if (Comparer<TBKey>::Equals(k, key))
                     {
                         return true;
                     }
+
+                    *last = *i;
+                    *i = localEntries[*i].next;
                 }
             }
             return false;
         }
 
-        template<class Fn>
-        void MapAndRemoveIf(Fn fn)
-        {
-            for (uint i = 0; i < bucketCount; i++)
-            {
-                if (buckets[i] != -1)
-                {
-                    for (int currentIndex = buckets[i], lastIndex = -1; currentIndex != -1;)
-                    {
-                        // If the predicate says we should remove this item
-                        if (fn(entries[currentIndex], values[currentIndex]) == true)
-                        {
-                            const int nextIndex = entries[currentIndex].next;
-                            RemoveAt(currentIndex, lastIndex, i);
-                            currentIndex = nextIndex;
-                        }
-                        else
-                        {
-                            lastIndex = currentIndex;
-                            currentIndex = entries[currentIndex].next;
-                        }
-                    }
-                }
-            }
-        }
+    private:
 
-        void Initialize(int capacity)
+        void Resize()
         {
-            // minimum capacity is 4
-            int initSize = max(capacity, 4);
+            AutoDoResize autoDoResize(*this);
+            __analysis_assert(count > 1);
+
+            int newSize = SizePolicy::GetNextSize(count);
             int modIndex = UNKNOWN_MOD_INDEX;
-            uint initBucketCount = SizePolicy::GetBucketSize(initSize, &modIndex);
-            AssertMsg(initBucketCount > 0, "Size returned by policy should be greater than 0");
+            uint newBucketCount = SizePolicy::GetBucketSize(newSize, &modIndex);
 
+            __analysis_assume(newSize > count);
             int* newBuckets = nullptr;
             EntryType* newEntries = nullptr;
-            ValueType* newValues = nullptr;
-            Allocate(&newBuckets, &newEntries, &newValues, initBucketCount, initSize);
+            WeakType* newWeakRefs = nullptr;
+            if (newBucketCount == bucketCount)
+            {
+                // no need to rehash
+                newEntries = AllocateEntries(newSize);
+                newWeakRefs = AllocateWeakRefs(newSize);
+                CopyArray<EntryType>(newEntries, newSize, entries, count);
+                CopyArray<WeakType>(newWeakRefs, newSize, weakRefs, count); // TODO: concurrency issues?
 
-            // Allocation can throw - assign only after allocation has succeeded.
+                this->entries = newEntries;
+                this->weakRefs = newWeakRefs;
+                this->size = newSize;
+                this->modFunctionIndex = modIndex;
+                return;
+            }
+
+            Allocate(&newBuckets, &newEntries, &newWeakRefs, newBucketCount, newSize);
+
+            this->modFunctionIndex = modIndex;
+
+            // Need to re-bucket the entries
+            // Also need to account for whether the weak refs have been collected
+            // Have to go in order so we can remove entries as appropriate
+            this->count = 0;
+            for (uint i = 0; i < this->bucketCount; ++i)
+            {
+                if (this->buckets[i] < 0)
+                {
+                    continue;
+                }
+
+                for (int currentEntry = this->buckets[i]; currentEntry != -1; )
+                {
+                    if (IsFreeEntry(entries[currentEntry]))
+                    {
+                        // Entry is free; this shouldn't happen, but stop following the chain
+                        AssertMsg(false, "Following bucket chains should not result in free entries");
+                        break;
+                    }
+                    if (this->weakRefs[currentEntry] == nullptr)
+                    {
+                        // The weak ref has been collected; don't bother bringing it to the new collection
+                        currentEntry = this->entries[currentEntry].next;
+                        continue;
+                    }
+
+                    hash_t hashCode = GetHashCodeWithKey<TBKey>(this->GetKey<keyIsWeak>(currentEntry));
+                    int bucket = GetBucket(hashCode, newBucketCount, modFunctionIndex);
+                    newEntries[count].next = newBuckets[bucket];
+                    newEntries[count].SetValue(this->entries[currentEntry].Value());
+                    newWeakRefs[count] = this->weakRefs[currentEntry];
+                    newBuckets[bucket] = count;
+                    ++count;
+
+                    currentEntry = this->entries[currentEntry].next;
+                }
+            }
+            this->freeCount = 0;
+            this->freeList = 0;
             this->buckets = newBuckets;
             this->entries = newEntries;
-            this->values = newValues;
-            this->bucketCount = initBucketCount;
-            this->size = initSize;
-            this->modFunctionIndex = modIndex;
-            Assert(this->freeCount == 0);
+            this->weakRefs = newWeakRefs;
+            this->bucketCount = newBucketCount;
+            this->size = newSize;
 
         }
 
-
         template <InsertOperations op>
-        int Insert(const TKey& key, const TValue& value)
+        int Insert(const TBKey& key, const TBValue& value)
         {
             int * localBuckets = buckets;
             if (localBuckets == nullptr)
@@ -526,23 +616,32 @@ namespace JsUtil
 #else
             const bool needSearch = (op != Insert_Add);
 #endif
-            hash_t hashCode = GetHashCode(key);
+            hash_t hashCode = GetHashCodeWithKey<TBKey>(key);
             uint targetBucket = this->GetBucket(hashCode);
             if (needSearch)
             {
                 EntryType * localEntries = entries;
-                for (int i = localBuckets[targetBucket]; i >= 0; i = localEntries[i].next)
+                for (int i = localBuckets[targetBucket], last = -1; i >= 0;)
                 {
-                    if (localEntries[i].template KeyEquals<Comparer<TKey>>(key, hashCode))
+                    TBKey k = this->GetKey<keyIsWeak>(i);
+                    if (this->RemoveIfCollected<keyIsWeak>(k, &i, last, targetBucket))
+                    {
+                        continue;
+                    }
+
+                    if (Comparer<TBKey>::Equals(k, key))
                     {
                         Assert(op != Insert_Add);
                         if (op == Insert_Item)
                         {
-                            values[i] = value;
+                            SetValue<keyIsWeak>(value, i);
                             return i;
                         }
                         return -1;
                     }
+
+                    last = i;
+                    i = localEntries[i].next;
                 }
             }
 
@@ -591,67 +690,11 @@ namespace JsUtil
                 Assert(index < size);
             }
 
-            entries[index].Set(key, hashCode);
-            values[index] = value;
+            SetKeyValue<keyIsWeak>(key, value, index);
             entries[index].next = buckets[targetBucket];
             buckets[targetBucket] = index;
 
             return index;
-        }
-
-        void Resize()
-        {
-            AutoDoResize autoDoResize(*this);
-
-            int newSize = SizePolicy::GetNextSize(count);
-            int modIndex = UNKNOWN_MOD_INDEX;
-            uint newBucketCount = SizePolicy::GetBucketSize(newSize, &modIndex);
-
-            __analysis_assume(newSize > count);
-            int* newBuckets = nullptr;
-            EntryType* newEntries = nullptr;
-            ValueType* newValues = nullptr;
-            if (newBucketCount == bucketCount)
-            {
-                // no need to rehash
-                newEntries = AllocateEntries(newSize);
-                newValues = AllocateValues(newSize);
-                CopyArray<EntryType>(newEntries, newSize, entries, count);
-                CopyArray<ValueType>(newValues, newSize, values, count); // TODO: concurrency issues?
-
-                this->entries = newEntries;
-                this->values = newValues;
-                this->size = newSize;
-                this->modFunctionIndex = modIndex;
-                return;
-            }
-
-            Allocate(&newBuckets, &newEntries, &newValues, newBucketCount, newSize);
-            CopyArray<EntryType>(newEntries, newSize, entries, count);
-            CopyArray<ValueType>(newValues, newSize, values, count); // TODO: concurrency issues?
-
-            // When TAllocator is of type Recycler, it is possible that the Allocate above causes a collection, which
-            // in turn can cause entries in the dictionary to be removed - i.e. the dictionary contains weak references
-            // that remove themselves when no longer valid. This means the free list might not be empty anymore.
-            this->modFunctionIndex = modIndex;
-            for (int i = 0; i < count; i++)
-            {
-                __analysis_assume(i < newSize);
-
-                if (!IsFreeEntry(newEntries[i]))
-                {
-                    hash_t hashCode = newEntries[i].template GetHashCode<Comparer<TKey>>();
-                    int bucket = GetBucket(hashCode, newBucketCount, modFunctionIndex);
-                    newEntries[i].next = newBuckets[bucket];
-                    newBuckets[bucket] = i;
-                }
-            }
-
-            this->buckets = newBuckets;
-            this->entries = newEntries;
-            this->values = newValues;
-            bucketCount = newBucketCount;
-            size = newSize;
         }
 
         __ecount(bucketCount) int *AllocateBuckets(DECLSPEC_GUARD_OVERFLOW const uint bucketCount)
@@ -675,45 +718,178 @@ namespace JsUtil
                     size);
         }
 
-        __ecount(size) ValueType * AllocateValues(DECLSPEC_GUARD_OVERFLOW int size)
+        __ecount(size) WeakType * AllocateWeakRefs(DECLSPEC_GUARD_OVERFLOW int size)
         {
-            return alloc->CreateWeakReferenceRegion<TValue>(size);
+            return alloc->CreateWeakReferenceRegion<TWeak>(size);
         }
 
 
-        void Allocate(__deref_out_ecount(bucketCount) int** ppBuckets, __deref_out_ecount(size) EntryType** ppEntries, __deref_out_ecount(size) ValueType** ppValues, DECLSPEC_GUARD_OVERFLOW uint bucketCount, DECLSPEC_GUARD_OVERFLOW int size)
+        void Allocate(__deref_out_ecount(bucketCount) int** ppBuckets, __deref_out_ecount(size) EntryType** ppEntries, __deref_out_ecount(size) WeakType** ppWeakRefs, DECLSPEC_GUARD_OVERFLOW uint bucketCount, DECLSPEC_GUARD_OVERFLOW int size)
         {
-            int *const buckets = AllocateBuckets(bucketCount);
-            Assert(buckets); // no-throw allocators are currently not supported
+            int *const newBuckets = AllocateBuckets(bucketCount);
+            Assert(newBuckets); // no-throw allocators are currently not supported
 
-            EntryType *entries;
-            entries = AllocateEntries(size);
-            Assert(entries); // no-throw allocators are currently not supported
+            EntryType *newEntries = AllocateEntries(size);
+            Assert(newEntries); // no-throw allocators are currently not supported
 
-            ValueType * values = AllocateValues(size);
+            WeakType * newWeakRefs = AllocateWeakRefs(size);
 
-            memset(buckets, -1, bucketCount * sizeof(buckets[0]));
+            memset(newBuckets, -1, bucketCount * sizeof(newBuckets[0]));
 
-            *ppBuckets = buckets;
-            *ppEntries = entries;
-            *ppValues = values;
+            *ppBuckets = newBuckets;
+            *ppEntries = newEntries;
+            *ppWeakRefs = newWeakRefs;
         }
 
-        inline void RemoveAt(const int i, const int last, const uint targetBucket)
+        template <bool weakKey>
+        inline TBKey GetKey(int index) const;
+
+        template <>
+        inline TBKey GetKey<true>(int index) const
         {
-            if (last < 0)
+            return this->weakRefs[index];
+        }
+
+        template <>
+        inline TBKey GetKey<false>(int index) const
+        {
+            return this->entries[index].Value();
+        }
+
+        template <bool weakKey>
+        inline TBValue GetValue(int index) const;
+
+        template <>
+        inline TBValue GetValue<true>(int index) const
+        {
+            return this->entries[index].Value();
+        }
+
+        template <>
+        inline TBValue GetValue<false>(int index) const
+        {
+            return this->weakRefs[index];
+        }
+
+        template <bool weakKey>
+        inline bool RemoveIfCollected(TBKey const key, int* i, int last, int bucketIndex);
+
+        template <>
+        inline bool RemoveIfCollected<true>(TBKey const key, int* i, int last, int targetBucket)
+        {
+            if (key == nullptr)
             {
-                buckets[targetBucket] = entries[i].next;
+                // Key has been collected
+                int next = entries[*i].next;
+                RemoveAt(*i, last, targetBucket);
+                *i = next;
+                return true;
             }
-            else
-            {
-                entries[last].next = entries[i].next;
-            }
-            entries[i].Clear();
-            SetNextFreeEntryIndex(entries[i], freeCount == 0 ? -1 : freeList);
-            freeList = i;
-            freeCount++;
+            return false;
+        }
+
+        template <>
+        inline bool RemoveIfCollected<false>(TBKey const key, int* i, int last, int targetBucket)
+        {
+            return false;
+        }
+
+        template <bool weakKey>
+        inline void SetKeyValue(const TBKey& key, const TBValue& value, int index);
+
+        template <>
+        inline void SetKeyValue<true>(const TBKey& key, const TBValue& value, int index)
+        {
+            weakRefs[index] = key;
+            entries[index].SetValue(value);
+        }
+
+        template <>
+        inline void SetKeyValue<false>(const TBKey& key, const TBValue& value, int index)
+        {
+            entries[index].SetValue(key);
+            weakRefs[index] = value;
+        }
+
+        template <bool weakKey>
+        inline void SetValue(const TBValue& value, int index);
+
+        template <>
+        inline void SetValue<true>(const TBValue& value, int index)
+        {
+            this->entries[index].SetValue(value);
+        }
+
+        template <>
+        inline void SetValue<false>(const TBValue& value, int index)
+        {
+            this->weakRefs[index] = value;
         }
     };
-#endif
+
+    template <
+        class TKey,
+        class TValue,
+        class SizePolicy = PowerOf2SizePolicy,
+        template <typename ValueOrKey> class Comparer = DefaultComparer,
+        typename Lock = NoResizeLock
+    >
+    class WeakReferenceRegionDictionary : public SplitWeakDictionary<TKey, TValue, false, SizePolicy, Comparer, Lock, Recycler>
+    {
+        typedef SplitWeakDictionary<TKey, TValue, false, SizePolicy, Comparer, Lock, Recycler> Base;
+        typedef typename Base::EntryType EntryType;
+        typedef typename Base::WeakType ValueType;
+
+    public:
+
+        WeakReferenceRegionDictionary(Recycler* allocator, int capacity = 0)
+            : Base(allocator, capacity)
+        {
+        }
+    };
+
+    template <
+        class TKey,
+        class TValue,
+        template <typename ValueOrKey> class Comparer = DefaultComparer,
+        class SizePolicy = PrimeSizePolicy,
+        typename Lock = NoResizeLock
+    >
+    class WeakReferenceRegionKeyDictionary : public SplitWeakDictionary<TValue, TKey, true, SizePolicy, Comparer, Lock, Recycler>
+    {
+        typedef SplitWeakDictionary<TValue, TKey, true, SizePolicy, Comparer, Lock, Recycler> Base;
+
+        typedef typename Base::EntryType EntryType;
+        typedef typename Base::WeakType KeyType;
+
+    public:
+        // Allow WeakReferenceRegionKeyDictionary field to be inlined in classes with DEFINE_VTABLE_CTOR_MEMBER_INIT
+        WeakReferenceRegionKeyDictionary(VirtualTableInfoCtorEnum v): Base(v) { }
+
+        WeakReferenceRegionKeyDictionary(Recycler* allocator, int capacity = 0)
+            : Base(allocator, capacity)
+        {
+        }
+
+        template <class Fn>
+        void Map(Fn fn)
+        {
+            this->MapAndRemoveIf([=](EntryType& entry, KeyType& weakRef)
+            {
+                if (weakRef == nullptr)
+                {
+                    return true;
+                }
+                fn(weakRef, entry.Value(), weakRef);
+                return false;
+            });
+        }
+
+        bool Clean()
+        {
+            this->Cleanup();
+            return this->freeCount > 0;
+        }
+    };
+#endif // ENABLE_WEAK_REFERENCE_REGIONS
 };

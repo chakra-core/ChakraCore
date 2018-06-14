@@ -9,7 +9,13 @@ namespace Js
     class JavascriptWeakSet : public DynamicObject
     {
     private:
+#if ENABLE_WEAK_REFERENCE_REGIONS
+        typedef JsUtil::WeakReferenceRegionKeyDictionary<RecyclableObject*, bool, RecyclerPointerComparer> KeySet;
+        typedef const RecyclerWeakReferenceRegionItem<RecyclableObject*>& WeakType;
+#else
         typedef JsUtil::WeaklyReferencedKeyDictionary<RecyclableObject, bool, RecyclerPointerComparer<const RecyclableObject*>> KeySet;
+        typedef const RecyclerWeakReference<RecyclableObject>* WeakType;
+#endif
 
         Field(KeySet) keySet;
 
@@ -49,7 +55,7 @@ namespace Js
         template <typename Fn>
         void Map(Fn fn)
         {
-            return keySet.Map([&](RecyclableObject* key, bool, const RecyclerWeakReference<RecyclableObject>*)
+            return keySet.Map([&](RecyclableObject* key, bool, WeakType)
             {
                 fn(key);
             });
