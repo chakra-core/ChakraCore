@@ -99,6 +99,10 @@ namespace Js
             {
                 MarshalDynamicObject(scriptContext, prototypeObject);
             }
+            if (JavascriptProxy::Is(prototypeObject)) 
+            {
+                break;
+            }
             prototype = prototypeObject->GetPrototype();
         }
     }
