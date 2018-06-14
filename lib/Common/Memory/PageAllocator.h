@@ -858,6 +858,15 @@ protected:
 
     // Idle Decommit
     bool isUsed;
+    // A flag to indicate we are trying to enter IdleDecommit again and back-off from decommit in DecommitNow. This is to prevent
+    // blocking UI thread for too long. We have seen hangs under AppVerifier and believe this may be due to the decommit being slower
+    // under AppVerifier. This shouldn't be a problem otherwise.
+    bool waitingToEnterIdleDecommit;
+
+#if DBG
+    uint idleDecommitBackOffCount;
+#endif
+
     size_t minFreePageCount;
     uint idleDecommitEnterCount;
 
