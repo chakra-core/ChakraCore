@@ -19,6 +19,7 @@ var tests = [
                     set [m](val) { }
                     get [r]() { return 'a'; }
                     set [s](val) { }
+                    get [1 & Math]() { return 42; }
                 }
 
                 d = {
@@ -36,6 +37,7 @@ var tests = [
             assert.areEqual('undefined', typeof ((new c())[2]), "Integer as class member setter property name");
             assert.areEqual('string', typeof ((new c())[0.5]), "Float as class member getter property name");
             assert.areEqual('undefined', typeof ((new c())['prop']), "String as class member setter property name");
+            assert.areEqual('number', typeof ((new c())[1 & Math]), "Expression as class member setter property name");
 
             assert.areEqual('number', typeof (d[1]), "Integer as getter property name");
             assert.areEqual('undefined', typeof (d[2]), "Integer as setter property name");

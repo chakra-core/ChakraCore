@@ -10977,9 +10977,10 @@ GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOp
         instr->m_opcode == Js::OpCode::InitClassMemberGetComputedName ||
         instr->m_opcode == Js::OpCode::InitClassMemberSetComputedName;
 
-    if ((indexOpnd->GetValueType().IsInt()
-        ? !IsTypeSpecPhaseOff(func)
-        : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec() && !isGetterOrSetter) // typespec is disabled for getters, setters
+    if (!isGetterOrSetter // typespec is disabled for getters, setters
+        && (indexOpnd->GetValueType().IsInt()
+            ? !IsTypeSpecPhaseOff(func)
+            : indexOpnd->GetValueType().IsLikelyInt() && DoAggressiveIntTypeSpec())
         && !GetIsAsmJSFunc()) // typespec is disabled for asmjs
     {
         StackSym *const indexVarSym = indexOpnd->m_sym;
