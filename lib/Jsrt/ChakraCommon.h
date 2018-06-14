@@ -25,12 +25,13 @@
 
 // Platform specific code
 #if defined(_WIN32) && defined(_MSC_VER)
-#include <oaidl.h>
+#include <windows.h>
 
 // Header macros
 #define CHAKRA_CALLBACK CALLBACK
 #define CHAKRA_API STDAPI_(JsErrorCode)
 
+typedef unsigned char byte;
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
 #else // Non-Windows VC++
