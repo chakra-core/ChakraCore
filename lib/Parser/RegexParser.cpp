@@ -1120,16 +1120,40 @@ namespace UnifiedRegex
             if (!standardEncodedChars->IsDigit(ec))
             {
                 if (digits == 0)
+                {
                     Fail(JSERR_RegExpSyntax);
+                }
+
                 return n;
             }
+
             if (n > MaxCharCount / 10)
-                Fail(JSERR_RegExpSyntax);
+            {
+                break;
+            }
+
             n *= 10;
             if (n > MaxCharCount - standardEncodedChars->DigitValue(ec))
-                Fail(JSERR_RegExpSyntax);
+            {
+                break;
+            }
+
             n += standardEncodedChars->DigitValue(ec);
             digits++;
+            ECConsume();
+        }
+
+        Assert(digits != 0); // shouldn't be able to reach here with (digits == 0)
+
+        // The token had a value larger than MaxCharCount so we didn't return the value and reached here instead.
+        // Consume the rest of the token and return MaxCharCount.
+        while (true)
+        {
+            EncodedChar ec = ECLookahead();
+            if (!standardEncodedChars->IsDigit(ec))
+            {
+                return MaxCharCount;
+            }
             ECConsume();
         }
     }
