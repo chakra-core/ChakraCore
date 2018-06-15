@@ -2303,7 +2303,7 @@ CommonNumber:
                     }
                     if (setterValueOrProxy)
                     {
-                        if (!WithScopeObject::Is(receiver) && info->GetPropertyRecordUsageCache())
+                        if (!WithScopeObject::Is(receiver) && info->GetPropertyRecordUsageCache() && !JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
                         {
                             CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), false, object->GetType(), info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
                         }
@@ -2525,7 +2525,7 @@ CommonNumber:
                     {
                         receiver = (RecyclableObject::FromVar(receiver))->GetThisObjectOrUnWrap();
                     }
-                    else
+                    else if (!JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
                     {
                         CacheOperators::CachePropertyWrite(RecyclableObject::FromVar(receiver), isRoot, object->GetType(), propertyId, info, requestContext);
                     }
