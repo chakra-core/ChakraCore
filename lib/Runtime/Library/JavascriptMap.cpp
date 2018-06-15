@@ -223,7 +223,7 @@ Var JavascriptMap::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
 
     if (map->Get(key, &value))
     {
-        return value;
+        return CrossSite::MarshalVar(scriptContext, value);
     }
 
     return scriptContext->GetLibrary()->GetUndefined();
