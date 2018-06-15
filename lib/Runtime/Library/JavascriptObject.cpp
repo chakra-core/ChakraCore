@@ -194,7 +194,7 @@ using namespace Js;
         //      ii. Let nextp be the result of calling the [[GetInheritance]] internal method of p with no arguments.
         //      iii.    ReturnIfAbrupt(nextp).
         //      iv. Let  p be nextp.
-        if (IsPrototypeOf(object, newPrototype, scriptContext)) // Reject cycle
+        if (IsPrototypeOfStopAtProxy(object, newPrototype, scriptContext)) // Reject cycle
         {
             if (shouldThrow)
             {
