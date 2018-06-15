@@ -9918,7 +9918,7 @@ LRestart:
                  ? !PHASE_OFF_RAW(Js::EarlyReferenceErrorsPhase, m_sourceContextInfo->sourceContextId, GetCurrentFunctionNode()->functionId)
                  : !PHASE_OFF1(Js::EarlyReferenceErrorsPhase)))
             {
-                Error(JSERR_CantAssignTo);
+                Error(ERRInvalidLHSInFor);
             }
 
             this->GetScanner()->Scan();
