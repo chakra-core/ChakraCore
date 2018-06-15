@@ -1299,7 +1299,7 @@ namespace JsUtil
 
 #if !defined(_UCRT)
         HMODULE dllHandle = NULL;
-        if (!GetModuleHandleEx(0, AutoSystemInfo::GetJscriptDllFileName(), &dllHandle))
+        if (!GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR)&BackgroundJobProcessor::StaticThreadProc, &dllHandle))
         {
             dllHandle = NULL;
         }
