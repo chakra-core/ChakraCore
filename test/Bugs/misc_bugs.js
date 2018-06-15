@@ -137,6 +137,23 @@ var tests = [
         new bar(...(new Array(2**16+1)))
       } catch(e) { }
     }
+  },
+  {
+    name: "getPrototypeOf Should not be called when set as prototype",
+    body: function () {
+      var p = new Proxy({}, { getPrototypeOf: function() {
+          assert.fail("this should not be called")
+          return {};
+        }});
+
+        var obj = {};
+        obj.__proto__ = p; // This should not call the getPrototypeOf
+
+        var obj1 = {};
+        Object.setPrototypeOf(obj1, p); // This should not call the getPrototypeOf
+
+        var obj2 = {__proto__ : p}; // This should not call the getPrototypeOf
+    }
   }
   
 ];
