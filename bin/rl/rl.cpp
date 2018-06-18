@@ -3514,102 +3514,121 @@ FindTest(
 }
 
 BOOL
-IsTimeoutStringValid(const char *strTimeout) {
-   char *end;
-   _set_errno(0);
+IsTimeoutStringValid(const char *strTimeout)
+{
+    char *end;
+    _set_errno(0);
 
-   uint32 secTimeout = strtoul(strTimeout, &end, 10);
+    uint32 secTimeout = strtoul(strTimeout, &end, 10);
 
-   if (errno != 0 || *end != 0) {
-      return FALSE;
-   }
+    if (errno != 0 || *end != 0)
+    {
+        return FALSE;
+    }
 
-   // Check to see if the value is too large and would cause overflow
+    // Check to see if the value is too large and would cause overflow
 
-   // Do the multiplication using 64-bit unsigned math.
-   unsigned __int64 millisecTimeout = 1000ui64 * static_cast<unsigned __int64>(secTimeout);
+    // Do the multiplication using 64-bit unsigned math.
+    unsigned __int64 millisecTimeout = 1000ui64 * static_cast<unsigned __int64>(secTimeout);
 
-   // Does the result fit in 32-bits?
-   if (millisecTimeout >= (1ui64 << 32)) {
-      return FALSE;
-   }
+    // Does the result fit in 32-bits?
+    if (millisecTimeout >= (1ui64 << 32))
+    {
+        return FALSE;
+    }
 
-   return TRUE;
+    return TRUE;
+}
+
+uint32 GetTimeoutValue(const char *strTimeout)
+{
+    if (strTimeout == nullptr)
+    {
+        return 0;
+    }
+
+    char *end = nullptr;
+    _set_errno(0);
+    uint32 secTimeout = strtoul(strTimeout, &end, 10);
+    return secTimeout;
 }
 
 BOOL
 GetTestInfoFromNode
 (
-   const char * fileName,
-   Xml::Node * node,
-   TestInfo *  testInfo
+    const char * fileName,
+    Xml::Node * node,
+    TestInfo *  testInfo
 )
 {
-   if (node == NULL)
-   {
-      return TRUE;
-   }
+    if (node == nullptr)
+    {
+        return TRUE;
+    }
 
-   for (int i = 0; i < _TIK_COUNT; i++)
-   {
-      Xml::Node * childNode = node->GetChild(TestInfoKindName[i]);
-      if (childNode != NULL)
-      {
-         testInfo->hasData[i] = TRUE;
-         if (i == TIK_ENV)
-         {
-            ASSERT(childNode->ChildList != NULL);
-            testInfo->data[i] = (char*)childNode;
-         }
-         else
-         {
-            if (childNode->ChildList != NULL)
+    for (int i = 0; i < _TIK_COUNT; i++)
+    {
+        Xml::Node * childNode = node->GetChild(TestInfoKindName[i]);
+        if (childNode != nullptr)
+        {
+            testInfo->hasData[i] = TRUE;
+            if (i == TIK_ENV)
             {
-               CFG_ERROR_EX(fileName, node->LineNumber,
-               "Expected data, not child list\n", NULL);
-               childNode->Dump();
-               return FALSE;
-            }
-
-            if (childNode->Data != NULL && childNode->Data[0] != '\0')
-            {
-               char * data = childNode->Data;
-               if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
-               {
-                  // Make sure sourcepath is not relative, if relative make it full path
-                  data = MakeFullPath(fileName, data);
-                  ASSERT(data != NULL);
-               }
-               testInfo->data[i] = data;
+                ASSERT(childNode->ChildList != nullptr);
+                testInfo->data[i] = (char*)childNode;
             }
             else
             {
-               testInfo->data[i] = NULL;
-            }
+                if (childNode->ChildList != nullptr)
+                {
+                    CFG_ERROR_EX(fileName, node->LineNumber,
+                        "Expected data, not child list\n", nullptr);
+                    childNode->Dump();
+                    return FALSE;
+                }
 
-            if (i == TIK_TIMEOUT)
+                if (childNode->Data != nullptr && childNode->Data[0] != '\0')
+                {
+                    char * data = childNode->Data;
+                    if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
+                    {
+                        // Make sure sourcepath is not relative, if relative make it full path
+                        data = MakeFullPath(fileName, data);
+                        ASSERT(data != nullptr);
+                    }
+                    testInfo->data[i] = data;
+                }
+                else
+                {
+                    testInfo->data[i] = nullptr;
+                }
+
+                if (i == TIK_TIMEOUT)
+                {
+                    // Validate the timeout string now to fail early so we don't run any tests when there is an error.
+                    if (!IsTimeoutStringValid(testInfo->data[i])) {
+                        CFG_ERROR_EX(fileName, node->LineNumber,
+                            "Invalid timeout specified. Cannot parse or too large.\n", nullptr);
+                        childNode->Dump();
+                        return FALSE;
+                    }
+                }
+            }
+        }
+
+        if (i == TIK_TIMEOUT && TestTimeout != nullptr)
+        {
+            // Overriding the timeout value with the command line value (if the command line value is larger)
+            uint32 xmlTimeoutValue = GetTimeoutValue(testInfo->data[i]);
+            uint32 testTimeoutValue = GetTimeoutValue(TestTimeout);
+            if (xmlTimeoutValue < testTimeoutValue)
             {
-               // Validate the timeout string now to fail early so we don't run any tests when there is an error.
-               if (!IsTimeoutStringValid(testInfo->data[i])) {
-                  CFG_ERROR_EX(fileName, node->LineNumber,
-                    "Invalid timeout specified. Cannot parse or too large.\n", NULL);
-                  childNode->Dump();
-                  return FALSE;
-               }
+                testInfo->data[i] = TestTimeout;
             }
-         }
-      }
-      if (i == TIK_TIMEOUT && TestTimeout != NULL)
-      {
-         // Overriding the timeout value with the command line value (if the command line value is larger)
-         if (testInfo->data[i] < TestTimeout)
-         {
-            testInfo->data[i] = TestTimeout;
-         }
-      }
-   }
+        }
+    }
 
-   return TRUE;
+    return TRUE;
 }
 
 BOOL
