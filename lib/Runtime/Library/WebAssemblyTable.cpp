@@ -172,7 +172,7 @@ WebAssemblyTable::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
         return scriptContext->GetLibrary()->GetNull();
     }
 
-    return table->m_values[index];
+    return CrossSite::MarshalVar(scriptContext, table->m_values[index]);
 }
 
 Var

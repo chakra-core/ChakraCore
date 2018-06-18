@@ -238,7 +238,7 @@ namespace Js
         }
 #endif
 
-        return loaded ? value : scriptContext->GetLibrary()->GetUndefined();
+        return loaded ? CrossSite::MarshalVar(scriptContext, value) : scriptContext->GetLibrary()->GetUndefined();
     }
 
     Var JavascriptWeakMap::EntryHas(RecyclableObject* function, CallInfo callInfo, ...)
