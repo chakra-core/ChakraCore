@@ -563,6 +563,7 @@ namespace Js
 
     private :
         static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject);
+        bool WillRejectionBeUnhandled();
 
 #if ENABLE_TTD
     public:

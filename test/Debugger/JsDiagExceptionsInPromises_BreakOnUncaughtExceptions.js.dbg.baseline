@@ -1,0 +1,72 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection1')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 18,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection2')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 29,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection3')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 8,
+        "sourceText": "throw new Error(\"error from externalContextPromise1\")",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 116,
+        "column": 8,
+        "sourceText": "throw new Error('error for handledPromiseRejection8_bugbug')",
+        "function": "onResolve"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 136,
+        "column": 16,
+        "sourceText": "throw new Error('error for handledPromiseRejection9_bugbug')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 44,
+        "column": 12,
+        "sourceText": "throw err",
+        "function": "Anonymous function"
+      }
+    ]
+  }
+]
