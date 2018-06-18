@@ -97,3 +97,18 @@ Symbol(prop5)
 "ownKeys" called
 "apply" called
 "construct" called
+***function wrapped in 2+ proxies
+function
+function
+function
+*** proxied function and Object.prototype.toString.call
+[object Function]
+[object Function]
+[object Array]
+[object Object]
+[object Object]
+[object Object]
+[object Object]
+*** proxied function and Function.prototype.toString.call
+function a() { }
+function a() { }

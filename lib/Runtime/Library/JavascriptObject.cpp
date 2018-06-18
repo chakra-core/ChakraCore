@@ -478,6 +478,12 @@ using namespace Js;
             return library->GetObjectArrayDisplayString();
         }
 
+        // callable proxy is considered as having [[Call]] internal method and should match #8 below
+        if (type == TypeIds_Proxy && JavascriptConversion::IsCallable(thisArgAsObject))
+        {
+            type = TypeIds_Function;
+        }
+
         JavascriptString* builtInTag = nullptr;
         switch (type)
         {

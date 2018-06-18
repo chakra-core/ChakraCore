@@ -129,7 +129,7 @@ var tests = [
             }
 
             for (var row of internalSlotBuiltInsNoArray) {
-                testBuiltIn(row, "Object");
+                testBuiltIn(row, row.tag == "Function" ? "Function": "Object");
             }
         }
     },
