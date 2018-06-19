@@ -742,18 +742,11 @@ namespace Js
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
 
-            // Clear disable implicit call bit as initialization code doesn't have any side effect
-            Js::ImplicitCallFlags saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-
             Js::Arguments arguments(callInfo, args);
-            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            scriptContext->GetThreadContext()->ExecuteImplicitCall(function, Js::ImplicitCall_Accessor, [=]()->Js::Var 
             {
-                JavascriptFunction::CallRootFunctionInScript(function, arguments);
-            }
-            END_SAFE_REENTRANT_CALL
-
-            scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
+                return JavascriptFunction::CallRootFunctionInScript(function, arguments);
+            });
 
             // Delete prototypes on functions if initialized Intl object
             if (intlInitializationType == IntlInitializationType::Intl)
