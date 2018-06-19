@@ -1551,12 +1551,22 @@ dbl_align:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        Var arg0 = args[0];
+
+        // callable proxy is considered as having [[Call]] internal method 
+        // and should behave here like a function.
+        // we will defer to the underlying target.
+        while (JavascriptProxy::Is(arg0) && JavascriptConversion::IsCallable(arg0))
+        {
+            arg0 = JavascriptProxy::FromVar(arg0)->GetTarget();
+        }
+
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        if (args.Info.Count == 0 || !JavascriptFunction::Is(args[0]))
+        if (args.Info.Count == 0 || !JavascriptFunction::Is(arg0))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.toString"));
         }
-        JavascriptFunction *pFunc = JavascriptFunction::FromVar(args[0]);
+        JavascriptFunction *pFunc = JavascriptFunction::FromVar(arg0);
 
         // pFunc can be from a different script context if Function.prototype.toString is invoked via .call/.apply.
         // Marshal the resulting string to the current script context (that of the toString)

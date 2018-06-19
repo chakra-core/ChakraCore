@@ -172,7 +172,60 @@ function test4() {
     new (getProxy("construct", {}, function () {}));
 }
 
+function test5() {
+    print("***function wrapped in 2+ proxies");
+
+    function a() {}
+
+    const p1 = new Proxy(a, {})
+    console.log(typeof p1) // "function"
+    
+    const p2 = new Proxy(p1, {})
+    console.log(typeof p2) // "function"
+
+    const p3 = new Proxy(p2, {})
+    console.log(typeof p3) // "function"
+}
+
+function test6() {
+    print("*** proxied function and Object.prototype.toString.call");
+
+    console.log(Object.prototype.toString.call(new Proxy(function a() {}, {})));
+    // "[object Function]"
+
+    console.log(Object.prototype.toString.call(new Proxy(new Proxy(function a() {}, {}), {})));
+    // "[object Function]"
+
+    console.log(Object.prototype.toString.call(new Proxy([], {})));
+    // "[object Array]"
+    
+    console.log(Object.prototype.toString.call(new Proxy(new Number(1), {})));
+    // "[object Object]"
+    
+    console.log(Object.prototype.toString.call(new Proxy(new String(""), {})));
+    // "[object Object]"
+    
+    console.log(Object.prototype.toString.call(new Proxy(new Boolean(true), {})));
+    // "[object Object]"
+    
+    console.log(Object.prototype.toString.call(new Proxy(new Date, {})));
+    // "[object Object]"
+}
+
+function test7() {
+    print("*** proxied function and Function.prototype.toString.call");
+
+    console.log(Function.prototype.toString.call(new Proxy(function a() { }, {})));
+    // "function a() { }"
+
+    console.log(Function.prototype.toString.call(new Proxy(new Proxy(function a() { }, {}), {})));
+    // "function a() { }"
+}
+
 test1();
 test2();
 test3();
 test4();
+test5();
+test6();
+test7();

@@ -1657,7 +1657,8 @@ namespace Js
         }
         else
         {
-            return requestContext->GetLibrary()->GetObjectTypeDisplayString();
+            // handle nested cases recursively
+            return this->target->GetTypeOfString(requestContext);
         }
     }
 
