@@ -181,10 +181,10 @@ function test5() {
     console.log(typeof p1) // "function"
     
     const p2 = new Proxy(p1, {})
-    console.log(typeof p2) // "object" but should be "function"
+    console.log(typeof p2) // "function"
 
     const p3 = new Proxy(p2, {})
-    console.log(typeof p3) // "object" but should be "function"
+    console.log(typeof p3) // "function"
 }
 
 function test6() {
@@ -216,10 +216,10 @@ function test7() {
     print("*** proxied function and Function.prototype.toString.call");
 
     console.log(Function.prototype.toString.call(new Proxy(function a() { }, {})));
-    // "[object Function]"
+    // "function a() { }"
 
     console.log(Function.prototype.toString.call(new Proxy(new Proxy(function a() { }, {}), {})));
-    // "[object Function]"
+    // "function a() { }"
 }
 
 test1();
