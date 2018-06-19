@@ -463,7 +463,24 @@ void LegalizeMD::LegalizeSymOffset(
     EncoderMD::BaseAndOffsetFromSym(symOpnd, &baseReg, &offset, instr->m_func->GetTopFunc());
 
     // Determine scale factor for scaled offsets
-    int scale = (symOpnd->GetType() == TyFloat64) ? 3 : 2;
+    int scale;
+    if (symOpnd->GetSize() == 8)
+    {
+        scale = 3;
+    }
+    else if (symOpnd->GetSize() == 4)
+    {
+        scale = 2;
+    }
+    else if (symOpnd->GetSize() == 2)
+    {
+        scale = 1;
+    }
+    else
+    {
+        scale = 0;
+    }
+
     int32 scaledOffset = offset >> scale;
     
     // Either scaled unsigned 12-bit offset, or unscaled signed 9-bit offset
