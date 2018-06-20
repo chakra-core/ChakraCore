@@ -196,8 +196,8 @@
     (i32.wrap/i64 (return (i32.const 41)))
   )
 
-  (func (export "as-grow_memory-size") (result i32)
-    (grow_memory (return (i32.const 40)))
+  (func (export "as-memory.grow-size") (result i32)
+    (memory.grow (return (i32.const 40)))
   )
 )
 
@@ -278,7 +278,7 @@
 
 (assert_return (invoke "as-convert-operand") (i32.const 41))
 
-(assert_return (invoke "as-grow_memory-size") (i32.const 40))
+(assert_return (invoke "as-memory.grow-size") (i32.const 40))
 
 (assert_invalid
   (module (func $type-value-empty-vs-num (result f64) (return)))

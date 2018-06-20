@@ -81,6 +81,9 @@ Features GetWabtFeatures(const ChakraContext& ctx)
     {
         features.enable_sat_float_to_int();
     }
+
+    // Enable wabt features that have made it into the spec
+    features.enable_mutable_globals();
     return features;
 }
 

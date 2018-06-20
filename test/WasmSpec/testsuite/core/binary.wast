@@ -42,3 +42,303 @@
 (assert_malformed (module binary "\00asm\00\01\00\00") "unknown binary version")
 (assert_malformed (module binary "\00asm\00\00\01\00") "unknown binary version")
 (assert_malformed (module binary "\00asm\00\00\00\01") "unknown binary version")
+
+;; Unsigned LEB128 can have non-minimal length
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\05\04\01"                          ;; Memory section with 1 entry
+  "\00\82\00"                          ;; no max, minimum 2
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\05\07\01"                          ;; Memory section with 1 entry
+  "\00\82\80\80\80\00"                 ;; no max, minimum 2
+)
+
+;; Signed LEB128 can have non-minimal length
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\07\01"                          ;; Global section with 1 entry
+  "\7f\00"                             ;; i32, immutable
+  "\41\80\00"                          ;; i32.const 0
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\07\01"                          ;; Global section with 1 entry
+  "\7f\00"                             ;; i32, immutable
+  "\41\ff\7f"                          ;; i32.const -1
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\0a\01"                          ;; Global section with 1 entry
+  "\7f\00"                             ;; i32, immutable
+  "\41\80\80\80\80\00"                 ;; i32.const 0
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\0a\01"                          ;; Global section with 1 entry
+  "\7f\00"                             ;; i32, immutable
+  "\41\ff\ff\ff\ff\7f"                 ;; i32.const -1
+  "\0b"                                ;; end
+)
+
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\07\01"                          ;; Global section with 1 entry
+  "\7e\00"                             ;; i64, immutable
+  "\42\80\00"                          ;; i64.const 0 with unused bits set
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\07\01"                          ;; Global section with 1 entry
+  "\7e\00"                             ;; i64, immutable
+  "\42\ff\7f"                          ;; i64.const -1 with unused bits unset
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\0f\01"                          ;; Global section with 1 entry
+  "\7e\00"                             ;; i64, immutable
+  "\42\80\80\80\80\80\80\80\80\80\00"  ;; i64.const 0 with unused bits set
+  "\0b"                                ;; end
+)
+(module binary
+  "\00asm" "\01\00\00\00"
+  "\06\0f\01"                          ;; Global section with 1 entry
+  "\7e\00"                             ;; i64, immutable
+  "\42\ff\ff\ff\ff\ff\ff\ff\ff\ff\7f"  ;; i64.const -1 with unused bits unset
+  "\0b"                                ;; end
+)
+
+;; Unsigned LEB128 must not be overlong
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\05\08\01"                          ;; Memory section with 1 entry
+    "\00\82\80\80\80\80\00"              ;; no max, minimum 2 with one byte too many
+  )
+  "integer representation too long"
+)
+
+;; Signed LEB128 must not be overlong
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0b\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\80\80\80\80\80\00"              ;; i32.const 0 with one byte too many
+    "\0b"                                ;; end
+  )
+  "integer representation too long"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0b\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\ff\ff\ff\ff\ff\7f"              ;; i32.const -1 with one byte too many
+    "\0b"                                ;; end
+  )
+  "integer representation too long"
+)
+
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\10\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\80\80\80\80\80\80\80\80\80\80\00"  ;; i64.const 0 with one byte too many
+    "\0b"                                ;; end
+  )
+  "integer representation too long"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\10\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\7f"  ;; i64.const -1 with one byte too many
+    "\0b"                                ;; end
+  )
+  "integer representation too long"
+)
+
+;; Unsigned LEB128s zero-extend
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\05\04\01"                          ;; Memory section with 1 entry
+    "\00\82\80\80\80\70"                 ;; no max, minimum 2 with unused bits set
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\05\04\01"                          ;; Memory section with 1 entry
+    "\00\82\80\80\80\40"                 ;; no max, minimum 2 with some unused bits set
+  )
+  "integer too large"
+)
+
+;; Signed LEB128s sign-extend
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0a\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\80\80\80\80\70"                 ;; i32.const 0 with unused bits set
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0a\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\ff\ff\ff\ff\0f"                 ;; i32.const -1 with unused bits unset
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0a\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\80\80\80\80\1f"                 ;; i32.const 0 with some unused bits set
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0a\01"                          ;; Global section with 1 entry
+    "\7f\00"                             ;; i32, immutable
+    "\41\ff\ff\ff\ff\4f"                 ;; i32.const -1 with some unused bits unset
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0f\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\80\80\80\80\80\80\80\80\80\7e"  ;; i64.const 0 with unused bits set
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0f\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\ff\ff\ff\ff\ff\ff\ff\ff\ff\01"  ;; i64.const -1 with unused bits unset
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0f\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\80\80\80\80\80\80\80\80\80\02"  ;; i64.const 0 with some unused bits set
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\06\0f\01"                          ;; Global section with 1 entry
+    "\7e\00"                             ;; i64, immutable
+    "\42\ff\ff\ff\ff\ff\ff\ff\ff\ff\41"  ;; i64.const -1 with some unused bits unset
+    "\0b"                                ;; end
+  )
+  "integer too large"
+)
+
+;; call_indirect reserved byte equal to zero.
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\01\04\01\60\00\00"      ;; Type section
+    "\03\02\01\00"            ;; Function section
+    "\04\04\01\70\00\00"      ;; Table section
+    "\0a\09\01"               ;; Code section
+
+    ;; function 0
+    "\07\00"
+    "\41\00"                   ;; i32.const 0
+    "\11\00"                   ;; call_indirect (type 0)
+    "\01"                      ;; call_indirect reserved byte is not equal to zero!
+    "\0b"                      ;; end
+  )
+  "zero flag expected"
+)
+
+;; memory.grow reserved byte equal to zero.
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\01\04\01\60\00\00"       ;; Type section
+    "\03\02\01\00"             ;; Function section
+    "\05\03\01\00\00"          ;; Memory section
+    "\0a\09\01"                ;; Code section
+
+    ;; function 0
+    "\07\00"
+    "\41\00"                   ;; i32.const 0
+    "\40"                      ;; memory.grow
+    "\01"                      ;; memory.grow reserved byte is not equal to zero!
+    "\1a"                      ;; drop
+    "\0b"                      ;; end
+  )
+  "zero flag expected"
+)
+
+;; memory.size reserved byte equal to zero.
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\01\04\01\60\00\00"       ;; Type section
+    "\03\02\01\00"             ;; Function section
+    "\05\03\01\00\00"          ;; Memory section
+    "\0a\07\01"                ;; Code section
+
+    ;; function 0
+    "\05\00"
+    "\3f"                      ;; memory.size
+    "\01"                      ;; memory.size reserved byte is not equal to zero!
+    "\1a"                      ;; drop
+    "\0b"                      ;; end
+  )
+  "zero flag expected"
+)
+
+;; No more than 2^32 locals.
+(assert_malformed 
+  (module binary
+    "\00asm" "\01\00\00\00"
+    "\01\04\01\60\00\00"       ;; Type section
+    "\03\02\01\00"             ;; Function section
+    "\0a\0c\01"                ;; Code section
+
+    ;; function 0
+    "\0a\02"
+    "\ff\ff\ff\ff\0f\7f"       ;; 0xFFFFFFFF i32
+    "\02\7e"                   ;; 0x00000002 i64
+    "\0b"                      ;; end
+  )
+  "too many locals"
+)

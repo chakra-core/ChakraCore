@@ -76,6 +76,14 @@
 (assert_malformed
   (module binary
     "\00asm" "\01\00\00\00"
+    "\00\00\00\05\01\00\07\00\00"
+  )
+  "unexpected end"
+)
+
+(assert_malformed
+  (module binary
+    "\00asm" "\01\00\00\00"
     "\00\26\10" "a custom section" "this is the payload"
   )
   "unexpected end"
