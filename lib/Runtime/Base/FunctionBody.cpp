@@ -7627,10 +7627,7 @@ namespace Js
         for (ProfileId i = 0; i < profiledCallSiteCount; i++)
         {
             Assert(HasDynamicProfileInfo());
-            bool ctor;
-            bool isPolymorphic;
-            FunctionInfo *info = dynamicProfileInfo->GetCallSiteInfo(this, i, &ctor, &isPolymorphic);
-            if (info == nullptr || info->HasBody())
+            if (dynamicProfileInfo->MayHaveNonBuiltinCallee(i))
             {
                 return true;
             }

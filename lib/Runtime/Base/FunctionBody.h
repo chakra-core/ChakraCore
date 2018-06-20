@@ -2754,6 +2754,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr<AuxPointerType::PolymorphicCallSiteInfoHead>(polyCallSiteInfo); }
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return this->GetAuxPtr<AuxPointerType::PolymorphicCallSiteInfoHead>(); }
+        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoWithLock() { return this->GetAuxPtrWithLock<AuxPointerType::PolymorphicCallSiteInfoHead>(); }
 
         void SetCallbackInfoList(CallbackInfoList * callbackInfoList) { this->SetAuxPtr<AuxPointerType::CallbackArgOutInfoList>(callbackInfoList); }
         CallbackInfoList * GetCallbackInfoList() { return this->GetAuxPtr<AuxPointerType::CallbackArgOutInfoList>(); }
