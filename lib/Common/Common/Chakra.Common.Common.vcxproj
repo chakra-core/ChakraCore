@@ -38,6 +38,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)CfgLogger.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CompressionUtilities.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DateUtilities.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Event.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Int32Math.cpp" />
@@ -59,6 +60,7 @@
     <ClInclude Include="ByteSwap.h" />
     <ClInclude Include="CommonCommonPch.h" />
     <ClInclude Include="CfgLogger.h" />
+    <ClInclude Include="CompressionUtilities.h" />
     <ClInclude Include="DateUtilities.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="GetCurrentFrameId.h" />
