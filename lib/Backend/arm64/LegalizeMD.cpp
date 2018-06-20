@@ -333,7 +333,9 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
                 Assert(IRType_IsSignedInt(largerType) || IRType_IsUnsignedInt(largerType));
                 IRType sourceType = baseOpnd->GetType();
                 IRType targetType = IRType_IsSignedInt(sourceType) ? IRType_EnsureSigned(largerType) : IRType_EnsureUnsigned(largerType);
-                IR::Instr* movInstr = Lowerer::InsertMove(baseOpnd->UseWithNewType(targetType, instr->m_func), baseOpnd, instr, false);
+                IR::RegOpnd * tmpOpnd = IR::RegOpnd::New(sourceType, instr->m_func);
+                Lowerer::InsertMove(tmpOpnd, baseOpnd, instr, false);
+                IR::Instr* movInstr = Lowerer::InsertMove(tmpOpnd->UseWithNewType(targetType, instr->m_func), tmpOpnd, instr, false);
                 indirOpnd->SetBaseOpnd(movInstr->GetDst()->AsRegOpnd());
             }
             else
@@ -343,7 +345,9 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
                 Assert(IRType_IsSignedInt(largerType) || IRType_IsUnsignedInt(largerType));
                 IRType sourceType = indexOpnd->GetType();
                 IRType targetType = IRType_IsSignedInt(sourceType) ? IRType_EnsureSigned(largerType) : IRType_EnsureUnsigned(largerType);
-                IR::Instr* movInstr = Lowerer::InsertMove(indexOpnd->UseWithNewType(targetType, instr->m_func), indexOpnd, instr, false);
+                IR::RegOpnd * tmpOpnd = IR::RegOpnd::New(sourceType, instr->m_func);
+                Lowerer::InsertMove(tmpOpnd, indexOpnd, instr, false);
+                IR::Instr* movInstr = Lowerer::InsertMove(tmpOpnd->UseWithNewType(targetType, instr->m_func), tmpOpnd, instr, false);
                 indirOpnd->SetIndexOpnd(movInstr->GetDst()->AsRegOpnd());
             }
         }
