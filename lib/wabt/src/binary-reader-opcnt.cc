@@ -118,11 +118,15 @@ void OpcodeInfo::Write(Stream& stream) {
           stream, [&stream](uint32_t value) { stream.Writef("%u", value); });
       break;
 
-    case Kind::BlockSig:
-      WriteArray<Type>(stream, [&stream](Type type) {
-        stream.Writef("%s", GetTypeName(type));
-      });
+    case Kind::BlockSig: {
+      auto type = *GetData<Type>();
+      if (IsTypeIndex(type)) {
+        stream.Writef(" type:%d", static_cast<int>(type));
+      } else if (type != Type::Void) {
+        stream.Writef(" %s", GetTypeName(type));
+      }
       break;
+    }
 
     case Kind::BrTable: {
       WriteArray<Index>(stream, [&stream](Index index) {
@@ -190,7 +194,7 @@ class BinaryReaderOpcnt : public BinaryReaderNop {
   Result OnOpcodeUint64(uint64_t value) override;
   Result OnOpcodeF32(uint32_t value) override;
   Result OnOpcodeF64(uint64_t value) override;
-  Result OnOpcodeBlockSig(Index num_types, Type* sig_types) override;
+  Result OnOpcodeBlockSig(Type sig_type) override;
   Result OnBrTableExpr(Index num_targets,
                        Index* target_depths,
                        Index default_target_depth) override;
@@ -254,9 +258,8 @@ Result BinaryReaderOpcnt::OnOpcodeF64(uint64_t value) {
   return Emplace(current_opcode_, OpcodeInfo::Kind::Float64, &value);
 }
 
-Result BinaryReaderOpcnt::OnOpcodeBlockSig(Index num_types, Type* sig_types) {
-  return Emplace(current_opcode_, OpcodeInfo::Kind::BlockSig, sig_types,
-                 num_types);
+Result BinaryReaderOpcnt::OnOpcodeBlockSig(Type sig_type) {
+  return Emplace(current_opcode_, OpcodeInfo::Kind::BlockSig, &sig_type);
 }
 
 Result BinaryReaderOpcnt::OnBrTableExpr(Index num_targets,

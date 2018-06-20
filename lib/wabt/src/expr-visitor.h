@@ -77,11 +77,9 @@ class ExprVisitor::Delegate {
   virtual Result OnCompareExpr(CompareExpr*) = 0;
   virtual Result OnConstExpr(ConstExpr*) = 0;
   virtual Result OnConvertExpr(ConvertExpr*) = 0;
-  virtual Result OnCurrentMemoryExpr(CurrentMemoryExpr*) = 0;
   virtual Result OnDropExpr(DropExpr*) = 0;
   virtual Result OnGetGlobalExpr(GetGlobalExpr*) = 0;
   virtual Result OnGetLocalExpr(GetLocalExpr*) = 0;
-  virtual Result OnGrowMemoryExpr(GrowMemoryExpr*) = 0;
   virtual Result BeginIfExpr(IfExpr*) = 0;
   virtual Result AfterIfTrueExpr(IfExpr*) = 0;
   virtual Result EndIfExpr(IfExpr*) = 0;
@@ -91,6 +89,8 @@ class ExprVisitor::Delegate {
   virtual Result OnLoadExpr(LoadExpr*) = 0;
   virtual Result BeginLoopExpr(LoopExpr*) = 0;
   virtual Result EndLoopExpr(LoopExpr*) = 0;
+  virtual Result OnMemoryGrowExpr(MemoryGrowExpr*) = 0;
+  virtual Result OnMemorySizeExpr(MemorySizeExpr*) = 0;
   virtual Result OnNopExpr(NopExpr*) = 0;
   virtual Result OnReturnExpr(ReturnExpr*) = 0;
   virtual Result OnSelectExpr(SelectExpr*) = 0;
@@ -129,11 +129,9 @@ class ExprVisitor::DelegateNop : public ExprVisitor::Delegate {
   Result OnCompareExpr(CompareExpr*) override { return Result::Ok; }
   Result OnConstExpr(ConstExpr*) override { return Result::Ok; }
   Result OnConvertExpr(ConvertExpr*) override { return Result::Ok; }
-  Result OnCurrentMemoryExpr(CurrentMemoryExpr*) override { return Result::Ok; }
   Result OnDropExpr(DropExpr*) override { return Result::Ok; }
   Result OnGetGlobalExpr(GetGlobalExpr*) override { return Result::Ok; }
   Result OnGetLocalExpr(GetLocalExpr*) override { return Result::Ok; }
-  Result OnGrowMemoryExpr(GrowMemoryExpr*) override { return Result::Ok; }
   Result BeginIfExpr(IfExpr*) override { return Result::Ok; }
   Result AfterIfTrueExpr(IfExpr*) override { return Result::Ok; }
   Result EndIfExpr(IfExpr*) override { return Result::Ok; }
@@ -143,6 +141,8 @@ class ExprVisitor::DelegateNop : public ExprVisitor::Delegate {
   Result OnLoadExpr(LoadExpr*) override { return Result::Ok; }
   Result BeginLoopExpr(LoopExpr*) override { return Result::Ok; }
   Result EndLoopExpr(LoopExpr*) override { return Result::Ok; }
+  Result OnMemoryGrowExpr(MemoryGrowExpr*) override { return Result::Ok; }
+  Result OnMemorySizeExpr(MemorySizeExpr*) override { return Result::Ok; }
   Result OnNopExpr(NopExpr*) override { return Result::Ok; }
   Result OnReturnExpr(ReturnExpr*) override { return Result::Ok; }
   Result OnSelectExpr(SelectExpr*) override { return Result::Ok; }

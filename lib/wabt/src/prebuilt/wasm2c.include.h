@@ -16,8 +16,6 @@ const char SECTION_NAME(top)[] =
 "#define WASM_RT_PASTE(x, y) WASM_RT_PASTE_(x, y)\n"
 "#define WASM_RT_ADD_PREFIX(x) WASM_RT_PASTE(WASM_RT_MODULE_PREFIX, x)\n"
 "\n"
-"#define WASM_RT_DEFINE_EXTERNAL(decl, target) decl = &target;\n"
-"\n"
 "/* TODO(binji): only use stdint.h types in header */\n"
 "typedef uint8_t u8;\n"
 "typedef int8_t s8;\n"

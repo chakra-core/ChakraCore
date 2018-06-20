@@ -140,7 +140,7 @@ bool Module::IsImport(ExternalKind kind, const Var& var) const {
 }
 
 void LocalTypes::Set(const TypeVector& types) {
-  decls.clear();
+  decls_.clear();
   if (types.empty()) {
     return;
   }
@@ -149,25 +149,25 @@ void LocalTypes::Set(const TypeVector& types) {
   Index count = 1;
   for (Index i = 1; i < types.size(); ++i) {
     if (types[i] != type) {
-      decls.emplace_back(type, count);
+      decls_.emplace_back(type, count);
       type = types[i];
       count = 1;
     } else {
       ++count;
     }
   }
-  decls.emplace_back(type, count);
+  decls_.emplace_back(type, count);
 }
 
 Index LocalTypes::size() const {
   return std::accumulate(
-      decls.begin(), decls.end(), 0,
+      decls_.begin(), decls_.end(), 0,
       [](Index sum, const Decl& decl) { return sum + decl.second; });
 }
 
 Type LocalTypes::operator[](Index i) const {
   Index count = 0;
-  for (auto decl: decls) {
+  for (auto decl: decls_) {
     if (i < count + decl.second) {
       return decl.first;
     }

@@ -31,20 +31,24 @@ class ErrorHandler {
   virtual ~ErrorHandler() {}
 
   // Returns true if the error was handled.
-  virtual bool OnError(const Location&,
+  virtual bool OnError(ErrorLevel,
+                       const Location&,
                        const std::string& error,
                        const std::string& source_line,
                        size_t source_line_column_offset) = 0;
 
   // Helper function for binary locations.
-  bool OnError(size_t offset, const std::string& error) {
-    return OnError(Location(offset), error, std::string(), 0);
+  bool OnError(ErrorLevel error_level,
+               size_t offset,
+               const std::string& error) {
+    return OnError(error_level, Location(offset), error, std::string(), 0);
   }
 
   // OnError will be called with with source_line trimmed to this length.
   virtual size_t source_line_max_length() const = 0;
 
-  std::string DefaultErrorMessage(const Color&,
+  std::string DefaultErrorMessage(ErrorLevel,
+                                  const Color&,
                                   const Location&,
                                   const std::string& error,
                                   const std::string& source_line,
@@ -59,7 +63,8 @@ class ErrorHandlerNop : public ErrorHandler {
  public:
   ErrorHandlerNop();
 
-  bool OnError(const Location&,
+  bool OnError(ErrorLevel,
+               const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override {
@@ -83,7 +88,8 @@ class ErrorHandlerFile : public ErrorHandler {
                             PrintHeader print_header = PrintHeader::Never,
                             size_t source_line_max_length = 80);
 
-  bool OnError(const Location&,
+  bool OnError(ErrorLevel,
+               const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override;
@@ -107,7 +113,8 @@ class ErrorHandlerBuffer : public ErrorHandler {
   explicit ErrorHandlerBuffer(Location::Type,
                               size_t source_line_max_length = 80);
 
-  bool OnError(const Location&,
+  bool OnError(ErrorLevel,
+               const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override;

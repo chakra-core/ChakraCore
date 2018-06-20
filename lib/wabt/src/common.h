@@ -52,6 +52,10 @@
 #define WABT_PRINTF_STRING_VIEW_ARG(x) \
   static_cast<int>((x).length()), (x).data()
 
+#define PRItypecode "%s%#x"
+#define WABT_PRINTF_TYPE_CODE(x) \
+  (static_cast<int32_t>(x) < 0 ? "-" : ""), std::abs(static_cast<int32_t>(x))
+
 #define WABT_DEFAULT_SNPRINTF_ALLOCA_BUFSIZE 128
 #define WABT_SNPRINTF_ALLOCA(buffer, len, format)                          \
   va_list args;                                                            \
@@ -101,6 +105,11 @@ struct v128 {
 };
 
 namespace wabt {
+
+enum class ErrorLevel {
+  Warning,
+  Error,
+};
 
 typedef uint32_t Index;    // An index into one of the many index spaces.
 typedef uint32_t Address;  // An address or size in linear memory.
@@ -195,19 +204,19 @@ struct Location {
   };
 };
 
-/* matches binary format, do not change */
-enum class Type {
-  I32 = 0x7F,
-  I64 = 0x7E,
-  F32 = 0x7D,
-  F64 = 0x7C,
-  V128 = 0x7B,
-  Anyfunc = 0x70,
-  Func = 0x60,
-  Void = 0x40,
-  ExceptRef = 0x3f,
-  ___ = Void, /* convenient for the opcode table in opcode.h */
-  Any = 0,    /* Not actually specified, but useful for type-checking */
+// Matches binary format, do not change.
+enum class Type : int32_t {
+  I32 = -0x01,        // 0x7f
+  I64 = -0x02,        // 0x7e
+  F32 = -0x03,        // 0x7d
+  F64 = -0x04,        // 0x7c
+  V128 = -0x05,       // 0x7b
+  Anyfunc = -0x10,    // 0x70
+  ExceptRef = -0x18,  // 0x68
+  Func = -0x20,       // 0x60
+  Void = -0x40,       // 0x40
+  ___ = Void,         // Convenient for the opcode table in opcode.h
+  Any = 0,            // Not actually specified, but useful for type-checking
 };
 typedef std::vector<Type> TypeVector;
 
@@ -220,9 +229,11 @@ enum class RelocType {
   MemoryAddressI32 = 5,   // e.g. Memory address in DATA
   TypeIndexLEB = 6,       // e.g. Immediate type in call_indirect
   GlobalIndexLEB = 7,     // e.g. Immediate of get_global inst
+  FunctionOffsetI32 = 8,  // e.g. Code offset in DWARF metadata
+  SectionOffsetI32 = 9,   // e.g. Section offset in DWARF metadata
 
   First = FuncIndexLEB,
-  Last = GlobalIndexLEB,
+  Last = SectionOffsetI32,
 };
 static const int kRelocTypeCount = WABT_ENUM_COUNT(RelocType);
 
@@ -236,8 +247,6 @@ struct Reloc {
 };
 
 enum class LinkingEntryType {
-  StackPointer = 1,
-  DataSize = 3,
   SegmentInfo = 5,
   InitFunctions = 6,
   ComdatInfo = 7,
@@ -248,6 +257,7 @@ enum class SymbolType {
   Function = 0,
   Data = 1,
   Global = 2,
+  Section = 3,
 };
 
 #define WABT_SYMBOL_FLAG_UNDEFINED 0x10
@@ -319,6 +329,8 @@ static WABT_INLINE const char* GetSymbolTypeName(SymbolType type) {
       return "global";
     case SymbolType::Data:
       return "data";
+    case SymbolType::Section:
+      return "section";
   }
   WABT_UNREACHABLE;
 }
@@ -347,6 +359,47 @@ static WABT_INLINE const char* GetTypeName(Type type) {
       return "void";
     case Type::Any:
       return "any";
+    default:
+      return "<type index>";
+  }
+  WABT_UNREACHABLE;
+}
+
+static WABT_INLINE bool IsTypeIndex(Type type) {
+  return static_cast<int32_t>(type) >= 0;
+}
+
+static WABT_INLINE Index GetTypeIndex(Type type) {
+  assert(IsTypeIndex(type));
+  return static_cast<Index>(type);
+}
+
+static WABT_INLINE TypeVector GetInlineTypeVector(Type type) {
+  assert(!IsTypeIndex(type));
+  switch (type) {
+    case Type::Void:
+      return TypeVector();
+
+    case Type::I32:
+    case Type::I64:
+    case Type::F32:
+    case Type::F64:
+    case Type::V128:
+      return TypeVector(&type, &type + 1);
+
+    default:
+      WABT_UNREACHABLE;
+  }
+}
+
+/* error level */
+
+static WABT_INLINE const char* GetErrorLevelName(ErrorLevel error_level) {
+  switch (error_level) {
+    case ErrorLevel::Warning:
+      return "warning";
+    case ErrorLevel::Error:
+      return "error";
   }
   WABT_UNREACHABLE;
 }

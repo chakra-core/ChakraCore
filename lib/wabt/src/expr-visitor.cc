@@ -229,11 +229,6 @@ Result ExprVisitor::HandleDefaultState(Expr* expr) {
       CHECK_RESULT(delegate_->OnConvertExpr(cast<ConvertExpr>(expr)));
       break;
 
-    case ExprType::CurrentMemory:
-      CHECK_RESULT(
-          delegate_->OnCurrentMemoryExpr(cast<CurrentMemoryExpr>(expr)));
-      break;
-
     case ExprType::Drop:
       CHECK_RESULT(delegate_->OnDropExpr(cast<DropExpr>(expr)));
       break;
@@ -244,10 +239,6 @@ Result ExprVisitor::HandleDefaultState(Expr* expr) {
 
     case ExprType::GetLocal:
       CHECK_RESULT(delegate_->OnGetLocalExpr(cast<GetLocalExpr>(expr)));
-      break;
-
-    case ExprType::GrowMemory:
-      CHECK_RESULT(delegate_->OnGrowMemoryExpr(cast<GrowMemoryExpr>(expr)));
       break;
 
     case ExprType::If: {
@@ -274,6 +265,14 @@ Result ExprVisitor::HandleDefaultState(Expr* expr) {
       PushExprlist(State::Loop, expr, loop_expr->block.exprs);
       break;
     }
+
+    case ExprType::MemoryGrow:
+      CHECK_RESULT(delegate_->OnMemoryGrowExpr(cast<MemoryGrowExpr>(expr)));
+      break;
+
+    case ExprType::MemorySize:
+      CHECK_RESULT(delegate_->OnMemorySizeExpr(cast<MemorySizeExpr>(expr)));
+      break;
 
     case ExprType::Nop:
       CHECK_RESULT(delegate_->OnNopExpr(cast<NopExpr>(expr)));
