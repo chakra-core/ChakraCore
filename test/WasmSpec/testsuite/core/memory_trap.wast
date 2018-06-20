@@ -2,7 +2,7 @@
     (memory 1)
 
     (func $addr_limit (result i32)
-      (i32.mul (current_memory) (i32.const 0x10000))
+      (i32.mul (memory.size) (i32.const 0x10000))
     )
 
     (func (export "store") (param $i i32) (param $v i32)
