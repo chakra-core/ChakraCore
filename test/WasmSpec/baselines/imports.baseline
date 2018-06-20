@@ -8,4 +8,5 @@
 24
 24
 24
-144/144 tests passed.
+(147) testsuite/core/imports.wast:572: assert_unlinkable module failed. Expected a linking error: TypeError: Import module 'not wasm' is invalid
+145/146 tests passed.

@@ -1,1 +1,4 @@
-96/96 tests passed.
+(12) testsuite/core/linking.wast:39: generate module  as $Mg failed. Unexpected Error: CompileError: Mutable globals cannot be exported
+TypeError: Unable to get property 'exports' of undefined or null reference
+   at run (D:\projects\Chakra\core\test\WasmSpec\spec.js:183:9)
+   at Global code (D:\projects\Chakra\core\test\WasmSpec\spec.js:591:1)

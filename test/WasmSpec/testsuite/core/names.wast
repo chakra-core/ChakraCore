@@ -1075,8 +1075,8 @@
 (module
   ;; Test that we can use indices instead of names to reference imports,
   ;; exports, functions and parameters.
-  (import "spectest" "print" (func (param i32)))
-  (func (import "spectest" "print") (param i32))
+  (import "spectest" "print_i32" (func (param i32)))
+  (func (import "spectest" "print_i32") (param i32))
   (func (param i32) (param i32)
     (call 0 (get_local 0))
     (call 1 (get_local 1))
