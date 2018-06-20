@@ -11,6 +11,7 @@
 #endif
 
 #define IFFALSEGO(expr,label) do { if(!(expr)) { goto label; } } while(0);
+#define IFFALSEGOANDGETLASTERROR(expr,label) do { if(!(expr)) { hr = HRESULT_FROM_WIN32(GetLastError()); goto label; } } while(0);
 
 using namespace Js;
 
@@ -39,15 +40,12 @@ HRESULT CompressionUtilities::CompressBuffer(
 
 #ifdef ENABLE_COMPRESSION_UTILITIES
     COMPRESSOR_HANDLE compressor = nullptr;
-    if (!CreateCompressor(ConvertCompressionAlgorithm(algorithm), nullptr, &compressor))
-    {
-        return E_FAIL;
-    }
+    IFFALSEGOANDGETLASTERROR(CreateCompressor(ConvertCompressionAlgorithm(algorithm), nullptr, &compressor), Error);
 
     if (algorithm == CompressionAlgorithm_Xpress || algorithm == CompressionAlgorithm_Xpress_Huff)
     {
         DWORD level = 0;
-        IFFALSEGO(SetCompressorInformation(compressor, COMPRESS_INFORMATION_CLASS_LEVEL, &level, sizeof(DWORD)), Error);
+        IFFALSEGOANDGETLASTERROR(SetCompressorInformation(compressor, COMPRESS_INFORMATION_CLASS_LEVEL, &level, sizeof(DWORD)), Error);
     }
 
     SIZE_T compressedByteCount = 0;
@@ -67,7 +65,7 @@ HRESULT CompressionUtilities::CompressBuffer(
     IFFALSEGO(*compressedBuffer != nullptr, Error);
 
     SIZE_T compressedDataSize;
-    IFFALSEGO(Compress(compressor, inputBuffer, inputBufferByteCount, *compressedBuffer, compressedByteCount, &compressedDataSize), Error);
+    IFFALSEGOANDGETLASTERROR(Compress(compressor, inputBuffer, inputBufferByteCount, *compressedBuffer, compressedByteCount, &compressedDataSize), Error);
     *compressedBufferByteCount = compressedDataSize;
 
     hr = S_OK;
@@ -77,6 +75,8 @@ Error:
     {
         CloseCompressor(compressor);
     }
+#else
+    hr = E_NOTIMPL;
 #endif
 
     return hr;
@@ -100,10 +100,7 @@ HRESULT CompressionUtilities::DecompressBuffer(
 
 #ifdef ENABLE_COMPRESSION_UTILITIES
     DECOMPRESSOR_HANDLE decompressor = nullptr;
-    if (!CreateDecompressor(ConvertCompressionAlgorithm(algorithm), nullptr, &decompressor))
-    {
-        return E_FAIL;
-    }
+    IFFALSEGOANDGETLASTERROR(CreateDecompressor(ConvertCompressionAlgorithm(algorithm), nullptr, &decompressor), Error);
 
     SIZE_T decompressedByteCount = 0;
     bool result = Decompress(decompressor, compressedBuffer, compressedBufferByteCount, nullptr, 0, &decompressedByteCount);
@@ -122,7 +119,7 @@ HRESULT CompressionUtilities::DecompressBuffer(
     IFFALSEGO(*decompressedBuffer != nullptr, Error);
 
     SIZE_T uncompressedDataSize = 0;
-    IFFALSEGO(Decompress(decompressor, compressedBuffer, compressedBufferByteCount, *decompressedBuffer, decompressedByteCount, &uncompressedDataSize), Error);
+    IFFALSEGOANDGETLASTERROR(Decompress(decompressor, compressedBuffer, compressedBufferByteCount, *decompressedBuffer, decompressedByteCount, &uncompressedDataSize), Error);
     *decompressedBufferByteCount = uncompressedDataSize;
 
     hr = S_OK;
@@ -132,6 +129,8 @@ Error:
     {
         CloseDecompressor(decompressor);
     }
+#else
+    hr = E_NOTIMPL;
 #endif
 
     return hr;
