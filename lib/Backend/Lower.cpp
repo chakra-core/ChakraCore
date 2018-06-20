@@ -20072,6 +20072,8 @@ void Lowerer::GenerateFastArrayIsIn(IR::Instr * instr)
 
     if (
         !src1->GetValueType().IsLikelyInt() ||
+        // Do not do a fast path if we know for sure we don't have an int
+        src1->IsNotInt() ||
         !src2->GetValueType().IsLikelyArray() ||
         !src2->GetValueType().HasNoMissingValues())
     {
