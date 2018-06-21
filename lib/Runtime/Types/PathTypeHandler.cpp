@@ -388,7 +388,17 @@ namespace Js
 #endif
                 // This can happen if object header inlining is deoptimized, and we haven't built a full path from the root.
                 // For now, just punt this case.
-                return TryConvertToSimpleDictionaryType(instance, GetPathLength())->SetAttributes(instance, propertyId, ObjectSlotAttributesToPropertyAttributes(propertyAttributes));
+
+                if (setAllAttributes)
+                {
+                    // We could be trying to convert an accessor to a data property, or something similar, so do the type handler conversion here and let the caller handle setting the attributes.
+                    TryConvertToSimpleDictionaryType(instance, GetPathLength());
+                    return false;
+                }
+                else
+                {
+                    return TryConvertToSimpleDictionaryType(instance, GetPathLength())->SetAttributes(instance, propertyId, ObjectSlotAttributesToPropertyAttributes(propertyAttributes));
+                }
             }
             predTypeHandler = PathTypeHandlerBase::FromTypeHandler(currentType->GetTypeHandler());
         }
@@ -752,16 +762,25 @@ namespace Js
             // In CacheOperators::CachePropertyWrite we ensure that we never cache property adds for types that aren't shared.
             Assert(!instance->GetDynamicType()->GetIsShared() || GetIsShared());
 
+            bool setAttrDone;
             if (setAttributes)
             {
-                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, true);
+                setAttrDone = this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, true);
+                if (!setAttrDone)
+                {
+                    return instance->GetTypeHandler()->SetPropertyWithAttributes(instance, propertyId, value, attr, info, flags, possibleSideEffects);
+                }
             }
             else if (isInit)
             {
                 ObjectSlotAttributes * attributes = this->GetAttributeArray();
                 if (attributes && (attributes[index] & ObjectSlotAttr_Accessor))
                 {
-                    this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
+                    setAttrDone = this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
+                    if (!setAttrDone)
+                    {
+                        return instance->GetTypeHandler()->InitProperty(instance, propertyId, value, flags, info);
+                    }
                     // We're changing an accessor into a data property at object init time. Don't cache this transition from setter to non-setter,
                     // as it behaves differently from a normal set property.
                     PropertyValueInfo::SetNoCache(info, instance);
