@@ -53,6 +53,8 @@ namespace Js
         bits = NotNativeIntBit | NotNativeFloatBit;
     }
 
+    CriticalSection DynamicProfileInfo::callSiteInfoCS;
+
     DynamicProfileInfo* DynamicProfileInfo::New(Recycler* recycler, FunctionBody* functionBody, bool persistsAcrossScriptContexts)
     {
         size_t totalAlloc = 0;
@@ -541,12 +543,14 @@ namespace Js
 #ifdef ASMJS_PLAT
     void DynamicProfileInfo::RecordAsmJsCallSiteInfo(FunctionBody* callerBody, ProfileId callSiteId, FunctionBody* calleeBody)
     {
+        AutoCriticalSection cs(&this->callSiteInfoCS);
+
         if (!callerBody || !callerBody->GetIsAsmjsMode() || !calleeBody || !calleeBody->GetIsAsmjsMode())
         {
             AssertMsg(UNREACHED, "Call to RecordAsmJsCallSiteInfo without two asm.js/wasm FunctionBody");
             return;
         }
-        
+
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
         // different script context
@@ -688,6 +692,8 @@ namespace Js
 
     void DynamicProfileInfo::RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo* calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId)
     {
+        AutoCriticalSection cs(&this->callSiteInfoCS);
+
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
         // different script context
@@ -788,6 +794,7 @@ namespace Js
             localPolyCallSiteInfo->functionIds[i] = CallSiteNoInfo;
         }
 
+        Assert(this->callSiteInfoCS.IsLocked());
         callSiteInfo[callSiteId].isPolymorphic = true;
         callSiteInfo[callSiteId].u.polymorphicCallSiteInfo = localPolyCallSiteInfo;
         funcBody->SetPolymorphicCallSiteInfoHead(localPolyCallSiteInfo);
@@ -797,6 +804,8 @@ namespace Js
     {
         if (dynamicProfileFunctionInfo)
         {
+            AutoCriticalSection cs(&this->callSiteInfoCS);
+
             for (ProfileId i = 0; i < dynamicProfileFunctionInfo->callSiteInfoCount; i++)
             {
                 if (callSiteInfo[i].isPolymorphic)
@@ -809,6 +818,8 @@ namespace Js
 
     void DynamicProfileInfo::ResetPolymorphicCallSiteInfo(ProfileId callSiteId, Js::LocalFunctionId functionId)
     {
+        Assert(this->callSiteInfoCS.IsLocked());
+
         callSiteInfo[callSiteId].isPolymorphic = false;
         callSiteInfo[callSiteId].u.functionData.sourceId = CurrentSourceId;
         callSiteInfo[callSiteId].u.functionData.functionId = functionId;
@@ -991,6 +1002,7 @@ namespace Js
 
     FunctionInfo * DynamicProfileInfo::GetFunctionInfo(FunctionBody* functionBody, Js::SourceId sourceId, Js::LocalFunctionId functionId)
     {
+        Assert(ThreadContext::GetContextForCurrentThread());
         if (sourceId == BuiltInSourceId)
         {
             return JavascriptBuiltInFunction::GetFunctionInfo(functionId);
@@ -1048,8 +1060,30 @@ namespace Js
         return nullptr;
     }
 
+    bool DynamicProfileInfo::MayHaveNonBuiltinCallee(ProfileId callSiteId)
+    {
+        AutoCriticalSection cs(&this->callSiteInfoCS);
+
+        if (this->callSiteInfo[callSiteId].dontInline)
+        {
+            return true;
+        }
+
+        if (!this->callSiteInfo[callSiteId].isPolymorphic)
+        {
+            Js::SourceId sourceId = this->callSiteInfo[callSiteId].u.functionData.sourceId;
+            if (sourceId == BuiltInSourceId)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     FunctionInfo * DynamicProfileInfo::GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall)
     {
+        Assert(ThreadContext::GetContextForCurrentThread());
         Assert(functionBody);
         const auto callSiteCount = functionBody->GetProfiledCallSiteCount();
         Assert(callSiteId < callSiteCount);
