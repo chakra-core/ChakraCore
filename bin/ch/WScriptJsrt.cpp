@@ -2025,8 +2025,6 @@ void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef
 {
     Assert(promise != JS_INVALID_REFERENCE);
     Assert(reason != JS_INVALID_REFERENCE);
-    JsValueRef strValue;
-    JsErrorCode error = ChakraRTInterface::JsConvertValueToString(reason, &strValue);
 
     if (!handled)
     {
@@ -2037,11 +2035,32 @@ void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef
         wprintf(_u("Promise rejection handled\n"));
     }
 
+    JsPropertyIdRef stackPropertyID; 
+    JsErrorCode error = ChakraRTInterface::JsCreatePropertyId("stack", strlen("stack"), &stackPropertyID);
     if (error == JsNoError)
     {
-        AutoString str(strValue);
-        if (str.GetError() == JsNoError)
+        JsValueRef stack;
+        error = ChakraRTInterface::JsGetProperty(reason, stackPropertyID, &stack);
+        if (error == JsNoError)
         {
+            JsValueRef stackStrValue;
+            error = ChakraRTInterface::JsConvertValueToString(stack, &stackStrValue);
+            if (error == JsNoError)
+            {
+                AutoString str(stackStrValue);
+                wprintf(_u("%ls\n"), str.GetWideString());
+            }
+        }
+    }
+    
+    if (error != JsNoError)
+    {
+        // weren't able to print stack, so just convert reason to a string
+        JsValueRef strValue;
+        error = ChakraRTInterface::JsConvertValueToString(reason, &strValue);
+        if (error == JsNoError)
+        {
+            AutoString str(strValue);
             wprintf(_u("%ls\n"), str.GetWideString());
         }
     }
