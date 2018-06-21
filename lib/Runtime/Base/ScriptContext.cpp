@@ -569,6 +569,9 @@ namespace Js
         }
 #endif
 
+        Assert(this->IsActuallyClosed());
+        this->GetThreadContext()->closedScriptContextCount--;
+
         PERF_COUNTER_DEC(Basic, ScriptContext);
     }
 
@@ -617,6 +620,7 @@ namespace Js
     void ScriptContext::InternalClose()
     {
         isScriptContextActuallyClosed = true;
+        this->GetThreadContext()->closedScriptContextCount++;
 
         PERF_COUNTER_DEC(Basic, ScriptContextActive);
 
