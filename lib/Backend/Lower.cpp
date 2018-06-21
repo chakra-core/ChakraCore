@@ -7380,7 +7380,7 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
 
     if (hasTypeCheckBailout)
     {
-        AssertMsg(PHASE_ON1(Js::ObjTypeSpecIsolatedFldOpsWithBailOutPhase) || !propertySymOpnd->IsTypeDead(),
+        AssertMsg(PHASE_ON1(Js::ObjTypeSpecIsolatedFldOpsWithBailOutPhase) || !propertySymOpnd->IsTypeDead() || propertySymOpnd->TypeCheckRequired(),
             "Why does a field store have a type check bailout, if its type is dead?");
 
         if (instrStFld->GetBailOutInfo()->bailOutInstr != instrStFld)
@@ -7442,10 +7442,11 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     // cache and no type check bailout. In the latter case, we can wind up doing expensive failed equivalence checks
     // repeatedly and never rejit.
     bool doEquivTypeCheck =
-        propertySymOpnd->HasEquivalentTypeSet() &&
-        !(propertySymOpnd->HasFinalType() && propertySymOpnd->HasInitialType()) &&
-        !propertySymOpnd->MustDoMonoCheck() &&
-        (propertySymOpnd->IsPoly() || instrChk->HasTypeCheckBailOut());
+        (instrChk->HasEquivalentTypeCheckBailOut() && propertySymOpnd->TypeCheckRequired()) ||
+        (propertySymOpnd->HasEquivalentTypeSet() &&
+         !(propertySymOpnd->HasFinalType() && propertySymOpnd->HasInitialType()) &&
+         !propertySymOpnd->MustDoMonoCheck() &&
+         (propertySymOpnd->IsPoly() || instrChk->HasTypeCheckBailOut()));
     Assert(doEquivTypeCheck || !instrChk->HasEquivalentTypeCheckBailOut());
 
     // Create and initialize the property guard if required. Note that for non-shared monomorphic checks we can refer

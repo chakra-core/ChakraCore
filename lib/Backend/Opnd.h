@@ -647,6 +647,7 @@ public:
                     bool initialTypeChecked: 1;
                     bool typeMismatch: 1;
                     bool writeGuardChecked: 1;
+                    bool typeCheckRequired: 1;
                 };
                 uint8 typeCheckSeqFlags;
             };
@@ -1012,6 +1013,17 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->writeGuardChecked = value;
+    }
+
+    bool TypeCheckRequired() const
+    {
+        return this->typeCheckRequired;
+    }
+
+    void SetTypeCheckRequired(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->typeCheckRequired = value;
     }
 
     uint16 GetObjTypeSpecFlags() const

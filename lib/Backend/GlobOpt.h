@@ -938,6 +938,9 @@ private:
     template<bool makeChanges>
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
     void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
+    bool                    HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
+    template<class Fn>
+    bool                    MapObjectHeaderInlinedTypeSymsUntil(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId, Fn fn);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
     void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);

@@ -788,6 +788,10 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
         {
             this->KillObjectHeaderInlinedTypeSyms(block, isObjTypeSpecialized, opndId);
         }
+        else if (!isObjTypeChecked && this->HasLiveObjectHeaderInlinedTypeSym(block, true, opndId))
+        {
+            opnd->SetTypeCheckRequired(true);
+        }
     }
 
     return isObjTypeSpecialized;
@@ -796,9 +800,22 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
 void
 GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId)
 {
+    this->MapObjectHeaderInlinedTypeSymsUntil(block, isObjTypeSpecialized, opndId, [&](SymID symId)->bool  { this->currentBlock->globOptData.liveFields->Clear(symId); return false; });
+}
+
+bool
+GlobOpt::HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId)
+{
+    return this->MapObjectHeaderInlinedTypeSymsUntil(block, true, opndId, [&](SymID symId)->bool { return this->currentBlock->globOptData.liveFields->Test(symId); });
+}
+
+template<class Fn>
+bool
+GlobOpt::MapObjectHeaderInlinedTypeSymsUntil(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId, Fn fn)
+{
     if (this->objectTypeSyms == nullptr)
     {
-        return;
+        return false;
     }
 
     FOREACH_BITSET_IN_SPARSEBV(symId, this->objectTypeSyms)
@@ -821,7 +838,10 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
                 {
                     if (type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
                     {
-                        this->currentBlock->globOptData.liveFields->Clear(symId);
+                        if (fn(symId))
+                        {
+                            return true;
+                        }
                     }
                 }
             }
@@ -835,7 +855,10 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
                     {
                         if (type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
                         {
-                            this->currentBlock->globOptData.liveFields->Clear(symId);
+                            if (fn(symId))
+                            {
+                                return true;
+                            }
                             break;
                         }
                     }
@@ -844,6 +867,8 @@ GlobOpt::KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecia
         }
     }
     NEXT_BITSET_IN_SPARSEBV;
+
+    return false;
 }
 
 bool
