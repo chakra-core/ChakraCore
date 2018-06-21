@@ -41,6 +41,23 @@ public:
 #endif
 
 private:
+    class AutoResetWaitingToEnterIdleDecommitFlag
+    {
+    public:
+        AutoResetWaitingToEnterIdleDecommitFlag(IdleDecommitPageAllocator * pageAllocator)
+        {
+            this->pageAllocator = pageAllocator;
+            pageAllocator->waitingToEnterIdleDecommit = true;
+        }
+
+        ~AutoResetWaitingToEnterIdleDecommitFlag()
+        {
+            pageAllocator->waitingToEnterIdleDecommit = false;
+        }
+
+    private:
+        IdleDecommitPageAllocator * pageAllocator;
+    };
 
 #ifdef IDLE_DECOMMIT_ENABLED
 #if DBG_DUMP
@@ -83,5 +100,4 @@ public:
     }
 #endif
 };
-
 }
