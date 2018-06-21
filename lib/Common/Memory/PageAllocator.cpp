@@ -2519,7 +2519,8 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::Check()
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     if (CONFIG_FLAG(EnableBGFreeZero))
     {
-        Assert(!this->HasZeroQueuedPages());
+        // We may have backed-off from the idle decommit on the background thread.
+        Assert(!this->HasZeroQueuedPages() || this->waitingToEnterIdleDecommit);
     }
 #endif
     size_t currentFreePageCount = 0;
