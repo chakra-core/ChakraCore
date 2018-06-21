@@ -76,6 +76,7 @@ void RpcFailure_unrecoverable_error(HRESULT hr);
 void OutOfMemory_unrecoverable_error();
 void RecyclerSingleAllocationLimit_unrecoverable_error();
 void MemGCSingleAllocationLimit_unrecoverable_error();
+void OutOfMemoryAllocatorPolicy_unrecoverable_error();
 void OutOfMemoryTooManyPinnedObjects_unrecoverable_error();
 void OutOfMemoryTooManyClosedContexts_unrecoverable_error();
 
