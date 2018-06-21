@@ -83,6 +83,11 @@
   </test>
   <test>
     <default>
+      <files>defaultsetterbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>BigDictionaryTypeHandler.js</files>
     </default>
   </test>
