@@ -18,8 +18,7 @@ const MaxFunctionLocals = 50000;
 const MaxFunctionParams = 1000;
 const MaxBrTableElems = 1000000;
 
-const MaxMemoryInitialPages = 16384;
-const MaxMemoryMaximumPages = 65536;
+const MaxMemoryPages = 32767;
 const MaxModuleSize = 1024 * 1024 * 1024;
 const MaxFunctionSize = 7654321;
 
@@ -239,12 +238,12 @@ const tests = [
   {
     name: "test max memory pages",
     body() {
-      assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages}));
-      assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages, maximum: MaxMemoryMaximumPages}));
-      assert.doesNotThrow(() => new WebAssembly.Memory({maximum: MaxMemoryMaximumPages}));
-      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages + 1}));
-      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryInitialPages + 1, maximum: MaxMemoryMaximumPages + 1}));
-      assert.throws(() => new WebAssembly.Memory({maximum: MaxMemoryMaximumPages + 1}));
+      //assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryPages}));
+      //assert.doesNotThrow(() => new WebAssembly.Memory({initial: MaxMemoryPages, maximum: MaxMemoryPages}));
+      //assert.doesNotThrow(() => new WebAssembly.Memory({maximum: MaxMemoryPages}));
+      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryPages + 1}));
+      assert.throws(() => new WebAssembly.Memory({initial: MaxMemoryPages + 1, maximum: MaxMemoryPages + 1}));
+      assert.throws(() => new WebAssembly.Memory({maximum: MaxMemoryPages + 1}));
 
       const makeModule = (min, max) => {
         const builder = new WasmModuleBuilder();
@@ -252,12 +251,12 @@ const tests = [
         return new WebAssembly.Module(builder.toBuffer());
       };
 
-      assert.doesNotThrow(() => makeModule(MaxMemoryInitialPages));
-      assert.doesNotThrow(() => makeModule(MaxMemoryInitialPages, MaxMemoryMaximumPages));
-      assert.doesNotThrow(() => makeModule(0, MaxMemoryMaximumPages));
-      assert.throws(() => makeModule(MaxMemoryInitialPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
-      assert.throws(() => makeModule(MaxMemoryInitialPages + 1, MaxMemoryMaximumPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
-      assert.throws(() => makeModule(0, MaxMemoryMaximumPages + 1), WebAssembly.CompileError, "Maximum memory size too big");
+      assert.doesNotThrow(() => makeModule(MaxMemoryPages));
+      assert.doesNotThrow(() => makeModule(MaxMemoryPages, MaxMemoryPages));
+      assert.doesNotThrow(() => makeModule(0, MaxMemoryPages));
+      assert.throws(() => makeModule(MaxMemoryPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => makeModule(MaxMemoryPages + 1, MaxMemoryPages + 1), WebAssembly.CompileError, "Minimum memory size too big");
+      assert.throws(() => makeModule(0, MaxMemoryPages + 1), WebAssembly.CompileError, "Maximum memory size too big");
     }
   },
   // Tests 24

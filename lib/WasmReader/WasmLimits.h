@@ -24,8 +24,7 @@ namespace Wasm {
         static const uint32 MaxFunctionReturns = 10000; // todo::We need to figure out what is the right limit here
         static const uint32 MaxBrTableElems = 1000000;
 
-        static const uint32 MaxMemoryInitialPages = 16384;
-        static const uint32 MaxMemoryMaximumPages = 65536;
+        static const uint32 MaxMemoryPages = Js::ArrayBuffer::MaxArrayBufferLength / Js::WebAssembly::PageSize;
         static const uint32 MaxModuleSize = 1024 * 1024 * 1024;
         static const uint32 MaxFunctionSize = 7654321;
     public:
@@ -49,8 +48,8 @@ namespace Wasm {
             return 1;
         }
         static uint64 GetMaxBrTableElems() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxBrTableElems; }
-        static uint32 GetMaxMemoryInitialPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryInitialPages; }
-        static uint32 GetMaxMemoryMaximumPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryMaximumPages; }
+        static uint32 GetMaxMemoryInitialPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryPages; }
+        static uint32 GetMaxMemoryMaximumPages() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxMemoryPages; }
         static uint32 GetMaxModuleSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxModuleSize; }
         static uint32 GetMaxFunctionSize() { return CONFIG_FLAG(WasmIgnoreLimits) ? UINT32_MAX : MaxFunctionSize; }
     };
