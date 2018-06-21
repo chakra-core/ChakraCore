@@ -2023,11 +2023,11 @@ void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef
 
     if (!handled)
     {
-        wprintf(_u("Uncaught promise rejection\n"));
+        wprintf(_u("Promise 0x%p: Uncaught promise rejection (unhandledrejection)\n"), promise);
     }
     else
     {
-        wprintf(_u("Promise rejection handled\n"));
+        wprintf(_u("Promise 0x%p: Promise rejection handled (rejectionhandled)\n"), promise);
     }
 
     JsPropertyIdRef stackPropertyID; 
