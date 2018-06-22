@@ -173,4 +173,12 @@ _NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error()
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
+// same as OutOfMemory_unrecoverable_error, but with a different `scenario`
+// - just to cause separate bucketing of these failures 
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error()
+{
+    int scenario = 14;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
 #pragma optimize("",on)
