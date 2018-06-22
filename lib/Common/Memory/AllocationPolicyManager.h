@@ -134,16 +134,17 @@ private:
         if (newCurrentMemory < currentMemory ||
             newCurrentMemory > memoryLimit ||
             (memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount)))
-        {
-            if (memoryAllocationCallback != NULL)
-            {
-                memoryAllocationCallback(context, MemoryAllocateEvent::MemoryFailure, byteCount);
-            }
-            
+        {            
             // oopjit number allocator allocated pages, we can't stop it from allocating so just increase the usage number
             if (externalAlloc)
             {
                 currentMemory = newCurrentMemory;
+                return true;
+            }
+
+            if (memoryAllocationCallback != NULL)
+            {
+                memoryAllocationCallback(context, MemoryAllocateEvent::MemoryFailure, byteCount);
             }
 
             return false;
