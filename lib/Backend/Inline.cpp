@@ -4949,6 +4949,7 @@ Inline::MapFormals(Func *inlinee,
         }
 
         case Js::OpCode::ArgIn_A:
+        {
             formalOpnd = instr->UnlinkSrc1()->AsSymOpnd();
             argIndex = formalOpnd->m_sym->AsStackSym()->GetParamSlotNum() - 1;
             if (argIndex >= formalCount)
@@ -5021,7 +5022,9 @@ Inline::MapFormals(Func *inlinee,
                 instr->GetSrc1()->SetValueType(ValueType::Undefined);
                 instr->m_opcode = Js::OpCode::Ld_A;
             }
-            break;
+            instr->GetDst()->SetValueType(ValueType::Uninitialized);
+        }
+        break;
 
         case Js::OpCode::ArgOut_A_FromStackArgs:
             {

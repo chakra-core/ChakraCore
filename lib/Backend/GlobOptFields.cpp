@@ -1916,8 +1916,16 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
             break;
         }
     }
+
+    ValueInfo *const newValueInfo = objVal->GetValueInfo()->CopyWithGenericStructureKind(alloc);
+    newValueInfo->Type() = newValueType;
+
+    if (!AreValueInfosCompatible(objVal->GetValueInfo(), newValueInfo))
+    {
+        return;
+    }
     if (newValueType != ValueType::Uninitialized)
     {
-        ChangeValueType(currentBlock, objVal, newValueType, false, true);
+        ChangeValueInfo(currentBlock, objVal, newValueInfo);
     }
 }

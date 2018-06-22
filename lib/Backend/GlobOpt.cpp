@@ -15247,7 +15247,7 @@ GlobOpt::HoistInvariantValueInfo(
         newValueInfo = invariantValueInfoToHoist->Copy(alloc);
         this->SetSymStoreDirect(newValueInfo, symStore);
     }
-    ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo, true);
+    ChangeValueInfo(targetBlock, valueToUpdate, newValueInfo);
 }
 
 // static
