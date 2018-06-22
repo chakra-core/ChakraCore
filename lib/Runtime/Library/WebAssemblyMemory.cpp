@@ -298,7 +298,6 @@ WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, bool isSha
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     ArrayBufferBase* buffer = nullptr;
 #ifdef ENABLE_WASM_THREADS
