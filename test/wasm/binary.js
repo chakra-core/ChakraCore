@@ -29,8 +29,8 @@ function makeReservedTest(name, body, msg) {
 }
 
 const tests = [
-  makeReservedTest("current_memory reserved", [kExprMemorySize, 1], "current_memory reserved value must be 0"),
-  makeReservedTest("grow_memory reserved", [kExprGrowMemory, 1], "grow_memory reserved value must be 0"),
+  makeReservedTest("memory.size reserved", [kExprMemorySize, 1], "memory.size reserved value must be 0"),
+  makeReservedTest("memory.grow reserved", [kExprMemoryGrow, 1], "memory.grow reserved value must be 0"),
   makeReservedTest("call_indirect reserved", [kExprCallIndirect, 1], "call_indirect reserved value must be 0"),
 ];
 

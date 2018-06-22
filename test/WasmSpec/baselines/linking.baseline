@@ -1,1 +1,20 @@
-96/96 tests passed.
+(12) testsuite/core/linking.wast:39: generate module  as $Mg failed. Unexpected Error: CompileError: Mutable globals cannot be exported
+(14) testsuite/core/linking.wast:50: generate module  as $Ng failed. Unexpected Error: CompileError: Mutable globals cannot be imported
+(15) testsuite/core/linking.wast:67: assert_return($Mg[glob] == i32:42) failed. Unexpectedly threw: Error: Module unavailable to run action
+(16) testsuite/core/linking.wast:68: assert_return($Ng[Mg.glob] == i32:42) failed. Unexpectedly threw: Error: Module unavailable to run action
+(17) testsuite/core/linking.wast:69: assert_return($Ng[glob] == i32:43) failed. Unexpectedly threw: Error: Module unavailable to run action
+(18) testsuite/core/linking.wast:70: assert_return($Mg.get() == i32:42) failed. Unexpectedly threw: Error: Module unavailable to run action
+(19) testsuite/core/linking.wast:71: assert_return($Ng.Mg.get() == i32:42) failed. Unexpectedly threw: Error: Module unavailable to run action
+(20) testsuite/core/linking.wast:72: assert_return($Ng.get() == i32:43) failed. Unexpectedly threw: Error: Module unavailable to run action
+(21) testsuite/core/linking.wast:74: assert_return($Mg[mut_glob] == i32:142) failed. Unexpectedly threw: Error: Module unavailable to run action
+(22) testsuite/core/linking.wast:75: assert_return($Ng[Mg.mut_glob] == i32:142) failed. Unexpectedly threw: Error: Module unavailable to run action
+(23) testsuite/core/linking.wast:76: assert_return($Mg.get_mut() == i32:142) failed. Unexpectedly threw: Error: Module unavailable to run action
+(24) testsuite/core/linking.wast:77: assert_return($Ng.Mg.get_mut() == i32:142) failed. Unexpectedly threw: Error: Module unavailable to run action
+(25) testsuite/core/linking.wast:79: assert_return($Mg.set_mut(i32:241) == ) failed. Unexpectedly threw: Error: Module unavailable to run action
+(26) testsuite/core/linking.wast:80: assert_return($Mg[mut_glob] == i32:241) failed. Unexpectedly threw: Error: Module unavailable to run action
+(27) testsuite/core/linking.wast:81: assert_return($Ng[Mg.mut_glob] == i32:241) failed. Unexpectedly threw: Error: Module unavailable to run action
+(28) testsuite/core/linking.wast:82: assert_return($Mg.get_mut() == i32:241) failed. Unexpectedly threw: Error: Module unavailable to run action
+(29) testsuite/core/linking.wast:83: assert_return($Ng.Mg.get_mut() == i32:241) failed. Unexpectedly threw: Error: Module unavailable to run action
+(30) testsuite/core/linking.wast:87: assert_unlinkable module failed. Expected a linking error: TypeError: Import module 'Mg' is invalid
+(31) testsuite/core/linking.wast:91: assert_unlinkable module failed. Expected a linking error: CompileError: Mutable globals cannot be imported
+88/107 tests passed.

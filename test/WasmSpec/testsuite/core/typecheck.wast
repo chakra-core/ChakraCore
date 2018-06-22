@@ -421,5 +421,5 @@
 (assert_invalid (module (func (f64.promote/f32 (i32.const 0)))) "type mismatch")
 (assert_invalid (module (func (f64.reinterpret/i64 (i32.const 0)))) "type mismatch")
 
-;; grow_memory
-(assert_invalid (module (memory 1) (func (grow_memory (f32.const 0)))) "type mismatch")
+;; memory.grow
+(assert_invalid (module (memory 1) (func (memory.grow (f32.const 0)))) "type mismatch")

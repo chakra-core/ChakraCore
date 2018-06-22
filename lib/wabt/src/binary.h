@@ -59,6 +59,7 @@ enum class BinarySection {
 static const int kBinarySectionCount = WABT_ENUM_COUNT(BinarySection);
 
 enum class NameSectionSubsection {
+  Module = 0,
   Function = 1,
   Local = 2,
 };

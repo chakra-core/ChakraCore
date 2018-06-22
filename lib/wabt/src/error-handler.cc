@@ -23,7 +23,8 @@ namespace wabt {
 ErrorHandler::ErrorHandler(Location::Type location_type)
     : location_type_(location_type) {}
 
-std::string ErrorHandler::DefaultErrorMessage(const Color& color,
+std::string ErrorHandler::DefaultErrorMessage(ErrorLevel error_level,
+                                              const Color& color,
                                               const Location& loc,
                                               const std::string& error,
                                               const std::string& source_line,
@@ -46,7 +47,8 @@ std::string ErrorHandler::DefaultErrorMessage(const Color& color,
   }
 
   result += color.MaybeRedCode();
-  result += "error: ";
+  result += GetErrorLevelName(error_level);
+  result += ": ";
   result += color.MaybeDefaultCode();
 
   result += error;
@@ -89,15 +91,17 @@ ErrorHandlerFile::ErrorHandlerFile(Location::Type location_type,
       source_line_max_length_(source_line_max_length),
       color_(file) {}
 
-bool ErrorHandlerFile::OnError(const Location& loc,
+bool ErrorHandlerFile::OnError(ErrorLevel level,
+                               const Location& loc,
                                const std::string& error,
                                const std::string& source_line,
                                size_t source_line_column_offset) {
   PrintErrorHeader();
   int indent = header_.empty() ? 0 : 2;
 
-  std::string message = DefaultErrorMessage(color_, loc, error, source_line,
-                                            source_line_column_offset, indent);
+  std::string message =
+      DefaultErrorMessage(level, color_, loc, error, source_line,
+                          source_line_column_offset, indent);
   fwrite(message.data(), 1, message.size(), file_);
   return true;
 }
@@ -127,11 +131,12 @@ ErrorHandlerBuffer::ErrorHandlerBuffer(Location::Type location_type,
       source_line_max_length_(source_line_max_length),
       color_(nullptr, false) {}
 
-bool ErrorHandlerBuffer::OnError(const Location& loc,
+bool ErrorHandlerBuffer::OnError(ErrorLevel level,
+                                 const Location& loc,
                                  const std::string& error,
                                  const std::string& source_line,
                                  size_t source_line_column_offset) {
-  buffer_ += DefaultErrorMessage(color_, loc, error, source_line,
+  buffer_ += DefaultErrorMessage(level, color_, loc, error, source_line,
                                  source_line_column_offset, 0);
   return true;
 }

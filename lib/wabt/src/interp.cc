@@ -647,10 +647,10 @@ inline Opcode ReadOpcode(const uint8_t** pc) {
 inline void read_table_entry_at(const uint8_t* pc,
                                 IstreamOffset* out_offset,
                                 uint32_t* out_drop,
-                                uint8_t* out_keep) {
+                                uint32_t* out_keep) {
   *out_offset = ReadU32At(pc + WABT_TABLE_ENTRY_OFFSET_OFFSET);
   *out_drop = ReadU32At(pc + WABT_TABLE_ENTRY_DROP_OFFSET);
-  *out_keep = ReadU8At(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
+  *out_keep = ReadU32At(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
 }
 
 Memory* Thread::ReadMemory(const uint8_t** pc) {
@@ -728,10 +728,9 @@ ValueTypeRep<T> Thread::PopRep() {
   return GetValue<T>(Pop());
 }
 
-void Thread::DropKeep(uint32_t drop_count, uint8_t keep_count) {
-  assert(keep_count <= 1);
-  if (keep_count == 1) {
-    Pick(drop_count + 1) = Top();
+void Thread::DropKeep(uint32_t drop_count, uint32_t keep_count) {
+  for (uint32_t i = 0; i < keep_count; ++i) {
+    Pick(drop_count + i + 1) = Pick(i + 1);
   }
   value_stack_top_ -= drop_count;
 }
@@ -1474,7 +1473,7 @@ Result Thread::Run(int num_instructions) {
         const uint8_t* entry = istream + table_offset + key_offset;
         IstreamOffset new_pc;
         uint32_t drop_count;
-        uint8_t keep_count;
+        uint32_t keep_count;
         read_table_entry_at(entry, &new_pc, &drop_count, &keep_count);
         DropKeep(drop_count, keep_count);
         GOTO(new_pc);
@@ -1780,11 +1779,11 @@ Result Thread::Run(int num_instructions) {
         CHECK_TRAP(AtomicRmwCmpxchg<uint32_t, uint64_t>(&pc));
         break;
 
-      case Opcode::CurrentMemory:
+      case Opcode::MemorySize:
         CHECK_TRAP(Push<uint32_t>(ReadMemory(&pc)->page_limits.initial));
         break;
 
-      case Opcode::GrowMemory: {
+      case Opcode::MemoryGrow: {
         Memory* memory = ReadMemory(&pc);
         uint32_t old_page_size = memory->page_limits.initial;
         uint32_t grow_pages = Pop<uint32_t>();
@@ -2389,7 +2388,7 @@ Result Thread::Run(int num_instructions) {
 
       case Opcode::InterpDropKeep: {
         uint32_t drop_count = ReadU32(&pc);
-        uint8_t keep_count = *pc++;
+        uint32_t keep_count = ReadU32(&pc);
         DropKeep(drop_count, keep_count);
         break;
       }
@@ -3208,7 +3207,7 @@ void Thread::Trace(Stream* stream) {
       stream->Writef("%s\n", opcode.GetName());
       break;
 
-    case Opcode::CurrentMemory: {
+    case Opcode::MemorySize: {
       Index memory_index = ReadU32(&pc);
       stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
       break;
@@ -3410,7 +3409,7 @@ void Thread::Trace(Stream* stream) {
       break;
     }
 
-    case Opcode::GrowMemory: {
+    case Opcode::MemoryGrow: {
       Index memory_index = ReadU32(&pc);
       stream->Writef("%s $%" PRIindex ":%u\n", opcode.GetName(), memory_index,
                      Top().i32);
@@ -3610,7 +3609,7 @@ void Thread::Trace(Stream* stream) {
 
     case Opcode::InterpDropKeep:
       stream->Writef("%s $%u $%u\n", opcode.GetName(), ReadU32At(pc),
-                     *(pc + 4));
+                     ReadU32At(pc + 4));
       break;
 
     case Opcode::V128Const: {
@@ -3896,7 +3895,7 @@ void Environment::Disassemble(Stream* stream,
         stream->Writef("%s\n", opcode.GetName());
         break;
 
-      case Opcode::CurrentMemory: {
+      case Opcode::MemorySize: {
         Index memory_index = ReadU32(&pc);
         stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
         break;
@@ -4349,7 +4348,7 @@ void Environment::Disassemble(Stream* stream,
             ReadU32(&pc));
         break;
 
-      case Opcode::GrowMemory: {
+      case Opcode::MemoryGrow: {
         Index memory_index = ReadU32(&pc);
         stream->Writef("%s $%" PRIindex ":%%[-1]\n", opcode.GetName(),
                        memory_index);
@@ -4366,7 +4365,7 @@ void Environment::Disassemble(Stream* stream,
 
       case Opcode::InterpDropKeep: {
         uint32_t drop = ReadU32(&pc);
-        uint8_t keep = *pc++;
+        uint32_t keep = ReadU32(&pc);
         stream->Writef("%s $%u $%u\n", opcode.GetName(), drop, keep);
         break;
       }
@@ -4382,7 +4381,7 @@ void Environment::Disassemble(Stream* stream,
             stream->Writef("%4" PRIzd "| ", pc - istream);
             IstreamOffset offset;
             uint32_t drop;
-            uint8_t keep;
+            uint32_t keep;
             read_table_entry_at(pc, &offset, &drop, &keep);
             stream->Writef("  entry %" PRIindex
                            ": offset: %u drop: %u keep: %u\n",

@@ -125,12 +125,24 @@ function run(inPath, iStart, iEnd) {
   const data = read(inPath);
   const {commands} = WebAssembly.wabt.convertWast2Wasm(data, {spec: true});
 
-  const registry = Object.assign({spectest: {
-    print,
-    global: 666,
-    table: new WebAssembly.Table({initial: 10, maximum: 20, element: "anyfunc"}),
-    memory: new WebAssembly.Memory({initial: 1, maximum: 2})
-  }}, IMPORTS_FROM_OTHER_SCRIPT);
+  const registry = Object.assign({
+    "not wasm": {
+      overload() {}
+    },
+    spectest: {
+      print,
+      print_i32: console.log.bind(console),
+      print_i32_f32: console.log.bind(console),
+      print_f64_f64: console.log.bind(console),
+      print_f32: console.log.bind(console),
+      print_f64: console.log.bind(console),
+      global_i32: 666,
+      global_f32: 666,
+      global_f64: 666,
+      table: new WebAssembly.Table({initial: 10, maximum: 20, element: "anyfunc"}),
+      memory: new WebAssembly.Memory({initial: 1, maximum: 2})
+    }
+  }, IMPORTS_FROM_OTHER_SCRIPT);
 
   const moduleRegistry = {};
   moduleRegistry.currentModule = null;
@@ -173,7 +185,9 @@ function run(inPath, iStart, iEnd) {
 
       case "register": {
         const {as, name = "currentModule"} = command;
-        registry[as] = moduleRegistry[name].exports;
+        if (moduleRegistry[name]) {
+          registry[as] = moduleRegistry[name].exports;
+        }
         break;
       }
 

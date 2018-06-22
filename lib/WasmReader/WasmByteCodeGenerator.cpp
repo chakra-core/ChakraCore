@@ -770,15 +770,15 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbNop:
         return;
-    case wbCurrentMemory:
+    case wbMemorySize:
     {
         SetUsesMemory(0);
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
-        m_writer->AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        m_writer->AsmReg1(Js::OpCodeAsmJs::MemorySize_Int, tempReg);
         break;
     }
-    case wbGrowMemory:
+    case wbMemoryGrow:
     {
         info = EmitGrowMemory();
         break;
