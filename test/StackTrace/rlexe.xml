@@ -141,4 +141,11 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <tags>StackTrace</tags>
+      <files>InlineOffset.js</files>
+      <baseline>InlineOffset.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

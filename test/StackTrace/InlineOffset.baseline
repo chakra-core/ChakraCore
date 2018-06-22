@@ -1,0 +1,5 @@
+TypeError: Assignment to read-only properties is not allowed in strict mode
+   at baz (InlineOffset.js:16:5)
+   at bar (InlineOffset.js:22:5)
+   at foo (InlineOffset.js:29:5)
+   at Global code (InlineOffset.js:37:5)
