@@ -437,16 +437,16 @@ WasmOp WasmBinaryReader::ReadExpr()
         break;
     case wbNop:
         break;
-    case wbCurrentMemory:
-    case wbGrowMemory:
+    case wbMemorySize:
+    case wbMemoryGrow:
     {
         // Reserved value currently unused
         uint8 reserved = ReadConst<uint8>();
         if (reserved != 0)
         {
-            ThrowDecodingError(op == wbCurrentMemory
-                ? _u("current_memory reserved value must be 0")
-                : _u("grow_memory reserved value must be 0")
+            ThrowDecodingError(op == wbMemorySize
+                ? _u("memory.size reserved value must be 0")
+                : _u("memory.grow reserved value must be 0")
             );
         }
         break;

@@ -12,7 +12,7 @@ function test(shared) {
   (module
     (import "test" "grow" (func $grow_import))
     (memory (export "mem") 1 100 ${shared ? "shared" : ""})
-    (func $grow (grow_memory (i32.const 1)) drop)
+    (func $grow (memory.grow (i32.const 1)) drop)
     (func $empty)
     (func (export "test") (param $i i32) (result i32)
       (local $v i32)

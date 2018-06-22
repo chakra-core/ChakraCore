@@ -66,8 +66,6 @@ const EXPECT_INVALID = false;
 
 /* DATA **********************************************************************/
 
-let soft_validate = true;
-
 let $$;
 
 // Default imports.
@@ -78,14 +76,25 @@ function reinitializeRegistry() {
     if (typeof WebAssembly === 'undefined')
         return;
 
-    registry = {
-        spectest: {
-            print: console.log.bind(console),
-            global: 666,
-            table: new WebAssembly.Table({initial: 10, maximum: 20, element: 'anyfunc'}),
-            memory: new WebAssembly.Memory({initial: 1, maximum: 2})
-        }
+    let spectest = {
+        print: console.log.bind(console),
+        print_i32: console.log.bind(console),
+        print_i32_f32: console.log.bind(console),
+        print_f64_f64: console.log.bind(console),
+        print_f32: console.log.bind(console),
+        print_f64: console.log.bind(console),
+        global_i32: 666,
+        global_f32: 666,
+        global_f64: 666,
+        table: new WebAssembly.Table({initial: 10, maximum: 20, element: 'anyfunc'}),
+        memory: new WebAssembly.Memory({initial: 1, maximum: 2})
     };
+    let handler = {
+        get(target, prop) {
+        return (prop in target) ?  target[prop] : {};
+      }
+    };
+    registry = new Proxy({spectest}, handler);
 }
 
 reinitializeRegistry();
@@ -155,19 +164,6 @@ function assert_invalid(bytes) {
 }
 
 const assert_malformed = assert_invalid;
-
-function assert_soft_invalid(bytes) {
-    uniqueTest(() => {
-        try {
-            module(bytes, /* valid */ soft_validate);
-            if (soft_validate)
-                throw new Error('did not fail');
-        } catch(e) {
-            if (soft_validate)
-                assert_true(e instanceof WebAssembly.CompileError, "expected soft invalid failure:");
-        }
-    }, "A wast module that *could* be invalid under certain engines.");
-}
 
 function instance(bytes, imports = registry, valid = true) {
     if (imports instanceof Result) {

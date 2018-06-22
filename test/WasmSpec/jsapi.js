@@ -49,7 +49,7 @@ function chakra_create_test_environment() {
   return new ConsoleTestEnvironment();
 }
 
-WScript.LoadScriptFile("testsuite/harness/index.js");
+WScript.LoadScriptFile("testsuite/harness/sync_index.js");
 WScript.LoadScriptFile("testsuite/harness/wasm-constants.js");
 WScript.LoadScriptFile("testsuite/harness/wasm-module-builder.js");
 WScript.LoadScript(read("testsuite/harness/testharness.js")

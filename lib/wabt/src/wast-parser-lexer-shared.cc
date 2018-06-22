@@ -49,8 +49,8 @@ void WastFormatError(ErrorHandler* error_handler,
     }
   }
 
-  error_handler->OnError(*loc, std::string(buffer), source_line.line,
-                         source_line.column_offset);
+  error_handler->OnError(ErrorLevel::Error, *loc, std::string(buffer),
+                         source_line.line, source_line.column_offset);
   va_end(args_copy);
 }
 

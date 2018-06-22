@@ -1,5 +1,5 @@
 Harness Status: OK
-Found 87 tests: Pass = 86 Fail = 1
+Found 104 tests: Pass = 87 Fail = 17
 Pass 'WebAssembly' data property on global object  
 Pass 'WebAssembly' object  
 Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
@@ -46,6 +46,20 @@ Pass 'WebAssembly.Table.prototype.set' data property
 Pass 'WebAssembly.Table.prototype.set' method  
 Pass 'WebAssembly.Table.prototype.grow' data property  
 Pass 'WebAssembly.Table.prototype.grow' method  
+Fail 'WebAssembly.Global' data property  Unable to get property 'value' of undefined or null reference
+Fail 'WebAssembly.Global' constructor function  Unable to get property 'value' of undefined or null reference
+Fail 'WebAssembly.Global.prototype' data property  Object expected
+Fail 'WebAssembly.Global.prototype' object  Object expected
+Fail 'WebAssembly.Global' instance objects  Object doesn't support this action
+Fail Export 'WebAssembly.Global'  Mutable globals cannot be exported
+Fail 'WebAssembly.Global.prototype.value' accessor data property  Object expected
+Fail 'WebAssembly.Global.prototype.value' getter  Object expected
+Fail 'WebAssembly.Global.prototype.value' setter  Object expected
+Fail 'WebAssembly.Global.prototype.valueOf' data property  Object expected
+Fail 'WebAssembly.Global.prototype.valueOf' method  Object expected
+Fail 'WebAssembly.Global' default value is 0  Object doesn't support this action
+Fail Import 'WebAssembly.Global'  Mutable globals cannot be imported
+Fail Import 'WebAssembly.Global' type mismatch  assert_true: expected LinkError, observed CompileError expected true got false
 Pass 'WebAssembly.validate' method  
 Pass 'WebAssembly.compile' data property  
 Pass 'WebAssembly.compile' function  
@@ -87,3 +101,6 @@ Pass unexpected failure in assertInstantiateSuccess
 Pass unexpected failure in assertInstantiateSuccess  
 Pass unexpected failure in assertInstantiateSuccess  
 Pass unexpected failure in assertInstantiateSuccess  
+Fail Exported values have cached JS objects  assert_equals: expected "0" but got ""
+Fail Tables export cached  assert_equals: expected "0" but got ""
+Pass WebAssembly integers are converted to JavaScript as if by ToInt32  

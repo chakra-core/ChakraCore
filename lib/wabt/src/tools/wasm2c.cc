@@ -79,6 +79,18 @@ static void ParseOptions(int argc, char** argv) {
                        ConvertBackslashToSlash(&s_infile);
                      });
   parser.Parse(argc, argv);
+
+  // TODO(binji): currently wasm2c doesn't support any feature flags.
+  bool any_feature_enabled = false;
+#define WABT_FEATURE(variable, flag, help) \
+  any_feature_enabled |= s_features.variable##_enabled();
+#include "src/feature.def"
+#undef WABT_FEATURE
+
+  if (any_feature_enabled) {
+    fprintf(stderr, "wasm2c doesn't currently support any --enable-* flags.\n");
+    exit(1);
+  }
 }
 
 // TODO(binji): copied from binary-writer-spec.cc, probably should share.
@@ -103,8 +115,10 @@ int ProgramMain(int argc, char** argv) {
     ErrorHandlerFile error_handler(Location::Type::Binary);
     Module module;
     const bool kStopOnFirstError = true;
+    const bool kFailOnCustomSectionError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(),
-                              s_read_debug_names, kStopOnFirstError);
+                              s_read_debug_names, kStopOnFirstError,
+                              kFailOnCustomSectionError);
     result = ReadBinaryIr(s_infile.c_str(), file_data.data(), file_data.size(),
                           &options, &error_handler, &module);
     if (Succeeded(result)) {

@@ -302,7 +302,7 @@ MACRO_EXTEND_WMS( Trunc_Db                   , Double2         , None           
 MACRO_EXTEND_WMS( Trunc_Flt                  , Float2          , None            )
 MACRO_EXTEND_WMS( Nearest_Db                 , Double2         , None            )
 MACRO_EXTEND_WMS( Nearest_Flt                , Float2          , None            )
-MACRO_EXTEND_WMS( CurrentMemory_Int          , AsmReg1         , None            )
+MACRO_EXTEND_WMS( MemorySize_Int             , AsmReg1         , None            )
 MACRO_EXTEND_WMS( GrowMemory                 , Int2            , None            )
 MACRO_EXTEND    ( Unreachable_Void           , Empty           , OpNoFallThrough )
 MACRO_EXTEND_WMS( Conv_Check_DTI             , Int1Double1     , None            )

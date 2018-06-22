@@ -38,7 +38,7 @@
 #define HAVE_STRCASECMP 0
 
 /* Whether ENABLE_VIRTUAL_TERMINAL_PROCESSING is defined by windows.h */
-#define HAVE_WIN32_VT100 0
+#define HAVE_WIN32_VT100 1
 
 #define COMPILER_IS_CLANG 0
 #define COMPILER_IS_GNU 0

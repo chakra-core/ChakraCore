@@ -1,0 +1,128 @@
+/*
+ * Copyright 2018 WebAssembly Community Group participants
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef WABT_TOKEN
+#error "You must define WABT_TOKEN before including this file."
+#endif
+
+/* Tokens with no additional data (i.e. bare). */
+WABT_TOKEN(Invalid, "Invalid")
+WABT_TOKEN(Anyfunc, "anyfunc")
+WABT_TOKEN(AssertExhaustion, "assert_exhaustion")
+WABT_TOKEN(AssertInvalid, "assert_invalid")
+WABT_TOKEN(AssertMalformed, "assert_malformed")
+WABT_TOKEN(AssertReturn, "assert_return")
+WABT_TOKEN(AssertReturnArithmeticNan, "assert_return_arithmetic_nan")
+WABT_TOKEN(AssertReturnCanonicalNan, "assert_return_canonical_nan")
+WABT_TOKEN(AssertTrap, "assert_trap")
+WABT_TOKEN(AssertUnlinkable, "assert_unlinkable")
+WABT_TOKEN(Bin, "bin")
+WABT_TOKEN(Data, "data")
+WABT_TOKEN(Elem, "elem")
+WABT_TOKEN(Eof, "EOF")
+WABT_TOKEN(Except, "except")
+WABT_TOKEN(Export, "export")
+WABT_TOKEN(Func, "func")
+WABT_TOKEN(Get, "get")
+WABT_TOKEN(Global, "global")
+WABT_TOKEN(Import, "import")
+WABT_TOKEN(Invoke, "invoke")
+WABT_TOKEN(Local, "local")
+WABT_TOKEN(Lpar, "(")
+WABT_TOKEN(Memory, "memory")
+WABT_TOKEN(Module, "module")
+WABT_TOKEN(Mut, "mut")
+WABT_TOKEN(Offset, "offset")
+WABT_TOKEN(Param, "param")
+WABT_TOKEN(Quote, "quote")
+WABT_TOKEN(Register, "register")
+WABT_TOKEN(Result, "result")
+WABT_TOKEN(Rpar, ")")
+WABT_TOKEN(Shared, "shared")
+WABT_TOKEN(Start, "start")
+WABT_TOKEN(Table, "table")
+WABT_TOKEN(Then, "then")
+WABT_TOKEN(Type, "type")
+WABT_TOKEN_FIRST(Bare, Invalid)
+WABT_TOKEN_LAST(Bare, Type)
+
+/* Tokens with Literal data. */
+WABT_TOKEN(Float, "FLOAT")
+WABT_TOKEN(Int, "INT")
+WABT_TOKEN(Nat, "NAT")
+WABT_TOKEN_FIRST(Literal, Float)
+WABT_TOKEN_LAST(Literal, Nat)
+
+/* Tokens with Opcode data. */
+WABT_TOKEN(AtomicLoad, "ATOMIC_LOAD")
+WABT_TOKEN(AtomicRmw, "ATOMIC_RMW")
+WABT_TOKEN(AtomicRmwCmpxchg, "ATOMIC_RMW_CMPXCHG")
+WABT_TOKEN(AtomicStore, "ATOMIC_STORE")
+WABT_TOKEN(AtomicWait, "ATOMIC_WAIT")
+WABT_TOKEN(AtomicWake, "ATOMIC_WAKE")
+WABT_TOKEN(Binary, "BINARY")
+WABT_TOKEN(Block, "block")
+WABT_TOKEN(Br, "br")
+WABT_TOKEN(BrIf, "br_if")
+WABT_TOKEN(BrTable, "br_table")
+WABT_TOKEN(Call, "call")
+WABT_TOKEN(CallIndirect, "call_indirect")
+WABT_TOKEN(Catch, "catch")
+WABT_TOKEN(Compare, "COMPARE")
+WABT_TOKEN(Const, "CONST")
+WABT_TOKEN(Convert, "CONVERT")
+WABT_TOKEN(Drop, "drop")
+WABT_TOKEN(Else, "else")
+WABT_TOKEN(End, "end")
+WABT_TOKEN(GetGlobal, "get_global")
+WABT_TOKEN(GetLocal, "get_local")
+WABT_TOKEN(IfExcept, "if_except")
+WABT_TOKEN(If, "if")
+WABT_TOKEN(Load, "LOAD")
+WABT_TOKEN(Loop, "loop")
+WABT_TOKEN(MemoryGrow, "memory.grow")
+WABT_TOKEN(MemorySize, "memory.size")
+WABT_TOKEN(Nop, "nop")
+WABT_TOKEN(Rethrow, "rethrow")
+WABT_TOKEN(Return, "return")
+WABT_TOKEN(Select, "select")
+WABT_TOKEN(SetGlobal, "set_global")
+WABT_TOKEN(SetLocal, "set_local")
+WABT_TOKEN(SimdLaneOp, "SIMDLANEOP")
+WABT_TOKEN(SimdShuffleOp, "SIMDSHUFFLEOP")
+WABT_TOKEN(Store, "STORE")
+WABT_TOKEN(TeeLocal, "tee_local")
+WABT_TOKEN(Ternary, "TERNARY")
+WABT_TOKEN(Throw, "throw")
+WABT_TOKEN(Try, "try")
+WABT_TOKEN(Unary, "UNARY")
+WABT_TOKEN(Unreachable, "unreachable")
+WABT_TOKEN_FIRST(Opcode, AtomicLoad)
+WABT_TOKEN_LAST(Opcode, Unreachable)
+
+/* Tokens with string data. */
+WABT_TOKEN(AlignEqNat, "align=")
+WABT_TOKEN(OffsetEqNat, "offset=")
+WABT_TOKEN(Reserved, "Reserved")
+WABT_TOKEN(Text, "TEXT")
+WABT_TOKEN(Var, "VAR")
+WABT_TOKEN_FIRST(String, AlignEqNat)
+WABT_TOKEN_LAST(String, Var)
+
+/* Tokens with Type data. */
+WABT_TOKEN(ValueType, "VALUETYPE")
+WABT_TOKEN_FIRST(Type, ValueType)
+WABT_TOKEN_LAST(Type, ValueType)

@@ -172,15 +172,15 @@ enum class ExprType {
   Compare,
   Const,
   Convert,
-  CurrentMemory,
   Drop,
   GetGlobal,
   GetLocal,
-  GrowMemory,
   If,
   IfExcept,
   Load,
   Loop,
+  MemoryGrow,
+  MemorySize,
   Nop,
   Rethrow,
   Return,
@@ -203,18 +203,19 @@ enum class ExprType {
 
 const char* GetExprTypeName(ExprType type);
 
-typedef TypeVector BlockSignature;
-
 class Expr;
 typedef intrusive_list<Expr> ExprList;
+
+typedef FuncDeclaration BlockDeclaration;
 
 struct Block {
   Block() = default;
   explicit Block(ExprList exprs) : exprs(std::move(exprs)) {}
 
   std::string label;
-  BlockSignature sig;
+  BlockDeclaration decl;
   ExprList exprs;
+  Location end_loc;
 };
 
 class Expr : public intrusive_list_base<Expr> {
@@ -244,9 +245,9 @@ class ExprMixin : public Expr {
   explicit ExprMixin(const Location& loc = Location()) : Expr(TypeEnum, loc) {}
 };
 
-typedef ExprMixin<ExprType::CurrentMemory> CurrentMemoryExpr;
 typedef ExprMixin<ExprType::Drop> DropExpr;
-typedef ExprMixin<ExprType::GrowMemory> GrowMemoryExpr;
+typedef ExprMixin<ExprType::MemoryGrow> MemoryGrowExpr;
+typedef ExprMixin<ExprType::MemorySize> MemorySizeExpr;
 typedef ExprMixin<ExprType::Nop> NopExpr;
 typedef ExprMixin<ExprType::Rethrow> RethrowExpr;
 typedef ExprMixin<ExprType::Return> ReturnExpr;
@@ -332,6 +333,7 @@ class IfExpr : public ExprMixin<ExprType::If> {
 
   Block true_;
   ExprList false_;
+  Location false_end_loc;
 };
 
 class IfExceptExpr : public ExprMixin<ExprType::IfExcept> {
@@ -341,6 +343,7 @@ class IfExceptExpr : public ExprMixin<ExprType::IfExcept> {
 
   Block true_;
   ExprList false_;
+  Location false_end_loc;
   Var except_var;
 };
 
@@ -404,7 +407,8 @@ struct Exception {
   TypeVector sig;
 };
 
-struct LocalTypes {
+class LocalTypes {
+ public:
   typedef std::pair<Type, Index> Decl;
   typedef std::vector<Decl> Decls;
 
@@ -421,13 +425,21 @@ struct LocalTypes {
 
   void Set(const TypeVector&);
 
+  const Decls& decls() const { return decls_; }
+
+  void AppendDecl(Type type, Index count) {
+    assert(count > 0);
+    decls_.emplace_back(type, count);
+  }
+
   Index size() const;
   Type operator[](Index) const;
 
-  const_iterator begin() const { return {decls.begin(), 0}; }
-  const_iterator end() const { return {decls.end(), 0}; }
+  const_iterator begin() const { return {decls_.begin(), 0}; }
+  const_iterator end() const { return {decls_.end(), 0}; }
 
-  Decls decls;
+ private:
+  Decls decls_;
 };
 
 inline LocalTypes::const_iterator& LocalTypes::const_iterator::operator++() {
