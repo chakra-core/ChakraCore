@@ -801,18 +801,18 @@ private:
 
     template<bool buildAST> void ParseComputedName(ParseNodePtr* ppnodeName, LPCOLESTR* ppNameHint, LPCOLESTR* ppFullNameHint = nullptr, uint32 *pNameLength = nullptr, uint32 *pShortNameOffset = nullptr);
     template<bool buildAST> ParseNodeBin * ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
-    template<bool buildAST> ParseNode * ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState = true);
-    template<bool buildAST> ParseNodeFnc * ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint = nullptr, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
-    template<bool buildAST> ParseNodeFnc * ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext);
+    template<bool buildAST> ParseNode * ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState = true, bool fAllowIn = true);
+    template<bool buildAST> ParseNodeFnc * ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint = nullptr, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false, bool fAllowIn = true);
+    template<bool buildAST> ParseNodeFnc * ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext, bool fAllowIn = true);
     template<bool buildAST> void ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncNamePid = nullptr);
     template<bool buildAST> void ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParentFnc, ushort flags, bool isTopLevelDeferredFunc = false);
-    template<bool buildAST> void ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false, IdentPtr* pFncNamePid = nullptr);
-    template<bool buildAST> void ParseExpressionLambdaBody(ParseNodeFnc * pnodeFnc);
+    template<bool buildAST> void ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false, IdentPtr* pFncNamePid = nullptr, bool fAllowIn = true);
+    template<bool buildAST> void ParseExpressionLambdaBody(ParseNodeFnc * pnodeFnc, bool fAllowIn = true);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodeFnc * pnodeFnc, bool fLambda);
     bool FncDeclAllowedWithoutContext(ushort flags);
-    void FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces = false);
-    void ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr);
-    void ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
+    void FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces = false, bool fAllowIn = true);
+    void ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly = nullptr, bool fAllowIn = true);
+    void ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn, bool fAllowIn = true);
     void CheckStrictFormalParameters();
     ParseNodeVar * AddArgumentsNodeToVars(ParseNodeFnc * pnodeFnc);
     ParseNodeVar * InsertVarAtBeginning(ParseNodeFnc * pnodeFnc, IdentPtr pid);
@@ -845,7 +845,7 @@ private:
     LPCOLESTR AppendNameHints(LPCOLESTR leftStr, uint32 leftLen, LPCOLESTR rightStr, uint32 rightLen, uint32 *pNameLength, uint32 *pShortNameOffset, bool ignoreAddDotWithSpace = false, bool wrapInBrackets = false);
     WCHAR * AllocateStringOfLength(ULONG length);
 
-    void FinishFncNode(ParseNodeFnc * pnodeFnc);
+    void FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn = true);
 
     template<bool buildAST> bool ParseOptionalExpr(
         ParseNodePtr* pnode,

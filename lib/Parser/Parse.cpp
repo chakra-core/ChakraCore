@@ -4852,7 +4852,7 @@ BOOL Parser::IsDeferredFnc()
 }
 
 template<bool buildAST>
-ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState)
+ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState, bool fAllowIn)
 {
     ParseNodeBlock * pnodeFncBlockScope = nullptr;
     ParseNodePtr *ppnodeScopeSave = nullptr;
@@ -4880,7 +4880,7 @@ ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperR
         }
     }
 
-    ParseNodeFnc * pnodeFnc = ParseFncDeclInternal<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan */ false, resetParsingSuperRestrictionState, /* fUnaryOrParen */ false, noStmtContext);
+    ParseNodeFnc * pnodeFnc = ParseFncDeclInternal<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan */ false, resetParsingSuperRestrictionState, /* fUnaryOrParen */ false, noStmtContext, fAllowIn);
 
     if (pnodeFncBlockScope)
     {
@@ -4899,14 +4899,14 @@ ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperR
 }
 
 template<bool buildAST>
-ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
+ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool fAllowIn)
 {
     Assert((flags & fFncDeclaration) == 0);
-    return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, resetParsingSuperRestrictionState, fUnaryOrParen, /* noStmtContext */ false);
+    return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, resetParsingSuperRestrictionState, fUnaryOrParen, /* noStmtContext */ false, fAllowIn);
 }
 
 template<bool buildAST>
-ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext)
+ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext, bool fAllowIn)
 {
     AutoParsingSuperRestrictionStateRestorer restorer(this);
     if (resetParsingSuperRestrictionState)
@@ -4987,7 +4987,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
-    ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid);
+    ParseFncDeclHelper<buildAST>(pnodeFnc, pNameHint, flags, fUnaryOrParen, noStmtContext, &needScanRCurly, fModule, &pFncNamePid, fAllowIn);
     AddNestedCapturedNames(pnodeFnc);
   
     AnalysisAssert(pnodeFnc);
@@ -5159,7 +5159,7 @@ void Parser::AppendFunctionToScopeList(bool fDeclaration, ParseNodeFnc * pnodeFn
 Parse a function definition.
 ***************************************************************************/
 template<bool buildAST>
-void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals, IdentPtr* pFncNamePid)
+void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals, IdentPtr* pFncNamePid, bool fAllowIn)
 {
     Assert(pnodeFnc);
     ParseNodeFnc * pnodeFncParent = GetCurrentFunctionNode();
@@ -5559,7 +5559,7 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
         {
             fDeferred = true;
 
-            this->ParseTopLevelDeferredFunc(pnodeFnc, pnodeFncSave, pNameHint, fLambda, pNeedScanRCurly);
+            this->ParseTopLevelDeferredFunc(pnodeFnc, pnodeFncSave, pNameHint, fLambda, pNeedScanRCurly, fAllowIn);
         }
         else
         {
@@ -5594,13 +5594,13 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                     m_currDeferredStubCount = childStub->nestedCount;
                     m_currDeferredStub = childStub->deferredStubs;
                 }
-                this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals);
+                this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals, fAllowIn);
                 m_currDeferredStub = savedStub;
                 m_currDeferredStubCount = savedStubCount;
             }
             else
             {
-                this->ParseNestedDeferredFunc(pnodeFnc, fLambda, pNeedScanRCurly, &strictModeTurnedOn);
+                this->ParseNestedDeferredFunc(pnodeFnc, fLambda, pNeedScanRCurly, &strictModeTurnedOn, fAllowIn);
             }
         }
 
@@ -5789,7 +5789,7 @@ void Parser::UpdateCurrentNodeFunc(ParseNodeFnc * pnodeFnc, bool fLambda)
     }
 }
 
-void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly)
+void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeFncParent, LPCOLESTR pNameHint, bool fLambda, bool *pNeedScanRCurly, bool fAllowIn)
 {
     // Parse a function body that is a transition point from building AST to doing fast syntax check.
 
@@ -5826,7 +5826,7 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
     // Their more-complicated text extents won't match the deferred-stub and the single expression should be fast to scan, anyway.
     if (fLambda && !*pNeedScanRCurly)
     {
-        ParseExpressionLambdaBody<false>(pnodeFnc);
+        ParseExpressionLambdaBody<false>(pnodeFnc, fAllowIn);
     }
     else if (pnodeFncParent != nullptr && m_currDeferredStub != nullptr && !pnodeFncParent->HasDefaultArguments())
     {
@@ -6220,7 +6220,7 @@ ParseNodeFnc * Parser::CreateDummyFuncNode(bool fDeclaration)
     return pnodeFnc;
 }
 
-void Parser::ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn)
+void Parser::ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn, bool fAllowIn)
 {
     // Parse a function nested inside another deferred function.
 
@@ -6228,7 +6228,7 @@ void Parser::ParseNestedDeferredFunc(ParseNodeFnc * pnodeFnc, bool fLambda, bool
 
     if (m_token.tk != tkLCurly && fLambda)
     {
-        ParseExpressionLambdaBody<false>(pnodeFnc);
+        ParseExpressionLambdaBody<false>(pnodeFnc, fAllowIn);
         *pNeedScanRCurly = false;
     }
     else
@@ -6855,7 +6855,7 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
 }
 
 template<bool buildAST>
-void Parser::ParseExpressionLambdaBody(ParseNodeFnc * pnodeLambda)
+void Parser::ParseExpressionLambdaBody(ParseNodeFnc * pnodeLambda, bool fAllowIn)
 {
     ParseNodePtr *lastNodeRef = nullptr;
 
@@ -6876,7 +6876,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodeFnc * pnodeLambda)
     // The scanner needs to create a pid in the case of a string constant token immediately following the lambda body expression.
     // Otherwise, we'll save null for the string constant pid which will AV during ByteCode generation.
     BYTE fScanDeferredFlagsSave = this->GetScanner()->SetDeferredParse(FALSE);
-    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token, false, nullptr, &lastRParen);
+    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, fAllowIn, FALSE, nullptr, nullptr, nullptr, &token, false, nullptr, &lastRParen);
     this->GetScanner()->SetDeferredParseFlags(fScanDeferredFlagsSave);
 
     this->MarkEscapingRef(result, &token);
@@ -6974,7 +6974,7 @@ void Parser::CheckStrictFormalParameters()
     Assert(m_token.tk == tkRParen);
 }
 
-void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc)
+void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn)
 {
     AnalysisAssert(pnodeFnc);
 
@@ -7141,7 +7141,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc)
         const charcount_t ichLim = pnodeFnc->ichLim;
         const size_t cbLim = pnodeFnc->cbLim;
 
-        this->FinishFncDecl(pnodeFnc, NULL, fLambda);
+        this->FinishFncDecl(pnodeFnc, NULL, fLambda, /* skipCurlyBraces */ false, fAllowIn);
 
 #if DBG
         // The pnode extent may not match the original extent.
@@ -7174,7 +7174,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc)
     this->GetScanner()->SetAwaitIsKeywordRegion(fPreviousAwaitIsKeyword);
 }
 
-void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces)
+void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fLambda, bool skipCurlyBraces, bool fAllowIn)
 {
     LPCOLESTR name = NULL;
     JS_ETW(int32 startAstSize = *m_pCurrentAstSize);
@@ -7196,7 +7196,7 @@ void Parser::FinishFncDecl(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, bool fL
 
     if (fLambda && m_token.tk != tkLCurly)
     {
-        ParseExpressionLambdaBody<true>(pnodeFnc);
+        ParseExpressionLambdaBody<true>(pnodeFnc, fAllowIn);
     }
     else
     {
@@ -8846,7 +8846,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     this->GetScanner()->SeekTo(termStart);
                 }
             }
-            pnode = ParseFncDeclNoCheckScope<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false);
+            pnode = ParseFncDeclNoCheckScope<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false, /* fUnaryOrParen = */ false, fAllowIn);
             if (isAsyncMethod)
             {
                 pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -8854,7 +8854,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             }
 
             // ArrowFunction/AsyncArrowFunction is part of AssignmentExpression, which should terminate the expression unless followed by a comma
-            if (m_token.tk != tkComma)
+            if (m_token.tk != tkComma && m_token.tk != tkIN)
             {
                 if (!(IsTerminateToken()))
                 {
