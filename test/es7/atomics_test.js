@@ -25,7 +25,7 @@ var atomicsFunctionsList = [
 
 var atomicsFunctionsList2 = [
     {op : Atomics.wait, fullname: "Atomics.wait", onlyInt32:true, length : 4},
-    {op : Atomics.wake, fullname: "Atomics.wake", onlyInt32:true, length : 3},
+    {op : Atomics.notify, fullname: "Atomics.notify", onlyInt32:true, length : 3},
 ];
 
 var allAtomicsFunctionsList = [...atomicsFunctionsList, ...atomicsFunctionsList2, {op : Atomics.isLockFree, fullname: "Atomics.isLockFree", length : 1}];
@@ -199,23 +199,23 @@ var tests = [{
 		}
 	},
     {
-		name : "Atomics.wake negative scenario",
+		name : "Atomics.notify negative scenario",
 		body : function () {
             [[0, 4, 4], [3, 2, 8]].forEach(function([offset, length, elements]) {
                 var sab = makeSharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * elements);
                 var view = new Int32Array(sab, offset * Int32Array.BYTES_PER_ELEMENT, length);
 
-                assert.throws(() => Atomics.wake(view), RangeError, "Calling Atomics.wake with 1 param only is not valid", "Atomics.wake: function called with too few arguments");
+                assert.throws(() => Atomics.notify(view), RangeError, "Calling Atomics.notify with 1 param only is not valid", "Atomics.notify: function called with too few arguments");
                 [undefined, 1.1, "hi", NaN, {}].forEach(function (index) {
-                    Atomics.wake(view, index, 1);
+                    Atomics.notify(view, index, 1);
                 });
 
                 [-1, Infinity, -Infinity].forEach(function (index) {
-                    assert.throws(() => Atomics.wake(view, index, 1), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
+                    assert.throws(() => Atomics.notify(view, index, 1), RangeError, "Only positive interger allowed, not " + index, "Access index is out of range");
                 });
 
-                assert.throws(() => Atomics.wake(view, elements, 1), RangeError, "index is out of bound " + elements, "Access index is out of range");
-                assert.throws(() => Atomics.wake(view, length, 1), RangeError, "index is out of bound " + length, "Access index is out of range");
+                assert.throws(() => Atomics.notify(view, elements, 1), RangeError, "index is out of bound " + elements, "Access index is out of range");
+                assert.throws(() => Atomics.notify(view, length, 1), RangeError, "index is out of bound " + length, "Access index is out of range");
             });
 		}
 	},

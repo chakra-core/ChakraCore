@@ -731,7 +731,7 @@ ENTRY(compareExchange)
 ENTRY(exchange)
 ENTRY(isLockFree)
 ENTRY(wait)
-ENTRY(wake)
+ENTRY(notify)
 
 ENTRY(column)
 ENTRY(url)
