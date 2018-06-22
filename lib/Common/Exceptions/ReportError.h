@@ -78,6 +78,7 @@ void RecyclerSingleAllocationLimit_unrecoverable_error();
 void MemGCSingleAllocationLimit_unrecoverable_error();
 void OutOfMemoryTooManyPinnedObjects_unrecoverable_error();
 void OutOfMemoryTooManyClosedContexts_unrecoverable_error();
+void OutOfMemoryAllocationPolicy_unrecoverable_error();
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
