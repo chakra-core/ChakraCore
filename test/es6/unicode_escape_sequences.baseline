@@ -1,6 +1,7 @@
 SyntaxError: Syntax error in regular expression
 SyntaxError: Invalid codepoint value in the escape sequence.
 SyntaxError: Invalid range in character set
+SyntaxError: Invalid regular expression: invalid escape in unicode pattern
 false
 false
 false
