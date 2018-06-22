@@ -81,6 +81,22 @@ try {
     e.echo();
 }
 
+try {
+    new RegExp(/\u{10FFFF}/,"u");
+}
+catch (e)
+{
+    print ("Unexpected error " + e);
+}
+
+try {
+    new RegExp(/\u{110000}/, "u");
+}
+catch (e)
+{
+    print (e);
+}
+
 // Shouldn't throw From here onwards.
 eval('var test = "\\u{0000}"');
 
@@ -169,11 +185,11 @@ invalidStrings.forEach(function (str){
 /a\u{}b/u.test("au\{\}b").echo();
 /a\u{1}b/u.test("a\u0001b").echo();
 /a\u{1.1}b/u.test("au\{1.1\}b").echo();
-/a\u{110000}b/u.test("a" + (Array(110001).join('u')) +"b").echo();
-/a\u{11FFFF}b/u.test("au\{11FFFF\}b").echo();
+/a\u{110000}b/.test("a" + (Array(110001).join('u')) +"b").echo();
+/a\u{11FFFF}b/.test("au\{11FFFF\}b").echo();
 /a\u{10FFFF}b/.test("a\uDBFF\uDFFFb").echo();
 
-/a\u{1000000}b/u.test("au\{1000000\}b").echo();
+/a\u{1000000}b/.test("au\{1000000\}b").echo();
 /a\u{1.1}b/u.test("a\u0001b").echo();
 /a\u{1}b/u.test("a\\ub").echo();
 /a\u{1}b/u.test("aub").echo();
