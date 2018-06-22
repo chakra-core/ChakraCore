@@ -83,13 +83,19 @@ void  PerfTrace::WritePerfMap()
 
             scriptContext->MapFunction([=] (FunctionBody* body)
             {
+              char16 const * url = body->GetSourceContextInfo()->url;
+              if (body->GetSourceContextInfo()->IsDynamic()) {
+                url = _u("dynamic");
+              }
+
 #if DYNAMIC_INTERPRETER_THUNK
                 if(body->HasInterpreterThunkGenerated())
                 {
                     const char16* functionName = body->GetExternalDisplayName();
-                    fwprintf(perfMapFile, _u("%llX %llX %s(Interpreted)\n"),
+                    fwprintf(perfMapFile, _u("%llX %llX %s!%s[Interpreted]\n"),
                         body->GetDynamicInterpreterEntryPoint(),
                         body->GetDynamicInterpreterThunkSize(),
+                        url,
                         functionName);
                 }
 #endif
@@ -102,16 +108,18 @@ void  PerfTrace::WritePerfMap()
                         const ExecutionMode jitMode = entryPoint->GetJitMode();
                         if (jitMode == ExecutionMode::SimpleJit)
                         {
-                            fwprintf(perfMapFile, _u("%llX %llX %s(SimpleJIT)\n"),
+                            fwprintf(perfMapFile, _u("%llX %llX %s!%s[SimpleJIT]\n"),
                                 entryPoint->GetNativeAddress(),
                                 entryPoint->GetCodeSize(),
+                                url,
                                 body->GetExternalDisplayName());
                         }
                         else
                         {
-                            fwprintf(perfMapFile, _u("%llX %llX %s(FullJIT)\n"),
+                            fwprintf(perfMapFile, _u("%llX %llX %s!%s[FullJIT]\n"),
                                 entryPoint->GetNativeAddress(),
                                 entryPoint->GetCodeSize(),
+                                url,
                                 body->GetExternalDisplayName());
                         }
                     }
@@ -124,9 +132,10 @@ void  PerfTrace::WritePerfMap()
                         if(entryPoint->IsCodeGenDone())
                         {
                             const uint16 loopNumber = ((uint16)body->GetLoopNumberWithLock(header));
-                            fwprintf(perfMapFile, _u("%llX %llX %s(Loop%u)\n"),
+                            fwprintf(perfMapFile, _u("%llX %llX %s!%s[Loop%u]\n"),
                                 entryPoint->GetNativeAddress(),
                                 entryPoint->GetCodeSize(),
+                                url,
                                 body->GetExternalDisplayName(),
                                 loopNumber+1);
                         }
