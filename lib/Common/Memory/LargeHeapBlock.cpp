@@ -1000,7 +1000,11 @@ LargeHeapBlock::VerifyMark()
 
         unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
 
-        Assert((attributes & NewFinalizeBit) == 0);
+        // In case of OOM we may not have completed processing of trackable objects and the NewFinalizeBit may not have been cleared.
+        if ((attributes & (TrackBit | NewTrackBit)) == (TrackBit | NewTrackBit))
+        {
+            Assert((attributes & NewFinalizeBit) == 0);
+        }
 
         if ((attributes & LeafBit) != 0)
         {
@@ -1981,7 +1985,12 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
         if (heapBlockMap.IsMarked(header->GetAddress()))
         {
 #if DBG
-            Assert((header->GetAttributes(recycler->Cookie) & NewFinalizeBit) == 0);
+            unsigned char attributes = header->GetAttributes(recycler->Cookie);
+            // In case of OOM we may not have completed processing of trackable objects and the NewFinalizeBit may not have been cleared.
+            if ((attributes & (TrackBit | NewTrackBit)) == (TrackBit | NewTrackBit))
+            {
+                Assert((attributes & NewFinalizeBit) == 0);
+            }
 #endif
 
             RECYCLER_STATS_ADD(recycler, largeHeapBlockUsedByteCount, this->GetHeaderByIndex(i)->objectSize);
