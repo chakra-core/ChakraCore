@@ -2016,7 +2016,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
     *pIsInlined = false;
 
     // Inlining is profile-based, so get the built-in function from profile rather than from the callInstr's opnd.
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetLocalFunctionId());
 
 #if defined(DBG_DUMP) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
@@ -2193,7 +2193,7 @@ Inline::InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * 
         argoutInstr->SetByteCodeOffset(callInstr);
         callInstr->GetInsertBeforeByteCodeUsesInstr()->InsertBefore(argoutInstr);
 
-        Js::BuiltinFunction builtInFunctionId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
+        Js::BuiltinFunction builtInFunctionId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(inlineeData->GetLocalFunctionId());
 
 
         callInstr->m_opcode = inlineCallOpCode;
@@ -2420,7 +2420,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
         return callInstr;
     }
 
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetLocalFunctionId());
     const FunctionJITTimeInfo * inlineeData = nullptr;
 
     IR::Instr* arrayArgInstr = nullptr;
@@ -2657,7 +2657,7 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     argOut = IR::Instr::New(Js::OpCode::ArgOut_A_InlineSpecialized, linkOpnd, implicitThisArgOut->GetSrc1(), argOut->GetDst(), callInstr->m_func);
     callInstr->InsertBefore(argOut);
 
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInInfo->GetLocalFunctionId());
     IR::HelperCallOpnd * helperCallOpnd = nullptr;
     switch (builtInId)
     {
@@ -3022,7 +3022,7 @@ IR::Instr*
 Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth)
 {
     Func *func = callInstr->m_func;
-    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetFunctionInfoAddr(), func->GetThreadContextInfo());
+    Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
 
     *pIsInlined = false;
     if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func)
@@ -3273,7 +3273,7 @@ Inline::TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const Functi
     char16 debugStringBuffer3[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-    Assert(isApplyTarget || Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInFuncInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo()));
+    Assert(isApplyTarget || Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInFuncInfo->GetLocalFunctionId()));
 
     Js::OpCode originalCallOpCode = callInstr->m_opcode;
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
@@ -4363,7 +4363,7 @@ Inline::InsertFunctionInfoCheck(IR::Instr *callInstr, IR::Instr *insertBeforeIns
 void
 Inline::InsertFunctionObjectCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
 {
-     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetFunctionInfoAddr(), this->topFunc->GetThreadContextInfo());
+     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
     AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
 
     bailOutInstr->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
@@ -5627,7 +5627,7 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
                         {
                             Assert(builtInOpnd->AsAddrOpnd()->m_isFunction);
 
-                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((FixedFieldInfo*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), this->topFunc->GetThreadContextInfo());
+                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((FixedFieldInfo*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetLocalFuncId());
                             if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                             {
                                 this->SetIsInInlinedApplyCall(true);
