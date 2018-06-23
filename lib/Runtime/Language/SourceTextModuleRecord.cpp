@@ -367,7 +367,7 @@ namespace Js
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("OnChildModuleReady(%s)\n"), this->GetSpecifierSz(), childModule->GetSpecifierSz());
         HRESULT hr = NOERROR;
-        if (childException != nullptr)
+        if (childException != nullptr || this->errorObject != nullptr)
         {
             // propagate the error up as needed.
             if (this->errorObject == nullptr)
