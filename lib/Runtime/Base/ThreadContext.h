@@ -461,7 +461,7 @@ private:
     };
 
 public:
-    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
+    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PowerOf2SizePolicy, const Js::PropertyRecord *,
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
