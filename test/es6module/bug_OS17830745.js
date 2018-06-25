@@ -11,13 +11,16 @@
 // not parsed. That put module3 into error state, we should skip instantiating
 // module3.
 
-WScript.RegisterModuleSource('module0_e0565b64-3435-42c1-ad1f-6376fb7af915.js', `
-console.log('fail');`);
-WScript.RegisterModuleSource('module3_65eb7cb0-2a92-4a34-a368-2cfc1d6a3768.js', `import {
-  default as module3_localbinding_0,
-  default as module3_localbinding_1
-} from 'module0_e0565b64-3435-42c1-ad1f-6376fb7af915.js';
-export { } from 'module2_894411c7-94ec-4069-b8e1-10ab0d881f6e.js';
-console.log('fail');`);
-WScript.LoadScriptFile('module3_65eb7cb0-2a92-4a34-a368-2cfc1d6a3768.js', 'module');
+WScript.RegisterModuleSource('module0.js', `
+console.log('fail');
+`);
+
+WScript.RegisterModuleSource('module3.js', `
+import { default as _default } from 'module0.js';
+export { } from 'module2.js';
+console.log('fail');
+`);
+
+WScript.LoadScriptFile('module3.js', 'module');
+
 console.log('pass');

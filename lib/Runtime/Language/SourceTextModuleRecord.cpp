@@ -367,7 +367,7 @@ namespace Js
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("OnChildModuleReady(%s)\n"), this->GetSpecifierSz(), childModule->GetSpecifierSz());
         HRESULT hr = NOERROR;
-        if (childException != nullptr || this->errorObject != nullptr)
+        if (childException != nullptr)
         {
             // propagate the error up as needed.
             if (this->errorObject == nullptr)
@@ -836,7 +836,7 @@ namespace Js
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
-        if (this->WasDeclarationInitialized())
+        if (this->WasDeclarationInitialized() || this->errorObject != nullptr)
         {
             return false;
         }
