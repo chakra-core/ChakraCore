@@ -1457,6 +1457,25 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 #endif
     }
 
+#ifdef INTL_ICU
+    // This is used by both NumberFormat and PluralRules
+    static void SetUNumberFormatDigitOptions(UNumberFormat *fmt, DynamicObject *state)
+    {
+        if (JavascriptOperators::HasProperty(state, PropertyIds::minimumSignificantDigits))
+        {
+            unum_setAttribute(fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
+            unum_setAttribute(fmt, UNUM_MIN_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumSignificantDigits));
+            unum_setAttribute(fmt, UNUM_MAX_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumSignificantDigits));
+        }
+        else
+        {
+            unum_setAttribute(fmt, UNUM_MIN_INTEGER_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumIntegerDigits));
+            unum_setAttribute(fmt, UNUM_MIN_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumFractionDigits));
+            unum_setAttribute(fmt, UNUM_MAX_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumFractionDigits));
+        }
+    }
+#endif
+
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
@@ -1515,18 +1534,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
         unum_setAttribute(*fmt, UNUM_ROUNDING_MODE, UNUM_ROUND_HALFUP);
 
-        if (JavascriptOperators::HasProperty(state, PropertyIds::minimumSignificantDigits))
-        {
-            unum_setAttribute(*fmt, UNUM_SIGNIFICANT_DIGITS_USED, true);
-            unum_setAttribute(*fmt, UNUM_MIN_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumSignificantDigits));
-            unum_setAttribute(*fmt, UNUM_MAX_SIGNIFICANT_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumSignificantDigits));
-        }
-        else
-        {
-            unum_setAttribute(*fmt, UNUM_MIN_INTEGER_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumIntegerDigits));
-            unum_setAttribute(*fmt, UNUM_MIN_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::minimumFractionDigits));
-            unum_setAttribute(*fmt, UNUM_MAX_FRACTION_DIGITS, AssertIntegerProperty(state, PropertyIds::maximumFractionDigits));
-        }
+        SetUNumberFormatDigitOptions(*fmt, state);
 
         if (currency != nullptr)
         {
@@ -2256,8 +2264,10 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             // TODO(jahorto): Determine if this would ever be returned and what it would map to
             case UNUM_PERMILL_FIELD: AssertOrFailFastMsg(false, "Unexpected permill field");
 
-            case UNUM_SIGN_FIELD: num < 0 ? library->GetIntlMinusSignPartString() : library->GetIntlPlusSignPartString();
-            default: AssertOrFailFastMsg(false, "Unexpected unknown part"); return nullptr;
+            case UNUM_SIGN_FIELD: return num < 0 ? library->GetIntlMinusSignPartString() : library->GetIntlPlusSignPartString();
+
+            // At the ECMA-402 TC39 call for May 2017, it was decided that we should treat unmapped parts as type: "unknown"
+            default: return library->GetIntlUnknownPartString();
             }
         }
 
@@ -2418,7 +2428,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         {
             return unum_formatDouble(*fmt, num, buf, bufLen, nullptr, status);
         }, scriptContext->GetRecycler(), &formatted, &formattedLen);
-        JavascriptOperators::InitProperty(part, PropertyIds::type, library->GetIntlLiteralPartString());
+        JavascriptOperators::InitProperty(part, PropertyIds::type, library->GetIntlUnknownPartString());
         JavascriptOperators::InitProperty(part, PropertyIds::value, JavascriptString::NewWithBuffer(formatted, formattedLen, scriptContext));
 
         ret->SetItem(0, part, PropertyOperationFlags::PropertyOperation_None);
@@ -2754,7 +2764,6 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
                 typeString = library->GetIntlLiteralPartString(); break;
 #endif
             default:
-                AssertMsg(false, "Unmapped UDateFormatField");
                 typeString = library->GetIntlUnknownPartString(); break;
             }
 
@@ -3046,11 +3055,35 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
         FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
 
+        // ICU has an internal API, uplrules_selectWithFormat, that is equivalent to uplrules_select but will respect digit options of the passed UNumberFormat.
+        // Since its an internal API, we can't use it -- however, we can work around it by creating a UNumberFormat with provided digit options,
+        // formatting the requested number to a string, and then converting the string back to a double which we can pass to uplrules_select.
+        // This workaround was suggested during the May 2018 ECMA-402 discussion.
+        // TODO(jahorto): investigate caching this UNumberFormat on the state as well. This is currently not possible because we are using InternalProperyIds::HiddenObject
+        // for all ICU object caching, but once we move to better names for the cache property IDs, we can cache both the UNumberFormat as well as the UPluralRules.
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        LangtagToLocaleID(AssertStringProperty(state, PropertyIds::locale), localeID);
+        UErrorCode status = U_ZERO_ERROR;
+        FinalizableUNumberFormat *fmt = FinalizableUNumberFormat::New(scriptContext->GetRecycler(), unum_open(UNUM_DECIMAL, nullptr, 0, localeID, nullptr, &status));
+
+        SetUNumberFormatDigitOptions(*fmt, state);
+
+        char16 *formattedN = nullptr;
+        int formattedNLength = 0;
+        EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
+        {
+            return unum_formatDouble(*fmt, n, buf, bufLen, nullptr, status);
+        }, scriptContext->GetRecycler(), &formattedN, &formattedNLength);
+
+        double nWithOptions = unum_parseDouble(*fmt, reinterpret_cast<UChar *>(formattedN), formattedNLength, nullptr, &status);
+        double roundtripDiff = n - nWithOptions;
+        ICU_ASSERT(status, roundtripDiff <= 1.0 && roundtripDiff >= -1.0);
+
         char16 *selected = nullptr;
         int selectedLength = 0;
         EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
-            return uplrules_select(*pr, n, buf, bufLen, status);
+            return uplrules_select(*pr, nWithOptions, buf, bufLen, status);
         }, scriptContext->GetRecycler(), &selected, &selectedLength);
 
         return JavascriptString::NewWithBuffer(selected, static_cast<charcount_t>(selectedLength), scriptContext);
