@@ -109,5 +109,42 @@ testRunner.runTests([
             opts1.pluralCategories[0] = "changed";
             assert.areNotEqual(opts1.pluralCategories[0], pr1.resolvedOptions().pluralCategories[0], "Changing the pluralCategories from one call to resolvedOptions should not impact future calls");
         }
-    }
+    },
+    {
+        name: "Number digit options",
+        body() {
+            function test(options, n, expected) {
+                const pr = new Intl.PluralRules("en", options);
+                assert.areEqual(expected, pr.select(n), `Incorrect result using n = ${n} and options = ${JSON.stringify(options)}`);
+            }
+
+            test(undefined, 1.0, "one");
+            test(undefined, 1.1, "other");
+            test(undefined, 1.001, "other");
+
+            test({ minimumFractionDigits: 1 }, 1.0, "one");
+            test({ minimumFractionDigits: 1 }, 1.1, "other");
+            test({ minimumFractionDigits: 1 }, 1.001, "other");
+
+            test({ maximumFractionDigits: 0 }, 1.0, "one");
+            test({ maximumFractionDigits: 0 }, 1.1, "one");
+            test({ maximumFractionDigits: 0 }, 1.001, "one");
+
+            test({ maximumFractionDigits: 1 }, 1.0, "one");
+            test({ maximumFractionDigits: 1 }, 1.1, "other");
+            test({ maximumFractionDigits: 1 }, 1.001, "one");
+
+            test({ minimumSignificantDigits: 2 }, 1.0, "one");
+            test({ minimumSignificantDigits: 2 }, 1.1, "other");
+            test({ minimumSignificantDigits: 2 }, 1.001, "other");
+
+            test({ maximumSignificantDigits: 2 }, 1.0, "one");
+            test({ maximumSignificantDigits: 2 }, 1.1, "other");
+            test({ maximumSignificantDigits: 2 }, 1.001, "one");
+
+            test({ maximumSignificantDigits: 1 }, 1.0, "one");
+            test({ maximumSignificantDigits: 1 }, 1.1, "one");
+            test({ maximumSignificantDigits: 1 }, 1.001, "one");
+        }
+    },
 ], { verbose: false });

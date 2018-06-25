@@ -7,6 +7,10 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 const constructors = [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat];
 
+if (WScript.Platform.INTL_LIBRARY === "icu") {
+    constructors.push(Intl.PluralRules);
+}
+
 testRunner.runTests([
     {
         name: "OSS-Fuzz #6657: stress uloc_forLanguageTag status code and parsed length on duplicate variant subtags",

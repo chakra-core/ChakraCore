@@ -190,7 +190,7 @@ const tests = [
                     // real formatToParts support was only added with ICU 61
                     assert.areEqual(1, actualParts.length, `formatToParts(${n}) stub implementation should return only one part`);
                     const literal = actualParts[0];
-                    assert.areEqual("literal", literal.type, `formatToParts(${n}) stub implementation should return a literal part`);
+                    assert.areEqual("unknown", literal.type, `formatToParts(${n}) stub implementation should return an unknown part`);
                     assert.areEqual(nf.format(n), literal.value, `formatToParts(${n}) stub implementation should return one part whose value matches the fully formatted number`);
                     return;
                 }
@@ -203,6 +203,12 @@ const tests = [
             }
 
             assertParts("en-US", undefined, 1000, [
+                { type: "integer" , value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" }
+            ]);
+            assertParts("en-US", undefined, -1000, [
+                { type: "minusSign", value: "-" },
                 { type: "integer" , value: "1" },
                 { type: "group", value: "," },
                 { type: "integer", value: "000" }
