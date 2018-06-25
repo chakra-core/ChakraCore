@@ -1075,4 +1075,9 @@
       <compile-flags>-testtrace:asmjs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>emit_recursive.js</files>
+    </default>
+  </test>
 </regress-exe>
