@@ -10519,7 +10519,7 @@ Lowerer::LowerStLoopBodyCount(IR::Instr* instr)
     IR::MemRefOpnd *loopBodyCounterOpnd = IR::MemRefOpnd::New((BYTE*)(header) + Js::LoopHeader::GetOffsetOfProfiledLoopCounter(), TyUint32, this->m_func);
     instr->SetDst(loopBodyCounterOpnd);
     instr->ReplaceSrc1(instr->GetSrc1()->AsRegOpnd()->UseWithNewType(TyUint32, this->m_func));
-    IR::AutoReuseOpnd(loopBodyCounterOpnd, this->m_func);
+    IR::AutoReuseOpnd autoReuse(loopBodyCounterOpnd, this->m_func);
     m_lowererMD.ChangeToAssign(instr);
     return;
 }

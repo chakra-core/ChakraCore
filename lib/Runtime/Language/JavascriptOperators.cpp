@@ -8851,6 +8851,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 if (!descriptor.GetterSpecified() || !descriptor.SetterSpecified())
                 {
                     // Unless both getter and setter are specified, make sure we don't overwrite old accessor.
+#pragma prefast(suppress:6031, "We defaulted oldGetter and oldSetter already, so ignoring the return value here is safe")
                     obj->GetAccessors(propId, &oldGetter, &oldSetter, scriptContext);
                 }
 
