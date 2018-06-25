@@ -907,43 +907,7 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
         }
 
         IR::RegOpnd *newOpnd = IR::RegOpnd::New(stackSym, fromType, this->func);
-        IR::Instr *lastInstr = block->GetLastInstr();
 
-        if (!insertBeforeInstr && lastInstr->IsBranchInstr())
-        {
-            // If branch is using this symbol, hoist the operand as the ToInt32 load will get
-            // inserted right before the branch.
-            IR::Instr *instrPrev = lastInstr->m_prev;
-            IR::Opnd *src1 = lastInstr->GetSrc1();
-            if (src1)
-            {
-                if (src1->IsRegOpnd() && src1->AsRegOpnd()->m_sym == stackSym)
-                {
-                    lastInstr->HoistSrc1(Js::OpCode::Ld_A);
-                }
-                IR::Opnd *src2 = lastInstr->GetSrc2();
-                if (src2)
-                {
-                    if (src2->IsRegOpnd() && src2->AsRegOpnd()->m_sym == stackSym)
-                    {
-                        lastInstr->HoistSrc2(Js::OpCode::Ld_A);
-                    }
-                }
-
-                // Did we insert anything?
-                if (lastInstr->m_prev != instrPrev)
-                {
-                    // If we had ByteCodeUses right before the branch, move them back down.
-                    IR::Instr *insertPoint = lastInstr;
-                    for (IR::Instr *instrBytecode = instrPrev; instrBytecode->m_opcode == Js::OpCode::ByteCodeUses; instrBytecode = instrBytecode->m_prev)
-                    {
-                        instrBytecode->Unlink();
-                        insertPoint->InsertBefore(instrBytecode);
-                        insertPoint = instrBytecode;
-                    }
-                }
-            }
-        }
         this->ToTypeSpecUse(nullptr, newOpnd, block, nullptr, nullptr, toType, bailOutKind, lossy, insertBeforeInstr);
     } NEXT_BITSET_IN_SPARSEBV;
 }
