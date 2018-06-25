@@ -3345,17 +3345,17 @@ namespace Js
         byte count = BuiltinFunction::Count;
         for (byte index = 0; index < count; index++)
         {
-            Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo((intptr_t)builtInFuncs[index]->GetFunctionInfo(), scriptContext->GetThreadContext())));
+            Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo(builtInFuncs[index]->GetFunctionInfo()->GetLocalFunctionId())));
         }
     }
 #endif
 
     // Returns built-in enum value for given funcInfo. Ultimately this will work for all built-ins (not only Math.*).
     // Used by inliner.
-    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
+    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(LocalFunctionId localFuncId)
     {
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        if(funcInfoAddr == (intptr_t)ShiftAddr(context, &EntryInfo)) \
+        if(localFuncId == EntryInfo.GetLocalFunctionId()) \
         { \
             return BuiltinFunction::##target##_##name; \
         }
