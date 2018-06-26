@@ -403,8 +403,6 @@ namespace Js
 #endif
     };
 
-    typedef JsUtil::List<Js::JavascriptPromiseCapability*> JavascriptPromiseCapabilityList;
-
     class JavascriptPromiseReaction : FinalizableObject
     {
     private:
@@ -447,7 +445,13 @@ namespace Js
 #endif
     };
 
-    typedef JsUtil::List<Js::JavascriptPromiseReaction*> JavascriptPromiseReactionList;
+    struct JavascriptPromiseReactionPair
+    {
+        JavascriptPromiseReaction* resolveReaction;
+        JavascriptPromiseReaction* rejectReaction;
+    };
+
+    typedef SList<Js::JavascriptPromiseReactionPair, Recycler> JavascriptPromiseReactionList;
 
     class JavascriptPromise : public DynamicObject
     {
@@ -521,12 +525,12 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
-        JavascriptPromiseReactionList* GetResolveReactions();
-        JavascriptPromiseReactionList* GetRejectReactions();
+        JavascriptPromiseReactionList* GetReactions();
+
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
         static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
-        static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, Var resolution, ScriptContext* scriptContext);
+        static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, bool isReject, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
 
         static void InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext);
@@ -538,28 +542,34 @@ namespace Js
         Var Resolve(Var resolution, ScriptContext* scriptContext);
         Var Reject(Var resolution, ScriptContext* scriptContext);
 
-        enum PromiseStatus
+        enum PromiseStatus : unsigned char
         {
-            PromiseStatusCode_Undefined,
-            PromiseStatusCode_Unresolved,
-            PromiseStatusCode_HasResolution,
-            PromiseStatusCode_HasRejection
+            PromiseStatusCode_Undefined     = 0x00,
+            PromiseStatusCode_Unresolved    = 0x01,
+            PromiseStatusCode_HasResolution = 0x02,
+            PromiseStatusCode_HasRejection  = 0x03
         };
 
-        bool GetIsHandled() { return isHandled; }
-        void SetIsHandled() { isHandled = true; }
-        PromiseStatus GetStatus() const { return status; }
+
+        bool GetIsHandled() const { return this->isHandled; }
+        void SetIsHandled() { this->isHandled = true; }
+
+        PromiseStatus GetStatus() const { return this->status; }
+        void SetStatus(const PromiseStatus newStatus) { this->status = newStatus; }
+
         Var GetResult() const { return result; }
 
     protected:
         Var ResolveHelper(Var resolution, bool isRejecting, ScriptContext* scriptContext);
 
     protected:
+        Field(Var) result;
+        Field(JavascriptPromiseReactionList*) reactions;
+
+        // we could pack status & isHandled into a single byte, but the compiler is aligning this on address-size
+        // boundaries, so we don't save anything.  Leaving these separate fields for clarity
         Field(PromiseStatus) status;
         Field(bool) isHandled;
-        Field(Var) result;
-        Field(JavascriptPromiseReactionList*) resolveReactions;
-        Field(JavascriptPromiseReactionList*) rejectReactions;
 
     private :
         static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject);
@@ -572,7 +582,7 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        static JavascriptPromise* InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
+        static JavascriptPromise* InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
 #endif
     };
 }

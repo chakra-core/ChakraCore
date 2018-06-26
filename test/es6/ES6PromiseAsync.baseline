@@ -61,6 +61,7 @@ Executing test #58 - Promise.prototype.finally passes through result for Reject 
 Executing test #59 - Promise.prototype.finally passes through result for Resolve with not callable argument
 Executing test #60 - Promise.prototype.finally throws own rejection after a resolved promise
 Executing test #61 - Promise.prototype.finally throws own rejection after a rejected promise
+Executing test #62 - Ensure Multiple then handlers on a single promise are executed in correct order
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -105,6 +106,7 @@ Test #52 - Error handler #1 called with err = 'success'
 Test #53 - Success handler #1 called with res = 'success'
 Test #54 - Success finally handler called for resolved promise without value
 Test #55 - Success finally handler called for rejected promise without value
+Test #62 - val is 0(Expect 0)
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error

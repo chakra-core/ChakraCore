@@ -371,6 +371,7 @@ namespace TTD
         struct SnapPromiseInfo
         {
             uint32 Status;
+            bool isHandled;
             TTDVar Result;
 
             //

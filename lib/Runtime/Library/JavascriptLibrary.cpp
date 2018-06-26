@@ -4993,9 +4993,9 @@ namespace Js
         return JavascriptPromiseReaction::New(capabilities, handler, this->scriptContext);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
     {
-        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, result, resolveReactions, rejectReactions);
+        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, isHandled, result, resolveReactions, rejectReactions);
     }
 
     JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* JavascriptLibrary::CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined)

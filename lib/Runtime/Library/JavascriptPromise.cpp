@@ -7,15 +7,14 @@
 namespace Js
 {
     JavascriptPromise::JavascriptPromise(DynamicType * type)
-        : DynamicObject(type)
+        : DynamicObject(type),
+        isHandled(false),
+        status(PromiseStatus::PromiseStatusCode_Undefined),
+        result(nullptr),
+        reactions(nullptr)
+
     {
         Assert(type->GetTypeId() == TypeIds_Promise);
-
-        this->status = PromiseStatusCode_Undefined;
-        this->isHandled = false;
-        this->result = nullptr;
-        this->resolveReactions = nullptr;
-        this->rejectReactions = nullptr;
     }
 
     // Promise() as defined by ES 2016 Sections 25.4.3.1
@@ -100,17 +99,16 @@ namespace Js
 
     void JavascriptPromise::InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext)
     {
-        Assert(promise->status == PromiseStatusCode_Undefined);
+        Assert(promise->GetStatus() == PromiseStatusCode_Undefined);
         Assert(resolve);
         Assert(reject);
 
         Recycler* recycler = scriptContext->GetRecycler();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        promise->status = PromiseStatusCode_Unresolved;
+        promise->SetStatus(PromiseStatusCode_Unresolved);
 
-        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
-        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->reactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
 
         JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
         alreadyResolvedRecord->alreadyResolved = false;
@@ -151,14 +149,9 @@ namespace Js
         return TRUE;
     }
 
-    JavascriptPromiseReactionList* JavascriptPromise::GetResolveReactions()
+    JavascriptPromiseReactionList* JavascriptPromise::GetReactions()
     {
-        return this->resolveReactions;
-    }
-
-    JavascriptPromiseReactionList* JavascriptPromise::GetRejectReactions()
-    {
-        return this->rejectReactions;
+        return this->reactions;
     }
 
     // Promise.all as described in ES 2015 Section 25.4.4.1
@@ -848,13 +841,12 @@ namespace Js
             }
         }
 
-        JavascriptPromiseReactionList* reactions;
+
         PromiseStatus newStatus;
 
         // Need to check rejecting state again as it might have changed due to failures
         if (isRejecting)
         {
-            reactions = this->GetRejectReactions();
             newStatus = PromiseStatusCode_HasRejection;
             if (!GetIsHandled())
             {
@@ -863,18 +855,24 @@ namespace Js
         }
         else
         {
-            reactions = this->GetResolveReactions();
             newStatus = PromiseStatusCode_HasResolution;
         }
 
         Assert(resolution != nullptr);
 
-        this->result = resolution;
-        this->resolveReactions = nullptr;
-        this->rejectReactions = nullptr;
-        this->status = newStatus;
+        // SList only supports "prepend" operation, so we need to reverse the list
+        // before triggering reactions
+        JavascriptPromiseReactionList* reactions = this->GetReactions();
+        if (reactions != nullptr)
+        {
+            reactions->Reverse();
+        }
 
-        return TriggerPromiseReactions(reactions, resolution, scriptContext);
+        this->result = resolution;
+        this->reactions = nullptr;
+        this->SetStatus(newStatus);
+
+        return TriggerPromiseReactions(reactions, isRejecting, resolution, scriptContext);
     }
 
     // Promise Capabilities Executor Function as described in ES 2015 Section 25.4.1.6.2
@@ -1001,10 +999,12 @@ namespace Js
             {
                 JavascriptPromise * curr = stack.Pop();
                 {
-                    JavascriptPromiseReactionList* reactions = curr->GetRejectReactions();
-                    for (int i = 0; i < reactions->Count(); i++)
+                    JavascriptPromiseReactionList* reactions = curr->GetReactions();
+                    JavascriptPromiseReactionList::Iterator it = reactions->GetIterator();
+                    while (it.Next())
                     {
-                        JavascriptPromiseReaction* reaction = reactions->Item(i);
+                        JavascriptPromiseReactionPair pair = it.Data();
+                        JavascriptPromiseReaction* reaction = pair.rejectReaction;
                         Var promiseVar = reaction->GetCapabilities()->GetPromise();
 
                         if (JavascriptPromise::Is(promiseVar))
@@ -1132,11 +1132,14 @@ namespace Js
         JavascriptPromiseReaction* resolveReaction = JavascriptPromiseReaction::New(promiseCapability, fulfillmentHandler, scriptContext);
         JavascriptPromiseReaction* rejectReaction = JavascriptPromiseReaction::New(promiseCapability, rejectionHandler, scriptContext);
 
-        switch (sourcePromise->status)
+        switch (sourcePromise->GetStatus())
         {
         case PromiseStatusCode_Unresolved:
-            sourcePromise->resolveReactions->Add(resolveReaction);
-            sourcePromise->rejectReactions->Add(rejectReaction);
+            JavascriptPromiseReactionPair pair;
+            pair.resolveReaction = resolveReaction;
+            pair.rejectReaction = rejectReaction;
+
+            sourcePromise->reactions->Prepend(pair);
             break;
         case PromiseStatusCode_HasResolution:
             EnqueuePromiseReactionTask(resolveReaction, sourcePromise->result, scriptContext);
@@ -1478,20 +1481,12 @@ namespace Js
             extractor->MarkVisitVar(this->result);
         }
 
-        if(this->resolveReactions != nullptr)
+        if(this->reactions != nullptr)
         {
-            for(int32 i = 0; i < this->resolveReactions->Count(); ++i)
-            {
-                this->resolveReactions->Item(i)->MarkVisitPtrs(extractor);
-            }
-        }
-
-        if(this->rejectReactions != nullptr)
-        {
-            for(int32 i = 0; i < this->rejectReactions->Count(); ++i)
-            {
-                this->rejectReactions->Item(i)->MarkVisitPtrs(extractor);
-            }
+            this->reactions->Map([&](JavascriptPromiseReactionPair pair) {
+                pair.rejectReaction->MarkVisitPtrs(extractor);
+                pair.resolveReaction->MarkVisitPtrs(extractor);
+            });
         }
     }
 
@@ -1514,29 +1509,34 @@ namespace Js
             depOnList.Add(TTD_CONVERT_VAR_TO_PTR_ID(this->result));
         }
 
-        spi->Status = this->status;
+        spi->Status = this->GetStatus();
+        spi->isHandled = this->GetIsHandled();
 
-        spi->ResolveReactionCount = (this->resolveReactions != nullptr) ? this->resolveReactions->Count() : 0;
+        // get count of # of reactions
+        spi->ResolveReactionCount = 0;
+        if (this->reactions != nullptr)
+        {
+            this->reactions->Map([&spi](JavascriptPromiseReactionPair pair) {
+                spi->ResolveReactionCount++;
+            });
+        }
+        spi->RejectReactionCount = spi->ResolveReactionCount;
+
+        // move resolve & reject reactions into slab
         spi->ResolveReactions = nullptr;
+        spi->RejectReactions = nullptr;
         if(spi->ResolveReactionCount != 0)
         {
             spi->ResolveReactions = alloc.SlabAllocateArray<TTD::NSSnapValues::SnapPromiseReactionInfo>(spi->ResolveReactionCount);
-
-            for(uint32 i = 0; i < spi->ResolveReactionCount; ++i)
-            {
-                this->resolveReactions->Item(i)->ExtractSnapPromiseReactionInto(spi->ResolveReactions + i, depOnList, alloc);
-            }
-        }
-
-        spi->RejectReactionCount = (this->rejectReactions != nullptr) ? this->rejectReactions->Count() : 0;
-        spi->RejectReactions = nullptr;
-        if(spi->RejectReactionCount != 0)
-        {
             spi->RejectReactions = alloc.SlabAllocateArray<TTD::NSSnapValues::SnapPromiseReactionInfo>(spi->RejectReactionCount);
 
-            for(uint32 i = 0; i < spi->RejectReactionCount; ++i)
+            JavascriptPromiseReactionList::Iterator it = this->reactions->GetIterator();
+            uint32 i = 0;
+            while (it.Next())
             {
-                this->rejectReactions->Item(i)->ExtractSnapPromiseReactionInto(spi->RejectReactions+ i, depOnList, alloc);
+                it.Data().resolveReaction->ExtractSnapPromiseReactionInto(spi->ResolveReactions + i, depOnList, alloc);
+                it.Data().rejectReaction->ExtractSnapPromiseReactionInto(spi->RejectReactions + i, depOnList, alloc);
+                ++i;
             }
         }
 
@@ -1559,22 +1559,38 @@ namespace Js
         }
     }
 
-    JavascriptPromise* JavascriptPromise::InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    JavascriptPromise* JavascriptPromise::InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions,SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
     {
         Recycler* recycler = scriptContext->GetRecycler();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         JavascriptPromise* promise = library->CreatePromise();
 
-        promise->status = (PromiseStatus)status;
+        promise->SetStatus((PromiseStatus)status);
+        if (isHandled)
+        {
+            promise->SetIsHandled();
+        }
         promise->result = result;
 
-        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
-        promise->resolveReactions->Copy(&resolveReactions);
+        promise->reactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        SList<Js::JavascriptPromiseReaction*, HeapAllocator>::Iterator resolveIterator = resolveReactions.GetIterator();
+        SList<Js::JavascriptPromiseReaction*, HeapAllocator>::Iterator rejectIterator = rejectReactions.GetIterator();
 
-        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
-        promise->rejectReactions->Copy(&rejectReactions);
-
+        bool hasResolve = resolveIterator.Next();
+        bool hasReject = rejectIterator.Next();
+        while (hasResolve && hasReject)
+        {
+            JavascriptPromiseReactionPair pair;
+            pair.resolveReaction = resolveIterator.Data();
+            pair.rejectReaction = rejectIterator.Data();
+            promise->reactions->Prepend(pair);
+            hasResolve = resolveIterator.Next();
+            hasReject = rejectIterator.Next();
+        }
+        AssertMsg(hasResolve == false && hasReject == false, "mismatched resolve/reject reaction counts");
+        promise->reactions->Reverse();
+        
         return promise;
     }
 #endif
@@ -1621,15 +1637,24 @@ namespace Js
     }
 
     // TriggerPromiseReactions as defined in ES 2015 Section 25.4.1.7
-    Var JavascriptPromise::TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, Var resolution, ScriptContext* scriptContext)
+    Var JavascriptPromise::TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, bool isRejecting, Var resolution, ScriptContext* scriptContext)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         if (reactions != nullptr)
         {
-            for (int i = 0; i < reactions->Count(); i++)
+            JavascriptPromiseReactionList::Iterator it = reactions->GetIterator();
+            while (it.Next())
             {
-                JavascriptPromiseReaction* reaction = reactions->Item(i);
+                JavascriptPromiseReaction* reaction;
+                if (isRejecting)
+                {
+                    reaction = it.Data().rejectReaction;
+                }
+                else
+                {
+                    reaction = it.Data().resolveReaction;
+                }
 
                 EnqueuePromiseReactionTask(reaction, resolution, scriptContext);
             }
