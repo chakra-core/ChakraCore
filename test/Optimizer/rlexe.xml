@@ -1513,7 +1513,7 @@
       <files>mul_rejit_bug.js</files>
       <baseline>mul_rejit_bug.baseline</baseline>
       <compile-flags>-mic:1 -oopjit- -bgJit- -off:simplejit -trace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_nonative</tags>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_serialized</tags>
     </default>
   </test>
   <test>
