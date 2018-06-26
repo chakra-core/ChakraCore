@@ -231,9 +231,9 @@ namespace Js
             : scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("timed-out"));
     }
 
-    Var AtomicsObject::EntryWake(RecyclableObject* function, CallInfo callInfo, ...)
+    Var AtomicsObject::EntryNotify(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        ATOMICS_FUNCTION_ENTRY_CHECKS(2, "Atomics.wake");
+        ATOMICS_FUNCTION_ENTRY_CHECKS(2, "Atomics.notify");
 
         uint32 accessIndex = 0;
         TypedArrayBase *typedArrayBase = ValidateAndGetTypedArray(args[1], args[2], &accessIndex, scriptContext, true /*onlyInt32*/);

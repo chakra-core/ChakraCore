@@ -1824,7 +1824,7 @@ namespace Js
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::store, &AtomicsObject::EntryInfo::Store, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::sub, &AtomicsObject::EntryInfo::Sub, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wait, &AtomicsObject::EntryInfo::Wait, 4);
-        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wake, &AtomicsObject::EntryInfo::Wake, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::notify, &AtomicsObject::EntryInfo::Notify, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::xor_, &AtomicsObject::EntryInfo::Xor, 3);
 
         if (atomicsObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
@@ -7389,7 +7389,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(store, AtomicsObject::EntryStore);
         REG_OBJECTS_LIB_FUNC(sub, AtomicsObject::EntrySub);
         REG_OBJECTS_LIB_FUNC(wait, AtomicsObject::EntryWait);
-        REG_OBJECTS_LIB_FUNC(wake, AtomicsObject::EntryWake);
+        REG_OBJECTS_LIB_FUNC(notify, AtomicsObject::EntryNotify);
         REG_OBJECTS_LIB_FUNC(xor_, AtomicsObject::EntryXor);
 
         return hr;
