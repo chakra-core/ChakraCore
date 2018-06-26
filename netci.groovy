@@ -18,10 +18,20 @@ def msbuildTypeMap = [
 
 // convert `machine` parameter to OS component of PR task name
 def machineTypeToOSTagMap = [
-    'Windows_NT': 'Windows',        // Windows Server 2012 R2, equivalent to Windows 8.1 (aka Blue)
+    'Windows 7': 'Windows 7',       // Windows Server 2008 R2                     ~= Windows 7
+    'Windows_NT': 'Windows',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
+    'windows.10.amd64.clientrs4.devex.open': 'Windows',                         // = Windows 10 RS4 with Dev 15.7
     'Ubuntu16.04': 'Ubuntu',
     'OSX10.12': 'OSX'
 ]
+
+def defaultMachineTag = 'latest-or-auto'
+
+def legacyWindowsMachine = 'Windows 7'
+def legacyWindowsMachineTag = defaultMachineTag
+
+def latestWindowsMachine = 'windows.10.amd64.clientrs4.devex.open' // Windows 10 RS4 with Dev 15.7
+def latestWindowsMachineTag = null // all information is included in the machine name above
 
 def dailyRegex = 'dailies'
 
@@ -29,7 +39,7 @@ def dailyRegex = 'dailies'
 // HELPER CLOSURES
 // ---------------
 
-def CreateBuildTask = { isPR, buildArch, buildType, machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
+def CreateBuildTask = { isPR, buildArch, buildType, machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
     if (excludeConfigIf && excludeConfigIf(isPR, buildArch, buildType)) {
         return // early exit: we don't want to create a job for this configuration
     }
@@ -75,7 +85,13 @@ def CreateBuildTask = { isPR, buildArch, buildType, machine, configTag, buildExt
         false, // doNotFailIfNothingArchived=false ~= failIfNothingArchived
         false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-    Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+    if (machineTag == null) {
+        // note: this is a different overload and not equivalent to calling setMachineAffinity(_,_,null)
+        Utilities.setMachineAffinity(newJob, machine)
+    } else {
+        Utilities.setMachineAffinity(newJob, machine, machineTag)
+    }
+
     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
     if (nonDefaultTaskSetup == null) {
@@ -95,11 +111,11 @@ def CreateBuildTask = { isPR, buildArch, buildType, machine, configTag, buildExt
     }
 }
 
-def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
+def CreateBuildTasks = { machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
         ['x86', 'x64', 'arm'].each { buildArch ->
             ['debug', 'test', 'release'].each { buildType ->
-                CreateBuildTask(isPR, buildArch, buildType, machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup)
+                CreateBuildTask(isPR, buildArch, buildType, machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup)
             }
         }
     }
@@ -142,7 +158,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
         true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
         false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-    Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+    Utilities.setMachineAffinity(newJob, machine, defaultMachineTag)
     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
     if (nonDefaultTaskSetup == null) {
@@ -213,7 +229,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
             Utilities.addGithubPushTrigger(newJob)
         }
 
-        Utilities.setMachineAffinity(newJob, 'Ubuntu16.04', 'latest-or-auto')
+        Utilities.setMachineAffinity(newJob, 'Ubuntu16.04', defaultMachineTag)
     }
 }
 
@@ -221,34 +237,45 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks('Windows_NT', null, null, "-winBlue", true, null, null)
+CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-winBlue", true, null, null)
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
 CreateBuildTask(true, 'x64', 'debug',
-    'Windows_NT', 'ci_slow', null, '-winBlue -includeSlow', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_slow', null, '-winBlue -includeSlow', false, null, null)
 // x64_debug DisableJIT
 CreateBuildTask(true, 'x64', 'debug',
-    'Windows_NT', 'ci_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', false, null, null)
 // x64_debug Lite
 CreateBuildTask(true, 'x64', 'debug',
-    'Windows_NT', 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
+    latestWindowsMachine, latestWindowsMachineTag, 'ci_lite', '"/p:BuildLite=true"', '-winBlue -lite', false, null, null)
+// x64_debug Legacy
+CreateBuildTask(true, 'x64', 'debug',
+    legacyWindowsMachine, legacyWindowsMachineTag, 'ci_legacy', 'msbuild14', '-win7 -includeSlow', false, null, null)
 
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
 
 if (!branch.endsWith('-ci')) {
-    // build and test on the usual configuration (VS 2015) with -includeSlow
-    CreateBuildTasks('Windows_NT', 'daily_slow', null, '-winBlue -includeSlow', false,
+    // build and test on the legacy configuration (Windows 7 + VS 2015 (Dev14))
+    CreateBuildTasks(legacyWindowsMachine, legacyWindowsMachineTag, 'daily_legacy', 'msbuild14', '-win7 -includeSlow', false,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows 7 ${config}",
+                'legacy\\s+tests')})
+
+    // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with -includeSlow
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_slow', null, '-winBlue -includeSlow', false,
         /* excludeConfigIf */ null,
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows ${config}",
                 'slow\\s+tests')})
 
-    // build and test on the usual configuration (VS 2015) with JIT disabled
-    CreateBuildTasks('Windows_NT', 'daily_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', true,
+    // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with JIT disabled
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', true,
         /* excludeConfigIf */ null,
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
@@ -292,7 +319,7 @@ if (isXPlatCompatibleBranch) {
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null, "")
 
     // Create a PR/continuous task to check ubuntu/static/debug/no-icu
-    [true, false].each { isPR -> 
+    [true, false].each { isPR ->
         CreateXPlatBuildTask(isPR, "debug", true, osString, "linux",
             "ubuntu", branch, null, "--no-icu", "--not-tag exclude_noicu", "")
     }
