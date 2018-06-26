@@ -3733,14 +3733,20 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     IR::RegOpnd *headOpnd;
     uint32 i = length;
 
-    auto getMissingItemOpnd = [&](IRType type) -> IR::Opnd *
+    auto fillMissingItems = [&](IRType type, uint missingItemCount, uint offsetStart, uint itemSpacing)
     {
         IR::Opnd * missingItemOpnd = GetMissingItemOpnd(type, func);
 #if _M_ARM32_OR_ARM64
         IR::Instr * move = this->InsertMove(IR::RegOpnd::New(type, instr->m_func), missingItemOpnd, instr);
         missingItemOpnd = move->GetDst();
 #endif
-        return missingItemOpnd;
+        const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
+        const IR::AutoReuseOpnd autoReuseMissingItemOpnd(missingItemOpnd, func);
+
+        for (; i < missingItemCount; i++)
+        {
+            GenerateMemInit(headOpnd, offsetStart + i * itemSpacing, missingItemOpnd, instr, isZeroed);
+        }
     };
 
     if (instr->GetDst() && instr->GetDst()->GetValueType().IsLikelyNativeIntArray())
@@ -3752,16 +3758,10 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed);
-        const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
 
-        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyInt32);
-        for (; i < size; i++)
-        {
-            GenerateMemInit(headOpnd, sizeof(Js::SparseArraySegmentBase) + i * sizeof(int32),
-                missingItemOpnd, instr, isZeroed);
-        }
+        fillMissingItems(TyInt32, size, sizeof(Js::SparseArraySegmentBase), sizeof(int32));
     }
     else if (instr->GetDst() && instr->GetDst()->GetValueType().IsLikelyNativeFloatArray())
     {
@@ -3772,24 +3772,14 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
         headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed);
-        const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
 
-        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyVar);
-        const IR::AutoReuseOpnd autoReuseMissingItemOpnd(missingItemOpnd, func);
-
-        // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
         uint const missingItemCount = size * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
         i = i * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
-        for (; i < missingItemCount; i++)
-        {
-            GenerateMemInit(
-                headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                missingItemOpnd,
-                instr, isZeroed);
-        }
+
+        fillMissingItems(TyVar, missingItemCount, offsetStart, sizeof(Js::JavascriptArray::MissingItem));
     }
     else
     {
@@ -3797,20 +3787,9 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             return false;
         }
-        uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
+
         headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed);
-        const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
-
-        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyVar);
-        const IR::AutoReuseOpnd autoReuseMissingItemOpnd(missingItemOpnd, func);
-
-        for (; i < size; i++)
-        {
-            GenerateMemInit(
-                headOpnd, offsetStart + i * sizeof(Js::Var),
-                missingItemOpnd,
-                instr, isZeroed);
-        }
+        fillMissingItems(TyVar, size, sizeof(Js::SparseArraySegmentBase), sizeof(Js::Var));
     }
 
     // Skip pass the helper call
