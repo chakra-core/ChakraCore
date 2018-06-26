@@ -1096,7 +1096,7 @@ namespace Js
         // this is also now being used for function.name.
         const char16* GetShortDisplayName(charcount_t * shortNameLength);
 
-        bool GetDisplayNameIsRecyclerAllocated() { return m_displayNameIsRecyclerAllocated; }
+        bool GetDisplayNameIsRecyclerAllocated() const { return m_displayNameIsRecyclerAllocated; }
 
         bool IsJitLoopBodyPhaseEnabled() const
         {
@@ -1678,6 +1678,7 @@ namespace Js
         void CopyNestedArray(ParseableFunctionInfo * other);
 
         const char16* GetExternalDisplayName() const;
+        JavascriptString* GetExternalDisplayNameObject(ScriptContext* scriptContext) const;
 
         //
         // Algorithm to retrieve a function body's external display name. Template supports both
