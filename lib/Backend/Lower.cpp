@@ -3733,6 +3733,16 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
     IR::RegOpnd *headOpnd;
     uint32 i = length;
 
+    auto getMissingItemOpnd = [&](IRType type) -> IR::Opnd *
+    {
+        IR::Opnd * missingItemOpnd = GetMissingItemOpnd(type, func);
+#if _M_ARM32_OR_ARM64
+        IR::Instr * move = this->InsertMove(IR::RegOpnd::New(type, instr->m_func), missingItemOpnd, instr);
+        missingItemOpnd = move->GetDst();
+#endif
+        return missingItemOpnd;
+    };
+
     if (instr->GetDst() && instr->GetDst()->GetValueType().IsLikelyNativeIntArray())
     {
         if (!IsSmallObject<Js::JavascriptNativeIntArray>(length))
@@ -3745,10 +3755,12 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
+
+        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyInt32);
         for (; i < size; i++)
         {
             GenerateMemInit(headOpnd, sizeof(Js::SparseArraySegmentBase) + i * sizeof(int32),
-                Js::JavascriptNativeIntArray::MissingItem, instr, isZeroed);
+                missingItemOpnd, instr, isZeroed);
         }
     }
     else if (instr->GetDst() && instr->GetDst()->GetValueType().IsLikelyNativeFloatArray())
@@ -3763,6 +3775,10 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
+
+        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyVar);
+        const IR::AutoReuseOpnd autoReuseMissingItemOpnd(missingItemOpnd, func);
+
         // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
         uint const missingItemCount = size * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
@@ -3771,7 +3787,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                missingItemOpnd,
                 instr, isZeroed);
         }
     }
@@ -3784,11 +3800,15 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
         headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
+
+        IR::Opnd * missingItemOpnd = getMissingItemOpnd(TyVar);
+        const IR::AutoReuseOpnd autoReuseMissingItemOpnd(missingItemOpnd, func);
+
         for (; i < size; i++)
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::Var),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                missingItemOpnd,
                 instr, isZeroed);
         }
     }
