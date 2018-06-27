@@ -1033,9 +1033,30 @@ namespace Js
         }
     }
 
+    // Returns a raw pointer to the display name which may not have a well-known lifetime. It's safer to use
+    // GetExternalDisplayNameObject if the end goal is to create an object anyway.
     const char16* ParseableFunctionInfo::GetExternalDisplayName() const
     {
         return GetExternalDisplayName(this);
+    }
+
+    // Allocates a new JavascriptString object containing the display name associated with the FunctionBody.
+    JavascriptString* ParseableFunctionInfo::GetExternalDisplayNameObject(ScriptContext* scriptContext) const
+    {
+        const char16* name = GetExternalDisplayName();
+
+        if (!GetDisplayNameIsRecyclerAllocated() && !IsConstantFunctionName(name))
+        {
+            // The string is allocated in memory that we don't directly control the lifetime of. Copy the string to
+            // ensure that the buffer remains valid for the lifetime of the object.
+            return Js::JavascriptString::NewCopySz(name, scriptContext);
+        }
+        else
+        {
+            // Use the incoming buffer directly to create the object. This only works when the lifetime of the data is
+            // static or GC allocated.
+            return Js::JavascriptString::NewWithSz(name, scriptContext);
+        }
     }
 
     RegSlot
