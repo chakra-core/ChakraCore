@@ -424,12 +424,8 @@ namespace Js
 namespace JsUtil
 {
     template <>
-    class ValueEntry<Js::ByteCodeWriter::CacheIdUnit>: public BaseValueEntry<Js::ByteCodeWriter::CacheIdUnit>
+    inline void ClearValue<Js::ByteCodeWriter::CacheIdUnit>::Clear(Js::ByteCodeWriter::CacheIdUnit* value)
     {
-    public:
-        void Clear()
-        {
-            this->value = 0;
-        }
-    };
-};
+        *value = 0;
+    }
+}

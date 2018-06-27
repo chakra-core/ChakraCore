@@ -288,18 +288,14 @@ typedef JsUtil::BaseDictionary<ValueNumberPair, Value *, JitArenaAllocator> Valu
 namespace JsUtil
 {
     template <>
-    class ValueEntry<StackLiteralInitFldData> : public BaseValueEntry<StackLiteralInitFldData>
+    inline void ClearValue<StackLiteralInitFldData>::Clear(StackLiteralInitFldData* value)
     {
-    public:
-        void Clear()
-        {
 #if DBG
-            this->value.propIds = nullptr;
-            this->value.currentInitFldCount = (uint)-1;
+        value->propIds = nullptr;
+        value->currentInitFldCount = (uint)-1;
 #endif
-        }
-    };
-};
+    }
+}
 
 typedef JsUtil::BaseDictionary<IntConstType, StackSym *, JitArenaAllocator> IntConstantToStackSymMap;
 typedef JsUtil::BaseDictionary<int32, Value *, JitArenaAllocator> IntConstantToValueMap;
