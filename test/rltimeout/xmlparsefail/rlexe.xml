@@ -33,5 +33,13 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <!- - should fail fast because timeoutRetries is too large (would take too long to run) - ->
+      <files>irrelevant.js</files>
+      <timeoutRetries>101</timeoutRetries>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 -->
 </regress-exe>
