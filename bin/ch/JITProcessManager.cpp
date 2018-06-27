@@ -52,7 +52,7 @@ HRESULT JITProcessManager::CreateServerProcess(int argc, __in_ecount(argc) LPWST
     STARTUPINFOW si = { 0 };
 
     // overallocate constant cmd line (jshost -jitserver:<guid>)
-    size_t cmdLineSize = (MAX_PATH + argc) * sizeof(WCHAR);
+    size_t cmdLineSize = (MAX_PATH + (size_t)argc) * sizeof(WCHAR);
     for (int i = 0; i < argc; ++i)
     {
         // calculate space requirement for each arg

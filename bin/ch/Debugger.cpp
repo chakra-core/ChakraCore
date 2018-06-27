@@ -306,7 +306,7 @@ bool Debugger::SetBaseline()
 #ifdef _WIN32
     LPSTR script = nullptr;
     FILE *file = nullptr;
-    int numChars = 0;
+    size_t numChars = 0;
     HRESULT hr = S_OK;
 
     if (_wfopen_s(&file, HostConfigFlags::flags.dbgbaseline, _u("rb")) != 0)
@@ -316,13 +316,13 @@ bool Debugger::SetBaseline()
 
     if(file != nullptr)
     {
-        int fileSize = _filelength(_fileno(file));
-        if (fileSize <= MAX_BASELINE_SIZE)
+        long fileSize = _filelength(_fileno(file));
+        if (0 <= fileSize && fileSize <= MAX_BASELINE_SIZE)
         {
-            script = new char[fileSize + 1];
+            script = new char[(size_t)fileSize + 1];
 
-            numChars = static_cast<int>(fread(script, sizeof(script[0]), fileSize, file));
-            if (numChars == fileSize)
+            numChars = fread(script, sizeof(script[0]), fileSize, file);
+            if (numChars == (size_t)fileSize)
             {
                 script[numChars] = '\0';
 

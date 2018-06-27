@@ -12,6 +12,8 @@ namespace Js
 #else
 #define DB_NOINLINE
 #endif
+#pragma prefast(push)
+#pragma prefast(disable:26450) // PREfast takes issue with how INT_MIN is defined
 
     // Double
     template<> DB_NOINLINE double AsmJsMath::DivChecked<double>(double aLeft, double aRight) { return aLeft / aRight; }
@@ -93,3 +95,4 @@ namespace Js
     }
     template<> bool AsmJsMath::RemWouldTrap(uint64 aLeft, uint64 aRight) { return aRight == 0 || (aLeft == LONGLONG_MIN && aRight == -1); }
 }
+#pragma prefast(pop

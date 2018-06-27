@@ -1548,7 +1548,7 @@ namespace Js
     }
 
     template <typename T>
-    BOOL DictionaryTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter)
+    _Check_return_ _Success_(return) BOOL DictionaryTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter)
     {
         DictionaryPropertyDescriptor<T>* descriptor;
         ScriptContext* scriptContext = instance->GetScriptContext();
@@ -1569,11 +1569,16 @@ namespace Js
                 if (descriptor->GetGetterPropertyIndex() != NoSlots)
                 {
                     *getter = instance->GetSlot(descriptor->GetGetterPropertyIndex());
+                    *setter = nullptr;
                     getset = true;
                 }
                 if (descriptor->GetSetterPropertyIndex() != NoSlots)
                 {
                     *setter = instance->GetSlot(descriptor->GetSetterPropertyIndex());
+                    if(!getset) {
+                        // if we didn't set the getter above, we need to set it here
+                        *getter = nullptr;
+                    }
                     getset = true;
                 }
                 return getset;

@@ -1279,6 +1279,7 @@ LEBType WasmBinaryReader::LEB128(uint32 &length)
 
     if (sign && (shift < (sizeof(LEBType) * 8)) && (0x40 & b))
     {
+#pragma prefast(suppress:26453)
         result |= ((~(LEBType)0) << shift);
     }
     return result;

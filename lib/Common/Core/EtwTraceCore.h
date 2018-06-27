@@ -74,11 +74,17 @@ CompileAssert(false)
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2(SourceId, ControlCode, Level, MatchAnyKeyword, MatchAllKeyword, FilterData, CallbackContext) \
        EtwCallback(ControlCode, CallbackContext)
 
+// Work-around for a bug in the instrumentationevents generator
+#pragma prefast(push)
+#pragma prefast(disable:__WARNING_USING_UNINIT_VAR, "The ETW data generated from the manifest includes a default null function which uses unintialized memory.")
+
 #include <microsoft-scripting-chakra-instrumentationevents.h>
 #ifdef NTBUILD
 #include <ieresp_mshtml.h>
 #include <microsoft-scripting-jscript9.internalevents.h>
 #endif
+
+#pragma prefast(pop)
 
 //
 // Encapsulates base routines to initialize ETW tracing in the module

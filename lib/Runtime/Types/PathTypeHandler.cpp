@@ -3541,7 +3541,7 @@ namespace Js
         return SetAttributesHelper(instance, propertyId, propertyIndex, attributes, attr);
     }
 
-    BOOL PathTypeHandlerWithAttr::GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter)
+    _Check_return_ _Success_(return) BOOL PathTypeHandlerWithAttr::GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter)
     {
         PropertyIndex propertyIndex = GetTypePath()->LookupInline(propertyId, GetPathLength());
         if (propertyIndex == Constants::NoSlot)

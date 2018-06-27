@@ -2681,7 +2681,7 @@ CommonNumber:
         return FALSE;
     }
 
-    BOOL JavascriptOperators::GetAccessors(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, Var* getter, Var* setter)
+    BOOL _Check_return_ _Success_(return) JavascriptOperators::GetAccessors(RecyclableObject* instance, PropertyId propertyId, ScriptContext* requestContext, _Out_ Var* getter, _Out_ Var* setter)
     {
         RecyclableObject* object = instance;
         while (!JavascriptOperators::IsNull(object))
@@ -8851,6 +8851,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 if (!descriptor.GetterSpecified() || !descriptor.SetterSpecified())
                 {
                     // Unless both getter and setter are specified, make sure we don't overwrite old accessor.
+#pragma prefast(suppress:6031, "We defaulted oldGetter and oldSetter already, so ignoring the return value here is safe")
                     obj->GetAccessors(propId, &oldGetter, &oldSetter, scriptContext);
                 }
 
