@@ -408,6 +408,18 @@ namespace PlatformAgnostic
                     {
                         return true;
                     }
+#ifdef NTBUILD
+                    else
+                    {
+                        // did not find winGlobCharApi
+                        Js::Throw::FatalInternalError();
+                    }
+                }
+                else
+                {
+                    // failed to initialize Windows Globalization
+                    Js::Throw::FatalInternalError();
+#endif
                 }
 
                 return false;
