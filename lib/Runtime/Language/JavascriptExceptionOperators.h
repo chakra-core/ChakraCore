@@ -39,7 +39,7 @@ namespace Js
             void FetchNonUserCodeStatus(ScriptContext *scriptContext);
 
           public:
-            AutoCatchHandlerExists(ScriptContext* scriptContext);
+            AutoCatchHandlerExists(ScriptContext* scriptContext, bool isPromiseHandled = true);
             ~AutoCatchHandlerExists();
         };
 

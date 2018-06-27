@@ -40,13 +40,22 @@ namespace Js
         }
     }
 
-    JavascriptExceptionOperators::AutoCatchHandlerExists::AutoCatchHandlerExists(ScriptContext* scriptContext)
+    JavascriptExceptionOperators::AutoCatchHandlerExists::AutoCatchHandlerExists(ScriptContext* scriptContext, bool isPromiseHandled)
     {
         Assert(scriptContext);
         m_threadContext = scriptContext->GetThreadContext();
         Assert(m_threadContext);
         m_previousCatchHandlerExists = m_threadContext->HasCatchHandler();
         m_threadContext->SetHasCatchHandler(TRUE);
+
+        if (!isPromiseHandled)
+        {
+            // If this is created from a promise-specific code path, and we don't have a rejection
+            // handler on the promise, then we want SetCatchHandler to be false so we report any
+            // unhandled exceptions to any detached debuggers.
+            m_threadContext->SetHasCatchHandler(false);
+        }
+
         m_previousCatchHandlerToUserCodeStatus = m_threadContext->IsUserCode();
         if (scriptContext->IsScriptContextInDebugMode())
         {

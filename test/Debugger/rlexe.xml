@@ -20,6 +20,34 @@
   </test>
   <test>
     <default>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagBreakOnUncaughtException.js.dbg.baseline</compile-flags>
+      <baseline>JsDiagBreakOnUncaughtException.baseline</baseline>
+      <files>JsDiagBreakOnUncaughtException.js</files>        
+    </default>
+  </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagExceptionsInPromises_BreakOnUncaughtExceptions.js.dbg.baseline</compile-flags>
+      <baseline>JsDiagExceptionsInPromises_BreakOnUncaughtExceptions.baseline</baseline>
+      <files>JsDiagExceptionsInPromises_BreakOnUncaughtExceptions.js</files>        
+    </default>
+  </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagExceptionsInPromises_BreakOnFirstChanceExceptions.js.dbg.baseline</compile-flags>
+      <baseline>JsDiagExceptionsInPromises_BreakOnFirstChanceExceptions.baseline</baseline>
+      <files>JsDiagExceptionsInPromises_BreakOnFirstChanceExceptions.js</files>        
+    </default>
+  </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:JsDiagExceptionsInAsyncFunctions_BreakOnUncaughtExceptions.js.dbg.baseline</compile-flags>
+      <baseline>JsDiagExceptionsInAsyncFunctions_BreakOnUncaughtExceptions.baseline</baseline>
+      <files>JsDiagExceptionsInAsyncFunctions_BreakOnUncaughtExceptions.js</files>        
+    </default>
+  </test>
+  <test>
+    <default>
       <compile-flags>-debuglaunch -dbgbaseline:JsDiagEvaluate.js.dbg.baseline</compile-flags>
       <files>JsDiagEvaluate.js</files>
     </default>
