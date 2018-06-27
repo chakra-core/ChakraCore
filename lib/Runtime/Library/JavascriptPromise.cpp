@@ -932,7 +932,22 @@ namespace Js
         JavascriptExceptionObject* exception = nullptr;
 
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+
+            bool isPromiseRejectionHandled = true;
+            if (scriptContext->IsScriptContextInDebugMode())
+            {
+                // only necessary to determine if false if debugger is attached.  This way we'll 
+                // correctly break on exceptions raised in promises that result in uhandled rejection
+                // notifications
+                Var promiseVar = promiseCapability->GetPromise();
+                if (JavascriptPromise::Is(promiseVar))
+                {
+                    JavascriptPromise* promise = JavascriptPromise::FromVar(promiseVar);
+                    isPromiseRejectionHandled = !promise->WillRejectionBeUnhandled();
+                }
+            }
+
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, isPromiseRejectionHandled);
             try
             {
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -958,6 +973,80 @@ namespace Js
         Assert(handlerResult != nullptr);
 
         return TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), handlerResult, scriptContext);
+    }
+
+
+    /**
+     * Determine if at the current point in time, the given promise has a path of reactions that result
+     * in an unhandled rejection.  This doesn't account for potential of a rejection handler added later
+     * in time.
+     */
+    bool JavascriptPromise::WillRejectionBeUnhandled()
+    {
+        bool willBeUnhandled = !this->GetIsHandled();
+        if (!willBeUnhandled)
+        {
+            // if this promise is handled, then we need to do a depth-first search over this promise's reject 
+            // reactions. If we find a reaction that 
+            //    - associated promise is "unhandled" (ie, it's never been "then'd")
+            //    - AND its rejection handler is our default "thrower function" 
+            // then this promise results in an unhandled rejection path.
+
+            JsUtil::Stack<JavascriptPromise*, HeapAllocator> stack(&HeapAllocator::Instance);
+            SimpleHashTable<JavascriptPromise*, int, HeapAllocator> visited(&HeapAllocator::Instance);
+            stack.Push(this);
+            visited.Add(this, 1);
+
+            while (!willBeUnhandled && !stack.Empty())
+            {
+                JavascriptPromise * curr = stack.Pop();
+                {
+                    JavascriptPromiseReactionList* reactions = curr->GetRejectReactions();
+                    for (int i = 0; i < reactions->Count(); i++)
+                    {
+                        JavascriptPromiseReaction* reaction = reactions->Item(i);
+                        Var promiseVar = reaction->GetCapabilities()->GetPromise();
+
+                        if (JavascriptPromise::Is(promiseVar))
+                        {
+                            JavascriptPromise* p = JavascriptPromise::FromVar(promiseVar);
+                            if (!p->GetIsHandled())
+                            {
+                                RecyclableObject* handler = reaction->GetHandler();
+                                if (JavascriptFunction::Is(handler))
+                                {
+                                    JavascriptFunction* func = JavascriptFunction::FromVar(handler);
+                                    FunctionInfo* functionInfo = func->GetFunctionInfo();
+
+#ifdef DEBUG
+                                    if (!func->IsCrossSiteObject())
+                                    {
+                                        // assert that Thrower function's FunctionInfo hasn't changed
+                                        AssertMsg(func->GetScriptContext()->GetLibrary()->GetThrowerFunction()->GetFunctionInfo() == &JavascriptPromise::EntryInfo::Thrower, "unexpected FunctionInfo for thrower function!");
+                                    }
+#endif
+
+                                    // If the function info is the default thrower function's function info, then assume that this is unhandled
+                                    // this will work across script contexts
+                                    if (functionInfo == &JavascriptPromise::EntryInfo::Thrower)
+                                    {
+                                        willBeUnhandled = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            AssertMsg(visited.HasEntry(p) == false, "Unexpected cycle in promise reaction tree!");
+                            if (!visited.HasEntry(p))
+                            {
+                                stack.Push(p);
+                                visited.Add(p, 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return willBeUnhandled;
     }
 
     Var JavascriptPromise::TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext)
@@ -1092,7 +1181,15 @@ namespace Js
         JavascriptExceptionObject* exception = nullptr;
 
         {
-            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            bool isPromiseRejectionHandled = true;
+            if (scriptContext->IsScriptContextInDebugMode())
+            {
+                // only necessary to determine if false if debugger is attached.  This way we'll 
+                // correctly break on exceptions raised in promises that result in uhandled rejections
+                isPromiseRejectionHandled = !promise->WillRejectionBeUnhandled();
+            }
+
+            Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext, isPromiseRejectionHandled);
             try
             {
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
