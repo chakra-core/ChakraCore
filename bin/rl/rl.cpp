@@ -387,6 +387,7 @@ static const char *FullLogName = nullptr;
 static const char *ResultsLogName = nullptr;
 static const char *TestTimeout = nullptr; // Stores timeout in seconds for all tests
 static const char *TestTimeoutRetries = nullptr; // Number of timeout retries for all tests
+#define MAX_ALLOWED_TIMEOUT_RETRIES 100 // Arbitrary max to avoid accidentally specifying too many retries
 
 // NOTE: this might be unused now
 static char TempPath[MAX_PATH] = ""; // Path for temporary files
@@ -3566,7 +3567,7 @@ IsTimeoutRetriesStringValid(const char *strTimeoutRetries)
     // (especially with the default timeout being multiple minutes long),
     // so limit the number of retries to some arbitrary max.
 
-    if (numRetries > 100)
+    if (numRetries > MAX_ALLOWED_TIMEOUT_RETRIES)
     {
         return FALSE;
     }
@@ -3655,7 +3656,7 @@ GetTestInfoFromNode
                     if (!IsTimeoutRetriesStringValid(testInfo->data[i]))
                     {
                         CFG_ERROR_EX(fileName, node->LineNumber,
-                            "Invalid number of timeout retries specified. Value must be numeric and <= 100.\n", nullptr);
+                            "Invalid number of timeout retries specified. Value must be numeric and <= %d.\n", MAX_ALLOWED_TIMEOUT_RETRIES);
                         childNode->Dump();
                         return FALSE;
                     }
