@@ -830,7 +830,7 @@ namespace Js
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
-        if (this->WasDeclarationInitialized())
+        if (this->WasDeclarationInitialized() || this->errorObject != nullptr)
         {
             return false;
         }
