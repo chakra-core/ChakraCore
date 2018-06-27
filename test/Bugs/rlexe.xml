@@ -496,4 +496,9 @@
       <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>withSplitScope.js</files>
+    </default>
+  </test>
 </regress-exe>
