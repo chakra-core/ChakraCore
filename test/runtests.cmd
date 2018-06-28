@@ -196,8 +196,9 @@ goto :main
   if /i "%1" == "-DumpOnCrash"      set _DumpOnCrash=1&                                         goto :ArgOk
   if /i "%1" == "-CrashOnException" set _CrashOnException=1&                                    goto :ArgOk
 
-  ::Timeout flag
-  if /i "%1" == "-timeout"          set _TestTimeout=%~2&                                       goto : ArgOkShift2
+  ::Timeout flags
+  if /i "%1" == "-timeout"          set _TestTimeout=%~2&                                       goto :ArgOkShift2
+  if /i "%1" == "-timeoutRetries"   set _TestTimeoutRetries=%~2&                                goto :ArgOkShift2
 
   if /i "%1" == "-extraVariants" (
     :: Extra variants are specified by the user but not run by default.
@@ -494,6 +495,9 @@ goto :main
   )
   if not "%_TestTimeout%" == "" (
     set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -timeout:%_TestTimeout%
+  )
+  if not "%_TestTimeoutRetries%" == "" (
+    set EXTRA_RL_FLAGS=%EXTRA_RL_FLAGS% -timeoutRetries:%_TestTimeoutRetries%
   )
 
   echo.

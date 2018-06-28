@@ -24,4 +24,13 @@
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <!-- should timeout after 1 second and retry twice before reporting failure; verify timeout works with command tag tests -->
+      <files>%REGRESS%\mediumrunning.js</files>
+      <timeout>1</timeout>
+      <timeoutRetries>2</timeoutRetries>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>

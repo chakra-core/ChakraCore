@@ -501,7 +501,7 @@ BUILTIN(AtomicsObject, Or, EntryOr, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Store, EntryStore, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Sub, EntrySub, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
-BUILTIN(AtomicsObject, Wake, EntryWake, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Notify, EntryNotify, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
 #undef BUILTIN_TEMPLATE

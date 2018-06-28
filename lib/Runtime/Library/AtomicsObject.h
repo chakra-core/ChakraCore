@@ -24,7 +24,7 @@ namespace Js
             static FunctionInfo Store;
             static FunctionInfo Sub;
             static FunctionInfo Wait;
-            static FunctionInfo Wake;
+            static FunctionInfo Notify;
             static FunctionInfo Xor;
         };
 
@@ -38,7 +38,7 @@ namespace Js
         static Var EntryStore(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySub(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryWait(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryWake(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryNotify(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryXor(RecyclableObject* function, CallInfo callInfo, ...);
 
     private:

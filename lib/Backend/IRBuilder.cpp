@@ -6937,23 +6937,35 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         break;
 
     case Js::OpCode::BeginBodyScope:
+    {
         // This marks the end of a param socpe which is not merged with body scope.
         // So we have to first cache the closure so that we can use it to copy the initial values for
         // body syms from corresponding param syms (LdParamSlot). Body should get its own scope slot.
         Assert(!this->IsParamScopeDone());
         this->SetParamScopeDone();
 
+        IR::Opnd * localClosureOpnd;
+        if (this->m_func->GetLocalClosureSym() != nullptr)
+        {
+            localClosureOpnd = IR::RegOpnd::New(this->m_func->GetLocalClosureSym(), TyVar, this->m_func);
+        }
+        else
+        {
+            AssertOrFailFast(this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() == 0 && !this->m_func->GetJITFunctionBody()->HasScopeObject());
+            localClosureOpnd = IR::IntConstOpnd::New(0, TyVar, this->m_func);
+        }
+
         this->AddInstr(
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetParamClosureReg()),
-                IR::RegOpnd::New(this->m_func->GetLocalClosureSym(), TyVar, this->m_func),
+                localClosureOpnd,
                 this->m_func),
             offset);
 
         // Create a new local closure for the body when either body scope has scope slots allocated or
         // eval is present which can leak declarations.
-        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize()  > 0 || this->m_func->GetJITFunctionBody()->HasScopeObject())
+        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() > 0 || this->m_func->GetJITFunctionBody()->HasScopeObject())
         {
             if (this->m_func->GetJITFunctionBody()->HasScopeObject())
             {
@@ -6994,6 +7006,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
             lfd->isNonFastPathFrameDisplay = true;
         }
         break;
+    }
 
     default:
         this->AddInstr(instr, offset);

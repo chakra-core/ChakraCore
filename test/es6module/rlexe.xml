@@ -169,4 +169,11 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS17830745.js</files>
+      <compile-flags>-MuteHostErrorMsg</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
 </regress-exe>

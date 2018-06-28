@@ -1,0 +1,18 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 17,
+        "column": 3,
+        "sourceText": "throw new Error(\"throw exception from throwFunction\")",
+        "function": "throwFunction"
+      },
+      {
+        "line": 19,
+        "column": 0,
+        "sourceText": "throwFunction()",
+        "function": "Global code"
+      }
+    ]
+  }
+]
