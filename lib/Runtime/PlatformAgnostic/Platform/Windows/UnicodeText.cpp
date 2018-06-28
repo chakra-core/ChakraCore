@@ -399,8 +399,7 @@ namespace PlatformAgnostic
                 Js::WindowsGlobalizationAdapter* globalizationAdapter = threadContext->GetWindowsGlobalizationAdapter();
                 Js::DelayLoadWindowsGlobalization* globLibrary = threadContext->GetWindowsGlobalizationLibrary();
                 HRESULT hr = globalizationAdapter->EnsureDataTextObjectsInitialized(globLibrary);
-                // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support
-                // in that case.
+                // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support in that case.
                 if (SUCCEEDED(hr))
                 {
                     auto winGlobCharApi = globalizationAdapter->GetUnicodeStatics();
@@ -420,7 +419,9 @@ namespace PlatformAgnostic
                     Js::Throw::FatalInternalGlobalizationError();
                 }
 
-                return false;
+#ifndef DBG
+                return false; // in debug builds, this is unreachable code
+#endif
             }, false);
         }
 
