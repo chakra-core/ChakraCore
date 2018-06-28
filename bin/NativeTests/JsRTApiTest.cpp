@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#pragma warning(disable:26434)
 #pragma warning(disable:26439)
 #pragma warning(disable:26451)
 #pragma warning(disable:26495)
