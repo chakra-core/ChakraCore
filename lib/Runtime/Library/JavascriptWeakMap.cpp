@@ -42,7 +42,7 @@ namespace Js
             return nullptr;
         }
 
-        if (key->GetScriptContext()->GetLibrary()->GetUndefined() == weakMapKeyData)
+        if (key->GetLibrary()->GetUndefined() == weakMapKeyData)
         {
             return nullptr;
         }
