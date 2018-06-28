@@ -26,12 +26,13 @@ public:
 
         uint32 ReduceKeyToIndex(PropertyId key)
         {
-            // we use 4-bit bucket index
-            // sometimes we have keys that differ in higher bits, so smudge the bits down a little 
-            // to reduce the possibility of collisions
-            key ^= (uint)key >> 15;
-            key ^= (uint)key >> 7;
-            return key & (PowerOf2_BUCKETS - 1);
+            // we use 4-bit bucket index, but we often have keys that are larger. 
+            // use Fibonacci hash to reduce the possibility of collisions
+#if TARGET_64
+            return (key * 11400714819323198485llu) >> 60;
+#else
+            return (key * 2654435769ul) >> 28;
+#endif
         }
 
         void Add(PropertyId key, byte value)
@@ -50,7 +51,7 @@ public:
             else
             {
                 buckets[bucketIndex] = value;
-                next[value & 127] = i;
+                next[value] = i;
             }
         }
 
