@@ -4,6 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifdef _WIN32
+#include <suppress.h>
+#endif
+
 class CriticalSection
 #ifndef _WIN32
 : public CCLock
@@ -20,9 +24,9 @@ public:
         ::InitializeCriticalSectionAndSpinCount(&cs, spincount);
     }
     ~CriticalSection() { ::DeleteCriticalSection(&cs); }
-    BOOL TryEnter() { return ::TryEnterCriticalSection(&cs); }
-    void Enter() { ::EnterCriticalSection(&cs); }
-    void Leave() { ::LeaveCriticalSection(&cs); }
+    _Success_(return) BOOL _Acquires_lock_(this->cs) TryEnter() { return ::TryEnterCriticalSection(&cs); }
+    void _Acquires_lock_(this->cs) Enter() { ::EnterCriticalSection(&cs); }
+    void _Releases_lock_(this->cs) Leave() { ::LeaveCriticalSection(&cs); }
 #if DBG
     bool IsLocked() const { return cs.OwningThread == (HANDLE)::GetCurrentThreadId(); }
 #endif
@@ -37,19 +41,25 @@ class FakeCriticalSection
 public:
     FakeCriticalSection(DWORD spincount = 0) { /*do nothing*/spincount++; }
     ~FakeCriticalSection() {}
-    BOOL TryEnter() { return true; }
-    void Enter() {}
-    void Leave() {}
+#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+    _Success_(return) BOOL _Acquires_lock_(this->cs) TryEnter() { return true; }
+#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+    _Acquires_lock_(this->cs) void Enter() {}
+#pragma prefast(suppress:__WARNING_FAILING_TO_RELEASE_MEDIUM_CONFIDENCE)
+    _Releases_lock_(this->cs) void Leave() {}
 #if DBG
     bool IsLocked() const { return true; }
 #endif
+private:
+    // only used for prefast analysis
+    int cs;
 };
 
 class AutoCriticalSection
 {
 public:
-    AutoCriticalSection(CriticalSection * cs) : cs(cs) { cs->Enter(); }
-    ~AutoCriticalSection() { cs->Leave(); }
+    _Acquires_lock_(this->cs->cs) AutoCriticalSection(CriticalSection * cs) : cs(cs) { this->cs->Enter(); }
+    _Releases_lock_(this->cs->cs) ~AutoCriticalSection() { cs->Leave(); }
 private:
     CriticalSection * cs;
 };
@@ -57,19 +67,19 @@ private:
 class AutoOptionalCriticalSection
 {
 public:
-    AutoOptionalCriticalSection(CriticalSection * cs) : cs(cs)
+    _When_(this->cs != nullptr, _Acquires_lock_(this->cs->cs)) AutoOptionalCriticalSection(CriticalSection * cs) : cs(cs)
     {
-        if (cs)
+        if (this->cs)
         {
-            cs->Enter();
+            this->cs->Enter();
         }
     }
 
-    ~AutoOptionalCriticalSection()
+    _When_(this->cs != nullptr, _Releases_lock_(this->cs->cs)) ~AutoOptionalCriticalSection()
     {
-        if (cs)
+        if (this->cs)
         {
-            cs->Leave();
+            this->cs->Leave();
         }
     }
 
@@ -81,8 +91,8 @@ template <class SyncObject = FakeCriticalSection >
 class AutoRealOrFakeCriticalSection
 {
 public:
-    AutoRealOrFakeCriticalSection(SyncObject * cs) : cs(cs) { cs->Enter(); }
-    ~AutoRealOrFakeCriticalSection() { cs->Leave(); }
+    _Acquires_lock_(this->cs->cs) AutoRealOrFakeCriticalSection(SyncObject * cs) : cs(cs) { this->cs->Enter(); }
+    _Releases_lock_(this->cs->cs) ~AutoRealOrFakeCriticalSection() { this->cs->Leave(); }
 private:
     SyncObject * cs;
 };
@@ -91,19 +101,19 @@ template <class SyncObject = FakeCriticalSection >
 class AutoOptionalRealOrFakeCriticalSection
 {
 public:
-    AutoOptionalRealOrFakeCriticalSection(SyncObject * cs) : cs(cs)
+    _When_(this->cs != nullptr, _Acquires_lock_(this->cs->cs)) AutoOptionalRealOrFakeCriticalSection(SyncObject * cs) : cs(cs)
     {
-        if (cs)
+        if (this->cs)
         {
-            cs->Enter();
+            this->cs->Enter();
         }
     }
 
-    ~AutoOptionalRealOrFakeCriticalSection()
+    _When_(this->cs != nullptr, _Releases_lock_(this->cs->cs)) ~AutoOptionalRealOrFakeCriticalSection()
     {
-        if (cs)
+        if (this->cs)
         {
-            cs->Leave();
+            this->cs->Leave();
         }
     }
 

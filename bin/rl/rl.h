@@ -21,7 +21,22 @@
 #include "xmlreader.h"
 #include "rlfeint.h"
 
+// Note that some of these look pretty bad, and are; this is a test host, so
+// we're not as concerned here.
 #pragma warning(disable:4127) // expression is constant, e.g., while(TRUE)
+#pragma warning(disable:6001) // using uninitialized memory
+#pragma warning(disable:6011) // dereferencing null pointer, potentially
+#pragma warning(disable:6031) // ignoring return value from some system calls
+#pragma warning(disable:6054) // string may not be zero-terminated
+#pragma warning(disable:6271) // Extra parameter not used by format string
+#pragma warning(disable:6262) // Function using too much stack for analyzer to look at it
+#pragma warning(disable:6335) // leaking process information handle
+#pragma warning(disable:6386) // Potential buffer overrun
+#pragma warning(disable:6387) // Potential misadherance to specification of library functions
+#pragma warning(disable:26439) // implicit noexcept
+#pragma warning(disable:26451) // Arithmetic on smaller type before widening conversion
+#pragma warning(disable:26495) // uninitialized member
+#pragma warning(disable:28193) // ignoring value that must be examined
 
 #define LOCAL static
 typedef __int32 int32;

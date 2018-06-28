@@ -9,6 +9,10 @@
 // conversion from 'int' to 'char', possible loss of data
 #pragma warning(disable:4242)
 #pragma warning(disable:4244)
+#pragma warning(disable:26434)
+#pragma warning(disable:26439)
+#pragma warning(disable:26451)
+#pragma warning(disable:26495)
 #include "catch.hpp"
 #pragma warning(pop)
 

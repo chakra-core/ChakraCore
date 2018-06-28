@@ -122,7 +122,7 @@ namespace Js
         virtual BOOL SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
-        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, __out Var *getter, __out Var *setter) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter) override;
         virtual BOOL PreventExtensions(DynamicObject *instance) override;
         virtual BOOL Seal(DynamicObject *instance) override;
         virtual BOOL SetPropertyWithAttributes(DynamicObject* instance, PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
@@ -560,7 +560,7 @@ namespace Js
     }
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
-    BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetAccessors(DynamicObject* instance, PropertyId propertyId, __out Var *getter, __out Var *setter)
+    _Check_return_ _Success_(return) BOOL DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter)
     {
         if (getter != nullptr)
         {

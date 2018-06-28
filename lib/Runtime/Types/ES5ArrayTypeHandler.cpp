@@ -1152,7 +1152,7 @@ namespace Js
     }
 
     template <class T>
-    BOOL ES5ArrayTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter)
+    _Check_return_ _Success_(return) BOOL ES5ArrayTypeHandlerBase<T>::GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter)
     {
         ScriptContext* scriptContext = instance->GetScriptContext();
 

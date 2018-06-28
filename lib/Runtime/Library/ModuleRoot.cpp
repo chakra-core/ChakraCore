@@ -130,7 +130,7 @@ namespace Js
         return ModuleRoot::GetPropertyQuery(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
     }
 
-    BOOL ModuleRoot::GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL ModuleRoot::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         if (DynamicObject::GetAccessors(propertyId, getter, setter, requestContext))
         {
