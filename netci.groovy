@@ -240,7 +240,13 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 // INNER LOOP TASKS
 // ----------------
 
-CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-win10", true, null, null)
+// The latest machine seems to have a configuration problem preventing us from building ARM.
+// For now, build ARM on the LKG config, Legacy Windows 8.1 (Blue) config.
+// TODO When the configuration is updated, unify this config split.
+CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-win10", true,
+    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, null)
+CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, null, null, "-winBlue", true,
+    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, null)
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
