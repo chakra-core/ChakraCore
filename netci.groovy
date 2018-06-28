@@ -18,9 +18,9 @@ def msbuildTypeMap = [
 
 // convert `machine` parameter to OS component of PR task name
 def machineTypeToOSTagMap = [
-    'Windows 7': 'Windows 7',       // Windows Server 2008 R2                     ~= Windows 7
-    'Windows_NT': 'Windows',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
-    'windows.10.amd64.clientrs4.devex.open': 'Windows',                         // = Windows 10 RS4 with Dev 15.7
+    'Windows 7': 'Windows 7',           // 'latest-or-auto' -> Windows Server 2008 R2 ~= Windows 7
+    'Windows_NT': 'Windows 8.1',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
+    'windows.10.amd64.clientrs4.devex.open': 'Windows 10',                          // = Windows 10 RS4 with Dev 15.7
     'Ubuntu16.04': 'Ubuntu',
     'OSX10.12': 'OSX'
 ]
