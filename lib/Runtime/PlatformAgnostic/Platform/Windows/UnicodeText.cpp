@@ -408,18 +408,16 @@ namespace PlatformAgnostic
                     {
                         return true;
                     }
-#ifdef NTBUILD
                     else
                     {
                         // did not find winGlobCharApi
-                        Js::Throw::FatalInternalError();
+                        Js::Throw::FatalInternalGlobalizationError();
                     }
                 }
                 else
                 {
                     // failed to initialize Windows Globalization
-                    Js::Throw::FatalInternalError();
-#endif
+                    Js::Throw::FatalInternalGlobalizationError();
                 }
 
                 return false;
