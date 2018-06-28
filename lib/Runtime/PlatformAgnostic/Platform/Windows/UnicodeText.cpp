@@ -407,6 +407,7 @@ namespace PlatformAgnostic
                     {
                         return true;
                     }
+#if INTL_ICU || INTL_WINGLOB // don't assert in _no_icu builds (where there is no i18n library, by design)
                     else
                     {
                         // did not find winGlobCharApi
@@ -417,9 +418,10 @@ namespace PlatformAgnostic
                 {
                     // failed to initialize Windows Globalization
                     Js::Throw::FatalInternalGlobalizationError();
+#endif
                 }
 
-#ifndef DBG
+#if (INTL_ICU || INTL_WINGLOB) && !defined(DBG)
                 return false; // in debug builds, this is unreachable code
 #endif
             }, false);

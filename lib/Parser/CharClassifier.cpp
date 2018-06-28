@@ -411,11 +411,13 @@ Js::CharClassifier::CharClassifier(void)
     bool isES6UnicodeModeEnabled = CONFIG_FLAG(ES6Unicode);
     bool isFullUnicodeSupportAvailable = PlatformAgnostic::UnicodeText::IsExternalUnicodeLibraryAvailable();
 
+#if INTL_ICU || INTL_WINGLOB // don't assert in _no_icu builds (where there is no i18n library, by design)
     AssertMsg(isFullUnicodeSupportAvailable, "Windows.Globalization needs to present with IUnicodeCharacterStatics support for Chakra.dll to work");
     if (!isFullUnicodeSupportAvailable)
     {
         Js::Throw::FatalInternalGlobalizationError();
     }
+#endif
 
     // If we're in ES6 mode, and we have full support for Unicode character classification
     // from an external library, then use the ES6/Surrogate pair supported versions of the functions
