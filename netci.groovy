@@ -18,9 +18,9 @@ def msbuildTypeMap = [
 
 // convert `machine` parameter to OS component of PR task name
 def machineTypeToOSTagMap = [
-    'Windows 7': 'Windows 7',       // Windows Server 2008 R2                     ~= Windows 7
-    'Windows_NT': 'Windows',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
-    'windows.10.amd64.clientrs4.devex.open': 'Windows',                         // = Windows 10 RS4 with Dev 15.7
+    'Windows 7': 'Windows 7',           // 'latest-or-auto' -> Windows Server 2008 R2 ~= Windows 7
+    'Windows_NT': 'Windows 8.1',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
+    'windows.10.amd64.clientrs4.devex.open': 'Windows 10',                          // = Windows 10 RS4 with Dev 15.7
     'Ubuntu16.04': 'Ubuntu',
     'OSX10.12': 'OSX'
 ]
@@ -276,7 +276,7 @@ if (!branch.endsWith('-ci')) {
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows 7 ${config}",
-                'legacy\\s+tests')})
+                'legacy7?\\s+tests)')})
 
     // build and test on the legacy configuration (Windows 8.1 (Blue) + VS 2015 (Dev14))
     CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, 'daily_legacy8', 'msbuild14', '-winBlue -includeSlow', false,
@@ -284,7 +284,7 @@ if (!branch.endsWith('-ci')) {
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows 8 ${config}",
-                'legacy\\s+tests')})
+                'legacy8?\\s+tests')})
 
     // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with -includeSlow
     CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_slow', null, '-win10 -includeSlow', false,
@@ -301,6 +301,14 @@ if (!branch.endsWith('-ci')) {
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows ${config}",
                 '(disablejit|nojit)\\s+tests')})
+
+    // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with Lite build
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_lite', '"/p:BuildLite=true"', '-win10 -lite', true,
+        /* excludeConfigIf */ null,
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                'lite\\s+tests')})
 }
 
 // ----------------
