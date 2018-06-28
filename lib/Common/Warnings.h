@@ -54,6 +54,7 @@
 #pragma warning(disable:25040)      // False Constant Expr in OR, e.g., <expr> || 0.
 #pragma warning(disable:25041)      // 'if' condition is always true
 #pragma warning(disable:25042)      // 'if' condition is always false
+#pragma warning(disable:26434)      // function definition hides a non-virtual function
 #pragma warning(disable:26437)      // avoid slicing - this is more of a guideline than a rule, and we don't do it often regardless
 #pragma warning(disable:26439)      // noexcept specifier implied
 #pragma warning(disable:26451)      // doing math on smaller types than possible
