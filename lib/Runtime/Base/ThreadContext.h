@@ -107,16 +107,19 @@ protected:
                 }\
         }
 
-#define LEAVE_SCRIPT_IF(scriptContext, condition, block) \
-        if (condition) \
+#define LEAVE_SCRIPT_IF_ACTIVE(scriptContext, externalCall) \
+        if (scriptContext->GetThreadContext()->IsScriptActive()) \
         { \
             BEGIN_LEAVE_SCRIPT(scriptContext); \
-            block \
+            externalCall \
             END_LEAVE_SCRIPT(scriptContext); \
         } \
         else \
         { \
-            block \
+            DECLARE_EXCEPTION_CHECK_DATA \
+            SAVE_EXCEPTION_CHECK \
+            externalCall \
+            RESTORE_EXCEPTION_CHECK \
         }
 
 #define ENTER_SCRIPT_IF(scriptContext, doCleanup, isCallRoot, hasCaller, condition, block) \
