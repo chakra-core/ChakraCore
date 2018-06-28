@@ -273,6 +273,7 @@ const char * const TestInfoKindName[] =
    "env",
    "command",
    "timeout",
+   "timeoutRetries",
    "sourcepath",
    "eol-normalization",
    "custom-config-file",
@@ -315,34 +316,34 @@ char *CL, *_CL_;
 const char *JCBinary = "jshost.exe";
 
 BOOL FStatus = TRUE;
-char *StatusPrefix;
-const char *StatusFormat;
+char *StatusPrefix = nullptr;
+const char *StatusFormat = nullptr;
 
-BOOL FVerbose;
-BOOL FQuiet;
-BOOL FNoWarn;
-BOOL FTest;
+BOOL FVerbose = FALSE;
+BOOL FQuiet = FALSE;
+BOOL FNoWarn = FALSE;
+BOOL FTest = FALSE;
 BOOL FStopOnError = FALSE;
 BOOL GStopDueToError = FALSE;
-BOOL FLow;
-BOOL FNoDelete;
-BOOL FCopyOnFail;
+BOOL FLow = FALSE;
+BOOL FNoDelete = FALSE;
+BOOL FCopyOnFail = FALSE;
 BOOL FSummary = TRUE;
-BOOL FMoveDiffs;
-BOOL FNoMoveDiffsSwitch;
-BOOL FRelativeLogPath;
+BOOL FMoveDiffs = FALSE;
+BOOL FNoMoveDiffsSwitch = FALSE;
+BOOL FRelativeLogPath = FALSE;
 BOOL FNoDirName = TRUE;
-BOOL FBaseline;
+BOOL FBaseline = FALSE;
 BOOL FRebase = FALSE;
-BOOL FDiff;
-BOOL FBaseDiff;
-BOOL FSyncEnumDirs;
+BOOL FDiff = FALSE;
+BOOL FBaseDiff = FALSE;
+BOOL FSyncEnumDirs = FALSE;
 BOOL FNogpfnt = TRUE;
-BOOL FAppend;
+BOOL FAppend = FALSE;
 BOOL FAppendTestNameToExtraCCFlags = FALSE;
 
 #ifndef NODEBUG
-BOOL FDebug;
+BOOL FDebug = FALSE;
 #endif
 
 // Output synchronization options
@@ -364,7 +365,6 @@ RLMODE Mode = DEFAULT_RLMODE;
 char *DCFGfile = NULL;
 char const *CFGfile = NULL;
 char const *CMDfile = NULL;
-int CFGline;
 
 #define MAX_ALLOWED_THREADS 10 // must be <= MAXIMUM_WAIT_OBJECTS (64)
 unsigned NumberOfThreads = 0;
@@ -376,15 +376,18 @@ BOOL FNoProgramOutput = FALSE;
 BOOL FOnlyAssertOutput = FALSE;
 BOOL FExcludeDirs = FALSE;
 BOOL FGenLst = FALSE;
-char *ResumeDir, *MatchDir;
+char *ResumeDir = nullptr;
+char *MatchDir = nullptr;
 
 TIME_OPTION Timing = TIME_DIR | TIME_TEST; // Default to report times at test and directory level
 
-static const char *ProgramName;
-static const char *LogName;
-static const char *FullLogName;
-static const char *ResultsLogName;
-static const char *TestTimeout; // Stores timeout in seconds for all tests
+static const char *ProgramName = nullptr;
+static const char *LogName = nullptr;
+static const char *FullLogName = nullptr;
+static const char *ResultsLogName = nullptr;
+static const char *TestTimeout = nullptr; // Stores timeout in seconds for all tests
+static const char *TestTimeoutRetries = nullptr; // Number of timeout retries for all tests
+#define MAX_ALLOWED_TIMEOUT_RETRIES 100 // Arbitrary max to avoid accidentally specifying too many retries
 
 // NOTE: this might be unused now
 static char TempPath[MAX_PATH] = ""; // Path for temporary files
@@ -2474,6 +2477,7 @@ WriteEnvLst
              NULL,
              NULL,
              NULL,
+             NULL,
              NULL
          };
 
@@ -2991,6 +2995,11 @@ ParseArg(
 
          if (!_stricmp(&arg[1], "timeout")) {
              TestTimeout = ComplainIfNoArg(arg, s);
+             break;
+         }
+
+         if (!_stricmp(&arg[1], "timeoutRetries")) {
+             TestTimeoutRetries = ComplainIfNoArg(arg, s);
              break;
          }
 
@@ -3540,6 +3549,32 @@ IsTimeoutStringValid(const char *strTimeout)
     return TRUE;
 }
 
+BOOL
+IsTimeoutRetriesStringValid(const char *strTimeoutRetries)
+{
+    char *end;
+    _set_errno(0);
+
+    uint32 numRetries = strtoul(strTimeoutRetries, &end, 10);
+
+    if (errno != 0 || *end != 0)
+    {
+        return FALSE;
+    }
+
+    // We will not be doing any math with this value, so no need to check for overflow.
+    // However, large values will possibly result in an unacceptably long retry loop,
+    // (especially with the default timeout being multiple minutes long),
+    // so limit the number of retries to some arbitrary max.
+
+    if (numRetries > MAX_ALLOWED_TIMEOUT_RETRIES)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 uint32 GetTimeoutValue(const char *strTimeout)
 {
     if (strTimeout == nullptr)
@@ -3606,9 +3641,22 @@ GetTestInfoFromNode
                 if (i == TIK_TIMEOUT)
                 {
                     // Validate the timeout string now to fail early so we don't run any tests when there is an error.
-                    if (!IsTimeoutStringValid(testInfo->data[i])) {
+                    if (!IsTimeoutStringValid(testInfo->data[i]))
+                    {
                         CFG_ERROR_EX(fileName, node->LineNumber,
                             "Invalid timeout specified. Cannot parse or too large.\n", nullptr);
+                        childNode->Dump();
+                        return FALSE;
+                    }
+                }
+
+                if (i == TIK_TIMEOUT_RETRIES)
+                {
+                    // Validate the timeoutRetries string now to fail early so we don't run any tests when there is an error.
+                    if (!IsTimeoutRetriesStringValid(testInfo->data[i]))
+                    {
+                        CFG_ERROR_EX(fileName, node->LineNumber,
+                            "Invalid number of timeout retries specified. Value must be numeric and <= %d.\n", MAX_ALLOWED_TIMEOUT_RETRIES);
                         childNode->Dump();
                         return FALSE;
                     }
@@ -3624,6 +3672,17 @@ GetTestInfoFromNode
             if (xmlTimeoutValue < testTimeoutValue)
             {
                 testInfo->data[i] = TestTimeout;
+            }
+        }
+
+        if (i == TIK_TIMEOUT_RETRIES && TestTimeoutRetries != nullptr)
+        {
+            // Overriding the timeoutRetries value with the command line value (if the command line value is larger)
+            uint32 xmlTimeoutRetriesValue = GetTimeoutValue(testInfo->data[i]);
+            uint32 testTimeoutRetriesValue = GetTimeoutValue(TestTimeoutRetries);
+            if (xmlTimeoutRetriesValue < testTimeoutRetriesValue)
+            {
+                testInfo->data[i] = TestTimeoutRetries;
             }
         }
     }
