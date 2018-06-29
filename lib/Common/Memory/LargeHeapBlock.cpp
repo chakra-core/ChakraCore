@@ -1003,11 +1003,7 @@ LargeHeapBlock::VerifyMark()
 
         unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
 
-        // In case of OOM we may not have completed processing of trackable objects and the NewFinalizeBit may not have been cleared.
-        if ((attributes & (TrackBit | NewTrackBit)) == (TrackBit | NewTrackBit))
-        {
-            Assert((attributes & NewFinalizeBit) == 0);
-        }
+        Assert((attributes & NewFinalizeBit) == 0);
 
         if ((attributes & LeafBit) != 0)
         {
@@ -1304,7 +1300,7 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
             // As such, our finalizeCount is not correct. Update it now.
 
             RECYCLER_STATS_INC(recycler, finalizeCount);
-            header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & ~NewFinalizeBit));
+            header->SetAttributes(recycler->Cookie, (attributes & ~NewFinalizeBit));
         }
 #endif
 
@@ -1332,6 +1328,12 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
             if (attributes & TrackBit)
             {
                 noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+                if (noOOMDuringMark)
+                {
+                    // Object has been successfully processed, so clear NewTrackBit
+                    header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                    RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
+                }
             }
             else
 #endif
@@ -1418,7 +1420,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             continue;
         }
 
-        unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
+        unsigned char attributes = header->GetAttributes(recycler->Cookie);
 
 #ifdef RECYCLER_STATS
         if (((attributes & FinalizeBit) != 0) && ((attributes & NewFinalizeBit) != 0))
@@ -1427,7 +1429,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             // As such, our finalizeCount is not correct.  Update it now.
 
             RECYCLER_STATS_INC(recycler, finalizeCount);
-            header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & ~NewFinalizeBit));
+            header->SetAttributes(recycler->Cookie, (attributes & ~NewFinalizeBit));
         }
 #endif
 
@@ -1460,6 +1462,12 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             if (attributes & TrackBit)
             {
                 noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+                if (noOOMDuringMark)
+                {
+                    // Object has been successfully processed, so clear NewTrackBit
+                    header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                    RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
+                }
             }
             else
 #endif
@@ -1569,6 +1577,12 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
                         {
                             header->markOnOOMRescan = true;
                         }
+                    }
+                    else
+                    {
+                        // Object has been successfully processed, so clear NewTrackBit
+                        header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                        RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
                     }
 
                     rescanCount = objectSize / AutoSystemInfo::PageSize +
@@ -1989,11 +2003,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
         {
 #if DBG
             unsigned char attributes = header->GetAttributes(recycler->Cookie);
-            // In case of OOM we may not have completed processing of trackable objects and the NewFinalizeBit may not have been cleared.
-            if ((attributes & (TrackBit | NewTrackBit)) == (TrackBit | NewTrackBit))
-            {
-                Assert((attributes & NewFinalizeBit) == 0);
-            }
+            Assert((attributes & NewFinalizeBit) == 0);
 #endif
 
             RECYCLER_STATS_ADD(recycler, largeHeapBlockUsedByteCount, this->GetHeaderByIndex(i)->objectSize);
