@@ -4,12 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+class ServerScriptContext;
 namespace Js
 {
     class ScriptContextProfiler
     {
 #ifdef PROFILE_EXEC
         friend class NativeCodeGenerator;
+        friend class ServerScriptContext;
 
     public:
         ScriptContextProfiler();
@@ -29,7 +31,7 @@ namespace Js
         void ProfileResume(Js::Profiler::SuspendRecord * suspendRecord);
         void ProfilePrint(Js::Phase phase);
         void ProfileMerge(ScriptContextProfiler * profiler);
-
+        void ProfilePrint();
     private:
         ArenaAllocator * profilerArena;
         ArenaAllocator * backgroundRecyclerProfilerArena;

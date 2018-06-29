@@ -80,6 +80,46 @@ namespace Js
         profiler->Begin(Js::AllPhase);
     }
 
+    void
+    ScriptContextProfiler::ProfilePrint()
+    {
+        Js::ScriptContextProfiler* profiler = this;
+        if (Js::Configuration::Global.flags.Verbose)
+        {
+            //Print individual profiler information in verbose mode
+            while (profiler)
+            {
+                profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+                profiler = profiler->next;
+            }
+        }
+        else
+        {
+            //Merge all the profiler for single snapshot.
+            Js::ScriptContextProfiler* mergeToProfiler = profiler;
+
+            // find the first initialized profiler
+            while (mergeToProfiler != nullptr && !mergeToProfiler->IsInitialized())
+            {
+                mergeToProfiler = mergeToProfiler->next;
+            }
+            if (mergeToProfiler != nullptr)
+            {
+                // merge the rest profiler to the above initialized profiler
+                profiler = mergeToProfiler->next;
+                while (profiler)
+                {
+                    if (profiler->IsInitialized())
+                    {
+                        mergeToProfiler->ProfileMerge(profiler);
+                    }
+                    profiler = profiler->next;
+                }
+                mergeToProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
+            }
+        }
+    }
+
     ScriptContextProfiler::~ScriptContextProfiler()
     {
         if (profilerArena)

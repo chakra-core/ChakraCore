@@ -430,11 +430,7 @@ ServerCloseScriptContext(
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
 #ifdef PROFILE_EXEC
-        auto profiler = scriptContextInfo->GetCodeGenProfiler();
-        if (profiler && profiler->IsInitialized())
-        {
-            profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-        }
+        scriptContextInfo->GetFirstCodeGenProfiler()->ProfilePrint();
 #endif
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
@@ -733,12 +729,10 @@ ServerRemoteCodeGen(
             Output::Flush();
         }
 
-        auto profiler = scriptContextInfo->GetCodeGenProfiler();
 #ifdef PROFILE_EXEC
-        if (profiler && !profiler->IsInitialized())
-        {
-            profiler->Initialize(pageAllocator, nullptr);
-        }
+        Js::ScriptContextProfiler* profiler = scriptContextInfo->GetCodeGenProfiler(pageAllocator);
+#else
+        Js::ScriptContextProfiler* profiler = nullptr;
 #endif
 
 #if !FLOATVAR
