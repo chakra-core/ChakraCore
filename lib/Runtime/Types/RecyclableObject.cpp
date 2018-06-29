@@ -39,6 +39,10 @@ namespace Js
         info->prop = prop;
         info->propertyRecordUsageCache = propertyRecordUsageCache;
         SetCacheInfo(info, polymorphicInlineCache, allowResizing);
+        if (propertyRecordUsageCache && propertyRecordUsageCache->ShouldDisableWriteCache())
+        {
+            info->ClearInfoFlag(CacheInfoFlag::enableStoreFieldCacheFlag);
+        }
     }
 
     void PropertyValueInfo::SetCacheInfo(_Out_ PropertyValueInfo* info, _In_ PolymorphicInlineCache *const polymorphicInlineCache, bool allowResizing)
