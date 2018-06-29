@@ -9,6 +9,10 @@
 // conversion from 'int' to 'char', possible loss of data
 #pragma warning(disable:4242)
 #pragma warning(disable:4244)
+#pragma warning(disable:26434) // Function definition hides non-virtual function in base class
+#pragma warning(disable:26439) // Implicit noexcept
+#pragma warning(disable:26451) // Arithmetic overflow
+#pragma warning(disable:26495) // Uninitialized member variable
 #include "catch.hpp"
 #pragma warning(pop)
 

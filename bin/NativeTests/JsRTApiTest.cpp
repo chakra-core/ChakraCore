@@ -3,9 +3,14 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#pragma warning(disable:26434) // Function definition hides non-virtual function in base class
+#pragma warning(disable:26439) // Implicit noexcept
+#pragma warning(disable:26451) // Arithmetic overflow
+#pragma warning(disable:26495) // Uninitialized member variable
 #include "catch.hpp"
 #include <array>
 #include <process.h>
+#include <suppress.h>
 
 #pragma warning(disable:4100) // unreferenced formal parameter
 #pragma warning(disable:6387) // suppressing preFAST which raises warning for passing null to the JsRT APIs
@@ -1243,7 +1248,8 @@ namespace JsRTApiTest
             size_t length;
             REQUIRE(JsStringToPointer(nameValue, &name, &length) == JsNoError);
 
-            CHECK(length == 1);
+            REQUIRE(length == 1);
+#pragma prefast(suppress:__WARNING_MAYBE_UNINIT_VAR, "The require on the previous line should ensure that name[0] is initialized")
             CHECK(name[0] == ('a' + index));
         }
     }

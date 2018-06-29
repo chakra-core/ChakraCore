@@ -409,7 +409,7 @@ namespace Js
         return false;
     }
 
-    BOOL BoundFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL BoundFunction::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         return DynamicObject::GetAccessors(propertyId, getter, setter, requestContext);
     }

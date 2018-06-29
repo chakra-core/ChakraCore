@@ -19,6 +19,7 @@
 //  AU RecyclerWriteBarrierManager
 #pragma warning(disable:4075)       // initializers put in unrecognized initialization area on purpose
 #pragma init_seg(".CRT$XCAR")
+#pragma prefast(disable:__WARNING_CALLER_FAILING_TO_HOLD, "Not annotating this file for lock semantics due to poor accuracy and complicated conditions for some locks")
 
 CriticalSection LeakReport::s_cs;
 DWORD LeakReport::nestedSectionCount = 0;

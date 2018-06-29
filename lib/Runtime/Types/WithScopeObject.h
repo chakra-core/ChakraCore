@@ -60,7 +60,7 @@ namespace Js
             virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { UNWRAP_FAILFAST(); return FALSE; };
-            virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
+            _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL IsWritable(PropertyId propertyId) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL IsConfigurable(PropertyId propertyId) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual BOOL IsEnumerable(PropertyId propertyId) override { UNWRAP_FAILFAST(); return FALSE; };

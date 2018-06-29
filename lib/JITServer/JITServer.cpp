@@ -559,7 +559,7 @@ ServerNewInterpreterThunkBlock(
 HRESULT
 ServerIsInterpreterThunkAddr(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ intptr_t address,
     /* [in] */ boolean asmjsThunk,
     /* [out] */ __RPC__out boolean * result)
