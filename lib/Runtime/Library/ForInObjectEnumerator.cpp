@@ -210,6 +210,8 @@ namespace Js
                     return nullptr;
                 }
 
+                RecyclableObject* previousObject = this->shadowData->currentObject;
+
                 RecyclableObject * object;
                 if (!this->enumeratingPrototype)
                 {
@@ -249,6 +251,21 @@ namespace Js
                     }
                 }
                 while (true);
+
+                // Ignore special properties (ex: Array.length)
+                if (previousObject != nullptr)
+                {
+                    uint specialPropertyCount = previousObject->GetSpecialPropertyCount();
+                    if (specialPropertyCount > 0)
+                    {
+                        PropertyId const* specialPropertyIds = previousObject->GetSpecialPropertyIds();
+                        Assert(specialPropertyIds != nullptr);
+                        for (uint i = 0; i < specialPropertyCount; i++)
+                        {
+                            TestAndSetEnumerated(specialPropertyIds[i]);
+                        }
+                    }
+                }
             }
         }
     }
