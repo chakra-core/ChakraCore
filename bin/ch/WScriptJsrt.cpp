@@ -35,6 +35,7 @@
 #endif // FreeBSD or unix ?
 #endif // _WIN32 ?
 
+#pragma prefast(disable:26444, "This warning unfortunately raises false positives when auto is used for declaring the type of an iterator in a loop.")
 #ifdef HAS_ICU
 #define INTL_LIBRARY_TEXT "icu"
 #elif defined(_WIN32)
@@ -133,7 +134,7 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
                 }
                 charcount_t len;
                 LPWSTR ws = str.GetWideString(&len);
-                LPWSTR wsNoNull = new WCHAR[len + 1];
+                LPWSTR wsNoNull = new WCHAR[((size_t)len) + 1];
                 charcount_t newIndex = 0;
                 for (charcount_t j = 0; j < len; j++)
                 {

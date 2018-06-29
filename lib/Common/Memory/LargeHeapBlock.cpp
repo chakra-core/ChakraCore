@@ -389,7 +389,10 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
 #endif
 
 #ifdef RECYCLER_FREE_MEM_FILL
-    memset(blockStartAddress, DbgMemFill, AutoSystemInfo::PageSize * realPageCount);
+    if(blockStartAddress != nullptr)
+    {
+        memset(blockStartAddress, DbgMemFill, AutoSystemInfo::PageSize * realPageCount);
+    }
 #endif
     pageAllocator->Release(blockStartAddress, realPageCount, segment);
     RECYCLER_PERF_COUNTER_SUB(LargeHeapBlockPageSize, pageCount * AutoSystemInfo::PageSize);

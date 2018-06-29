@@ -1170,7 +1170,7 @@ namespace Js
     FunctionBody::SetOutParamMaxDepth(RegSlot cOutParamsDepth)
     {
 #if _M_X64
-        const RegSlot minAsmJsOutParams = MinAsmJsOutParams();
+        constexpr RegSlot minAsmJsOutParams = MinAsmJsOutParams();
         if (GetIsAsmJsFunction() && cOutParamsDepth < minAsmJsOutParams)
         {
             cOutParamsDepth = minAsmJsOutParams;

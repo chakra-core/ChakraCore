@@ -300,7 +300,7 @@ namespace TTD
         ;
     }
 
-    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, _Out_writes_z_(buffLength) char16* namebuff, charcount_t namebuffLength) const
+    void TTDComparePath::WritePathToConsole(ThreadContext* threadContext, bool printNewline, _Out_writes_z_(namebuffLength) char16* namebuff, charcount_t namebuffLength) const
     {
         if(this->m_prefix != nullptr)
         {

@@ -591,7 +591,7 @@ namespace Js
         return FALSE;
     }
   
-    BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, __out Var* getter, __out Var* setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         PropertyDescriptor result;
         if (getter != nullptr)
@@ -2146,6 +2146,7 @@ namespace Js
                     ::Math::DefaultOverflowPolicy();
                 }
             }
+            AnalysisAssert(newCount >= (ushort)args.Info.Count);
 
             Var* newValues;
             const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
@@ -2166,13 +2167,19 @@ namespace Js
                 calleeInfo.Flags = (CallFlags)(calleeInfo.Flags | CallFlags_ExtraArg | CallFlags_NewTarget);
             }
 
-            for (uint argCount = 0; argCount < args.Info.Count; argCount++)
+            for (ushort argCount = 0; argCount < (ushort)args.Info.Count; argCount++)
             {
+                AnalysisAssert(newCount >= ((ushort)args.Info.Count));
+                AnalysisAssert(argCount < newCount);
+                AnalysisAssert(argCount < (ushort)args.Info.Count);
+                AnalysisAssert(sizeof(Var*) == sizeof(void*));
+                AnalysisAssert(sizeof(Var*) * argCount < sizeof(void*) * newCount);
+#pragma prefast(suppress:__WARNING_WRITE_OVERRUN, "This is a false positive, and all of the above analysis asserts still didn't convince prefast of that.")
                 newValues[argCount] = args.Values[argCount];
             }
-#pragma prefast(suppress:6386)
             if (isNewCall)
             {
+                AnalysisAssert(newCount == ((ushort)args.Info.Count) + 1);
                 newValues[args.Info.Count] = newTarget;
             }
 

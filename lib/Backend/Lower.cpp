@@ -10518,7 +10518,7 @@ Lowerer::LowerStLoopBodyCount(IR::Instr* instr)
     IR::MemRefOpnd *loopBodyCounterOpnd = IR::MemRefOpnd::New((BYTE*)(header) + Js::LoopHeader::GetOffsetOfProfiledLoopCounter(), TyUint32, this->m_func);
     instr->SetDst(loopBodyCounterOpnd);
     instr->ReplaceSrc1(instr->GetSrc1()->AsRegOpnd()->UseWithNewType(TyUint32, this->m_func));
-    IR::AutoReuseOpnd(loopBodyCounterOpnd, this->m_func);
+    IR::AutoReuseOpnd autoReuse(loopBodyCounterOpnd, this->m_func);
     m_lowererMD.ChangeToAssign(instr);
     return;
 }
@@ -21155,8 +21155,12 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
 
 #if defined(_M_IX86)
-     Assert(false);
-#endif
+    // We get a compilation error on x86 due to assigning a negative to a uint
+    // TODO: don't even define this function on x86 - we Assert(false) anyway there.
+    // Alternatively, don't define when INT_ARG_REG_COUNT - 4 < 0
+    AssertOrFailFast(false);
+    return nullptr;
+#else
 
     Assert(stackArgsInstr->m_opcode == Js::OpCode::ArgOut_A_FromStackArgs);
     Assert(callInstr->m_opcode == Js::OpCode::CallIDynamic);
@@ -21224,14 +21228,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     // 4 to denote this is 4th register after this, callinfo & function object
     // INT_ARG_REG_COUNT is the number of parameters passed in int regs
-    uint current_reg_pass =
-#if defined(_M_IX86)
-        // We get a compilation error on x86 due to assiging a negative to a uint
-        // TODO: don't even define this function on x86 - we Assert(false) anyway there.
-        0;
-#else
-        INT_ARG_REG_COUNT - 4;
-#endif
+    uint current_reg_pass = INT_ARG_REG_COUNT - 4;
 
     do
     {
@@ -21277,6 +21274,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     /*return the length which will be used for callInfo generations & stack allocation*/
     return saveLenInstr->GetDst()->AsRegOpnd();
+#endif
 }
 
 void

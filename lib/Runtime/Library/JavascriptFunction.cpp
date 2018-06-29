@@ -2516,7 +2516,7 @@ LABEL1:
         return DynamicObject::HasPropertyQuery(propertyId, info);
     }
 
-    BOOL JavascriptFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL JavascriptFunction::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         Assert(!this->IsBoundFunction());
         Assert(propertyId != Constants::NoProperty);

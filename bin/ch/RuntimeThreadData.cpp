@@ -20,19 +20,21 @@ RuntimeThreadLocalData& GetRuntimeThreadLocalData()
     return threadLocalData;
 }
 
-RuntimeThreadData::RuntimeThreadData()
+RuntimeThreadData::RuntimeThreadData() :
+    hSemaphore(nullptr), 
+    hThread(nullptr),
+    sharedContent(nullptr),
+    receiveBroadcastCallbackFunc(nullptr),
+    runtime(nullptr),
+    context(nullptr),
+    parent(nullptr),
+    leaving(false)
 {
     this->hevntInitialScriptCompleted = CreateEvent(NULL, TRUE, FALSE, NULL);
     this->hevntReceivedBroadcast = CreateEvent(NULL, FALSE, FALSE, NULL);
     this->hevntShutdown = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-    this->sharedContent = nullptr;
-    this->receiveBroadcastCallbackFunc = nullptr;
-
-    this->leaving = false;
-
     InitializeCriticalSection(&csReportQ);
-
 }
 
 RuntimeThreadData::~RuntimeThreadData()

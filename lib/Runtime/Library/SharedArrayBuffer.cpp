@@ -722,7 +722,7 @@ namespace Js
         return false;
     }
 
-    bool WaiterList::AddAndSuspendWaiter(DWORD_PTR waiter, uint32 timeout)
+    bool _Requires_lock_held_(csForAccess.cs) WaiterList::AddAndSuspendWaiter(DWORD_PTR waiter, uint32 timeout)
     {
 #ifdef _WIN32
         Assert(m_waiters != nullptr);

@@ -6,6 +6,7 @@
 // This file contains stubs needed to make FunctionExecutionTest successfully compile and link as well
 // as a means to emulate behavior of objects that interact with FunctionExecutionStateMachine
 
+#include "..\..\lib\Common\Warnings.h"
 #include "..\..\lib\Common\Core\CommonMinMax.h"
 
 #define ENUM_CLASS_HELPERS(x, y)
