@@ -13,11 +13,11 @@ if not "%JENKINS_BUILD%" == "True" (
 set REPO_ROOT=%~dp0\..
 
 set JENKINS_BUILD_ARGS=
-set JENKINS_USE_MSBUILD_12=
+set JENKINS_FORCE_MSBUILD_VERSION=
 :ContinueArgParse
 if not [%1]==[] (
-    if [%1]==[msbuild12] (
-        set JENKINS_USE_MSBUILD_12=True
+    if [%1]==[msbuild14] (
+        set JENKINS_FORCE_MSBUILD_VERSION=%1
         goto :ContinueArgParseEnd
     )
 
@@ -36,4 +36,4 @@ if not [%1]==[] (
 :: Set up msbuild.exe
 :: ========================================
 
-call %REPO_ROOT%\Build\scripts\add_msbuild_path.cmd %JENKINS_USE_MSBUILD_12%
+call %REPO_ROOT%\Build\scripts\add_msbuild_path.cmd %JENKINS_FORCE_MSBUILD_VERSION%
