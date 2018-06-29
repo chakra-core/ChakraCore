@@ -191,6 +191,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     allowDispose(false),
     inDisposeWrapper(false),
     hasDisposableObject(false),
+    hasNativeGCHost(false),
     tickCountNextDispose(0),
     transientPinnedObject(nullptr),
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
