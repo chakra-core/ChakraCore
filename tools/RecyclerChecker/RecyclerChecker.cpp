@@ -140,7 +140,7 @@ void MainVisitor::ProcessUnbarrieredFields(
         }
 
         // If an annotated field type is struct/class/union (RecordType), the
-        // field type in turn should likely be annoatated.
+        // field type in turn should likely be annotated.
         if (fieldTypeName.back() != '*'  // not "... *"
             &&
             (
