@@ -501,4 +501,9 @@
       <files>withSplitScope.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS17614914.js</files>
+    </default>
+  </test>  
 </regress-exe>
