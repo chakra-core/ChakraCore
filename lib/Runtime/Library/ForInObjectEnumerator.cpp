@@ -210,17 +210,7 @@ namespace Js
                     return nullptr;
                 }
 
-                // Ignore special properties (ex: Array.length)
-                uint specialPropertyCount = this->shadowData->currentObject->GetSpecialPropertyCount();
-                if (specialPropertyCount > 0)
-                {
-                    PropertyId const* specialPropertyIds = this->shadowData->currentObject->GetSpecialPropertyIds();
-                    Assert(specialPropertyIds != nullptr);
-                    for (uint i = 0; i < specialPropertyCount; i++)
-                    {
-                        TestAndSetEnumerated(specialPropertyIds[i]);
-                    }
-                }
+                RecyclableObject* previousObject = this->shadowData->currentObject;
 
                 RecyclableObject * object;
                 if (!this->enumeratingPrototype)
@@ -261,6 +251,21 @@ namespace Js
                     }
                 }
                 while (true);
+
+                // Ignore special properties (ex: Array.length)
+                if (previousObject != nullptr)
+                {
+                    uint specialPropertyCount = previousObject->GetSpecialPropertyCount();
+                    if (specialPropertyCount > 0)
+                    {
+                        PropertyId const* specialPropertyIds = previousObject->GetSpecialPropertyIds();
+                        Assert(specialPropertyIds != nullptr);
+                        for (uint i = 0; i < specialPropertyCount; i++)
+                        {
+                            TestAndSetEnumerated(specialPropertyIds[i]);
+                        }
+                    }
+                }
             }
         }
     }
