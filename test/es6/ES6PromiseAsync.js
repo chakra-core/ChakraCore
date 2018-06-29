@@ -1167,7 +1167,27 @@ var tests = [
                         (e) => { if(e == "own rejection") { echo(`Test #${index} - Success - own rejection passed through finally`); }
                             else {echo(`Test #${index} - Failed - wrong result ${e} passed through finally`); } } );
         }
-    }
+    },
+    {
+        name: "Ensure Multiple then handlers on a single promise are executed in correct order",
+        body: function (index) {
+            let val = -7
+            let resolveFunc;
+            const p = new Promise((resolve, reject) => {
+                resolveFunc = resolve;
+            });
+            p.then(() => {
+                val = val * 3;
+            });
+            p.then(() => {
+                val = val + 21
+            });
+            p.then(() => {
+                echo('Test #' + index + ' - val is ' + val + '(Expect 0)');
+            });
+            resolveFunc();
+        }
+    },
 ];
 
 var index = 1;
