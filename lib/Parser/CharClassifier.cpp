@@ -411,11 +411,11 @@ Js::CharClassifier::CharClassifier(void)
     bool isES6UnicodeModeEnabled = CONFIG_FLAG(ES6Unicode);
     bool isFullUnicodeSupportAvailable = PlatformAgnostic::UnicodeText::IsExternalUnicodeLibraryAvailable();
 
-#ifdef NTBUILD
+#if INTL_ICU || INTL_WINGLOB // don't assert in _no_icu builds (where there is no i18n library, by design)
     AssertMsg(isFullUnicodeSupportAvailable, "Windows.Globalization needs to present with IUnicodeCharacterStatics support for Chakra.dll to work");
     if (!isFullUnicodeSupportAvailable)
     {
-        Js::Throw::FatalInternalError();
+        Js::Throw::FatalInternalGlobalizationError();
     }
 #endif
 
@@ -450,7 +450,6 @@ Js::CharClassifier::CharClassifier(void)
         getBigCharFlagsFunc = &CharClassifier::GetBigCharFlagsES5;
     }
 #endif
-
 }
 
 const OLECHAR* Js::CharClassifier::SkipWhiteSpaceNonSurrogate(LPCOLESTR psz, const CharClassifier *instance)
