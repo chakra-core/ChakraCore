@@ -77,6 +77,13 @@ namespace Js {
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
 
+    void Throw::FatalInternalGlobalizationError()
+    {
+        AssertMsg(false, "Failure in initializing Globalization library");
+        int scenario = 2;
+        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
+    }
+
     void Throw::FatalProjectionError()
     {
         RaiseException((DWORD)DBG_TERMINATE_PROCESS, EXCEPTION_NONCONTINUABLE, 0, NULL);

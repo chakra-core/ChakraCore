@@ -399,8 +399,7 @@ namespace PlatformAgnostic
                 Js::WindowsGlobalizationAdapter* globalizationAdapter = threadContext->GetWindowsGlobalizationAdapter();
                 Js::DelayLoadWindowsGlobalization* globLibrary = threadContext->GetWindowsGlobalizationLibrary();
                 HRESULT hr = globalizationAdapter->EnsureDataTextObjectsInitialized(globLibrary);
-                // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support
-                // in that case.
+                // Failed to load windows.globalization.dll or jsintl.dll. No unicodeStatics support in that case.
                 if (SUCCEEDED(hr))
                 {
                     auto winGlobCharApi = globalizationAdapter->GetUnicodeStatics();
@@ -408,9 +407,23 @@ namespace PlatformAgnostic
                     {
                         return true;
                     }
+#if INTL_ICU || INTL_WINGLOB // don't assert in _no_icu builds (where there is no i18n library, by design)
+                    else
+                    {
+                        // did not find winGlobCharApi
+                        Js::Throw::FatalInternalGlobalizationError();
+                    }
+                }
+                else
+                {
+                    // failed to initialize Windows Globalization
+                    Js::Throw::FatalInternalGlobalizationError();
+#endif
                 }
 
-                return false;
+#if (INTL_ICU || INTL_WINGLOB) && !defined(DBG)
+                return false; // in debug builds, this is unreachable code
+#endif
             }, false);
         }
 
