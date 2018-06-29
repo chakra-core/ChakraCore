@@ -21156,7 +21156,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
 
 #if defined(_M_IX86)
-    // We get a compilation error on x86 due to assiging a negative to a uint
+    // We get a compilation error on x86 due to assigning a negative to a uint
     // TODO: don't even define this function on x86 - we Assert(false) anyway there.
     // Alternatively, don't define when INT_ARG_REG_COUNT - 4 < 0
     AssertOrFailFast(false);
