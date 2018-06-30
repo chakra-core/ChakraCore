@@ -183,7 +183,7 @@ namespace Js
     }
 
     HRESULT DelayLoadWindowsGlobalization::DllGetActivationFactory(
-        __in HSTRING activatibleClassId,
+        __in HSTRING activatableClassId,
         __out IActivationFactory** factory)
     {
         if (m_hModule)
@@ -198,7 +198,7 @@ namespace Js
             }
 
             Assert(m_pfnFNCWDllGetActivationFactory != nullptr);
-            return m_pfnFNCWDllGetActivationFactory(activatibleClassId, factory);
+            return m_pfnFNCWDllGetActivationFactory(activatableClassId, factory);
         }
 
         return E_NOTIMPL;
@@ -206,7 +206,7 @@ namespace Js
 #endif
 
     HRESULT DelayLoadWinRtFoundation::RoGetActivationFactory(
-        __in HSTRING activatibleClassId,
+        __in HSTRING activatableClassId,
         __in REFIID iid,
         __out IActivationFactory** factory)
     {
@@ -222,7 +222,7 @@ namespace Js
             }
 
             Assert(m_pfnFNCWRoGetActivationFactory != nullptr);
-            return m_pfnFNCWRoGetActivationFactory(activatibleClassId, iid, factory);
+            return m_pfnFNCWRoGetActivationFactory(activatableClassId, iid, factory);
         }
 
         return E_NOTIMPL;

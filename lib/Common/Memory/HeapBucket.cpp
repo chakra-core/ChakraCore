@@ -2425,7 +2425,7 @@ template <class TBlockAttributes>
 void
 HeapBucketGroup<TBlockAttributes>::StartAllocationDuringConcurrentSweep()
 {
-    // If there were no allocable heap blocks we would not have started alllocations. Stop allocations, only if we started allocations for each of these buckets.
+    // If there were no allocable heap blocks we would not have started allocations. Stop allocations, only if we started allocations for each of these buckets.
     if (heapBucket.IsAllocationStopped())
     {
         heapBucket.StartAllocationDuringConcurrentSweep();

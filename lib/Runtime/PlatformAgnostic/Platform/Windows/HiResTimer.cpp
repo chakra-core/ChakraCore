@@ -12,7 +12,7 @@ namespace PlatformAgnostic
 {
 namespace DateTime
 {
-    // Quantization code adapated from the version in Edge
+    // Quantization code adapted from the version in Edge
     template<uint64 frequencyOfQuantization>
     class JitterManager
     {

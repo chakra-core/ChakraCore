@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-// Disable inline so that _ReturnAdddress() will get the address of the calling function.
+// Disable inline so that _ReturnAddress() will get the address of the calling function.
 _NOINLINE
 void ReportFatalException(
     __in ULONG_PTR context,

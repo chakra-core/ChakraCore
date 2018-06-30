@@ -95,7 +95,7 @@ namespace Js
                 sortedExportedNames->Add(propertyString);
                 if (!moduleRecord->ResolveExport(propertyId, nullptr, &moduleNameRecord))
                 {
-                    // ignore ambigious resolution.
+                    // ignore ambiguous resolution.
 #if DBG
                     unresolvableExportsCount++;
 #endif

@@ -1162,7 +1162,7 @@ IR::Instr* LowererMD::Simd128LowerShift(IR::Instr *instr)
     IR::RegOpnd *tmp1 = IR::RegOpnd::New(src1->GetType(), m_func);
     IR::RegOpnd *tmp2 = IR::RegOpnd::New(src1->GetType(), m_func);
 
-    //Shift amount: The shift amout is masked by [ElementSize] * 8
+    //Shift amount: The shift amount is masked by [ElementSize] * 8
     //The masked Shift amount is moved to xmm register
     //AND  shamt, shmask, shamt
     //MOVD tmp0, shamt
