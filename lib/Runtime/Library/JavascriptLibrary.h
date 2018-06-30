@@ -312,6 +312,8 @@ namespace Js
         Field(DynamicTypeHandler *) anonymousFunctionTypeHandler;
         Field(DynamicTypeHandler *) anonymousFunctionWithPrototypeTypeHandler;
         Field(DynamicTypeHandler *) functionTypeHandler;
+        Field(DynamicTypeHandler *) functionTypeHandlerWithLength;
+        Field(DynamicTypeHandler *) functionWithPrototypeAndLengthTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
@@ -513,6 +515,8 @@ namespace Js
         static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
         static SimpleTypeHandler<2> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
+        static SimpleTypeHandler<3> SharedFunctionWithPrototypeLengthAndNameTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithPrototypeAndLengthTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
@@ -520,6 +524,8 @@ namespace Js
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithPrototypeLengthAndNameTypeDescriptors[3];
+        static SimplePropertyDescriptor const FunctionWithPrototypeAndLengthTypeDescriptors[2];
         static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[1];
 
     public:
@@ -917,6 +923,8 @@ namespace Js
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler();
 
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
+        DynamicTypeHandler * GetDeferredFunctionTypeHandlerNoPrototype();
+        DynamicTypeHandler * GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false>
@@ -1248,7 +1256,7 @@ namespace Js
 #endif
 
     public:
-        template<bool addPrototype>
+        template<bool addPrototype, bool addName, bool useLengthType>
         static bool __cdecl InitializeFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         virtual void Finalize(bool isShutdown) override;
 

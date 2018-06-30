@@ -87,6 +87,12 @@
   </test>
   <test>
     <default>
+      <files>funcAndboundFuncLength.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>call1.js</files>
       <baseline>call1.baseline</baseline>
     </default>

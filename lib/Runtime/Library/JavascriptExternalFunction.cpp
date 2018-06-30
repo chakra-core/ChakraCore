@@ -58,7 +58,7 @@ namespace Js
 
     bool __cdecl JavascriptExternalFunction::DeferredLengthInitializer(DynamicObject * instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        Js::JavascriptLibrary::InitializeFunction<true>(instance, typeHandler, mode);
+        Js::JavascriptLibrary::InitializeFunction<true, true, true>(instance, typeHandler, mode);
 
         JavascriptExternalFunction* object = static_cast<JavascriptExternalFunction*>(instance);
 
