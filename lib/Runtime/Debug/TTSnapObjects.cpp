@@ -1075,21 +1075,23 @@ namespace TTD
 
             Js::Var result = (promiseInfo->Result != nullptr) ? inflator->InflateTTDVar(promiseInfo->Result) : nullptr;
 
-            JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator> resolveReactions(&HeapAllocator::Instance);
+            SList<Js::JavascriptPromiseReaction*, HeapAllocator> resolveReactions(&HeapAllocator::Instance);
             for(uint32 i = 0; i < promiseInfo->ResolveReactionCount; ++i)
             {
                 Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(promiseInfo->ResolveReactions + i, ctx, inflator);
-                resolveReactions.Add(reaction);
+                resolveReactions.Prepend(reaction);
             }
+            resolveReactions.Reverse();
 
-            JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator> rejectReactions(&HeapAllocator::Instance);
+            SList<Js::JavascriptPromiseReaction*, HeapAllocator> rejectReactions(&HeapAllocator::Instance);
             for(uint32 i = 0; i < promiseInfo->RejectReactionCount; ++i)
             {
                 Js::JavascriptPromiseReaction* reaction = NSSnapValues::InflatePromiseReactionInfo(promiseInfo->RejectReactions + i, ctx, inflator);
-                rejectReactions.Add(reaction);
+                rejectReactions.Prepend(reaction);
             }
+            rejectReactions.Reverse();
 
-            Js::RecyclableObject* res = ctx->GetLibrary()->CreatePromise_TTD(promiseInfo->Status, result, resolveReactions, rejectReactions);
+            Js::RecyclableObject* res = ctx->GetLibrary()->CreatePromise_TTD(promiseInfo->Status, promiseInfo->isHandled, result, resolveReactions, rejectReactions);
 
             return res;
         }
@@ -1099,6 +1101,7 @@ namespace TTD
             SnapPromiseInfo* promiseInfo = SnapObjectGetAddtlInfoAs<SnapPromiseInfo*, SnapObjectType::SnapPromiseObject>(snpObject);
 
             writer->WriteUInt32(NSTokens::Key::u32Val, promiseInfo->Status, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, promiseInfo->isHandled, NSTokens::Separator::CommaSeparator);
 
             writer->WriteKey(NSTokens::Key::resultValue, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(promiseInfo->Result, writer, NSTokens::Separator::NoSeparator);
@@ -1127,6 +1130,7 @@ namespace TTD
             SnapPromiseInfo* promiseInfo = alloc.SlabAllocateStruct<SnapPromiseInfo>();
 
             promiseInfo->Status = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            promiseInfo->isHandled = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             reader->ReadKey(NSTokens::Key::resultValue, true);
             promiseInfo->Result = NSSnapValues::ParseTTDVar(false, reader);
