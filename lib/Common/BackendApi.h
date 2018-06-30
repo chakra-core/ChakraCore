@@ -7,11 +7,7 @@
 
 #if DYNAMIC_INTERPRETER_THUNK
 #define DefaultEntryThunk Js::InterpreterStackFrame::DelayDynamicInterpreterThunk
-#if _M_X64
 #define AsmJsDefaultEntryThunk Js::InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk
-#elif _M_IX86
-#define AsmJsDefaultEntryThunk Js::InterpreterStackFrame::DelayDynamicInterpreterThunk
-#endif
 #else
 #define DefaultEntryThunk Js::InterpreterStackFrame::InterpreterThunk
 #endif

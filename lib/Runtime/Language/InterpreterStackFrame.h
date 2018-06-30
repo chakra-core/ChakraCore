@@ -344,11 +344,7 @@ namespace Js
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
         static void * GetAsmJsInterpreterEntryPoint(AsmJsCallStackLayout* stack);
-
-        static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
-
         static __m128 AsmJsInterpreterSimdJs(AsmJsCallStackLayout* func);
-
 #endif
 
 #ifdef ASMJS_PLAT
@@ -357,6 +353,7 @@ namespace Js
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
+        static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         _NOINLINE static Var InterpreterThunk(JavascriptCallStackLayout* layout);
         _NOINLINE static Var StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
