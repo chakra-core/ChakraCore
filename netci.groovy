@@ -242,11 +242,11 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 
 // The latest machine seems to have a configuration problem preventing us from building ARM.
 // For now, build ARM on the LKG config, Legacy Windows 8.1 (Blue) config.
-// TODO When the configuration is updated, unify this config split.
+// TODO When the Windows 10 configuration is updated to fix ARM builds, unify this config split.
 CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, null, null, "-win10", true,
-    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, null)
+    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, null) // configures everything except ARM
 CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, null, null, "-winBlue", true,
-    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, null)
+    /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, null) // configures ARM
 
 // Add some additional daily configs to trigger per-PR as a quality gate:
 // x64_debug Slow Tests
@@ -272,7 +272,7 @@ CreateBuildTask(true, 'x64', 'debug',
 if (!branch.endsWith('-ci')) {
     // build and test on the legacy configuration (Windows 7 + VS 2015 (Dev14))
     CreateBuildTasks(legacyWindows7Machine, legacyWindows7MachineTag, 'daily_legacy7', 'msbuild14', '-win7 -includeSlow', false,
-        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, // excludes ARM
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows 7 ${config}",
@@ -280,31 +280,52 @@ if (!branch.endsWith('-ci')) {
 
     // build and test on the legacy configuration (Windows 8.1 (Blue) + VS 2015 (Dev14))
     CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, 'daily_legacy8', 'msbuild14', '-winBlue -includeSlow', false,
-        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') },
+        /* excludeConfigIf */ null, // ARM builds previously worked on this configuration, so don't exclude them unless we explicitly drop support
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows 8 ${config}",
                 'legacy8?\\s+tests')})
 
     // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with -includeSlow
+    // TODO When the Windows 10 configuration is updated to fix ARM builds, unify this config split.
     CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_slow', null, '-win10 -includeSlow', false,
-        /* excludeConfigIf */ null,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, // configures everything except ARM
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                'slow\\s+tests')})
+    CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, 'daily_slow', null, '-winBlue -includeSlow', false,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, // configures ARM
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows ${config}",
                 'slow\\s+tests')})
 
     // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with JIT disabled
+    // TODO When the Windows 10 configuration is updated to fix ARM builds, unify this config split.
     CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_disablejit', '"/p:BuildJIT=false"', '-win10 -disablejit', true,
-        /* excludeConfigIf */ null,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, // configures everything except ARM
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                '(disablejit|nojit)\\s+tests')})
+    CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, 'daily_disablejit', '"/p:BuildJIT=false"', '-winBlue -disablejit', true,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, // configures ARM
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows ${config}",
                 '(disablejit|nojit)\\s+tests')})
 
     // build and test on the latest configuration (RS4 + VS 2017 Dev 15.7) with Lite build
+    // TODO When the Windows 10 configuration is updated to fix ARM builds, unify this config split.
     CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, 'daily_lite', '"/p:BuildLite=true"', '-win10 -lite', true,
-        /* excludeConfigIf */ null,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch == 'arm') }, // configures everything except ARM
+        /* nonDefaultTaskSetup */ { newJob, isPR, config ->
+            DailyBuildTaskSetup(newJob, isPR,
+                "Windows ${config}",
+                'lite\\s+tests')})
+    CreateBuildTasks(legacyWindows8Machine, legacyWindows8MachineTag, 'daily_lite', '"/p:BuildLite=true"', '-winBlue -lite', true,
+        /* excludeConfigIf */ { isPR, buildArch, buildType -> (buildArch != 'arm') }, // configures ARM
         /* nonDefaultTaskSetup */ { newJob, isPR, config ->
             DailyBuildTaskSetup(newJob, isPR,
                 "Windows ${config}",
