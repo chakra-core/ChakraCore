@@ -62,7 +62,12 @@ NESTED_ENTRY _ZN2Js21InterpreterStackFrame33AsmJsDelayDynamicInterpreterThunkEPN
         push r8
         push r9
 
+        call C_FUNC(_ZN2Js11WasmLibrary20EnsureWasmEntrypointEPNS_14ScriptFunctionE)
+        test rax, rax
+        jne skipThunk
+        mov rdi, [rbp-0x8]
         call C_FUNC(_ZN2Js21InterpreterStackFrame29EnsureDynamicInterpreterThunkEPNS_14ScriptFunctionE)
+skipThunk:
 
         pop r9
         pop r8
@@ -269,74 +274,5 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
 
         ret
 NESTED_END _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
-
-
-//============================================================================================================
-// WasmLibrary::WasmDeferredParseExternalThunk
-//============================================================================================================
-
-// Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
-.balign 16
-NESTED_ENTRY _ZN2Js11WasmLibrary30WasmDeferredParseExternalThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
-        push_nonvol_reg rbp             // push rbp and adjust CFA offset
-        lea  rbp, [rsp]
-
-        set_cfa_register rbp, (2*8)     // Set to compute CFA as: rbp + 16 (sizeof: [rbp] [ReturnAddress])
-
-        // save argument registers used by custom calling convention
-        push rdi
-        push rsi
-        push rdx
-        push rcx
-        push r8
-        push r9
-
-        mov rsi, 0
-        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_19AsmJsScriptFunctionEi)
-
-        pop r9
-        pop r8
-        pop rcx
-        pop rdx
-        pop rsi
-        pop rdi
-
-        pop_nonvol_reg rbp
-        jmp rax
-NESTED_END _ZN2Js11WasmLibrary30WasmDeferredParseExternalThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
-
-//============================================================================================================
-// WasmLibrary::WasmDeferredParseInternalThunk
-//============================================================================================================
-
-// Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
-.balign 16
-NESTED_ENTRY _ZN2Js11WasmLibrary30WasmDeferredParseInternalThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
-        push_nonvol_reg rbp             // push rbp and adjust CFA offset
-        lea  rbp, [rsp]
-
-        set_cfa_register rbp, (2*8)     // Set to compute CFA as: rbp + 16 (sizeof: [rbp] [ReturnAddress])
-
-        // save argument registers used by custom calling convention
-        push rdi
-        push rsi
-        push rdx
-        push rcx
-        push r8
-        push r9
-
-        mov rsi, 1
-        call C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_19AsmJsScriptFunctionEi)
-
-        pop r9
-        pop r8
-        pop rcx
-        pop rdx
-        pop rsi
-        pop rdi
-
-        pop_nonvol_reg rbp
-        jmp rax
-NESTED_END _ZN2Js11WasmLibrary30WasmDeferredParseInternalThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
 
 #endif // _ENABLE_DYNAMIC_THUNKS

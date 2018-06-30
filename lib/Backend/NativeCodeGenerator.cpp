@@ -1567,8 +1567,7 @@ NativeCodeGenerator::GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress)
     return nullptr;
 }
 
-
-Js::Var
+Js::JavascriptMethod
 NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
 {
     Assert(function);
@@ -1579,6 +1578,7 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
     Assert(scriptContext->GetThreadContext()->IsScriptActive());
     Assert(scriptContext->GetThreadContext()->IsInScript());
 
+    AssertOrFailFastMsg(!functionBody->IsWasmFunction() || functionBody->GetByteCodeCount() > 0, "Wasm function should be parsed by now");
     // Load the entry point here to validate it got changed afterwards
 
     Js::FunctionEntryPointInfo* entryPoint = function->GetFunctionEntryPointInfo();
@@ -1595,15 +1595,16 @@ NativeCodeGenerator::CheckAsmJsCodeGen(Js::ScriptFunction * function)
         {
             Output::Print(_u("Codegen not done yet for function: %s, Entrypoint is CheckAsmJsCodeGenThunk\n"), function->GetFunctionBody()->GetDisplayName());
         }
-        return reinterpret_cast<Js::Var>(functionBody->GetOriginalEntryPoint());
+        return functionBody->GetOriginalEntryPoint();
     }
     if (PHASE_TRACE1(Js::AsmjsEntryPointInfoPhase))
     {
         Output::Print(_u("CodeGen Done for function: %s, Changing Entrypoint to Full JIT\n"), function->GetFunctionBody()->GetDisplayName());
     }
     // we will need to set the functionbody external and asmjs entrypoint to the fulljit entrypoint
-    return reinterpret_cast<Js::Var>(CheckCodeGenDone(functionBody, entryPoint, function));
+    return CheckCodeGenDone(functionBody, entryPoint, function);
 }
+
 
 Js::JavascriptMethod
 NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)

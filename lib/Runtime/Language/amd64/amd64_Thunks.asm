@@ -66,6 +66,7 @@ endif
 
 ;; JavascriptMethod InterpreterStackFrame::EnsureDynamicInterpreterThunk(ScriptFunction * function)
 extrn ?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z : PROC
+extrn ?EnsureWasmEntrypoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z : PROC
 
 ;; Var InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
 align 16
@@ -88,14 +89,20 @@ align 16
         movaps xmmword ptr [rsp + 30h], xmm1
         movaps xmmword ptr [rsp + 40h], xmm2
         movaps xmmword ptr [rsp + 50h], xmm3
-ifdef _CONTROL_FLOW_GUARD
-        call ?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z
 
+        ;; Make sure the wasm function has the right entrypoint
+        call ?EnsureWasmEntrypoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z
+        test rax, rax
+        jne skipThunk
+        mov rcx, qword ptr [rsp + 70h]
+
+        call ?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z
+skipThunk:
+
+ifdef _CONTROL_FLOW_GUARD
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx                            ;restore call target
-else
-        call ?EnsureDynamicInterpreterThunk@InterpreterStackFrame@Js@@CAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z
 endif
         ; restore potential floating point arguments from stack
         movaps xmm1, xmmword ptr [rsp + 30h]
@@ -451,105 +458,6 @@ endif
         ret
 
 ?AsmJsExternalEntryPoint@Js@@YAPEAXPEAVRecyclableObject@1@UCallInfo@1@ZZ ENDP
-
-;;============================================================================================================
-;; WasmLibrary::WasmDeferredParseExternalThunk
-;;============================================================================================================
-
-;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
-
-;; Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
-align 16
-?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
-        ;; save volatile registers
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
-
-        push rbp
-        .pushreg rbp
-        lea  rbp, [rsp]
-        .setframe rbp, 0
-        .endprolog
-
-        sub rsp, 20h
-        mov rdx, 0
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
-
-ifdef _CONTROL_FLOW_GUARD
-        mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
-        call [__guard_check_icall_fptr]         ; verify that the call target is valid
-        mov rax, rcx                            ;restore call target
-endif
-
-        lea rsp, [rbp]
-        pop rbp
-
-        ;; restore volatile registers
-        mov rcx, qword ptr [rsp + 8h]
-        mov rdx, qword ptr [rsp + 10h]
-        mov r8,  qword ptr [rsp + 18h]
-        mov r9,  qword ptr [rsp + 20h]
-
-        rex_jmp_reg rax
-?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
-
-;;============================================================================================================
-
-;;============================================================================================================
-;; WasmLibrary::WasmDeferredParseInternalThunk
-;;============================================================================================================
-
-;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
-extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z : PROC
-
-;; Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
-align 16
-?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
-        ;; save volatile registers
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
-
-        push rbp
-        .pushreg rbp
-        lea  rbp, [rsp]
-        .setframe rbp, 0
-        .endprolog
-
-        sub rsp, 60h
-
-        ; spill potential floating point arguments to stack
-        movaps xmmword ptr [rsp + 30h], xmm1
-        movaps xmmword ptr [rsp + 40h], xmm2
-        movaps xmmword ptr [rsp + 50h], xmm3
-        mov rdx, 1
-        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVAsmJsScriptFunction@2@H@Z
-
-ifdef _CONTROL_FLOW_GUARD
-        mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
-        call [__guard_check_icall_fptr]         ; verify that the call target is valid
-        mov rax, rcx                            ;restore call target
-endif
-        ; restore potential floating point arguments from stack
-        movaps xmm1, xmmword ptr [rsp + 30h]
-        movaps xmm2, xmmword ptr [rsp + 40h]
-        movaps xmm3, xmmword ptr [rsp + 50h]
-
-        lea rsp, [rbp]
-        pop rbp
-
-        ;; restore volatile registers
-        mov rcx, qword ptr [rsp + 8h]
-        mov rdx, qword ptr [rsp + 10h]
-        mov r8,  qword ptr [rsp + 18h]
-        mov r9,  qword ptr [rsp + 20h]
-
-        rex_jmp_reg rax
-?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
 
 ;;============================================================================================================
 

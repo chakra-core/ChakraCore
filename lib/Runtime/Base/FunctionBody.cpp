@@ -3564,6 +3564,22 @@ namespace Js
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
 
+#ifdef ENABLE_WASM
+        if (GetFunctionBody()->IsWasmFunction())
+        {
+            if (directEntryPoint == AsmJsDefaultEntryThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback)
+            {
+                return true;
+            }
+            else if (GetFunctionBody()->GetByteCodeCount() == 0)
+            {
+                // The function has not been parsed yet, we need to use the default entry or lazy trap
+                return false;
+            }
+            // fallthrough check other kinds of entrypoints
+        }
+#endif
+
         // Check the direct entry point to see if it is codegen thunk
         // if it is not, the background codegen thread has updated both original entry point and direct entry point
         // and they should still match, same as cases other then code gen
@@ -3571,14 +3587,10 @@ namespace Js
 #if ENABLE_PROFILE_INFO
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
-#ifdef ENABLE_WASM
-            || (GetFunctionBody()->IsWasmFunction() &&
-                (directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback))
 #endif
 #ifdef ASMJS_PLAT
             || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
             || IsAsmJsCodeGenThunk(directEntryPoint)
-#endif
 #endif
         ;
     }
@@ -3695,6 +3707,8 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
     void FunctionBody::GenerateDynamicInterpreterThunk()
     {
+        AssertOrFailFastMsg(!m_isWasmFunction || GetByteCodeCount() > 0, "The wasm function should have been parsed before generating the dynamic interpreter thunk");
+
         if (this->m_dynamicInterpreterThunk == nullptr)
         {
             // NOTE: Etw rundown thread may be reading this->dynamicInterpreterThunk concurrently. We don't need to synchronize
@@ -3746,6 +3760,7 @@ namespace Js
         this->EnsureDynamicProfileInfo();
 
         Assert(HasValidEntryPoint());
+        AssertMsg(!m_isWasmFunction || GetByteCodeCount() > 0, "Wasm function should be parsed by this point");
         if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetEntryPoint(entryPointInfo)))
         {
             // We are not doing code gen on this function, just change the entry point directly

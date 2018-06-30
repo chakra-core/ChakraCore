@@ -222,11 +222,7 @@ using namespace Js;
             return;
         }
 
-        bool isAsmJS = false;
-        if (HasFunctionBody())
-        {
-            isAsmJS = this->GetFunctionBody()->GetIsAsmjsMode();
-        }
+        bool isAsmJS = HasFunctionBody() && this->GetFunctionBody()->GetIsAsmjsMode();
 
         // ASMJS:- for asmjs we don't need to update the entry point here as it updates the types entry point
         if (!isAsmJS)

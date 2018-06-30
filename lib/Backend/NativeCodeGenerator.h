@@ -59,7 +59,7 @@ public:
     static bool IsAsmJsCodeGenThunk(Js::JavascriptMethod codeAddress);
     static CheckCodeGenFunction GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress);
     static Js::JavascriptMethod CheckCodeGen(Js::ScriptFunction * function);
-    static Js::Var CheckAsmJsCodeGen(Js::ScriptFunction * function);
+    static Js::JavascriptMethod CheckAsmJsCodeGen(Js::ScriptFunction * function);
 
 public:
     static void Jit_TransitionFromSimpleJit(void *const framePointer);

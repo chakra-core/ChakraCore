@@ -3970,13 +3970,10 @@ namespace Js
             functionBody->ResetEntryPoint();
             CurrentThunk = realThunk;
 
-            bool isDeferred = functionBody->GetAsmJsFunctionInfo()->IsWasmDeferredParse();
+            Js::WasmLibrary::ResetFunctionBodyDefaultEntryPoint(functionBody);
             // Make sure the function and the function body are using the same entry point
-            scriptFunction->ChangeEntryPoint(functionBody->GetDefaultEntryPointInfo(), AsmJsDefaultEntryThunk);
-            WasmLibrary::SetWasmEntryPointToInterpreter(scriptFunction, isDeferred);
-            // Reset jit status for this function
-            functionBody->SetIsAsmJsFullJitScheduled(false);
-            Assert(functionBody->HasValidEntryPoint());
+            scriptFunction->ChangeEntryPoint(functionBody->GetDefaultEntryPointInfo(), functionBody->GetDefaultEntryPointInfo()->jsMethod);
+            Assert(scriptFunction->GetFunctionEntryPointInfo()->GetIsAsmJSFunction());
         }
         else
 #endif
