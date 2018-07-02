@@ -191,6 +191,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     allowDispose(false),
     inDisposeWrapper(false),
     hasDisposableObject(false),
+    hasNativeGCHost(false),
     tickCountNextDispose(0),
     transientPinnedObject(nullptr),
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
@@ -938,6 +939,18 @@ Recycler::SetIsInScript(bool isInScript)
 }
 
 bool
+Recycler::HasNativeGCHost() const
+{
+    return this->hasNativeGCHost;
+}
+
+void
+Recycler::SetHasNativeGCHost()
+{
+    this->hasNativeGCHost = true;
+}
+
+bool
 Recycler::NeedOOMRescan() const
 {
     return this->needOOMRescan;
@@ -1680,7 +1693,7 @@ Recycler::ScanStack()
 
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
     // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
-    if (!this->isInScript || this->IsMemProtectMode())
+    if (!this->HasNativeGCHost() && (!this->isInScript || this->IsMemProtectMode()))
     {
         if (doSpecialMark)
         {
@@ -1699,7 +1712,7 @@ Recycler::ScanStack()
     {
         // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
         // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
-        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        // GC while running a script or when we have a host who allocates objects on the Chakra heap.
         if (doSpecialMark)
         {
             ScanMemoryInline<true, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
@@ -1715,7 +1728,7 @@ Recycler::ScanStack()
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
     // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
-    if (!this->isInScript || this->IsMemProtectMode())
+    if (!this->HasNativeGCHost() && (!this->isInScript || this->IsMemProtectMode()))
     {
         if (doSpecialMark)
         {
@@ -1732,7 +1745,7 @@ Recycler::ScanStack()
     {
         // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
         // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
-        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        // GC while running a script or when we have a host who allocates objects on the Chakra heap.
         if (doSpecialMark)
         {
             ScanMemoryInline<true, true /* forceInterior */>((void**)stackTop, stackScanned

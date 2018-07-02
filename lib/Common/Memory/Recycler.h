@@ -908,6 +908,7 @@ private:
     bool inDisposeWrapper;
     bool needOOMRescan;
     bool hasDisposableObject;
+    bool hasNativeGCHost;
     DWORD tickCountNextDispose;
     bool inExhaustiveCollection;
     bool hasExhaustiveCandidate;
@@ -1168,6 +1169,8 @@ public:
     void SetIsThreadBound();
     void SetIsScriptActive(bool isScriptActive);
     void SetIsInScript(bool isInScript);
+    bool HasNativeGCHost() const;
+    void SetHasNativeGCHost();
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
 
