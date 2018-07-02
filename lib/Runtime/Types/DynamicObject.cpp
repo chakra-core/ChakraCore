@@ -73,7 +73,7 @@ namespace Js
 #else
             dstSlots[i] = srcSlots[i];
 #endif
-            Assert(!ThreadContext::IsOnStack(dstSlots[i]));
+            Assert(!ThreadContext::IsOnStack(dstSlots[i]) || TaggedInt::Is(dstSlots[i]));
         }
 
         if (propertyCount > inlineSlotCapacity)
@@ -106,7 +106,7 @@ namespace Js
                 Assert(!ThreadContext::IsOnStack(instance->auxSlots[i]));
                 auxSlots[i] = instance->auxSlots[i];
 #endif
-                Assert(!ThreadContext::IsOnStack(auxSlots[i]));
+                Assert(!ThreadContext::IsOnStack(auxSlots[i]) || TaggedInt::Is(dstSlots[i]));
             }
         }
 
