@@ -538,6 +538,70 @@
   </test>
   <test>
     <default>
+      <files>promise_MultipleThenCalls.js</files>
+      <compile-flags>-TTRecord=promise_MultipleThenCallsTest -TTSnapInterval=0</compile-flags>
+      <baseline>promise_MultipleThenCallsRecord.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=1</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=2</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=3</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=4</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=5</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=6</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ttdSentinal.js</files>
+      <compile-flags>-TTReplay=promise_MultipleThenCallsTest -TTDStartEvent=7</compile-flags>
+      <baseline>promise_MultipleThenCallsReplay.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxy.js</files>
       <compile-flags>-TTRecord=proxyTest -TTSnapInterval=0</compile-flags>
       <baseline>proxyRecord.baseline</baseline>
