@@ -77,6 +77,8 @@ namespace Js
         bool IsBound() const { return isBound; }
         bool IsSymbol() const { return isSymbol; }
 
+        bool ShouldDisableWriteCache() const;
+
         void SetHash(uint hash) const
         {
             this->hash = hash;

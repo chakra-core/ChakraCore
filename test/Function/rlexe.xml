@@ -228,6 +228,11 @@
   </test>
   <test>
     <default>
+      <files>prototype_set.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>TApply1.js</files>
       <baseline>TApply1.baseline</baseline>
     </default>

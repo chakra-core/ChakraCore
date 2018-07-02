@@ -30,6 +30,8 @@ namespace Js
         void RegisterCacheHit() { ++this->hitRate; };
         bool ShouldUseCache() const;
 
+        bool ShouldDisableWriteCache() const { return propertyRecord && propertyRecord->ShouldDisableWriteCache(); }
+
         static uint32 GetOffsetOfLdElemInlineCache() { return offsetof(PropertyRecordUsageCache, ldElemInlineCache); }
         static uint32 GetOffsetOfStElemInlineCache() { return offsetof(PropertyRecordUsageCache, stElemInlineCache); }
         static uint32 GetOffsetOfHitRate() { return offsetof(PropertyRecordUsageCache, hitRate); }
