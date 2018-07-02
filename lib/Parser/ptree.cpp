@@ -12,6 +12,7 @@ ParseNode::ParseNode(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     this->isUsed = true;
     this->notEscapedUse = false;
     this->isInList = false;
+    this->isPatternDeclaration = false;
     this->isCallApplyTargetLoad = false;
     this->ichMin = ichMin;
     this->ichLim = ichLim;

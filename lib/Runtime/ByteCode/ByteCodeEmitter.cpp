@@ -2438,7 +2438,7 @@ void ByteCodeGenerator::EmitGlobalBody(FuncInfo *funcInfo)
     // return value.
     ParseNode *pnode = funcInfo->root->pnodeBody;
     ParseNode *pnodeLastVal = funcInfo->root->AsParseNodeProg()->pnodeLastValStmt;
-    if (pnodeLastVal == nullptr)
+    if (pnodeLastVal == nullptr || pnodeLastVal->IsPatternDeclaration())
     {
         // We're not guaranteed to compute any values, so fix up the return register at the top
         // in case.
@@ -11744,7 +11744,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     }
 
-    if (fReturnValue && IsExpressionStatement(pnode, byteCodeGenerator->GetScriptContext()))
+    if (fReturnValue && IsExpressionStatement(pnode, byteCodeGenerator->GetScriptContext()) && !pnode->IsPatternDeclaration())
     {
         // If this statement may produce the global function's return value, copy its result to the return register.
         // fReturnValue implies global function, which implies that "return" is a parse error.

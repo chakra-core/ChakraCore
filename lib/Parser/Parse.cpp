@@ -9190,6 +9190,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             if (pnodeThis != nullptr)
             {
                 pnodeThis->ichMin = ichMin;
+                pnodeThis->SetIsPatternDeclaration();
             }
         }
         else
