@@ -210,6 +210,9 @@ public:
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }    
 
+    bool IsPatternDeclaration() { return isPatternDeclaration; }
+    void SetIsPatternDeclaration() { isPatternDeclaration = true; }
+
     bool IsUserIdentifier();
 
     bool IsVarLetOrConst() const
@@ -240,6 +243,9 @@ private:
     // Use by byte code generator
     bool notEscapedUse : 1;         // Currently, only used by child of knopComma
     bool isCallApplyTargetLoad : 1;
+
+    // Use by bytecodegen to identify the current node is a destructuring pattern declaration node.
+    bool isPatternDeclaration : 1;
 
 public:
     ushort grfpn;
