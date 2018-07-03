@@ -271,6 +271,8 @@ namespace TTD
         //
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator)
         {
+            obj->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(obj);
+
             //Many protos are set at creation, don't mess with them if they are already correct
             if(snpObject->SnapType->PrototypeVar != nullptr)
             {
