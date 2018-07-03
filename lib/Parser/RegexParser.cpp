@@ -1931,6 +1931,7 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         codepoint_t pendingRangeEnd = INVALID_CODEPOINT;
         bool previousSurrogatePart = false;
+
         while(nextChar != ']')
         {
             current = next;
@@ -2034,7 +2035,7 @@ namespace UnifiedRegex
 
                     lastCodepoint = INVALID_CODEPOINT;
                 }
-                // If we the next character is the end of range ']', then we can't have a surrogate pair.
+                // If the next character is the end of range ']', then we can't have a surrogate pair.
                 // The current character is the range end, if we don't already have a candidate.
                 else if (ECLookahead() == ']' && pendingRangeEnd == INVALID_CODEPOINT)
                 {
@@ -2124,6 +2125,10 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         EncodedChar nextChar = ECLookahead();
         bool previousWasASurrogate = false;
+        bool currIsACharSet = false;
+        bool prevWasACharSet = false;
+        bool prevprevWasACharSet = false;
+
         while(nextChar != ']')
         {
             codepoint_t codePointToSet = INVALID_CODEPOINT;
@@ -2147,30 +2152,30 @@ namespace UnifiedRegex
             else if (nextChar == '\\')
             {
                 Node* returnedNode = ClassEscapePass1(&deferredCharNode, &deferredSetNode, previousWasASurrogate);
+                codePointToSet = pendingCodePoint;
 
                 if (returnedNode->tag == Node::MatchSet)
                 {
-                    codePointToSet = pendingCodePoint;
-                    pendingCodePoint = INVALID_CODEPOINT;
+                    pendingCodePoint = nextChar;
                     if (pendingRangeStart != INVALID_CODEPOINT)
                     {
                         codePointSet.Set(ctAllocator, '-');
                     }
                     pendingRangeStart = INVALID_CODEPOINT;
                     codePointSet.UnionInPlace(ctAllocator, deferredSetNode.set);
+                    currIsACharSet = true;
                 }
                 else
                 {
                     // Just a character
-                    codePointToSet = pendingCodePoint;
                     pendingCodePoint = deferredCharNode.cs[0];
                 }
             }
             else if (nextChar == '-')
             {
-                if (pendingRangeStart != INVALID_CODEPOINT || pendingCodePoint == INVALID_CODEPOINT || ECLookahead(1) == ']')
+                if ((!prevWasACharSet && (pendingRangeStart != INVALID_CODEPOINT || pendingCodePoint == INVALID_CODEPOINT)) ||  ECLookahead(1) == ']')
                 {
-                    // - is just a char, or end of a range.
+                    // - is just a char, or end of a range. If the previous char of the RegExp was a charset we want to treat it as the beginning of a range.
                     codePointToSet = pendingCodePoint;
                     pendingCodePoint = '-';
                     ECConsume();
@@ -2192,14 +2197,22 @@ namespace UnifiedRegex
             {
                 if (pendingRangeStart != INVALID_CODEPOINT)
                 {
-                    if (pendingRangeStart > pendingCodePoint)
+                    if (pendingRangeStart > pendingCodePoint && !prevprevWasACharSet)
                     {
                         //We have no unicodeFlag, but current range contains surrogates, thus we may end up having to throw a "Syntax" error here
                         //This breaks the notion of Pass0 check for valid syntax, because we don't know if we have a unicode option
                         Assert(!unicodeFlagPresent);
                         Fail(JSERR_RegExpBadRange);
                     }
-                    codePointSet.SetRange(ctAllocator, pendingRangeStart, pendingCodePoint);
+                    if (prevprevWasACharSet)
+                    {
+                        codePointSet.Set(ctAllocator, '-');
+                        codePointSet.Set(ctAllocator, pendingCodePoint);
+                    }
+                    else
+                    {
+                        codePointSet.SetRange(ctAllocator, pendingRangeStart, pendingCodePoint);
+                    }
                     pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
                 }
                 else
@@ -2209,6 +2222,9 @@ namespace UnifiedRegex
             }
 
             nextChar = ECLookahead();
+            prevprevWasACharSet = prevWasACharSet;
+            prevWasACharSet = currIsACharSet;
+            currIsACharSet = false;
         }
 
         if (pendingCodePoint != INVALID_CODEPOINT)
