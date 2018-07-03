@@ -1802,12 +1802,12 @@ NativeCodeGenerator::PrioritizedButNotYetProcessed(JsUtil::Job *const job)
     ASSERT_THREAD();
     Assert(job);
 
-#ifdef BGJIT_STATS
     CodeGenWorkItem *const codeGenWorkItem = static_cast<CodeGenWorkItem *>(job);
     if(codeGenWorkItem->Type() == JsFunctionType && codeGenWorkItem->IsInJitQueue())
     {
+#ifdef BGJIT_STATS
         codeGenWorkItem->GetScriptContext()->interpretedCallsHighPri++;
-
+#endif
         if(codeGenWorkItem->GetJitMode() == ExecutionMode::FullJit)
         {
             QueuedFullJitWorkItem *const queuedFullJitWorkItem = codeGenWorkItem->GetQueuedFullJitWorkItem();
@@ -1817,7 +1817,6 @@ NativeCodeGenerator::PrioritizedButNotYetProcessed(JsUtil::Job *const job)
             }
         }
     }
-#endif
 }
 
 
