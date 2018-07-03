@@ -229,7 +229,7 @@ namespace Js
 
         FrameDisplay* GetFrameDisplay() const
         {
-            AssertOrFailFast(Info.Flags & CallFlags_ExtraArg);
+            AssertOrFailFast((Info.Flags & CallFlags_ExtraArg) && (!this->HasNewTarget()));
 
             // There is an extra arg, so values should have Count + 1 members
             return (FrameDisplay*)(this->Values[Info.Count]);
