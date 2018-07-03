@@ -5682,6 +5682,7 @@ Case0:
             }
 
             pArr->InvalidateLastUsedSegment(); // lastUsedSegment might be 0-length and discarded above
+            pArr->ClearSegmentMap();
 #ifdef VALIDATE_ARRAY
             pArr->ValidateArray();
 #endif
@@ -5862,6 +5863,7 @@ Case0:
             }
 
             pArr->InvalidateLastUsedSegment();
+            pArr->ClearSegmentMap();
         }
 
 #ifdef VALIDATE_ARRAY
@@ -6824,6 +6826,7 @@ Case0:
         }
         SetHasNoMissingValues();
         this->InvalidateLastUsedSegment();
+        this->ClearSegmentMap();
 
 #ifdef VALIDATE_ARRAY
         ValidateArray();
@@ -7628,6 +7631,7 @@ Case0:
             }
 
             pArr->InvalidateLastUsedSegment();
+            pArr->ClearSegmentMap();
 
             // it is possible for valueOf accessors for the start or deleteLen
             // arguments to modify the size of the array. Since the resulting size of the array
@@ -7656,6 +7660,7 @@ Case0:
             failFastOnError.Completed();
 
             newArr->InvalidateLastUsedSegment();
+            newArr->ClearSegmentMap();
 
 #ifdef VALIDATE_ARRAY
             newArr->ValidateArray();
@@ -8107,6 +8112,7 @@ Case0:
 
                 pArr->InvalidateLastUsedSegment();
                 pArr->length += unshiftElements;
+                pArr->ClearSegmentMap();
 
 #ifdef VALIDATE_ARRAY
                 pArr->ValidateArray();
