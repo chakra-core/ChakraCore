@@ -48,7 +48,6 @@ using namespace Js;
         DebugOnly(VerifyEntryPoint());
 
 #if ENABLE_NATIVE_CODEGEN
-#ifdef BGJIT_STATS
         if (!proxy->IsDeferred())
         {
             FunctionBody* body = proxy->GetFunctionBody();
@@ -56,14 +55,13 @@ using namespace Js;
                 body->GetDefaultFunctionEntryPointInfo()->IsCodeGenDone())
             {
                 MemoryBarrier();
-
+#ifdef BGJIT_STATS
                 type->GetScriptContext()->jitCodeUsed += body->GetByteCodeCount();
                 type->GetScriptContext()->funcJitCodeUsed++;
-
+#endif
                 body->SetNativeEntryPointUsed(true);
             }
         }
-#endif
 #endif
     }
 
