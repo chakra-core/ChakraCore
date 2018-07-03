@@ -526,6 +526,11 @@ using namespace Js;
             extractor->MarkVisitVar(this->cachedScopeObj);
         }
 
+        if (this->GetComputedNameVar() != nullptr)
+        {
+            extractor->MarkVisitVar(this->GetComputedNameVar());
+        }
+
         if (this->GetHomeObj() != nullptr)
         {
             extractor->MarkVisitVar(this->GetHomeObj());
@@ -592,6 +597,11 @@ using namespace Js;
         if(this->cachedScopeObj != nullptr)
         {
             this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->cachedScopeObj, _u("_cachedScopeObj"));
+        }
+
+        if (this->GetComputedNameVar() != nullptr)
+        {
+            this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->GetComputedNameVar(), _u("_computedName"));
         }
 
         if (this->GetHomeObj() != nullptr)
