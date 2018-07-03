@@ -43,17 +43,6 @@ namespace Js
         }
         virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
         virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
-
-#if ENABLE_TTD
-        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
-        {
-            __super::MarkVisitKindSpecificPtrs(extractor);
-            if (this->computedNameVar != nullptr)
-            {
-                extractor->MarkVisitVar(this->computedNameVar);
-            }
-        }
-#endif
     };
 
     template <class BaseClass>
