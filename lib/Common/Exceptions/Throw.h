@@ -19,7 +19,7 @@ namespace Js {
         static void __declspec(noreturn) StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
         static void __declspec(noreturn) NotImplemented();
         static void __declspec(noreturn) InternalError();
-        static void __declspec(noreturn) FatalInternalError();
+        static void __declspec(noreturn) FatalInternalError(HRESULT hr = E_FAIL);
         static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalInternalGlobalizationError();
 
@@ -163,7 +163,7 @@ namespace Js {
     else if (FAILED(hr)) \
     { \
         /* Intended to be the inverse of E_FAIL in CATCH_UNHANDLED_EXCEPTION */ \
-        AssertOrFailFast(false); \
+        AssertOrFailFastHR(false, hr); \
     }
 
 #define CATCH_UNHANDLED_EXCEPTION(hr) \
