@@ -340,7 +340,12 @@ namespace Js
             }
 
             Assert(setterValue == nullptr || setterValue == function);
-            Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
+
+            if (!JavascriptError::ThrowIfStrictModeUndefinedSetter(propertyOperationFlags, function, requestContext) &&
+                !JavascriptError::ThrowIfNotExtensibleUndefinedSetter(propertyOperationFlags, function, requestContext))
+            {
+                Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
+            }
 
             if (ReturnOperationInfo)
             {
@@ -366,7 +371,12 @@ namespace Js
             }
 
             Assert(setterValue == nullptr || setterValue == function);
-            Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
+
+            if (!JavascriptError::ThrowIfStrictModeUndefinedSetter(propertyOperationFlags, function, requestContext) &&
+                !JavascriptError::ThrowIfNotExtensibleUndefinedSetter(propertyOperationFlags, function, requestContext))
+            {
+                Js::JavascriptOperators::CallSetter(function, object, propertyValue, requestContext);
+            }
 
             if (ReturnOperationInfo)
             {
