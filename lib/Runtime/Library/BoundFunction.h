@@ -19,7 +19,7 @@ namespace Js
     protected:
         BoundFunction(DynamicType * type);
         BoundFunction(Arguments args, DynamicType * type);
-        BoundFunction(RecyclableObject* targetFunction, Var boundThis, Var* args, uint argsCount, DynamicType *type);
+
     public:
         static BoundFunction* New(ScriptContext* scriptContext, ArgumentReader args);
 

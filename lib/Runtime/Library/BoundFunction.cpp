@@ -24,7 +24,6 @@ namespace Js
         count(0),
         boundArgs(nullptr)
     {
-
         DebugOnly(VerifyEntryPoint());
         AssertMsg(args.Info.Count > 0, "wrong number of args in BoundFunction");
 
@@ -88,27 +87,6 @@ namespace Js
         len = max(len, 0);
             
         SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(len), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
-    }
-
-    BoundFunction::BoundFunction(RecyclableObject* targetFunction, Var boundThis, Var* args, uint argsCount, DynamicType * type)
-        : JavascriptFunction(type, &functionInfo),
-        count(argsCount),
-        boundArgs(nullptr)
-    {
-        DebugOnly(VerifyEntryPoint());
-
-        this->targetFunction = targetFunction;
-        this->boundThis = boundThis;
-
-        if (argsCount != 0)
-        {
-            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Field(Var), argsCount);
-
-            for (uint i = 0; i < argsCount; i++)
-            {
-                this->boundArgs[i] = args[i];
-            }
-        }
     }
 
     BoundFunction* BoundFunction::New(ScriptContext* scriptContext, ArgumentReader args)
