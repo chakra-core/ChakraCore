@@ -527,9 +527,9 @@ ThreadContext::~ThreadContext()
         Assert(this->debugManager == nullptr);
 #endif
 
-#if DBG && ENABLE_CONCURRENT_GC && defined(_WIN32)
-        AssertMsg(recycler->concurrentThread == NULL, "Recycler background thread should have been shutdown before destroying Recycler.");
-        AssertMsg((recycler->parallelThread1.concurrentThread == NULL) && (recycler->parallelThread2.concurrentThread == NULL), "Recycler parallelThread(s) should have been shutdown before destroying Recycler.");
+#if ENABLE_CONCURRENT_GC && defined(_WIN32)
+        AssertOrFailFastMsg(recycler->concurrentThread == NULL, "Recycler background thread should have been shutdown before destroying Recycler.");
+        AssertOrFailFastMsg((recycler->parallelThread1.concurrentThread == NULL) && (recycler->parallelThread2.concurrentThread == NULL), "Recycler parallelThread(s) should have been shutdown before destroying Recycler.");
 #endif
 
         HeapDelete(recycler);
