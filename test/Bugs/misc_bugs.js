@@ -165,6 +165,15 @@ var tests = [
         assert.areEqual([1], eval("let {x} = {}; [x] = [1]"));
     }
   },
+  {
+    name: "Strict Mode : throw type error when the handler returns falsy value",
+    body: function () {
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { set() {}}); p1.foo = 1;}, TypeError, "returning undefined on set handler is return false which will throw type error",  "Proxy set handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { deleteProperty() {}}); delete p1.foo;}, TypeError, "returning undefined on deleteProperty handler is return false which will throw type error",  "Proxy deleteProperty handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { set() {return false;}}); p1.foo = 1;}, TypeError, "set handler is returning false which will throw type error",  "Proxy set handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { deleteProperty() {return false;}}); delete p1.foo;}, TypeError, "deleteProperty handler is returning false which will throw type error",  "Proxy deleteProperty handler returned false");
+      }
+  },
   
 ];
 

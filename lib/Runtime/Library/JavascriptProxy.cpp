@@ -827,6 +827,10 @@ namespace Js
         BOOL trapResult = JavascriptConversion::ToBoolean(deletePropertyResult, requestContext);
         if (!trapResult)
         {
+            if (flags & PropertyOperation_StrictMode)
+            {
+                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("deleteProperty"));
+            }
             return trapResult;
         }
 
@@ -1776,15 +1780,15 @@ namespace Js
     }
 
 
-    BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Var newValue, ScriptContext* requestContext)
+    BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Var newValue, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags)
     {
         const PropertyRecord* propertyRecord;
         requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
-        return SetPropertyTrap(receiver, setPropertyTrapKind, propertyRecord->GetPropertyId(), newValue, requestContext);
+        return SetPropertyTrap(receiver, setPropertyTrapKind, propertyRecord->GetPropertyId(), newValue, requestContext, propertyOperationFlags);
 
     }
 
-    BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, PropertyId propertyId, Var newValue, ScriptContext* requestContext, BOOL skipPrototypeCheck)
+    BOOL JavascriptProxy::SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, PropertyId propertyId, Var newValue, ScriptContext* requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -1866,6 +1870,11 @@ namespace Js
         BOOL setResult = JavascriptConversion::ToBoolean(setPropertyResult, requestContext);
         if (!setResult)
         {
+            if (propertyOperationFlags & PropertyOperation_StrictMode)
+            {
+                JavascriptError::ThrowTypeError(requestContext, JSERR_ProxyHandlerReturnedFalse, _u("set"));
+            }
+
             return setResult;
         }
 

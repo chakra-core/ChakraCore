@@ -2326,7 +2326,7 @@ CommonNumber:
                         PropertyValueInfo::SetNoCache(info, proxy);
                         PropertyValueInfo::DisablePrototypeCache(info, proxy);
                     }
-                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyWPCacheKind, propertyKey, newValue, requestContext);
+                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyWPCacheKind, propertyKey, newValue, requestContext, propertyOperationFlags);
                 }
                 else
                 {
@@ -2410,7 +2410,7 @@ CommonNumber:
                     JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
                     const PropertyRecord* propertyRecord = nullptr;
                     proxy->PropertyIdFromInt(index, &propertyRecord);
-                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemOnTaggedNumberKind, propertyRecord->GetPropertyId(), newValue, requestContext);
+                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemOnTaggedNumberKind, propertyRecord->GetPropertyId(), newValue, requestContext, propertyOperationFlags);
                 }
                 else
                 {
@@ -2458,7 +2458,7 @@ CommonNumber:
                 {
                     Assert(JavascriptProxy::Is(setterValueOrProxy));
                     JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
-                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyOnTaggedNumberKind, propertyId, newValue, requestContext);
+                    return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyOnTaggedNumberKind, propertyId, newValue, requestContext, propertyOperationFlags);
                 }
                 else
                 {
@@ -2549,7 +2549,7 @@ CommonNumber:
                 PropertyValueInfo::SetNoCache(info, proxy);
                 PropertyValueInfo::DisablePrototypeCache(info, proxy); // We can't cache prototype property either
 
-                *result = proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyKind, propertyId, newValue, requestContext);
+                *result = proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyKind, propertyId, newValue, requestContext, propertyOperationFlags);
                 return true;
             }
             else
@@ -3305,7 +3305,7 @@ CommonNumber:
                 JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
                 const PropertyRecord* propertyRecord = nullptr;
                 proxy->PropertyIdFromInt(index, &propertyRecord);
-                return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, scriptContext, skipPrototypeCheck);
+                return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, scriptContext, propertyOperationFlags, skipPrototypeCheck);
             }
             else
             {
