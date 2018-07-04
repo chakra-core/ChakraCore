@@ -68,7 +68,7 @@ struct DefaultComparer<size_t>
 #ifdef TARGET_64
         // For 64 bits we want all 64 bits of the pointer to be represented in the hash code.
         uint32 hi = ((UINT_PTR) i >> 32);
-        uint32 lo = (uint32) (i & 0xFFFFFFFF);
+        uint32 lo = (uint32)i;
         hash_t hash = hi ^ lo;
 #else
         hash_t hash = i;
@@ -112,19 +112,15 @@ struct RecyclerPointerComparer
     }
 };
 
-// FNV-1a hash -> https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
-// #define CC_HASH_OFFSET_VALUE 2166136261
-// #define CC_HASH_LOGIC(hash, byte) \
-//    hash ^= byte;                  \
-//    hash *= 16777619
-
-// previous hash function.
-// TODO: hash function below is bad for key distribution.
-//       FNV-1a above results better but expensive for lookups in small data sets.
-#define CC_HASH_OFFSET_VALUE 0
-#define CC_HASH_LOGIC(hash, byte) \
-    hash = _rotl(hash, 7);        \
-    hash ^= byte;
+ // TODO: FNV is a proven hash especially for short strings, which is common case here.
+ //       Still. it may be worth to consider a more recent block-based hash. 
+ //       They tend to be faster, but it need to be examined against typical workloads.
+ //
+ //  FNV-1a hash -> https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+ #define CC_HASH_OFFSET_VALUE 2166136261
+ #define CC_HASH_LOGIC(hash, byte) \
+    hash ^= byte;                  \
+    hash *= 16777619
 
 template <>
 struct DefaultComparer<GUID>

@@ -8,7 +8,7 @@ namespace Js
 {
     class TinyDictionary
     {
-        static const int PowerOf2_BUCKETS = 8;
+        static const int PowerOf2_BUCKETS = 16;
         static const int BUCKETS_DWORDS = PowerOf2_BUCKETS / sizeof(DWORD);
         static const byte NIL = 0xff;
 
@@ -19,19 +19,40 @@ public:
         TinyDictionary()
         {
             CompileAssert(BUCKETS_DWORDS * sizeof(DWORD) == PowerOf2_BUCKETS);
-            CompileAssert(BUCKETS_DWORDS == 2);
+            CompileAssert(BUCKETS_DWORDS == 4);
             DWORD* init = bucketsData;
-            init[0] = init[1] = 0xffffffff;
+            init[0] = init[1] = init[2] = init[3] =0xffffffff;
+        }
+
+        uint32 ReduceKeyToIndex(PropertyId key)
+        {
+            // we use 4-bit bucket index, but we often have keys that are larger. 
+            // use Fibonacci hash to reduce the possibility of collisions
+#if TARGET_64
+            return (key * 11400714819323198485llu) >> 60;
+#else
+            return (key * 2654435769ul) >> 28;
+#endif
         }
 
         void Add(PropertyId key, byte value)
         {
+            Assert(value < 128);
+
             byte* buckets = reinterpret_cast<byte*>(bucketsData);
-            uint32 bucketIndex = key & (PowerOf2_BUCKETS - 1);
+            uint32 bucketIndex = ReduceKeyToIndex(key);
 
             byte i = buckets[bucketIndex];
-            buckets[bucketIndex] = value;
-            next[value] = i;
+            if (i == NIL)
+            {
+                // set the highest bit to mark the value as the last in the chain
+                buckets[bucketIndex] = value | 128;
+            }
+            else
+            {
+                buckets[bucketIndex] = value;
+                next[value] = i;
+            }
         }
 
         // Template shared with diagnostics
@@ -39,17 +60,32 @@ public:
         inline bool TryGetValue(PropertyId key, PropertyIndex* index, const Data& data)
         {
             byte* buckets = reinterpret_cast<byte*>(bucketsData);
-            uint32 bucketIndex = key & (PowerOf2_BUCKETS - 1);
+            uint32 bucketIndex = ReduceKeyToIndex(key);
 
-            for (byte i = buckets[bucketIndex] ; i != NIL ; i = next[i])
+            byte i = buckets[bucketIndex];
+            if (i != NIL)
             {
-                if (data[i]->GetPropertyId()== key)
-                {
-                    *index = i;
-                    return true;
+                for(;;)
+                {                    
+                    byte idx = i & 127; // strip the sentinel bit
+
+                    if (data[idx]->GetPropertyId() == key)
+                    {
+                        *index = idx;
+                        return true;
+                    }
+
+                    if (i & 128)
+                    {
+                        // this was the last value in the chain
+                        break;
+                    }
+
+                    Assert(idx != (next[idx] & 127));
+                    i = next[idx];
                 }
-                Assert(i != next[i]);
             }
+
             return false;
         }
     };
@@ -75,7 +111,10 @@ public:
 #define TYPE_PATH_ALLOC_GRANULARITY_GAP 3
 #endif
 #endif
-        // Although we can allocate 2 more, this will put struct Data into another bucket.  Just waste some slot in that case for 32-bit
+        // Although we can allocate 2 more, 
+        // TinyDictionary can hold only up to 128 items (see TinyDictionary::Add),
+        // Besides 128+ would put struct Data into another bucket.
+        // Just waste some slot in that case for 32-bit
         static const uint MaxPathTypeHandlerLength = 128;
         static const uint InitialTypePathSize = 16 + TYPE_PATH_ALLOC_GRANULARITY_GAP;
 
