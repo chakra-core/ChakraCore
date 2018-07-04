@@ -77,10 +77,12 @@ extern int IsInAssert;
 
 #ifdef DBG
 #define AssertOrFailFast(x)                 Assert(x)
+#define AssertOrFailFastHR(x, hr)           Assert(x)
 #define AssertOrFailFastMsg(x, msg)         AssertMsg(x, msg)
 #define AnalysisAssertOrFailFast(x)         AnalysisAssert(x)
 #define AnalysisAssertOrFailFastMsg(x, msg) AnalysisAssertMsg(x, msg)
 #else
+#define AssertOrFailFastHR(x, hr)           do { if (!(x)) { Js::Throw::FatalInternalError(hr); } } while (false)
 #define AssertOrFailFast(x)                 do { if (!(x)) { Js::Throw::FatalInternalError(); } } while (false)
 #define AssertOrFailFastMsg(x, msg)         AssertOrFailFast(x)
 #define AnalysisAssertOrFailFast(x)         AssertOrFailFast(x)
