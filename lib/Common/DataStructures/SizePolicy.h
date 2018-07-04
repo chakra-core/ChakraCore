@@ -32,6 +32,13 @@ struct PowerOf2Policy
     inline static hash_t GetBucket(hash_t hashCode, uint size, int modFunctionIndex)
     {
         AssertMsg(Math::IsPow2(size) && size > 1, "Size is not a power of 2.");
+
+        // we often deal with keys that differ in higher bits only, so smudge the entropy down a little 
+        // we do not need a perfect avalanche here, since this is for a hashtable lookup
+        // the following is sufficient and reasonably cheap
+        hashCode ^= (uint)hashCode >> 15;
+        hashCode ^= (uint)hashCode >> 7;
+
         hash_t targetBucket = hashCode & (size-1);
         return targetBucket;
     }
