@@ -5712,6 +5712,22 @@ Recycler::FinishConcurrentCollectWrapped(CollectionFlags flags)
     return collected;
 }
 
+
+ /**
+  *  Compute ft1 - ft2, return result as a uint64
+  */
+uint64 DiffFileTimes(LPFILETIME ft1, LPFILETIME ft2)
+{
+    ULARGE_INTEGER ul1;
+    ULARGE_INTEGER ul2;
+    ul1.HighPart = ft1->dwHighDateTime;
+    ul1.LowPart = ft1->dwLowDateTime;
+    ul2.HighPart = ft2->dwHighDateTime;
+    ul2.LowPart = ft2->dwLowDateTime;
+    ULONGLONG result = ul1.QuadPart - ul2.QuadPart;
+    return result;
+}
+
 BOOL
 Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
 {
@@ -5726,8 +5742,22 @@ Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
     }
 
 #ifdef ENABLE_BASIC_TELEMETRY
-    bool isBlockingMainThread = this->telemetryStats.IsOnScriptThread();
-    Js::Tick start = Js::Tick::Now();
+    bool isBlockingMainThread = false;
+    Js::Tick start;
+    FILETIME kernelTime1;
+    FILETIME userTime1;
+    HANDLE hProcess = GetCurrentProcess();
+    if (this->telemetryStats.ShouldStartTelemetryCapture())
+    {
+        isBlockingMainThread = this->telemetryStats.IsOnScriptThread();
+        if (isBlockingMainThread)
+        {
+            start = Js::Tick::Now();
+            FILETIME creationTime;
+            FILETIME exitTime;
+            GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime1, &userTime1);
+        }
+    }
 #endif
 
     DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent, waitTime);
@@ -5737,7 +5767,24 @@ Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
     {
         Js::Tick end = Js::Tick::Now();
         Js::TickDelta elapsed = end - start;
+
+        FILETIME creationTime;
+        FILETIME exitTime;
+        FILETIME kernelTime2;
+        FILETIME userTime2;
+
+        GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime2, &userTime2);
+        uint64 kernelTime = DiffFileTimes(&kernelTime2 , &kernelTime1);
+        uint64 userTime = DiffFileTimes(&userTime2, &userTime1);
+
+        // userTime & kernelTime reported from GetProcessTimes is the number of 100-nanosecond ticks
+        // for consistency convert to microseconds.
+        kernelTime = kernelTime / 10;
+        userTime = userTime / 10;
+
         this->telemetryStats.IncrementUserThreadBlockedCount(elapsed.ToMicroseconds(), caller);
+        this->telemetryStats.IncrementUserThreadBlockedCpuTimeUser(userTime, caller);
+        this->telemetryStats.IncrementUserThreadBlockedCpuTimeKernel(kernelTime, caller);
     }
 #endif
 

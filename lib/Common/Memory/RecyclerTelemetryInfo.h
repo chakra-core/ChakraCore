@@ -59,6 +59,8 @@ namespace Memory
         Js::TickDelta computeBucketStatsElapsedTime;
         FILETIME lastScriptExecutionEndTime;
         Js::TickDelta uiThreadBlockedTimes[static_cast<size_t>(RecyclerWaitReason::Other) + 1];
+        uint64 uiThreadBlockedCpuTimesUser[static_cast<size_t>(RecyclerWaitReason::Other) + 1];
+        uint64 uiThreadBlockedCpuTimesKernel[static_cast<size_t>(RecyclerWaitReason::Other) + 1];
         bool isInScript;
         bool isScriptActive;
         bool isGCPassActive;
@@ -99,7 +101,9 @@ namespace Memory
         void StartPass(CollectionState collectionState);
         void EndPass(CollectionState collectionState);
         void IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason source);
-        
+        void IncrementUserThreadBlockedCpuTimeUser(uint64 userMicroseconds, RecyclerWaitReason caller);
+        void IncrementUserThreadBlockedCpuTimeKernel(uint64 kernelMicroseconds, RecyclerWaitReason caller);
+
         inline const Js::Tick& GetRecyclerStartTime() const { return this->recyclerStartTime;  }
         RecyclerTelemetryGCPassStats* GetLastPassStats() const;
         inline const Js::Tick& GetLastTransmitTime() const { return this->lastTransmitTime; }
@@ -115,6 +119,8 @@ namespace Memory
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
         AllocatorDecommitStats* GetRecyclerWithBarrierPageAllocator_decommitStats() { return &this->recyclerWithBarrierPageAllocator_decommitStats; }
 #endif
+
+        bool ShouldStartTelemetryCapture() const;
 
     private:
         Recycler* recycler;
@@ -135,7 +141,6 @@ namespace Memory
         AllocatorDecommitStats recyclerWithBarrierPageAllocator_decommitStats;
 #endif
 
-        bool ShouldStartTelemetryCapture() const;
         bool ShouldTransmit() const;
         void FreeGCPassStats();
         void Reset();
