@@ -6589,6 +6589,13 @@ namespace Js
         return arr;
     }
 
+    ArrayBuffer* JavascriptLibrary::CreateExternalArrayBuffer(byte* buffer, uint32 length)
+    {
+        ArrayBuffer* arr = ExternalArrayBuffer::Create(buffer, length, arrayBufferType);
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(arr));
+        return arr;
+    }
+
     DataView* JavascriptLibrary::CreateDataView(ArrayBufferBase* arrayBuffer, uint32 offset, uint32 length)
     {
         DataView* dataView = RecyclerNew(this->GetRecycler(), DataView, arrayBuffer, offset, length, dataViewType);

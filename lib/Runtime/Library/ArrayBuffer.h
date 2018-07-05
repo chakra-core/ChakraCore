@@ -322,15 +322,27 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR(ExternalArrayBuffer, ArrayBuffer);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ExternalArrayBuffer);
+
     public:
         ExternalArrayBuffer(byte *buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType *type);
+        static ExternalArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
     protected:
-        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override { Assert(UNREACHED); Throw::InternalError(); };
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
 
 #if ENABLE_TTD
     public:
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+    };
+
+    class ExternalArrayBufferDetachedState : public ArrayBufferDetachedStateBase
+    {
+    public:
+        ExternalArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength);
+        virtual void ClearSelfOnly() override;
+        virtual void DiscardState() override;
+        virtual void Discard() override;
+        virtual ArrayBuffer* Create(JavascriptLibrary* library);
     };
 }
