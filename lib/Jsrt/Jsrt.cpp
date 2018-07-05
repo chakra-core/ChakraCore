@@ -463,6 +463,26 @@ CHAKRA_API JsPrivateCollectGarbageSkipStack(_In_ JsRuntimeHandle runtimeHandle)
 {
     return JsCollectGarbageCommon<CollectNowExhaustiveSkipStack>(runtimeHandle);
 }
+
+CHAKRA_API JsPrivateDetachArrayBuffer(_In_ JsValueRef ref, _Out_ void** detachedState)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
+    {
+        VALIDATE_JSREF(ref);
+        *detachedState = Js::JavascriptOperators::DetachVarAndGetState(ref);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsPrivateFreeDetachedArrayBuffer(_In_ void* detachedState)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
+    {
+        auto state = reinterpret_cast<Js::ArrayBufferDetachedStateBase*>(detachedState);
+        state->CleanUp();
+        return JsNoError;
+    });
+}
 #endif
 
 CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
