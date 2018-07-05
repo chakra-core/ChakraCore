@@ -837,6 +837,7 @@ namespace Js
         SharedArrayBuffer* CreateSharedArrayBuffer(SharedContents *contents);
         ArrayBuffer* CreateProjectionArraybuffer(uint32 length);
         ArrayBuffer* CreateProjectionArraybuffer(byte* buffer, uint32 length);
+        ArrayBuffer* CreateExternalArrayBuffer(byte* buffer, uint32 length);
         DataView* CreateDataView(ArrayBufferBase* arrayBuffer, uint32 offSet, uint32 mappedLength);
 
         template <typename TypeName, bool clamped>

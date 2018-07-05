@@ -470,6 +470,26 @@ CHAKRA_API JsPrivateCollectGarbageSkipStack(_In_ JsRuntimeHandle runtimeHandle)
 {
     return JsCollectGarbageCommon<CollectNowExhaustiveSkipStack>(runtimeHandle);
 }
+
+CHAKRA_API JsPrivateDetachArrayBuffer(_In_ JsValueRef ref, _Out_ void** detachedState)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
+    {
+        VALIDATE_JSREF(ref);
+        *detachedState = Js::JavascriptOperators::DetachVarAndGetState(ref);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsPrivateFreeDetachedArrayBuffer(_In_ void* detachedState)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
+    {
+        auto state = reinterpret_cast<Js::ArrayBufferDetachedStateBase*>(detachedState);
+        state->CleanUp();
+        return JsNoError;
+    });
+}
 #endif
 
 CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
@@ -3855,7 +3875,7 @@ template <typename TLoadCallback, typename TUnloadCallback>
 JsErrorCode RunSerializedScriptCore(
     TLoadCallback scriptLoadCallback, TUnloadCallback scriptUnloadCallback,
     JsSourceContext scriptLoadSourceContext, // only used by scriptLoadCallback
-    unsigned char *buffer, JsValueRef bufferVal,
+    unsigned char *buffer, Js::ArrayBuffer* bufferVal,
     JsSourceContext sourceContext, const WCHAR *sourceUrl,
     bool parseOnly, bool useParserStateCache, JsValueRef *result,
     uint sourceIndex)
@@ -3910,7 +3930,7 @@ JsErrorCode RunSerializedScriptCore(
         }
 
         HRESULT hr;
-        
+
         Field(Js::FunctionBody*) functionBody = nullptr;
 
         uint32 flags = 0;
@@ -5127,12 +5147,13 @@ CHAKRA_API JsParseSerialized(
         return JsErrorInvalidArgument;
     }
 
-    byte* buffer = Js::ArrayBuffer::FromVar(bufferVal)->GetBuffer();
+    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferVal);
+    byte* buffer = arrayBuffer->GetBuffer();
 
     return RunSerializedScriptCore(
       scriptLoadCallback, DummyScriptUnloadCallback,
       sourceContext,// use the same user provided sourceContext as scriptLoadSourceContext
-      buffer, bufferVal, sourceContext, url, true, false, result, Js::Constants::InvalidSourceIndex);
+      buffer, arrayBuffer, sourceContext, url, true, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsRunSerialized(
@@ -5160,12 +5181,13 @@ CHAKRA_API JsRunSerialized(
         return JsErrorInvalidArgument;
     }
 
-    byte* buffer = Js::ArrayBuffer::FromVar(bufferVal)->GetBuffer();
+    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferVal);
+    byte* buffer = arrayBuffer->GetBuffer();
 
     return RunSerializedScriptCore(
         scriptLoadCallback, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, bufferVal, sourceContext, url, false, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, arrayBuffer, sourceContext, url, false, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
@@ -5744,13 +5766,14 @@ CHAKRA_API JsRunScriptWithParserState(
         return JsErrorInvalidArgument;
     }
 
-    byte* buffer = Js::ArrayBuffer::FromVar(parserState)->GetBuffer();
+    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(parserState);
+    byte* buffer = arrayBuffer->GetBuffer();
     JsSerializedLoadScriptCallback dummy = DummyScriptLoadSourceCallbackForRunScriptWithParserState;
 
     return RunSerializedScriptCore(
         dummy, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, parserState, sourceContext, url, false, true, result, sourceIndex);
+        buffer, arrayBuffer, sourceContext, url, false, true, result, sourceIndex);
 }
 
 #endif // _CHAKRACOREBUILD
