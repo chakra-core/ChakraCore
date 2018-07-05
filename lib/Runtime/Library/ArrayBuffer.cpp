@@ -37,6 +37,9 @@ namespace Js
         case ArrayBufferAllocationType::MemAlloc:
             toReturn = library->CreateArrayBuffer(arrayBufferState->buffer, arrayBufferState->bufferLength);
             break;
+        case ArrayBufferAllocationType::External:
+            toReturn = static_cast<ExternalArrayBufferDetachedState*>(state)->Create(library);
+            break;
         default:
             AssertMsg(false, "Unknown allocationType of ArrayBufferDetachedStateBase ");
         }
@@ -1066,10 +1069,26 @@ namespace Js
         /* See ProjectionArrayBuffer::Finalize */
     }
 
+    ArrayBuffer* ExternalArrayBufferDetachedState::Create(JavascriptLibrary* library)
+    {
+        return library->CreateExternalArrayBuffer(buffer, bufferLength);
+    }
+
     ExternalArrayBuffer::ExternalArrayBuffer(byte *buffer, uint32 length, DynamicType *type)
         : ArrayBuffer(buffer, length, type, true)
     {
     }
+
+    ExternalArrayBuffer* ExternalArrayBuffer::Create(byte* buffer, uint32 length, DynamicType * type)
+    {
+        // This type does not own the external memory, so don't AddExternalMemoryUsage like other ArrayBuffer types do
+        return RecyclerNewFinalized(type->GetScriptContext()->GetRecycler(), ExternalArrayBuffer, buffer, length, type);
+    }
+
+    ArrayBufferDetachedStateBase* ExternalArrayBuffer::CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength)
+    {
+        return HeapNew(ExternalArrayBufferDetachedState, buffer, bufferLength);
+    };
 
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ExternalArrayBuffer::GetSnapTag_TTD() const
@@ -1096,4 +1115,23 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
     }
 #endif
+
+    ExternalArrayBufferDetachedState::ExternalArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength)
+        : ArrayBufferDetachedStateBase(TypeIds_ArrayBuffer, buffer, bufferLength, ArrayBufferAllocationType::External)
+    {}
+
+    void ExternalArrayBufferDetachedState::ClearSelfOnly()
+    {
+        HeapDelete(this);
+    }
+
+    void ExternalArrayBufferDetachedState::DiscardState()
+    {
+        // Nothing to do as buffer is external
+    }
+
+    void ExternalArrayBufferDetachedState::Discard()
+    {
+        ClearSelfOnly();
+    }
 }

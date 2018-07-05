@@ -694,8 +694,8 @@ CHAKRA_API
 ///     Requires an active script context.
 ///     </para>
 ///     <para>
-///     The runtime will hold on to the buffer until all instances of any functions created from
-///     the buffer are garbage collected.
+///     The runtime will detach the data from the buffer and hold on to it until all
+///     instances of any functions created from the buffer are garbage collected.
 ///     </para>
 /// </remarks>
 /// <param name="buffer">The serialized script as an ArrayBuffer (preferably ExternalArrayBuffer).</param>
