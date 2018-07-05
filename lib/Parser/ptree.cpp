@@ -424,6 +424,7 @@ ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 
     this->astSize = 0;
     this->cbMin = 0;
+    this->cbStringMin = 0;
     this->cbLim = 0;
     this->lineNumber = 0;
     this->columnNumber = 0;
