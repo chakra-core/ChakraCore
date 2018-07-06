@@ -252,6 +252,41 @@ namespace Memory
         }
     }
 
+
+    void RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeUser(uint64 userMicroseconds, RecyclerWaitReason caller)
+    {
+        RecyclerTelemetryGCPassStats* lastPassStats = this->GetLastPassStats();
+#ifdef DBG
+        if (this->inPassActiveState)
+        {
+            AssertMsg(lastPassStats != nullptr && lastPassStats->isGCPassActive == true, "unexpected Value in  RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeUser");
+        }
+#endif
+
+        if (this->inPassActiveState && lastPassStats != nullptr)
+        {
+            AssertOnValidThread(this, RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeUser);
+            lastPassStats->uiThreadBlockedCpuTimesUser[caller] += userMicroseconds;
+        }
+    }
+
+    void RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeKernel(uint64 kernelMicroseconds, RecyclerWaitReason caller)
+    {
+        RecyclerTelemetryGCPassStats* lastPassStats = this->GetLastPassStats();
+#ifdef DBG
+        if (this->inPassActiveState)
+        {
+            AssertMsg(lastPassStats != nullptr && lastPassStats->isGCPassActive == true, "unexpected Value in  RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeKernel");
+        }
+#endif
+
+        if (this->inPassActiveState && lastPassStats != nullptr)
+        {
+            AssertOnValidThread(this, RecyclerTelemetryInfo::IncrementUserThreadBlockedCpuTimeKernel);
+            lastPassStats->uiThreadBlockedCpuTimesKernel[caller] += kernelMicroseconds;
+        }
+    }
+
     bool RecyclerTelemetryInfo::IsOnScriptThread() const
     {
         bool isValid = false;
