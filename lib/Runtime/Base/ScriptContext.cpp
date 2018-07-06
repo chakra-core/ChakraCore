@@ -89,7 +89,6 @@ namespace Js
         integerStringMapCacheMissCount(0),
         integerStringMapCacheUseCount(0),
 #endif
-        guestArena(nullptr),
 #ifdef ENABLE_SCRIPT_DEBUGGING
         diagnosticArena(nullptr),
         raiseMessageToDebuggerFunctionType(nullptr),
@@ -799,12 +798,6 @@ namespace Js
             interpreterArena = nullptr;
         }
 
-        if (this->guestArena)
-        {
-            ReleaseGuestArena();
-            guestArena = nullptr;
-        }
-
         builtInLibraryFunctions = nullptr;
 
         pActiveScriptDirect = nullptr;
@@ -1305,8 +1298,6 @@ namespace Js
 
     void ScriptContext::InitializePreGlobal()
     {
-        this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
-
 #if ENABLE_BACKGROUND_PARSING
         if (PHASE_ON1(Js::ParallelParsePhase))
         {
@@ -2757,17 +2748,6 @@ ExitTempAllocator:
         {
             this->GetRecycler()->DeleteGuestArena(this->interpreterArena);
             this->interpreterArena = nullptr;
-        }
-    }
-
-
-    void ScriptContext::ReleaseGuestArena()
-    {
-        AssertMsg(this->guestArena, "No guest arena to release");
-        if (this->guestArena)
-        {
-            this->GetRecycler()->DeleteGuestArena(this->guestArena);
-            this->guestArena = nullptr;
         }
     }
 
@@ -4975,7 +4955,6 @@ ExitTempAllocator:
     void ScriptContext::BindReference(void * addr)
     {
         Assert(!this->isClosed);
-        Assert(this->guestArena);
         Assert(recycler->IsValidObject(addr));
 #if DBG
         Assert(!bindRef.ContainsKey(addr));     // Make sure we don't bind the same pointer twice
@@ -5142,7 +5121,6 @@ ExitTempAllocator:
         {
             return;
         }
-        Assert(this->guestArena);
 
         if (EnableEvalMapCleanup())
         {
