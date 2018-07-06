@@ -217,14 +217,19 @@ namespace Js
         }
     }
 
+    void ArrayBuffer::ReportExternalMemoryFree()
+    {
+        Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
+        recycler->ReportExternalMemoryFree(bufferLength);
+    }
+
     void ArrayBuffer::Detach()
     {
         Assert(!this->isDetached);
 
         // we are about to lose track of the buffer to another owner
         // report that we no longer own the memory
-        Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
-        recycler->ReportExternalMemoryFree(bufferLength);
+        ReportExternalMemoryFree();
 
         this->buffer = nullptr;
         this->bufferLength = 0;
@@ -1089,6 +1094,11 @@ namespace Js
     {
         return HeapNew(ExternalArrayBufferDetachedState, buffer, bufferLength);
     };
+
+    void ExternalArrayBuffer::ReportExternalMemoryFree()
+    {
+        // This type does not own the external memory, so don't ReportExternalMemoryFree like other ArrayBuffer types do
+    }
 
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ExternalArrayBuffer::GetSnapTag_TTD() const
