@@ -196,6 +196,7 @@ namespace Js
         static uint32 ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero = true);
 
     protected:
+        virtual void ReportExternalMemoryFree();
         void Detach();
 
         typedef void __cdecl FreeFn(void* ptr);
@@ -343,6 +344,7 @@ namespace Js
         static ExternalArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
     protected:
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
+        virtual void ReportExternalMemoryFree() override;
 
 #if ENABLE_TTD
     public:
