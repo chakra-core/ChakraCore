@@ -3796,8 +3796,20 @@ ExitTempAllocator:
         // Debugger attach/detach failure is catastrophic, take down the process
         DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
-        // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
-        this->UpdateRecyclerFunctionEntryPointsForDebugger();
+        HRESULT hrEntryPointUpdate = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+        {
+            // Still do the pass on the function's entrypoint to reflect its state with the functionbody's entrypoint.
+            this->UpdateRecyclerFunctionEntryPointsForDebugger();
+        }
+        END_TRANSLATE_OOM_TO_HRESULT(hrEntryPointUpdate);
+
+        if (hrEntryPointUpdate != S_OK)
+        {
+            // should only be here for OOM
+            Assert(hrEntryPointUpdate == E_OUTOFMEMORY);
+            return hrEntryPointUpdate;
+        }
 
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ScriptContext::OnDebuggerDetached: done 0x%p, hr = 0x%X\n"), this, hr);
 
