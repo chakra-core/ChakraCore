@@ -5,158 +5,127 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-let re = /^[\s-a-z]$/;
-let reIgnoreCase = /^[\s-a-z]$/i;
-let reUnicode = /^[\s-z]$/u;
-let reNoCharClass = /^[a-c-z]$/;
+function testRegExp(str, regexp, expectedResult)
+{
+    actualResult = regexp.test(str);
+    errorMsg = "Expected result of test for match between string: '" + str + "' and regular expression: " + regexp + " to be " + 
+                    expectedResult + " but was " + actualResult;
+    assert.areEqual(expectedResult, actualResult, errorMsg); 
+}
 
 var tests = [
-    /*No Flag RegExp Tests begin*/
     {
-        name : "Ensure 'a-z' not counted as range",
+        name : "RegExp tests with no flags",
         body : function () 
         {
-            assert.isFalse(re.test("b"));
+            let re = /[\s-a-z]/;
+            testRegExp("b", re, false);
+            testRegExp("a", re, true);
+            testRegExp(" ", re, true);
+            testRegExp("z", re, true);
+            testRegExp("\t", re, true);
+            testRegExp("q", re, false);
+            testRegExp("\\", re, false);
+            testRegExp("\u2028", re, true);
+            testRegExp("\u2009", re, true);
         }
     },
     {
-        name : "Ensure 'a' included in set",
+        name : "RegExp tests with IgnoreCase flag set",
         body : function () 
         {
-            assert.isTrue(re.test("a"));
+            let reIgnoreCase = /^[\s-a-z]$/i;
+            testRegExp("O", reIgnoreCase, false);
+            testRegExp("A", reIgnoreCase, true);
+            testRegExp(" ", reIgnoreCase, true);
+            testRegExp("z", reIgnoreCase, true);
+            testRegExp("\t", reIgnoreCase, true);
+            testRegExp("\u2028", reIgnoreCase, true);
+            testRegExp("\u2009", reIgnoreCase, true);
         }
     },
     {
-        name : "Ensure ' ' included in set",
+        name : "RegExp tests with Unicode flag set",
         body : function () 
         {
-            assert.isTrue(re.test(" "));
+            let reUnicode = /^[a-d]$/u;
+            testRegExp("a", reUnicode, true);
+            testRegExp("c", reUnicode, true);
+            testRegExp("d", reUnicode, true);
+            testRegExp("C", reUnicode, false);
+            testRegExp("g", reUnicode, false);
+            testRegExp("\u2028", reUnicode, false);
+            testRegExp("\u2009", reUnicode, false);
+            assert.throws(() => eval("/^[\\s-z]$/u.exec(\"-\")"), SyntaxError, "Expected an error due to character sets not being allowed in ranges when unicode flag is set.", "Character classes not allowed in class ranges");
         }
     },
     {
-        name : "Ensure 'z' included in set",
+        name : "Non-character class tests",
         body : function () 
         {
-            assert.isTrue(re.test("z"));
+            let reNoCharClass = /^[a-c-z]$/;
+            testRegExp("b", reNoCharClass, true);
+            testRegExp("-", reNoCharClass, true);
+            testRegExp("z", reNoCharClass, true);
+            testRegExp("y", reNoCharClass, false);
         }
     },
     {
-        name : "Ensure '\t' included in set",
+        name : "Regression tests from bugFixRegression",
         body : function () 
         {
-            assert.isTrue(re.test("\t"));
+            assert.areEqual(" -a", /[\s-a-c]*/.exec(" -abc")[0]);
+            assert.areEqual(" -abc", /[\s\-a-c]*/.exec(" -abc")[0]);
+            assert.areEqual(" -ab", /[a-\s-b]*/.exec(" -ab")[0]);
+            assert.areEqual(" -ab", /[a\-\s\-b]*/.exec(" -ab")[0]);
         }
     },
     {
-        name : "Ensure 'a-z' not counted as range",
+        name : "Special character tests",
         body : function () 
         {
-            assert.isFalse(re.test("q"));
+                let re = /^[\s][a\sb][\s--c-f]$/;
+                testRegExp('  \\', re, false);
+                testRegExp(' \\ ', re, false);
+                testRegExp('\\  ', re, false);
+                re = /[-][\d\-]/;
+                testRegExp('--', re, true);
+                testRegExp('-9', re, true);
+                testRegExp('  ', re, false);
         }
     },
     {
-        name : "Ensure '\' not counted in set",
+        name : "Negation character set tests",
         body : function () 
         {
-            assert.isFalse(re.test("\\"));
-        }
-    },
-    /*No Flag RegExp Tests End*/
-    /*IgnoreCase Flag RegExp Tests Begin*/
-    {
-        name : "Ensure 'O' not included in set",
-        body : function () 
-        {
-            assert.isFalse(reIgnoreCase.test("O"));
+                let reNegationCharSet = /[\D-\s]+/;
+                testRegExp('555686', reNegationCharSet, false);
+                testRegExp('555-686', reNegationCharSet, true);
+                testRegExp('alphabet-123', reNegationCharSet, true);
         }
     },
     {
-        name : "Ensure 'A' included in set",
+        name : "Non-range tests",
         body : function () 
         {
-            assert.isTrue(reIgnoreCase.test("A"));
+                let reNonRange = /[-\w]/
+                testRegExp('-', reNonRange, true);
+                testRegExp('g', reNonRange, true);
+                testRegExp('5', reNonRange, true);
+                testRegExp(' ', reNonRange, false);
+                testRegExp('\t', reNonRange, false);
+                testRegExp('\u2028', reNonRange, false);
+                
+                reNonRange = /[\w-]/
+                testRegExp('-', reNonRange, true);
+                testRegExp('g', reNonRange, true);
+                testRegExp('5', reNonRange, true);
+                testRegExp(' ', reNonRange, false);
+                testRegExp('\t', reNonRange, false);
+                testRegExp('\u2028', reNonRange, false);
         }
-    },
-    {
-        name : "Ensure ' ' included in set",
-        body : function () 
-        {
-            assert.isTrue(reIgnoreCase.test(" "));
-        }
-    },
-    {
-        name : "Ensure 'z' included in set",
-        body : function () 
-        {
-            assert.isTrue(reIgnoreCase.test("z"));
-        }
-    },
-    {
-        name : "Ensure '\t' included in set",
-        body : function () 
-        {
-            assert.isTrue(reIgnoreCase.test("\t"));
-        }
-    },
-    /*IgnoreCase Flag RegExp Tests End*/
-    /*Unicode Flag RegExp Tests Begin*/
-    {
-        name : "'-' included in set since \s-z treated as union of three types, not range",
-        body : function () 
-        {
-            assert.isTrue(reUnicode.test("-"));
-        }
-    },
-    {
-        name : "' ' in set from \s character set",
-        body : function () 
-        {
-            assert.isTrue(reUnicode.test(" "));
-        }
-    },
-    {
-        name : "b not included in '\s-z'",
-        body : function () 
-        {
-            assert.isFalse(reUnicode.test("b"));
-        }
-    },
-    /*Unicode Flag RegExp Tests End*/
-    /*Non-character class tests Begin*/
-    {
-        name : "First range is used",
-        body : function () 
-        {
-            assert.isTrue(reNoCharClass.test("b"));
-        }
-    },
-    {
-        name : "'-' included in set from 2nd dash",
-        body : function () 
-        {
-            assert.isTrue(reNoCharClass.test("-"));
-        }
-    },
-    {
-        name : "z included in set",
-        body : function () 
-        {
-            assert.isTrue(reNoCharClass.test("z"));
-        }
-    },
-    {
-        name : "'c-z' not viewed as range",
-        body : function () 
-        {
-            assert.isFalse(reNoCharClass.test("y"));
-        }
-    }    
-    /*Non-character class tests End*/
+    }
 ];
-
-if (typeof modifyTests !== "undefined") {
-    tests = modifyTests(tests);
-}
 
 testRunner.runTests(tests, {
     verbose : WScript.Arguments[0] != "summary"

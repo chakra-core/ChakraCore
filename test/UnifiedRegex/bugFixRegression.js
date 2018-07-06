@@ -501,13 +501,6 @@ exec(/(?:a*)?/, "");
 exec(/(?:a+)?/, "");
 exec(/(?:a||b)?/, "b");
 
-// WOOB1145588
-exec(/[\s-a-c]*/, " -abc");
-exec(/[\s\-a-c]*/, " -abc");
-exec(/[a-\s-b]*/, " -ab");
-exec(/[a\-\s\-b]*/, " -ab");
-exec(/[\s--c-!]*/, " -./0Abc!");
-
 try {
     var r = new RegExp("[\\s-c-a]*", "");
     exec(r, " -abc");
