@@ -204,4 +204,10 @@
        <files>tfjitloopbug.js</files>
   </default>
   </test>
+  <test>
+    <default>
+       <files>loopcrash.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -MinMemOpCount:0 -werexceptionsupport  -bgjit- -loopinterpretcount:1 </compile-flags>
+  </default>
+  </test>
 </regress-exe>
