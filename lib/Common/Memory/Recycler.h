@@ -711,11 +711,17 @@ private:
         virtual void ValueChanged(const CollectionState& newVal, const CollectionState& oldVal)
         {
 #ifdef ENABLE_BASIC_TELEMETRY
-            if (oldVal == CollectionState::CollectionStateNotCollecting && newVal != CollectionState::CollectionStateNotCollecting && newVal != CollectionState::Collection_PreCollection)
+            if (oldVal == CollectionState::CollectionStateNotCollecting && 
+                newVal != CollectionState::CollectionStateNotCollecting && 
+                newVal != CollectionState::Collection_PreCollection && 
+                newVal != CollectionState::CollectionStateExit)
             {
                 this->recycler->GetRecyclerTelemetryInfo().StartPass(newVal);
             }
-            else if (oldVal != CollectionState::CollectionStateNotCollecting && oldVal != CollectionState::Collection_PreCollection && newVal == CollectionState::CollectionStateNotCollecting)
+            else if (oldVal != CollectionState::CollectionStateNotCollecting && 
+                oldVal != CollectionState::Collection_PreCollection && 
+                oldVal != CollectionState::CollectionStateExit &&
+                newVal == CollectionState::CollectionStateNotCollecting)
             {
                 this->recycler->GetRecyclerTelemetryInfo().EndPass(oldVal);
             }

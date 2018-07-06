@@ -87,6 +87,25 @@ namespace Memory
 #endif
     };
 
+    /**
+     * Consolidated summary of data from RecyclerFlagsTable that we want to
+     * transmit via telemetry. Goal is to pack this into maximum of 64-bits.
+     */
+    enum RecyclerFlagsTableSummary : uint32
+    {
+        None                                 = 0x0000,
+        IsMemProtectMode                     = 0x0001,
+        IsConcurrentEnabled                  = 0x0002,
+        EnableScanInteriorPointers           = 0x0004,
+        EnableScanImplicitRoots              = 0x0008,
+        DisableCollectOnAllocationHeuristics = 0x0016,
+        RecyclerStress                       = 0x0032,
+        RecyclerBackgroundStress             = 0x0064,
+        RecyclerConcurrentStress             = 0x0128,
+        RecyclerConcurrentRepeatStress       = 0x0256,
+        RecyclerPartialStress                = 0x0512,
+    };
+
     typedef SList<RecyclerTelemetryGCPassStats, HeapAllocator> GCPassStatsList;
 
     /**
@@ -109,9 +128,9 @@ namespace Memory
         inline const Js::Tick& GetLastTransmitTime() const { return this->lastTransmitTime; }
         inline const uint16 GetPassCount() const { return this->passCount; }
         const GUID& GetRecyclerID() const;
-        bool GetIsConcurrentEnabled() const;
         bool IsOnScriptThread() const;
         GCPassStatsList::Iterator GetGCPassStatsIterator() const;
+        RecyclerFlagsTableSummary GetRecyclerConfigFlags() const;
 
         AllocatorDecommitStats* GetThreadPageAllocator_decommitStats() { return &this->threadPageAllocator_decommitStats; }
         AllocatorDecommitStats* GetRecyclerLeafPageAllocator_decommitStats() { return &this->recyclerLeafPageAllocator_decommitStats; }
