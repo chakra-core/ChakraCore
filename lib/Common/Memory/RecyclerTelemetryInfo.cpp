@@ -24,6 +24,7 @@ namespace Memory
 
     RecyclerTelemetryInfo::RecyclerTelemetryInfo(Recycler * recycler, RecyclerTelemetryHostInterface* hostInterface) :
         passCount(0),
+        perfTrackPassCount(0),
         hostInterface(hostInterface),
         gcPassStats(&HeapAllocator::Instance),
         recyclerStartTime(Js::Tick::Now()),
@@ -41,7 +42,7 @@ namespace Memory
             AssertOnValidThread(this, RecyclerTelemetryInfo::~RecyclerTelemetryInfo);
             if (this->gcPassStats.Empty() == false)
             {
-                this->hostInterface->TransmitTelemetry(*this);
+                this->hostInterface->TransmitGCTelemetryStats(*this);
                 this->FreeGCPassStats();
             }
         }
@@ -147,6 +148,7 @@ namespace Memory
             {
                 this->inPassActiveState = true;
                 passCount++;
+                perfTrackPassCount++;
                 memset(stats, 0, sizeof(RecyclerTelemetryGCPassStats));
 
                 stats->startPassCollectionState = collectionState;
@@ -218,14 +220,28 @@ namespace Memory
 
         lastPassStats->endPassProcessingElapsedTime = Js::Tick::Now() - start;
 
-        if (ShouldTransmit() && this->hostInterface != nullptr)
+        // use separate events for perftrack specific data & general telemetry data
+        if (this->ShouldTransmitPerfTrackEvents())
         {
-            if (this->hostInterface->TransmitTelemetry(*this))
+            if (this->hostInterface->TransmitHeapUsage(bucketReporter.GetTotalStats()->totalByteCount, bucketReporter.GetTotalStats()->objectByteCount, bucketReporter.GetTotalStats()->UsedRatio()))
+            {
+                this->ResetPerfTrackCounts();
+            }
+        }
+
+        if (this->ShouldTransmitGCStats() && this->hostInterface != nullptr)
+        {
+            if (this->hostInterface->TransmitGCTelemetryStats(*this))
             {
                 this->lastTransmitTime = lastPassStats->passEndTimeTick;
                 Reset();
             }
         }
+    }
+
+    void RecyclerTelemetryInfo::ResetPerfTrackCounts()
+    {
+        this->perfTrackPassCount = 0;
     }
 
     void RecyclerTelemetryInfo::Reset()
@@ -248,11 +264,18 @@ namespace Memory
         }
     }
 
-    bool RecyclerTelemetryInfo::ShouldTransmit() const
+    bool RecyclerTelemetryInfo::ShouldTransmitGCStats() const
     {
         // for now, try to transmit telemetry when we have >= 16
         return (this->hostInterface != nullptr &&  this->passCount >= 16);
     }
+
+    bool RecyclerTelemetryInfo::ShouldTransmitPerfTrackEvents() const
+    {
+        // for now, try to transmit telemetry when we have >= 16
+        return (this->hostInterface != nullptr &&  this->perfTrackPassCount >= 128);
+    }
+
 
     void RecyclerTelemetryInfo::IncrementUserThreadBlockedCount(Js::TickDelta waitTime, RecyclerWaitReason caller)
     {
