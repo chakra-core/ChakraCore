@@ -533,7 +533,11 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize);
+        if (!emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize))
+        {
+            Js::Throw::OutOfMemory();
+        }
+
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
