@@ -384,7 +384,7 @@ namespace UnifiedRegex
         size_t size = sizeof(*((T *)that));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
 
         for (; currentByte < endByte; ++currentByte)
         {
@@ -409,7 +409,7 @@ namespace UnifiedRegex
         byte *startByte = (byte *)(&(start->tag));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offsetToData, size, sizeof(Inst), alignof(Inst), annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
         for (; currentByte < endByte; ++currentByte)
         {
             if ((currentByte - endByte) % 4 == 0)
@@ -1907,12 +1907,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
             PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
             PRINT_MIXIN(SetMixin<false>);
         }
 
@@ -2120,12 +2120,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
             PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
             PRINT_MIXIN(SetMixin<false>);
         }
 
@@ -2352,12 +2352,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
             PRINT_MIXIN_COMMA(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
             PRINT_MIXIN_COMMA(SetMixin<false>);
         }
 
