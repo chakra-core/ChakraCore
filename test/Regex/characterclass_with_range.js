@@ -5,11 +5,13 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function testRegExp(str, regexp, expectedResult)
+function matchRegExp(str, regexp, expectedResult)
 {
-    actualResult = regexp.test(str);
-    errorMsg = "Expected result of test for match between string: '" + str + "' and regular expression: " + regexp + " to be " + 
-                    expectedResult + " but was " + actualResult;
+    matchResult = str.match(regexp);//regexp.test(str);
+    errorMsg = "Expected result of match between string: '" + str + "' and regular expression: " + regexp + " to be " + 
+                    expectedResult + " but was " + matchResult;
+
+    actualResult = matchResult == null ? null : matchResult[0];
     assert.areEqual(expectedResult, actualResult, errorMsg); 
 }
 
@@ -19,15 +21,15 @@ var tests = [
         body : function () 
         {
             let re = /[\s-a-z]/;
-            testRegExp("b", re, false);
-            testRegExp("a", re, true);
-            testRegExp(" ", re, true);
-            testRegExp("z", re, true);
-            testRegExp("\t", re, true);
-            testRegExp("q", re, false);
-            testRegExp("\\", re, false);
-            testRegExp("\u2028", re, true);
-            testRegExp("\u2009", re, true);
+            matchRegExp("b", re, null);
+            matchRegExp("a", re, "a");
+            matchRegExp(" ", re, " ");
+            matchRegExp("z", re, "z");
+            matchRegExp("\t", re, "\t");
+            matchRegExp("q", re, null);
+            matchRegExp("\\", re, null);
+            matchRegExp("\u2028", re, "\u2028");
+            matchRegExp("\u2009", re, "\u2009");
         }
     },
     {
@@ -35,13 +37,13 @@ var tests = [
         body : function () 
         {
             let reIgnoreCase = /^[\s-a-z]$/i;
-            testRegExp("O", reIgnoreCase, false);
-            testRegExp("A", reIgnoreCase, true);
-            testRegExp(" ", reIgnoreCase, true);
-            testRegExp("z", reIgnoreCase, true);
-            testRegExp("\t", reIgnoreCase, true);
-            testRegExp("\u2028", reIgnoreCase, true);
-            testRegExp("\u2009", reIgnoreCase, true);
+            matchRegExp("O", reIgnoreCase, null);
+            matchRegExp("A", reIgnoreCase, "A");
+            matchRegExp(" ", reIgnoreCase, " ");
+            matchRegExp("z", reIgnoreCase, "z");
+            matchRegExp("\t", reIgnoreCase, "\t");
+            matchRegExp("\u2028", reIgnoreCase, "\u2028");
+            matchRegExp("\u2009", reIgnoreCase, "\u2009");
         }
     },
     {
@@ -49,13 +51,13 @@ var tests = [
         body : function () 
         {
             let reUnicode = /^[a-d]$/u;
-            testRegExp("a", reUnicode, true);
-            testRegExp("c", reUnicode, true);
-            testRegExp("d", reUnicode, true);
-            testRegExp("C", reUnicode, false);
-            testRegExp("g", reUnicode, false);
-            testRegExp("\u2028", reUnicode, false);
-            testRegExp("\u2009", reUnicode, false);
+            matchRegExp("a", reUnicode, "a");
+            matchRegExp("c", reUnicode, "c");
+            matchRegExp("d", reUnicode, "d");
+            matchRegExp("C", reUnicode, null);
+            matchRegExp("g", reUnicode, null);
+            matchRegExp("\u2028", reUnicode, null);
+            matchRegExp("\u2009", reUnicode, null);
             assert.throws(() => eval("/^[\\s-z]$/u.exec(\"-\")"), SyntaxError, "Expected an error due to character sets not being allowed in ranges when unicode flag is set.", "Character classes not allowed in class ranges");
         }
     },
@@ -64,20 +66,21 @@ var tests = [
         body : function () 
         {
             let reNoCharClass = /^[a-c-z]$/;
-            testRegExp("b", reNoCharClass, true);
-            testRegExp("-", reNoCharClass, true);
-            testRegExp("z", reNoCharClass, true);
-            testRegExp("y", reNoCharClass, false);
+            matchRegExp("b", reNoCharClass, "b");
+            matchRegExp("-", reNoCharClass, "-");
+            matchRegExp("z", reNoCharClass, "z");
+            matchRegExp("y", reNoCharClass, null);
         }
     },
     {
         name : "Regression tests from bugFixRegression",
         body : function () 
         {
-            assert.areEqual(" -a", /[\s-a-c]*/.exec(" -abc")[0]);
-            assert.areEqual(" -abc", /[\s\-a-c]*/.exec(" -abc")[0]);
-            assert.areEqual(" -ab", /[a-\s-b]*/.exec(" -ab")[0]);
-            assert.areEqual(" -ab", /[a\-\s\-b]*/.exec(" -ab")[0]);
+            matchRegExp(" -abc", /[\s-a-c]*/, " -a");
+            matchRegExp(" -abc", /[\s\-a-c]*/, " -abc");
+            matchRegExp(" -ab", /[a-\s-b]*/, " -ab");
+            matchRegExp(" -ab", /[a\-\s\-b]*/, " -ab");
+            assert.throws(() => eval("/^[\\s--c-!]$/.exec(\"-./0Abc!\")"), SyntaxError, "Expected an error due to 'c-!' being an invalid range.", "Invalid range in character set");
         }
     },
     {
@@ -85,13 +88,13 @@ var tests = [
         body : function () 
         {
                 let re = /^[\s][a\sb][\s--c-f]$/;
-                testRegExp('  \\', re, false);
-                testRegExp(' \\ ', re, false);
-                testRegExp('\\  ', re, false);
+                matchRegExp('  \\', re, null);
+                matchRegExp(' \\ ', re, null);
+                matchRegExp('\\  ', re, null);
                 re = /[-][\d\-]/;
-                testRegExp('--', re, true);
-                testRegExp('-9', re, true);
-                testRegExp('  ', re, false);
+                matchRegExp('--', re, '--');
+                matchRegExp('-9', re, '-9');
+                matchRegExp('  ', re, null);
         }
     },
     {
@@ -99,9 +102,9 @@ var tests = [
         body : function () 
         {
                 let reNegationCharSet = /[\D-\s]+/;
-                testRegExp('555686', reNegationCharSet, false);
-                testRegExp('555-686', reNegationCharSet, true);
-                testRegExp('alphabet-123', reNegationCharSet, true);
+                matchRegExp('555686', reNegationCharSet, null);
+                matchRegExp('555-686', reNegationCharSet, '-');
+                matchRegExp('alphabet-123', reNegationCharSet, 'alphabet-');
         }
     },
     {
@@ -109,20 +112,22 @@ var tests = [
         body : function () 
         {
                 let reNonRange = /[-\w]/
-                testRegExp('-', reNonRange, true);
-                testRegExp('g', reNonRange, true);
-                testRegExp('5', reNonRange, true);
-                testRegExp(' ', reNonRange, false);
-                testRegExp('\t', reNonRange, false);
-                testRegExp('\u2028', reNonRange, false);
+                matchRegExp('-', reNonRange, '-');
+                matchRegExp('g', reNonRange, 'g');
+                matchRegExp('5', reNonRange, '5');
+                matchRegExp(' ', reNonRange, null);
+                matchRegExp('\t', reNonRange, null);
+                matchRegExp('\u2028', reNonRange, null);
+                matchRegExp('\\', reNonRange, null);
                 
                 reNonRange = /[\w-]/
-                testRegExp('-', reNonRange, true);
-                testRegExp('g', reNonRange, true);
-                testRegExp('5', reNonRange, true);
-                testRegExp(' ', reNonRange, false);
-                testRegExp('\t', reNonRange, false);
-                testRegExp('\u2028', reNonRange, false);
+                matchRegExp('-', reNonRange, '-');
+                matchRegExp('g', reNonRange, 'g');
+                matchRegExp('5', reNonRange, '5');
+                matchRegExp(' ', reNonRange, null);
+                matchRegExp('\t', reNonRange, null);
+                matchRegExp('\u2028', reNonRange, null);
+                matchRegExp('\\', reNonRange, null); 
         }
     }
 ];
