@@ -92,6 +92,8 @@ parser.add_argument('--override-test-root', type=str,
                     help='change the base directory for the tests (where rlexedirs will be sought)')
 parser.add_argument('--extra-flags', type=str,
                     help='add extra flags to all executed tests')
+parser.add_argument('--orc','--only-return-code', action='store_true',
+                    help='only consider test return 0/non-0 for pass-fail (no baseline checks)')
 args = parser.parse_args()
 
 test_root = os.path.dirname(os.path.realpath(__file__))
@@ -226,6 +228,11 @@ if args.processcount != None:
 warn_on_timeout = False
 if args.warn_on_timeout == True:
     warn_on_timeout = True
+
+# handle limiting test result analysis to return codes
+return_code_only = False
+if args.orc == True:
+    return_code_only = True
 
 # use tags/not_tags/not_compile_flags as case-insensitive
 def lower_set(s):
@@ -441,26 +448,28 @@ class TestVariant(object):
             else:
                 self._print('ERROR: Test timed out!')
         self._print('{} {} {}'.format(binary, ' '.join(flags), test.filename))
-        if expected_output == None or timedout:
-            self._print("\nOutput:")
-            self._print("----------------------------")
-            self._print(output.decode('utf-8'))
-            self._print("----------------------------")
-        else:
-            lst_output = output.split(b'\n')
-            lst_expected = expected_output.split(b'\n')
-            ln = min(len(lst_output), len(lst_expected))
-            for i in range(0, ln):
-                if lst_output[i] != lst_expected[i]:
-                    self._print("Output: (at line " + str(i+1) + ")")
-                    self._print("----------------------------")
-                    self._print(lst_output[i])
-                    self._print("----------------------------")
-                    self._print("Expected Output:")
-                    self._print("----------------------------")
-                    self._print(lst_expected[i])
-                    self._print("----------------------------")
-                    break
+
+        if not return_code_only:
+            if expected_output == None or timedout:
+                self._print("\nOutput:")
+                self._print("----------------------------")
+                self._print(output.decode('utf-8'))
+                self._print("----------------------------")
+            else:
+                lst_output = output.split(b'\n')
+                lst_expected = expected_output.split(b'\n')
+                ln = min(len(lst_output), len(lst_expected))
+                for i in range(0, ln):
+                    if lst_output[i] != lst_expected[i]:
+                        self._print("Output: (at line " + str(i+1) + ")")
+                        self._print("----------------------------")
+                        self._print(lst_output[i])
+                        self._print("----------------------------")
+                        self._print("Expected Output:")
+                        self._print("----------------------------")
+                        self._print(lst_expected[i])
+                        self._print("----------------------------")
+                        break
 
         self._print("exit code: {}".format(exit_code))
         if warn_on_timeout and timedout:
@@ -559,29 +568,30 @@ class TestVariant(object):
         if exit_code != 0 and binary_name_noext == 'ch':
             return self._show_failed(**fail_args)
 
-        # check output
-        if 'baseline' not in test:
-            # output lines must be 'pass' or 'passed' or empty
-            lines = (line.lower() for line in js_output.split(b'\n'))
-            if any(line != b'' and line != b'pass' and line != b'passed'
-                    for line in lines):
-                return self._show_failed(**fail_args)
-        else:
-            baseline = test.get('baseline')
-            if not skip_baseline_match and baseline:
-                # perform baseline comparison
-                baseline = self._check_file(folder, baseline)
-                with open(baseline, 'rb') as bs_file:
-                    baseline_output = bs_file.read()
+        if not return_code_only:
+            # check output
+            if 'baseline' not in test:
+                # output lines must be 'pass' or 'passed' or empty
+                lines = (line.lower() for line in js_output.split(b'\n'))
+                if any(line != b'' and line != b'pass' and line != b'passed'
+                        for line in lines):
+                    return self._show_failed(**fail_args)
+            else:
+                baseline = test.get('baseline')
+                if not skip_baseline_match and baseline:
+                    # perform baseline comparison
+                    baseline = self._check_file(folder, baseline)
+                    with open(baseline, 'rb') as bs_file:
+                        baseline_output = bs_file.read()
 
-                # Cleanup carriage return
-                # todo: remove carriage return at the end of the line
-                #       or better fix ch to output same on all platforms
-                expected_output = normalize_new_line(baseline_output)
+                    # Cleanup carriage return
+                    # todo: remove carriage return at the end of the line
+                    #       or better fix ch to output same on all platforms
+                    expected_output = normalize_new_line(baseline_output)
 
-                if expected_output != js_output:
-                    return self._show_failed(
-                        expected_output=expected_output, **fail_args)
+                    if expected_output != js_output:
+                        return self._show_failed(
+                            expected_output=expected_output, **fail_args)
 
         # passed
         if verbose:
