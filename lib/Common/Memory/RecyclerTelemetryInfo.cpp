@@ -52,9 +52,29 @@ namespace Memory
         return this->recycler->GetRecyclerID();
     }
 
-    bool RecyclerTelemetryInfo::GetIsConcurrentEnabled() const
+    RecyclerFlagsTableSummary RecyclerTelemetryInfo::GetRecyclerConfigFlags() const
     {
-        return this->recycler->IsConcurrentEnabled();
+
+        // select set of config flags that we can pack into an uint32
+        RecyclerFlagsTableSummary flags = RecyclerFlagsTableSummary::None;
+
+        if (this->recycler->IsMemProtectMode())                    { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::IsMemProtectMode);                     }
+        if (this->recycler->IsConcurrentEnabled())                 { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::IsConcurrentEnabled);                  }
+        if (this->recycler->enableScanInteriorPointers)            { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::EnableScanInteriorPointers);           }
+        if (this->recycler->enableScanImplicitRoots)               { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::EnableScanImplicitRoots);              }
+        if (this->recycler->disableCollectOnAllocationHeuristics)  { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::DisableCollectOnAllocationHeuristics); }
+#ifdef RECYCLER_STRESS
+        if (this->recycler->recyclerStress)                        { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::RecyclerStress);                       }
+#if ENABLE_CONCURRENT_GC
+        if (this->recycler->recyclerBackgroundStress)              { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::RecyclerBackgroundStress);             }
+        if (this->recycler->recyclerConcurrentStress)              { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::RecyclerConcurrentStress);             }
+        if (this->recycler->recyclerConcurrentRepeatStress)        { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::RecyclerConcurrentRepeatStress);       }
+#endif
+#if ENABLE_PARTIAL_GC
+        if (this->recycler->recyclerPartialStress)                 { flags = static_cast<RecyclerFlagsTableSummary>(flags | RecyclerFlagsTableSummary::RecyclerPartialStress);                }
+#endif
+#endif
+        return flags;
     }
 
     bool RecyclerTelemetryInfo::ShouldStartTelemetryCapture() const
@@ -64,7 +84,6 @@ namespace Memory
             this->abortTelemetryCapture == false &&
             this->hostInterface->IsTelemetryProviderEnabled();
     }
-
 
     void RecyclerTelemetryInfo::FillInSizeData(IdleDecommitPageAllocator* allocator, AllocatorSizes* sizes) const
     {
