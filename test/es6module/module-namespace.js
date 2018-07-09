@@ -135,10 +135,10 @@ var tests = [
             assert.areEqual(undefined, foo.let1, "let1");
             assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
             assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
-            assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
-            assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
-            assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
-            assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
+            assert.areEqual("function* gn2 () { }", foo.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1 () { }", foo.gn1.toString(), "gn1");
+            assert.areEqual("function fn2 () { }", foo.fn2.toString(), "fn2");
+            assert.areEqual("function fn1 () { }", foo.fn1.toString(), "fn1");
             `, '', false);
         }
     },
@@ -178,10 +178,10 @@ var tests = [
             assert.areEqual(undefined, foo.let1, "let1");
             assert.areEqual("class cl2 { }", foo.cl2.toString(), "cl2");
             assert.areEqual("class cl1 { }", foo.cl1.toString(), "cl1");
-            assert.areEqual("function* gn2() { }", foo.gn2.toString(), "gn2");
-            assert.areEqual("function* gn1() { }", foo.gn1.toString(), "gn1");
-            assert.areEqual("function fn2() { }", foo.fn2.toString(), "fn2");
-            assert.areEqual("function fn1() { }", foo.fn1.toString(), "fn1");
+            assert.areEqual("function* gn2 () { }", foo.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1 () { }", foo.gn1.toString(), "gn1");
+            assert.areEqual("function fn2 () { }", foo.fn2.toString(), "fn2");
+            assert.areEqual("function fn1 () { }", foo.fn1.toString(), "fn1");
             foo.verifyNamespace(foo);
             foo.changeContext();
             foo.verifyNamespace(foo);
@@ -253,10 +253,10 @@ var tests = [
             assert.areEqual(undefined, childObj.let1, "let1");
             assert.areEqual("class cl2 { }", childObj.cl2.toString(), "cl2");
             assert.areEqual("class cl1 { }", childObj.cl1.toString(), "cl1");
-            assert.areEqual("function* gn2() { }", childObj.gn2.toString(), "gn2");
-            assert.areEqual("function* gn1() { }", childObj.gn1.toString(), "gn1");
-            assert.areEqual("function fn2() { }", childObj.fn2.toString(), "fn2");
-            assert.areEqual("function fn1() { }", childObj.fn1.toString(), "fn1");
+            assert.areEqual("function* gn2 () { }", childObj.gn2.toString(), "gn2");
+            assert.areEqual("function* gn1 () { }", childObj.gn1.toString(), "gn1");
+            assert.areEqual("function fn2 () { }", childObj.fn2.toString(), "fn2");
+            assert.areEqual("function fn1 () { }", childObj.fn1.toString(), "fn1");
             `, '', false);
        }
     },
