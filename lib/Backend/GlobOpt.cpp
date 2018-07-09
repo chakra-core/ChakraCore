@@ -17187,6 +17187,13 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
 
             BasicBlock* loopTail = loop->GetAnyTailBlock();
             Value * valueOnBackEdge = loopTail->globOptData.FindValue(propSym);
+            
+            // If o.x is not invariant in the loop, we can't use the preloaded value of o.x.y in the landing pad
+            Value * valueInLandingPad = loop->landingPad->globOptData.FindValue(propSym);
+            if (valueOnBackEdge->GetValueNumber() != valueInLandingPad->GetValueNumber())
+            {
+                return false;
+            }
 
             *objPtrCopyPropSym = valueOnBackEdge->GetValueInfo()->GetSymStore();
 
