@@ -77,7 +77,7 @@ namespace Js
 
         bool HasExtraArg() const
         {
-            return (this->Flags & CallFlags_ExtraArg) || this->HasNewTarget();
+            return  CallInfo::HasExtraArg(this->Flags);
         }
 
         bool HasNewTarget() const
@@ -90,6 +90,11 @@ namespace Js
         static uint GetLargeArgCountWithExtraArgs(CallFlags flags, uint count);
 
         static ArgSlot GetArgCountWithoutExtraArgs(CallFlags flags, ArgSlot count);
+
+        static bool HasExtraArg(CallFlags flags)
+        {
+            return (flags & CallFlags_ExtraArg) || CallInfo::HasNewTarget(flags);
+        }
 
         static bool HasNewTarget(CallFlags flags)
         {
