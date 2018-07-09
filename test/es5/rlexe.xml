@@ -362,4 +362,9 @@
       <files>es5_defineProperty_arrayLength.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>strictdefaultsetter.js</files>
+    </default>
+  </test>
 </regress-exe>
