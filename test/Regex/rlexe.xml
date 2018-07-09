@@ -229,9 +229,15 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
-    <test>
+  <test>
     <default>
       <files>characterclass_with_range.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>control_character_escapes.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
