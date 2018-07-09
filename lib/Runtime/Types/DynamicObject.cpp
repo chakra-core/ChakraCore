@@ -895,6 +895,13 @@ namespace Js
 
     bool DynamicObject::TryCopy(DynamicObject* from)
     {
+#if ENABLE_TTD
+        if (from->GetScriptContext()->ShouldPerformRecordOrReplayAction())
+        {
+            return false;
+        }
+#endif
+
         if (PHASE_OFF1(ObjectCopyPhase))
         {
             return false;

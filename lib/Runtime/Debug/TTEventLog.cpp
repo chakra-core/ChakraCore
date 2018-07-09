@@ -1035,7 +1035,7 @@ namespace TTD
 #endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(func, true, argc, argv, this->GetLastEventTime());
+        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(func, true, args.Info.Count, args.Values, this->GetLastEventTime());
 #endif
 
         return evt;
@@ -1063,7 +1063,7 @@ namespace TTD
         ThreadContextTTD* executeContext = ctx->GetThreadContext()->TTDContext;
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(function, true, argc, argv, this->GetLastEventTime());
+        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(function, true, args.Info.Count, args.Values, this->GetLastEventTime());
 #endif
 
         //make sure we log all of the passed arguments in the replay host
