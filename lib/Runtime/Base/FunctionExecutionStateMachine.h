@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    enum DebuggerMode;
+    enum DebuggerMode : unsigned int;
 
     class FunctionExecutionStateMachine
     {

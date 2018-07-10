@@ -24,7 +24,7 @@ private:
 namespace Js
 {
     // Represents the different modes that the debugger can be placed into.
-    enum DebuggerMode
+    enum DebuggerMode : unsigned int
     {
         // The debugger is not running so the engine can be running
         // in JITed mode.
