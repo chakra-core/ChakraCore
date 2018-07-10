@@ -9598,7 +9598,11 @@ namespace Js
 #if DBG
     Js::DebuggerMode FunctionBody::GetDebuggerMode()
     {
+#ifdef ENABLE_SCRIPT_DEBUGGING
         return this->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
+#else
+        return Js::DebuggerMode::NotDebugging;
+#endif
     }
 #endif
 }
