@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- This is a work-around for a bug in clang-cl. Clang-cl purports to support a /P option to preprocess to a file, but this does not work, so we have to find a different cl on the system. -->
+  <PropertyGroup>
+    <ForceMSVC>true</ForceMSVC>
+  </PropertyGroup>
   <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
   <PropertyGroup Label="Globals">
