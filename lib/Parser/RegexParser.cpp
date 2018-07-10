@@ -2157,16 +2157,19 @@ namespace UnifiedRegex
 
                 if (returnedNode->tag == Node::MatchSet)
                 {
-                    if (unicodeFlagPresent && pendingRangeStart != INVALID_CODEPOINT)
+                    if (pendingRangeStart != INVALID_CODEPOINT)
                     {
-                        Fail(JSERR_UnicodeRegExpRangeContainsCharClass);
+                        if (unicodeFlagPresent)
+                        {
+                            //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                            //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                            Fail(JSERR_UnicodeRegExpRangeContainsCharClass); //From #sec-patterns-static-semantics-early-errors-annexb
+                        }
+
+                        codePointSet.Set(ctAllocator, '-');
                     }
 
                     pendingCodePoint = INVALID_CODEPOINT;
-                    if (pendingRangeStart != INVALID_CODEPOINT)
-                    {
-                        codePointSet.Set(ctAllocator, '-');
-                    }
                     pendingRangeStart = INVALID_CODEPOINT;
                     codePointSet.UnionInPlace(ctAllocator, deferredSetNode.set);
                     currIsACharSet = true;
@@ -2201,18 +2204,21 @@ namespace UnifiedRegex
 
             if (codePointToSet != INVALID_CODEPOINT || prevprevWasACharSetAndPartOfRange)
             {
-                if (unicodeFlagPresent && prevprevWasACharSetAndPartOfRange)
+                if (prevprevWasACharSetAndPartOfRange)
                 {
-                    Fail(JSERR_UnicodeRegExpRangeContainsCharClass);
-                }
-                else if (prevprevWasACharSetAndPartOfRange)
-                {
+                    //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                    //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                    if (unicodeFlagPresent)
+                    {
+                        Fail(JSERR_UnicodeRegExpRangeContainsCharClass);
+                    }
+
                     if (pendingCodePoint != INVALID_CODEPOINT)
                     {
                         codePointSet.Set(ctAllocator, pendingCodePoint);
                     }
 
-                    codePointSet.Set(ctAllocator, '-');
+                    codePointSet.Set(ctAllocator, '-'); //Add '-' to set because a range was detected but turned out to be a union of character set with '-' and another atom.
                     pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
                 }
                 else if (pendingRangeStart != INVALID_CODEPOINT)

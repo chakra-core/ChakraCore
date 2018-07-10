@@ -58,7 +58,9 @@ var tests = [
             matchRegExp("g", reUnicode, null);
             matchRegExp("\u2028", reUnicode, null);
             matchRegExp("\u2009", reUnicode, null);
-            assert.throws(() => eval("/^[\\s-z]$/u.exec(\"-\")"), SyntaxError, "Expected an error due to character sets not being allowed in ranges when unicode flag is set.", "Character classes not allowed in class ranges");
+            assert.throws(() => eval("/^[\\s-z]$/u.exec(\"-\")"), SyntaxError, "Expected an error due to character sets not being allowed in ranges when unicode flag is set.", "Character classes not allowed in a RegExp class range.");
+            assert.throws(() => eval("/^[z-\\s]$/u.exec(\"-\")"), SyntaxError, "Expected an error due to character sets not being allowed in ranges when unicode flag is set.", "Character classes not allowed in a RegExp class range.");
+        
         }
     },
     {
@@ -95,6 +97,7 @@ var tests = [
                 matchRegExp('--', re, '--');
                 matchRegExp('-9', re, '-9');
                 matchRegExp('  ', re, null);
+                matchRegExp('-\\', re, null);
         }
     },
     {
