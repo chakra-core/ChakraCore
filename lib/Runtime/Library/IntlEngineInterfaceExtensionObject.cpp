@@ -653,13 +653,13 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
             return;
         }
 
-        if (!JavascriptOperators::GetProperty(DynamicObject::FromVar(propertyValue), Js::PropertyIds::prototype, &prototypeValue, scriptContext) ||
+        if (!JavascriptOperators::GetProperty(VarTo<DynamicObject>(propertyValue), Js::PropertyIds::prototype, &prototypeValue, scriptContext) ||
             !JavascriptOperators::IsObject(prototypeValue))
         {
             return;
         }
 
-        prototypeObject = DynamicObject::FromVar(prototypeValue);
+        prototypeObject = VarTo<DynamicObject>(prototypeValue);
 
         if (!JavascriptOperators::GetProperty(prototypeObject, Js::PropertyIds::resolvedOptions, &resolvedOptionsValue, scriptContext) ||
             !JavascriptOperators::IsObject(resolvedOptionsValue))
@@ -667,7 +667,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
             return;
         }
 
-        functionObj = DynamicObject::FromVar(resolvedOptionsValue);
+        functionObj = VarTo<DynamicObject>(resolvedOptionsValue);
         functionObj->SetConfigurable(Js::PropertyIds::prototype, true);
         functionObj->DeleteProperty(Js::PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
 
@@ -677,7 +677,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
             return;
         }
 
-        functionObj = DynamicObject::FromVar(getter);
+        functionObj = VarTo<DynamicObject>(getter);
         functionObj->SetConfigurable(Js::PropertyIds::prototype, true);
         functionObj->DeleteProperty(Js::PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
     }
@@ -1523,10 +1523,10 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     Var IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat(RecyclableObject * function, CallInfo callInfo, ...)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::Is(args.Values[1]));
+        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::IsBaseDynamicObject(args.Values[1]));
 
 #if defined(INTL_ICU)
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args.Values[1]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args.Values[1]);
 
         // always AssertOrFailFast that the properties we need are there, because if they aren't, Intl.js isn't functioning correctly
         NumberFormatStyle style = AssertEnumProperty<NumberFormatStyle>(state, PropertyIds::formatterToUse);
@@ -1597,7 +1597,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 #else
         HRESULT hr = S_OK;
         JavascriptString *localeJSstr = nullptr;
-        DynamicObject *options = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject *options = VarTo<DynamicObject>(args.Values[1]);
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
         Var propertyValue;
@@ -1732,13 +1732,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (args.Info.Count < 3 || !DynamicObject::Is(args.Values[1]) || !JavascriptBoolean::Is(args.Values[2]))
+        if (args.Info.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !JavascriptBoolean::Is(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
 #ifdef INTL_WINGLOB
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
 
         DelayLoadWindowsGlobalization* wgl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
@@ -1848,13 +1848,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             args.Info.Count == 5 &&
             JavascriptString::Is(args[1]) &&
             JavascriptString::Is(args[2]) &&
-            DynamicObject::Is(args[3]) &&
+            DynamicObject::IsBaseDynamicObject(args[3]) &&
             JavascriptBoolean::Is(args[4])
         );
 
         JavascriptString *left = JavascriptString::UnsafeFromVar(args[1]);
         JavascriptString *right = JavascriptString::UnsafeFromVar(args[2]);
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args[3]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args[3]);
         bool forStringPrototypeLocaleCompare = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
         if (forStringPrototypeLocaleCompare)
         {
@@ -2409,13 +2409,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         INTL_CHECK_ARGS(
             args.Info.Count == 5 &&
             (TaggedInt::Is(args[1]) || JavascriptNumber::Is(args[1])) &&
-            DynamicObject::Is(args[2]) &&
+            DynamicObject::IsBaseDynamicObject(args[2]) &&
             JavascriptBoolean::Is(args[3]) &&
             JavascriptBoolean::Is(args[4])
         );
 
         double num = JavascriptConversion::ToNumber(args[1], scriptContext);
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args[2]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args[2]);
         bool toParts = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
         bool forNumberPrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
         Var cachedUNumberFormat = nullptr; // cached by EntryIntl_CacheNumberFormat
@@ -2489,10 +2489,10 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         INTL_CHECK_ARGS(
             args.Info.Count == 3 &&
             (TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) &&
-            DynamicObject::Is(args.Values[2])
+            DynamicObject::IsBaseDynamicObject(args.Values[2])
         );
 
-        DynamicObject *options = DynamicObject::FromVar(args.Values[2]);
+        DynamicObject *options = VarTo<DynamicObject>(args.Values[2]);
         Var hiddenObject = nullptr;
         AssertOrFailFastMsg(options->GetInternalProperty(options, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
             "EntryIntl_FormatNumber: Could not retrieve hiddenObject.");
@@ -2584,7 +2584,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
 #ifdef INTL_WINGLOB
-        if (args.Info.Count < 3 || !(TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) || !DynamicObject::Is(args.Values[2]))
+        if (args.Info.Count < 3 || !(TaggedInt::Is(args.Values[1]) || JavascriptNumber::Is(args.Values[1])) || !DynamicObject::IsBaseDynamicObject(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
@@ -2606,7 +2606,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             Js::JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfDateTimeRange);
         }
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[2]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[2]);
         Var hiddenObject = nullptr;
         AssertOrFailFastMsg(obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext),
             "EntryIntl_FormatDateTime: Could not retrieve hiddenObject.");
@@ -2643,13 +2643,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         // This function vaguely implements ECMA 402 #sec-partitiondatetimepattern
         INTL_CHECK_ARGS(
             args.Info.Count == 5 &&
-            DynamicObject::Is(args[1]) &&
+            DynamicObject::IsBaseDynamicObject(args[1]) &&
             (TaggedInt::Is(args[2]) || JavascriptNumber::Is(args[2])) &&
             JavascriptBoolean::Is(args[3]) &&
             JavascriptBoolean::Is(args[4])
         );
 
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args[1]);
         bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
 
         // 1. Let x be TimeClip(x)
@@ -3051,7 +3051,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
 #ifdef INTL_ICU
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::Is(args[1]));
+        INTL_CHECK_ARGS(args.Info.Count == 2 && DynamicObject::IsBaseDynamicObject(args[1]));
 
         JavascriptArray *ret = scriptContext->GetLibrary()->CreateArray(0);
 
@@ -3060,7 +3060,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         // uplrules_getKeywords is guaranteed to return at minimum.
         // This array is only used in resolved options, so the majority of the functionality can remain (namely, select() still works)
 #if defined(ICU_VERSION) && ICU_VERSION >= 61
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args[1]);
         FinalizableUPluralRules *pr = GetOrCreateCachedUPluralRules(state, scriptContext);
 
         UErrorCode status = U_ZERO_ERROR;
@@ -3087,9 +3087,9 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
 #ifdef INTL_ICU
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-        INTL_CHECK_ARGS(args.Info.Count == 3 && DynamicObject::Is(args[1]));
+        INTL_CHECK_ARGS(args.Info.Count == 3 && DynamicObject::IsBaseDynamicObject(args[1]));
 
-        DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
+        DynamicObject *state = UnsafeVarTo<DynamicObject>(args[1]);
         double n = 0.0;
         if (TaggedInt::Is(args[2]))
         {
@@ -3214,12 +3214,12 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 2 || !DynamicObject::Is(args.Values[1]))
+        if (callInfo.Count < 2 || !DynamicObject::IsBaseDynamicObject(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
         Var hiddenObject = nullptr;
         if (!obj->GetInternalProperty(obj, Js::InternalPropertyIds::HiddenObject, &hiddenObject, NULL, scriptContext))
         {
@@ -3232,13 +3232,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !DynamicObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !DynamicObject::IsBaseDynamicObject(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        DynamicObject* value = DynamicObject::FromVar(args.Values[2]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
+        DynamicObject* value = VarTo<DynamicObject>(args.Values[2]);
 
         if (obj->SetInternalProperty(Js::InternalPropertyIds::HiddenObject, value, Js::PropertyOperationFlags::PropertyOperation_None, NULL))
         {

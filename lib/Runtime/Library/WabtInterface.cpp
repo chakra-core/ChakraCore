@@ -123,7 +123,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("config"));
         }
-        DynamicObject * configObject = JavascriptObject::FromVar(args[2]);
+        DynamicObject * configObject = VarTo<DynamicObject>(args[2]);
 
         Js::Var isSpecVar = JavascriptOperators::OP_GetProperty(configObject, PropertyIds::spec, scriptContext);
         isSpecText = JavascriptConversion::ToBool(isSpecVar, scriptContext);

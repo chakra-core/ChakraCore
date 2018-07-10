@@ -1948,7 +1948,7 @@ namespace TTD
 #if ENABLE_OBJECT_SOURCE_TRACKING
                 if(tid > Js::TypeIds_LastStaticType)
                 {
-                    const Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(var);
+                    const Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(var);
                     if(!IsDiagnosticOriginInformationValid(dynObj->TTDDiagOriginInfo))
                     {
                         this->AppendLiteral("*");

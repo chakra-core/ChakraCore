@@ -856,7 +856,7 @@ namespace TTD
             //shouldn't have any dynamic array valued properties
             if(Js::DynamicType::Is(curr->GetTypeId()))
             {
-                Js::ArrayObject* parray = Js::DynamicObject::FromVar(curr)->GetObjectArray();
+                Js::ArrayObject* parray = Js::VarTo<Js::DynamicObject>(curr)->GetObjectArray();
                 if(parray != nullptr)
                 {
                     this->EnqueueNewPathVarAsNeeded(curr, parray, _u("_object_array_"));

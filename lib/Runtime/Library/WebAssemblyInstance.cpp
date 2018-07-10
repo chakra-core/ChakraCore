@@ -116,7 +116,7 @@ WebAssemblyInstance::GetterExports(RecyclableObject* function, CallInfo callInfo
 
     WebAssemblyInstance* instance = WebAssemblyInstance::FromVar(args[0]);
     Js::Var exports = instance->m_exports;
-    if (!exports || !DynamicObject::Is(exports))
+    if (!exports || !DynamicObject::IsBaseDynamicObject(exports))
     {
         Assert(UNREACHED);
         exports = scriptContext->GetLibrary()->GetUndefined();
@@ -284,7 +284,7 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
             JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), obj, scriptContext);
         }
     }
-    DynamicObject::FromVar(exportsNamespace)->PreventExtensions();
+    VarTo<DynamicObject>(exportsNamespace)->PreventExtensions();
     return exportsNamespace;
 }
 

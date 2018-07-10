@@ -184,7 +184,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* dynamicThis = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* dynamicThis = UnsafeVarTo<DynamicObject>(this);
             dynamicThis->SetIsPrototype();      // Call the DynamicObject::SetIsPrototype
         }
     }
@@ -193,7 +193,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasOnlyWritableDataProperties() &&
                 (!obj->HasObjectArray() || obj->GetObjectArrayOrFlagsAsArray()->HasOnlyWritableDataProperties());
         }
@@ -205,7 +205,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasSpecialProperties() ||
                 (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->HasAnySpecialProperties());
         }
@@ -217,7 +217,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             obj->GetTypeHandler()->ClearWritableDataOnlyDetectionBit();
             if (obj->HasObjectArray())
             {
@@ -230,7 +230,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->IsWritableDataOnlyDetectionBitSet() ||
                 (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->IsWritableDataOnlyDetectionBitSet());
         }

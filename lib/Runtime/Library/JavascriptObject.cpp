@@ -207,7 +207,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     // 8.   Return true.
 
     bool isInvalidationOfInlineCacheNeeded = true;
-    DynamicObject * obj = DynamicObject::FromVar(object);
+    DynamicObject * obj = VarTo<DynamicObject>(object);
 
     // If this object was not prototype object, then no need to invalidate inline caches.
     // Simply assign it a new type so if this object used protoInlineCache in past, it will
@@ -296,7 +296,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     }
 
     // Set to new prototype
-    if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::UnsafeFromVar(object))->IsCrossSiteObject()))
+    if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (UnsafeVarTo<DynamicObject>(object))->IsCrossSiteObject()))
     {
         CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
     }
@@ -1830,7 +1830,7 @@ Var JavascriptObject::EntryCreate(RecyclableObject* function, CallInfo callInfo,
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
     {
-        object = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(object));
+        object = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(object));
     }
 #endif
 

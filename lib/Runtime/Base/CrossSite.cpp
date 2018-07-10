@@ -35,7 +35,7 @@ namespace Js
         }
         if (DynamicType::Is(object->GetTypeId()))
         {
-            return !DynamicObject::UnsafeFromVar(object)->IsCrossSiteObject() && !object->IsExternal();
+            return !UnsafeVarTo<DynamicObject>(object)->IsCrossSiteObject() && !object->IsExternal();
         }
         return TRUE;
     }
@@ -90,7 +90,7 @@ namespace Js
         while (prototype->GetTypeId() != TypeIds_Null && prototype->GetTypeId() != TypeIds_HostDispatch)
         {
             // We should not see any static type or host dispatch here
-            DynamicObject * prototypeObject = DynamicObject::FromVar(prototype);
+            DynamicObject * prototypeObject = VarTo<DynamicObject>(prototype);
             if (prototypeObject->IsCrossSiteObject())
             {
                 break;
@@ -300,7 +300,7 @@ namespace Js
         // so optimization overrides can be updated as a group
         scriptContext->optimizationOverrides.Merge(&object->GetScriptContext()->optimizationOverrides);
 
-        DynamicObject * dynamicObject = DynamicObject::FromVar(object);
+        DynamicObject * dynamicObject = VarTo<DynamicObject>(object);
         if (!dynamicObject->IsExternal())
         {
             if (!dynamicObject->IsCrossSiteObject())
@@ -435,7 +435,7 @@ namespace Js
 
     Var CrossSite::CommonThunk(RecyclableObject* recyclableObject, JavascriptMethod entryPoint, Arguments args)
     {
-        DynamicObject* function = DynamicObject::FromVar(recyclableObject);
+        DynamicObject* function = VarTo<DynamicObject>(recyclableObject);
 
         FunctionInfo * functionInfo = (JavascriptFunction::Is(function) ? JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr);
         AutoDisableRedeferral autoDisableRedeferral(functionInfo);
@@ -581,7 +581,7 @@ namespace Js
         }
         while (DynamicType::Is(object->GetTypeId()) && !JavascriptProxy::Is(object))
         {
-            DynamicObject* dynamicObject = DynamicObject::UnsafeFromVar(object);
+            DynamicObject* dynamicObject = UnsafeVarTo<DynamicObject>(object);
             if (!dynamicObject->IsCrossSiteObject() && !dynamicObject->IsExternal())
             {
                 // force to install cross-site thunk on prototype objects.

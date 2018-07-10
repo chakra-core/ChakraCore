@@ -149,25 +149,16 @@ namespace Js
         return NewObject<DynamicObject>(recycler, type);
     }
 
-    bool DynamicObject::Is(Var aValue)
+    bool DynamicObject::IsBaseDynamicObject(Var aValue)
     {
         return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_Object);
     }
 
-    DynamicObject* DynamicObject::FromVar(Var aValue)
+    template <> bool VarIs<DynamicObject>(RecyclableObject* obj)
     {
-        RecyclableObject* obj = VarTo<RecyclableObject>(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        AssertOrFailFast(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
-    }
-
-    DynamicObject* DynamicObject::UnsafeFromVar(Var aValue)
-    {
-        RecyclableObject* obj = UnsafeVarTo<RecyclableObject>(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        Assert(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
+        bool result = DynamicType::Is(obj->GetTypeId());
+        Assert(result == obj->DbgIsDynamicObject());
+        return result;
     }
 
     ArrayObject* DynamicObject::EnsureObjectArray()

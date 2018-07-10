@@ -576,10 +576,10 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
                         Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] != TyFloat64);
                         value = registerSaveSpace[offset - 1];
                     }
-                    Assert(Js::DynamicObject::Is(value));
+                    Assert(Js::DynamicObject::IsBaseDynamicObject(value));
                     Assert(ThreadContext::IsOnStack(value));
 
-                    Js::DynamicObject * obj = Js::DynamicObject::FromVar(value);
+                    Js::DynamicObject * obj = Js::VarTo<Js::DynamicObject>(value);
                     uint propertyCount = obj->GetPropertyCount();
                     for (uint j = record.initFldCount; j < propertyCount; j++)
                     {

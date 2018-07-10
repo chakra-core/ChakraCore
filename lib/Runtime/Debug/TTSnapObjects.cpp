@@ -110,13 +110,13 @@ namespace TTD
         Js::DynamicObject* ReuseObjectCheckAndReset(const SnapObject* snpObject, InflateMap* inflator)
         {
             Js::RecyclableObject* robj = inflator->FindReusableObjectIfExists(snpObject->ObjectPtrId);
-            if(robj == nullptr || Js::DynamicObject::FromVar(robj)->GetTypeId() != snpObject->SnapType->JsTypeId || Js::DynamicObject::FromVar(robj)->IsCrossSiteObject() != snpObject->IsCrossSite)
+            if(robj == nullptr || Js::VarTo<Js::DynamicObject>(robj)->GetTypeId() != snpObject->SnapType->JsTypeId || Js::VarTo<Js::DynamicObject>(robj)->IsCrossSiteObject() != snpObject->IsCrossSite)
             {
                 return nullptr;
             }
             TTDAssert(Js::DynamicType::Is(robj->GetTypeId()), "You should only do this for dynamic objects!!!");
 
-            Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(robj);
+            Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(robj);
             return ObjectPropertyReset_General(snpObject, dynObj, inflator);
         }
 

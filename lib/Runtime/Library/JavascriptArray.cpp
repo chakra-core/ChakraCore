@@ -683,7 +683,7 @@ using namespace Js;
         INT_PTR vtable = VirtualTableInfoBase::GetVirtualTable(var);
         if(vtable == VirtualTableInfo<DynamicObject>::Address)
         {
-            ArrayObject* objectArray = DynamicObject::FromVar(var)->GetObjectArray();
+            ArrayObject* objectArray = VarTo<DynamicObject>(var)->GetObjectArray();
             array = (objectArray && Is(objectArray)) ? FromVar(objectArray) : nullptr;
             if(!array)
             {
@@ -5555,7 +5555,7 @@ Case0:
                 }
                 else if (DynamicType::Is(protoObj->GetTypeId()))
                 {
-                    DynamicObject* dynobj = DynamicObject::UnsafeFromVar(protoObj);
+                    DynamicObject* dynobj = UnsafeVarTo<DynamicObject>(protoObj);
                     ArrayObject* objectArray = dynobj->GetObjectArray();
                     if (objectArray != nullptr && ES5Array::Is(objectArray))
                     {
@@ -10754,7 +10754,7 @@ Case0:
         }
         else if (DynamicType::Is(obj->GetTypeId()))
         {
-            DynamicObject* dynobj = DynamicObject::UnsafeFromVar(obj);
+            DynamicObject* dynobj = UnsafeVarTo<DynamicObject>(obj);
             ArrayObject* objectArray = dynobj->GetObjectArray();
             arr = (objectArray && JavascriptArray::IsAnyArray(objectArray)) ? JavascriptArray::UnsafeFromAnyArray(objectArray) : nullptr;
         }
@@ -12236,8 +12236,8 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, originalArray);
 
         if (JavascriptArray::Is(originalArray)
-            && !DynamicObject::UnsafeFromVar(originalArray)->GetDynamicType()->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor()
-            && DynamicObject::UnsafeFromVar(originalArray)->GetPrototype() == scriptContext->GetLibrary()->GetArrayPrototype()
+            && !UnsafeVarTo<DynamicObject>(originalArray)->GetDynamicType()->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor()
+            && UnsafeVarTo<DynamicObject>(originalArray)->GetPrototype() == scriptContext->GetLibrary()->GetArrayPrototype()
             && !scriptContext->GetLibrary()->GetArrayObjectHasUserDefinedSpecies())
         {
             return nullptr;

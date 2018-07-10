@@ -40,7 +40,7 @@ namespace TTD
 
         if(Js::DynamicType::Is(obj->GetTypeId()))
         {
-            Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(obj);
+            Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(obj);
 
             dynObj->GetDynamicType()->GetTypeHandler()->MarkObjectSlots_TTD(this, dynObj);
 
@@ -274,7 +274,7 @@ namespace TTD
                 //do this here instead of in mark visit type as it wants the dynamic object as well
                 if(Js::DynamicType::Is(obj->GetTypeId()))
                 {
-                    Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(obj);
+                    Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(obj);
                     if(dynObj->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler())
                     {
                         dynObj->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(dynObj);

@@ -1454,7 +1454,7 @@ CommonNumber:
         Var unscopables = JavascriptOperators::GetProperty(instance, PropertyIds::_symbolUnscopables, scriptContext);
         if (JavascriptOperators::IsObject(unscopables))
         {
-            DynamicObject *unscopablesList = DynamicObject::FromVar(unscopables);
+            DynamicObject *unscopablesList = VarTo<DynamicObject>(unscopables);
             Var value = nullptr;
             //8.1.1.2.1.9.c If blocked is not undefined
             if (JavascriptOperators::GetProperty(unscopablesList, propertyId, &value, scriptContext))
@@ -1570,7 +1570,7 @@ CommonNumber:
             return FALSE;
         }
         getter = setter = NULL;
-        DynamicObject* dynamicObject = DynamicObject::FromVar(instance);
+        DynamicObject* dynamicObject = VarTo<DynamicObject>(instance);
         Assert(dynamicObject->GetScriptContext()->IsHeapEnumInProgress());
         if (dynamicObject->UseDynamicObjectForNoHostObjectAccess())
         {
@@ -1603,7 +1603,7 @@ CommonNumber:
     {
         AssertMsg(!TaggedNumber::Is(instance), "GetDataPropertyNoHostObject int passed");
         Assert(HasOwnPropertyNoHostObjectForHeapEnum(instance, propertyId, requestContext, getter, setter) || getter || setter);
-        DynamicObject* dynamicObject = DynamicObject::FromVar(instance);
+        DynamicObject* dynamicObject = VarTo<DynamicObject>(instance);
         getter = setter = NULL;
         if (NULL == dynamicObject)
         {
@@ -1737,7 +1737,7 @@ CommonNumber:
         if (foundProperty)
         {
 #if ENABLE_FIXED_FIELDS && DBG
-            if (DynamicObject::Is(object))
+            if (DynamicObject::IsBaseDynamicObject(object))
             {
                 DynamicObject* dynamicObject = (DynamicObject*)object;
                 DynamicTypeHandler* dynamicTypeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
@@ -1813,12 +1813,12 @@ CommonNumber:
         // Here, any well-behaved subclasses of DynamicObject can opt in to getting included in the missing property cache.
         // For now, we only include basic objects and arrays. CustomExternalObject in particular is problematic because in
         // some cases it can add new properties without transitioning its type handler.
-        if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !(DynamicObject::Is(instance) || DynamicObject::IsAnyArray(instance)))
+        if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !(DynamicObject::IsBaseDynamicObject(instance) || DynamicObject::IsAnyArray(instance)))
         {
             return;
         }
 
-        DynamicTypeHandler* handler = DynamicObject::UnsafeFromVar(instance)->GetDynamicType()->GetTypeHandler();
+        DynamicTypeHandler* handler = UnsafeVarTo<DynamicObject>(instance)->GetDynamicType()->GetTypeHandler();
 
         // Only cache missing property lookups for non-root field loads on objects that have PathTypeHandlers, because only these types have the right behavior
         // when the missing property is later added. DictionaryTypeHandler's introduce the possibility that a stale TypePropertyCache entry with isMissing==true can
@@ -2191,7 +2191,7 @@ CommonNumber:
         }
 
 #if ENABLE_FIXED_FIELDS && DBG
-        if (DynamicObject::Is(object))
+        if (DynamicObject::IsBaseDynamicObject(object))
         {
             DynamicObject* dynamicObject = (DynamicObject*)object;
             DynamicTypeHandler* dynamicTypeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
@@ -3506,7 +3506,7 @@ CommonNumber:
             return false;
         }
 
-        if (DynamicObject::FromVar(prototype)->HasNonEmptyObjectArray())
+        if (VarTo<DynamicObject>(prototype)->HasNonEmptyObjectArray())
         {
             if (prototype->GetItem(arr, (uint32)indexInt, result, scriptContext))
             {
@@ -5965,7 +5965,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
-            newObject = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(newObject));
+            newObject = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(newObject));
         }
 #endif
         return newObject;
@@ -6046,7 +6046,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
             {
-                newObject = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(newObject));
+                newObject = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(newObject));
             }
 #endif
 
@@ -6125,7 +6125,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
-            DynamicObject* newDynamicObject = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(newObject));
+            DynamicObject* newDynamicObject = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(newObject));
             // this might come from a different scriptcontext.
             newObject = CrossSite::MarshalVar(requestContext, newDynamicObject, newDynamicObject->GetScriptContext());
         }
@@ -6184,7 +6184,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
-            object = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(object));
+            object = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(object));
         }
 #endif
         return object;
@@ -6232,7 +6232,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
             {
-                object = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(object));
+                object = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(object));
             }
 #endif
             return object;
@@ -6317,7 +6317,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
-            newObject = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(newObject));
+            newObject = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(newObject));
         }
 #endif
 
@@ -6433,7 +6433,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (DynamicType::Is(VarTo<RecyclableObject>(instance)->GetTypeId()))
         {
-            DynamicObject *object = DynamicObject::UnsafeFromVar(instance);
+            DynamicObject *object = UnsafeVarTo<DynamicObject>(instance);
             DynamicType* type = object->GetDynamicType();
             DynamicTypeHandler* typeHandler = type->GetTypeHandler();
 
@@ -7164,7 +7164,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             DynamicObject* frameObject = nullptr;
             if (useCachedScope)
             {
-                frameObject = DynamicObject::FromVar(frameObj);
+                frameObject = VarTo<DynamicObject>(frameObj);
                 __analysis_assume((uint32)frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity() >= formalsCount);
             }
             else
@@ -7906,7 +7906,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 functionBody,
                 inlineCache,
                 inlineCacheIndex,
-                DynamicObject::FromVar(instance),
+                VarTo<DynamicObject>(instance),
                 propertyId);
     }
 
@@ -7972,7 +7972,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
 
         // No one in the scope stack has the property, so get it from the default instance provided by the caller.
-        Var value = JavascriptOperators::PatchGetRootValue<IsFromFullJit>(functionBody, inlineCache, inlineCacheIndex, DynamicObject::FromVar(defaultInstance), propertyId);
+        Var value = JavascriptOperators::PatchGetRootValue<IsFromFullJit>(functionBody, inlineCache, inlineCacheIndex, VarTo<DynamicObject>(defaultInstance), propertyId);
         if (scriptContext->IsUndeclBlockVar(value))
         {
             JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
@@ -8194,7 +8194,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 functionBody,
                 inlineCache,
                 inlineCacheIndex,
-                DynamicObject::FromVar(instance),
+                VarTo<DynamicObject>(instance),
                 propertyId);
     }
 
@@ -10035,7 +10035,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_RegEx:
             return JavascriptRegExp::BoxStackInstance(JavascriptRegExp::FromVar(instance), deepCopy);
         case Js::TypeIds_Object:
-            return DynamicObject::BoxStackInstance(DynamicObject::FromVar(instance), deepCopy);
+            return DynamicObject::BoxStackInstance(VarTo<DynamicObject>(instance), deepCopy);
         case Js::TypeIds_Array:
             return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
@@ -10257,7 +10257,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         __out_bcount(length*elementSize) byte* buffer,
         Js::ScriptContext* scriptContext)
     {
-        Js::DynamicObject* dynamicObject = DynamicObject::FromVar(arrayObject);
+        Js::DynamicObject* dynamicObject = VarTo<DynamicObject>(arrayObject);
         if (dynamicObject->IsCrossSiteObject() || Js::TaggedInt::IsOverflow(length))
         {
             Js::JavascriptOperators::ObjectToNativeArray(&arrayObject, valueType, length, elementSize, buffer, scriptContext);
@@ -10467,7 +10467,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_SAME_ATTRIBUTES(Op_Equal, Op_Equal_Full);
         if (aLeft == aRight)
         {
-            if (TaggedInt::Is(aLeft) || JavascriptObject::Is(aLeft))
+            if (TaggedInt::Is(aLeft) || DynamicObject::IsBaseDynamicObject(aLeft))
             {
                 return true;
             }
@@ -10899,7 +10899,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // If constructor.prototype is an object, we should use that as the [[Prototype]] for our obj.
         // Else, we set the [[Prototype]] internal slot of obj to %intrinsicProto% - which should be the default.
         if (JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(proto)) &&
-            DynamicObject::FromVar(proto) != intrinsicProto)
+            VarTo<DynamicObject>(proto) != intrinsicProto)
         {
             JavascriptObject::ChangePrototype(obj, VarTo<RecyclableObject>(proto), /*validate*/true, scriptContext);
         }

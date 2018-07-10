@@ -233,7 +233,7 @@ namespace Js
                     {
                         val = ConvertStringToInt64(*origArgs, scriptContext);
                     }
-                    else if (JavascriptObject::Is(*origArgs))
+                    else if (DynamicObject::IsBaseDynamicObject(*origArgs))
                     {
                         RecyclableObject* object = VarTo<RecyclableObject>(*origArgs);
                         PropertyRecord const * lowPropRecord = nullptr;

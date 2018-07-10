@@ -78,7 +78,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("target"));
         }
-        target = DynamicObject::FromVar(args[1]);
+        target = VarTo<DynamicObject>(args[1]);
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(target);
 #endif
@@ -94,7 +94,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("handler"));
         }
-        handler = DynamicObject::FromVar(args[2]);
+        handler = VarTo<DynamicObject>(args[2]);
         if (JavascriptProxy::Is(handler))
         {
             if (JavascriptProxy::FromVar(handler)->handler == nullptr)

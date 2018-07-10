@@ -85,7 +85,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("memoryDescriptor"));
     }
-    DynamicObject * memoryDescriptor = JavascriptObject::FromVar(args[1]);
+    DynamicObject * memoryDescriptor = VarTo<DynamicObject>(args[1]);
 
     Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);

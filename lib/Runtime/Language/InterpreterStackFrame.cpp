@@ -3525,7 +3525,7 @@ skipThunk:
         Js::Var instance = this->GetRootObject();
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
         InlineCache *inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
-        DynamicObject *obj = DynamicObject::UnsafeFromVar(instance);
+        DynamicObject *obj = UnsafeVarTo<DynamicObject>(instance);
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
@@ -3551,7 +3551,7 @@ skipThunk:
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::UnsafeFromVar(rootInstance),
+            UnsafeVarTo<DynamicObject>(rootInstance),
             propertyId
             );
 
@@ -3926,7 +3926,7 @@ skipThunk:
         InlineCache *inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
 
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        DynamicObject * obj = DynamicObject::UnsafeFromVar(instance);
+        DynamicObject * obj = UnsafeVarTo<DynamicObject>(instance);
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
@@ -3951,7 +3951,7 @@ skipThunk:
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::UnsafeFromVar(rootInstance),
+            UnsafeVarTo<DynamicObject>(rootInstance),
             propertyId
             );
 
@@ -3976,7 +3976,7 @@ skipThunk:
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            DynamicObject::UnsafeFromVar(rootInstance),
+            UnsafeVarTo<DynamicObject>(rootInstance),
             propertyId
             );
 

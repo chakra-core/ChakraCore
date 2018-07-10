@@ -63,7 +63,7 @@ namespace Js
         static BlockActivationObject* FromVar(Var value)
         {
             AssertOrFailFast(BlockActivationObject::Is(value));
-            return static_cast<BlockActivationObject*>(DynamicObject::FromVar(value));
+            return static_cast<BlockActivationObject*>(VarTo<DynamicObject>(value));
         }
 
         BlockActivationObject* Clone(ScriptContext *scriptContext);

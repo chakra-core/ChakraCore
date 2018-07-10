@@ -434,7 +434,7 @@ namespace Js
                 }
                 else
                 {
-                    function = UnsafeVarTo<RecyclableObject>(cache->GetPropertyValue<slotType>(DynamicObject::UnsafeFromVar(propertyObject), cache->u.accessor.slotIndex));
+                    function = UnsafeVarTo<RecyclableObject>(cache->GetPropertyValue<slotType>(UnsafeVarTo<DynamicObject>(propertyObject), cache->u.accessor.slotIndex));
                 }
 
                 *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);

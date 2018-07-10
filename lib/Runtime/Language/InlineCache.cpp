@@ -322,12 +322,12 @@ namespace Js
 
             if (type == u.accessor.type)
             {
-                *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(object)->GetInlineSlot(u.accessor.slotIndex));
                 return true;
             }
             else if (taggedType == u.accessor.type)
             {
-                *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(object)->GetAuxSlot(u.accessor.slotIndex));
                 return true;
             }
         }
@@ -344,7 +344,7 @@ namespace Js
         {
             if (type == u.local.type)
             {
-                const Var objectAtInlineSlot = DynamicObject::FromVar(obj)->GetInlineSlot(u.local.slotIndex);
+                const Var objectAtInlineSlot = VarTo<DynamicObject>(obj)->GetInlineSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtInlineSlot))
                 {
                     *callee = VarTo<RecyclableObject>(objectAtInlineSlot);
@@ -353,10 +353,10 @@ namespace Js
             }
             else if (taggedType == u.local.type)
             {
-                const Var objectAtAuxSlot = DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex);
+                const Var objectAtAuxSlot = VarTo<DynamicObject>(obj)->GetAuxSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex));
+                    *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(obj)->GetAuxSlot(u.local.slotIndex));
                     return true;
                 }
             }

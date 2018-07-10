@@ -66,7 +66,7 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("tableDescriptor"));
     }
-    DynamicObject * tableDescriptor = JavascriptObject::FromVar(args[1]);
+    DynamicObject * tableDescriptor = VarTo<DynamicObject>(args[1]);
 
     Var elementVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::element, scriptContext);
     if (!JavascriptOperators::StrictEqualString(elementVar, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("anyfunc"))))
@@ -197,7 +197,7 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     }
     Var indexVar = args[1];
     Var value = args[2];
-    
+
     if (JavascriptOperators::IsNull(value))
     {
         value = nullptr;

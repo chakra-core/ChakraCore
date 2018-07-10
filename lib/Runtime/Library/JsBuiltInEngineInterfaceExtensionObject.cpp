@@ -105,7 +105,7 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         JavascriptString * methodName = JavascriptString::NewWithSz(_u("ArrayIterator"), scriptContext);
         auto arrayIterator = JavascriptOperators::GetProperty(library->GetChakraLib(), JavascriptOperators::GetPropertyId(methodName, scriptContext), scriptContext);
-        library->arrayIteratorPrototype = DynamicObject::FromVar(JavascriptOperators::GetProperty(DynamicObject::FromVar(arrayIterator), PropertyIds::prototype, scriptContext));
+        library->arrayIteratorPrototype = VarTo<DynamicObject>(JavascriptOperators::GetProperty(VarTo<DynamicObject>(arrayIterator), PropertyIds::prototype, scriptContext));
         library->arrayIteratorPrototypeBuiltinNextFunction = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
     }
 
@@ -427,7 +427,7 @@ FUNCTIONKIND_VALUES(VALUE)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
         unsigned propCount = TaggedInt::ToUInt32(args.Values[2]);
 
         Assert(callInfo.Count == 3 + propCount);

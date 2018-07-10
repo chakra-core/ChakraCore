@@ -145,9 +145,8 @@ namespace Js
     public:
         static DynamicObject * New(Recycler * recycler, DynamicType * type);
 
-        static bool Is(Var aValue);
-        static DynamicObject* FromVar(Var value);
-        static DynamicObject* UnsafeFromVar(Var value);
+        // Return whether the type is exactly DynamicObject, not some subclass (for more inclusive check use VarIs)
+        static bool IsBaseDynamicObject(Var aValue);
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
@@ -386,4 +385,6 @@ namespace Js
         }
 
     };
+
+    template <> bool VarIs<DynamicObject>(RecyclableObject* obj);
 } // namespace Js

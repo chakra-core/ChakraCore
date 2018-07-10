@@ -294,7 +294,7 @@ namespace JSON
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
                 {
-                    object = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(object));
+                    object = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(object));
                 }
 #endif
 

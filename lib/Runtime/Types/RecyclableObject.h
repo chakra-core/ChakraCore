@@ -485,17 +485,14 @@ namespace Js {
         return isRecyclableObject && VarIs<T>(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
-    template <> inline bool VarIs<RecyclableObject>(RecyclableObject* obj)
-    {
-        return true;
-    }
+    template <> inline bool VarIs<RecyclableObject>(RecyclableObject* obj) { return true; }
 
     CompileAssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
 
     template <typename T> T* VarTo(RecyclableObject* obj)
     {
         AssertOrFailFast(VarIs<T>(obj));
-        return reinterpret_cast<T*>(obj);
+        return static_cast<T*>(obj);
     }
 
     template <typename T> T* VarTo(Var aValue)
@@ -507,7 +504,7 @@ namespace Js {
     template <typename T> T* UnsafeVarTo(RecyclableObject* obj)
     {
         Assert(VarIs<T>(obj));
-        return reinterpret_cast<T*>(obj);
+        return static_cast<T*>(obj);
     }
 
     template <typename T> T* UnsafeVarTo(Var aValue)

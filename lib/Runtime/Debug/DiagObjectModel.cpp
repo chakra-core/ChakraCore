@@ -2636,7 +2636,7 @@ namespace Js
                     }
                     else if (Js::DynamicType::Is(typeId))
                     {
-                        DynamicObject *const dynamicObject = Js::DynamicObject::FromVar(instance);
+                        DynamicObject *const dynamicObject = Js::VarTo<Js::DynamicObject>(instance);
                         if (dynamicObject->HasNonEmptyObjectArray())
                         {
                             ArrayObject* objectArray = dynamicObject->GetObjectArray();

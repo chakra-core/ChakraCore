@@ -5008,9 +5008,9 @@ namespace Js
 
     void JavascriptLibrary::AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value)
     {
-        set->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(value));
+        set->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::VarTo<Js::DynamicObject>(value));
 
-        set->Add(Js::DynamicObject::FromVar(value));
+        set->Add(Js::VarTo<Js::DynamicObject>(value));
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateMap_TTD()
@@ -5030,9 +5030,9 @@ namespace Js
 
     void JavascriptLibrary::AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value)
     {
-        map->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(key));
+        map->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::VarTo<Js::DynamicObject>(key));
 
-        map->Set(Js::DynamicObject::FromVar(key), value);
+        map->Set(Js::VarTo<Js::DynamicObject>(key), value);
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::Var fname)

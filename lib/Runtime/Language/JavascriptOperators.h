@@ -794,4 +794,15 @@ namespace Js
         return VarIs<RecyclableObject>(value) ? UnsafeVarTo<RecyclableObject>(value) : nullptr;
     }
 
+    template <>
+    __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ RecyclableObject* value)
+    {
+        return VarIs<DynamicObject>(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
+    }
+    template <>
+    __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ Var value)
+    {
+        return VarIs<DynamicObject>(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
+    }
+
 } // namespace Js
