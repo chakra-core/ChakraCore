@@ -24,7 +24,7 @@ private:
 namespace Js
 {
     // Represents the different modes that the debugger can be placed into.
-    enum DebuggerMode
+    enum DebuggerMode : unsigned int
     {
         // The debugger is not running so the engine can be running
         // in JITed mode.
@@ -53,6 +53,9 @@ namespace Js
         void SetHostDebugContext(HostDebugContext * hostDebugContext);
 
         void SetDebuggerMode(DebuggerMode mode);
+#if DBG
+        DebuggerMode GetDebuggerMode() const { return this->debuggerMode; }
+#endif
 
         bool IsDebugContextInNonDebugMode() const { return this->debuggerMode == DebuggerMode::NotDebugging; }
         bool IsDebugContextInDebugMode() const { return this->debuggerMode == DebuggerMode::Debugging; }
