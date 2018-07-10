@@ -51,7 +51,7 @@ public:
     }
     void Unroot()
     {
-        if (this->ptr != nullptr)
+        if (ptr != nullptr)
         {
             __super::Unroot(recycler);
         }

@@ -83,9 +83,8 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_doingFastScan(false),
 #endif
     m_nextBlockId(0),
-    m_tempGuestArena(scriptContext->GetTemporaryGuestAllocator(_u("ParserRegex")), scriptContext->GetRecycler()),
     // use the GuestArena directly for keeping the RegexPattern* alive during byte code generation
-    m_registeredRegexPatterns(m_tempGuestArena->GetAllocator()),
+    m_registeredRegexPatterns(scriptContext->GetGuestArena()),
 
     m_scriptContext(scriptContext),
     m_token(), // should initialize to 0/nullptrs
@@ -156,10 +155,11 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 
 Parser::~Parser(void)
 {
-    m_registeredRegexPatterns.Reset();
-    if (m_scriptContext != nullptr)
+    if (m_scriptContext == nullptr || m_scriptContext->GetGuestArena() == nullptr)
     {
-        m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
+        // If the scriptContext or guestArena have gone away, there is no point clearing each item of this list.
+        // Just reset it so that destructor of the SList will be no-op
+        m_registeredRegexPatterns.Reset();
     }
 
 #if ENABLE_BACKGROUND_PARSING
@@ -1926,7 +1926,7 @@ void Parser::RegisterRegexPattern(UnifiedRegex::RegexPattern *const regexPattern
     Assert(regexPattern);
 
     // ensure a no-throw add behavior here, to catch out of memory exceptions, using the guest arena allocator
-    if (!m_registeredRegexPatterns.PrependNoThrow(m_tempGuestArena->GetAllocator(), regexPattern))
+    if (!m_registeredRegexPatterns.PrependNoThrow(m_scriptContext->GetGuestArena(), regexPattern))
     {
         Parser::Error(ERRnoMemory);
     }
