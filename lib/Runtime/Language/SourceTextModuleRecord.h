@@ -37,6 +37,7 @@ namespace Js
         virtual ModuleNamespace* GetNamespace();
         virtual void SetNamespace(ModuleNamespace* moduleNamespace);
 
+        void ReleaseParser();
         void Finalize(bool isShutdown) override;
         void Dispose(bool isShutdown) override { return; }
         void Mark(Recycler * recycler) override { return; }

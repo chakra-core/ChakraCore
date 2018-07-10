@@ -66,6 +66,12 @@ namespace Js
         return childModuleRecord;
     }
 
+    void SourceTextModuleRecord::ReleaseParser()
+    {
+        // Adelete to make sure dtor are called
+        AdeleteUnlessNull(scriptContext->GeneralAllocator(), this->parser);
+    }
+
     void SourceTextModuleRecord::Finalize(bool isShutdown)
     {
         parseTree = nullptr;
@@ -77,7 +83,7 @@ namespace Js
         parentModuleList = nullptr;
         if (!isShutdown)
         {
-            AdeleteUnlessNull(scriptContext->GeneralAllocator(), parser);
+            this->ReleaseParser();
             AdeleteUnlessNull(scriptContext->GeneralAllocator(), childrenModuleSet);
         }
     }
