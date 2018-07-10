@@ -682,15 +682,23 @@ LPFILETIME ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetLastSc
 #endif
 }
 
-bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemetry(RecyclerTelemetryInfo& rti)
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitGCTelemetryStats(RecyclerTelemetryInfo& rti)
 {
 #if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
-    return Js::TransmitRecyclerTelemetry(rti);
+    return Js::TransmitRecyclerTelemetryStats(rti);
 #else
     return false;
 #endif
 }
 
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitHeapUsage(size_t totalHeapBytes, size_t usedHeapBytes, double heapUsedRatio)
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::TransmitRecyclerHeapUsage(totalHeapBytes, usedHeapBytes, heapUsedRatio);
+#else
+    return false;
+#endif
+}
 
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsTelemetryProviderEnabled() const
 {

@@ -1882,8 +1882,9 @@ private:
         }
 
         virtual LPFILETIME GetLastScriptExecutionEndTime() const;
-        virtual bool TransmitTelemetry(RecyclerTelemetryInfo& rti);
+        virtual bool TransmitGCTelemetryStats(RecyclerTelemetryInfo& rti);
         virtual bool TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg);
+        virtual bool TransmitHeapUsage(size_t totalHeapBytes, size_t usedHeapBytes, double heapUsedRatio);
         virtual bool ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const;
         virtual DWORD ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const;
         virtual bool IsTelemetryProviderEnabled() const;
