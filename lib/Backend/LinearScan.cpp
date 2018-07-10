@@ -1322,6 +1322,26 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
 }
 
 void
+LinearScan::SetBitVectorIfTypeSpec(StackSym * sym, Js::RegSlot regSlot, BVFixed * intSyms, BVFixed * floatSyms)
+{
+    if (sym->IsTypeSpec())
+    {
+        if (IRType_IsNativeInt(sym->m_type))
+        {
+            intSyms->Set(regSlot);
+        }
+        else if (IRType_IsFloat(sym->m_type))
+        {
+            floatSyms->Set(regSlot);
+        }
+        else
+        {
+            Assert(UNREACHED);
+        }
+    }
+}
+
+void
 LinearScan::FillBailOutRecord(IR::Instr * instr)
 {
     BailOutInfo * bailOutInfo = instr->GetBailOutInfo();
@@ -1463,14 +1483,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         StackSym * copyStackSym = copyPropSyms.Value();
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], copyStackSym, &state, instr);
-        if (copyStackSym->IsInt32())
-        {
-            funcBailOutData[index].losslessInt32Syms->Set(i);
-        }
-        else if (copyStackSym->IsFloat64())
-        {
-            funcBailOutData[index].float64Syms->Set(i);
-        }
+        SetBitVectorIfTypeSpec(copyStackSym, i, funcBailOutData[index].losslessInt32Syms, funcBailOutData[index].float64Syms);
+
         copyPropSymsIter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1494,14 +1508,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
 
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], stackSym, &state, instr);
-        if (stackSym->IsInt32())
-        {
-            funcBailOutData[index].losslessInt32Syms->Set(i);
-        }
-        else if (stackSym->IsFloat64())
-        {
-            funcBailOutData[index].float64Syms->Set(i);
-        }
+        SetBitVectorIfTypeSpec(stackSym, i, funcBailOutData[index].losslessInt32Syms, funcBailOutData[index].float64Syms);
     }
     NEXT_BITSET_IN_SPARSEBV;
 
@@ -1572,7 +1579,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                             funcBailOutData[dataIndex].localOffsets[regSlotId] = this->func->AdjustOffsetValue(offset);
 
                             // We don't support typespec for debug, rework on the bellow assert once we start support them.
-                            Assert(!stackSym->IsInt32() && !stackSym->IsFloat64() && !stackSym->IsSimd128());
+                            Assert(!stackSym->IsTypeSpec());
                         }
                     }
                 }
@@ -1737,14 +1744,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                             else
                             {
                                 this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], copyStackSym, &state, instr);
-                                if (copyStackSym->IsInt32())
-                                {
-                                    argOutLosslessInt32Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsFloat64())
-                                {
-                                    argOutFloat64Syms->Set(outParamOffsetIndex);
-                                }
+                                SetBitVectorIfTypeSpec(copyStackSym, outParamOffsetIndex, argOutLosslessInt32Syms, argOutFloat64Syms);
                             }
 #if DBG_DUMP
                             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -1861,14 +1861,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], sym, &state, instr);
                     }
 
-                    if (sym->IsFloat64())
-                    {
-                        argOutFloat64Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsInt32())
-                    {
-                        argOutLosslessInt32Syms->Set(outParamOffsetIndex);
-                    }
+                    SetBitVectorIfTypeSpec(sym, outParamOffsetIndex, argOutLosslessInt32Syms, argOutFloat64Syms);
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
                     {

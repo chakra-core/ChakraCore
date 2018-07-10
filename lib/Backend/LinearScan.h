@@ -178,6 +178,7 @@ private:
 
     GlobalBailOutRecordDataTable * EnsureGlobalBailOutRecordTable(Func *func);
 
+    static void         SetBitVectorIfTypeSpec(StackSym * sym, Js::RegSlot regSlot, BVFixed * intSyms, BVFixed * floatSyms);
     void                FillBailOutRecord(IR::Instr * instr);
     void                FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutState * state, IR::Instr * instr);
     void                FillStackLiteralBailOutRecord(IR::Instr * instr, BailOutInfo * bailOutInfo, struct FuncBailOutData * funcBailOutData, uint funcCount);
