@@ -58,11 +58,6 @@ public:
     static uint32 GetOffsetOfLdElemInlineCache() { return offsetof(PropertyString, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfLdElemInlineCache(); }
     static uint32 GetOffsetOfStElemInlineCache() { return offsetof(PropertyString, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfStElemInlineCache(); }
     static uint32 GetOffsetOfHitRate() { return offsetof(PropertyString, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfHitRate(); }
-    static bool Is(Var var);
-    static bool Is(RecyclableObject * var);
-
-    template <typename T> static PropertyString* TryFromVar(T var);
-    static PropertyString* UnsafeFromVar(Var aValue);
 
 #if ENABLE_TTD
     //Get the associated property id for this string if there is on (e.g. it is a propertystring otherwise return Js::PropertyIds::_none)
@@ -75,16 +70,6 @@ public:
     }
 };
 
-// Templated so that the Is call dispatchs to different function depending
-// on if argument is already a RecyclableObject* or only known to be a Var
-//
-// In case it is known to be a RecyclableObject*, the Is call skips that check
-template <typename T> inline
-PropertyString * PropertyString::TryFromVar(T var)
-{
-    return PropertyString::Is(var)
-        ? reinterpret_cast<PropertyString*>(var)
-        : nullptr;
-}
+template <> bool VarIsImpl<PropertyString>(RecyclableObject * obj);
 
 } // namespace Js

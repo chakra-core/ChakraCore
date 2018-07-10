@@ -26,7 +26,7 @@ namespace Js
     // and propagate all other exceptions.
     //
     // NB: Re-throw from catch unwinds the active frame but doesn't clear the stack
-    // (catch clauses keep accumulating at the top of the stack until a catch 
+    // (catch clauses keep accumulating at the top of the stack until a catch
     // that doesn't re-throw). This is problematic if we've detected potential
     // stack overflow and report it via exceptions: the handling of throw
     // might actually overflow the stack and cause system SO exception.
@@ -43,8 +43,8 @@ namespace Js
     if (exceptionObject != nullptr) \
     { \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
-        HRESULT hr = (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
-                     ? Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr) \
+        HRESULT hr = (errorObject != nullptr && Js::VarIs<Js::JavascriptError>(errorObject)) \
+                     ? Js::JavascriptError::GetRuntimeError(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr) \
                      : S_OK; \
         if (JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr) \
         { \
@@ -248,15 +248,15 @@ namespace Js
         static TypeId GetTypeId(_In_ const Var instance);
         static TypeId GetTypeId(_In_ RecyclableObject* instance);
         static TypeId GetTypeIdNoCheck(Var instance);
-        template <typename T>
-        __forceinline static T* TryFromVar(_In_ RecyclableObject* value)
+        template <typename T, typename U>
+        __forceinline static T* TryFromVar(_In_ U* value)
         {
-            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
-        template <typename T>
-        __forceinline static T* TryFromVar(_In_ Var value)
+        template <typename T, typename U>
+        __forceinline static T* TryFromVar(WriteBarrierPtr<U> value)
         {
-            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         static BOOL IsObject(_In_ Var instance);
         static BOOL IsObject(_In_ RecyclableObject* instance);
@@ -782,5 +782,4 @@ namespace Js
 
         static BOOL IsRemoteArray(RecyclableObject* instance);
     };
-
 } // namespace Js

@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    bool ActivationObject::Is(void* instance)
+    template <> bool VarIsImpl<ActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<Js::ActivationObject>::HasVirtualTable(instance) ||
             VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance) ||
@@ -170,6 +170,11 @@ namespace Js
     }
 #endif
 
+    template <> bool VarIsImpl<BlockActivationObject>(RecyclableObject* instance)
+    {
+        return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance);
+    }
+
     BOOL PseudoActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
     {
         // eval, etc., should not create function properties on something like a "catch" scope
@@ -204,6 +209,11 @@ namespace Js
     }
 #endif
 
+    template <> bool VarIsImpl<PseudoActivationObject>(RecyclableObject* instance)
+    {
+        return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
+    }
+
 #if ENABLE_TTD
     TTD::NSSnapObjects::SnapObjectType ConsoleScopeActivationObject::GetSnapTag_TTD() const
     {
@@ -216,6 +226,12 @@ namespace Js
     }
 
 #endif
+
+    template <> bool VarIsImpl<ConsoleScopeActivationObject>(RecyclableObject* instance)
+    {
+        return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
+            || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
+    }
 
     /* static */
     const PropertyId * ActivationObjectEx::GetCachedScopeInfo(const PropertyIdArray *propIds)
@@ -309,4 +325,10 @@ namespace Js
         TTDAssert(false, "Not implemented yet!!!");
     }
 #endif
+
+    template <> bool VarIsImpl<ActivationObjectEx>(RecyclableObject* instance)
+    {
+        return VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance);
+    }
 };

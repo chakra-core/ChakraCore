@@ -236,7 +236,6 @@
     <None Include="JavascriptLibrary.inl" />
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />
-    <None Include="JavascriptBoolean.inl" />
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>

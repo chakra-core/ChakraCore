@@ -19,9 +19,9 @@ namespace Js
         else
         {
 
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                strURI = JavascriptString::FromVar(args[1]);
+                strURI = VarTo<JavascriptString>(args[1]);
             }
             else
             {
@@ -267,9 +267,9 @@ namespace Js
         else
         {
 
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                strURI = JavascriptString::FromVar(args[1]);
+                strURI = VarTo<JavascriptString>(args[1]);
             }
             else
             {

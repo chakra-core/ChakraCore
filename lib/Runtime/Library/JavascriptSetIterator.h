@@ -26,10 +26,6 @@ namespace Js
     public:
         JavascriptSetIterator(DynamicType* type, JavascriptSet* set, JavascriptSetIteratorKind kind);
 
-        static bool Is(Var aValue);
-        static JavascriptSetIterator* FromVar(Var aValue);
-        static JavascriptSetIterator* UnsafeFromVar(Var aValue);
-
         class EntryInfo
         {
         public:
@@ -41,4 +37,9 @@ namespace Js
     public:
         JavascriptSet* GetSetForHeapEnum() { return m_set; }
     };
+
+    template <> inline bool VarIsImpl<JavascriptSetIterator>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_SetIterator;
+    }
 } // namespace Js

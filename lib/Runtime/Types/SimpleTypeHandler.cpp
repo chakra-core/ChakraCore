@@ -131,7 +131,7 @@ namespace Js
             Assert(value != nullptr || IsInternalPropertyId(descriptors[i].Id->GetPropertyId()));
 #if ENABLE_FIXED_FIELDS
             bool markAsFixed = allowFixedFields && !IsInternalPropertyId(descriptors[i].Id->GetPropertyId()) &&
-                (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
+                (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : false);
 #else
             bool markAsFixed = false;
 #endif
@@ -160,15 +160,15 @@ namespace Js
         Assert(!CrossSite::IsThunk(instance->GetType()->GetEntryPoint()));
 
         ScriptContext *scriptContext = instance->GetScriptContext();
-        PathTypeHandlerBase* newTypeHandler = 
+        PathTypeHandlerBase* newTypeHandler =
             PathTypeHandlerNoAttr::New(
-                scriptContext, 
-                scriptContext->GetLibrary()->GetRootPath(), 
-                0, 
-                static_cast<PropertyIndex>(this->GetSlotCapacity()), 
-                this->GetInlineSlotCapacity(), 
-                this->GetOffsetOfInlineSlots(), 
-                true, 
+                scriptContext,
+                scriptContext->GetLibrary()->GetRootPath(),
+                0,
+                static_cast<PropertyIndex>(this->GetSlotCapacity()),
+                this->GetInlineSlotCapacity(),
+                this->GetOffsetOfInlineSlots(),
+                true,
                 false);
         newTypeHandler->SetMayBecomeShared();
 
@@ -188,7 +188,7 @@ namespace Js
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             bool markAsFixed = !IsInternalPropertyId(propertyId) &&
-                (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
+                (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : false);
             newTypeHandler->InitializePath(instance, i, newTypeHandler->GetPathLength(), scriptContext, [=]() { return markAsFixed; });
 #endif
 #endif
@@ -1139,7 +1139,7 @@ namespace Js
     template<size_t size>
     DynamicTypeHandler* SimpleTypeHandler<size>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ?
+        return JavascriptArray::IsNonES5Array(instance) ?
             ConvertToES5ArrayType(instance) : ConvertToDictionaryType(instance);
     }
 

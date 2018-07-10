@@ -401,7 +401,7 @@ void NativeCodeGenerator::Jit_TransitionFromSimpleJit(void *const framePointer)
 {
     JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(TransitionFromSimpleJit);
     TransitionFromSimpleJit(
-        Js::ScriptFunction::FromVar(Js::JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject));
+        Js::VarTo<Js::ScriptFunction>(Js::JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject));
     JIT_HELPER_END(TransitionFromSimpleJit);
 }
 
@@ -740,7 +740,7 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
     }
 #endif
 
-    RecyclableObject *const recyclableObject = RecyclableObject::UnsafeFromVar(var);
+    RecyclableObject *const recyclableObject = UnsafeVarTo<RecyclableObject>(var);
     if(!recycler->IsValidObject(recyclableObject, sizeof(*recyclableObject)))
     {
         return false;
@@ -968,7 +968,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         throw Js::OperationAbortedException();
     }
-    
+
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
@@ -1024,7 +1024,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Output::Flush();
     }
 
-    epInfo->GetNativeEntryPointData()->SetFrameHeight(jitWriteData.frameHeight);    
+    epInfo->GetNativeEntryPointData()->SetFrameHeight(jitWriteData.frameHeight);
 
     if (workItem->Type() == JsFunctionType)
     {
@@ -2305,7 +2305,7 @@ NativeCodeGenerator::GatherCodeGenData(
     {
         // TODO: For now, we create the native entry point data and the jit transfer data when we queue up
         // the entry point for code gen, but not clear/free then then the work item got knocked off the queue
-        // without code gen happening.  
+        // without code gen happening.
         nativeEntryPointData = entryPoint->EnsureNativeEntryPointData();
         nativeEntryPointData->EnsureJitTransferData(recycler);
 
@@ -2425,11 +2425,11 @@ NativeCodeGenerator::GatherCodeGenData(
             {
                 Js::InlineCache *inlineCache = nullptr;
 
-                if(function && Js::ScriptFunctionWithInlineCache::Is(function))
+                if(function && Js::VarIs<Js::ScriptFunctionWithInlineCache>(function))
                 {
-                    if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
+                    if (Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCaches() != nullptr)
                     {
-                        inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
+                        inlineCache = Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCache(i);
                     }
                 }
                 else
@@ -2561,11 +2561,11 @@ NativeCodeGenerator::GatherCodeGenData(
                 }
             }
             // Even if the FldInfo says that the field access may be polymorphic, be optimistic that if the function object has inline caches, they'll be monomorphic
-            else if(function && Js::ScriptFunctionWithInlineCache::Is(function) && (cacheType & Js::FldInfo_InlineCandidate || !polymorphicCacheOnFunctionBody))
+            else if(function && Js::VarIs<Js::ScriptFunctionWithInlineCache>(function) && (cacheType & Js::FldInfo_InlineCandidate || !polymorphicCacheOnFunctionBody))
             {
-                if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
+                if (Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCaches() != nullptr)
                 {
-                    Js::InlineCache *inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i);
+                    Js::InlineCache *inlineCache = Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCache(i);
                     ObjTypeSpecFldInfo* objTypeSpecFldInfo = nullptr;
 
                     if(!PHASE_OFF(Js::ObjTypeSpecPhase, functionBody) || !PHASE_OFF(Js::FixedMethodsPhase, functionBody))
@@ -2698,8 +2698,8 @@ NativeCodeGenerator::GatherCodeGenData(
                     // Clone polymorphic inline caches for runtime usage in this inlinee. The JIT should only use the pointers to
                     // the inline caches, as their cached data is not guaranteed to be stable while jitting.
                     Js::InlineCache *const inlineCache =
-                        function && Js::ScriptFunctionWithInlineCache::Is(function)
-                            ? (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr ? Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(i) : nullptr)
+                        function && Js::VarIs<Js::ScriptFunctionWithInlineCache>(function)
+                            ? (Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCaches() != nullptr ? Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCache(i) : nullptr)
                             : functionBody->GetInlineCache(i);
 
                     if (inlineCache != nullptr)
@@ -2828,11 +2828,11 @@ NativeCodeGenerator::GatherCodeGenData(
             Js::InlineCache * inlineCache = nullptr;
             if ((ldFldInlineCacheIndex != Js::Constants::NoInlineCacheIndex) && (ldFldInlineCacheIndex < functionBody->GetInlineCacheCount()))
             {
-                if(function && Js::ScriptFunctionWithInlineCache::Is(function))
+                if(function && Js::VarIs<Js::ScriptFunctionWithInlineCache>(function))
                 {
-                    if (Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCaches() != nullptr)
+                    if (Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCaches() != nullptr)
                     {
-                        inlineCache = Js::ScriptFunctionWithInlineCache::FromVar(function)->GetInlineCache(ldFldInlineCacheIndex);
+                        inlineCache = Js::VarTo<Js::ScriptFunctionWithInlineCache>(function)->GetInlineCache(ldFldInlineCacheIndex);
                     }
                 }
                 else
@@ -3129,7 +3129,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
                 topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2));
         }
 #endif
-        GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::JavascriptFunction::FromVar(function) : nullptr, 0);
+        GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::VarTo<Js::JavascriptFunction>(function) : nullptr, 0);
 
         jitTimeData->sharedPropertyGuards = entryPoint->GetNativeEntryPointData()->GetSharedPropertyGuards(recycler, jitTimeData->sharedPropertyGuardCount);
 
@@ -3279,7 +3279,7 @@ void
 FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
 {
     if (!scriptContext->GetNativeCodeGenerator())
-    { 
+    {
         return;
     }
 

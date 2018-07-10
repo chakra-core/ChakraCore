@@ -19,7 +19,7 @@ namespace Js
         JavascriptExceptionObject(Var object, ScriptContext * scriptContext, JavascriptExceptionContext* exceptionContextIn, bool isPendingExceptionObject = false) :
             thrownObject(object),
             isPendingExceptionObject(isPendingExceptionObject),
-            scriptContext(scriptContext), tag(true), 
+            scriptContext(scriptContext), tag(true),
 #ifdef ENABLE_SCRIPT_DEBUGGING
             isDebuggerSkip(false), byteCodeOffsetAfterDebuggerSkip(Constants::InvalidByteCodeOffset), hasDebuggerLogged(false),
             isFirstChance(false), isExceptionCaughtInNonUserCode(false), ignoreAdvanceToNextStatement(false),
@@ -139,8 +139,8 @@ namespace Js
 
         void ReplaceThrownObject(Var object)
         {
-            AssertMsg(RecyclableObject::Is(object), "Why are we replacing a non recyclable thrown object?");
-            AssertMsg(this->GetScriptContext() != RecyclableObject::FromVar(object)->GetScriptContext() || this->thrownObject != object, "If replaced thrownObject is from same context what's the need to replace?");
+            AssertMsg(VarIs<RecyclableObject>(object), "Why are we replacing a non recyclable thrown object?");
+            AssertMsg(this->GetScriptContext() != VarTo<RecyclableObject>(object)->GetScriptContext() || this->thrownObject != object, "If replaced thrownObject is from same context what's the need to replace?");
             this->thrownObject = object;
         }
 
@@ -179,7 +179,7 @@ namespace Js
     private:
         Field(Var)      thrownObject;
         Field(ScriptContext *) scriptContext;
-        
+
 #ifdef ENABLE_SCRIPT_DEBUGGING
         Field(int)        byteCodeOffsetAfterDebuggerSkip;
 #endif

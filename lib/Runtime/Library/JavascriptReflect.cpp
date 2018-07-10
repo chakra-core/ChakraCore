@@ -43,11 +43,11 @@ namespace Js
         BOOL defineResult;
         if (JavascriptOperators::GetTypeId(target) == TypeIds_HostDispatch)
         {
-            defineResult = RecyclableObject::FromVar(target)->InvokeBuiltInOperationRemotely(EntryDefineProperty, args, nullptr);
+            defineResult = VarTo<RecyclableObject>(target)->InvokeBuiltInOperationRemotely(EntryDefineProperty, args, nullptr);
         }
         else
         {
-            defineResult = JavascriptObject::DefineOwnPropertyHelper(RecyclableObject::FromVar(target), propertyRecord->GetPropertyId(), propertyDescriptor, scriptContext, false);
+            defineResult = JavascriptObject::DefineOwnPropertyHelper(VarTo<RecyclableObject>(target), propertyRecord->GetPropertyId(), propertyDescriptor, scriptContext, false);
         }
 
         return scriptContext->GetLibrary()->GetTrueOrFalse(defineResult);
@@ -102,7 +102,7 @@ namespace Js
 
         Var receiver = args.Info.Count > 3 ? args[3] : target;
 
-        return JavascriptOperators::GetElementIHelper(RecyclableObject::FromVar(target), propertyKey, receiver, scriptContext);
+        return JavascriptOperators::GetElementIHelper(VarTo<RecyclableObject>(target), propertyKey, receiver, scriptContext);
     }
 
     Var JavascriptReflect::EntryGetOwnPropertyDescriptor(RecyclableObject* function, CallInfo callInfo, ...)
@@ -130,13 +130,13 @@ namespace Js
         if (JavascriptOperators::GetTypeId(target) == TypeIds_HostDispatch)
         {
             Var result;
-            if (RecyclableObject::FromVar(target)->InvokeBuiltInOperationRemotely(EntryGetOwnPropertyDescriptor, args, &result))
+            if (VarTo<RecyclableObject>(target)->InvokeBuiltInOperationRemotely(EntryGetOwnPropertyDescriptor, args, &result))
             {
                 return result;
             }
         }
 
-        return JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject::FromVar(target), propertyKey, scriptContext);
+        return JavascriptObject::GetOwnPropertyDescriptorHelper(VarTo<RecyclableObject>(target), propertyKey, scriptContext);
     }
 
     Var JavascriptReflect::EntryGetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...)
@@ -158,7 +158,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.getPrototypeOf"));
         }
         Var target = args[1];
-        return JavascriptObject::GetPrototypeOf(RecyclableObject::FromVar(target), scriptContext);
+        return JavascriptObject::GetPrototypeOf(VarTo<RecyclableObject>(target), scriptContext);
     }
 
     Var JavascriptReflect::EntryHas(RecyclableObject* function, CallInfo callInfo, ...)
@@ -206,7 +206,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Reflect.iesExtensible"));
         }
         Var target = args[1];
-        RecyclableObject *object = RecyclableObject::FromVar(target);
+        RecyclableObject *object = VarTo<RecyclableObject>(target);
         BOOL isExtensible = object->IsExtensible();
 
         GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
@@ -261,7 +261,7 @@ namespace Js
         }
         Var target = args[1];
 
-        RecyclableObject* targetObj = RecyclableObject::FromVar(target);
+        RecyclableObject* targetObj = VarTo<RecyclableObject>(target);
         GlobalObject* globalObject = targetObj->GetLibrary()->GetGlobalObject();
         if (globalObject != targetObj && globalObject && (globalObject->ToThis() == targetObj))
         {
@@ -296,7 +296,7 @@ namespace Js
         Var receiver = args.Info.Count > 4 ? args[4] : target;
 
         target = JavascriptOperators::ToObject(target, scriptContext);
-        BOOL result = JavascriptOperators::SetElementIHelper(receiver, RecyclableObject::FromVar(target), propertyKey, value, scriptContext, PropertyOperationFlags::PropertyOperation_None);
+        BOOL result = JavascriptOperators::SetElementIHelper(receiver, VarTo<RecyclableObject>(target), propertyKey, value, scriptContext, PropertyOperationFlags::PropertyOperation_None);
         return scriptContext->GetLibrary()->GetTrueOrFalse(result);
     }
 
@@ -326,8 +326,8 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.setPrototypeOf"));
         }
 
-        RecyclableObject* newPrototype = RecyclableObject::FromVar(args[2]);
-        BOOL changeResult = JavascriptObject::ChangePrototype(RecyclableObject::FromVar(target), newPrototype, /*validate*/false, scriptContext);
+        RecyclableObject* newPrototype = VarTo<RecyclableObject>(args[2]);
+        BOOL changeResult = JavascriptObject::ChangePrototype(VarTo<RecyclableObject>(target), newPrototype, /*validate*/false, scriptContext);
 
         return scriptContext->GetLibrary()->GetTrueOrFalse(changeResult);
     }
@@ -359,7 +359,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.apply"));
         }
 
-        return JavascriptFunction::ApplyHelper(RecyclableObject::FromVar(target), thisArgument, argArray, scriptContext);
+        return JavascriptFunction::ApplyHelper(VarTo<RecyclableObject>(target), thisArgument, argArray, scriptContext);
     }
 
     static const int STACK_ARGS_ALLOCA_THRESHOLD = 8;
@@ -402,10 +402,10 @@ namespace Js
             }
         }
 
-        RecyclableObject* thisArg = RecyclableObject::FromVar(undefinedValue);
+        RecyclableObject* thisArg = VarTo<RecyclableObject>(undefinedValue);
         if (newTarget != nullptr)
         {
-            thisArg = JavascriptOperators::CreateFromConstructor(RecyclableObject::FromVar(newTarget), scriptContext);
+            thisArg = JavascriptOperators::CreateFromConstructor(VarTo<RecyclableObject>(newTarget), scriptContext);
         }
 
         Var argArray = args.Info.Count > 2 ? args[2] : undefinedValue;
@@ -415,6 +415,6 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.construct"));
         }
 
-        return JavascriptFunction::ConstructHelper(RecyclableObject::FromVar(target), thisArg, newTarget, argArray, scriptContext);
+        return JavascriptFunction::ConstructHelper(VarTo<RecyclableObject>(target), thisArg, newTarget, argArray, scriptContext);
     }
 }

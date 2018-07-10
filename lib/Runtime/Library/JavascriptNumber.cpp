@@ -383,9 +383,9 @@ namespace Js
             {
                 result = args[1];
             }
-            else if (JavascriptNumberObject::Is(args[1]))
+            else if (VarIs<JavascriptNumberObject>(args[1]))
             {
-                result = JavascriptNumber::ToVarNoCheck(JavascriptNumberObject::FromVar(args[1])->GetValue(), scriptContext);
+                result = JavascriptNumber::ToVarNoCheck(VarTo<JavascriptNumberObject>(args[1])->GetValue(), scriptContext);
             }
             else
             {
@@ -404,7 +404,7 @@ namespace Js
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(result), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(result), nullptr, scriptContext) :
             result;
     }
 
@@ -567,7 +567,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToExponential, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToExponential, args, &result))
                 {
                     return result;
                 }
@@ -634,7 +634,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToFixed, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToFixed, args, &result))
                 {
                     return result;
                 }
@@ -708,7 +708,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToPrecision, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToPrecision, args, &result))
                 {
                     return result;
                 }
@@ -783,7 +783,7 @@ namespace Js
                 {
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        return JavascriptString::FromVar(func->CallFunction(args));
+                        return VarTo<JavascriptString>(func->CallFunction(args));
                     }
                     END_SAFE_REENTRANT_CALL
                 }
@@ -794,7 +794,7 @@ namespace Js
                 {
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        return JavascriptString::FromVar(func->CallFunction(args));
+                        return VarTo<JavascriptString>(func->CallFunction(args));
                     }
                     END_SAFE_REENTRANT_CALL
                 }
@@ -808,9 +808,9 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
                 {
-                    return JavascriptString::FromVar(result);
+                    return VarTo<JavascriptString>(result);
                 }
             }
 
@@ -846,7 +846,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
                 {
                     return result;
                 }
@@ -905,9 +905,9 @@ namespace Js
         {
             return value;
         }
-        else if (JavascriptNumberObject::Is(value))
+        else if (VarIs<JavascriptNumberObject>(value))
         {
-            JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(value);
+            JavascriptNumberObject* obj = VarTo<JavascriptNumberObject>(value);
             return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else if (Js::JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number)
@@ -923,7 +923,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(value) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(value)->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
+                if (VarTo<RecyclableObject>(value)->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
                 {
                     return result;
                 }
@@ -1020,12 +1020,12 @@ namespace Js
         }
         else if (typeId == TypeIds_Int64Number)
         {
-            *pDouble = (double)JavascriptInt64Number::FromVar(aValue)->GetValue();
+            *pDouble = (double)VarTo<JavascriptInt64Number>(aValue)->GetValue();
             return TRUE;
         }
         else if (typeId == TypeIds_UInt64Number)
         {
-            *pDouble = (double)JavascriptUInt64Number::FromVar(aValue)->GetValue();
+            *pDouble = (double)VarTo<JavascriptUInt64Number>(aValue)->GetValue();
             return TRUE;
         }
         else if (JavascriptNumber::Is_NoTaggedIntCheck(aValue))
@@ -1035,7 +1035,7 @@ namespace Js
         }
         else if (typeId == TypeIds_NumberObject)
         {
-            JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(aValue);
+            JavascriptNumberObject* obj = VarTo<JavascriptNumberObject>(aValue);
             *pDouble = obj->GetValue();
             return TRUE;
         }
@@ -1094,7 +1094,7 @@ namespace Js
 
         JavascriptString *result = nullptr;
 
-        JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
+        JavascriptString *dblStr = VarTo<JavascriptString>(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
         const size_t szLength = dblStr->GetLength();
 

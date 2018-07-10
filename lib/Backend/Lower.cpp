@@ -247,7 +247,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             {
                 this->helperCallCheckState = (HelperCallCheckState)(this->helperCallCheckState | HelperCallCheckState_ImplicitCallsBailout);
             }
-            
+
             if ((bailoutKind & IR::BailOutOnArrayAccessHelperCall) != 0 &&
                 instr->m_opcode != Js::OpCode::Memcopy &&
                 instr->m_opcode != Js::OpCode::Memset)
@@ -6881,7 +6881,7 @@ Lowerer::LowerNewScFuncHomeObj(IR::Instr * newScFuncInstr)
     IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
     newScFuncInstr->SetSrc1(helperOpnd);
     newScFuncInstr->SetSrc2(src1);
-    
+
     return newScFuncInstr;
 }
 
@@ -6906,7 +6906,7 @@ Lowerer::LowerNewScGenFuncHomeObj(IR::Instr * newScFuncInstr)
     IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
     newScFuncInstr->SetSrc1(helperOpnd);
     newScFuncInstr->SetSrc2(src1);
-    
+
     return newScFuncInstr;
 }
 
@@ -7867,7 +7867,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(IR::PropertySymOpnd
     if (propertySymOpnd->ShouldUsePolyEquivTypeGuard(this->m_func))
     {
         Js::JitPolyEquivalentTypeGuard *polyGuard = this->m_func->CreatePolyEquivalentTypeGuard(propertySymOpnd->GetObjTypeSpecFldId());
-       
+
         // Copy types from the type set to the guard's value locations
         Js::EquivalentTypeSet* typeSet = propertySymOpnd->GetEquivalentTypeSet();
         for (uint16 ti = 0; ti < typeSet->GetCount(); ti++)
@@ -9771,7 +9771,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
             instr->FreeSrc2();
         }
     }
-    // wasm memory buffer is not recycler allocated, so we shouldn't generate write barrier 
+    // wasm memory buffer is not recycler allocated, so we shouldn't generate write barrier
     InsertMaskableMove(true, false, dst, src1, src2, indexOpnd, done, this);
 
     instr->Remove();
@@ -14811,7 +14811,7 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
     {
         // Only DynamicObject is allowed (DynamicObject vtable is ensured) because some object types have special handling for
         // index properties - arguments object, string object, external object, etc.
-        // If other object types are also allowed in the future, corresponding changes will have to made to 
+        // If other object types are also allowed in the future, corresponding changes will have to made to
         // JavascriptArray::Jit_TryGetArrayForObjectWithArray as well.
         GenerateObjectTypeTest(baseOpnd, insertBeforeInstr, isNotObjectLabel);
         GenerateObjectHeaderInliningTest(baseOpnd, isNotArrayLabel, insertBeforeInstr);
@@ -24834,7 +24834,7 @@ void
 Lowerer::GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnTrue, IR::LabelInstr *labelReturnFalse)
 {
     //  $ProxyLoop:
-    //  // if (!RecyclableObject::Is(instance)) { goto $ReturnFalse }; // omitted: RecyclableObject::Is(instance) always true
+    //  // if (!VarIs<RecyclableObject>(instance)) { goto $ReturnFalse }; // omitted: VarIs<RecyclableObject>(instance) always true
     //  MOV s0, instance->type
     //  MOV s1, s0->typeId
     //  CMP s1, TypeIds_Proxy
@@ -24994,7 +24994,7 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
     }
     else
     {
-        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode 
+        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode
         InsertBranch(Js::OpCode::Br, labelDone, instr);
     }
 
@@ -25015,7 +25015,7 @@ Lowerer::GenerateLdHomeObjProto(IR::Instr* instr)
     //  TEST instance, instance
     //  JZ  $Done
     //
-    //  if (!RecyclableObject::Is(instance)) goto $Done
+    //  if (!VarIs<RecyclableObject>(instance)) goto $Done
     //  MOV type, [instance+Offset(type)]
     //  MOV typeId, [type+Offset(typeId)]
     //  CMP typeId, TypeIds_Null
@@ -25030,7 +25030,7 @@ Lowerer::GenerateLdHomeObjProto(IR::Instr* instr)
     //  instance = ((RecyclableObject*)instance)->GetPrototype();
     //  if (instance == nullptr) goto $Done;
     //
-    //  if (!RecyclableObject::Is(instance)) goto $Done
+    //  if (!VarIs<RecyclableObject>(instance)) goto $Done
     //
     //  MOV dst, instance
     //  $Done:
@@ -28267,7 +28267,7 @@ Lowerer::AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * 
     return helperCallInstr;
 }
 
-void 
+void
 Lowerer::GenerateAuxSlotPtrLoad(IR::PropertySymOpnd *propertySymOpnd, IR::Instr * instrInsert)
 {
     StackSym * auxSlotPtrSym = propertySymOpnd->GetAuxSlotPtrSym();
@@ -28359,7 +28359,7 @@ Lowerer::LowerCheckLowerIntBound(IR::Instr * instr)
     m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::HelperIntRangeCheckFailure);
 
     instr->InsertAfter(continueLabel);
-    
+
     instr->Remove();
 
     return instrPrev;
@@ -28375,7 +28375,7 @@ Lowerer::LowerCheckUpperIntBound(IR::Instr * instr)
 
     IR::LabelInstr * continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false /*isOpHelper*/);
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, true /*isOpHelper*/);
-    
+
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
     if (lowerBoundCheckInstr)
     {

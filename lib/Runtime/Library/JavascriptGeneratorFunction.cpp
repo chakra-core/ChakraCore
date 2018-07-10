@@ -46,12 +46,10 @@ using namespace Js;
         return scriptContext->GetLibrary()->CreateAsyncFunction(functionInfo.GetOriginalEntryPoint(), scriptFunction);
     }
 
-    bool JavascriptGeneratorFunction::Is(Var var)
+    bool JavascriptGeneratorFunction::IsBaseGeneratorFunction(RecyclableObject* obj)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(obj))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
             return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
         }
@@ -59,45 +57,20 @@ using namespace Js;
         return false;
     }
 
-    JavascriptGeneratorFunction* JavascriptGeneratorFunction::FromVar(Var var)
+    template <> bool Js::VarIsImpl<JavascriptGeneratorFunction>(RecyclableObject* obj)
     {
-        AssertOrFailFast(JavascriptGeneratorFunction::Is(var) || JavascriptAsyncFunction::Is(var));
-
-        return static_cast<JavascriptGeneratorFunction*>(var);
+        return JavascriptGeneratorFunction::IsBaseGeneratorFunction(obj) || VarIs<JavascriptAsyncFunction>(obj);
     }
 
-    JavascriptGeneratorFunction* JavascriptGeneratorFunction::UnsafeFromVar(Var var)
+    template <> bool Js::VarIsImpl<JavascriptAsyncFunction>(RecyclableObject* obj)
     {
-        Assert(JavascriptGeneratorFunction::Is(var) || JavascriptAsyncFunction::Is(var));
-
-        return static_cast<JavascriptGeneratorFunction*>(var);
-    }
-
-    bool JavascriptAsyncFunction::Is(Var var)
-    {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(obj))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
             return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
         }
 
         return false;
-    }
-
-    JavascriptAsyncFunction* JavascriptAsyncFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptAsyncFunction::Is(var));
-
-        return static_cast<JavascriptAsyncFunction*>(var);
-    }
-
-    JavascriptAsyncFunction* JavascriptAsyncFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptAsyncFunction::Is(var));
-
-        return static_cast<JavascriptAsyncFunction*>(var);
     }
 
     JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
@@ -143,7 +116,7 @@ using namespace Js;
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
-        JavascriptGeneratorFunction* generatorFunction = JavascriptGeneratorFunction::FromVar(function);
+        JavascriptGeneratorFunction* generatorFunction = VarTo<JavascriptGeneratorFunction>(function);
 
         // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler heap
         // and use that buffer for this InterpreterStackFrame.
@@ -186,7 +159,7 @@ using namespace Js;
         JavascriptPromiseResolveOrRejectFunction* reject;
         JavascriptPromiseAsyncSpawnExecutorFunction* executor =
             library->CreatePromiseAsyncSpawnExecutorFunction(
-                scriptContext->GetLibrary()->CreateGenerator(heapArgs, JavascriptAsyncFunction::FromVar(function)->GetGeneratorVirtualScriptFunction(), prototype),
+                scriptContext->GetLibrary()->CreateGenerator(heapArgs, VarTo<JavascriptAsyncFunction>(function)->GetGeneratorVirtualScriptFunction(), prototype),
                 stackArgs[0]);
 
         JavascriptPromise* promise = library->CreatePromise();

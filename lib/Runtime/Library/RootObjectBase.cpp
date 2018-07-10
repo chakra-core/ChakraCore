@@ -21,29 +21,6 @@ namespace Js
         DynamicObject(type, scriptContext), hostObject(nullptr), loadInlineCacheMap(nullptr), loadMethodInlineCacheMap(nullptr), storeInlineCacheMap(nullptr)
     {}
 
-    bool RootObjectBase::Is(Var var)
-    {
-        return RecyclableObject::Is(var) && RootObjectBase::Is(RecyclableObject::UnsafeFromVar(var));
-    }
-
-    bool RootObjectBase::Is(RecyclableObject* obj)
-    {
-        TypeId id = obj->GetTypeId();
-        return id == TypeIds_GlobalObject || id == TypeIds_ModuleRoot;
-    }
-
-    RootObjectBase * RootObjectBase::FromVar(Var var)
-    {
-        AssertOrFailFast(RootObjectBase::Is(var));
-        return static_cast<Js::RootObjectBase *>(var);
-    }
-
-    RootObjectBase * RootObjectBase::UnsafeFromVar(Var var)
-    {
-        Assert(RootObjectBase::Is(var));
-        return static_cast<Js::RootObjectBase *>(var);
-    }
-
     HostObjectBase * RootObjectBase::GetHostObject() const
     {
         Assert(hostObject == nullptr || Js::JavascriptOperators::GetTypeId(hostObject) == TypeIds_HostObject);

@@ -48,7 +48,7 @@ namespace Js
             }
             else
             {
-                retStr = JavascriptString::FromVar(this->functionNameId);
+                retStr = VarTo<JavascriptString>(this->functionNameId);
             }
         }
         return retStr;
@@ -58,7 +58,7 @@ namespace Js
     RuntimeFunction::SetFunctionNameId(Var nameId)
     {
         Assert(functionNameId == NULL);
-        Assert(TaggedInt::Is(nameId) || Js::JavascriptString::Is(nameId));
+        Assert(TaggedInt::Is(nameId) || Js::VarIs<Js::JavascriptString>(nameId));
 
         // We are only reference the propertyId, it needs to be tracked to stay alive
         Assert(!TaggedInt::Is(nameId) || this->GetScriptContext()->IsTrackedPropertyId(TaggedInt::ToInt32(nameId)));

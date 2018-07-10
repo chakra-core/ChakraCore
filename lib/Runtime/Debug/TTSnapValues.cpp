@@ -29,7 +29,7 @@ namespace TTD
                 return false;
             }
 
-            Js::TypeId tid = Js::RecyclableObject::FromVar(v)->GetTypeId();
+            Js::TypeId tid = Js::VarTo<Js::RecyclableObject>(v)->GetTypeId();
             return tid <= Js::TypeIds_LastToPrimitiveType;
         }
 
@@ -40,7 +40,7 @@ namespace TTD
                 return false;
             }
 
-            Js::TypeId tid = Js::RecyclableObject::FromVar(v)->GetTypeId();
+            Js::TypeId tid = Js::VarTo<Js::RecyclableObject>(v)->GetTypeId();
             return tid > Js::TypeIds_LastToPrimitiveType;
         }
 
@@ -332,20 +332,20 @@ namespace TTD
                 case Js::TypeIds_Null:
                     break;
                 case Js::TypeIds_Boolean:
-                    snapValue->u_boolValue = Js::JavascriptBoolean::FromVar(jsValue)->GetValue();
+                    snapValue->u_boolValue = Js::VarTo<Js::JavascriptBoolean>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_Number:
                     snapValue->u_doubleValue = Js::JavascriptNumber::GetValue(jsValue);
                     break;
                 case Js::TypeIds_Int64Number:
-                    snapValue->u_int64Value = Js::JavascriptInt64Number::FromVar(jsValue)->GetValue();
+                    snapValue->u_int64Value = Js::VarTo<Js::JavascriptInt64Number>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_UInt64Number:
-                    snapValue->u_uint64Value = Js::JavascriptUInt64Number::FromVar(jsValue)->GetValue();
+                    snapValue->u_uint64Value = Js::VarTo<Js::JavascriptUInt64Number>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_String:
                     snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();
-                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetString(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->u_stringValue));
+                    alloc.CopyStringIntoWLength(Js::VarTo<Js::JavascriptString>(jsValue)->GetString(), Js::VarTo<Js::JavascriptString>(jsValue)->GetLength(), *(snapValue->u_stringValue));
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
@@ -409,7 +409,7 @@ namespace TTD
                 }
             }
 
-            inflator->AddObject(snapValue->PrimitiveValueId, Js::RecyclableObject::FromVar(res));
+            inflator->AddObject(snapValue->PrimitiveValueId, Js::VarTo<Js::RecyclableObject>(res));
         }
 
         void EmitSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, FileWriter* writer, NSTokens::Separator separator)
@@ -1653,7 +1653,7 @@ namespace TTD
                 for(int32 k = 0; k < pendingAsyncList.Count(); ++k)
                 {
                     const TTDPendingAsyncBufferModification& pk = pendingAsyncList.Item(k);
-                    snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::RecyclableObject::FromVar(pk.ArrayBufferVar));
+                    snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::VarTo<Js::RecyclableObject>(pk.ArrayBufferVar));
                     snapCtx->PendingAsyncModArray[k].Index = pk.Index;
                 }
             }
@@ -1762,8 +1762,8 @@ namespace TTD
                 Js::RecyclableObject* buff = intoCtx->GetThreadContext()->TTDContext->LookupObjectForLogID(snpCtx->PendingAsyncModArray[i].LogId);
                 uint32 index = snpCtx->PendingAsyncModArray[i].Index;
 
-                TTDAssert(Js::ArrayBuffer::Is(buff), "Not an ArrayBuffer!!!");
-                intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(buff), index);
+                TTDAssert(Js::VarIs<Js::ArrayBuffer>(buff), "Not an ArrayBuffer!!!");
+                intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::VarTo<Js::ArrayBuffer>(buff), index);
             }
         }
 

@@ -105,8 +105,8 @@ namespace Js
         JavascriptLibrary* library = scriptContext->GetLibrary();
         JavascriptString * methodName = JavascriptString::NewWithSz(_u("ArrayIterator"), scriptContext);
         auto arrayIterator = JavascriptOperators::GetProperty(library->GetChakraLib(), JavascriptOperators::GetPropertyId(methodName, scriptContext), scriptContext);
-        library->arrayIteratorPrototype = DynamicObject::FromVar(JavascriptOperators::GetProperty(DynamicObject::FromVar(arrayIterator), PropertyIds::prototype, scriptContext));
-        library->arrayIteratorPrototypeBuiltinNextFunction = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
+        library->arrayIteratorPrototype = VarTo<DynamicObject>(JavascriptOperators::GetProperty(VarTo<DynamicObject>(arrayIterator), PropertyIds::prototype, scriptContext));
+        library->arrayIteratorPrototypeBuiltinNextFunction = VarTo<JavascriptFunction>(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
     }
 
     void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
@@ -254,15 +254,15 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && VarIs<JavascriptString>(args.Values[1]) && VarIs<ScriptFunction>(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
-        JavascriptString* methodName = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString* methodName = UnsafeVarTo<JavascriptString>(args.Values[1]);
 
         // chakra library functions, since they aren't public, can be constructors (__chakraLibrary.ArrayIterator is one)
         ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
-            ScriptFunction::UnsafeFromVar(args.Values[2]),
+            UnsafeVarTo<ScriptFunction>(args.Values[2]),
             methodName,
             true /* isConstructor */,
             true /* isJsBuiltIn */,
@@ -281,7 +281,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count == 3 && TaggedInt::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count == 3 && TaggedInt::Is(args.Values[1]) && VarIs<ScriptFunction>(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
@@ -323,7 +323,7 @@ FUNCTIONKIND_VALUES(VALUE)
         }
 
         ScriptFunction *func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
-            ScriptFunction::UnsafeFromVar(args.Values[2]),
+            UnsafeVarTo<ScriptFunction>(args.Values[2]),
             fullName,
             false /* isConstructor */,
             true /* isJsBuiltIn */,
@@ -394,11 +394,11 @@ FUNCTIONKIND_VALUES(VALUE)
         Var iterable = args.Values[1];
 
         TypedArrayBase *typedArrayBase = nullptr;
-        Assert(!JavascriptArray::Is(iterable));
+        Assert(!JavascriptArray::IsNonES5Array(iterable));
 
-        if (TypedArrayBase::Is(iterable))
+        if (VarIs<TypedArrayBase>(iterable))
         {
-            typedArrayBase = TypedArrayBase::FromVar(iterable);
+            typedArrayBase = VarTo<TypedArrayBase>(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
@@ -427,14 +427,14 @@ FUNCTIONKIND_VALUES(VALUE)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
         unsigned propCount = TaggedInt::ToUInt32(args.Values[2]);
 
         Assert(callInfo.Count == 3 + propCount);
 
         for (unsigned i = 0; i < propCount; i++)
         {
-            JavascriptString *propName = JavascriptString::FromVar(args.Values[i + 3]);
+            JavascriptString *propName = VarTo<JavascriptString>(args.Values[i + 3]);
             obj->SetPropertyWithAttributes(JavascriptOperators::GetPropertyId(propName, scriptContext), scriptContext->GetLibrary()->GetNull(), PropertyWritable, nullptr);
         }
 
@@ -477,7 +477,7 @@ FUNCTIONKIND_VALUES(VALUE)
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         AssertOrFailFast(args.Info.Count == 4);
 
-        RecyclableObject * obj = RecyclableObject::FromVar(args.Values[1]);
+        RecyclableObject * obj = VarTo<RecyclableObject>(args.Values[1]);
         double index = JavascriptConversion::ToInteger(args.Values[2], scriptContext);
         AssertOrFailFast(index >= 0);
         JavascriptArray::BigIndex bigIndex(static_cast<uint64>(index));

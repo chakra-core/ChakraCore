@@ -122,10 +122,7 @@ namespace Js
             this->lastIndexOrFlag = lastIndex;
         }
 
-        static bool Is(Var aValue);
         static bool IsRegExpLike(Var aValue, ScriptContext* scriptContext);
-        static JavascriptRegExp* FromVar(Var aValue);
-        static JavascriptRegExp* UnsafeFromVar(Var aValue);
 
         static JavascriptRegExp* CreateRegEx(const char16* pSource, CharCount sourceLen,
             UnifiedRegex::RegexFlags flags, ScriptContext *scriptContext);
@@ -221,5 +218,10 @@ namespace Js
             return VTableValue::VtableJavascriptRegExp;
         }
     };
+
+    template <> inline bool VarIsImpl<JavascriptRegExp>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_RegEx;
+    }
 
 } // namespace Js

@@ -44,7 +44,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
         case TypeIds_ActivationObject:
         case TypeIds_SymbolObject:
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(args[1]), nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(args[1]), nullptr, scriptContext) :
                 args[1];
 
         default:
@@ -56,7 +56,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
             }
 
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), result, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), result, nullptr, scriptContext) :
                 result;
         }
     }
@@ -67,7 +67,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
     }
     Var newObj = scriptContext->GetLibrary()->CreateObject(true);
     return isCtorSuperCall ?
-        JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(newObj), nullptr, scriptContext) :
+        JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(newObj), nullptr, scriptContext) :
         newObj;
 }
 
@@ -152,9 +152,9 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     Assert(JavascriptOperators::IsObject(object));
     Assert(JavascriptOperators::IsObjectOrNull(newPrototype));
 
-    if (JavascriptProxy::Is(object))
+    if (VarIs<JavascriptProxy>(object))
     {
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(object);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(object);
         CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
         return proxy->SetPrototypeTrap(newPrototype, shouldThrow, scriptContext);
     }
@@ -207,7 +207,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     // 8.   Return true.
 
     bool isInvalidationOfInlineCacheNeeded = true;
-    DynamicObject * obj = DynamicObject::FromVar(object);
+    DynamicObject * obj = VarTo<DynamicObject>(object);
 
     // If this object was not prototype object, then no need to invalidate inline caches.
     // Simply assign it a new type so if this object used protoInlineCache in past, it will
@@ -296,7 +296,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     }
 
     // Set to new prototype
-    if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (DynamicObject::UnsafeFromVar(object))->IsCrossSiteObject()))
+    if (object->IsExternal() || (DynamicType::Is(object->GetTypeId()) && (UnsafeVarTo<DynamicObject>(object))->IsCrossSiteObject()))
     {
         CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
     }
@@ -326,11 +326,11 @@ Var JavascriptObject::EntryIsPrototypeOf(RecyclableObject* function, CallInfo ca
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.isPrototypeOf"));
     }
-    RecyclableObject* value = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* value = VarTo<RecyclableObject>(args[1]);
 
     if (dynamicObject->GetTypeId() == TypeIds_GlobalObject)
     {
-        dynamicObject = RecyclableObject::FromVar(static_cast<Js::GlobalObject*>(dynamicObject)->ToThis());
+        dynamicObject = VarTo<RecyclableObject>(static_cast<Js::GlobalObject*>(dynamicObject)->ToThis());
     }
 
     while (!JavascriptOperators::IsNull(value))
@@ -369,7 +369,7 @@ Var JavascriptObject::EntryToLocaleString(RecyclableObject* function, CallInfo c
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.toLocaleString"));
     }
 
-    RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
+    RecyclableObject* toStringFunc = VarTo<RecyclableObject>(toStringVar);
     if (toStringFunc == scriptContext->GetLibrary()->GetObjectToStringFunction())
     {
         return ToStringHelper(thisValue, scriptContext);
@@ -461,7 +461,7 @@ JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext
 
     // 17. Return the String that is the result of concatenating "[object ", tag, and "]".
     auto buildToString = [&scriptContext](Var tag) {
-        JavascriptString *tagStr = JavascriptString::FromVar(tag);
+        JavascriptString *tagStr = VarTo<JavascriptString>(tag);
         const WCHAR objectStartString[9] = _u("[object ");
         const WCHAR objectEndString[1] = { _u(']') };
         CompoundString *const cs = CompoundString::NewWithCharCapacity(_countof(objectStartString)
@@ -473,7 +473,7 @@ JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext
 
         return cs;
     };
-    if (tag != nullptr && JavascriptString::Is(tag))
+    if (tag != nullptr && VarIs<JavascriptString>(tag))
     {
         return buildToString(tag);
     }
@@ -572,7 +572,7 @@ Var JavascriptObject::ToStringHelper(Var thisArg, ScriptContext* scriptContext)
     // We first need to make sure we are in the right context.
     if (type == TypeIds_HostDispatch)
     {
-        RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
+        RecyclableObject* hostDispatchObject = VarTo<RecyclableObject>(thisArg);
         const DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
         if (!remoteObject)
         {
@@ -691,7 +691,7 @@ BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, Pro
     if (obj->IsExternal())
     {
         isPropertyDescriptorDefined = obj->HasOwnProperty(propertyId) ?
-            JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : 
+            JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) :
             FALSE;
     }
     else
@@ -826,8 +826,8 @@ Var JavascriptObject::EntrySetPrototypeOf(RecyclableObject* function, CallInfo c
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject* object = RecyclableObject::FromVar(args[1]);
-    RecyclableObject* newPrototype = RecyclableObject::FromVar(args[2]);
+    RecyclableObject* object = VarTo<RecyclableObject>(args[1]);
+    RecyclableObject* newPrototype = VarTo<RecyclableObject>(args[2]);
 
     // 5. Let status be O.[[SetPrototypeOf]](proto).
     // 6. ReturnIfAbrupt(status).
@@ -860,7 +860,7 @@ Var JavascriptObject::EntrySeal(RecyclableObject* function, CallInfo callInfo, .
     }
 
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -892,7 +892,7 @@ Var JavascriptObject::EntryFreeze(RecyclableObject* function, CallInfo callInfo,
         return args[1];
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -924,7 +924,7 @@ Var JavascriptObject::EntryPreventExtensions(RecyclableObject* function, CallInf
         return args[1];
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -952,7 +952,7 @@ Var JavascriptObject::EntryIsSealed(RecyclableObject* function, CallInfo callInf
         return scriptContext->GetLibrary()->GetTrue();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     BOOL isSealed = object->IsSealed();
 
@@ -980,7 +980,7 @@ Var JavascriptObject::EntryIsFrozen(RecyclableObject* function, CallInfo callInf
         return scriptContext->GetLibrary()->GetTrue();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     BOOL isFrozen = object->IsFrozen();
 
@@ -1008,7 +1008,7 @@ Var JavascriptObject::EntryIsExtensible(RecyclableObject* function, CallInfo cal
         return scriptContext->GetLibrary()->GetFalse();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
     BOOL isExtensible = object->IsExtensible();
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
@@ -1108,7 +1108,7 @@ Var JavascriptObject::GetValuesOrEntries(RecyclableObject* object, bool valuesTo
     for (uint32 i = 0, index = 0; i < length; i++)
     {
         nextKey = ownKeysResult->DirectGetItem(i);
-        Assert(JavascriptString::Is(nextKey));
+        Assert(VarIs<JavascriptString>(nextKey));
 
         PropertyDescriptor propertyDescriptor;
 
@@ -1296,7 +1296,7 @@ Var JavascriptObject::EntryDefineProperty(RecyclableObject* function, CallInfo c
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject* obj = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* obj = VarTo<RecyclableObject>(args[1]);
 
     // If the object is HostDispatch try to invoke the operation remotely
     if (obj->GetTypeId() == TypeIds_HostDispatch)
@@ -1347,7 +1347,7 @@ Var JavascriptObject::EntryDefineProperties(RecyclableObject* function, CallInfo
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     // If the object is HostDispatch try to invoke the operation remotely
     if (object->GetTypeId() == TypeIds_HostDispatch)
@@ -1619,7 +1619,7 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
 #endif
     // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
-    if (JavascriptProxy::Is(from))
+    if (VarIs<JavascriptProxy>(from))
     {
         CopyDataPropertiesForProxyObjects<assign>(from, to, excluded, scriptContext);
     }
@@ -1631,8 +1631,8 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
             bool copied = false;
             if (tryCopy)
             {
-                DynamicObject* fromObj = JavascriptOperators::TryFromVar<DynamicObject>(from);
-                DynamicObject* toObj = JavascriptOperators::TryFromVar<DynamicObject>(to);
+                DynamicObject* fromObj = DynamicObject::TryVarToBaseDynamicObject(from);
+                DynamicObject* toObj = DynamicObject::TryVarToBaseDynamicObject(to);
                 if (toObj && fromObj && toObj->GetType() == scriptContext->GetLibrary()->GetObjectType())
                 {
                     copied = toObj->TryCopy(fromObj);
@@ -1687,7 +1687,7 @@ void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* fro
         }
         if (!found)
         {
-            PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
+            PropertyString * propertyString = JavascriptOperators::TryFromVar<PropertyString>(propertyName);
 
             // If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
             //
@@ -1740,7 +1740,7 @@ void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from,
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(VarIs<JavascriptSymbol>(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         // Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
@@ -1795,7 +1795,7 @@ BOOL JavascriptObject::CreateDataProperty(RecyclableObject* obj, PropertyId key,
     newDesc.SetEnumerable(true);
     newDesc.SetConfigurable(true);
 
-    // 4. Return ? O.[[DefineOwnProperty]](P, newDesc). 
+    // 4. Return ? O.[[DefineOwnProperty]](P, newDesc).
     return DefineOwnPropertyHelper(obj, key, newDesc, scriptContext);
 }
 
@@ -1823,14 +1823,14 @@ Var JavascriptObject::EntryCreate(RecyclableObject* function, CallInfo callInfo,
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
     }
 
-    RecyclableObject* protoObj = RecyclableObject::FromVar(protoVar);
+    RecyclableObject* protoObj = VarTo<RecyclableObject>(protoVar);
     DynamicObject* object = function->GetLibrary()->CreateObject(protoObj);
 
     JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(object));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
     {
-        object = DynamicObject::FromVar(JavascriptProxy::AutoProxyWrapper(object));
+        object = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(object));
     }
 #endif
 
@@ -1848,7 +1848,7 @@ Var JavascriptObject::EntryCreate(RecyclableObject* function, CallInfo callInfo,
 
 Var JavascriptObject::DefinePropertiesHelper(RecyclableObject *object, RecyclableObject* props, ScriptContext *scriptContext)
 {
-    if (JavascriptProxy::Is(props))
+    if (VarIs<JavascriptProxy>(props))
     {
         return DefinePropertiesHelperForProxyObjects(object, props, scriptContext);
     }
@@ -1943,7 +1943,7 @@ Var JavascriptObject::DefinePropertiesHelperForGenericObjects(RecyclableObject *
 //ES5 15.2.3.7
 Var JavascriptObject::DefinePropertiesHelperForProxyObjects(RecyclableObject *object, RecyclableObject* props, ScriptContext *scriptContext)
 {
-    Assert(JavascriptProxy::Is(props));
+    Assert(VarIs<JavascriptProxy>(props));
 
     //1.  If Type(O) is not Object throw a TypeError exception.
     //2.  Let props be ToObject(Properties).
@@ -1982,7 +1982,7 @@ Var JavascriptObject::DefinePropertiesHelperForProxyObjects(RecyclableObject *ob
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(VarIs<JavascriptSymbol>(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
         AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoProperty.");
@@ -2090,8 +2090,8 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
         charcount_t propertyLength = propertyRecord->GetLength();
 
         if (descriptor.GetterSpecified()
-            && Js::ScriptFunction::Is(descriptor.GetGetter())
-            && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
+            && Js::VarIs<Js::ScriptFunction>(descriptor.GetGetter())
+            && _wcsicmp(Js::VarTo<Js::ScriptFunction>(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
         {
             // modify to name.get
             const char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
@@ -2099,14 +2099,14 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
             {
                 FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                Js::VarTo<Js::ScriptFunction>(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
                     propertyLength + 4 /*".get"*/, propertyLength + 1, flags);
             }
         }
 
         if (descriptor.SetterSpecified()
-            && Js::ScriptFunction::Is(descriptor.GetSetter())
-            && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
+            && Js::VarIs<Js::ScriptFunction>(descriptor.GetSetter())
+            && _wcsicmp(Js::VarTo<Js::ScriptFunction>(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
         {
             // modify to name.set
             const char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
@@ -2114,7 +2114,7 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
             {
                 FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                Js::VarTo<Js::ScriptFunction>(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
                     propertyLength + 4 /*".set"*/, propertyLength + 1, flags);
             }
         }
@@ -2143,7 +2143,7 @@ BOOL JavascriptObject::DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId
         else if (DynamicObject::IsAnyTypedArray(obj))
         {
             returnValue = JavascriptOperators::DefineOwnPropertyForTypedArray(
-                TypedArrayBase::FromVar(obj), propId, descriptor, throwOnError, scriptContext);
+                VarTo<TypedArrayBase>(obj), propId, descriptor, throwOnError, scriptContext);
         }
         // TODO: implement DefineOwnProperty for other object built-in exotic types.
         else
@@ -2206,7 +2206,7 @@ void JavascriptObject::Restify(Var source, Var to, void* excludedStatic, void* e
         PropertyId id = propIdsStatic->elements[i];
         excluded.Set(id);
     }
-    // If these two are equal, this means there were no computed properties 
+    // If these two are equal, this means there were no computed properties
     // and the static array was passed in to indicate this
     if (propIdsStatic != propIdsComputed)
     {

@@ -2420,9 +2420,9 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length)
     {
-        TTDAssert(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
-        TTDAssert(dstIndex + length <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
-        TTDAssert(srcIndex + length <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::VarIs<Js::ArrayBuffer>(dst) && Js::VarIs<Js::ArrayBuffer>(src), "Not array buffer objects!!!");
+        TTDAssert(dstIndex + length <= Js::VarTo<Js::ArrayBuffer>(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(srcIndex + length <= Js::VarTo<Js::ArrayBuffer>(src)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferCopyAction* rbcAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferCopyAction, NSLogEvents::EventKind::RawBufferCopySync>(&rbcAction);
@@ -2437,8 +2437,8 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferModifySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 index, uint32 count)
     {
-        TTDAssert(Js::ArrayBuffer::Is(dst), "Not array buffer object!!!");
-        TTDAssert(index + count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::VarIs<Js::ArrayBuffer>(dst), "Not array buffer object!!!");
+        TTDAssert(index + count <= Js::VarTo<Js::ArrayBuffer>(dst)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferModifyAction* rbmAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferModifyAction, NSLogEvents::EventKind::RawBufferModifySync>(&rbmAction);
@@ -2447,7 +2447,7 @@ namespace TTD
         rbmAction->Length = count;
 
         rbmAction->Data = (rbmAction->Length != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<byte>(rbmAction->Length) : nullptr;
-        byte* copyBuff = Js::ArrayBuffer::FromVar(dst)->GetBuffer() + index;
+        byte* copyBuff = Js::VarTo<Js::ArrayBuffer>(dst)->GetBuffer() + index;
         js_memcpy_s(rbmAction->Data, rbmAction->Length, copyBuff, count);
 
         actionPopper.InitializeWithEventAndEnter(evt);
@@ -2465,7 +2465,7 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferAsyncModifyComplete(TTDJsRTActionResultAutoRecorder& actionPopper, TTDPendingAsyncBufferModification& pendingAsyncInfo, byte* finalModPos)
     {
-        Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(pendingAsyncInfo.ArrayBufferVar);
+        Js::ArrayBuffer* dstBuff = Js::VarTo<Js::ArrayBuffer>(pendingAsyncInfo.ArrayBufferVar);
         byte* copyBuff = dstBuff->GetBuffer() + pendingAsyncInfo.Index;
 
         NSLogEvents::JsRTRawBufferModifyAction* rbrAction = nullptr;

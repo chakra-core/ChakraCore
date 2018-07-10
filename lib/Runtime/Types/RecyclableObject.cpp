@@ -33,8 +33,8 @@ namespace Js
         // Make sure the given prop and usage cache match
         Assert(
             prop == nullptr && propertyRecordUsageCache == nullptr ||
-            JavascriptSymbol::Is(prop) && JavascriptSymbol::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
-            PropertyString::Is(prop) && PropertyString::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
+            VarIs<JavascriptSymbol>(prop) && UnsafeVarTo<JavascriptSymbol>(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
+            VarIs<PropertyString>(prop) && UnsafeVarTo<PropertyString>(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
 
         info->prop = prop;
         info->propertyRecordUsageCache = propertyRecordUsageCache;
@@ -184,7 +184,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* dynamicThis = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* dynamicThis = UnsafeVarTo<DynamicObject>(this);
             dynamicThis->SetIsPrototype();      // Call the DynamicObject::SetIsPrototype
         }
     }
@@ -193,7 +193,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasOnlyWritableDataProperties() &&
                 (!obj->HasObjectArray() || obj->GetObjectArrayOrFlagsAsArray()->HasOnlyWritableDataProperties());
         }
@@ -205,7 +205,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasSpecialProperties() ||
                 (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->HasAnySpecialProperties());
         }
@@ -217,7 +217,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             obj->GetTypeHandler()->ClearWritableDataOnlyDetectionBit();
             if (obj->HasObjectArray())
             {
@@ -230,7 +230,7 @@ namespace Js
     {
         if (DynamicType::Is(this->GetTypeId()))
         {
-            DynamicObject* obj = DynamicObject::UnsafeFromVar(this);
+            DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->IsWritableDataOnlyDetectionBitSet() ||
                 (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->IsWritableDataOnlyDetectionBitSet());
         }
@@ -259,7 +259,7 @@ namespace Js
         case TypeIds_Null:
             return requestContext->GetLibrary()->GetNull();
         case TypeIds_Number:
-            return RecyclableObject::FromVar(JavascriptNumber::CloneToScriptContext(this, requestContext));
+            return VarTo<RecyclableObject>(JavascriptNumber::CloneToScriptContext(this, requestContext));
         default:
             AssertMsg(FALSE, "shouldn't clone for other types");
             Js::JavascriptError::ThrowError(requestContext, VBSERR_InternalError);
@@ -324,9 +324,9 @@ namespace Js
     }
     RecyclableObject* RecyclableObject::GetThisObjectOrUnWrap()
     {
-        if (WithScopeObject::Is(this))
+        if (VarIs<WithScopeObject>(this))
         {
-            return WithScopeObject::FromVar(this)->GetWrappedObject();
+            return VarTo<WithScopeObject>(this)->GetWrappedObject();
         }
         return this;
     }
@@ -537,7 +537,7 @@ namespace Js
                 goto ReturnTrue;
             default:
                 // Falsy objects are == null and == undefined.
-                *value = RecyclableObject::FromVar(aRight)->GetType()->IsFalsy();
+                *value = VarTo<RecyclableObject>(aRight)->GetType()->IsFalsy();
                 return TRUE;
             }
         case TypeIds_Integer:
@@ -554,7 +554,7 @@ namespace Js
             case TypeIds_Int64Number:
             {
                 int leftValue = TaggedInt::ToInt32(aLeft);
-                __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 *value = leftValue == rightValue;
                 Assert(!(*value));  // currently it cannot be true. more for future extension if we allow arithmetic calculation
                 return TRUE;
@@ -562,7 +562,7 @@ namespace Js
             case TypeIds_UInt64Number:
             {
                 __int64 leftValue = TaggedInt::ToInt32(aLeft);
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 // TODO: yongqu to review whether we need to check for neg value
                 *value = (/*leftValue >= 0 && */(unsigned __int64)leftValue == rightValue);
                 Assert(!(*value));  // currently it cannot be true. more for future extension if we allow arithmetic calculation
@@ -586,27 +586,27 @@ namespace Js
             {
             case TypeIds_Integer:
             {
-                __int64 leftValue = JavascriptInt64Number::FromVar(aLeft)->GetValue();
+                __int64 leftValue = VarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 int rightValue = TaggedInt::ToInt32(aRight);
                 *value = leftValue == rightValue;
                 Assert(!(*value));  // currently it cannot be true. more for future extension if we allow arithmetic calculation
                 return TRUE;
             }
             case TypeIds_Number:
-                dblLeft = (double)JavascriptInt64Number::FromVar(aLeft)->GetValue();
+                dblLeft = (double)VarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 dblRight = JavascriptNumber::GetValue(aRight);
                 goto CompareDoubles;
             case TypeIds_Int64Number:
             {
-                __int64 leftValue = JavascriptInt64Number::FromVar(aLeft)->GetValue();
-                __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                __int64 leftValue = VarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 *value = leftValue == rightValue;
                 return TRUE;
             }
             case TypeIds_UInt64Number:
             {
-                __int64 leftValue = JavascriptInt64Number::FromVar(aLeft)->GetValue();
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                __int64 leftValue = VarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 // TODO: yongqu to review whether we need to check for neg value
                 *value = (/* leftValue >= 0 && */(unsigned __int64)leftValue == rightValue);
                 return TRUE;
@@ -618,7 +618,7 @@ namespace Js
             {
             case TypeIds_Integer:
             {
-                unsigned __int64 leftValue = JavascriptUInt64Number::FromVar(aLeft)->GetValue();
+                unsigned __int64 leftValue = VarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 __int64 rightValue = TaggedInt::ToInt32(aRight);
                 // TODO: yongqu to review whether we need to check for neg value
                 *value = rightValue >= 0 && leftValue == (unsigned __int64)rightValue;
@@ -626,21 +626,21 @@ namespace Js
                 return TRUE;
             }
             case TypeIds_Number:
-                dblLeft = (double)JavascriptUInt64Number::FromVar(aLeft)->GetValue();
+                dblLeft = (double)VarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 dblRight = JavascriptNumber::GetValue(aRight);
                 goto CompareDoubles;
             case TypeIds_Int64Number:
             {
-                unsigned __int64 leftValue = JavascriptUInt64Number::FromVar(aLeft)->GetValue();
-                __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                unsigned __int64 leftValue = VarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 // TODO: yongqu to review whether we need to check for neg value
                 *value = (/* rightValue >= 0 && */leftValue == (unsigned __int64)rightValue);
                 return TRUE;
             }
             case TypeIds_UInt64Number:
             {
-                unsigned __int64 leftValue = JavascriptUInt64Number::FromVar(aLeft)->GetValue();
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                unsigned __int64 leftValue = VarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 *value = leftValue == rightValue;
                 return TRUE;
             }
@@ -678,7 +678,7 @@ namespace Js
             case TypeIds_Symbol:
                 goto ReturnFalse;
             case TypeIds_String:
-                *value = JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                *value = JavascriptString::Equals(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
                 return TRUE;
             case TypeIds_Number:
             case TypeIds_Integer:
@@ -697,7 +697,7 @@ namespace Js
             case TypeIds_Symbol:
                 goto ReturnFalse;
             case TypeIds_Boolean:
-                *value = JavascriptBoolean::FromVar(aLeft)->GetValue() == JavascriptBoolean::FromVar(aRight)->GetValue();
+                *value = VarTo<JavascriptBoolean>(aLeft)->GetValue() == VarTo<JavascriptBoolean>(aRight)->GetValue();
                 return TRUE;
             case TypeIds_Number:
             case TypeIds_Integer:
@@ -722,11 +722,11 @@ namespace Js
                 goto ReturnFalse;
             case TypeIds_Symbol:
                 *value = (aLeft == aRight);
-                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbol::UnsafeFromVar(aRight)->GetValue()) == *value);
+                Assert((UnsafeVarTo<JavascriptSymbol>(aLeft)->GetValue() == UnsafeVarTo<JavascriptSymbol>(aRight)->GetValue()) == *value);
                 return TRUE;
             case TypeIds_SymbolObject:
-                *value = (aLeft == JavascriptSymbolObject::UnsafeFromVar(aRight)->Unwrap());
-                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbolObject::UnsafeFromVar(aRight)->GetValue()) == *value);
+                *value = (aLeft == UnsafeVarTo<JavascriptSymbolObject>(aRight)->Unwrap());
+                Assert((UnsafeVarTo<JavascriptSymbol>(aLeft)->GetValue() == UnsafeVarTo<JavascriptSymbolObject>(aRight)->GetValue()) == *value);
                 return TRUE;
             default:
                 goto RedoRight;

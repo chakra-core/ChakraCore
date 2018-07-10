@@ -88,7 +88,7 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        PropertyString * propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
         if (propertyString != nullptr)
         {
             propertyString->GetPropertyRecord(&propertyRecord);
@@ -104,7 +104,7 @@ namespace Js
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
-        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyId()));
+        Assert(!VarIs<PropertyString>(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyId()));
 
         return false;
     }
@@ -1122,7 +1122,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetProperty_Internal<true>(instance, originalInstance, propertyId, value, info, requestContext);
     }
 
@@ -1277,7 +1277,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return SetProperty_Internal<true>(instance, propertyId, value, flags, info);
     }
 
@@ -1399,7 +1399,7 @@ namespace Js
                         Assert(value != nullptr);
                         // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                         Assert(!instance->IsExternal());
-                        descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
+                        descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                     }
                 }
             }
@@ -1444,7 +1444,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     DescriptorFlags SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetSetter_Internal<true>(instance, propertyId, setterValue, info, requestContext);
     }
 
@@ -1652,7 +1652,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return DeleteProperty_Internal<true>(instance, propertyId, propertyOperationFlags);
     }
 
@@ -1833,7 +1833,7 @@ namespace Js
         {
             if (descriptor->Attributes & PropertyLetConstGlobal)
             {
-                AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+                AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
                 return true;
             }
             return descriptor->Attributes & PropertyConfigurable;
@@ -2450,7 +2450,7 @@ namespace Js
                             Assert(value != nullptr);
                             // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                             Assert(!instance->IsExternal());
-                            descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
+                            descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                         }
                     }
                 }
@@ -2709,7 +2709,7 @@ namespace Js
         bool markAsInitialized = ((flags & PropertyOperation_PreInit) == 0);
         bool markAsFixed = markAsInitialized && !TPropertyKey_IsInternalPropertyId(propertyKey) && (flags & (PropertyOperation_NonFixedValue | PropertyOperation_SpecialValue)) == 0 &&
             typeHandler->singletonInstance != nullptr && typeHandler->singletonInstance->Get() == instance
-            && (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
+            && (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
 #else
         bool markAsInitialized = true;
         bool markAsFixed = false;
@@ -2836,7 +2836,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     DynamicTypeHandler* SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ?
+        return JavascriptArray::IsNonES5Array(instance) ?
             ConvertToES5ArrayType(instance) : ConvertToDictionaryType(instance);
     }
 
@@ -2890,7 +2890,7 @@ namespace Js
 
                                 // saravind:If the instance is used by a CrossSiteObject, then we are conservative and do not mark any field as fixed in that instance.
                                 // We need to relax this in the future and support fixed fields for Cross Site Context usage
-                                descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
+                                descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
 
                                 // Since we have a new type we can clear all used as fixed bits.  That's because any instance field loads
                                 // will have been invalidated by the type transition, and there are no proto fields loads from this object
@@ -3149,7 +3149,7 @@ namespace Js
                     AssertMsg(!(descriptor->Attributes & PropertyLetConstGlobal), "can't have fixed global let/const");
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(descriptor->propertyIndex);
-                    if (value && ((IsFixedMethodProperty(propertyType) && JavascriptFunction::Is(value)) || IsFixedDataProperty(propertyType)))
+                    if (value && ((IsFixedMethodProperty(propertyType) && VarIs<JavascriptFunction>(value)) || IsFixedDataProperty(propertyType)))
                     {
                         *pProperty = value;
                         if (markAsUsed)

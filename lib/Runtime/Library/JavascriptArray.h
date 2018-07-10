@@ -211,10 +211,11 @@ namespace Js
             return this->DirectGetItemAt(index, &value) ? WritableData : None;
         }
 
-        static bool Is(Var aValue);
-        static bool Is(TypeId typeId);
-        static JavascriptArray* FromVar(Var aValue);
-        static JavascriptArray* UnsafeFromVar(Var aValue);
+        static bool IsNonES5Array(Var aValue);
+        static bool IsNonES5Array(TypeId typeId);
+
+        // Returns the object if it is a non-ES5 array object. Otherwise returns null.
+        static JavascriptArray* TryVarToNonES5Array(Var aValue);
 
         static bool IsVarArray(Var aValue);
         static bool IsVarArray(TypeId typeId);
@@ -385,7 +386,7 @@ namespace Js
         template<typename Func>
         void WalkExisting(Func func)
         {
-            Assert(!JavascriptNativeIntArray::Is(this) && !JavascriptNativeFloatArray::Is(this));
+            Assert(!VarIs<JavascriptNativeIntArray>(this) && !VarIs<JavascriptNativeFloatArray>(this));
             ArrayElementEnumerator e(this, 0);
             while(e.MoveNext<Var>())
             {
@@ -647,10 +648,13 @@ namespace Js
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
 
+        // Like normal VarIs, but will return false for <JavascriptArray> if the array has transitioned to ES5Array type.
+        template<typename T> static bool VarIsWithoutES5Array(RecyclableObject* object);
+
         template<typename T, typename P>
-        static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
+        static BOOL TryTemplatedGetItem(RecyclableObject* arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :
+            return VarIsWithoutES5Array<T>(arr) ? JavascriptArray::TemplatedGetItem(static_cast<T*>(arr), index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -660,20 +664,21 @@ namespace Js
             for (uint32 i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                fn(i, TryTemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
+                RecyclableObject* curArr = arr;
+                fn(i, TryTemplatedGetItem<T>(curArr, i, &element, scriptContext) ? element : missingItem);
 
-                if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
+                if (hasSideEffect && MayChangeType<T>() && !VarIsWithoutES5Array<T>(curArr))
                 {
-                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                     // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                    if (JavascriptArray::Is(arr))
+                    if (JavascriptArray::IsNonES5Array(curArr))
                     {
-                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                        UnsafeVarTo<JavascriptArray>(curArr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                         return;
                     }
                     else
                     {
-                        AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                        AssertOrFailFastMsg(VarIs<ES5Array>(curArr), "The array should have been converted to an ES5Array");
                     }
                 }
             }
@@ -685,22 +690,23 @@ namespace Js
             for (P i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                if (TryTemplatedGetItem(arr, i, &element, scriptContext))
+                RecyclableObject* curArr = arr;
+                if (TryTemplatedGetItem<T>(curArr, i, &element, scriptContext))
                 {
                     fn(i, element);
 
-                    if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
+                    if (hasSideEffect && MayChangeType<T>() && !VarIsWithoutES5Array<T>(curArr))
                     {
-                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                        if (JavascriptArray::Is(arr))
+                        if (JavascriptArray::IsNonES5Array(curArr))
                         {
-                            JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                            UnsafeVarTo<JavascriptArray>(curArr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                             return;
                         }
                         else
                         {
-                            AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                            AssertOrFailFastMsg(VarIs<ES5Array>(curArr), "The array should have been converted to an ES5Array");
                         }
                     }
                 }
@@ -723,10 +729,10 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(this, startIndex, limitIndex, scriptContext, fn);
                 break;
             case TypeIds_NativeIntArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeIntArray::FromVar(this), startIndex, limitIndex, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeFloatArray>(this), startIndex, limitIndex, scriptContext, fn);
                 break;
             default:
                 Assert(false);
@@ -743,10 +749,10 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(this, startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             case TypeIds_NativeIntArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeIntArray::FromVar(this), startIndex, limitIndex, missingItem, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, missingItem, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeFloatArray>(this), startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             default:
                 Assert(false);
@@ -854,11 +860,11 @@ namespace Js
         static void SetConcatItem(Var aItem, uint idxArg, JavascriptArray* pDestArray, RecyclableObject* pDestObj, T idxDest, ScriptContext *scriptContext);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, 
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start,
             BigIndex startIdxDest, ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, 
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u,
             ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
 
         static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
@@ -934,6 +940,24 @@ namespace Js
         }
     };
 
+    template <> inline bool VarIsImpl<JavascriptArray>(RecyclableObject* obj)
+    {
+        return DynamicObject::IsAnyArray(obj);
+    }
+
+    template<typename T> bool JavascriptArray::VarIsWithoutES5Array(RecyclableObject* object)
+    {
+        return VarIs<T>(object);
+    }
+    template <> inline bool JavascriptArray::VarIsWithoutES5Array<RecyclableObject>(RecyclableObject* object)
+    {
+        return true;
+    }
+    template <> inline bool JavascriptArray::VarIsWithoutES5Array<JavascriptArray>(RecyclableObject* object)
+    {
+        return IsNonES5Array(object);
+    }
+
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
     // so we are checking for failure on DeleteProperty/DeleteItem/... etc instead. This helper makes that checking a little less intrusive.
     class ThrowTypeErrorOnFailureHelper
@@ -972,10 +996,7 @@ namespace Js
         Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
     public:
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeArray* FromVar(Var aValue);
-        static JavascriptNativeArray* UnsafeFromVar(Var aValue);
 
         void SetArrayCallSite(ProfileId index, RecyclerWeakReference<FunctionBody> *weakRef)
         {
@@ -1007,6 +1028,11 @@ namespace Js
         static void PopWithNoDst(Var nativeArray);
     };
 
+    template <> inline bool VarIsImpl<JavascriptNativeArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
+
     class JavascriptNativeFloatArray;
     class JavascriptNativeIntArray : public JavascriptNativeArray
     {
@@ -1033,10 +1059,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeIntArray* FromVar(Var aValue);
-        static JavascriptNativeIntArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef int32 TElement;
@@ -1114,6 +1137,11 @@ namespace Js
         }
     };
 
+    template <> inline bool VarIsImpl<JavascriptNativeIntArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeIntArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
+
 #if ENABLE_COPYONACCESS_ARRAY
     class JavascriptCopyOnAccessNativeIntArray : public JavascriptNativeIntArray
     {
@@ -1131,11 +1159,6 @@ namespace Js
             JavascriptNativeIntArray(length, type) {}
 
         virtual BOOL IsCopyOnAccessArray() { return TRUE; }
-
-        static bool Is(Var aValue);
-        static bool Is(TypeId typeId);
-        static JavascriptCopyOnAccessNativeIntArray* FromVar(Var aValue);
-        static JavascriptCopyOnAccessNativeIntArray* UnsafeFromVar(Var aValue);
 
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
         void ConvertCopyOnAccessSegment();
@@ -1171,6 +1194,11 @@ namespace Js
         }
 
     };
+
+    template <> inline bool VarIsImpl<JavascriptCopyOnAccessNativeIntArray>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_CopyOnAccessNativeIntArray;
+    }
 #endif
 
     class JavascriptNativeFloatArray : public JavascriptNativeArray
@@ -1199,10 +1227,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeFloatArray* FromVar(Var aValue);
-        static JavascriptNativeFloatArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef double TElement;
@@ -1255,7 +1280,7 @@ namespace Js
         }
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
 
-        static Var Push(ScriptContext * scriptContext, Var * nativeFloatArray, double value);
+        static Var Push(ScriptContext * scriptContext, Var nativeFloatArray, double value);
         static JavascriptNativeFloatArray * BoxStackInstance(JavascriptNativeFloatArray * instance, bool deepCopy);
         static double Pop(ScriptContext * scriptContext, Var nativeFloatArray);
     private:
@@ -1284,6 +1309,11 @@ namespace Js
         }
 
     };
+
+    template <> inline bool VarIsImpl<JavascriptNativeFloatArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeFloatArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
 
     template <>
     inline bool JavascriptArray::MayChangeType<JavascriptNativeIntArray>() { return true; }

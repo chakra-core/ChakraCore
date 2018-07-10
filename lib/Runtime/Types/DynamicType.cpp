@@ -449,7 +449,7 @@ namespace Js
     {
         if (JavascriptConversion::IsCallable(toPrimitiveFunction))
         {
-            RecyclableObject* toStringFunction = RecyclableObject::FromVar(toPrimitiveFunction);
+            RecyclableObject* toStringFunction = VarTo<RecyclableObject>(toPrimitiveFunction);
 
             ThreadContext * threadContext = requestContext->GetThreadContext();
             Var aResult = threadContext->ExecuteImplicitCall(toStringFunction, ImplicitCall_ToPrimitive, [=]() -> Js::Var

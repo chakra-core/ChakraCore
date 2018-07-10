@@ -39,9 +39,6 @@ namespace Js
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result);
 
     public:
-        static bool Is(Var instance);
-        static ES5Array* FromVar(Var instance);
-        static ES5Array* UnsafeFromVar(Var instance);
         static uint32 ToLengthValue(Var value, ScriptContext* scriptContext);
         bool IsLengthWritable() const;
 
@@ -104,5 +101,10 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<ES5Array>(RecyclableObject* instance)
+    {
+        return JavascriptOperators::GetTypeId(instance) == TypeIds_ES5Array;
+    }
 }
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::ES5Array, &Js::RecyclableObject::DumpObjectFunction);

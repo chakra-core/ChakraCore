@@ -27,10 +27,6 @@ namespace Js
         static Var EntryGrow(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static bool Is(Var aValue);
-        static WebAssemblyMemory * FromVar(Var aValue);
-        static WebAssemblyMemory * UnsafeFromVar(Var aValue);
-
         static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, bool isShared, ScriptContext * scriptContext);
         static WebAssemblyMemory * CreateForExistingBuffer(uint32 initial, uint32 maximum, uint32 currentByteLength, ScriptContext * scriptContext);
 #ifdef ENABLE_WASM_THREADS
@@ -64,4 +60,8 @@ namespace Js
 #endif
     };
 
+    template <> inline bool VarIsImpl<WebAssemblyMemory>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyMemory;
+    }
 } // namespace Js

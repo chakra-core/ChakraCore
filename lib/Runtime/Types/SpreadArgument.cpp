@@ -6,23 +6,6 @@
 #include "Types/SpreadArgument.h"
 namespace Js
 {
-    bool SpreadArgument::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_SpreadArgument;
-    }
-
-    SpreadArgument* SpreadArgument::FromVar(Var aValue)
-    {
-        AssertOrFailFast(SpreadArgument::Is(aValue));
-        return static_cast<SpreadArgument*>(aValue);
-    }
-
-    SpreadArgument* SpreadArgument::UnsafeFromVar(Var aValue)
-    {
-        Assert(SpreadArgument::Is(aValue));
-        return static_cast<SpreadArgument*>(aValue);
-    }
-
     SpreadArgument::SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type)
         : DynamicObject(type), iteratorIndices(nullptr)
     {
@@ -32,9 +15,9 @@ namespace Js
 
         if (useDirectCall)
         {
-            if (JavascriptArray::Is(iterator))
+            if (JavascriptArray::IsNonES5Array(iterator))
             {
-                JavascriptArray *array = JavascriptArray::FromVar(iterator);
+                JavascriptArray *array = VarTo<JavascriptArray>(iterator);
                 if (!array->HasNoMissingValues())
                 {
                     AssertAndFailFast();
@@ -56,9 +39,9 @@ namespace Js
                     Assert(length == array->GetLength());
                 }
             }
-            else if (TypedArrayBase::Is(iterator))
+            else if (VarIs<TypedArrayBase>(iterator))
             {
-                TypedArrayBase *typedArray = TypedArrayBase::UnsafeFromVar(iterator);
+                TypedArrayBase *typedArray = UnsafeVarTo<TypedArrayBase>(iterator);
 
                 if (typedArray->IsDetachedBuffer())
                 {
@@ -84,10 +67,10 @@ namespace Js
                 Assert(false);
             }
         }
-        else if (RecyclableObject::Is(iterator))
+        else if (VarIs<RecyclableObject>(iterator))
         {
             Var nextItem;
-            while (JavascriptOperators::IteratorStepAndValue(RecyclableObject::FromVar(iterator), scriptContext, &nextItem))
+            while (JavascriptOperators::IteratorStepAndValue(VarTo<RecyclableObject>(iterator), scriptContext, &nextItem))
             {
                 if (iteratorIndices == nullptr)
                 {

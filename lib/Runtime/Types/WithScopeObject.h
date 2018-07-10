@@ -25,9 +25,6 @@ namespace Js
 
         public:
             WithScopeObject(RecyclableObject *wrappedObject, StaticType * type) : RecyclableObject(type), wrappedObject(wrappedObject) {}
-            static bool Is(Var aValue);
-            static WithScopeObject* FromVar(Var value);
-            static WithScopeObject* UnsafeFromVar(Var value);
             RecyclableObject *GetWrappedObject() { return wrappedObject; }
             virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
             virtual BOOL HasOwnProperty(PropertyId propertyId) override;
@@ -77,4 +74,9 @@ namespace Js
             virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override { UNWRAP_FAILFAST(); return FALSE; };
             virtual Var GetTypeOfString(ScriptContext * requestContext) override { UNWRAP_FAILFAST(); return RecyclableObject::GetTypeOfString(requestContext); };
     };
+
+    template <> inline bool VarIsImpl<WithScopeObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WithScopeObject;
+    }
 } // namespace Js

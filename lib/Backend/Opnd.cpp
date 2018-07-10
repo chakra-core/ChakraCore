@@ -1016,7 +1016,7 @@ PropertySymOpnd::UpdateSlotForFinalType()
         return;
     }
 
-    // TODO: OOP JIT: should assert about runtime type handler addr 
+    // TODO: OOP JIT: should assert about runtime type handler addr
     Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
     if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
@@ -1068,7 +1068,7 @@ PropertySymOpnd::CloneUseInternalSub(Func *func)
     return this->CopyInternalSub(func);
 }
 
-bool 
+bool
 PropertySymOpnd::ShouldUsePolyEquivTypeGuard(Func *const func) const
 {
     return this->IsPoly() && this->m_polyCacheUtil >= PolymorphicInlineCacheUtilizationThreshold && !PHASE_OFF(Js::PolyEquivTypeGuardPhase, func);
@@ -3232,7 +3232,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                             Output::Print(_u("%s"), func->GetInProcThreadContext()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
                         }
                         Output::Print(_u("(%u)"), propertyOpId);
-                        
+
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
                             Output::Print(_u("~"));
@@ -3627,13 +3627,13 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                 }
                 else
                 {
-                    switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                    switch (Js::VarTo<Js::RecyclableObject>(address)->GetTypeId())
                     {
                     case Js::TypeIds_Boolean:
-                        WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
+                        WriteToBuffer(&buffer, &n, Js::VarTo<Js::JavascriptBoolean>(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
                         break;
                     case Js::TypeIds_String:
-                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
+                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::VarTo<Js::JavascriptString>(address)->GetSz());
                         break;
                     case Js::TypeIds_Number:
                         WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
@@ -3830,9 +3830,9 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
-                if (!func->IsOOPJIT() && Js::JavascriptFunction::Is(dynamicObject))
+                if (!func->IsOOPJIT() && Js::VarIs<Js::JavascriptFunction>(dynamicObject))
                 {
-                    DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
+                    DumpFunctionInfo(&buffer, &n, Js::VarTo<Js::JavascriptFunction>((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else
