@@ -9595,14 +9595,10 @@ namespace Js
         return m_hasFirstTmpRegister ? this->GetCountField(CounterFields::FirstTmpRegister) : Constants::NoRegister;
     }
 
-#if DBG
+#if DBG && defined(ENABLE_SCRIPT_DEBUGGING)
     Js::DebuggerMode FunctionBody::GetDebuggerMode()
     {
-#ifdef ENABLE_SCRIPT_DEBUGGING
         return this->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
-#else
-        return Js::DebuggerMode::NotDebugging;
-#endif
     }
 #endif
 }

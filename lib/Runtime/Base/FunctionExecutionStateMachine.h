@@ -6,7 +6,9 @@
 
 namespace Js
 {
+#if DBG && defined(ENABLE_SCRIPT_DEBUGGING)
     enum DebuggerMode : unsigned int;
+#endif
 
     class FunctionExecutionStateMachine
     {
@@ -117,8 +119,10 @@ namespace Js
         FieldWithBarrier(bool) initializedExecutionModeAndLimits;
         // Temporary debug flags for automation
         FieldWithBarrier(bool) hasBeenReinitialized;
+#ifdef ENABLE_SCRIPT_DEBUGGING
         FieldWithBarrier(Js::DebuggerMode) initDebuggerMode;
         FieldWithBarrier(Js::DebuggerMode) reinitDebuggerMode;
+#endif
 #endif
     };
 };
