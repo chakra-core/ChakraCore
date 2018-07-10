@@ -24,6 +24,9 @@ namespace Js
         lastInterpretedCount(0)
 #if DBG
         ,initializedExecutionModeAndLimits(false)
+        ,hasBeenReinitialized(false)
+        ,initDebuggerMode(DebuggerMode::NotDebugging)
+        ,reinitDebuggerMode(DebuggerMode::NotDebugging)
 #endif
     {
     }
@@ -31,7 +34,11 @@ namespace Js
     void FunctionExecutionStateMachine::InitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
 #if DBG
-        initializedExecutionModeAndLimits = true;
+        if (!initializedExecutionModeAndLimits)
+        {
+            initDebuggerMode = functionBody->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
+        }
+        initializedExecutionModeAndLimits = true;        
 #endif
         // Assert we're either uninitialized, or being reinitialized on the same FunctionBody
         Assert(owner == nullptr || owner == functionBody);
@@ -151,6 +158,10 @@ namespace Js
 
     void FunctionExecutionStateMachine::ReinitializeExecutionModeAndLimits(FunctionBody* functionBody)
     {
+#if DBG
+        hasBeenReinitialized = true;
+        reinitDebuggerMode = functionBody->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
+#endif
         // TODO: Investigate what it would take to make this invariant hold. Currently fails in AsmJS tests
         // Assert(initializedExecutionModeAndLimits);
 
