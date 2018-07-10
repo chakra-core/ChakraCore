@@ -329,6 +329,11 @@ ServerAddDOMFastPathHelper(
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
+    if (helper < 0 || helper >= IR::JnHelperMethodCount)
+    {
+        Assert(UNREACHED);
+        return E_ACCESSDENIED;
+    }
 
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {

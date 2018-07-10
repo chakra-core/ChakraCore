@@ -22,7 +22,8 @@ GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListB
 void
 GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
     SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter,
+    BVSparse<JitArenaAllocator>* argsToCapture)
 {
     Sym * sym = nullptr;
     Value * value = nullptr;
@@ -48,6 +49,11 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
         block->globOptData.changedSyms->Set(sym->m_id);
     }
     NEXT_GLOBHASHTABLE_ENTRY;
+
+    if (argsToCapture)
+    {
+        block->globOptData.changedSyms->Or(argsToCapture);
+    }
 
     FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
     {
@@ -80,7 +86,8 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
 void
 GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter,
+    BVSparse<JitArenaAllocator>* argsToCapture)
 {
     CapturedValues * currCapturedValues = block->globOptData.capturedValues;
     SListBase<ConstantStackSymValue>::Iterator iterConst(currCapturedValues ? &currCapturedValues->constantValues : nullptr);
@@ -89,6 +96,11 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     bool hasCopyPropSym = currCapturedValues ? iterCopyPropSym.Next() : false;
 
     block->globOptData.changedSyms->Set(Js::Constants::InvalidSymID);
+
+    if (argsToCapture)
+    {
+        block->globOptData.changedSyms->Or(argsToCapture);
+    }
 
     FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
     {
@@ -225,7 +237,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
 
 
 void
-GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
+GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture)
 {
     if (!this->func->DoGlobOptsForGeneratorFunc())
     {
@@ -244,11 +256,11 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 
     if (!block->globOptData.capturedValues)
     {
-        CaptureValuesFromScratch(block, bailOutConstValuesIter, bailOutCopySymsIter);
+        CaptureValuesFromScratch(block, bailOutConstValuesIter, bailOutCopySymsIter, argsToCapture);
     }
     else
     {
-        CaptureValuesIncremental(block, bailOutConstValuesIter, bailOutCopySymsIter);
+        CaptureValuesIncremental(block, bailOutConstValuesIter, bailOutCopySymsIter, argsToCapture);
     }
 
     // attach capturedValues to bailOutInfo
@@ -892,6 +904,8 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 {
     AssertMsg(!this->isCallHelper, "Bail out can't be inserted the middle of CallHelper sequence");
 
+    BVSparse<JitArenaAllocator>* argsToCapture = nullptr;
+
     bailOutInfo->liveVarSyms = block->globOptData.liveVarSyms->CopyNew(this->func->m_alloc);
     bailOutInfo->liveFloat64Syms = block->globOptData.liveFloat64Syms->CopyNew(this->func->m_alloc);
     // The live int32 syms in the bailout info are only the syms resulting from lossless conversion to int. If the int32 value
@@ -971,7 +985,12 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                     sym = opnd->GetStackSym();
                     Assert(this->currentBlock->globOptData.FindValue(sym));
                     // StackSym args need to be re-captured
-                    this->currentBlock->globOptData.SetChangedSym(sym->m_id);
+                    if (!argsToCapture)
+                    {
+                        argsToCapture = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+                    }
+
+                    argsToCapture->Set(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
@@ -1019,7 +1038,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 
     // Save the constant values that we know so we can restore them directly.
     // This allows us to dead store the constant value assign.
-    this->CaptureValues(block, bailOutInfo);
+    this->CaptureValues(block, bailOutInfo, argsToCapture);
 }
 
 void

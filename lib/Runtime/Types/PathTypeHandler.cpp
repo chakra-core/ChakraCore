@@ -1452,7 +1452,11 @@ namespace Js
                 DictionaryPropertyDescriptor<PropertyIndex> *descriptor;
                 bool result = newTypeHandler->propertyMap->TryGetReference(propertyRecord, &descriptor);
                 Assert(result);
-                Assert(attributes[descriptor->GetDataPropertyIndex<false>()] & ObjectSlotAttr_Accessor);
+                if (!(attributes[descriptor->GetDataPropertyIndex<false>()] & ObjectSlotAttr_Accessor))
+                {
+                    // Setter without a getter; this is a stale entry, so ignore it
+                    continue;
+                }
                 Assert(oldTypeHandler->GetSetterSlotIndex(descriptor->GetDataPropertyIndex<false>()) == newTypeHandler->nextPropertyIndex);
                 descriptor->ConvertToGetterSetter(newTypeHandler->nextPropertyIndex);
                 newTypeHandler->ClearHasOnlyWritableDataProperties();

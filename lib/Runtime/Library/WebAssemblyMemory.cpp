@@ -134,17 +134,17 @@ WebAssemblyMemory::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
     Assert(ArrayBufferBase::Is(memory->m_buffer));
 
-    if (memory->m_buffer->IsDetached())
-    {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
-    }
-
     Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
     if (args.Info.Count >= 2)
     {
         deltaVar = args[1];
     }
+
     uint32 deltaPages = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
+    if (memory->m_buffer->IsDetached())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+    }
 
     int32 oldPageCount = memory->GrowInternal(deltaPages);
     if (oldPageCount == -1)

@@ -283,6 +283,7 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
 ///----------------------------------------------------------------------------
 intptr_t GetMethodOriginalAddress(ThreadContextInfo * context, JnHelperMethod helperMethod)
 {
+    AssertOrFailFast(helperMethod >= 0 && helperMethod < IR::JnHelperMethodCount);
     intptr_t address = GetHelperMethods()[static_cast<WORD>(helperMethod)];
     if (address == 0)
     {

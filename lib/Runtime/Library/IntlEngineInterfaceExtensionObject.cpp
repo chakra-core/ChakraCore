@@ -742,18 +742,11 @@ namespace Js
             Js::Var args[] = { scriptContext->GetLibrary()->GetUndefined(), scriptContext->GetLibrary()->GetEngineInterfaceObject(), initType };
             Js::CallInfo callInfo(Js::CallFlags_Value, _countof(args));
 
-            // Clear disable implicit call bit as initialization code doesn't have any side effect
-            Js::ImplicitCallFlags saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-
             Js::Arguments arguments(callInfo, args);
-            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            scriptContext->GetThreadContext()->ExecuteImplicitCall(function, Js::ImplicitCall_Accessor, [=]()->Js::Var
             {
-                JavascriptFunction::CallRootFunctionInScript(function, arguments);
-            }
-            END_SAFE_REENTRANT_CALL
-
-            scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
+                return JavascriptFunction::CallRootFunctionInScript(function, arguments);
+            });
 
             // Delete prototypes on functions if initialized Intl object
             if (intlInitializationType == IntlInitializationType::Intl)
@@ -1543,7 +1536,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         }
 
         state->SetInternalProperty(
-            InternalPropertyIds::HiddenObject,
+            InternalPropertyIds::CachedUNumberFormat,
             fmt,
             PropertyOperationFlags::PropertyOperation_None,
             nullptr
@@ -1824,14 +1817,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         }
 
         // Below, we lazy-initialize the backing UCollator on the first call to localeCompare
-        // On subsequent calls, the UCollator will be cached in state.hiddenObject
-        // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
-        Var hiddenObject = nullptr;
+        // On subsequent calls, the UCollator will be cached in state.CachedUCollator
+        Var cachedUCollator = nullptr;
         FinalizableUCollator *coll = nullptr;
         UErrorCode status = U_ZERO_ERROR;
-        if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
+        if (state->GetInternalProperty(state, InternalPropertyIds::CachedUCollator, &cachedUCollator, nullptr, scriptContext))
         {
-            coll = reinterpret_cast<FinalizableUCollator *>(hiddenObject);
+            coll = reinterpret_cast<FinalizableUCollator *>(cachedUCollator);
             INTL_TRACE("Using previously cached UCollator (0x%x)", coll);
         }
         else
@@ -1905,7 +1897,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
             // cache coll for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
-                InternalPropertyIds::HiddenObject,
+                InternalPropertyIds::CachedUCollator,
                 coll,
                 PropertyOperationFlags::PropertyOperation_None,
                 nullptr
@@ -2367,8 +2359,8 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         DynamicObject *state = DynamicObject::UnsafeFromVar(args[2]);
         bool toParts = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
         bool forNumberPrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
-        Var cachedFormatter = nullptr; // cached by EntryIntl_CacheNumberFormat
-        AssertOrFailFast(state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &cachedFormatter, NULL, scriptContext));
+        Var cachedUNumberFormat = nullptr; // cached by EntryIntl_CacheNumberFormat
+        AssertOrFailFast(state->GetInternalProperty(state, InternalPropertyIds::CachedUNumberFormat, &cachedUNumberFormat, NULL, scriptContext));
 
         if (forNumberPrototypeToLocaleString)
         {
@@ -2386,7 +2378,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             INTL_TRACE("Calling NumberFormat.prototype.format(%f)", num);
         }
 
-        auto fmt = static_cast<FinalizableUNumberFormat *>(cachedFormatter);
+        auto fmt = static_cast<FinalizableUNumberFormat *>(cachedUNumberFormat);
         char16 *formatted = nullptr;
         int formattedLen = 0;
 
@@ -2627,14 +2619,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         }
 
         // Below, we lazy-initialize the backing UDateFormat on the first call to format{ToParts}
-        // On subsequent calls, the UDateFormat will be cached in state.hiddenObject
-        // TODO(jahorto): Make these property IDs sane, so that hiddenObject doesn't have different meanings in different contexts
-        Var hiddenObject = nullptr;
+        // On subsequent calls, the UDateFormat will be cached in state.CachedUDateFormat
+        Var cachedUDateFormat = nullptr;
         FinalizableUDateFormat *dtf = nullptr;
         UErrorCode status = U_ZERO_ERROR;
-        if (state->GetInternalProperty(state, Js::InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
+        if (state->GetInternalProperty(state, InternalPropertyIds::CachedUDateFormat, &cachedUDateFormat, nullptr, scriptContext))
         {
-            dtf = reinterpret_cast<FinalizableUDateFormat *>(hiddenObject);
+            dtf = reinterpret_cast<FinalizableUDateFormat *>(cachedUDateFormat);
             INTL_TRACE("Using previously cached UDateFormat (0x%x)", dtf);
         }
         else
@@ -2675,7 +2666,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
             // cache dtf for later use (so that the condition that brought us here returns true for future calls)
             state->SetInternalProperty(
-                InternalPropertyIds::HiddenObject,
+                InternalPropertyIds::CachedUDateFormat,
                 dtf,
                 PropertyOperationFlags::PropertyOperation_None,
                 nullptr
@@ -2956,11 +2947,11 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 #ifdef INTL_ICU
     static FinalizableUPluralRules *GetOrCreatePluralRulesCache(DynamicObject *stateObject, ScriptContext *scriptContext)
     {
-        Var hiddenObject = nullptr;
+        Var cachedUPluralRules = nullptr;
         FinalizableUPluralRules *pr = nullptr;
-        if (stateObject->GetInternalProperty(stateObject, InternalPropertyIds::HiddenObject, &hiddenObject, nullptr, scriptContext))
+        if (stateObject->GetInternalProperty(stateObject, InternalPropertyIds::CachedUPluralRules, &cachedUPluralRules, nullptr, scriptContext))
         {
-            pr = reinterpret_cast<FinalizableUPluralRules *>(hiddenObject);
+            pr = reinterpret_cast<FinalizableUPluralRules *>(cachedUPluralRules);
             INTL_TRACE("Using previously cached UPluralRules (0x%x)", pr);
         }
         else
@@ -2988,7 +2979,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
             INTL_TRACE("Caching UPluralRules object (0x%x) with langtag %s and type %s", langtag->GetSz(), type->GetSz());
 
-            stateObject->SetInternalProperty(InternalPropertyIds::HiddenObject, pr, PropertyOperationFlags::PropertyOperation_None, nullptr);
+            stateObject->SetInternalProperty(InternalPropertyIds::CachedUPluralRules, pr, PropertyOperationFlags::PropertyOperation_None, nullptr);
         }
 
         return pr;
