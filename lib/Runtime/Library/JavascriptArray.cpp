@@ -525,20 +525,20 @@ using namespace Js;
     {
         AssertOrFailFastMsg(Is(aValue) || ES5Array::Is(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
 
-        return static_cast<JavascriptArray *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptArray *>(VarTo<RecyclableObject>(aValue));
     }
 
     JavascriptArray* JavascriptArray::UnsafeFromAnyArray(Var aValue)
     {
         AssertMsg(Is(aValue) || ES5Array::Is(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
 
-        return static_cast<JavascriptArray *>(RecyclableObject::UnsafeFromVar(aValue));
+        return static_cast<JavascriptArray *>(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
     // Check if a Var is a direct-accessible (fast path) JavascriptArray.
     bool JavascriptArray::IsDirectAccessArray(Var aValue)
     {
-        return RecyclableObject::Is(aValue) &&
+        return VarIs<RecyclableObject>(aValue) &&
             (VirtualTableInfo<JavascriptArray>::HasVirtualTable(aValue) ||
                 VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(aValue) ||
                 VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(aValue));
@@ -674,7 +674,7 @@ using namespace Js;
         *isObjectWithArrayRef = false;
         *arrayTypeIdRef = TypeIds_Undefined;
 
-        if(!RecyclableObject::Is(var))
+        if(!VarIs<RecyclableObject>(var))
         {
             return nullptr;
         }
@@ -1224,7 +1224,7 @@ using namespace Js;
             pNew = CreateArrayFromConstructorNoArg(function, scriptContext);
 
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
                 pNew;
         }
 
@@ -1288,7 +1288,7 @@ using namespace Js;
         pNew->ValidateArray();
 #endif
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
             pNew;
     }
 
@@ -3281,7 +3281,7 @@ using namespace Js;
             }
             else
             {
-                AssertOrFailFast(RecyclableObject::Is(aItem));
+                AssertOrFailFast(VarIs<RecyclableObject>(aItem));
 
                 //CONSIDER: enumerating remote array instead of walking all indices
                 BigIndex length;
@@ -3309,7 +3309,7 @@ using namespace Js;
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_IllegalArraySizeAndLength);
                 }
 
-                RecyclableObject* itemObject = RecyclableObject::FromVar(aItem);
+                RecyclableObject* itemObject = VarTo<RecyclableObject>(aItem);
                 Var subItem;
                 uint32 lengthToUin32Max = length.IsSmallIndex() ? length.GetSmallIndex() : MaxArrayLength;
                 for (uint32 idxSubItem = 0u; idxSubItem < lengthToUin32Max; ++idxSubItem)
@@ -4576,9 +4576,9 @@ using namespace Js;
                 }
 
             }
-            else if (RecyclableObject::Is(thisArg))
+            else if (VarIs<RecyclableObject>(thisArg))
             {
-                JS_REENTRANT(jsReentLock, res = JoinOtherHelper(RecyclableObject::FromVar(thisArg), separator, scriptContext));
+                JS_REENTRANT(jsReentLock, res = JoinOtherHelper(VarTo<RecyclableObject>(thisArg), separator, scriptContext));
             }
             else
             {
@@ -6004,7 +6004,7 @@ Case0:
             {
                 isFloatArray = true;
             }
-            
+
             // Code below has potential to throw due to OOM or SO. Just FailFast on those cases
             AutoDisableInterrupt failFastOnError(scriptContext->GetThreadContext());
 
@@ -6370,10 +6370,10 @@ Case0:
 
             AssertAndFailFast(pArr == nullptr);
             AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
-            
+
             bool isDefaultConstructor = constructor == defaultConstructor;
             JS_REENTRANT(jsReentLock,
-                newObj = RecyclableObject::FromVar(
+                newObj = VarTo<RecyclableObject>(
                     JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
                         Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(newLenT, scriptContext) };
@@ -7012,7 +7012,7 @@ Case0:
         {
             if (JavascriptConversion::IsCallable(args[1]))
             {
-                compFn = RecyclableObject::FromVar(args[1]);
+                compFn = VarTo<RecyclableObject>(args[1]);
             }
             else
             {
@@ -8227,7 +8227,7 @@ Case0:
         JS_REENTRANT(jsReentLock, Var join = JavascriptOperators::GetPropertyNoCache(obj, PropertyIds::join, scriptContext));
         if (JavascriptConversion::IsCallable(join))
         {
-            RecyclableObject* func = RecyclableObject::FromVar(join);
+            RecyclableObject* func = VarTo<RecyclableObject>(join);
             // We need to record implicit call here, because marked the Array.toString as no side effect,
             // but if we call user code here which may have side effect
             ThreadContext * threadContext = scriptContext->GetThreadContext();
@@ -8478,7 +8478,7 @@ Case0:
             }
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg;
 
         if (args.Info.Count > 2)
@@ -8803,7 +8803,7 @@ Case0:
             }
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg = nullptr;
 
 
@@ -8956,7 +8956,7 @@ Case0:
             }
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
@@ -8990,7 +8990,7 @@ Case0:
 
                 element = typedArrayBase->DirectGetItem(k);
 
-                JS_REENTRANT_UNLOCK(jsReentLock, 
+                JS_REENTRANT_UNLOCK(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
                         testResult = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(flags, 4), thisArg,
@@ -9086,7 +9086,7 @@ Case0:
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.forEach"));
         }
-        callBackFn = RecyclableObject::FromVar(args[1]);
+        callBackFn = VarTo<RecyclableObject>(args[1]);
 
         if (args.Info.Count > 2)
         {
@@ -9427,7 +9427,7 @@ Case0:
                 }
                 else
                 {
-                    JS_REENTRANT(jsReentLock, 
+                    JS_REENTRANT(jsReentLock,
                         JavascriptOperators::OP_SetElementI_UInt32(obj, u32k, fillValue, scriptContext, Js::PropertyOperation_ThrowIfNotExtensible));
                 }
 
@@ -9529,7 +9529,7 @@ Case0:
             }
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg;
 
         if (args.Info.Count > 2)
@@ -9552,16 +9552,16 @@ Case0:
         if (isTypedArrayEntryPoint)
         {
             JavascriptFunction* defaultConstructor = TypedArrayBase::GetDefaultConstructor(args[0], scriptContext);
-            JS_REENTRANT(jsReentLock, 
+            JS_REENTRANT(jsReentLock,
                 RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(typedArrayBase, defaultConstructor, scriptContext));
-            
+
             isBuiltinArrayCtor = false;
 
             AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
             bool isDefaultConstructor = constructor == defaultConstructor;
             JS_REENTRANT(jsReentLock,
-                newObj = RecyclableObject::FromVar(
+                newObj = VarTo<RecyclableObject>(
                     JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
                         Js::Var constructorArgs[] = {constructor, JavascriptNumber::ToVar(length, scriptContext) };
@@ -9678,7 +9678,7 @@ Case0:
                 // No need to do HasItem, as it cannot be observable unless 'typedArrayBase' is proxy. And we have established that it is indeed typedarray.
 
                 element = typedArrayBase->DirectGetItem(k);
-                JS_REENTRANT(jsReentLock, 
+                JS_REENTRANT(jsReentLock,
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
                         mappedValue = CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, callBackFnInfo, thisArg,
@@ -9808,7 +9808,7 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.filter"));
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
@@ -9961,7 +9961,7 @@ Case0:
         }
 
         T k = 0;
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var accumulator = nullptr;
         Var element = nullptr;
 
@@ -10140,7 +10140,7 @@ Case0:
             typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var accumulator = nullptr;
         Var element = nullptr;
         T k = 0;
@@ -10282,7 +10282,7 @@ Case0:
 
         if (JavascriptOperators::IsConstructor(args[0]))
         {
-            constructor = RecyclableObject::FromVar(args[0]);
+            constructor = VarTo<RecyclableObject>(args[0]);
         }
 
         RecyclableObject* items = nullptr;
@@ -10341,8 +10341,8 @@ Case0:
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
                 Js::Arguments arguments(constructorCallInfo, constructorArgs);
                 bool isDefaultConstructor = constructor == scriptContext->GetLibrary()->GetArrayConstructor();
-                JS_REENTRANT(jsReentLock, 
-                    newObj = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+                JS_REENTRANT(jsReentLock,
+                    newObj = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
                         return JavascriptOperators::NewScObject(constructor, arguments, scriptContext);
                     }))
@@ -10403,7 +10403,7 @@ Case0:
                 Js::Arguments arguments(constructorCallInfo, constructorArgs);
                 bool isDefaultConstructor = constructor == scriptContext->GetLibrary()->GetArrayConstructor();
                 JS_REENTRANT(jsReentLock,
-                    newObj = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+                    newObj = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
                         return JavascriptOperators::NewScObject(constructor, arguments, scriptContext);
                     }))
@@ -10452,7 +10452,7 @@ Case0:
                     Assert(mapFnThisArg != nullptr);
 
                     Var kVar = JavascriptNumber::ToVar(k, scriptContext);
-                    JS_REENTRANT(jsReentLock, 
+                    JS_REENTRANT(jsReentLock,
                         kValue = scriptContext->GetThreadContext()->ExecuteImplicitCall(mapFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
                         {
                             return CALL_FUNCTION(scriptContext->GetThreadContext(), mapFn, CallInfo(CallFlags_Value, 3), mapFnThisArg, kValue, kVar)
@@ -10519,7 +10519,7 @@ Case0:
 
         if (JavascriptOperators::IsConstructor(args[0]))
         {
-            RecyclableObject* constructor = RecyclableObject::FromVar(args[0]);
+            RecyclableObject* constructor = VarTo<RecyclableObject>(args[0]);
             isBuiltinArrayCtor = (constructor == scriptContext->GetLibrary()->GetArrayConstructor());
             bool isBuiltInTypedArrayCtor = JavascriptLibrary::IsTypedArrayConstructor(constructor, scriptContext);
 
@@ -10539,7 +10539,7 @@ Case0:
                         return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
                     }
                 });
-            )            
+            )
 
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
@@ -10595,7 +10595,7 @@ Case0:
             for (uint32 k = 0; k < len; k++)
             {
                 Var kValue = args[k + 1];
-                JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k));
+                JS_REENTRANT(jsReentLock, ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(VarTo<RecyclableObject>(newObj), k, kValue), scriptContext, k));
             }
         }
 
@@ -11847,7 +11847,7 @@ Case0:
                 }
                 else
                 {
-                    AssertMsg(RecyclableObject::Is(seg->elements[i]), "Invalid entry in segment");
+                    AssertMsg(VarIs<RecyclableObject>(seg->elements[i]), "Invalid entry in segment");
                 }
             }
             ValidateSegment(seg);
@@ -12248,7 +12248,7 @@ Case0:
         JS_REENTRANT(jsReentLock, BOOL isArray = JavascriptOperators::IsArray(originalArray));
         if (isArray)
         {
-            JS_REENTRANT(jsReentLock, BOOL getProp = JavascriptOperators::GetProperty(RecyclableObject::UnsafeFromVar(originalArray), PropertyIds::constructor, &constructor, scriptContext));
+            JS_REENTRANT(jsReentLock, BOOL getProp = JavascriptOperators::GetProperty(UnsafeVarTo<RecyclableObject>(originalArray), PropertyIds::constructor, &constructor, scriptContext));
             if (!getProp)
             {
                 return nullptr;
@@ -12256,7 +12256,7 @@ Case0:
 
             if (JavascriptOperators::IsConstructor(constructor))
             {
-                ScriptContext* constructorScriptContext = RecyclableObject::UnsafeFromVar(constructor)->GetScriptContext();
+                ScriptContext* constructorScriptContext = UnsafeVarTo<RecyclableObject>(constructor)->GetScriptContext();
                 if (constructorScriptContext != scriptContext)
                 {
                     if (constructorScriptContext->GetLibrary()->GetArrayConstructor() == constructor)
@@ -12317,13 +12317,13 @@ Case0:
         Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(length, scriptContext) };
         Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
 
-        AssertOrFailFast(Js::RecyclableObject::Is(constructor));
+        AssertOrFailFast(Js::VarIs<Js::RecyclableObject>(constructor));
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         Var scObject = threadContext->ExecuteImplicitCall((RecyclableObject*)constructor, ImplicitCall_Accessor, [&]()->Js::Var
         {
             JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
         });
-        return RecyclableObject::FromVar(scObject);
+        return VarTo<RecyclableObject>(scObject);
     }
     /*static*/
     PropertyId const JavascriptArray::specialPropertyIds[] =
@@ -13125,14 +13125,14 @@ Case0:
     {
         AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeFloatArray'");
 
-        return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::FromVar(aValue));
+        return static_cast<JavascriptNativeFloatArray *>(VarTo<RecyclableObject>(aValue));
     }
 
     JavascriptNativeFloatArray* JavascriptNativeFloatArray::UnsafeFromVar(Var aValue)
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeFloatArray'");
 
-        return static_cast<JavascriptNativeFloatArray *>(RecyclableObject::UnsafeFromVar(aValue));
+        return static_cast<JavascriptNativeFloatArray *>(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
     template int   Js::JavascriptArray::GetParamForIndexOf<unsigned int>(unsigned int, Js::Arguments const&, void*&, unsigned int&, Js::ScriptContext*);

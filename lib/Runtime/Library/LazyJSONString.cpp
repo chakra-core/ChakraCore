@@ -209,7 +209,7 @@ LazyJSONString::GetSz()
 bool
 LazyJSONString::Is(Var var)
 {
-    return RecyclableObject::Is(var) && VirtualTableInfo<LazyJSONString>::HasVirtualTable(RecyclableObject::FromVar(var));
+    return VarIs<RecyclableObject>(var) && VirtualTableInfo<LazyJSONString>::HasVirtualTable(VarTo<RecyclableObject>(var));
 }
 
 // static

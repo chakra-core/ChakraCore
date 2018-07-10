@@ -68,7 +68,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
             }
-            adder = RecyclableObject::FromVar(adderVar);
+            adder = VarTo<RecyclableObject>(adderVar);
         }
 
         if (iter != nullptr)
@@ -88,7 +88,7 @@ namespace Js
 #endif
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), weakSetObject, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), weakSetObject, nullptr, scriptContext) :
             weakSetObject;
     }
 
@@ -115,7 +115,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakSet.prototype.add"));
         }
 
-        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+        RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything
@@ -149,7 +149,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             didDelete = weakSet->Delete(keyObj);
         }
@@ -190,7 +190,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key) && JavascriptOperators::GetTypeId(key) != TypeIds_HostDispatch)
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             hasValue = weakSet->Has(keyObj);
         }

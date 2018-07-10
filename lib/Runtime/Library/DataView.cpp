@@ -130,7 +130,7 @@ namespace Js
         //15.   Return O.
         dataView = scriptContext->GetLibrary()->CreateDataView(arrayBuffer, offset, mappedLength);
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), dataView, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), dataView, nullptr, scriptContext) :
             dataView;
     }
 

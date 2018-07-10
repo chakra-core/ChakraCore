@@ -404,7 +404,7 @@ namespace Js
             }
             else if (descriptor->Setter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Setter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Setter);
                 // TODO : request context
                 JavascriptOperators::CallSetter(func, instance, value, NULL);
             }
@@ -478,7 +478,7 @@ namespace Js
             }
             else if (descriptor->Setter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Setter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Setter);
                 // TODO : request context
                 JavascriptOperators::CallSetter(func, instance, value, NULL);
             }
@@ -687,7 +687,7 @@ namespace Js
 
             if (descriptor->Getter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Getter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Getter);
                 *value = Js::JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             }
             else

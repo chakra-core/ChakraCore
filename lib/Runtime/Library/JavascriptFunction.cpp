@@ -151,7 +151,7 @@ using namespace Js;
     static char16 const closeFormals[] = _u("\n)");
     static char16 const openFuncBody[] = _u(" {");
     static char16 const closeFuncBody[] = _u("\n}");
-    
+
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
         JavascriptLibrary* library = function->GetLibrary();
@@ -320,7 +320,7 @@ using namespace Js;
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pfuncScript, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pfuncScript, nullptr, scriptContext) :
             pfuncScript;
     }
 
@@ -437,7 +437,7 @@ using namespace Js;
 
         Var thisVar = NULL;
         Var argArray = NULL;
-        RecyclableObject* pFunc = RecyclableObject::FromVar(args[0]);
+        RecyclableObject* pFunc = VarTo<RecyclableObject>(args[0]);
 
         if (args.Info.Count == 1)
         {
@@ -494,7 +494,7 @@ using namespace Js;
 
             int64 len;
             JavascriptArray* arr = NULL;
-            RecyclableObject* dynamicObject = RecyclableObject::FromVar(argArray);
+            RecyclableObject* dynamicObject = VarTo<RecyclableObject>(argArray);
 
             if (isNullOrUndefined)
             {
@@ -644,7 +644,7 @@ using namespace Js;
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
-        RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
+        RecyclableObject *pFunc = VarTo<RecyclableObject>(args[0]);
         if (argCount == 1)
         {
             args.Values[0] = scriptContext->GetLibrary()->GetUndefined();
@@ -888,7 +888,7 @@ using namespace Js;
         }
 
         // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
-        RecyclableObject* functionObj = RecyclableObject::UnsafeFromVar(v);
+        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(v);
 
         const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
@@ -1568,7 +1568,7 @@ dbl_align:
 
         Var arg0 = args[0];
 
-        // callable proxy is considered as having [[Call]] internal method 
+        // callable proxy is considered as having [[Call]] internal method
         // and should behave here like a function.
         // we will defer to the underlying target.
         while (JavascriptProxy::Is(arg0) && JavascriptConversion::IsCallable(arg0))
@@ -3308,7 +3308,7 @@ LABEL1:
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
 
-        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
+        RecyclableObject * constructor = VarTo<RecyclableObject>(args[0]);
         Var instance = args[1];
 
         Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
@@ -3346,8 +3346,8 @@ LABEL1:
             if (inlineCache && inlineCache->function == nullptr
                 && scriptContext == function->GetScriptContext())// only register when function has same scriptContext
             {
-                inlineCache->Cache(RecyclableObject::Is(instance) ?
-                    RecyclableObject::UnsafeFromVar(instance)->GetType() : nullptr,
+                inlineCache->Cache(VarIs<RecyclableObject>(instance) ?
+                    UnsafeVarTo<RecyclableObject>(instance)->GetType() : nullptr,
                     function, scriptContext->GetLibrary()->GetFalse(), scriptContext);
             }
             return result;
@@ -3394,7 +3394,7 @@ LABEL1:
         // However, object o's type (even if it is of the same "shape" as before, and even if o is the very same object) will be different,
         // because the object types are permanently bound and unique to the script context from which they were created.
 
-        RecyclableObject* instanceObject = RecyclableObject::FromVar(instance);
+        RecyclableObject* instanceObject = VarTo<RecyclableObject>(instance);
         Var prototype = JavascriptOperators::GetPrototype(instanceObject);
 
         if (!JavascriptOperators::IsObject(funcPrototype))
@@ -3412,7 +3412,7 @@ LABEL1:
                 break;
             }
 
-            prototype = JavascriptOperators::GetPrototype(RecyclableObject::FromVar(prototype));
+            prototype = JavascriptOperators::GetPrototype(VarTo<RecyclableObject>(prototype));
         }
 
         // Now that we know the answer, let's cache it for next time if we have a cache.
@@ -3421,7 +3421,7 @@ LABEL1:
             Assert(function != NULL);
             JavascriptBoolean * boolResult = result ? scriptContext->GetLibrary()->GetTrue() :
                 scriptContext->GetLibrary()->GetFalse();
-            Type * instanceType = RecyclableObject::FromVar(instance)->GetType();
+            Type * instanceType = VarTo<RecyclableObject>(instance)->GetType();
 
             if (!instanceType->HasSpecialPrototype()
                 && scriptContext == function->GetScriptContext()) // only register when function has same scriptContext, otherwise when scriptContext close

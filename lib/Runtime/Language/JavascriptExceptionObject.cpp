@@ -109,7 +109,7 @@ namespace Js
                 }
                 else
                 {
-                    if (RecyclableObject::Is(rethrownObject))
+                    if (VarIs<RecyclableObject>(rethrownObject))
                     {
                         if (CrossSite::NeedMarshalVar(rethrownObject, requestingScriptContext))
                         {

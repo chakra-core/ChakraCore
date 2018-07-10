@@ -26,7 +26,7 @@ namespace Js
     // and propagate all other exceptions.
     //
     // NB: Re-throw from catch unwinds the active frame but doesn't clear the stack
-    // (catch clauses keep accumulating at the top of the stack until a catch 
+    // (catch clauses keep accumulating at the top of the stack until a catch
     // that doesn't re-throw). This is problematic if we've detected potential
     // stack overflow and report it via exceptions: the handling of throw
     // might actually overflow the stack and cause system SO exception.
@@ -782,5 +782,16 @@ namespace Js
 
         static BOOL IsRemoteArray(RecyclableObject* instance);
     };
+
+    template <>
+    __forceinline RecyclableObject* JavascriptOperators::TryFromVar<RecyclableObject>(_In_ RecyclableObject* value)
+    {
+        return VarIs<RecyclableObject>(value) ? UnsafeVarTo<RecyclableObject>(value) : nullptr;
+    }
+    template <>
+    __forceinline RecyclableObject* JavascriptOperators::TryFromVar<RecyclableObject>(_In_ Var value)
+    {
+        return VarIs<RecyclableObject>(value) ? UnsafeVarTo<RecyclableObject>(value) : nullptr;
+    }
 
 } // namespace Js

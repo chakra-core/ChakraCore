@@ -426,7 +426,7 @@ namespace Js
 
         // This is fake [Methods] object.
         pResolvedObject->name           = groupType == UIGroupType_Scope ? _u("[Scope]") : _u("[Globals]");
-        pResolvedObject->obj            = Js::RecyclableObject::FromVar(instance);
+        pResolvedObject->obj            = Js::VarTo<Js::RecyclableObject>(instance);
         pResolvedObject->typeId         = TypeIds_Function;
         pResolvedObject->address        = nullptr;  // Scope object should not be editable
 
@@ -820,9 +820,9 @@ namespace Js
             ScriptContext * scriptContext = pFrame->GetScriptContext();
             ArenaAllocator *arena = GetArenaFromContext(scriptContext);
 
-            Assert(Js::RecyclableObject::Is(instance));
+            Assert(Js::VarIs<Js::RecyclableObject>(instance));
 
-            Js::RecyclableObject* object = Js::RecyclableObject::FromVar(instance);
+            Js::RecyclableObject* object = Js::VarTo<Js::RecyclableObject>(instance);
             Assert(JavascriptOperators::IsObject(object));
 
             int count = object->GetPropertyCount();
@@ -1647,12 +1647,12 @@ namespace Js
     BOOL LocalObjectAddressForSlot::IsInDeadZone() const
     {
         Var value = slotArray.Get(slotIndex);
-        if (!RecyclableObject::Is(value))
+        if (!VarIs<RecyclableObject>(value))
         {
             return FALSE;
         }
 
-        RecyclableObject* obj = RecyclableObject::FromVar(value);
+        RecyclableObject* obj = VarTo<RecyclableObject>(value);
         ScriptContext* scriptContext = obj->GetScriptContext();
         return scriptContext->IsUndeclBlockVar(obj) ? TRUE : FALSE;
     }
@@ -1754,9 +1754,9 @@ namespace Js
         if (debuggerScope->scopeType == Js::DiagCatchScopeInObject)
         {
             Var obj = pFrame->GetInnerScopeFromRegSlot(debuggerScope->GetLocation());
-            Assert(RecyclableObject::Is(obj));
+            Assert(VarIs<RecyclableObject>(obj));
 
-            outValue = RecyclableObjectWalker::GetObject(RecyclableObject::FromVar(obj), RecyclableObject::FromVar(obj), scopeProperty.propId, scriptContext);
+            outValue = RecyclableObjectWalker::GetObject(VarTo<RecyclableObject>(obj), VarTo<RecyclableObject>(obj), scopeProperty.propId, scriptContext);
             bool isInDeadZone = scriptContext->IsUndeclBlockVar(outValue);
             if (isInDeadZone)
             {
@@ -1824,9 +1824,9 @@ namespace Js
 
     BOOL RecyclableObjectAddress::Set(Var updateObject)
     {
-        if (Js::RecyclableObject::Is(parentObj))
+        if (Js::VarIs<Js::RecyclableObject>(parentObj))
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(parentObj);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(parentObj);
 
             ScriptContext* requestContext = obj->GetScriptContext(); //TODO: real requestContext
             return Js::JavascriptOperators::SetProperty(obj, obj, propId, updateObject, requestContext);
@@ -1836,9 +1836,9 @@ namespace Js
 
     BOOL RecyclableObjectAddress::IsWritable()
     {
-        if (Js::RecyclableObject::Is(parentObj))
+        if (Js::VarIs<Js::RecyclableObject>(parentObj))
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(parentObj);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(parentObj);
 
             return obj->IsWritable(propId);
         }
@@ -1853,9 +1853,9 @@ namespace Js
             return value;
         }
 
-        if (Js::RecyclableObject::Is(parentObj))
+        if (Js::VarIs<Js::RecyclableObject>(parentObj))
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(parentObj);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(parentObj);
 
             ScriptContext* requestContext = obj->GetScriptContext();
             Var objValue = nullptr;
@@ -1938,7 +1938,7 @@ namespace Js
         }
         else
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(instance);
 
             StringBuilder<ArenaAllocator>* builder = scriptContext->GetThreadContext()->GetDebugManager()->pCurrentInterpreterLocation->stringBuilder;
             builder->Reset();
@@ -2061,7 +2061,7 @@ namespace Js
         }
         else
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(instance);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(instance);
 
             StringBuilder<ArenaAllocator>* builder = scriptContext->GetThreadContext()->GetDebugManager()->pCurrentInterpreterLocation->stringBuilder;
             builder->Reset();
@@ -2081,9 +2081,9 @@ namespace Js
 
     BOOL RecyclableObjectDisplay::HasChildren()
     {
-        if (Js::RecyclableObject::Is(instance))
+        if (Js::VarIs<Js::RecyclableObject>(instance))
         {
-            Js::RecyclableObject* object = Js::RecyclableObject::FromVar(instance);
+            Js::RecyclableObject* object = Js::VarTo<Js::RecyclableObject>(instance);
 
             if (JavascriptOperators::IsObject(object))
             {
@@ -2164,7 +2164,7 @@ namespace Js
     {
         DBGPROP_ATTRIB_FLAGS flag = defaultAttributes;
 
-        if (Js::RecyclableObject::Is(instance))
+        if (Js::VarIs<Js::RecyclableObject>(instance))
         {
             if (instance == scriptContext->GetLibrary()->GetDebuggerDeadZoneBlockVariableString())
             {
@@ -2289,7 +2289,7 @@ namespace Js
             return FALSE;
         }
 
-        int nonArrayElementCount = Js::RecyclableObject::Is(instance) ? pMembersList->Count() : 0;
+        int nonArrayElementCount = Js::VarIs<Js::RecyclableObject>(instance) ? pMembersList->Count() : 0;
 
         // First the virtual groups
         if (index < fakeObjCount)
@@ -2302,7 +2302,7 @@ namespace Js
 
         if (index < nonArrayElementCount)
         {
-            Assert(Js::RecyclableObject::Is(instance));
+            Assert(Js::VarIs<Js::RecyclableObject>(instance));
 
             pResolvedObject->propId = pMembersList->Item(index)->propId;
 
@@ -2407,11 +2407,11 @@ namespace Js
 
             RecyclableMethodsGroupWalker *pMethodsGroupWalker = nullptr;
 
-            if (Js::RecyclableObject::Is(instance))
+            if (Js::VarIs<Js::RecyclableObject>(instance))
             {
-                Js::RecyclableObject* object = Js::RecyclableObject::FromVar(instance);
+                Js::RecyclableObject* object = Js::VarTo<Js::RecyclableObject>(instance);
                 // If we are walking a prototype, we'll use its instance for property names enumeration, but originalInstance to get values
-                Js::RecyclableObject* originalObject = (originalInstance != nullptr) ? Js::RecyclableObject::FromVar(originalInstance) : object;
+                Js::RecyclableObject* originalObject = (originalInstance != nullptr) ? Js::VarTo<Js::RecyclableObject>(originalInstance) : object;
                 const Js::TypeId typeId = JavascriptOperators::GetTypeId(instance);
 
                 if (JavascriptOperators::IsObject(object))
@@ -2989,7 +2989,7 @@ namespace Js
     {
         Assert(Js::JavascriptArray::Is(instance) || Js::ES5Array::Is(instance));
         return  Js::ES5Array::Is(instance) ?
-                    static_cast<Js::JavascriptArray *>(RecyclableObject::FromVar(instance)) :
+                    static_cast<Js::JavascriptArray *>(VarTo<RecyclableObject>(instance)) :
                     Js::JavascriptArray::FromVar(instance);
     }
 
@@ -3348,7 +3348,7 @@ namespace Js
     {
         if (Js::ES5Array::Is(instance))
         {
-            Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray *>(RecyclableObject::FromVar(instance));
+            Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray *>(VarTo<RecyclableObject>(instance));
             if (HasChildrenInternal(arrayObj))
             {
                 return TRUE;
@@ -3372,7 +3372,7 @@ namespace Js
 
     uint32 RecyclableES5ArrayWalker::GetNextDescriptor(uint32 currentDescriptor)
     {
-        Js::ES5Array *es5Array = static_cast<Js::ES5Array *>(RecyclableObject::FromVar(instance));
+        Js::ES5Array *es5Array = static_cast<Js::ES5Array *>(VarTo<RecyclableObject>(instance));
         IndexPropertyDescriptor* descriptor = nullptr;
         void * descriptorValidationToken = nullptr;
         return es5Array->GetNextDescriptor(currentDescriptor, &descriptor, &descriptorValidationToken);
@@ -3424,14 +3424,14 @@ namespace Js
             defaultAttributes               = DBGPROP_ATTRIB_VALUE_IS_FAKE;
         }
 
-        RecyclableObject *obj               = Js::RecyclableObject::FromVar(instance);
+        RecyclableObject *obj               = Js::VarTo<Js::RecyclableObject>(instance);
 
         Assert(obj->GetPrototype() != nullptr);
         //withscopeObjects prototype is null
         Assert(obj->GetPrototype()->GetTypeId() != TypeIds_Null || (obj->GetPrototype()->GetTypeId() == TypeIds_Null && obj->GetTypeId() == TypeIds_WithScopeObject));
 
         pResolvedObject->obj                = obj->GetPrototype();
-        pResolvedObject->originalObj        = (originalInstance != nullptr) ? Js::RecyclableObject::FromVar(originalInstance) : pResolvedObject->obj;
+        pResolvedObject->originalObj        = (originalInstance != nullptr) ? Js::VarTo<Js::RecyclableObject>(originalInstance) : pResolvedObject->obj;
         pResolvedObject->scriptContext      = scriptContext;
         pResolvedObject->typeId             = JavascriptOperators::GetTypeId(pResolvedObject->obj);
 
@@ -3919,7 +3919,7 @@ namespace Js
 
         // This is fake [Methods] object.
         pResolvedObject->name           = _u("[Methods]");
-        pResolvedObject->obj            = Js::RecyclableObject::FromVar(instance);
+        pResolvedObject->obj            = Js::VarTo<Js::RecyclableObject>(instance);
         pResolvedObject->scriptContext  = scriptContext;
         pResolvedObject->typeId         = JavascriptOperators::GetTypeId(pResolvedObject->obj);
         pResolvedObject->address        = nullptr; // Methods object will not be editable
@@ -3994,16 +3994,16 @@ namespace Js
         if (ActivationObject::Is(instance))
         {
             // The scope is defined by the activation object.
-            Js::RecyclableObject *object = Js::RecyclableObject::FromVar(instance);
+            Js::RecyclableObject *object = Js::VarTo<Js::RecyclableObject>(instance);
             try
             {
                 // Trying to find out the JavascriptFunction from the scope.
                 Var value = nullptr;
                 if (object->GetTypeId() == TypeIds_ActivationObject && GetPropertyWithScriptEnter(object, object, PropertyIds::arguments, &value, scriptContext))
                 {
-                    if (Js::RecyclableObject::Is(value))
+                    if (Js::VarIs<Js::RecyclableObject>(value))
                     {
-                        Js::RecyclableObject *argObject = Js::RecyclableObject::FromVar(value);
+                        Js::RecyclableObject *argObject = Js::VarTo<Js::RecyclableObject>(value);
                         Var calleeFunc = nullptr;
                         if (GetPropertyWithScriptEnter(argObject, argObject, PropertyIds::callee, &calleeFunc, scriptContext) && Js::JavascriptFunction::Is(calleeFunc))
                         {

@@ -286,7 +286,7 @@ namespace TTD
             TTD_LOG_PTR_ID origId = reinterpret_cast<TTD_LOG_PTR_ID>(GetVarItem_0(action));
 
             Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
-            Js::RecyclableObject* newObj = Js::RecyclableObject::FromVar(var);
+            Js::RecyclableObject* newObj = Js::VarTo<Js::RecyclableObject>(var);
 
             executeContext->AddRootRef_Replay(origId, newObj);
         }
@@ -298,7 +298,7 @@ namespace TTD
             TTD_LOG_PTR_ID origId = reinterpret_cast<TTD_LOG_PTR_ID>(GetVarItem_0(action));
 
             Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
-            Js::RecyclableObject* newObj = Js::RecyclableObject::FromVar(var);
+            Js::RecyclableObject* newObj = Js::VarTo<Js::RecyclableObject>(var);
 
             executeContext->AddRootRef_Replay(origId, newObj);
         }
@@ -616,7 +616,7 @@ namespace TTD
 
             Js::Var res = nullptr;
             Js::PropertyDescriptor propertyDescriptorValue;
-            if(Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(var), GetPropertyIdItem(action), ctx, &propertyDescriptorValue))
+            if(Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::VarTo<Js::RecyclableObject>(var), GetPropertyIdItem(action), ctx, &propertyDescriptorValue))
             {
                 res = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, ctx);
             }
@@ -667,7 +667,7 @@ namespace TTD
             Js::PropertyDescriptor propertyDescriptorValue;
             Js::JavascriptOperators::ToPropertyDescriptor(propertyDescriptor, &propertyDescriptorValue, ctx);
 
-            Js::JavascriptOperators::DefineOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object), GetPropertyIdItem(action), propertyDescriptorValue, true, ctx);
+            Js::JavascriptOperators::DefineOwnPropertyDescriptor(Js::VarTo<Js::RecyclableObject>(object), GetPropertyIdItem(action), propertyDescriptorValue, true, ctx);
         }
 
         void DeletePropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
@@ -692,7 +692,7 @@ namespace TTD
             Js::Var proto = InflateVarInReplay(executeContext, GetVarItem_1(action));
             TTD_REPLAY_VALIDATE_INCOMING_OBJECT_OR_NULL(proto, ctx);
 
-            Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(var), Js::RecyclableObject::FromVar(proto), true, ctx);
+            Js::JavascriptObject::ChangePrototype(Js::VarTo<Js::RecyclableObject>(var), Js::VarTo<Js::RecyclableObject>(proto), true, ctx);
         }
 
         void SetPropertyAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)

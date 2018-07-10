@@ -84,10 +84,10 @@ namespace Js
                 Assert(false);
             }
         }
-        else if (RecyclableObject::Is(iterator))
+        else if (VarIs<RecyclableObject>(iterator))
         {
             Var nextItem;
-            while (JavascriptOperators::IteratorStepAndValue(RecyclableObject::FromVar(iterator), scriptContext, &nextItem))
+            while (JavascriptOperators::IteratorStepAndValue(VarTo<RecyclableObject>(iterator), scriptContext, &nextItem))
             {
                 if (iteratorIndices == nullptr)
                 {

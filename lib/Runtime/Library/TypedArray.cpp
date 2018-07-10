@@ -575,14 +575,14 @@ namespace Js
                     {
                         Var iterator = scriptContext->GetThreadContext()->ExecuteImplicitCall(iteratorFn, Js::ImplicitCall_Accessor, [=]()->Js::Var
                         {
-                            return CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                            return CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), VarTo<RecyclableObject>(firstArgument));
                         });
 
                         if (!JavascriptOperators::IsObject(iterator))
                         {
                             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
                         }
-                        return CreateNewInstanceFromIterator(RecyclableObject::FromVar(iterator), scriptContext, elementSize, pfnCreateTypedArray);
+                        return CreateNewInstanceFromIterator(VarTo<RecyclableObject>(iterator), scriptContext, elementSize, pfnCreateTypedArray);
                     }
 
                     if (!JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
@@ -742,7 +742,7 @@ namespace Js
         }
 #endif
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(object), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(object), nullptr, scriptContext) :
             object;
     };
 
@@ -1659,8 +1659,8 @@ namespace Js
             AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
             bool isDefaultConstructor = constructor == defaultConstructor;
-            newTypedArray = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
-            { 
+            newTypedArray = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            {
                 Js::Var constructorArgs[] = { constructor, buffer, JavascriptNumber::ToVar(beginByteOffset, scriptContext), JavascriptNumber::ToVar(newLength, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
                 return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), newLength, scriptContext);
@@ -1693,7 +1693,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("[TypedArray].from"));
         }
 
-        RecyclableObject* constructor = RecyclableObject::FromVar(args[0]);
+        RecyclableObject* constructor = VarTo<RecyclableObject>(args[0]);
         bool isDefaultConstructor = JavascriptLibrary::IsTypedArrayConstructor(constructor, scriptContext);
         RecyclableObject* items = nullptr;
 
@@ -1921,7 +1921,7 @@ namespace Js
             Assert(!JavascriptOperators::IsUndefinedOrNull(scriptFunction));
             Assert(JavascriptConversion::IsCallable(scriptFunction));
 
-            RecyclableObject* function = RecyclableObject::FromVar(scriptFunction);
+            RecyclableObject* function = VarTo<RecyclableObject>(scriptFunction);
 
             Var chakraLibObj = JavascriptOperators::OP_GetProperty(library->GetGlobalObject(), PropertyIds::__chakraLibrary, scriptContext);
             Var argsIt[] = { chakraLibObj, args[0], TaggedInt::ToVarUnchecked((int)kind) };
@@ -1999,7 +1999,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.filter"));
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg = nullptr;
 
         if (args.Info.Count > 2)
@@ -2056,7 +2056,7 @@ namespace Js
             AssertOrFailFast(JavascriptOperators::IsConstructor(constructor));
 
             bool isDefaultConstructor = constructor == defaultConstructor;
-            newObj = RecyclableObject::FromVar(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
+            newObj = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
             {
                 Js::Var constructorArgs[] = { constructor, JavascriptNumber::ToVar(captured, scriptContext) };
                 Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
@@ -2138,7 +2138,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.forEach"));
         }
 
-        RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
         Var thisArg;
 
         if (args.Info.Count > 2)
@@ -2439,7 +2439,7 @@ namespace Js
         void **contextArray = (void **)context;
         if (contextArray[1] != nullptr)
         {
-            RecyclableObject* compFn = RecyclableObject::FromVar(contextArray[1]);
+            RecyclableObject* compFn = VarTo<RecyclableObject>(contextArray[1]);
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             double dblResult;
@@ -2535,7 +2535,7 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].prototype.sort"));
             }
 
-            compareFn = RecyclableObject::FromVar(args[1]);
+            compareFn = VarTo<RecyclableObject>(args[1]);
         }
 
         // Get the elements comparison function for the type of this TypedArray
@@ -2632,12 +2632,12 @@ namespace Js
         Assert(lengthRef);
         Assert(typeIdRef);
 
-        if(!RecyclableObject::Is(var))
+        if(!VarIs<RecyclableObject>(var))
         {
             return false;
         }
 
-        const TypeId typeId = RecyclableObject::FromVar(var)->GetTypeId();
+        const TypeId typeId = VarTo<RecyclableObject>(var)->GetTypeId();
         switch(typeId)
         {
             case TypeIds_Int8Array:

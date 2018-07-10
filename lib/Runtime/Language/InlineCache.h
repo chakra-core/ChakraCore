@@ -430,11 +430,11 @@ namespace Js
                 RecyclableObject * function;
                 if (cache->u.accessor.isOnProto)
                 {
-                    function = RecyclableObject::UnsafeFromVar(cache->GetPropertyValue<slotType>(cache->u.accessor.object, cache->u.accessor.slotIndex));
+                    function = UnsafeVarTo<RecyclableObject>(cache->GetPropertyValue<slotType>(cache->u.accessor.object, cache->u.accessor.slotIndex));
                 }
                 else
                 {
-                    function = RecyclableObject::UnsafeFromVar(cache->GetPropertyValue<slotType>(DynamicObject::UnsafeFromVar(propertyObject), cache->u.accessor.slotIndex));
+                    function = UnsafeVarTo<RecyclableObject>(cache->GetPropertyValue<slotType>(DynamicObject::UnsafeFromVar(propertyObject), cache->u.accessor.slotIndex));
                 }
 
                 *propertyValue = JavascriptOperators::CallGetter(function, instance, requestContext);

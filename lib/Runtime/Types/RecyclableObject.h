@@ -249,9 +249,6 @@ namespace Js {
         virtual RecyclableObject* GetPrototypeSpecial();
 
     public:
-        static bool Is(Var aValue);
-        static RecyclableObject* FromVar(Var varValue);
-        static RecyclableObject* UnsafeFromVar(Var varValue);
         RecyclableObject(Type * type);
 #if DBG_EXTRAFIELD
         // This dtor should only be call when OOM occurs and RecyclableObject ctor has completed
@@ -467,4 +464,55 @@ namespace Js {
         int GetHeapEnumValidationCookie() { return m_heapEnumValidationCookie; }
 #endif
     };
+
+    // Return whether the given RecyclableObject is of the template parameter's type.
+    // Generally, subclasses of RecyclableObject should only need to provide
+    // a specialization for VarIs(RecyclableObject*), and the other conversion
+    // functions should take care of themselves.
+    template <typename T> bool VarIs(RecyclableObject* obj);
+
+    // Return whether the given Var is of the template parameter's type.
+    template <typename T> bool VarIs(Var aValue)
+    {
+        AssertMsg(aValue != nullptr, "VarIs: aValue is null");
+
+#if INT32VAR
+        bool isRecyclableObject = (((uintptr_t)aValue) >> VarTag_Shift) == 0;
+#else
+        bool isRecyclableObject = (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
+#endif
+
+        return isRecyclableObject && VarIs<T>(UnsafeVarTo<RecyclableObject>(aValue));
+    }
+
+    template <> inline bool VarIs<RecyclableObject>(RecyclableObject* obj)
+    {
+        return true;
+    }
+
+    CompileAssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
+
+    template <typename T> T* VarTo(RecyclableObject* obj)
+    {
+        AssertOrFailFast(VarIs<T>(obj));
+        return reinterpret_cast<T*>(obj);
+    }
+
+    template <typename T> T* VarTo(Var aValue)
+    {
+        AssertOrFailFast(VarIs<T>(aValue));
+        return reinterpret_cast<T*>(aValue);
+    }
+
+    template <typename T> T* UnsafeVarTo(RecyclableObject* obj)
+    {
+        Assert(VarIs<T>(obj));
+        return reinterpret_cast<T*>(obj);
+    }
+
+    template <typename T> T* UnsafeVarTo(Var aValue)
+    {
+        Assert(VarIs<T>(aValue));
+        return reinterpret_cast<T*>(aValue);
+    }
 }

@@ -383,7 +383,7 @@ using namespace Js;
         {
             AllocateBuffer(charCapacity, recycler);
             charLength = usedCharLength;
-            
+
             ArrayWriteBarrierVerifyBits(Block::Pointers(Chars()), Block::PointerLengthFromCharLength(charCapacity));
             js_wmemcpy_s(Chars(), charCapacity, (const char16*)(buffer), usedCharLength);
             // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
@@ -604,7 +604,7 @@ using namespace Js;
 
     bool CompoundString::Is(const Var var)
     {
-        return RecyclableObject::Is(var) && Is(RecyclableObject::FromVar(var));
+        return VarIs<RecyclableObject>(var) && Is(VarTo<RecyclableObject>(var));
     }
 
     CompoundString *CompoundString::FromVar(RecyclableObject *const object)
@@ -627,12 +627,12 @@ using namespace Js;
 
     CompoundString *CompoundString::FromVar(const Var var)
     {
-        return FromVar(RecyclableObject::FromVar(var));
+        return FromVar(VarTo<RecyclableObject>(var));
     }
 
     CompoundString *CompoundString::UnsafeFromVar(const Var var)
     {
-        return UnsafeFromVar(RecyclableObject::UnsafeFromVar(var));
+        return UnsafeFromVar(UnsafeVarTo<RecyclableObject>(var));
     }
 
     JavascriptString *CompoundString::GetImmutableOrScriptUnreferencedString(JavascriptString *const s)

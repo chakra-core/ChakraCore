@@ -161,7 +161,7 @@ namespace Js
     /* static */
     bool LiteralStringWithPropertyStringPtr::Is(Var var)
     {
-        return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::UnsafeFromVar(var));
+        return VarIs<RecyclableObject>(var) && LiteralStringWithPropertyStringPtr::Is(UnsafeVarTo<RecyclableObject>(var));
     }
 
     void LiteralStringWithPropertyStringPtr::GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary)

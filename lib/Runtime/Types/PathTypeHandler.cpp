@@ -3761,7 +3761,7 @@ namespace Js
             CacheOperators::CachePropertyReadForGetter(info, originalInstance, propertyId, requestContext);
             PropertyValueInfo::SetNoCache(info, instance); // we already cached getter, so we don't have to do it once more
 
-            RecyclableObject* func = RecyclableObject::UnsafeFromVar(instance->GetSlot(index));
+            RecyclableObject* func = UnsafeVarTo<RecyclableObject>(instance->GetSlot(index));
             *value = JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             return true;
         }
@@ -3803,7 +3803,7 @@ namespace Js
             if (attributes[index] & ObjectSlotAttr_Accessor)
             {
                 Assert(setters[index] != Constants::NoSlot);
-                RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(setters[index]));
+                RecyclableObject* func = VarTo<RecyclableObject>(instance->GetSlot(setters[index]));
                 JavascriptOperators::CallSetter(func, instance, value, NULL);
 
                 // Wait for the setter to return before setting up the inline cache info, as the setter may change

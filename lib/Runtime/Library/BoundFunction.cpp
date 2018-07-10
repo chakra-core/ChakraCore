@@ -28,7 +28,7 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "wrong number of args in BoundFunction");
 
         ScriptContext *scriptContext = this->GetScriptContext();
-        targetFunction = RecyclableObject::FromVar(args[0]);
+        targetFunction = VarTo<RecyclableObject>(args[0]);
 
         Assert(!CrossSite::NeedMarshalVar(targetFunction, scriptContext));
 
@@ -123,7 +123,7 @@ namespace Js
                 // target has an overriden new target make a new object from the newTarget
                 Var newTargetVar = args.GetNewTarget();
                 AssertOrFailFastMsg(JavascriptOperators::IsConstructor(newTargetVar), "newTarget must be a constructor");
-                RecyclableObject* newTarget = RecyclableObject::UnsafeFromVar(newTargetVar);
+                RecyclableObject* newTarget = UnsafeVarTo<RecyclableObject>(newTargetVar);
 
                 // Class constructors expect newTarget to be in args slot 0 (usually "this"),
                 // because "this" is not constructed until we reach the most-super superclass.
@@ -222,7 +222,7 @@ namespace Js
             aReturnValue = JavascriptFunction::CallFunction<true>(targetFunction, targetFunction->GetEntryPoint(), actualArgs, /* useLargeArgCount */ true);
         }
         END_SAFE_REENTRANT_CALL
-        
+
         //
         // [[Construct]] and call returned a non-object
         // return the newly created var instance
@@ -272,9 +272,9 @@ namespace Js
 
     RecyclableObject* BoundFunction::GetBoundThis()
     {
-        if (boundThis != nullptr && RecyclableObject::Is(boundThis))
+        if (boundThis != nullptr && VarIs<RecyclableObject>(boundThis))
         {
-            return RecyclableObject::FromVar(boundThis);
+            return VarTo<RecyclableObject>(boundThis);
         }
         return NULL;
     }

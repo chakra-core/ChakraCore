@@ -57,7 +57,7 @@ namespace Js
 
         RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override
         {
-            return RecyclableObject::FromVar(JavascriptTypedNumber::ToVar(this->GetValue(), requestContext));
+            return VarTo<RecyclableObject>(JavascriptTypedNumber::ToVar(this->GetValue(), requestContext));
         }
 
         BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override

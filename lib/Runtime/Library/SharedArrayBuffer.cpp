@@ -97,7 +97,7 @@ namespace Js
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateSharedArrayBuffer(byteLength);
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), newArr, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newArr, nullptr, scriptContext) :
             newArr;
     }
 
@@ -365,7 +365,7 @@ namespace Js
         {
             sharedContents = contents;
         }
-        else 
+        else
         {
             Js::Throw::FatalInternalError();
         }
@@ -402,7 +402,7 @@ namespace Js
         return nullptr;
     }
 
-    uint32 SharedArrayBuffer::GetByteLength() const 
+    uint32 SharedArrayBuffer::GetByteLength() const
     {
         return sharedContents != nullptr ? sharedContents->bufferLength : 0;
     }

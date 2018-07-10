@@ -650,7 +650,8 @@ namespace Js
         template<typename T, typename P>
         static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :
+            AssertOrFailFastMsg(false, "FIXME");
+            return /*T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :*/
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -689,7 +690,8 @@ namespace Js
                 {
                     fn(i, element);
 
-                    if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
+                    AssertOrFailFastMsg(false, "FIXME");
+                    if (hasSideEffect && MayChangeType<T>()/* && !T::Is(arr)*/)
                     {
                         // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.

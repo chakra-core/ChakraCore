@@ -128,7 +128,7 @@ namespace Js
         }
         else
         {
-            // Otherwise, assert that there is either 
+            // Otherwise, assert that there is either
             // - no object array to deep copy
             // - an object array, but no deep copy needed
             // - data in the objectArray member, but it is inline slot data
@@ -151,12 +151,12 @@ namespace Js
 
     bool DynamicObject::Is(Var aValue)
     {
-        return RecyclableObject::Is(aValue) && (RecyclableObject::UnsafeFromVar(aValue)->GetTypeId() == TypeIds_Object);
+        return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_Object);
     }
 
     DynamicObject* DynamicObject::FromVar(Var aValue)
     {
-        RecyclableObject* obj = RecyclableObject::FromVar(aValue);
+        RecyclableObject* obj = VarTo<RecyclableObject>(aValue);
         AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
         AssertOrFailFast(DynamicType::Is(obj->GetTypeId()));
         return static_cast<DynamicObject*>(obj);
@@ -164,7 +164,7 @@ namespace Js
 
     DynamicObject* DynamicObject::UnsafeFromVar(Var aValue)
     {
-        RecyclableObject* obj = RecyclableObject::UnsafeFromVar(aValue);
+        RecyclableObject* obj = UnsafeVarTo<RecyclableObject>(aValue);
         AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
         Assert(DynamicType::Is(obj->GetTypeId()));
         return static_cast<DynamicObject*>(obj);

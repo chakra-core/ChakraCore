@@ -19,7 +19,7 @@ namespace Js
     void ExternalIteratorCreatorFunction::ThrowIfNotValidObject(Var instance)
     {
         JavascriptTypeId typeId = (JavascriptTypeId)Js::JavascriptOperators::GetTypeId(instance);
-        if (typeId != m_externalTypeId || !RecyclableObject::Is(m_prototypeForIterator))
+        if (typeId != m_externalTypeId || !VarIs<RecyclableObject>(m_prototypeForIterator))
         {
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidIterableObject);
         }
@@ -52,7 +52,7 @@ namespace Js
         function->ThrowIfNotValidObject(instance);
         ScriptContext *scriptContext = function->GetScriptContext();
 
-        AssertOrFailFast(RecyclableObject::Is(function->m_prototypeForIterator));
+        AssertOrFailFast(VarIs<RecyclableObject>(function->m_prototypeForIterator));
         DynamicObject *prototype = static_cast<DynamicObject*>(PointerValue(function->m_prototypeForIterator));
         Js::DynamicType *type = scriptContext->GetLibrary()->CreateObjectTypeNoCache(prototype, TypeIds_ExternalIterator);
 

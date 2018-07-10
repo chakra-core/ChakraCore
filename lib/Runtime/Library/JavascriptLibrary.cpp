@@ -4322,7 +4322,7 @@ namespace Js
         }
         else
         {
-            objPrototype = Js::RecyclableObject::FromVar(prototype);
+            objPrototype = Js::VarTo<Js::RecyclableObject>(prototype);
             Js::JavascriptOperators::InitProperty(objPrototype, Js::PropertyIds::constructor, function);
             objPrototype->SetEnumerable(Js::PropertyIds::constructor, false);
         }

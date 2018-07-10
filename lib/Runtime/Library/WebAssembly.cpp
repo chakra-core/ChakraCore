@@ -227,7 +227,7 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
 
-    RecyclableObject* arrayBufferFunc = RecyclableObject::FromVar(arrayBufferProp);
+    RecyclableObject* arrayBufferFunc = VarTo<RecyclableObject>(arrayBufferProp);
     Var arrayBufferRes = nullptr;
     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
     {
@@ -245,11 +245,11 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
 
 bool WebAssembly::IsResponseObject(Var responseObject, ScriptContext* scriptContext)
 {
-    if (!RecyclableObject::Is(responseObject))
+    if (!VarIs<RecyclableObject>(responseObject))
     {
         return false;
     }
-    TypeId typeId = RecyclableObject::FromVar(responseObject)->GetTypeId();
+    TypeId typeId = VarTo<RecyclableObject>(responseObject)->GetTypeId();
     if (!CONFIG_FLAG(WasmIgnoreResponse))
     {
         return scriptContext->IsWellKnownHostType<WellKnownHostType_Response>(typeId) && typeId != TypeIds_Undefined;

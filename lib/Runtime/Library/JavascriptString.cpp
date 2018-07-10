@@ -160,7 +160,7 @@ namespace Js
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::UnsafeFromVar(result), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), UnsafeVarTo<RecyclableObject>(result), nullptr, scriptContext) :
             result;
     }
 
@@ -1768,7 +1768,7 @@ case_2:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, varName);
         }
 
-        RecyclableObject* fnObj = RecyclableObject::UnsafeFromVar(fn);
+        RecyclableObject* fnObj = UnsafeVarTo<RecyclableObject>(fn);
         return CallRegExFunction<argCount>(fnObj, regExp, args, scriptContext);
     }
 
@@ -2207,7 +2207,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                if (UnsafeVarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
                 {
                     return result;
                 }
@@ -2721,7 +2721,7 @@ case_2:
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::UnsafeFromVar(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
+                if (UnsafeVarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
                 {
                     return result;
                 }

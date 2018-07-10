@@ -740,7 +740,7 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
     }
 #endif
 
-    RecyclableObject *const recyclableObject = RecyclableObject::UnsafeFromVar(var);
+    RecyclableObject *const recyclableObject = UnsafeVarTo<RecyclableObject>(var);
     if(!recycler->IsValidObject(recyclableObject, sizeof(*recyclableObject)))
     {
         return false;
@@ -968,7 +968,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
         throw Js::OperationAbortedException();
     }
-    
+
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
@@ -1024,7 +1024,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Output::Flush();
     }
 
-    epInfo->GetNativeEntryPointData()->SetFrameHeight(jitWriteData.frameHeight);    
+    epInfo->GetNativeEntryPointData()->SetFrameHeight(jitWriteData.frameHeight);
 
     if (workItem->Type() == JsFunctionType)
     {
@@ -2305,7 +2305,7 @@ NativeCodeGenerator::GatherCodeGenData(
     {
         // TODO: For now, we create the native entry point data and the jit transfer data when we queue up
         // the entry point for code gen, but not clear/free then then the work item got knocked off the queue
-        // without code gen happening.  
+        // without code gen happening.
         nativeEntryPointData = entryPoint->EnsureNativeEntryPointData();
         nativeEntryPointData->EnsureJitTransferData(recycler);
 
@@ -3279,7 +3279,7 @@ void
 FreeNativeCodeGenAllocation(Js::ScriptContext *scriptContext, Js::JavascriptMethod codeAddress, Js::JavascriptMethod thunkAddress)
 {
     if (!scriptContext->GetNativeCodeGenerator())
-    { 
+    {
         return;
     }
 

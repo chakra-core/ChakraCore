@@ -110,7 +110,7 @@ namespace Js
             newProxy->GetDynamicType()->SetEntryPoint(JavascriptProxy::FunctionCallTrap);
         }
         return isCtorSuperCall ?
-            JavascriptProxy::FromVar(JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), newProxy, nullptr, scriptContext)) :
+            JavascriptProxy::FromVar(JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newProxy, nullptr, scriptContext)) :
             newProxy;
     }
 
@@ -590,7 +590,7 @@ namespace Js
         }
         return FALSE;
     }
-  
+
     _Check_return_ _Success_(return) BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         PropertyDescriptor result;
@@ -683,7 +683,7 @@ namespace Js
         }
         else
         {
-            // ES2017 Spec'd (9.1.9.1): 
+            // ES2017 Spec'd (9.1.9.1):
             // If existingDescriptor is not undefined, then
             //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
             //    If existingDescriptor.[[Writable]] is false, return false.
@@ -1173,12 +1173,12 @@ namespace Js
         {
             return targetObj->IsExtensible();
         }
-        
+
         Var isExtensibleResult = threadContext->ExecuteImplicitCall(isExtensibleMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, isExtensibleMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         });
-        
+
         BOOL trapResult = JavascriptConversion::ToBoolean(isExtensibleResult, requestContext);
         BOOL targetIsExtensible = targetObj->IsExtensible();
         if (trapResult != targetIsExtensible)
@@ -1229,7 +1229,7 @@ namespace Js
         {
             return targetObj->PreventExtensions();
         }
-        
+
         //8. Let booleanTrapResult be ToBoolean(trapResult)
         //9. ReturnIfAbrupt(booleanTrapResult).
         //10. Let targetIsExtensible be the result of calling the[[IsExtensible]] internal method of target.
@@ -1481,14 +1481,14 @@ namespace Js
 
         if (nullptr == getPrototypeOfMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
-            return RecyclableObject::FromVar(JavascriptObject::GetPrototypeOf(targetObj, requestContext));
+            return VarTo<RecyclableObject>(JavascriptObject::GetPrototypeOf(targetObj, requestContext));
         }
-        
+
         Var getPrototypeOfResult = threadContext->ExecuteImplicitCall(getPrototypeOfMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, getPrototypeOfMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
         });
-        
+
         TypeId prototypeTypeId = JavascriptOperators::GetTypeId(getPrototypeOfResult);
         if (!JavascriptOperators::IsObjectType(prototypeTypeId) && prototypeTypeId != TypeIds_Null)
         {
@@ -1498,7 +1498,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("getPrototypeOf"));
         }
-        return RecyclableObject::FromVar(getPrototypeOfResult);
+        return VarTo<RecyclableObject>(getPrototypeOfResult);
     }
 
     RecyclableObject* JavascriptProxy::GetConfigurablePrototype(ScriptContext * requestContext)
@@ -1885,12 +1885,12 @@ namespace Js
         //11. If booleanTrapResult is false, then return false.
 
         Var propertyName = GetName(requestContext, propertyId);
-        
+
         Var setPropertyResult = threadContext->ExecuteImplicitCall(setMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, setMethod, CallInfo(CallFlags_Value, 5), handlerObj, targetObj, propertyName, newValue, receiver);
         });
-        
+
         BOOL setResult = JavascriptConversion::ToBoolean(setPropertyResult, requestContext);
         if (!setResult)
         {
@@ -1982,7 +1982,7 @@ namespace Js
         }
         if (propertyDescriptor.GetterSpecified())
         {
-            return JavascriptOperators::CallGetter(RecyclableObject::FromVar(propertyDescriptor.GetGetter()), instance, requestContext);
+            return JavascriptOperators::CallGetter(VarTo<RecyclableObject>(propertyDescriptor.GetGetter()), instance, requestContext);
         }
         Assert(FALSE);
         return requestContext->GetLibrary()->GetUndefined();
@@ -2036,7 +2036,7 @@ namespace Js
 
     RecyclableObject* JavascriptProxy::AutoProxyWrapper(Var obj)
     {
-        RecyclableObject* object = RecyclableObject::FromVar(obj);
+        RecyclableObject* object = VarTo<RecyclableObject>(obj);
         if (!JavascriptOperators::IsObject(object) || JavascriptProxy::Is(object))
         {
             return object;
@@ -2354,7 +2354,7 @@ namespace Js
         //12. ReturnIfAbrupt(extensibleTarget).
         //13. Let targetKeys be target.[[OwnPropertyKeys]]().
         //14. ReturnIfAbrupt(targetKeys).
-        
+
         Var ownKeysResult = threadContext->ExecuteImplicitCall(ownKeysMethod, ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(threadContext, ownKeysMethod, CallInfo(CallFlags_Value, 2), handlerObj, targetObj);
@@ -2364,7 +2364,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
         }
-        RecyclableObject* trapResultArray = RecyclableObject::FromVar(ownKeysResult);
+        RecyclableObject* trapResultArray = VarTo<RecyclableObject>(ownKeysResult);
 
         //15. Assert: targetKeys is a List containing only String and Symbol values.
         //16. Let targetConfigurableKeys be an empty List.

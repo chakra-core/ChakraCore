@@ -57,8 +57,8 @@ namespace Js
         }
         else if(
             PropertyValueInfo::PrototypeCacheDisabled((PropertyValueInfo*)info) ||
-            !RecyclableObject::Is(startingObject) ||
-            RecyclableObject::UnsafeFromVar(startingObject)->GetScriptContext() != requestContext)
+            !VarIs<RecyclableObject>(startingObject) ||
+            UnsafeVarTo<RecyclableObject>(startingObject)->GetScriptContext() != requestContext)
         {
             // Don't need to cache if the beginning property is number etc.
             return;
@@ -80,7 +80,7 @@ namespace Js
             isProto,
             dynamicObjectWithProperty,
             isRoot,
-            RecyclableObject::FromVar(startingObject)->GetType(),
+            VarTo<RecyclableObject>(startingObject)->GetType(),
             nullptr,
             propertyId,
             slotIndex,

@@ -87,7 +87,7 @@ using namespace Js;
             }
 
             Var symbolMatchProperty = JavascriptOperators::GetProperty(
-                RecyclableObject::FromVar(aValue),
+                VarTo<RecyclableObject>(aValue),
                 PropertyIds::_symbolMatch,
                 scriptContext);
             if (!JavascriptOperators::IsUndefined(symbolMatchProperty))
@@ -133,7 +133,7 @@ using namespace Js;
     {
         JavascriptOperators::SetProperty(
             instance,
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             PropertyIds::lastIndex,
             lastIndex,
             scriptContext,
@@ -199,7 +199,7 @@ using namespace Js;
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
             TypeId remoteTypeId = TypeIds_Limit;
-            RecyclableObject* reclObj = RecyclableObject::UnsafeFromVar(var);
+            RecyclableObject* reclObj = UnsafeVarTo<RecyclableObject>(var);
             if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
@@ -217,7 +217,7 @@ using namespace Js;
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);
         }
 
-        return RecyclableObject::FromVar(args[0]);
+        return VarTo<RecyclableObject>(args[0]);
     }
 
     JavascriptString* JavascriptRegExp::GetFirstStringArg(Arguments& args, ScriptContext* scriptContext)
@@ -272,7 +272,7 @@ using namespace Js;
         else if (JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
         {
             // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
-            RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
+            RecyclableObject* regexLikeObj = VarTo<RecyclableObject>(args[1]);
 
             if (!(callInfo.Flags & CallFlags_New) &&
                 (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2])) &&
@@ -339,7 +339,7 @@ using namespace Js;
         regex->SetSplitPattern(splitPattern);
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), regex, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), regex, nullptr, scriptContext) :
             regex;
     }
 
@@ -839,7 +839,7 @@ using namespace Js;
 
         return JavascriptOperators::IsNull(result)
             ? TaggedInt::ToVarUnchecked(-1)
-            : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+            : JavascriptOperators::GetProperty(VarTo<RecyclableObject>(result), PropertyIds::index, scriptContext);
     }
 
     Var JavascriptRegExp::EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...)
@@ -882,7 +882,7 @@ using namespace Js;
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
-            RecyclableObject* execFn = RecyclableObject::UnsafeFromVar(exec);
+            RecyclableObject* execFn = UnsafeVarTo<RecyclableObject>(exec);
             ThreadContext * threadContext = scriptContext->GetThreadContext();
             Var result = threadContext->ExecuteImplicitCall(execFn, ImplicitCall_Accessor, [=]()->Js::Var
             {

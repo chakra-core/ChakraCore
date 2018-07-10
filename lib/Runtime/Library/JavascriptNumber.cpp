@@ -404,7 +404,7 @@ namespace Js
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(result), nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(result), nullptr, scriptContext) :
             result;
     }
 
@@ -567,7 +567,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToExponential, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToExponential, args, &result))
                 {
                     return result;
                 }
@@ -634,7 +634,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToFixed, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToFixed, args, &result))
                 {
                     return result;
                 }
@@ -708,7 +708,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToPrecision, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToPrecision, args, &result))
                 {
                     return result;
                 }
@@ -808,7 +808,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
                 {
                     return JavascriptString::FromVar(result);
                 }
@@ -846,7 +846,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
+                if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToString, args, &result))
                 {
                     return result;
                 }
@@ -923,7 +923,7 @@ namespace Js
             if (JavascriptOperators::GetTypeId(value) == TypeIds_HostDispatch)
             {
                 Var result;
-                if (RecyclableObject::FromVar(value)->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
+                if (VarTo<RecyclableObject>(value)->InvokeBuiltInOperationRemotely(EntryValueOf, args, &result))
                 {
                     return result;
                 }

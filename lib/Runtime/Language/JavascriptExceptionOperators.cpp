@@ -171,7 +171,7 @@ namespace Js
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }  
+            }
 
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
@@ -1412,9 +1412,9 @@ namespace Js
             return !JavascriptError::FromVar(thrownObject)->IsPrototype();
         }
 
-        if (thrownObject && RecyclableObject::Is(thrownObject))
+        if (thrownObject && VarIs<RecyclableObject>(thrownObject))
         {
-            RecyclableObject* obj = RecyclableObject::FromVar(thrownObject);
+            RecyclableObject* obj = VarTo<RecyclableObject>(thrownObject);
 
             while (true)
             {
@@ -1458,7 +1458,7 @@ namespace Js
         // If we still have stack trace to store and obj is a thrown exception object, obj must be an Error instance.
         Assert(!isThrownException || IsErrorInstance(targetObject));
 
-        RecyclableObject* obj = RecyclableObject::FromVar(targetObject);
+        RecyclableObject* obj = VarTo<RecyclableObject>(targetObject);
         if (!resetStack && obj->HasProperty(PropertyIds::stack))
         {
             return; // we don't want to overwrite an existing "stack" property
@@ -1519,12 +1519,12 @@ namespace Js
 
         // If the first argument to the accessor is not a recyclable object, return undefined
         // for compat with other browsers
-        if (!RecyclableObject::Is(args[0]))
+        if (!VarIs<RecyclableObject>(args[0]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *obj = RecyclableObject::FromVar(args[0]);
+        RecyclableObject *obj = VarTo<RecyclableObject>(args[0]);
 
         // If an argument was passed to the accessor, it is being called as a setter.
         // Set the internal StackTraceCache property accordingly.
@@ -1633,7 +1633,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsErrorStackTraceEnabled()
             && IsErrorInstance(thrownObject))
         {
-            HRESULT hr = JavascriptError::GetRuntimeError(RecyclableObject::FromVar(thrownObject), NULL);
+            HRESULT hr = JavascriptError::GetRuntimeError(VarTo<RecyclableObject>(thrownObject), NULL);
             JavascriptFunction* error = scriptContext->GetLibrary()->GetErrorConstructor();
 
             // If we are throwing StackOverflow and Error.stackTraceLimit is a custom getter, we can't make the getter

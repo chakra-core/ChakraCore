@@ -28,7 +28,7 @@ namespace Js
     {
         AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakMap'");
 
-        return static_cast<JavascriptWeakMap *>(RecyclableObject::UnsafeFromVar(aValue));
+        return static_cast<JavascriptWeakMap *>(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
     JavascriptWeakMap::WeakMapKeyMap* JavascriptWeakMap::GetWeakMapKeyMapFromKey(RecyclableObject* key) const
@@ -114,7 +114,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
             }
-            adder = RecyclableObject::FromVar(adderVar);
+            adder = VarTo<RecyclableObject>(adderVar);
         }
 
         if (iter != nullptr)
@@ -127,7 +127,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
                 }
 
-                RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
+                RecyclableObject* obj = VarTo<RecyclableObject>(nextItem);
 
                 Var key = nullptr, value = nullptr;
 
@@ -155,7 +155,7 @@ namespace Js
 #endif
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), weakMapObject, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), weakMapObject, nullptr, scriptContext) :
             weakMapObject;
     }
 
@@ -178,7 +178,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             didDelete = weakMap->Delete(keyObj);
         }
@@ -220,7 +220,7 @@ namespace Js
         Var value = nullptr;
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
             loaded = weakMap->Get(keyObj, &value);
         }
 
@@ -260,7 +260,7 @@ namespace Js
 
         if (JavascriptOperators::IsObject(key))
         {
-            RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+            RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
             hasValue = weakMap->Has(keyObj);
         }
@@ -304,7 +304,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_WeakMapSetKeyNotAnObject, _u("WeakMap.prototype.set"));
         }
 
-        RecyclableObject* keyObj = RecyclableObject::FromVar(key);
+        RecyclableObject* keyObj = VarTo<RecyclableObject>(key);
 
 #if ENABLE_TTD
         //In replay we need to pin the object (and will release at snapshot points) -- in record we don't need to do anything

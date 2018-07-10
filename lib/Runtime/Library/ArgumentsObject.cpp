@@ -55,9 +55,9 @@ namespace Js
 
     HeapArgumentsObject* HeapArgumentsObject::As(Var aValue)
     {
-        if (ArgumentsObject::Is(aValue) && static_cast<ArgumentsObject*>(RecyclableObject::FromVar(aValue))->GetHeapArguments() == aValue)
+        if (ArgumentsObject::Is(aValue) && static_cast<ArgumentsObject*>(VarTo<RecyclableObject>(aValue))->GetHeapArguments() == aValue)
         {
-            return static_cast<HeapArgumentsObject*>(RecyclableObject::FromVar(aValue));
+            return static_cast<HeapArgumentsObject*>(VarTo<RecyclableObject>(aValue));
         }
         return NULL;
     }

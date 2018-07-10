@@ -1100,7 +1100,7 @@ ValueType ValueType::Merge(const Js::Var var) const
                     ? GetInt(false)
                     : ValueType::Float);
     }
-    return Merge(FromObject(RecyclableObject::UnsafeFromVar(var)));
+    return Merge(FromObject(UnsafeVarTo<RecyclableObject>(var)));
 }
 
 ValueType::Bits ValueType::TypeIdToBits[Js::TypeIds_Limit];

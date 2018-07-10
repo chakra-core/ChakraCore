@@ -369,7 +369,7 @@ namespace Js
         }
 #endif
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), newArr, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newArr, nullptr, scriptContext) :
             newArr;
     }
 
@@ -977,7 +977,7 @@ namespace Js
                 return nullptr;
             }
 
-            // We are transferring the buffer to the new owner. 
+            // We are transferring the buffer to the new owner.
             // To avoid double-charge to the allocation quota we will free the "diff" amount here.
             this->GetRecycler()->ReportExternalMemoryFree(growSize);
 
@@ -1016,7 +1016,7 @@ namespace Js
                 return nullptr;
             }
 
-            // We are transferring the buffer to the new owner. 
+            // We are transferring the buffer to the new owner.
             // To avoid double-charge to the allocation quota we will free the "diff" amount here.
             this->GetRecycler()->ReportExternalMemoryFree(growSize);
 

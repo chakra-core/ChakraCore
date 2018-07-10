@@ -213,7 +213,7 @@ namespace Js {
         if (errorObject != nullptr && (Js::JavascriptError::Is(errorObject) ||  \
             Js::JavascriptError::IsRemoteError(errorObject)))   \
         {       \
-            hr = GetRuntimeErrorFunc(Js::RecyclableObject::FromVar(errorObject), nullptr);   \
+            hr = GetRuntimeErrorFunc(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr);   \
         }   \
         else if (errorObject != nullptr) \
         {  \

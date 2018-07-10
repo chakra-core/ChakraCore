@@ -322,12 +322,12 @@ namespace Js
 
             if (type == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
                 return true;
             }
             else if (taggedType == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
                 return true;
             }
         }
@@ -347,7 +347,7 @@ namespace Js
                 const Var objectAtInlineSlot = DynamicObject::FromVar(obj)->GetInlineSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtInlineSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtInlineSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtInlineSlot);
                     return true;
                 }
             }
@@ -356,7 +356,7 @@ namespace Js
                 const Var objectAtAuxSlot = DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = RecyclableObject::FromVar(DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex));
+                    *callee = VarTo<RecyclableObject>(DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex));
                     return true;
                 }
             }
@@ -369,7 +369,7 @@ namespace Js
                 const Var objectAtInlineSlot = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtInlineSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtInlineSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtInlineSlot);
                     return true;
                 }
             }
@@ -378,7 +378,7 @@ namespace Js
                 const Var objectAtAuxSlot = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtAuxSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtAuxSlot);
                     return true;
                 }
             }
@@ -1181,7 +1181,7 @@ namespace Js
         Assert(function != NULL);
 
         if (this->function == function &&
-            this->type == RecyclableObject::FromVar(instance)->GetType())
+            this->type == VarTo<RecyclableObject>(instance)->GetType())
         {
             if (result != nullptr)
             {
@@ -1222,7 +1222,7 @@ namespace Js
             this->Set(instanceType, function, result);
         }
     }
-    
+
     /* static */
     uint32 IsInstInlineCache::OffsetOfFunction()
     {

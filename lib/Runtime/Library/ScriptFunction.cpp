@@ -160,7 +160,7 @@ using namespace Js;
         for (uint i = 0; i < length; i++)
         {
             Var scope = pDisplay->GetItem(i);
-            RecyclableObject *scopeObj = RecyclableObject::FromVar(scope);
+            RecyclableObject *scopeObj = VarTo<RecyclableObject>(scope);
             scopeObj->InvalidateCachedScope();
         }
     }
@@ -523,7 +523,7 @@ using namespace Js;
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
     }
-    
+
     // TODO:  Fixup function definition - something funky w/ header file includes - cycles?
     void ScriptFunction::ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* snapScriptFunctionInfo, TTD::SlabAllocator& alloc)
     {

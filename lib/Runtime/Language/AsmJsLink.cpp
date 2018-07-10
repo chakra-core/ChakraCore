@@ -42,12 +42,12 @@ namespace Js{
             return true;
         }
         Assert(foreign);
-        if (!RecyclableObject::Is(foreign))
+        if (!VarIs<RecyclableObject>(foreign))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
             return false;
         }
-        TypeId foreignObjType = RecyclableObject::FromVar(foreign)->GetTypeId();
+        TypeId foreignObjType = VarTo<RecyclableObject>(foreign)->GetTypeId();
         if (StaticType::Is(foreignObjType) || TypeIds_Proxy == foreignObjType)
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
@@ -69,12 +69,12 @@ namespace Js{
             return true;
         }
         Assert(stdlib);
-        if (!RecyclableObject::Is(stdlib))
+        if (!VarIs<RecyclableObject>(stdlib))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));
             return false;
         }
-        TypeId stdLibObjType = RecyclableObject::FromVar(stdlib)->GetTypeId();
+        TypeId stdLibObjType = VarTo<RecyclableObject>(stdlib)->GetTypeId();
         if (StaticType::Is(stdLibObjType) || TypeIds_Proxy == stdLibObjType)
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));

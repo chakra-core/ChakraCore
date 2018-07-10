@@ -259,7 +259,7 @@ namespace Js
         case TypeIds_Null:
             return requestContext->GetLibrary()->GetNull();
         case TypeIds_Number:
-            return RecyclableObject::FromVar(JavascriptNumber::CloneToScriptContext(this, requestContext));
+            return VarTo<RecyclableObject>(JavascriptNumber::CloneToScriptContext(this, requestContext));
         default:
             AssertMsg(FALSE, "shouldn't clone for other types");
             Js::JavascriptError::ThrowError(requestContext, VBSERR_InternalError);
@@ -537,7 +537,7 @@ namespace Js
                 goto ReturnTrue;
             default:
                 // Falsy objects are == null and == undefined.
-                *value = RecyclableObject::FromVar(aRight)->GetType()->IsFalsy();
+                *value = VarTo<RecyclableObject>(aRight)->GetType()->IsFalsy();
                 return TRUE;
             }
         case TypeIds_Integer:

@@ -44,7 +44,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
         case TypeIds_ActivationObject:
         case TypeIds_SymbolObject:
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(args[1]), nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(args[1]), nullptr, scriptContext) :
                 args[1];
 
         default:
@@ -56,7 +56,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
             }
 
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), result, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), result, nullptr, scriptContext) :
                 result;
         }
     }
@@ -67,7 +67,7 @@ Var JavascriptObject::NewInstance(RecyclableObject* function, CallInfo callInfo,
     }
     Var newObj = scriptContext->GetLibrary()->CreateObject(true);
     return isCtorSuperCall ?
-        JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), RecyclableObject::FromVar(newObj), nullptr, scriptContext) :
+        JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), VarTo<RecyclableObject>(newObj), nullptr, scriptContext) :
         newObj;
 }
 
@@ -326,11 +326,11 @@ Var JavascriptObject::EntryIsPrototypeOf(RecyclableObject* function, CallInfo ca
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Object.prototype.isPrototypeOf"));
     }
-    RecyclableObject* value = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* value = VarTo<RecyclableObject>(args[1]);
 
     if (dynamicObject->GetTypeId() == TypeIds_GlobalObject)
     {
-        dynamicObject = RecyclableObject::FromVar(static_cast<Js::GlobalObject*>(dynamicObject)->ToThis());
+        dynamicObject = VarTo<RecyclableObject>(static_cast<Js::GlobalObject*>(dynamicObject)->ToThis());
     }
 
     while (!JavascriptOperators::IsNull(value))
@@ -369,7 +369,7 @@ Var JavascriptObject::EntryToLocaleString(RecyclableObject* function, CallInfo c
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Object.prototype.toLocaleString"));
     }
 
-    RecyclableObject* toStringFunc = RecyclableObject::FromVar(toStringVar);
+    RecyclableObject* toStringFunc = VarTo<RecyclableObject>(toStringVar);
     if (toStringFunc == scriptContext->GetLibrary()->GetObjectToStringFunction())
     {
         return ToStringHelper(thisValue, scriptContext);
@@ -572,7 +572,7 @@ Var JavascriptObject::ToStringHelper(Var thisArg, ScriptContext* scriptContext)
     // We first need to make sure we are in the right context.
     if (type == TypeIds_HostDispatch)
     {
-        RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
+        RecyclableObject* hostDispatchObject = VarTo<RecyclableObject>(thisArg);
         const DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
         if (!remoteObject)
         {
@@ -691,7 +691,7 @@ BOOL JavascriptObject::GetOwnPropertyDescriptorHelper(RecyclableObject* obj, Pro
     if (obj->IsExternal())
     {
         isPropertyDescriptorDefined = obj->HasOwnProperty(propertyId) ?
-            JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) : 
+            JavascriptOperators::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, &propertyDescriptor) :
             FALSE;
     }
     else
@@ -826,8 +826,8 @@ Var JavascriptObject::EntrySetPrototypeOf(RecyclableObject* function, CallInfo c
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject* object = RecyclableObject::FromVar(args[1]);
-    RecyclableObject* newPrototype = RecyclableObject::FromVar(args[2]);
+    RecyclableObject* object = VarTo<RecyclableObject>(args[1]);
+    RecyclableObject* newPrototype = VarTo<RecyclableObject>(args[2]);
 
     // 5. Let status be O.[[SetPrototypeOf]](proto).
     // 6. ReturnIfAbrupt(status).
@@ -860,7 +860,7 @@ Var JavascriptObject::EntrySeal(RecyclableObject* function, CallInfo callInfo, .
     }
 
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -892,7 +892,7 @@ Var JavascriptObject::EntryFreeze(RecyclableObject* function, CallInfo callInfo,
         return args[1];
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -924,7 +924,7 @@ Var JavascriptObject::EntryPreventExtensions(RecyclableObject* function, CallInf
         return args[1];
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
     if (globalObject != object && globalObject && (globalObject->ToThis() == object))
@@ -952,7 +952,7 @@ Var JavascriptObject::EntryIsSealed(RecyclableObject* function, CallInfo callInf
         return scriptContext->GetLibrary()->GetTrue();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     BOOL isSealed = object->IsSealed();
 
@@ -980,7 +980,7 @@ Var JavascriptObject::EntryIsFrozen(RecyclableObject* function, CallInfo callInf
         return scriptContext->GetLibrary()->GetTrue();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     BOOL isFrozen = object->IsFrozen();
 
@@ -1008,7 +1008,7 @@ Var JavascriptObject::EntryIsExtensible(RecyclableObject* function, CallInfo cal
         return scriptContext->GetLibrary()->GetFalse();
     }
 
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
     BOOL isExtensible = object->IsExtensible();
 
     GlobalObject* globalObject = object->GetLibrary()->GetGlobalObject();
@@ -1296,7 +1296,7 @@ Var JavascriptObject::EntryDefineProperty(RecyclableObject* function, CallInfo c
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject* obj = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* obj = VarTo<RecyclableObject>(args[1]);
 
     // If the object is HostDispatch try to invoke the operation remotely
     if (obj->GetTypeId() == TypeIds_HostDispatch)
@@ -1347,7 +1347,7 @@ Var JavascriptObject::EntryDefineProperties(RecyclableObject* function, CallInfo
 #if ENABLE_COPYONACCESS_ARRAY
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[1]);
 #endif
-    RecyclableObject *object = RecyclableObject::FromVar(args[1]);
+    RecyclableObject *object = VarTo<RecyclableObject>(args[1]);
 
     // If the object is HostDispatch try to invoke the operation remotely
     if (object->GetTypeId() == TypeIds_HostDispatch)
@@ -1795,7 +1795,7 @@ BOOL JavascriptObject::CreateDataProperty(RecyclableObject* obj, PropertyId key,
     newDesc.SetEnumerable(true);
     newDesc.SetConfigurable(true);
 
-    // 4. Return ? O.[[DefineOwnProperty]](P, newDesc). 
+    // 4. Return ? O.[[DefineOwnProperty]](P, newDesc).
     return DefineOwnPropertyHelper(obj, key, newDesc, scriptContext);
 }
 
@@ -1823,7 +1823,7 @@ Var JavascriptObject::EntryCreate(RecyclableObject* function, CallInfo callInfo,
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NotObjectOrNull, _u("Object.create"));
     }
 
-    RecyclableObject* protoObj = RecyclableObject::FromVar(protoVar);
+    RecyclableObject* protoObj = VarTo<RecyclableObject>(protoVar);
     DynamicObject* object = function->GetLibrary()->CreateObject(protoObj);
 
     JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(object));

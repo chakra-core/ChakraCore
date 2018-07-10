@@ -115,7 +115,7 @@ namespace Js
             //
             RecyclableObject* pNew = NewInstanceAsConstructor(args, scriptContext);
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
                 pNew;
         }
     }
@@ -264,13 +264,13 @@ namespace Js
                     // Date objects, are unique among built-in ECMAScript object in that they treat "default" as being equivalent to "string"
                     // If hint is the string value "string" or the string value "default", then
                     // Let tryFirst be "string".
-                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintString>(UnsafeVarTo<RecyclableObject>(args[0]), scriptContext);
                 }
                 // Else if hint is the string value "number", then
                 // Let tryFirst be "number".
                 else if(wcscmp(str, _u("number")) == 0)
                 {
-                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(RecyclableObject::UnsafeFromVar(args[0]), scriptContext);
+                    return JavascriptConversion::OrdinaryToPrimitive<JavascriptHint::HintNumber>(UnsafeVarTo<RecyclableObject>(args[0]), scriptContext);
                 }
                 //anything else should throw a type error
             }
@@ -1316,7 +1316,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, scriptContext->GetPropertyName(PropertyIds::toISOString)->GetBuffer());
         }
-        RecyclableObject* toISOFunc = RecyclableObject::FromVar(toISO);
+        RecyclableObject* toISOFunc = VarTo<RecyclableObject>(toISO);
         return scriptContext->GetThreadContext()->ExecuteImplicitCall(toISOFunc, Js::ImplicitCall_Accessor, [=]()->Js::Var
         {
             return CALL_FUNCTION(scriptContext->GetThreadContext(), toISOFunc, CallInfo(1), thisObj);
@@ -1612,7 +1612,7 @@ namespace Js
     {
         if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
         {
-            if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, result))
+            if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, result))
             {
                 return TRUE;
             }

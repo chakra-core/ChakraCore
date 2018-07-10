@@ -290,7 +290,7 @@ namespace Js
             {
                 return false;
             }
-            
+
             if (entry->mustBeWritable && (!(descriptor->Attributes & PropertyWritable) || descriptor->IsOrMayBecomeFixed()))
             {
                 return false;
@@ -434,7 +434,7 @@ namespace Js
                 {
                     // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
                     // Accessors must be cached differently than normal properties, so if we want to cache this we must
-                    // do so here rather than in the caller. However, caching here would require passing originalInstance and 
+                    // do so here rather than in the caller. However, caching here would require passing originalInstance and
                     // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
                     // very little improvement. For now, just block caching this case.
                     PropertyValueInfo::SetNoCache(info, instance);
@@ -524,7 +524,7 @@ namespace Js
             CacheOperators::CachePropertyReadForGetter(info, originalInstance, propertyT, requestContext);
             PropertyValueInfo::SetNoCache(info, instance); // we already cached getter, so we don't have to do it once more
 
-            RecyclableObject* func = RecyclableObject::UnsafeFromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
+            RecyclableObject* func = UnsafeVarTo<RecyclableObject>(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
             *value = JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             return true;
         }
@@ -781,7 +781,7 @@ namespace Js
         }
         else if (descriptor->GetSetterPropertyIndex() != NoSlots)
         {
-            RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(descriptor->GetSetterPropertyIndex()));
+            RecyclableObject* func = VarTo<RecyclableObject>(instance->GetSlot(descriptor->GetSetterPropertyIndex()));
             JavascriptOperators::CallSetter(func, instance, value, NULL);
 
             // Wait for the setter to return before setting up the inline cache info, as the setter may change

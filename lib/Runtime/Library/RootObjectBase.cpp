@@ -23,7 +23,7 @@ namespace Js
 
     bool RootObjectBase::Is(Var var)
     {
-        return RecyclableObject::Is(var) && RootObjectBase::Is(RecyclableObject::UnsafeFromVar(var));
+        return VarIs<RecyclableObject>(var) && RootObjectBase::Is(UnsafeVarTo<RecyclableObject>(var));
     }
 
     bool RootObjectBase::Is(RecyclableObject* obj)

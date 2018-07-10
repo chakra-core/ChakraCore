@@ -2632,7 +2632,7 @@ skipThunk:
             if (CONFIG_FLAG(AsmJsEdge))
             {
                 // emscripten had a bug which caused this check to fail in some circumstances, so this check fails for some demos
-                if (!TaggedNumber::Is(value) && (!RecyclableObject::Is(value) || DynamicType::Is(RecyclableObject::FromVar(value)->GetTypeId())))
+                if (!TaggedNumber::Is(value) && (!VarIs<RecyclableObject>(value) || DynamicType::Is(VarTo<RecyclableObject>(value)->GetTypeId())))
                 {
                     AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Var import %s must be primitive"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                     goto linkFailure;
@@ -3577,9 +3577,9 @@ skipThunk:
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
 
         RecyclableObject* obj = NULL;
-        if (RecyclableObject::Is(varInstance))
+        if (VarIs<RecyclableObject>(varInstance))
         {
-            obj = RecyclableObject::FromVar(varInstance);
+            obj = VarTo<RecyclableObject>(varInstance);
         }
 
         InlineCache *inlineCache = this->GetInlineCache(playout->inlineCacheIndex);
@@ -4150,10 +4150,10 @@ skipThunk:
         Var thisInstance = GetReg(playout->Value2);
         InlineCache *inlineCache = GetInlineCache(playout->PropertyIdIndex);
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->PropertyIdIndex);
-        if (RecyclableObject::Is(instance) && RecyclableObject::Is(thisInstance))
+        if (VarIs<RecyclableObject>(instance) && VarIs<RecyclableObject>(thisInstance))
         {
-            RecyclableObject* superObj = RecyclableObject::FromVar(instance);
-            RecyclableObject* thisObj = RecyclableObject::FromVar(thisInstance);
+            RecyclableObject* superObj = VarTo<RecyclableObject>(instance);
+            RecyclableObject* thisObj = VarTo<RecyclableObject>(thisInstance);
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->PropertyIdIndex, true);
 
@@ -4275,7 +4275,7 @@ skipThunk:
         int length = pScope->GetLength();
         if (1 == length)
         {
-            RecyclableObject *obj = RecyclableObject::FromVar(pScope->GetItem(0));
+            RecyclableObject *obj = VarTo<RecyclableObject>(pScope->GetItem(0));
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             Var value;
@@ -4378,7 +4378,7 @@ skipThunk:
         int length = pScope->GetLength();
         if (1 == length)
         {
-            RecyclableObject* obj = RecyclableObject::FromVar(pScope->GetItem(0));
+            RecyclableObject* obj = VarTo<RecyclableObject>(pScope->GetItem(0));
             PropertyValueInfo info;
             PropertyValueInfo::SetCacheInfo(&info, GetFunctionBody(), inlineCache, playout->inlineCacheIndex, true);
             if (CacheOperators::TrySetProperty<true, false, false, false, false, true, false, false>(
@@ -4460,7 +4460,7 @@ skipThunk:
         InlineCache *inlineCache;
 
         if (!TaggedNumber::Is(instance)
-            && TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
+            && TrySetPropertyLocalFastPath(playout, propertyId, UnsafeVarTo<RecyclableObject>(instance), inlineCache, flags))
         {
             if (GetJavascriptFunction()->GetConstructorCache()->NeedsUpdateAfterCtor())
             {
@@ -4737,7 +4737,7 @@ skipThunk:
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache))
+        if (TrySetPropertyLocalFastPath(playout, propertyId, UnsafeVarTo<RecyclableObject>(instance), inlineCache))
         {
             return;
         }
@@ -4752,7 +4752,7 @@ skipThunk:
             GetFunctionBody(),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             GetPropertyIdFromCacheId(playout->inlineCacheIndex),
             GetReg(playout->Value));
     }
@@ -4767,7 +4767,7 @@ skipThunk:
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, UnsafeVarTo<RecyclableObject>(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitClassMember(instance, propertyId, GetReg(playout->Value));
         }
@@ -4829,7 +4829,7 @@ skipThunk:
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, UnsafeVarTo<RecyclableObject>(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitLetProperty(instance, propertyId, GetReg(playout->Value));
         }
@@ -4843,7 +4843,7 @@ skipThunk:
 
         Assert(!TaggedNumber::Is(instance));
         PropertyId propertyId = GetPropertyIdFromCacheId(playout->inlineCacheIndex);
-        if (!TrySetPropertyLocalFastPath(playout, propertyId, RecyclableObject::UnsafeFromVar(instance), inlineCache, flags))
+        if (!TrySetPropertyLocalFastPath(playout, propertyId, UnsafeVarTo<RecyclableObject>(instance), inlineCache, flags))
         {
             JavascriptOperators::OP_InitConstProperty(instance, propertyId, GetReg(playout->Value));
         }
@@ -4982,7 +4982,7 @@ skipThunk:
     void InterpreterStackFrame::ProfiledInitProperty(unaligned T* playout, Var instance)
     {
         ProfilingHelpers::ProfiledInitFld(
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             GetPropertyIdFromCacheId(playout->inlineCacheIndex),
             GetInlineCache(playout->inlineCacheIndex),
             playout->inlineCacheIndex,
@@ -9345,7 +9345,7 @@ skipThunk:
     Var InterpreterStackFrame::OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator)
     {
         ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-        RecyclableObject* iterator = yieldStarIterator != Constants::NoRegister ? RecyclableObject::FromVar(GetNonVarReg(yieldStarIterator)) : nullptr;
+        RecyclableObject* iterator = yieldStarIterator != Constants::NoRegister ? VarTo<RecyclableObject>(GetNonVarReg(yieldStarIterator)) : nullptr;
 
         return JavascriptOperators::OP_ResumeYield(yieldData, iterator);
     }

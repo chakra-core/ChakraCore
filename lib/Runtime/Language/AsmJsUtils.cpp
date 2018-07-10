@@ -235,7 +235,7 @@ namespace Js
                     }
                     else if (JavascriptObject::Is(*origArgs))
                     {
-                        RecyclableObject* object = RecyclableObject::FromVar(*origArgs);
+                        RecyclableObject* object = VarTo<RecyclableObject>(*origArgs);
                         PropertyRecord const * lowPropRecord = nullptr;
                         PropertyRecord const * highPropRecord = nullptr;
                         scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);

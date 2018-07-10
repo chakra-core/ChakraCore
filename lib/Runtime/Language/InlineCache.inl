@@ -183,7 +183,7 @@ namespace Js
 
         bool canSetField; // To verify if we can set a field on the object
         Var setterValue = nullptr;
-        { 
+        {
             // We need to disable implicit call to ensure the check doesn't cause unwanted side effects in debug code
             // Save old disableImplicitFlags and implicitCallFlags and disable implicit call and exception
             ThreadContext * threadContext = requestContext->GetThreadContext();
@@ -199,7 +199,7 @@ namespace Js
                 canSetField = true; // If there was an implicit call, inconclusive. Disable debug check.
                 setterValue = nullptr;
             }
-            else 
+            else
                 if ((flags & Accessor) == Accessor)
             {
                 Assert(setterValue != nullptr);
@@ -332,11 +332,11 @@ namespace Js
             RecyclableObject * function;
             if (u.accessor.isOnProto)
             {
-                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
+                function = UnsafeVarTo<RecyclableObject>(u.accessor.object->GetInlineSlot(u.accessor.slotIndex));
             }
             else
             {
-                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
+                function = UnsafeVarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
             }
 
             Assert(setterValue == nullptr || setterValue == function);
@@ -363,11 +363,11 @@ namespace Js
             RecyclableObject * function;
             if (u.accessor.isOnProto)
             {
-                function = RecyclableObject::UnsafeFromVar(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
+                function = UnsafeVarTo<RecyclableObject>(u.accessor.object->GetAuxSlot(u.accessor.slotIndex));
             }
             else
             {
-                function = RecyclableObject::UnsafeFromVar(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
+                function = UnsafeVarTo<RecyclableObject>(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
             }
 
             Assert(setterValue == nullptr || setterValue == function);

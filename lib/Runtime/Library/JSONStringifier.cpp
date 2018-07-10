@@ -325,7 +325,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     }
     if (JavascriptConversion::IsCallable(toJSON))
     {
-        RecyclableObject* func = RecyclableObject::UnsafeFromVar(toJSON);
+        RecyclableObject* func = UnsafeVarTo<RecyclableObject>(toJSON);
         Var values[2];
         Arguments args(2, values);
         args.Values[0] = valueObject;

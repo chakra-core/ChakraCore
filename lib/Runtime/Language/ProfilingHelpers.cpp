@@ -81,9 +81,9 @@ using namespace Js;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
                 ldElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
             }
-            else if(Js::RecyclableObject::Is(base))
+            else if(Js::VarIs<Js::RecyclableObject>(base))
             {
-                ldElemInfo.arrayType = ValueType::FromObject(Js::RecyclableObject::UnsafeFromVar(base)).ToLikely();
+                ldElemInfo.arrayType = ValueType::FromObject(Js::UnsafeVarTo<Js::RecyclableObject>(base)).ToLikely();
                 break;
             }
             else
@@ -312,7 +312,7 @@ using namespace Js;
             {
                 length = headSegmentLength;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
-                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();        
+                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
                 if (!TaggedNumber::Is(value) && !JavascriptNumber::Is_NoTaggedIntCheck(value))
                 {
                     // Non-number stored to a typed array. A helper call will be needed to convert the value.
@@ -638,7 +638,7 @@ using namespace Js;
 
         args.Values[0] = nullptr;
         Var array;
-        Js::RecyclableObject* calleeObject = RecyclableObject::UnsafeFromVar(callee);
+        Js::RecyclableObject* calleeObject = UnsafeVarTo<RecyclableObject>(callee);
         if (arrayInfo->IsNativeIntArray())
         {
             array = JavascriptNativeIntArray::NewInstance(calleeObject, args);
@@ -720,7 +720,7 @@ using namespace Js;
                 retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
             }
             END_SAFE_REENTRANT_CALL
-            
+
             profileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retVal);
             return retVal;
         }
@@ -954,10 +954,10 @@ using namespace Js;
         DynamicProfileInfo *const dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         Var value;
         FldInfoFlags fldInfoFlags = FldInfo_NoInfo;
-        if (Root || (RecyclableObject::Is(instance) && RecyclableObject::Is(thisInstance)))
+        if (Root || (VarIs<RecyclableObject>(instance) && VarIs<RecyclableObject>(thisInstance)))
         {
-            RecyclableObject *const object = RecyclableObject::UnsafeFromVar(instance);
-            RecyclableObject *const thisObject = RecyclableObject::UnsafeFromVar(thisInstance);
+            RecyclableObject *const object = UnsafeVarTo<RecyclableObject>(instance);
+            RecyclableObject *const thisObject = UnsafeVarTo<RecyclableObject>(thisInstance);
 
             if (!Root && Method && (propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && ScriptFunction::Is(object))
             {
@@ -1216,10 +1216,10 @@ using namespace Js;
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
         FldInfoFlags fldInfoFlags = FldInfo_NoInfo;
-        if(Root || (RecyclableObject::Is(instance) && RecyclableObject::Is(thisInstance)))
+        if(Root || (VarIs<RecyclableObject>(instance) && VarIs<RecyclableObject>(thisInstance)))
         {
-            RecyclableObject *const object = RecyclableObject::UnsafeFromVar(instance);
-            RecyclableObject *const thisObject = RecyclableObject::UnsafeFromVar(thisInstance);
+            RecyclableObject *const object = UnsafeVarTo<RecyclableObject>(instance);
+            RecyclableObject *const thisObject = UnsafeVarTo<RecyclableObject>(thisInstance);
             PropertyCacheOperationInfo operationInfo;
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
@@ -1328,7 +1328,7 @@ using namespace Js;
         ScriptFunction *const scriptFunction =
             ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledInitFld(
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             propertyId,
             GetInlineCache(scriptFunction, inlineCacheIndex),
             inlineCacheIndex,

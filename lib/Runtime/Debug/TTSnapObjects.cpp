@@ -276,7 +276,7 @@ namespace TTD
             //Many protos are set at creation, don't mess with them if they are already correct
             if(snpObject->SnapType->PrototypeVar != nullptr)
             {
-                Js::RecyclableObject* protoObj = Js::RecyclableObject::FromVar(inflator->InflateTTDVar(snpObject->SnapType->PrototypeVar));
+                Js::RecyclableObject* protoObj = Js::VarTo<Js::RecyclableObject>(inflator->InflateTTDVar(snpObject->SnapType->PrototypeVar));
                 if(obj->GetType()->GetPrototype() != protoObj)
                 {
                     obj->SetPrototype(protoObj);
@@ -708,7 +708,7 @@ namespace TTD
                 Js::Var res = nullptr;
                 ctx->GetThreadContext()->TTDContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, nullptr, &res);
 
-                return Js::RecyclableObject::FromVar(res);
+                return Js::VarTo<Js::RecyclableObject>(res);
             }
         }
 
@@ -1850,7 +1850,7 @@ namespace TTD
                 break;
             }
 
-            return Js::RecyclableObject::FromVar(tab);
+            return Js::VarTo<Js::RecyclableObject>(tab);
         }
 
         void EmitAddtlInfo_SnapTypedArrayInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -2538,7 +2538,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         { }
-        
+
         void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
         {
             SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);

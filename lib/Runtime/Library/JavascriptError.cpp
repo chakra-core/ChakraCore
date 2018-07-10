@@ -76,7 +76,7 @@ namespace Js
         JavascriptExceptionOperators::AddStackTraceToObject(pError, exceptionContext.GetStackTrace(), *scriptContext, /*isThrownException=*/ false, /*resetSatck=*/ false);
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pError, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pError, nullptr, scriptContext) :
             pError;
     }
 
@@ -181,7 +181,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Error.prototype.toString"));
         }
 
-        RecyclableObject * thisError = RecyclableObject::FromVar(args[0]);
+        RecyclableObject * thisError = VarTo<RecyclableObject>(args[0]);
         Var value = NULL;
         JavascriptString *outputStr, *message;
 

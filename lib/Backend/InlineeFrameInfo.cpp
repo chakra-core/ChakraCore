@@ -230,7 +230,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
 #if DBG
         if (boxValues && !Js::TaggedNumber::Is(var))
         {
-            Js::RecyclableObject *const recyclableObject = Js::RecyclableObject::FromVar(var);
+            Js::RecyclableObject *const recyclableObject = Js::VarTo<Js::RecyclableObject>(var);
             Assert(!ThreadContext::IsOnStack(recyclableObject));
         }
 #endif

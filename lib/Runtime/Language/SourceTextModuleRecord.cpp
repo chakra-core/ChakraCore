@@ -1038,7 +1038,7 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::OnHostException(void* errorVar)
     {
-        if (!RecyclableObject::Is(errorVar))
+        if (!VarIs<RecyclableObject>(errorVar))
         {
             return E_INVALIDARG;
         }

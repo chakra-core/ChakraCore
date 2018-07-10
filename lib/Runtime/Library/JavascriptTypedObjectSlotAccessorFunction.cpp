@@ -44,7 +44,7 @@ namespace Js
         {
             return true;
         }
-        Type* type = RecyclableObject::FromVar(thisObj)->GetType();
+        Type* type = VarTo<RecyclableObject>(thisObj)->GetType();
         if (ExternalTypeWithInheritedTypeIds::Is(type))
         {
             return ((Js::ExternalTypeWithInheritedTypeIds*)type)->InstanceOf();

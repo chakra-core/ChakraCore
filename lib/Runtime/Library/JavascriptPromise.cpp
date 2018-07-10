@@ -47,13 +47,13 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Promise"));
         }
-        RecyclableObject* executor = RecyclableObject::FromVar(args[1]);
+        RecyclableObject* executor = VarTo<RecyclableObject>(args[1]);
 
         // 3. Let promise be ? OrdinaryCreateFromConstructor(NewTarget, "%PromisePrototype%", <<[[PromiseState]], [[PromiseResult]], [[PromiseFulfillReactions]], [[PromiseRejectReactions]], [[PromiseIsHandled]] >>).
         JavascriptPromise* promise = library->CreatePromise();
         if (isCtorSuperCall)
         {
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), promise, library->GetPromisePrototype(), scriptContext);
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), promise, library->GetPromisePrototype(), scriptContext);
         }
 
         JavascriptPromiseResolveOrRejectFunction* resolve;
@@ -192,7 +192,7 @@ namespace Js
         // We know that constructor is an object at this point - further, we even know that it is a constructor - because NewPromiseCapability
         // would throw otherwise. That means we can safely cast constructor into a RecyclableObject* now and avoid having to perform ToObject
         // as part of the Invoke operation performed inside the loop below.
-        RecyclableObject* constructorObject = RecyclableObject::FromVar(constructor);
+        RecyclableObject* constructorObject = VarTo<RecyclableObject>(constructor);
 
         uint32 index = 0;
         JavascriptArray* values = nullptr;
@@ -220,7 +220,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
                 }
 
-                RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
+                RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
 
                 ThreadContext * threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
@@ -251,7 +251,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
                 }
 
-                RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
+                RecyclableObject* thenFunc = VarTo<RecyclableObject>(thenVar);
 
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
                 {
@@ -330,7 +330,7 @@ namespace Js
             onRejected = undefinedVar;
         }
 
-        RecyclableObject* func = RecyclableObject::FromVar(funcVar);
+        RecyclableObject* func = VarTo<RecyclableObject>(funcVar);
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
@@ -381,7 +381,7 @@ namespace Js
         // We know that constructor is an object at this point - further, we even know that it is a constructor - because NewPromiseCapability
         // would throw otherwise. That means we can safely cast constructor into a RecyclableObject* now and avoid having to perform ToObject
         // as part of the Invoke operation performed inside the loop below.
-        RecyclableObject* constructorObject = RecyclableObject::FromVar(constructor);
+        RecyclableObject* constructorObject = VarTo<RecyclableObject>(constructor);
         JavascriptExceptionObject* exception = nullptr;
 
         try
@@ -398,7 +398,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
                 }
 
-                RecyclableObject* resolveFunc = RecyclableObject::FromVar(resolveVar);
+                RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
 
                 ThreadContext * threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
@@ -425,7 +425,7 @@ namespace Js
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
                 }
 
-                RecyclableObject* thenFunc = RecyclableObject::FromVar(thenVar);
+                RecyclableObject* thenFunc = VarTo<RecyclableObject>(thenVar);
 
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
                 {
@@ -562,7 +562,7 @@ namespace Js
 
         if (args.Info.Count > 1 && JavascriptConversion::IsCallable(args[1]))
         {
-            fulfillmentHandler = RecyclableObject::FromVar(args[1]);
+            fulfillmentHandler = VarTo<RecyclableObject>(args[1]);
         }
         else
         {
@@ -571,7 +571,7 @@ namespace Js
 
         if (args.Info.Count > 2 && JavascriptConversion::IsCallable(args[2]))
         {
-            rejectionHandler = RecyclableObject::FromVar(args[2]);
+            rejectionHandler = VarTo<RecyclableObject>(args[2]);
         }
         else
         {
@@ -599,7 +599,7 @@ namespace Js
         }
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        RecyclableObject* promise = RecyclableObject::UnsafeFromVar(args[0]);
+        RecyclableObject* promise = UnsafeVarTo<RecyclableObject>(args[0]);
         // 3. Let C be ? SpeciesConstructor(promise, %Promise%).
         RecyclableObject* constructor = JavascriptOperators::SpeciesConstructor(promise, scriptContext->GetLibrary()->GetPromiseConstructor(), scriptContext);
         // 4. Assert IsConstructor(C)
@@ -607,7 +607,7 @@ namespace Js
 
         // 5. If IsCallable(onFinally) is false
         //   a. Let thenFinally be onFinally
-        //   b. Let catchFinally be onFinally 
+        //   b. Let catchFinally be onFinally
         // 6. Else,
         //   a. Let thenFinally be a new built-in function object as defined in ThenFinally Function.
         //   b. Let catchFinally be a new built-in function object as defined in CatchFinally Function.
@@ -622,8 +622,8 @@ namespace Js
             if (JavascriptConversion::IsCallable(args[1]))
             {
                 //note to avoid duplicating code the ThenFinallyFunction works as both thenFinally and catchFinally using a flag
-                thenFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, RecyclableObject::FromVar(args[1]), constructor, false);
-                catchFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, RecyclableObject::FromVar(args[1]), constructor, true);
+                thenFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, VarTo<RecyclableObject>(args[1]), constructor, false);
+                catchFinally = library->CreatePromiseThenFinallyFunction(EntryThenFinallyFunction, VarTo<RecyclableObject>(args[1]), constructor, true);
             }
             else
             {
@@ -645,7 +645,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Promise.prototype.finally"));
         }
-        RecyclableObject* func = RecyclableObject::UnsafeFromVar(funcVar);
+        RecyclableObject* func = UnsafeVarTo<RecyclableObject>(funcVar);
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
@@ -666,7 +666,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
         ScriptContext* scriptContext = function->GetScriptContext();
-        
+
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         JavascriptPromiseThenFinallyFunction* thenFinallyFunction = JavascriptPromiseThenFinallyFunction::FromVar(function);
@@ -716,7 +716,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Promise.prototype.finally"));
         }
 
-        RecyclableObject* func = RecyclableObject::FromVar(funcVar);
+        RecyclableObject* func = VarTo<RecyclableObject>(funcVar);
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
@@ -740,7 +740,7 @@ namespace Js
 
         if (!thunkFinallyFunction->GetShouldThrow())
         {
-            return thunkFinallyFunction->GetValue();  
+            return thunkFinallyFunction->GetValue();
         }
         else
         {
@@ -811,16 +811,16 @@ namespace Js
                 resolution = selfResolutionError;
                 isRejecting = true;
             }
-            else if (RecyclableObject::Is(resolution))
+            else if (VarIs<RecyclableObject>(resolution))
             {
                 try
                 {
-                    RecyclableObject* thenable = RecyclableObject::FromVar(resolution);
+                    RecyclableObject* thenable = VarTo<RecyclableObject>(resolution);
                     Var then = JavascriptOperators::GetPropertyNoCache(thenable, Js::PropertyIds::then, scriptContext);
 
                     if (JavascriptConversion::IsCallable(then))
                     {
-                        JavascriptPromiseResolveThenableTaskFunction* resolveThenableTaskFunction = library->CreatePromiseResolveThenableTaskFunction(EntryResolveThenableTaskFunction, this, thenable, RecyclableObject::FromVar(then));
+                        JavascriptPromiseResolveThenableTaskFunction* resolveThenableTaskFunction = library->CreatePromiseResolveThenableTaskFunction(EntryResolveThenableTaskFunction, this, thenable, VarTo<RecyclableObject>(then));
 
                         library->EnqueueTask(resolveThenableTaskFunction);
 
@@ -934,7 +934,7 @@ namespace Js
             bool isPromiseRejectionHandled = true;
             if (scriptContext->IsScriptContextInDebugMode())
             {
-                // only necessary to determine if false if debugger is attached.  This way we'll 
+                // only necessary to determine if false if debugger is attached.  This way we'll
                 // correctly break on exceptions raised in promises that result in uhandled rejection
                 // notifications
                 Var promiseVar = promiseCapability->GetPromise();
@@ -984,10 +984,10 @@ namespace Js
         bool willBeUnhandled = !this->GetIsHandled();
         if (!willBeUnhandled)
         {
-            // if this promise is handled, then we need to do a depth-first search over this promise's reject 
-            // reactions. If we find a reaction that 
+            // if this promise is handled, then we need to do a depth-first search over this promise's reject
+            // reactions. If we find a reaction that
             //    - associated promise is "unhandled" (ie, it's never been "then'd")
-            //    - AND its rejection handler is our default "thrower function" 
+            //    - AND its rejection handler is our default "thrower function"
             // then this promise results in an unhandled rejection path.
 
             JsUtil::Stack<JavascriptPromise*, HeapAllocator> stack(&HeapAllocator::Instance);
@@ -1058,7 +1058,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
 
-        RecyclableObject* handlerFunc = RecyclableObject::FromVar(handler);
+        RecyclableObject* handlerFunc = VarTo<RecyclableObject>(handler);
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
@@ -1187,7 +1187,7 @@ namespace Js
             bool isPromiseRejectionHandled = true;
             if (scriptContext->IsScriptContextInDebugMode())
             {
-                // only necessary to determine if false if debugger is attached.  This way we'll 
+                // only necessary to determine if false if debugger is attached.  This way we'll
                 // correctly break on exceptions raised in promises that result in uhandled rejections
                 isPromiseRejectionHandled = !promise->WillRejectionBeUnhandled();
             }
@@ -1425,7 +1425,7 @@ namespace Js
         try
         {
             Var nextVar = CALL_FUNCTION(scriptContext->GetThreadContext(), nextFunction, CallInfo(CallFlags_Value, 1), undefinedVar);
-            next = RecyclableObject::FromVar(nextVar);
+            next = VarTo<RecyclableObject>(nextVar);
         }
         catch (const JavascriptException& err)
         {
@@ -1449,7 +1449,7 @@ namespace Js
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
             }
-            CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(resolve), CallInfo(CallFlags_Value, 2), undefinedVar, value);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), VarTo<RecyclableObject>(resolve), CallInfo(CallFlags_Value, 2), undefinedVar, value);
 
             return;
         }
@@ -1468,7 +1468,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
-        CALL_FUNCTION(scriptContext->GetThreadContext(), RecyclableObject::FromVar(promiseThen), CallInfo(CallFlags_Value, 3), promise, successFunction, failFunction);
+        CALL_FUNCTION(scriptContext->GetThreadContext(), VarTo<RecyclableObject>(promiseThen), CallInfo(CallFlags_Value, 3), promise, successFunction, failFunction);
 
         END_SAFE_REENTRANT_REGION
     }
@@ -1590,7 +1590,7 @@ namespace Js
         }
         AssertMsg(hasResolve == false && hasReject == false, "mismatched resolve/reject reaction counts");
         promise->reactions->Reverse();
-        
+
         return promise;
     }
 #endif
@@ -1603,7 +1603,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
 
-        RecyclableObject* constructorFunc = RecyclableObject::FromVar(constructor);
+        RecyclableObject* constructorFunc = VarTo<RecyclableObject>(constructor);
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
@@ -1978,7 +1978,7 @@ namespace Js
         {
             alloc.SlabCommitArraySpace<TTD_PTR_ID>(depCount, maxDeps);
         }
-        else 
+        else
         {
             alloc.SlabAbortArraySpace<TTD_PTR_ID>(maxDeps);
         }

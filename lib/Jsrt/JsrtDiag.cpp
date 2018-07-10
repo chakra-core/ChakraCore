@@ -479,7 +479,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward
                 fprintf(stderr, "Must be in replay mode to use reverse-step - launch with \"--replay-debug\" flag in Node.");
                 jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
             }
@@ -500,7 +500,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward
                 fprintf(stderr, "Must be in replay mode to use reverse-continue - launch with \"--replay-debug\" flag in Node.");
                 jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
             }
@@ -566,7 +566,7 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         *functionPosition = JS_INVALID_REFERENCE;
 
-        if (!Js::RecyclableObject::Is(function) || !Js::ScriptFunction::Is(function))
+        if (!Js::VarIs<Js::RecyclableObject>(function) || !Js::ScriptFunction::Is(function))
         {
             return JsErrorInvalidArgument;
         }

@@ -87,7 +87,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
-        adder = RecyclableObject::FromVar(adderVar);
+        adder = VarTo<RecyclableObject>(adderVar);
     }
 
     if (iter != nullptr)
@@ -102,7 +102,7 @@ Var JavascriptSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     }
 
     return isCtorSuperCall ?
-        JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), setObject, nullptr, scriptContext) :
+        JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), setObject, nullptr, scriptContext) :
         setObject;
 }
 
@@ -188,7 +188,7 @@ Var JavascriptSet::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Set.prototype.forEach"));
     }
-    RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
 
     Var thisArg = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 

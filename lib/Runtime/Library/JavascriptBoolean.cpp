@@ -53,7 +53,7 @@ namespace Js
         {
             RecyclableObject* pNew = scriptContext->GetLibrary()->CreateBooleanObject(value);
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
                 pNew;
         }
 
@@ -129,7 +129,7 @@ namespace Js
         if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
         {
             Var result;
-            if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
+            if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
             {
                 return result;
             }

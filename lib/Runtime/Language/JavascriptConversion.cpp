@@ -28,16 +28,16 @@ using namespace Js;
     //If Object has a [[Call]] internal method, then return true, otherwise return false
     bool JavascriptConversion::IsCallable(Var aValue)
     {
-        if (!RecyclableObject::Is(aValue))
+        if (!VarIs<RecyclableObject>(aValue))
         {
             return false;
         }
-        return IsCallable(RecyclableObject::UnsafeFromVar(aValue));
+        return IsCallable(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
     bool JavascriptConversion::IsCallable(_In_ RecyclableObject* aValue)
     {
-        JavascriptMethod entryPoint = RecyclableObject::UnsafeFromVar(aValue)->GetEntryPoint();
+        JavascriptMethod entryPoint = UnsafeVarTo<RecyclableObject>(aValue)->GetEntryPoint();
         return RecyclableObject::DefaultEntryPoint != entryPoint;
     }
 
@@ -258,7 +258,7 @@ CommonNumber:
                 return TRUE;
 
             default:
-                *object = RecyclableObject::FromVar(aValue)->ToObject(scriptContext);
+                *object = VarTo<RecyclableObject>(aValue)->ToObject(scriptContext);
                 return TRUE;
         }
     }
@@ -415,7 +415,7 @@ CommonNumber:
         default:
             // if no Method exists this function falls back to OrdinaryToPrimitive
             // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
-            return MethodCallToPrimitive<hint>(RecyclableObject::UnsafeFromVar(aValue), requestContext);
+            return MethodCallToPrimitive<hint>(UnsafeVarTo<RecyclableObject>(aValue), requestContext);
         }
     }
 
@@ -642,7 +642,7 @@ CommonNumber:
 
             case TypeIds_String:
                 {
-                    ScriptContext* aValueScriptContext = Js::RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext();
+                    ScriptContext* aValueScriptContext = Js::UnsafeVarTo<Js::RecyclableObject>(aValue)->GetScriptContext();
                     return JavascriptString::UnsafeFromVar(CrossSite::MarshalVar(scriptContext,
                       aValue, aValueScriptContext));
                 }
@@ -712,12 +712,12 @@ CommonNumber:
 
         default:
             {
-                RecyclableObject* object = RecyclableObject::FromVar(aValue);
+                RecyclableObject* object = VarTo<RecyclableObject>(aValue);
                 Var value = JavascriptOperators::GetProperty(object, PropertyIds::toLocaleString, scriptContext, NULL);
 
                 if (JavascriptConversion::IsCallable(value))
                 {
-                    RecyclableObject* toLocaleStringFunction = RecyclableObject::FromVar(value);
+                    RecyclableObject* toLocaleStringFunction = VarTo<RecyclableObject>(value);
                     Var aResult = scriptContext->GetThreadContext()->ExecuteImplicitCall(toLocaleStringFunction, Js::ImplicitCall_ToPrimitive, [=]()->Js::Var
                     {
                         return CALL_FUNCTION(scriptContext->GetThreadContext(), toLocaleStringFunction, CallInfo(1), aValue);
@@ -756,9 +756,9 @@ CommonNumber:
     BOOL JavascriptConversion::ToBoolean_Full(Var aValue, ScriptContext* scriptContext)
     {
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
-        AssertMsg(RecyclableObject::Is(aValue), "Should be handled already");
+        AssertMsg(VarIs<RecyclableObject>(aValue), "Should be handled already");
 
-        auto type = RecyclableObject::UnsafeFromVar(aValue)->GetType();
+        auto type = UnsafeVarTo<RecyclableObject>(aValue)->GetType();
 
         switch (type->GetTypeId())
         {
@@ -831,7 +831,7 @@ CommonNumber:
         JIT_HELPER_REENTRANT_HEADER(Op_ConvNumber_FromPrimitive);
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
         Assert(!TaggedNumber::Is(aValue));
-        RecyclableObject *obj = RecyclableObject::FromVar(aValue);
+        RecyclableObject *obj = VarTo<RecyclableObject>(aValue);
 
         // NOTE: Don't allow strings, otherwise JIT's float type specialization has to worry about concats
         if (obj->GetTypeId() >= TypeIds_String)
@@ -863,7 +863,7 @@ CommonNumber:
     double JavascriptConversion::ToNumber_Full(Var aValue,ScriptContext* scriptContext)
     {
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         BOOL fPrimitiveOnly = false;
         while(true)
         {
@@ -920,7 +920,7 @@ CommonNumber:
     double JavascriptConversion::ToInteger_Full(Var aValue,ScriptContext* scriptContext)
     {
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         BOOL fPrimitiveOnly = false;
         while(true)
         {
@@ -991,7 +991,7 @@ CommonNumber:
         Assert(Js::JavascriptStackWalker::ValidateTopJitFrame(scriptContext));
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
 
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         // This is used when TaggedInt's overflow but remain under int32
         // so Number is our most critical case:
 
@@ -1098,7 +1098,7 @@ CommonNumber:
     // a strict version of ToInt32 conversion that returns false for non int32 values like, inf, NaN, undef
     BOOL JavascriptConversion::ToInt32Finite(Var aValue, ScriptContext* scriptContext, int32* result)
     {
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         BOOL fPrimitiveOnly = false;
         while(true)
         {
@@ -1233,7 +1233,7 @@ CommonNumber:
     {
         JIT_HELPER_REENTRANT_HEADER(Conv_ToUInt32_Full);
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         BOOL fPrimitiveOnly = false;
         while(true)
         {
@@ -1314,7 +1314,7 @@ CommonNumber:
     uint16 JavascriptConversion::ToUInt16_Full(IN  Var aValue, ScriptContext* scriptContext)
     {
         AssertMsg(!TaggedInt::Is(aValue), "Should be detected");
-        ScriptContext * objectScriptContext = RecyclableObject::Is(aValue) ? RecyclableObject::UnsafeFromVar(aValue)->GetScriptContext() : nullptr;
+        ScriptContext * objectScriptContext = VarIs<RecyclableObject>(aValue) ? UnsafeVarTo<RecyclableObject>(aValue)->GetScriptContext() : nullptr;
         BOOL fPrimitiveOnly = false;
         while(true)
         {

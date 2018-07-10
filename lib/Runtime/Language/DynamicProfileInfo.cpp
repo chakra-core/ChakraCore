@@ -434,7 +434,7 @@ namespace Js
             return;
         }
 
-        if (arg != nullptr && RecyclableObject::Is(arg) && JavascriptFunction::Is(arg))
+        if (arg != nullptr && VarIs<RecyclableObject>(arg) && JavascriptFunction::Is(arg))
         {
             CallbackInfo * callbackInfo = EnsureCallbackInfo(functionBody, callSiteId);
             if (callbackInfo->sourceId == NoSourceId)

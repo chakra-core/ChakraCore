@@ -87,7 +87,7 @@ Var JavascriptMap::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
         }
-        adder = RecyclableObject::FromVar(adderVar);
+        adder = VarTo<RecyclableObject>(adderVar);
     }
 
     if (iter != nullptr)
@@ -100,7 +100,7 @@ Var JavascriptMap::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
             }
 
-            RecyclableObject* obj = RecyclableObject::FromVar(nextItem);
+            RecyclableObject* obj = VarTo<RecyclableObject>(nextItem);
 
             Var key = nullptr, value = nullptr;
 
@@ -124,7 +124,7 @@ Var JavascriptMap::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     }
 
     return isCtorSuperCall ?
-        JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), mapObject, nullptr, scriptContext) :
+        JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), mapObject, nullptr, scriptContext) :
         mapObject;
 }
 
@@ -184,7 +184,7 @@ Var JavascriptMap::EntryForEach(RecyclableObject* function, CallInfo callInfo, .
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Map.prototype.forEach"));
     }
-    RecyclableObject* callBackFn = RecyclableObject::FromVar(args[1]);
+    RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
 
     Var thisArg = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 

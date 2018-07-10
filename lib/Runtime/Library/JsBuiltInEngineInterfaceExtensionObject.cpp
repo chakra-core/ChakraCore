@@ -477,7 +477,7 @@ FUNCTIONKIND_VALUES(VALUE)
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         AssertOrFailFast(args.Info.Count == 4);
 
-        RecyclableObject * obj = RecyclableObject::FromVar(args.Values[1]);
+        RecyclableObject * obj = VarTo<RecyclableObject>(args.Values[1]);
         double index = JavascriptConversion::ToInteger(args.Values[2], scriptContext);
         AssertOrFailFast(index >= 0);
         JavascriptArray::BigIndex bigIndex(static_cast<uint64>(index));

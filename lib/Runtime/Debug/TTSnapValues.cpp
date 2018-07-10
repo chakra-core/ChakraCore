@@ -29,7 +29,7 @@ namespace TTD
                 return false;
             }
 
-            Js::TypeId tid = Js::RecyclableObject::FromVar(v)->GetTypeId();
+            Js::TypeId tid = Js::VarTo<Js::RecyclableObject>(v)->GetTypeId();
             return tid <= Js::TypeIds_LastToPrimitiveType;
         }
 
@@ -40,7 +40,7 @@ namespace TTD
                 return false;
             }
 
-            Js::TypeId tid = Js::RecyclableObject::FromVar(v)->GetTypeId();
+            Js::TypeId tid = Js::VarTo<Js::RecyclableObject>(v)->GetTypeId();
             return tid > Js::TypeIds_LastToPrimitiveType;
         }
 
@@ -409,7 +409,7 @@ namespace TTD
                 }
             }
 
-            inflator->AddObject(snapValue->PrimitiveValueId, Js::RecyclableObject::FromVar(res));
+            inflator->AddObject(snapValue->PrimitiveValueId, Js::VarTo<Js::RecyclableObject>(res));
         }
 
         void EmitSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, FileWriter* writer, NSTokens::Separator separator)
@@ -1653,7 +1653,7 @@ namespace TTD
                 for(int32 k = 0; k < pendingAsyncList.Count(); ++k)
                 {
                     const TTDPendingAsyncBufferModification& pk = pendingAsyncList.Item(k);
-                    snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::RecyclableObject::FromVar(pk.ArrayBufferVar));
+                    snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::VarTo<Js::RecyclableObject>(pk.ArrayBufferVar));
                     snapCtx->PendingAsyncModArray[k].Index = pk.Index;
                 }
             }

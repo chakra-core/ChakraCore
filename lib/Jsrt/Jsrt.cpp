@@ -220,7 +220,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
     Js::RecyclableObject * prototypeObject = nullptr;
     if (prototype != JS_INVALID_REFERENCE)
     {
-        prototypeObject = Js::RecyclableObject::FromVar(prototype);
+        prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
     }
 
     *object = JsrtExternalObject::Create(nullptr, nullptr, prototypeObject, ctx);
@@ -641,7 +641,7 @@ CHAKRA_API JsAddRef(_In_ JsRef ref, _Out_opt_ unsigned int *count)
 
             if((lCount == 1) && (threadContext->IsRuntimeInTTDMode()) && (!threadContext->TTDLog->IsPropertyRecordRef(ref)))
             {
-                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(ref);
+                Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(ref);
                 if(obj->GetScriptContext()->IsTTDRecordModeEnabled())
                 {
                     if(obj->GetScriptContext()->ShouldPerformRecordAction())
@@ -861,11 +861,11 @@ CHAKRA_API JsGetContextOfObject(_In_ JsValueRef object, _Out_ JsContextRef *cont
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::RecyclableObject::Is(object))
+        if (!Js::VarIs<Js::RecyclableObject>(object))
         {
             RETURN_NO_EXCEPTION(JsErrorArgumentNotObject);
         }
-        Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(object);
         *context = (JsContextRef)obj->GetScriptContext()->GetLibrary()->GetJsrtContext();
     }
     END_JSRT_NO_EXCEPTION
@@ -1337,7 +1337,7 @@ CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
         if (prototype != JS_INVALID_REFERENCE)
         {
             VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
-            prototypeObject = Js::RecyclableObject::FromVar(prototype);
+            prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
         }
 
         *object = JsrtExternalObject::Create(data, finalizeCallback, prototypeObject, scriptContext);
@@ -1401,7 +1401,7 @@ CHAKRA_API JsSetPrototype(_In_ JsValueRef object, _In_ JsValueRef prototypeObjec
             return JsErrorInvalidArgument;
         }
 
-        Js::JavascriptObject::ChangePrototype(Js::RecyclableObject::FromVar(object), Js::RecyclableObject::FromVar(prototypeObject), true, scriptContext);
+        Js::JavascriptObject::ChangePrototype(Js::VarTo<Js::RecyclableObject>(object), Js::VarTo<Js::RecyclableObject>(prototypeObject), true, scriptContext);
 
         return JsNoError;
     });
@@ -1416,7 +1416,7 @@ CHAKRA_API JsInstanceOf(_In_ JsValueRef object, _In_ JsValueRef constructor, _Ou
         PARAM_NOT_NULL(result);
 
         Js::Var value = Js::JavascriptOperators::OP_IsInst(object, constructor, scriptContext, nullptr);
-        *result = !!Js::JavascriptBoolean::FromVar(value)->GetValue();
+        *result = !!Js::VarTo<Js::JavascriptBoolean>(value)->GetValue();
 
         return JsNoError;
     });
@@ -1431,7 +1431,7 @@ CHAKRA_API JsGetExtensionAllowed(_In_ JsValueRef object, _Out_ bool *value)
         PARAM_NOT_NULL(value);
         *value = false;
 
-        *value = Js::RecyclableObject::FromVar(object)->IsExtensible() != 0;
+        *value = Js::VarTo<Js::RecyclableObject>(object)->IsExtensible() != 0;
 
         return JsNoError;
     });
@@ -1444,7 +1444,7 @@ CHAKRA_API JsPreventExtension(_In_ JsValueRef object)
 
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
 
-        Js::RecyclableObject::FromVar(object)->PreventExtensions();
+        Js::VarTo<Js::RecyclableObject>(object)->PreventExtensions();
 
         return JsNoError;
     });
@@ -1512,7 +1512,7 @@ CHAKRA_API JsObjectHasOwnProperty(_In_ JsValueRef object, _In_ JsValueRef proper
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -1547,7 +1547,7 @@ CHAKRA_API JsGetProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
         PARAM_NOT_NULL(value);
         *value = nullptr;
 
-        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
         JsErrorCode err = JsGetPropertyCommon(scriptContext, instance, (const Js::PropertyRecord *)propertyId,
              value);
 
@@ -1571,7 +1571,7 @@ CHAKRA_API JsObjectGetProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -1580,7 +1580,7 @@ CHAKRA_API JsObjectGetProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
 
         Assert(propertyRecord != nullptr);
 
-        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
         return JsGetPropertyCommon(scriptContext, instance, propertyRecord, value);
     });
 }
@@ -1592,7 +1592,7 @@ static JsErrorCode JsGetOwnPropertyDescriptorCommon(Js::ScriptContext * scriptCo
     AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
 
     Js::PropertyDescriptor propertyDescriptorValue;
-    if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::RecyclableObject::FromVar(object),
+    if (Js::JavascriptOperators::GetOwnPropertyDescriptor(Js::VarTo<Js::RecyclableObject>(object),
         propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptorValue))
     {
         *propertyDescriptor = Js::JavascriptOperators::FromPropertyDescriptor(propertyDescriptorValue, scriptContext);
@@ -1639,7 +1639,7 @@ CHAKRA_API JsObjectGetOwnPropertyDescriptor(_In_ JsValueRef object, _In_ JsValue
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -1692,7 +1692,7 @@ CHAKRA_API JsObjectSetProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -1719,13 +1719,13 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
         PARAM_NOT_NULL(hasProperty);
         *hasProperty = false;
 
-        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
         *hasProperty = Js::JavascriptOperators::HasProperty(instance, ((Js::PropertyRecord *)propertyId)->GetPropertyId()) != 0;
 
         return JsNoError;
     };
 
-    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
+    Js::RecyclableObject* robject = Js::VarTo<Js::RecyclableObject>(object);
     Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
     while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
     {
@@ -1758,20 +1758,20 @@ CHAKRA_API JsObjectHasProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
             return errorValue;
         }
 
-        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
         *hasProperty = Js::JavascriptOperators::HasProperty(instance, propertyRecord->GetPropertyId()) != 0;
 
         return JsNoError;
     };
 
-    Js::RecyclableObject* robject = Js::RecyclableObject::FromVar(object);
+    Js::RecyclableObject* robject = Js::VarTo<Js::RecyclableObject>(object);
     Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(robject);
     while (typeId != Js::TypeIds_Null && typeId != Js::TypeIds_Proxy)
     {
@@ -1840,7 +1840,7 @@ CHAKRA_API JsObjectDeleteProperty(_In_ JsValueRef object, _In_ JsValueRef proper
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -1868,7 +1868,7 @@ static JsErrorCode JsDefinePropertyCommon(Js::ScriptContext * scriptContext, _In
     }
 
     *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
-        Js::RecyclableObject::FromVar(object), propertyRecord->GetPropertyId(),
+        Js::VarTo<Js::RecyclableObject>(object), propertyRecord->GetPropertyId(),
         propertyDescriptorValue, true, scriptContext) != 0;
 
     return JsNoError;
@@ -1908,7 +1908,7 @@ CHAKRA_API JsObjectDefineProperty(_In_ JsValueRef object, _In_ JsValueRef proper
 
         const Js::PropertyRecord *propertyRecord = nullptr;
         JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
-            Js::RecyclableObject::FromVar(propertyId), &propertyRecord);
+            Js::VarTo<Js::RecyclableObject>(propertyId), &propertyRecord);
 
         if (errorValue != JsNoError)
         {
@@ -2222,7 +2222,7 @@ CHAKRA_API JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ JsTypedArra
     }
 
 #if ENABLE_TTD
-    Js::ScriptContext* scriptContext = Js::RecyclableObject::FromVar(typedArray)->GetScriptContext();
+    Js::ScriptContext* scriptContext = Js::VarTo<Js::RecyclableObject>(typedArray)->GetScriptContext();
     if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && arrayBuffer != nullptr)
     {
         scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetTypedArrayInfo(typedArray, *arrayBuffer);
@@ -2483,7 +2483,7 @@ CHAKRA_API JsSetIndexedPropertiesToExternalData(
             || (typeId >= Js::TypeIds_TypedArrayMin && typeId <= Js::TypeIds_TypedArrayMax)
             || typeId == Js::TypeIds_ArrayBuffer
             || typeId == Js::TypeIds_DataView
-            || Js::RecyclableObject::FromVar(object)->IsExternal()
+            || Js::VarTo<Js::RecyclableObject>(object)->IsExternal()
             )
         {
             return JsErrorInvalidArgument;
@@ -4254,9 +4254,9 @@ CHAKRA_API JsTTDNotifyLongLivedReferenceAdd(_In_ JsValueRef value)
             return JsErrorNoCurrentContext;
         }
 
-        if (Js::RecyclableObject::Is(value))
+        if (Js::VarIs<Js::RecyclableObject>(value))
         {
-            Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(value);
+            Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(value);
             if (obj->GetScriptContext()->IsTTDRecordModeEnabled())
             {
                 if (obj->GetScriptContext()->ShouldPerformRecordAction())
@@ -5476,7 +5476,7 @@ CHAKRA_API JsGetDataViewInfo(
     }
 
 #if ENABLE_TTD
-    Js::ScriptContext* scriptContext = Js::RecyclableObject::FromVar(dataView)->GetScriptContext();
+    Js::ScriptContext* scriptContext = Js::VarTo<Js::RecyclableObject>(dataView)->GetScriptContext();
     if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && arrayBuffer != nullptr)
     {
         scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetDataViewInfo(dataView, *arrayBuffer);

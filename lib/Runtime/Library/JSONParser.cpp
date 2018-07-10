@@ -68,14 +68,14 @@ namespace JSON
                 "The holder argument in a JSON::Walk function must be an object or an array");
             if (id == Constants::NoProperty)
             {
-                if (!Js::RecyclableObject::FromVar(holder)->GetItem(holder, index, &value, scriptContext))
+                if (!Js::VarTo<Js::RecyclableObject>(holder)->GetItem(holder, index, &value, scriptContext))
                 {
                     value = undefined;
                 }
             }
             else
             {
-                if (!Js::RecyclableObject::FromVar(holder)->GetProperty(holder, id, &value, NULL, scriptContext))
+                if (!Js::VarTo<Js::RecyclableObject>(holder)->GetProperty(holder, id, &value, NULL, scriptContext))
                 {
                     value = undefined;
                 }
@@ -128,7 +128,7 @@ namespace JSON
 
                 // normally we should have a JSON object here and the enumerator should be always be successful. However, the objects can be
                 // modified by user code. It is better to skip a damaged object. ES5 spec doesn't specify an error here.
-                if(Js::RecyclableObject::FromVar(value)->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
+                if(Js::VarTo<Js::RecyclableObject>(value)->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
                 {
                     Js::JavascriptString * propertyName;
 
@@ -148,11 +148,11 @@ namespace JSON
                             Js::Var newElement = Walk(propertyName, idMember, value);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))
                             {
-                                Js::JavascriptOperators::DeleteProperty(Js::RecyclableObject::FromVar(value), idMember);
+                                Js::JavascriptOperators::DeleteProperty(Js::VarTo<Js::RecyclableObject>(value), idMember);
                             }
                             else
                             {
-                                Js::JavascriptOperators::SetProperty(value, Js::RecyclableObject::FromVar(value), idMember, newElement, scriptContext);
+                                Js::JavascriptOperators::SetProperty(value, Js::VarTo<Js::RecyclableObject>(value), idMember, newElement, scriptContext);
                             }
                         }
                         // For the numeric cases the enumerator is set to a NullEnumerator (see class in ForInObjectEnumerator.h)
@@ -164,12 +164,12 @@ namespace JSON
                             Js::Var newElement = Walk(propertyName, idMember, value, propertyIndex);
                             if (Js::JavascriptOperators::IsUndefinedObject(newElement, undefined))
                             {
-                                Js::JavascriptOperators::DeleteItem(Js::RecyclableObject::FromVar(value), propertyIndex);
+                                Js::JavascriptOperators::DeleteItem(Js::VarTo<Js::RecyclableObject>(value), propertyIndex);
 
                             }
                             else
                             {
-                                Js::JavascriptOperators::SetItem(value, Js::RecyclableObject::FromVar(value), propertyIndex, newElement, scriptContext);
+                                Js::JavascriptOperators::SetItem(value, Js::VarTo<Js::RecyclableObject>(value), propertyIndex, newElement, scriptContext);
                             }
 
                         }

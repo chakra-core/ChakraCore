@@ -44,14 +44,14 @@ namespace Js
         {
             AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptError'");
 
-            return static_cast<JavascriptError *>(RecyclableObject::FromVar(aValue));
+            return static_cast<JavascriptError *>(VarTo<RecyclableObject>(aValue));
         }
 
         static JavascriptError* UnsafeFromVar(Var aValue)
         {
             AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptError'");
 
-            return static_cast<JavascriptError *>(RecyclableObject::UnsafeFromVar(aValue));
+            return static_cast<JavascriptError *>(UnsafeVarTo<RecyclableObject>(aValue));
         }
 
         void SetNotEnumerable(PropertyId propertyId);

@@ -28,7 +28,7 @@ namespace Js
         {
             return FALSE;
         }
-        RecyclableObject * object = RecyclableObject::UnsafeFromVar(instance);
+        RecyclableObject * object = UnsafeVarTo<RecyclableObject>(instance);
         if (object->GetScriptContext() == requestContext)
         {
             return FALSE;
@@ -151,7 +151,7 @@ namespace Js
             {
                 return value;
             }
-            return MarshalVarInner(scriptContext, RecyclableObject::FromVar(value), false);
+            return MarshalVarInner(scriptContext, VarTo<RecyclableObject>(value), false);
         }
         return value;
     }
@@ -164,7 +164,7 @@ namespace Js
         {
             return value;
         }
-        Js::RecyclableObject* object =  RecyclableObject::UnsafeFromVar(value);
+        Js::RecyclableObject* object =  UnsafeVarTo<RecyclableObject>(value);
         if (fRequestWrapper || scriptContext != object->GetScriptContext())
         {
             return MarshalVarInner(scriptContext, object, fRequestWrapper);
@@ -485,7 +485,7 @@ namespace Js
             // The final eval arg is a frame display that needs to be marshaled specially.
             args.Values[count] = CrossSite::MarshalFrameDisplay(targetScriptContext, args.GetFrameDisplay());
         }
-        
+
 
 #if ENABLE_NATIVE_CODEGEN
         CheckCodeGenFunction checkCodeGenFunction = GetCheckCodeGenFunction(entryPoint);

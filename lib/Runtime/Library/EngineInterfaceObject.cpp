@@ -395,13 +395,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !VarIs<RecyclableObject>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
+        RecyclableObject* value = VarTo<RecyclableObject>(args.Values[2]);
 
         obj->SetPrototype(value);
 
@@ -463,7 +463,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+        RecyclableObject *func = VarTo<RecyclableObject>(args.Values[1]);
 
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
