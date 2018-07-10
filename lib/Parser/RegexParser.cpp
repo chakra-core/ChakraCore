@@ -1931,6 +1931,7 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         codepoint_t pendingRangeEnd = INVALID_CODEPOINT;
         bool previousSurrogatePart = false;
+
         while(nextChar != ']')
         {
             current = next;
@@ -2034,7 +2035,7 @@ namespace UnifiedRegex
 
                     lastCodepoint = INVALID_CODEPOINT;
                 }
-                // If we the next character is the end of range ']', then we can't have a surrogate pair.
+                // If the next character is the end of range ']', then we can't have a surrogate pair.
                 // The current character is the range end, if we don't already have a candidate.
                 else if (ECLookahead() == ']' && pendingRangeEnd == INVALID_CODEPOINT)
                 {
@@ -2124,6 +2125,10 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         EncodedChar nextChar = ECLookahead();
         bool previousWasASurrogate = false;
+        bool currIsACharSet = false;
+        bool prevWasACharSetAndPartOfRange = false;
+        bool prevprevWasACharSetAndPartOfRange = false;
+
         while(nextChar != ']')
         {
             codepoint_t codePointToSet = INVALID_CODEPOINT;
@@ -2133,6 +2138,7 @@ namespace UnifiedRegex
             {
                 ECConsume();
             }
+
             // These if-blocks are the logical ClassAtomPass1, they weren't grouped into a method to simplify dealing with multiple out parameters.
             if (containsSurrogates && this->currentSurrogatePairNode != nullptr && this->currentSurrogatePairNode->location == this->next)
             {
@@ -2147,22 +2153,30 @@ namespace UnifiedRegex
             else if (nextChar == '\\')
             {
                 Node* returnedNode = ClassEscapePass1(&deferredCharNode, &deferredSetNode, previousWasASurrogate);
+                codePointToSet = pendingCodePoint;
 
                 if (returnedNode->tag == Node::MatchSet)
                 {
-                    codePointToSet = pendingCodePoint;
-                    pendingCodePoint = INVALID_CODEPOINT;
                     if (pendingRangeStart != INVALID_CODEPOINT)
                     {
+                        if (unicodeFlagPresent)
+                        {
+                            //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                            //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                            Fail(JSERR_UnicodeRegExpRangeContainsCharClass); //From #sec-patterns-static-semantics-early-errors-annexb
+                        }
+
                         codePointSet.Set(ctAllocator, '-');
                     }
+
+                    pendingCodePoint = INVALID_CODEPOINT;
                     pendingRangeStart = INVALID_CODEPOINT;
                     codePointSet.UnionInPlace(ctAllocator, deferredSetNode.set);
+                    currIsACharSet = true;
                 }
                 else
                 {
                     // Just a character
-                    codePointToSet = pendingCodePoint;
                     pendingCodePoint = deferredCharNode.cs[0];
                 }
             }
@@ -2188,9 +2202,26 @@ namespace UnifiedRegex
                 pendingCodePoint = NextChar();
             }
 
-            if (codePointToSet != INVALID_CODEPOINT)
+            if (codePointToSet != INVALID_CODEPOINT || prevprevWasACharSetAndPartOfRange)
             {
-                if (pendingRangeStart != INVALID_CODEPOINT)
+                if (prevprevWasACharSetAndPartOfRange)
+                {
+                    //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                    //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                    if (unicodeFlagPresent)
+                    {
+                        Fail(JSERR_UnicodeRegExpRangeContainsCharClass);
+                    }
+
+                    if (pendingCodePoint != INVALID_CODEPOINT)
+                    {
+                        codePointSet.Set(ctAllocator, pendingCodePoint);
+                    }
+
+                    codePointSet.Set(ctAllocator, '-'); //Add '-' to set because a range was detected but turned out to be a union of character set with '-' and another atom.
+                    pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
+                }
+                else if (pendingRangeStart != INVALID_CODEPOINT)
                 {
                     if (pendingRangeStart > pendingCodePoint)
                     {
@@ -2199,6 +2230,7 @@ namespace UnifiedRegex
                         Assert(!unicodeFlagPresent);
                         Fail(JSERR_RegExpBadRange);
                     }
+                    
                     codePointSet.SetRange(ctAllocator, pendingRangeStart, pendingCodePoint);
                     pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
                 }
@@ -2209,6 +2241,9 @@ namespace UnifiedRegex
             }
 
             nextChar = ECLookahead();
+            prevprevWasACharSetAndPartOfRange = prevWasACharSetAndPartOfRange;
+            prevWasACharSetAndPartOfRange = currIsACharSet && nextChar == '-';
+            currIsACharSet = false;
         }
 
         if (pendingCodePoint != INVALID_CODEPOINT)
