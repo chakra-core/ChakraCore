@@ -320,6 +320,165 @@ Encoder::Encode()
         }
     }
 
+    // Assembly Dump Phase
+    // This phase exists to assist tooling that expects "assemblable" output - that is,
+    // output that, with minimal manual handling, could theoretically be fed to another
+    // assembler to make a valid function for the target platform. We don't guarantee a
+    // dump from this will _actually_ be assemblable, but it is significantly closer to
+    // that than our normal, annotated output
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::AssemblyPhase, m_func))
+    {
+        FOREACH_INSTR_IN_FUNC(instr, m_func)
+        {
+            bool hasPrintedForOpnds = false;
+            Func* localScopeFuncForLambda = m_func;
+            auto printOpnd = [&hasPrintedForOpnds, localScopeFuncForLambda](IR::Opnd* opnd)
+            {
+                if (hasPrintedForOpnds)
+                {
+                    Output::Print(_u(", "));
+                }
+                switch (opnd->m_kind)
+                {
+                case IR::OpndKindInvalid:
+                    AssertMsg(false, "Should be unreachable");
+                    break;
+                case IR::OpndKindIntConst:
+                    Output::Print(_u("%lli"), (long long int)opnd->AsIntConstOpnd()->GetValue());
+                    break;
+                case IR::OpndKindInt64Const:
+                case IR::OpndKindFloatConst:
+                case IR::OpndKindFloat32Const:
+                case IR::OpndKindSimd128Const:
+                    AssertMsg(false, "Not Yet Implemented");
+                    break;
+                case IR::OpndKindHelperCall:
+                    Output::Print(_u("%s"), IR::GetMethodName(opnd->AsHelperCallOpnd()->m_fnHelper));
+                    break;
+                case IR::OpndKindSym:
+                    Output::Print(_u("SYM("));
+                    opnd->Dump(IRDumpFlags_SimpleForm, localScopeFuncForLambda);
+                    Output::Print(_u(")"));
+                    break;
+                case IR::OpndKindReg:
+                    Output::Print(_u("%S"), RegNames[opnd->AsRegOpnd()->GetReg()]);
+                    break;
+                case IR::OpndKindAddr:
+                    Output::Print(_u("0x%p"), opnd->AsAddrOpnd()->m_address);
+                    break;
+                case IR::OpndKindIndir:
+                {
+                    IR::IndirOpnd* indirOpnd = opnd->AsIndirOpnd();
+                    IR::RegOpnd* baseOpnd = indirOpnd->GetBaseOpnd();
+                    IR::RegOpnd* indexOpnd = indirOpnd->GetIndexOpnd();
+                    Output::Print(_u("["));
+                    bool hasPrintedComponent = false;
+                    if (baseOpnd != nullptr)
+                    {
+                        Output::Print(_u("%S"), RegNames[baseOpnd->GetReg()]);
+                        hasPrintedComponent = true;
+                    }
+                    if (indexOpnd != nullptr)
+                    {
+                        if (hasPrintedComponent)
+                        {
+                            Output::Print(_u(" + "));
+                        }
+                        Output::Print(_u("%S * %u"), RegNames[indexOpnd->GetReg()], indirOpnd->GetScale());
+                        hasPrintedComponent = true;
+                    }
+                    if (hasPrintedComponent)
+                    {
+                        Output::Print(_u(" + "));
+                    }
+                    Output::Print(_u("(%i)]"), indirOpnd->GetOffset());
+                    break;
+                }
+                case IR::OpndKindLabel:
+                    opnd->Dump(IRDumpFlags_SimpleForm, localScopeFuncForLambda);
+                    break;
+                case IR::OpndKindMemRef:
+                    opnd->DumpOpndKindMemRef(true, localScopeFuncForLambda);
+                    break;
+                case IR::OpndKindRegBV:
+                    AssertMsg(false, "Should be unreachable");
+                    break;
+                case IR::OpndKindList:
+                    AssertMsg(false, "Should be unreachable");
+                    break;
+                default:
+                    AssertMsg(false, "Missing operand type");
+                }
+                hasPrintedForOpnds = true;
+            };
+            switch(instr->GetKind())
+            {
+            case IR::InstrKindInvalid:
+                Assert(false);
+                break;
+            case IR::InstrKindJitProfiling:
+            case IR::InstrKindProfiled:
+            case IR::InstrKindInstr:
+            {
+                Output::SkipToColumn(4);
+                Output::Print(_u("%s "), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::SkipToColumn(18);
+                IR::Opnd* dst = instr->GetDst();
+                IR::Opnd* src1 = instr->GetSrc1();
+                IR::Opnd* src2 = instr->GetSrc2();
+                if (dst != nullptr && (src1 == nullptr || !dst->IsRegOpnd() || !src1->IsRegOpnd() || dst->AsRegOpnd()->GetReg() != src1->AsRegOpnd()->GetReg())) // Print dst if it's there, and not the same reg as src1 (which is usually an instr that has a srcdest
+                {
+                    printOpnd(dst);
+                }
+                if (src1 != nullptr)
+                {
+                    printOpnd(src1);
+                }
+                if (src2 != nullptr)
+                {
+                    printOpnd(src2);
+                }
+                break;
+            }
+            case IR::InstrKindBranch:
+                Output::SkipToColumn(4);
+                Output::Print(_u("%s "), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode));
+                Output::SkipToColumn(18);
+                if (instr->AsBranchInstr()->IsMultiBranch())
+                {
+                    Assert(instr->GetSrc1() != nullptr);
+                    printOpnd(instr->GetSrc1());
+                }
+                else
+                {
+                    Output::Print(_u("L%u"), instr->AsBranchInstr()->GetTarget()->m_id);
+                }
+                break;
+            case IR::InstrKindProfiledLabel:
+            case IR::InstrKindLabel:
+                Output::Print(_u("L%u:"), instr->AsLabelInstr()->m_id);
+                break;
+            case IR::InstrKindEntry:
+            case IR::InstrKindExit:
+            case IR::InstrKindPragma:
+                // No output
+                break;
+            case IR::InstrKindByteCodeUses:
+                AssertMsg(false, "Instruction kind shouldn't be present here");
+                break;
+            default:
+                Assert(false);
+                break;
+            }
+            Output::SetAlignAndPrefix(60, _u("; "));
+            instr->Dump();
+            Output::ResetAlignAndPrefix();
+        } NEXT_INSTR_IN_FUNC;
+    }
+#endif
+    // End Assembly Dump Phase
+
     BEGIN_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
     // Copy to permanent buffer.
