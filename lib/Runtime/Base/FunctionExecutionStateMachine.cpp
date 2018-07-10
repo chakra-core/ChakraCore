@@ -36,7 +36,7 @@ namespace Js
 #if DBG
         if (!initializedExecutionModeAndLimits)
         {
-            initDebuggerMode = functionBody->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
+            initDebuggerMode = functionBody->GetDebuggerMode();
         }
         initializedExecutionModeAndLimits = true;        
 #endif
@@ -160,7 +160,7 @@ namespace Js
     {
 #if DBG
         hasBeenReinitialized = true;
-        reinitDebuggerMode = functionBody->GetScriptContext()->GetDebugContext()->GetDebuggerMode();
+        reinitDebuggerMode = functionBody->GetDebuggerMode();
 #endif
         // TODO: Investigate what it would take to make this invariant hold. Currently fails in AsmJS tests
         // Assert(initializedExecutionModeAndLimits);

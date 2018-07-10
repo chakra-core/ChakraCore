@@ -2470,6 +2470,7 @@ namespace Js
     public:
 #if DBG
         int GetProfileSession() { return m_iProfileSession; }
+        Js::DebuggerMode GetDebuggerMode();
 #endif
         virtual void Finalize(bool isShutdown) override;
         virtual void OnMark() override;
