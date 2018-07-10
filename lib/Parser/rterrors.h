@@ -366,6 +366,7 @@ RT_ERROR_MSG(JSERR_NoAccessors, 5673, "Invalid property descriptor: accessors no
 RT_ERROR_MSG(JSERR_RegExpInvalidEscape, 5674, "", "Invalid regular expression: invalid escape in unicode pattern", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_RegExpTooManyCapturingGroups, 5675, "", "Regular expression cannot have more than 32,767 capturing groups", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ProxyHandlerReturnedFalse, 5676, "Proxy %s handler returned false", "Proxy handler returned false", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_UnicodeRegExpRangeContainsCharClass, 5677, "%s", "Character classes not allowed in a RegExp class range.", kjstSyntaxError, 0)
 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)
