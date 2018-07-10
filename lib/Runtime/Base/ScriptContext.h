@@ -578,6 +578,7 @@ namespace Js
         CacheAllocator enumeratorCacheAllocator;
 
         ArenaAllocator* interpreterArena;
+        ArenaAllocator* guestArena;
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
         ArenaAllocator* diagnosticArena;
@@ -1376,6 +1377,13 @@ private:
 
         bool EnsureInterpreterArena(ArenaAllocator **);
         void ReleaseInterpreterArena();
+
+        ArenaAllocator* GetGuestArena() const
+        {
+            return guestArena;
+        }
+
+        void ReleaseGuestArena();
 
         Recycler* GetRecycler() const { return recycler; }
         RecyclerJavascriptNumberAllocator * GetNumberAllocator() { return &numberAllocator; }
