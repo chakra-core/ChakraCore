@@ -489,7 +489,12 @@ namespace Js
         {
             args.Values[i] = CrossSite::MarshalVar(targetScriptContext, args.Values[i]);
         }
-        if (args.HasExtraArg())
+        if (args.HasNewTarget())
+        {
+            // Last value is new.target
+            args.Values[count] = CrossSite::MarshalVar(targetScriptContext, args.GetNewTarget());
+        }
+        else if (args.HasExtraArg())
         {
             // The final eval arg is a frame display that needs to be marshaled specially.
             args.Values[count] = CrossSite::MarshalFrameDisplay(targetScriptContext, args.GetFrameDisplay());

@@ -107,17 +107,18 @@ namespace Js
         Var GetValue(Var offset, const char16* funcName, BOOL isLittleEndian = FALSE)
         {
             ScriptContext* scriptContext = GetScriptContext();
-            if (this->GetArrayBuffer()->IsDetached())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
-            }
 
             uint32 length = GetLength();
             if (length < sizeof(TypeName))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
             }
+
             uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+            if (this->GetArrayBuffer()->IsDetached())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
+            }
 
             TypeName item;
             TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
@@ -142,17 +143,18 @@ namespace Js
         Var GetValueWithCheck(Var offset, BOOL isLittleEndian, const char16* funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
-            if (this->GetArrayBuffer()->IsDetached())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
-            }
 
             uint32 length = GetLength();
             if (length < sizeof(TypeName))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
             }
+
             uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+            if (this->GetArrayBuffer()->IsDetached())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
+            }
 
             TypeName item;
             TypeName *typedBuffer = (TypeName*)(buffer + byteOffset);
@@ -177,17 +179,18 @@ namespace Js
         void SetValue(Var offset, TypeName value, BOOL isLittleEndian, const char16 *funcName)
         {
             ScriptContext* scriptContext = GetScriptContext();
-            if (this->GetArrayBuffer()->IsDetached())
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
-            }
 
             uint32 length = GetLength();
             if (length < sizeof(TypeName))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_DataView_InvalidOffset, funcName);
             }
+
             uint32 byteOffset = ArrayBuffer::ToIndex(offset, JSERR_DataView_InvalidOffset, scriptContext, length - sizeof(TypeName), false);
+            if (this->GetArrayBuffer()->IsDetached())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, funcName);
+            }
 
             TypeName* typedBuffer = (TypeName*)(buffer + byteOffset);
             if (!isLittleEndian)

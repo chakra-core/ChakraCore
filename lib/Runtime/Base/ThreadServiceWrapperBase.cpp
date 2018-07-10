@@ -78,6 +78,13 @@ bool ThreadServiceWrapperBase::ScheduleIdleCollect(uint ticks, bool scheduleAsTa
 
 bool ThreadServiceWrapperBase::IdleCollect()
 {
+    // Tracking service does not AddRef/Release the thread service and only keeps a function pointer and context parameter (this pointer)
+    // to execute the IdleCollect callback. It is possible that the tracking service gets destroyed as part of the collection
+    // during this IdleCollect. If that happens then we need to make sure ThreadService (which may be owned by the tracking service)
+    // is kept alive until this callback completes. Any pending timer is killed in the thread service destructor so we should not get
+    // any new callbacks after the thread service is destroyed.
+    AutoAddRefReleaseThreadService autoThreadServiceKeepAlive(this);
+
     Assert(hasScheduledIdleCollect);
     IDLE_COLLECT_VERBOSE_TRACE(_u("IdleCollect- reset hasScheduledIdleCollect\n"));
     hasScheduledIdleCollect = false;

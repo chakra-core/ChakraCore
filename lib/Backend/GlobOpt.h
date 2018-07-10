@@ -845,15 +845,15 @@ private:
     static void             TrackByteCodeSymUsed(IR::Opnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed, PropertySym **pPropertySymUse);
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
-    void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
+    void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureValuesFromScratch(
                                 BasicBlock * block,
-                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter, SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter,
+                                BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureValuesIncremental(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter, BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter);
     void                    CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArenaAllocator *allocator);
     void                    CaptureByteCodeSymUses(IR::Instr * instr);

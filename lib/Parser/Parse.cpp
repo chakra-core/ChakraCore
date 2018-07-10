@@ -6345,7 +6345,9 @@ void Parser::ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncN
     pnodeFnc->pnodeName = nullptr;
 
     if ((m_token.tk != tkID || flags & fFncNoName)
-        && (IsStrictMode() || (pnodeFnc->IsGenerator()) || m_token.tk != tkYIELD || fDeclaration)) // Function expressions can have the name yield even inside generator functions
+        && (IsStrictMode() || fDeclaration
+            || pnodeFnc->IsGenerator() || pnodeFnc->IsAsync()
+                || (m_token.tk != tkYIELD && m_token.tk != tkAWAIT))) // Function expressions can have the name yield/await even inside generator/async functions
     {
         if (fDeclaration ||
             m_token.IsReservedWord())  // For example:  var x = (function break(){});
@@ -6355,7 +6357,7 @@ void Parser::ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncN
         return;
     }
 
-    Assert(m_token.tk == tkID || (m_token.tk == tkYIELD && !fDeclaration));
+    Assert(m_token.tk == tkID || (m_token.tk == tkYIELD && !fDeclaration) || (m_token.tk == tkAWAIT && !fDeclaration));
 
     if (IsStrictMode())
     {
@@ -8495,7 +8497,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter
+                || (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
             {
                 Error(ERRsyntax);
             }
@@ -8503,7 +8506,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else if (nop == knopAwait)
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion() ||
-                m_currentScope->GetScopeType() == ScopeType_Parameter)
+                m_currentScope->GetScopeType() == ScopeType_Parameter ||
+                (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
                 // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())

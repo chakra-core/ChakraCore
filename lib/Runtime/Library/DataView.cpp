@@ -116,6 +116,12 @@ namespace Js
             mappedLength = byteLength - offset;
         }
 
+        // Evaluation of the argument(s) above is reentrant and can detach the array.
+        if (arrayBuffer->IsDetached())
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+        }
+
         //10.   Let O be OrdinaryCreateFromConstructor(NewTarget, "%DataViewPrototype%", [[DataView]], [[ViewedArrayBuffer]], [[ByteLength]], [[ByteOffset]]).
         //11.   Set O's[[DataView]] internal slot to true.
         //12.   Set O's[[ViewedArrayBuffer]] internal slot to buffer.

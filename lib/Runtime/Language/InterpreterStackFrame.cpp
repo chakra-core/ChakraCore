@@ -5154,14 +5154,6 @@ namespace Js
 
     void InterpreterStackFrame::OP_NewScIntArray(const unaligned OpLayoutAuxiliary * playout)
     {
-#if ENABLE_PROFILE_INFO
-        if (isAutoProfiling)
-        {
-            OP_ProfiledNewScIntArray(static_cast<const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> *>(playout));
-            return;
-        }
-#endif
-
         const Js::AuxArray<int32> *ints = Js::ByteCodeReader::ReadAuxArray<int32>(playout->Offset, this->GetFunctionBody());
 
         JavascriptNativeIntArray *arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(ints->count);
@@ -5178,8 +5170,15 @@ namespace Js
     }
 
 #if ENABLE_PROFILE_INFO
-    void InterpreterStackFrame::OP_ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
+    template <bool Profiled>
+    void InterpreterStackFrame::ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
     {
+        if (!Profiled && !isAutoProfiling)
+        {
+            OP_NewScIntArray(playout);
+            return;
+        }
+
         const Js::AuxArray<int32> *ints = Js::ByteCodeReader::ReadAuxArray<int32>(playout->Offset, this->GetFunctionBody());
 
         Js::ProfileId profileId = playout->profileId;
@@ -5239,18 +5238,16 @@ namespace Js
 
         SetReg(playout->R0, arr);
     }
+#else
+    template <bool Profiled>
+    void InterpreterStackFrame::ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
+    {
+        OP_NewScIntArray(playout);
+    }
 #endif
 
     void InterpreterStackFrame::OP_NewScFltArray(const unaligned OpLayoutAuxiliary * playout)
     {
-#if ENABLE_PROFILE_INFO
-        if (isAutoProfiling)
-        {
-            OP_ProfiledNewScFltArray(static_cast<const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> *>(playout));
-            return;
-        }
-#endif
-
         const Js::AuxArray<double> *doubles = Js::ByteCodeReader::ReadAuxArray<double>(playout->Offset, this->GetFunctionBody());
 
         JavascriptNativeFloatArray *arr = scriptContext->GetLibrary()->CreateNativeFloatArrayLiteral(doubles->count);
@@ -5267,8 +5264,15 @@ namespace Js
     }
 
 #if ENABLE_PROFILE_INFO
-    void InterpreterStackFrame::OP_ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
+    template <bool Profiled>
+    void InterpreterStackFrame::ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
     {
+        if (!Profiled && !isAutoProfiling)
+        {
+            OP_NewScFltArray(playout);
+            return;
+        }
+
         const Js::AuxArray<double> *doubles = Js::ByteCodeReader::ReadAuxArray<double>(playout->Offset, this->GetFunctionBody());
 
         Js::ProfileId  profileId = playout->profileId;
@@ -5303,6 +5307,12 @@ namespace Js
 #endif
 
         SetReg(playout->R0, arr);
+    }
+#else
+    template <bool Profiled>
+    void InterpreterStackFrame::ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout)
+    {
+        OP_NewScFltArray(playout);
     }
 #endif
 
@@ -6213,7 +6223,7 @@ namespace Js
     }
 
     template <class T, bool Profiled>
-    void InterpreterStackFrame::OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices)
+    void InterpreterStackFrame::OP_ProfiledNewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices)
     {
         // Always profile this operation when auto-profiling so that array type changes are tracked
 #if ENABLE_PROFILE_INFO
@@ -6222,7 +6232,7 @@ namespace Js
         Assert(!Profiled);
 #endif
         {
-            OP_NewScObject_Impl<T, Profiled, false>(playout, Js::Constants::NoInlineCacheIndex, spreadIndices);
+            OP_NewScObjArray_Impl<T, Profiled>(playout, spreadIndices);
             return;
         }
 

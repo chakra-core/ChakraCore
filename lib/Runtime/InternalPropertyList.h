@@ -19,7 +19,11 @@ INTERNALPROPERTY(FrozenType)                      // Used to store shared frozen
 INTERNALPROPERTY(StackTrace)                      // Stack trace object for Error.stack generation
 INTERNALPROPERTY(StackTraceCache)                 // Cache of Error.stack string
 INTERNALPROPERTY(WeakMapKeyMap)                   // WeakMap data stored on WeakMap key objects
-INTERNALPROPERTY(HiddenObject)                    // Used to store hidden data for JS library code (Intl as an example will use this)
+INTERNALPROPERTY(HiddenObject)                    // Used to store internal slot data for JS library code (Intl as an example will use this)
+INTERNALPROPERTY(CachedUCollator)                 // Used to store cached UCollator objects for Intl.Collator
+INTERNALPROPERTY(CachedUNumberFormat)             // Used to store cached UNumberFormat objects for Intl.NumberFormat and Intl.PluralRules
+INTERNALPROPERTY(CachedUDateFormat)               // Used to store cached UDateFormat objects for Intl.DateTimeFormat
+INTERNALPROPERTY(CachedUPluralRules)              // Used to store cached UPluralRules objects for Intl.PluralRules
 INTERNALPROPERTY(RevocableProxy)                  // Internal slot for [[RevokableProxy]] for revocable proxy in ES6
 INTERNALPROPERTY(MutationBp)                      // Used to store strong reference to the mutation breakpoint object
 #undef INTERNALPROPERTY
