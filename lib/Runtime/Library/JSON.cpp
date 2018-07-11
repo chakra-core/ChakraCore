@@ -60,7 +60,7 @@ namespace JSON
 
         TryFinally([&]()
         {
-            LazyJSONString* lazyString = LazyJSONString::TryFromVar(input);
+            LazyJSONString* lazyString = JavascriptOperators::TryFromVar<LazyJSONString>(input);
             if (lazyString)
             {
                 // Try to reconstruct object based on the data collected during stringify

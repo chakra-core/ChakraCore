@@ -98,7 +98,7 @@ LazyJSONString::ReconstructObject(_In_ JSONObject* valueList) const
     {
         Var propertyValue = ReconstructVar(&entry.propertyValue);
         JavascriptString* propertyName = entry.propertyName;
-        PropertyString* propertyString = PropertyString::TryFromVar(propertyName);
+        PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(propertyName);
         PropertyValueInfo info;
         if (!propertyString || !propertyString->TrySetPropertyFromCache(obj, propertyValue, this->GetScriptContext(), PropertyOperation_None, &info))
         {
@@ -203,22 +203,6 @@ LazyJSONString::GetSz()
     this->jsonContent = nullptr;
 
     return target;
-}
-
-// static
-bool
-LazyJSONString::Is(Var var)
-{
-    return VarIs<RecyclableObject>(var) && VirtualTableInfo<LazyJSONString>::HasVirtualTable(VarTo<RecyclableObject>(var));
-}
-
-// static
-LazyJSONString*
-LazyJSONString::TryFromVar(Var var)
-{
-    return LazyJSONString::Is(var)
-        ? reinterpret_cast<LazyJSONString*>(var)
-        : nullptr;
 }
 
 } // namespace Js

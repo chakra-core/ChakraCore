@@ -88,7 +88,7 @@ namespace Js
     const PropertyRecord* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
     {
         PropertyRecord const * propertyRecord;
-        PropertyString * propertyString = PropertyString::TryFromVar(key);
+        PropertyString * propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
         if (propertyString != nullptr)
         {
             propertyString->GetPropertyRecord(&propertyRecord);
@@ -104,7 +104,7 @@ namespace Js
     bool TPropertyKey_IsInternalPropertyId(JavascriptString* key)
     {
         // WARNING: This will return false for PropertyStrings that are actually InternalPropertyIds
-        Assert(!PropertyString::Is(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyId()));
+        Assert(!VarIs<PropertyString>(key) || !IsInternalPropertyId(((PropertyString*)key)->GetPropertyId()));
 
         return false;
     }

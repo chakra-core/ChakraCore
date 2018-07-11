@@ -34,7 +34,7 @@ namespace Js
         Assert(
             prop == nullptr && propertyRecordUsageCache == nullptr ||
             JavascriptSymbol::Is(prop) && JavascriptSymbol::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
-            PropertyString::Is(prop) && PropertyString::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
+            VarIs<PropertyString>(prop) && UnsafeVarTo<PropertyString>(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
 
         info->prop = prop;
         info->propertyRecordUsageCache = propertyRecordUsageCache;

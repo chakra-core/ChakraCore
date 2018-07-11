@@ -1687,7 +1687,7 @@ void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* fro
         }
         if (!found)
         {
-            PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
+            PropertyString * propertyString = JavascriptOperators::TryFromVar<PropertyString>(propertyName);
 
             // If propertyName is a PropertyString* we can try getting the property from the inline cache to avoid having a full property lookup
             //

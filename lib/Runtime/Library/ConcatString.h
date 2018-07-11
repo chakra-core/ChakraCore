@@ -35,9 +35,6 @@ namespace Js
         template <typename StringType> static LiteralStringWithPropertyStringPtr * ConvertString(StringType * originalString);
 
         static uint GetOffsetOfPropertyString() { return offsetof(LiteralStringWithPropertyStringPtr, propertyString); }
-        static bool Is(Var var);
-        static bool Is(RecyclableObject* var);
-        template <typename T> static LiteralStringWithPropertyStringPtr* TryFromVar(T var);
 
         static JavascriptString *
         NewFromCString(const char * cString, const CharCount charCount, JavascriptLibrary *const library);
@@ -60,16 +57,9 @@ namespace Js
         }
     };
 
-    // Templated so that the Is call dispatchs to different function depending
-    // on if argument is already a RecyclableObject* or only known to be a Var
-    //
-    // In case it is known to be a RecyclableObject*, the Is call skips that check
-    template <typename T>
-    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::TryFromVar(T var)
+    template <> inline bool VarIs<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
     {
-        return LiteralStringWithPropertyStringPtr::Is(var)
-            ? reinterpret_cast<LiteralStringWithPropertyStringPtr*>(var)
-            : nullptr;
+        return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
     }
 
     // Base class for concat strings.
@@ -279,9 +269,6 @@ namespace Js
     public:
         static ConcatStringMulti * New(uint slotCount, JavascriptString * a1, JavascriptString * a2, ScriptContext* scriptContext);
         const char16 * GetSz() override sealed;
-        static bool Is(Var var);
-        static ConcatStringMulti * FromVar(Var value);
-        static ConcatStringMulti * UnsafeFromVar(Var value);
         static size_t GetAllocSize(uint slotCount);
         void SetItem(_In_range_(0, slotCount - 1) uint index, JavascriptString* value);
 
@@ -304,4 +291,9 @@ namespace Js
             return VTableValue::VtableConcatStringMulti;
         }
     };
+
+    template <> inline bool VarIs<ConcatStringMulti>(RecyclableObject* obj)
+    {
+        return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(obj);
+    }
 }

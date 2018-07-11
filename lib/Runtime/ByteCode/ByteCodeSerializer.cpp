@@ -1551,7 +1551,7 @@ public:
         case TypeIds_String:
         {
             auto size = PrependByte(builder, _u("String Constant 16"),
-                Js::PropertyString::Is(var)? ctPropertyString16 : ctString16);
+                Js::VarIs<Js::PropertyString>(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
 

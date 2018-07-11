@@ -9673,14 +9673,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void
     JavascriptOperators::SetConcatStrMultiItem(Var concatStr, Var str, uint index, ScriptContext * scriptContext)
     {
-        ConcatStringMulti::FromVar(concatStr)->SetItem(index,
+        VarTo<ConcatStringMulti>(concatStr)->SetItem(index,
             JavascriptConversion::ToPrimitiveString(str, scriptContext));
     }
 
     void
     JavascriptOperators::SetConcatStrMultiItem2(Var concatStr, Var str1, Var str2, uint index, ScriptContext * scriptContext)
     {
-        ConcatStringMulti * cs = ConcatStringMulti::FromVar(concatStr);
+        ConcatStringMulti * cs = VarTo<ConcatStringMulti>(concatStr);
         cs->SetItem(index, JavascriptConversion::ToPrimitiveString(str1, scriptContext));
         cs->SetItem(index + 1, JavascriptConversion::ToPrimitiveString(str2, scriptContext));
     }

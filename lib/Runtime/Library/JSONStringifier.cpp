@@ -221,7 +221,7 @@ _Ret_notnull_ Var
 JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder)
 {
     Var value = nullptr;
-    PropertyString* propertyString = PropertyString::TryFromVar(key);
+    PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
     PropertyValueInfo info;
     if (propertyString != nullptr)
     {

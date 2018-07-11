@@ -35,25 +35,6 @@ namespace Js
         return &this->propertyRecordUsageCache;
     }
 
-    /* static */
-    bool PropertyString::Is(RecyclableObject * obj)
-    {
-        return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
-    }
-
-    /* static */
-    bool PropertyString::Is(Var var)
-    {
-        return VarIs<RecyclableObject>(var) && PropertyString::Is(UnsafeVarTo<RecyclableObject>(var));
-    }
-
-    PropertyString* PropertyString::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'PropertyString'");
-
-        return static_cast<PropertyString *>(aValue);
-    }
-
     const void * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer

@@ -396,7 +396,7 @@ case_2:
 
         if(!IsFinalized())
         {
-            if(CompoundString::Is(this))
+            if(VarIs<CompoundString>(this))
             {
                 return ConcatDestructive_Compound(pstRight);
             }
@@ -442,7 +442,7 @@ case_2:
 
     JavascriptString* JavascriptString::ConcatDestructive_Compound(JavascriptString* pstRight)
     {
-        Assert(CompoundString::Is(this));
+        Assert(VarIs<CompoundString>(this));
         Assert(pstRight);
 
 #ifdef PROFILE_STRINGS
@@ -457,7 +457,7 @@ case_2:
             Output::Flush();
         }
 
-        CompoundString *const leftCs = CompoundString::FromVar(this);
+        CompoundString *const leftCs = VarTo<CompoundString>(this);
         leftCs->PrepareForAppend();
         leftCs->Append(pstRight);
         return this;
@@ -553,7 +553,7 @@ case_2:
 
         if(!pstLeft->IsFinalized())
         {
-            if(CompoundString::Is(pstLeft))
+            if(VarIs<CompoundString>(pstLeft))
             {
                 return Concat_Compound(pstLeft, pstRight);
             }
@@ -591,7 +591,7 @@ case_2:
     JavascriptString* JavascriptString::Concat_Compound(JavascriptString * pstLeft, JavascriptString * pstRight)
     {
         Assert(pstLeft);
-        Assert(CompoundString::Is(pstLeft));
+        Assert(VarIs<CompoundString>(pstLeft));
         Assert(pstRight);
 
 #ifdef PROFILE_STRINGS
@@ -609,7 +609,7 @@ case_2:
         // This is not a left-dead concat, but we can reuse available space in the left string
         // because it may be accessible by script code, append to a clone.
         const bool needAppend = pstRight->GetLength() != 0;
-        CompoundString *const leftCs = CompoundString::FromVar(pstLeft)->Clone(needAppend);
+        CompoundString *const leftCs = VarTo<CompoundString>(pstLeft)->Clone(needAppend);
         if(needAppend)
         {
             leftCs->Append(pstRight);
