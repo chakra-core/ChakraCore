@@ -1801,7 +1801,7 @@ namespace TTD
             SnapTypedArrayInfo* typedArrayInfo = SnapObjectGetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(snpObject);
 
             Js::JavascriptLibrary* jslib = ctx->GetLibrary();
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(inflator->LookupObject(typedArrayInfo->ArrayBufferAddr));
+            Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(inflator->LookupObject(typedArrayInfo->ArrayBufferAddr));
 
             Js::Var tab = nullptr;
             switch(snpObject->SnapType->JsTypeId)

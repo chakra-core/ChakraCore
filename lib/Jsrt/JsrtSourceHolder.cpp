@@ -251,7 +251,7 @@ namespace Js
         }
         END_LEAVE_SCRIPT(scriptContext);
 
-        bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
+        bool isExternalArray = Js::VarIs<Js::ArrayBuffer>(scriptVal),
              isString = false;
         bool isUtf8   = !(attributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 

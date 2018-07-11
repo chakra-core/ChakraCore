@@ -555,11 +555,11 @@ namespace Js
                         JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
                     }
                 }
-                else if (ArrayBufferBase::Is(firstArgument))
+                else if (VarIs<ArrayBufferBase>(firstArgument))
                 {
                     // Constructor(ArrayBuffer buffer,
                     //  optional uint32 byteOffset, optional uint32 length)
-                    arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
+                    arrayBuffer = VarTo<ArrayBufferBase>(firstArgument);
                     if (arrayBuffer->IsDetached())
                     {
                         JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
@@ -1284,9 +1284,9 @@ namespace Js
             *outOffset = typedArrayBase->GetByteOffset();
             *outLength = typedArrayBase->GetByteLength();
         }
-        else if (Js::ArrayBuffer::Is(instance))
+        else if (Js::VarIs<Js::ArrayBuffer>(instance))
         {
-            Js::ArrayBuffer* buffer = Js::ArrayBuffer::FromVar(instance);
+            Js::ArrayBuffer* buffer = Js::VarTo<Js::ArrayBuffer>(instance);
             *outBuffer = buffer;
             *outOffset = 0;
             *outLength = buffer->GetByteLength();

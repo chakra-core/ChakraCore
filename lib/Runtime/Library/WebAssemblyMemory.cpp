@@ -132,7 +132,7 @@ WebAssemblyMemory::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     }
 
     WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
-    Assert(ArrayBufferBase::Is(memory->m_buffer));
+    Assert(VarIs<ArrayBufferBase>(memory->m_buffer));
 
     Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
     if (args.Info.Count >= 2)
@@ -287,7 +287,7 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
     }
 
     WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
-    Assert(ArrayBufferBase::Is(memory->m_buffer));
+    Assert(VarIs<ArrayBufferBase>(memory->m_buffer));
     return CrossSite::MarshalVar(scriptContext, memory->m_buffer);
 }
 
@@ -376,7 +376,7 @@ WebAssemblyMemory::GetCurrentMemoryPages() const
 #ifdef ENABLE_WASM_THREADS
 bool WebAssemblyMemory::IsSharedMemory() const
 {
-    return WebAssemblySharedArrayBuffer::Is(m_buffer);
+    return VarIs<WebAssemblySharedArrayBuffer>(m_buffer);
 }
 #endif
 

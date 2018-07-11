@@ -1762,8 +1762,8 @@ namespace TTD
                 Js::RecyclableObject* buff = intoCtx->GetThreadContext()->TTDContext->LookupObjectForLogID(snpCtx->PendingAsyncModArray[i].LogId);
                 uint32 index = snpCtx->PendingAsyncModArray[i].Index;
 
-                TTDAssert(Js::ArrayBuffer::Is(buff), "Not an ArrayBuffer!!!");
-                intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(buff), index);
+                TTDAssert(Js::VarIs<Js::ArrayBuffer>(buff), "Not an ArrayBuffer!!!");
+                intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::VarTo<Js::ArrayBuffer>(buff), index);
             }
         }
 

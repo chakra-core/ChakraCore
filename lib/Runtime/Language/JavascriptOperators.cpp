@@ -5536,7 +5536,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         switch (GetTypeId(var))
         {
         case TypeIds_ArrayBuffer:
-            return Js::ArrayBuffer::FromVar(var)->DetachAndGetState();
+            return Js::VarTo<Js::ArrayBuffer>(var)->DetachAndGetState();
         default:
             if (!Js::VarTo<Js::RecyclableObject>(var)->IsExternal())
             {
@@ -5551,7 +5551,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         switch (GetTypeId(var))
         {
         case TypeIds_ArrayBuffer:
-            return Js::ArrayBuffer::FromVar(var)->IsDetached();
+            return Js::VarTo<Js::ArrayBuffer>(var)->IsDetached();
         default:
             return false;
         }

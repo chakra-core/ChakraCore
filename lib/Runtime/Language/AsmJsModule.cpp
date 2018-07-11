@@ -1761,7 +1761,7 @@ namespace Js
         // AsmJsModuleEnvironment is all laid out here
         Var * asmJsEnvironment = static_cast<Var*>(env);
         Var * asmBufferPtr = asmJsEnvironment + asmModuleInfo->GetModuleMemory().mArrayBufferOffset;
-        ArrayBuffer * asmBuffer = *asmBufferPtr ? ArrayBuffer::FromVar(*asmBufferPtr) : nullptr;
+        ArrayBuffer * asmBuffer = *asmBufferPtr ? VarTo<ArrayBuffer>(*asmBufferPtr) : nullptr;
 
         Var stdLibObj = *(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mStdLibOffset);
         Var asmMathObject = stdLibObj ? JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::Math, scriptContext) : nullptr;

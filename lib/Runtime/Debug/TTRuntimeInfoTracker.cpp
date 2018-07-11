@@ -351,7 +351,7 @@ namespace TTD
         for(int32 i = 0; i < this->m_ttdPendingAsyncModList.Count(); ++i)
         {
             const TTDPendingAsyncBufferModification& pi = this->m_ttdPendingAsyncModList.Item(i);
-            const Js::ArrayBuffer* pbuff = Js::ArrayBuffer::FromVar(pi.ArrayBufferVar);
+            const Js::ArrayBuffer* pbuff = Js::VarTo<Js::ArrayBuffer>(pi.ArrayBufferVar);
             const byte* pbuffBegin = pbuff->GetBuffer() + pi.Index;
             const byte* pbuffMax = pbuff->GetBuffer() + pbuff->GetByteLength();
 

@@ -62,9 +62,9 @@ namespace Js
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
         {
-            if (ArrayBufferBase::Is(args[1]))
+            if (VarIs<ArrayBufferBase>(args[1]))
             {
-                arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+                arrayBuffer = VarTo<ArrayBufferBase>(args[1]);
             }
             else
             {

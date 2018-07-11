@@ -15,7 +15,7 @@ namespace Js{
             return true;
         }
 
-        if (!JavascriptArrayBuffer::Is(bufferView))
+        if (!VarIs<ArrayBuffer>(bufferView))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer parameter is not an Array buffer"));
             return false;

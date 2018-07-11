@@ -3451,12 +3451,12 @@ LABEL1:
             Js::Throw::FatalInternalError();
         }
 
-        if (args.Info.Count < 2 || !ArrayBufferBase::Is(args[1]))
+        if (args.Info.Count < 2 || !VarIs<ArrayBufferBase>(args[1]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
         }
 
-        ArrayBufferBase* arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+        ArrayBufferBase* arrayBuffer = VarTo<ArrayBufferBase>(args[1]);
         const byte* buffer = arrayBuffer->GetBuffer();
         uint32 size = arrayBuffer->GetByteLength();
         HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);

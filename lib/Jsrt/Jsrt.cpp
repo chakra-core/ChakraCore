@@ -2011,13 +2011,13 @@ CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out
 
         PARAM_NOT_NULL(sharedContents);
 
-        if (!Js::SharedArrayBuffer::Is(sharedArrayBuffer))
+        if (!Js::VarIs<Js::SharedArrayBuffer>(sharedArrayBuffer))
         {
             return JsErrorInvalidArgument;
         }
 
         Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
-        *content = Js::SharedArrayBuffer::FromVar(sharedArrayBuffer)->GetSharedContents();
+        *content = Js::VarTo<Js::SharedArrayBuffer>(sharedArrayBuffer)->GetSharedContents();
 
         if (*content == nullptr)
         {
@@ -2081,7 +2081,7 @@ CHAKRA_API JsCreateTypedArray(_In_ JsTypedArrayType arrayType, _In_ JsValueRef b
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        const bool fromArrayBuffer = (baseArray != JS_INVALID_REFERENCE && Js::ArrayBuffer::Is(baseArray));
+        const bool fromArrayBuffer = (baseArray != JS_INVALID_REFERENCE && Js::VarIs<Js::ArrayBuffer>(baseArray));
 
         if (byteOffset != 0 && !fromArrayBuffer)
         {
@@ -2160,13 +2160,13 @@ CHAKRA_API JsCreateDataView(_In_ JsValueRef arrayBuffer, _In_ unsigned int byteO
         VALIDATE_INCOMING_REFERENCE(arrayBuffer, scriptContext);
         PARAM_NOT_NULL(result);
 
-        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
         {
             return JsErrorInvalidArgument;
         }
 
         Js::JavascriptLibrary* library = scriptContext->GetLibrary();
-        *result = library->CreateDataView(Js::ArrayBuffer::FromVar(arrayBuffer), byteOffset, byteLength);
+        *result = library->CreateDataView(Js::VarTo<Js::ArrayBuffer>(arrayBuffer), byteOffset, byteLength);
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
         return JsNoError;
@@ -2241,12 +2241,12 @@ CHAKRA_API JsGetArrayBufferStorage(_In_ JsValueRef instance, _Outptr_result_byte
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::ArrayBuffer::Is(instance))
+        if (!Js::VarIs<Js::ArrayBuffer>(instance))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(instance);
+        Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(instance);
         *buffer = arrayBuffer->GetBuffer();
         *bufferLength = arrayBuffer->GetByteLength();
     }
@@ -3722,7 +3722,7 @@ JsErrorCode GetScriptBufferDetails(
     *cb = 0;
     *script = nullptr;
 
-    const bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal);
+    const bool isExternalArray = Js::VarIs<Js::ArrayBuffer>(scriptVal);
     const bool isString = !isExternalArray && Js::VarIs<Js::JavascriptString>(scriptVal);
     if (!isExternalArray && !isString)
     {
@@ -4331,13 +4331,13 @@ CHAKRA_API JsTTDRawBufferAsyncModificationRegister(_In_ JsValueRef instance, _In
     JsErrorCode addRefResult = ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         if (scriptContext->IsTTDRecordModeEnabled())
         {
-            TTDAssert(Js::ArrayBuffer::Is(instance), "Not array buffer object!!!");
-            Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(instance);
+            TTDAssert(Js::VarIs<Js::ArrayBuffer>(instance), "Not array buffer object!!!");
+            Js::ArrayBuffer* dstBuff = Js::VarTo<Js::ArrayBuffer>(instance);
             addRefObj = dstBuff;
 
             TTDAssert(dstBuff->GetBuffer() <= initialModPos && initialModPos < dstBuff->GetBuffer() + dstBuff->GetByteLength(), "Not array buffer object!!!");
             TTDAssert(initialModPos - dstBuff->GetBuffer() < UINT32_MAX, "This is really big!!!");
-            ptrdiff_t index = initialModPos - Js::ArrayBuffer::FromVar(instance)->GetBuffer();
+            ptrdiff_t index = initialModPos - Js::VarTo<Js::ArrayBuffer>(instance)->GetBuffer();
 
             scriptContext->TTDContextInfo->AddToAsyncPendingList(dstBuff, (uint32)index);
 
@@ -4376,7 +4376,7 @@ CHAKRA_API JsTTDRawBufferAsyncModifyComplete(_In_ byte* finalModPos)
             TTD::TTDPendingAsyncBufferModification pendingAsyncInfo = { 0 };
             scriptContext->TTDContextInfo->GetFromAsyncPendingList(&pendingAsyncInfo, finalModPos);
 
-            Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(pendingAsyncInfo.ArrayBufferVar);
+            Js::ArrayBuffer* dstBuff = Js::VarTo<Js::ArrayBuffer>(pendingAsyncInfo.ArrayBufferVar);
             releaseObj = dstBuff;
 
             PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTRawBufferAsyncModifyComplete, pendingAsyncInfo, finalModPos);
@@ -4935,7 +4935,7 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     VALIDATE_JSREF(scriptVal);
     PARAM_NOT_NULL(sourceUrl);
 
-    bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
+    bool isExternalArray = Js::VarIs<Js::ArrayBuffer>(scriptVal),
          isString = false;
     bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
@@ -5143,12 +5143,12 @@ CHAKRA_API JsParseSerialized(
     }
 
     // JsParseSerialized only accepts ArrayBuffer (incl. ExternalArrayBuffer)
-    if (!Js::ExternalArrayBuffer::Is(bufferVal))
+    if (!Js::VarIs<Js::ArrayBuffer>(bufferVal))
     {
         return JsErrorInvalidArgument;
     }
 
-    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferVal);
+    Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(bufferVal);
     byte* buffer = arrayBuffer->GetBuffer();
 
     return RunSerializedScriptCore(
@@ -5177,12 +5177,12 @@ CHAKRA_API JsRunSerialized(
     }
 
     // JsParseSerialized only accepts ArrayBuffer (incl. ExternalArrayBuffer)
-    if (!Js::ExternalArrayBuffer::Is(bufferVal))
+    if (!Js::VarIs<Js::ArrayBuffer>(bufferVal))
     {
         return JsErrorInvalidArgument;
     }
 
-    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(bufferVal);
+    Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(bufferVal);
     byte* buffer = arrayBuffer->GetBuffer();
 
     return RunSerializedScriptCore(
@@ -5762,12 +5762,12 @@ CHAKRA_API JsRunScriptWithParserState(
         return errorCode;
     }
 
-    if (!Js::ExternalArrayBuffer::Is(parserState))
+    if (!Js::VarIs<Js::ArrayBuffer>(parserState))
     {
         return JsErrorInvalidArgument;
     }
 
-    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(parserState);
+    Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(parserState);
     byte* buffer = arrayBuffer->GetBuffer();
     JsSerializedLoadScriptCallback dummy = DummyScriptLoadSourceCallbackForRunScriptWithParserState;
 

@@ -43,7 +43,7 @@ namespace Js
 
         TypedArrayBase *typedArrayBase = TypedArrayBase::UnsafeFromVar(typedArray);
         ArrayBufferBase* arrayBuffer = typedArrayBase->GetArrayBuffer();
-        if (arrayBuffer == nullptr || !ArrayBufferBase::Is(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
+        if (arrayBuffer == nullptr || !VarIs<ArrayBufferBase>(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
@@ -222,7 +222,7 @@ namespace Js
             Assert(sharedArrayBuffer->GetSharedContents()->IsValidAgent(agent));
 #pragma prefast(suppress:__WARNING_CALLER_FAILING_TO_HOLD, "This is a prefast false-positive caused by it being unable to identify that the critical section used here is the same as the one held by the AutoCriticalSection")
             awoken = waiterList->AddAndSuspendWaiter(agent, timeout);
-            if (!awoken) 
+            if (!awoken)
             {
                 waiterList->RemoveWaiter(agent);
             }

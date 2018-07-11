@@ -551,7 +551,7 @@ namespace Js
         JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
-        if (JavascriptArrayBuffer::Is(arrayBuffer))
+        if (VarIs<ArrayBuffer>(arrayBuffer))
         {
             arrayPtr = arrayBuffer->GetBuffer();
             arraySize = arrayBuffer->GetByteLength();
@@ -1349,7 +1349,7 @@ namespace Js
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
             leftOffset -= templateData->GetBaseOffSet();
-            if (!isSrc2Const) 
+            if (!isSrc2Const)
             {
                 rightOffset -= templateData->GetBaseOffSet();
             }
@@ -1375,11 +1375,11 @@ namespace Js
                 size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg1, RegEBP, rightOffset ) );
                 break;
             case 2:
-                if (isSrc2Const) 
+                if (isSrc2Const)
                 {
                     size += CMP::EncodeInstruction<int32>(buffer, InstrParamsAddrImm<int32>(RegEBP, leftOffset, rightOffset));
                 }
-                else 
+                else
                 {
                     size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegAddr(reg2, RegEBP, leftOffset));
                 }

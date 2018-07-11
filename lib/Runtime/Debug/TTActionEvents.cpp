@@ -787,12 +787,12 @@ namespace TTD
             Js::Var dst = InflateVarInReplay(executeContext, action->Dst); //never cross context
             Js::Var src = InflateVarInReplay(executeContext, action->Src); //never cross context
 
-            TTDAssert(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
-            TTDAssert(action->DstIndx + action->Count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
-            TTDAssert(action->SrcIndx + action->Count <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
+            TTDAssert(Js::VarIs<Js::ArrayBuffer>(dst) && Js::VarIs<Js::ArrayBuffer>(src), "Not array buffer objects!!!");
+            TTDAssert(action->DstIndx + action->Count <= Js::VarTo<Js::ArrayBuffer>(dst)->GetByteLength(), "Copy off end of buffer!!!");
+            TTDAssert(action->SrcIndx + action->Count <= Js::VarTo<Js::ArrayBuffer>(src)->GetByteLength(), "Copy off end of buffer!!!");
 
-            byte* dstBuff = Js::ArrayBuffer::FromVar(dst)->GetBuffer() + action->DstIndx;
-            byte* srcBuff = Js::ArrayBuffer::FromVar(src)->GetBuffer() + action->SrcIndx;
+            byte* dstBuff = Js::VarTo<Js::ArrayBuffer>(dst)->GetBuffer() + action->DstIndx;
+            byte* srcBuff = Js::VarTo<Js::ArrayBuffer>(src)->GetBuffer() + action->SrcIndx;
 
             //node uses mmove so we do too
             memmove(dstBuff, srcBuff, action->Count);
@@ -803,10 +803,10 @@ namespace TTD
             const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferModifySync>(evt);
             Js::Var trgt = InflateVarInReplay(executeContext, action->Trgt); //never cross context
 
-            TTDAssert(Js::ArrayBuffer::Is(trgt), "Not array buffer object!!!");
-            TTDAssert(action->Index + action->Length <= Js::ArrayBuffer::FromVar(trgt)->GetByteLength(), "Copy off end of buffer!!!");
+            TTDAssert(Js::VarIs<Js::ArrayBuffer>(trgt), "Not array buffer object!!!");
+            TTDAssert(action->Index + action->Length <= Js::VarTo<Js::ArrayBuffer>(trgt)->GetByteLength(), "Copy off end of buffer!!!");
 
-            byte* trgtBuff = Js::ArrayBuffer::FromVar(trgt)->GetBuffer() + action->Index;
+            byte* trgtBuff = Js::VarTo<Js::ArrayBuffer>(trgt)->GetBuffer() + action->Index;
             js_memcpy_s(trgtBuff, action->Length, action->Data, action->Length);
         }
 
@@ -816,7 +816,7 @@ namespace TTD
             const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferAsyncModificationRegister>(evt);
             Js::Var trgt = InflateVarInReplay(executeContext, action->Trgt); //never cross context
 
-            ctx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(trgt), action->Index);
+            ctx->TTDContextInfo->AddToAsyncPendingList(Js::VarTo<Js::ArrayBuffer>(trgt), action->Index);
         }
 
         void RawBufferAsyncModifyComplete_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
@@ -825,7 +825,7 @@ namespace TTD
             const JsRTRawBufferModifyAction* action = GetInlineEventDataAs<JsRTRawBufferModifyAction, EventKind::RawBufferAsyncModifyComplete>(evt);
             Js::Var trgt = InflateVarInReplay(executeContext, action->Trgt); //never cross context
 
-            const Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(trgt);
+            const Js::ArrayBuffer* dstBuff = Js::VarTo<Js::ArrayBuffer>(trgt);
             byte* copyBuff = dstBuff->GetBuffer() + action->Index;
             byte* finalModPos = dstBuff->GetBuffer() + action->Index + action->Length;
 

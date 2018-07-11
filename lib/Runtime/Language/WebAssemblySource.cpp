@@ -33,9 +33,9 @@ void WebAssemblySource::ReadBufferSource(Var val, ScriptContext * scriptContext)
         srcBuffer = array->GetByteBuffer();
         bufferLength = array->GetByteLength();
     }
-    else if (Js::ArrayBuffer::Is(val))
+    else if (Js::VarIs<Js::ArrayBuffer>(val))
     {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
+        Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(val);
         srcBuffer = arrayBuffer->GetBuffer();
         bufferLength = arrayBuffer->GetByteLength();
     }

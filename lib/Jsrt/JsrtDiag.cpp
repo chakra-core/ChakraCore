@@ -788,7 +788,7 @@ CHAKRA_API JsDiagEvaluate(
         PARAM_NOT_NULL(expressionVal);
         PARAM_NOT_NULL(evalResult);
 
-        bool isArrayBuffer = Js::ArrayBuffer::Is(expressionVal),
+        bool isArrayBuffer = Js::VarIs<Js::ArrayBuffer>(expressionVal),
              isString = false;
         bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
@@ -802,7 +802,7 @@ CHAKRA_API JsDiagEvaluate(
         }
 
         const size_t len = isArrayBuffer ?
-            Js::ArrayBuffer::FromVar(expressionVal)->GetByteLength() :
+            Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetByteLength() :
             Js::VarTo<Js::JavascriptString>(expressionVal)->GetLength();
 
         if (len > INT_MAX)
@@ -815,7 +815,7 @@ CHAKRA_API JsDiagEvaluate(
         if (isArrayBuffer && isUtf8)
         {
             wide_expression.Initialize(
-                (const char*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(), len);
+                (const char*)Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetBuffer(), len);
             if (!wide_expression)
             {
                 return JsErrorOutOfMemory;
@@ -827,7 +827,7 @@ CHAKRA_API JsDiagEvaluate(
             expression = !isArrayBuffer ?
                 Js::VarTo<Js::JavascriptString>(expressionVal)->GetSz() // String
                 :
-                (const WCHAR*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(); // ArrayBuffer;
+                (const WCHAR*)Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetBuffer(); // ArrayBuffer;
         }
 
         *evalResult = JS_INVALID_REFERENCE;
