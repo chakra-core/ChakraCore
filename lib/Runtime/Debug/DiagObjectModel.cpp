@@ -3023,7 +3023,7 @@ namespace Js
 
     BOOL RecyclableArgumentsArrayAddress::Set(Var updateObject)
     {
-        if (Js::ArgumentsObject::Is(parentArray))
+        if (Js::VarIs<Js::ArgumentsObject>(parentArray))
         {
             Js::ArgumentsObject* argObj = static_cast<Js::ArgumentsObject*>(parentArray);
             return argObj->SetItem(index, updateObject, PropertyOperation_None);
@@ -3095,7 +3095,7 @@ namespace Js
     {
         if (pMembersList == nullptr)
         {
-            Assert(Js::ArgumentsObject::Is(instance));
+            Assert(Js::VarIs<Js::ArgumentsObject>(instance));
             Js::ArgumentsObject * argObj = static_cast<Js::ArgumentsObject*>(instance);
 
             pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(GetArenaFromContext(scriptContext));
@@ -3158,7 +3158,7 @@ namespace Js
         AssertMsg(pResolvedObject, "Bad usage of RecyclableArgumentsArrayWalker::Get");
 
         Assert(i >= 0);
-        Assert(Js::ArgumentsObject::Is(instance));
+        Assert(Js::VarIs<Js::ArgumentsObject>(instance));
 
         if (pMembersList && i < pMembersList->Count())
         {

@@ -11574,7 +11574,7 @@ Case0:
             // Designed to have interchangeable arguments with CopyAnyArrayElementsToVar.
             auto slowCopy = [&scriptContext, &needArraySlowCopy
                 ](JavascriptArray *dstArray, unsigned dstIndex, Var srcArray, uint32 start, uint32 end) {
-                Assert(needArraySlowCopy(srcArray) || ArgumentsObject::Is(srcArray) || TypedArrayBase::Is(srcArray) || VarIs<JavascriptString>(srcArray));
+                Assert(needArraySlowCopy(srcArray) || VarIs<ArgumentsObject>(srcArray) || TypedArrayBase::Is(srcArray) || VarIs<JavascriptString>(srcArray));
                 JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
                 RecyclableObject *propertyObject;

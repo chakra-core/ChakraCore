@@ -163,7 +163,7 @@ namespace Js
 
         // Get the heap-allocated args for this frame.
         Var args = this->GetCurrentArgumentsObject();
-        if (args && ArgumentsObject::Is(args))
+        if (args && VarIs<ArgumentsObject>(args))
         {
             args = ((ArgumentsObject*)args)->GetHeapArguments();
         }
@@ -891,7 +891,7 @@ namespace Js
         return addressOfReturnAddress == nativeLibraryEntryAddress
 #if defined(_M_IX86)
             // Under some odd cases on x86, addressOfReturnAddress and stashed entry address need to be aligned.
-            // This happens when code is generated using two stack pointers. One or both have the address of 
+            // This happens when code is generated using two stack pointers. One or both have the address of
             // return address offset by 4, 8, or 12.
             || (((uint)nativeLibraryEntryAddress - (uint)addressOfReturnAddress < 0x10) &&
                 *(void**)addressOfReturnAddress == *(void**)nativeLibraryEntryAddress

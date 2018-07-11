@@ -27,11 +27,6 @@ namespace Js
         return TRUE;
     }
 
-    bool ArgumentsObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Arguments;
-    }
-
     HeapArgumentsObject::HeapArgumentsObject(DynamicType * type) : ArgumentsObject(type), frameObject(nullptr), formalCount(0),
         numOfArguments(0), callerDeleted(false), deletedArgs(nullptr)
     {
@@ -55,7 +50,7 @@ namespace Js
 
     HeapArgumentsObject* HeapArgumentsObject::As(Var aValue)
     {
-        if (ArgumentsObject::Is(aValue) && static_cast<ArgumentsObject*>(VarTo<RecyclableObject>(aValue))->GetHeapArguments() == aValue)
+        if (VarIs<ArgumentsObject>(aValue) && static_cast<ArgumentsObject*>(VarTo<RecyclableObject>(aValue))->GetHeapArguments() == aValue)
         {
             return static_cast<HeapArgumentsObject*>(VarTo<RecyclableObject>(aValue));
         }
