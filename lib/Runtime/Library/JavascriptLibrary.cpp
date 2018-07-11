@@ -5332,7 +5332,7 @@ namespace Js
         for (uint32 i = 0; i < arrayLength; i++)
         {
             rawArray->DirectGetItemAt(i, &var);
-            str = JavascriptString::FromVar(var);
+            str = VarTo<JavascriptString>(var);
             totalStringLength += str->GetLength();
         }
 
@@ -5343,7 +5343,7 @@ namespace Js
 
         // Get first item before loop - there always must be at least one item
         rawArray->DirectGetItemAt(0, &var);
-        str = JavascriptString::FromVar(var);
+        str = VarTo<JavascriptString>(var);
 
         charcount_t len = str->GetLength();
         js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
@@ -5359,7 +5359,7 @@ namespace Js
             remainingSpace -= len;
 
             rawArray->DirectGetItemAt(i, &var);
-            str = JavascriptString::FromVar(var);
+            str = VarTo<JavascriptString>(var);
 
             len = str->GetLength();
             js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
@@ -5414,7 +5414,7 @@ namespace Js
         {
             BOOL hasElem = rawArray->DirectGetItemAt(i, &element);
             AssertOrFailFast(hasElem);
-            str = Js::JavascriptString::FromVar(element);
+            str = Js::VarTo<Js::JavascriptString>(element);
 
             Assert(x->nop == knopList);
             Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
@@ -5440,7 +5440,7 @@ namespace Js
 
         BOOL hasLastElem = rawArray->DirectGetItemAt(length - 1, &element);
         AssertOrFailFast(hasLastElem);
-        str = Js::JavascriptString::FromVar(element);
+        str = Js::VarTo<Js::JavascriptString>(element);
 
         Assert(x->nop == knopStr);
         pid = x->AsParseNodeStr()->pid;
@@ -5614,7 +5614,7 @@ namespace Js
             AssertOrFailFast(hasRight);
 
             // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!Js::JavascriptString::Equals(JavascriptString::FromVar(varLeft), JavascriptString::FromVar(varRight)))
+            if (!Js::JavascriptString::Equals(VarTo<JavascriptString>(varLeft), VarTo<JavascriptString>(varRight)))
             {
                 return false;
             }
@@ -5643,7 +5643,7 @@ namespace Js
         AssertOrFailFast(rawArray->GetLength() > 0);
 
         rawArray->DirectGetItemAt(0, &var);
-        Js::JavascriptString* str = Js::JavascriptString::FromVar(var);
+        Js::JavascriptString* str = Js::VarTo<Js::JavascriptString>(var);
         hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
 
         for (uint32 i = 1; i < rawArray->GetLength(); i++)
@@ -5652,7 +5652,7 @@ namespace Js
 
             BOOL hasItem = rawArray->DirectGetItemAt(i, &var);
             AssertOrFailFast(hasItem);
-            str = Js::JavascriptString::FromVar(var);
+            str = Js::VarTo<Js::JavascriptString>(var);
             hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
         }
 
@@ -6230,9 +6230,9 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
         Var functionNameOrId = name;
-        if (JavascriptString::Is(name))
+        if (VarIs<JavascriptString>(name))
         {
-            JavascriptString * functionName = JavascriptString::FromVar(name);
+            JavascriptString * functionName = VarTo<JavascriptString>(name);
             const char16 * functionNameBuffer = functionName->GetString();
             int functionNameBufferLength = functionName->GetLengthAsSignedInt();
 

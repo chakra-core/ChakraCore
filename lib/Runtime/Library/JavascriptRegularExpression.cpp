@@ -347,9 +347,9 @@ using namespace Js;
     {
         JavascriptString * strBody;
 
-        if (JavascriptString::Is(aValue))
+        if (VarIs<JavascriptString>(aValue))
         {
-            strBody = JavascriptString::FromVar(aValue);
+            strBody = VarTo<JavascriptString>(aValue);
         }
         else if (JavascriptOperators::GetTypeId(aValue) == TypeIds_Undefined)
         {
@@ -368,9 +368,9 @@ using namespace Js;
         JavascriptString * strOptions = nullptr;
         if (options != nullptr && !JavascriptOperators::IsUndefinedObject(options))
         {
-            if (JavascriptString::Is(options))
+            if (VarIs<JavascriptString>(options))
             {
-                strOptions = JavascriptString::FromVar(options);
+                strOptions = VarTo<JavascriptString>(options);
             }
             else
             {
@@ -590,9 +590,9 @@ using namespace Js;
         {
             //compile with a string
             JavascriptString * strBody;
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                strBody = JavascriptString::FromVar(args[1]);
+                strBody = VarTo<JavascriptString>(args[1]);
             }
             else if(JavascriptOperators::GetTypeId(args[1]) == TypeIds_Undefined)
             {
@@ -611,9 +611,9 @@ using namespace Js;
             JavascriptString * strOptions = nullptr;
             if (callInfo.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
             {
-                if (JavascriptString::Is(args[2]))
+                if (VarIs<JavascriptString>(args[2]))
                 {
-                    strOptions = JavascriptString::FromVar(args[2]);
+                    strOptions = VarTo<JavascriptString>(args[2]);
                 }
                 else
                 {

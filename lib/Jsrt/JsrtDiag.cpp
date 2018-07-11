@@ -794,7 +794,7 @@ CHAKRA_API JsDiagEvaluate(
 
         if (!isArrayBuffer)
         {
-            isString = Js::JavascriptString::Is(expressionVal);
+            isString = Js::VarIs<Js::JavascriptString>(expressionVal);
             if (!isString)
             {
                 return JsErrorInvalidArgument;
@@ -803,7 +803,7 @@ CHAKRA_API JsDiagEvaluate(
 
         const size_t len = isArrayBuffer ?
             Js::ArrayBuffer::FromVar(expressionVal)->GetByteLength() :
-            Js::JavascriptString::FromVar(expressionVal)->GetLength();
+            Js::VarTo<Js::JavascriptString>(expressionVal)->GetLength();
 
         if (len > INT_MAX)
         {
@@ -825,7 +825,7 @@ CHAKRA_API JsDiagEvaluate(
         else
         {
             expression = !isArrayBuffer ?
-                Js::JavascriptString::FromVar(expressionVal)->GetSz() // String
+                Js::VarTo<Js::JavascriptString>(expressionVal)->GetSz() // String
                 :
                 (const WCHAR*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(); // ArrayBuffer;
         }

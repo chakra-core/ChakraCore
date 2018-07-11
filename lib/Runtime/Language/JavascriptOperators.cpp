@@ -836,7 +836,7 @@ using namespace Js;
             switch (rightType)
             {
             case TypeIds_String:
-                return JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                return JavascriptString::Equals(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
             }
             return FALSE;
         case TypeIds_Integer:
@@ -3558,7 +3558,7 @@ CommonNumber:
         case TypeIds_String: // fast path for string
         {
             charcount_t indexInt = TaggedInt::ToUInt32(index);
-            JavascriptString* string = JavascriptString::UnsafeFromVar(instance);
+            JavascriptString* string = UnsafeVarTo<JavascriptString>(instance);
             Var result;
             if (JavascriptConversion::PropertyQueryFlagsToBoolean(string->JavascriptString::GetItemQuery(instance, indexInt, &result, scriptContext)))
             {
@@ -4378,7 +4378,7 @@ CommonNumber:
 
         if (isTypedArray)
         {
-            if (TaggedInt::Is(index) || JavascriptNumber::Is_NoTaggedIntCheck(index) || JavascriptString::Is(index))
+            if (TaggedInt::Is(index) || JavascriptNumber::Is_NoTaggedIntCheck(index) || VarIs<JavascriptString>(index))
             {
                 BOOL returnValue = FALSE;
                 bool isNumericIndex = false;
@@ -4601,7 +4601,7 @@ CommonNumber:
         }
 
 #if DBG_DUMP
-        scriptContext->forinNoCache += (!TaggedInt::Is(index) && JavascriptString::Is(index));
+        scriptContext->forinNoCache += (!TaggedInt::Is(index) && VarIs<JavascriptString>(index));
 #endif
         indexType = GetIndexType(index, scriptContext, &indexVal, &propertyRecord, &propertyNameString, false, true);
         if (scriptContext->GetThreadContext()->IsDisableImplicitCall() &&
@@ -10477,7 +10477,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             }
         }
 
-        if (JavascriptString::Is(aLeft) && JavascriptString::Is(aRight))
+        if (VarIs<JavascriptString>(aLeft) && VarIs<JavascriptString>(aRight))
         {
             JavascriptString* left = (JavascriptString*)aLeft;
             JavascriptString* right = (JavascriptString*)aRight;

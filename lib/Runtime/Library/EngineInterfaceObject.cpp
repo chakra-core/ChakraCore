@@ -61,7 +61,7 @@
     GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) \
 
 #define GetTypedPropertyBuiltInFrom(obj, builtInPropID, Type) \
-    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && Type::Is(propertyValue)) \
+    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID)/* FIXME && Type::Is(propertyValue)*/) \
 
 #define HasPropertyOn(obj, propID) \
     Js::JavascriptOperators::HasProperty(obj, propID) \
@@ -253,12 +253,12 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
 #if DBG
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString* message = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString* message = VarTo<JavascriptString>(args.Values[1]);
 
         Output::Print(message->GetString());
         Output::Flush();
@@ -324,7 +324,7 @@ namespace Js
             Var existingName = nullptr;
             if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
             {
-                JavascriptString *existingNameString = JavascriptString::FromVar(existingName);
+                JavascriptString *existingNameString = VarTo<JavascriptString>(existingName);
                 if (existingNameString->GetLength() == 0)
                 {
                     // Only overwrite the name of the function object if it was anonymous coming in
@@ -440,12 +440,12 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *stringToUse = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString *stringToUse = VarTo<JavascriptString>(args.Values[1]);
         JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
 
         return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
@@ -495,12 +495,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 2 || !JavascriptString::Is(args.Values[1])) \
+        if(args.Info.Count < 2 || !VarIs<JavascriptString>(args.Values[1])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz()); \
     }
 
 #define BuiltInRaiseException2(exceptionType, exceptionID) \
@@ -508,12 +508,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2])) \
+        if(args.Info.Count < 3 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz()); \
     }
 
 #define BuiltInRaiseException3(exceptionType, exceptionID) \
@@ -521,12 +521,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 4 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]) || !JavascriptString::Is(args.Values[3])) \
+        if(args.Info.Count < 4 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2]) || !VarIs<JavascriptString>(args.Values[3])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz(), JavascriptString::FromVar(args.Values[3])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz(), VarTo<JavascriptString>(args.Values[3])->GetSz()); \
     }
 
 #include "EngineInterfaceObjectBuiltIns.h"

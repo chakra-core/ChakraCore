@@ -345,7 +345,7 @@ namespace TTD
                     break;
                 case Js::TypeIds_String:
                     snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();
-                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetString(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->u_stringValue));
+                    alloc.CopyStringIntoWLength(Js::VarTo<Js::JavascriptString>(jsValue)->GetString(), Js::VarTo<Js::JavascriptString>(jsValue)->GetLength(), *(snapValue->u_stringValue));
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);

@@ -3633,7 +3633,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                         WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
                         break;
                     case Js::TypeIds_String:
-                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
+                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::VarTo<Js::JavascriptString>(address)->GetSz());
                         break;
                     case Js::TypeIds_Number:
                         WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));

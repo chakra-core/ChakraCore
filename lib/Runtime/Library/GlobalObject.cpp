@@ -158,7 +158,7 @@ using namespace Js;
         const char16 *source = nullptr;
         size_t sourceLength = 0;
 
-        if (Js::JavascriptString::Is(codeVar))
+        if (Js::VarIs<Js::JavascriptString>(codeVar))
         {
             codeStringVar = (Js::JavascriptString *)codeVar;
             source = codeStringVar->GetString();
@@ -575,7 +575,7 @@ using namespace Js;
         }
 
         Var evalArg = args[1];
-        if (!JavascriptString::Is(evalArg))
+        if (!VarIs<JavascriptString>(evalArg))
         {
             // "If x is not a string value, return x."
             return evalArg;
@@ -588,7 +588,7 @@ using namespace Js;
 #endif
 
         ScriptFunction *pfuncScript = nullptr;
-        JavascriptString *argString = JavascriptString::FromVar(evalArg);
+        JavascriptString *argString = VarTo<JavascriptString>(evalArg);
         char16 const * sourceString = argString->GetSz();
         charcount_t sourceLen = argString->GetLength();
         FastEvalMapString key(sourceString, sourceLen, moduleID, strictMode, isLibraryCode);
@@ -1217,9 +1217,9 @@ using namespace Js;
         }
 
         // convert input to a string
-        if (JavascriptString::Is(args[1]))
+        if (VarIs<JavascriptString>(args[1]))
         {
-            str = JavascriptString::FromVar(args[1]);
+            str = VarTo<JavascriptString>(args[1]);
         }
         else
         {
@@ -1280,9 +1280,9 @@ using namespace Js;
         }
 
         // convert input to a string
-        if (JavascriptString::Is(args[1]))
+        if (VarIs<JavascriptString>(args[1]))
         {
-            str = JavascriptString::FromVar(args[1]);
+            str = VarTo<JavascriptString>(args[1]);
         }
         else
         {
@@ -1653,9 +1653,9 @@ LHexError:
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        TTDAssert(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+        TTDAssert(args.Info.Count >= 2 && Js::VarIs<Js::JavascriptString>(args[1]), "Bad arguments!!!");
 
-        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+        Js::JavascriptString* jsString = Js::VarTo<Js::JavascriptString>(args[1]);
         bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());
 
         if(function->GetScriptContext()->ShouldPerformReplayAction())
@@ -1715,7 +1715,7 @@ LHexError:
 
         Js::JavascriptLibrary* jslib = function->GetScriptContext()->GetLibrary();
 
-        if(args.Info.Count != 2 || !Js::JavascriptString::Is(args[1]))
+        if(args.Info.Count != 2 || !Js::VarIs<Js::JavascriptString>(args[1]))
         {
             return jslib->GetFalse();
         }
@@ -1729,7 +1729,7 @@ LHexError:
 
         if(function->GetScriptContext()->ShouldPerformRecordAction())
         {
-            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+            Js::JavascriptString* jsString = Js::VarTo<Js::JavascriptString>(args[1]);
             function->GetScriptContext()->GetThreadContext()->TTDLog->RecordEmitLogEvent(jsString);
 
             return jslib->GetTrue();
@@ -1773,7 +1773,7 @@ LHexError:
             }
 
             //get a pattern which doesn't contain leading and trailing stars
-            subPattern = JavascriptString::FromVar(JavascriptString::SubstringCore(pattern, idxStart, idxEnd - idxStart, scriptContext));
+            subPattern = VarTo<JavascriptString>(JavascriptString::SubstringCore(pattern, idxStart, idxEnd - idxStart, scriptContext));
 
             uint index = JavascriptString::strstr(propertyName, subPattern, false);
 

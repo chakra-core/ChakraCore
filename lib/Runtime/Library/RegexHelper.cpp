@@ -811,8 +811,8 @@ namespace Js
                 if (captureIndex < numGroups && (captureIndex != 0))
                 {
                     Var group = getGroup(captureIndex, nonMatchValue);
-                    if (JavascriptString::Is(group))
-                        concatenated.Append(JavascriptString::UnsafeFromVar(group));
+                    if (VarIs<JavascriptString>(group))
+                        concatenated.Append(UnsafeVarTo<JavascriptString>(group));
                     else if (group != nonMatchValue)
                         concatenated.Append(replace, substitutionOffset, offset - substitutionOffset);
                 }

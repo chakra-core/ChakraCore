@@ -67,7 +67,7 @@ JSONStringifier::ReadSpace(_In_opt_ Var space)
             break;
         }
         case TypeIds_String:
-            this->SetStringGap(JavascriptString::UnsafeFromVar(space));
+            this->SetStringGap(UnsafeVarTo<JavascriptString>(space));
             break;
         case TypeIds_StringObject:
             this->SetStringGap(JavascriptConversion::ToString(space, this->scriptContext));
@@ -88,7 +88,7 @@ JSONStringifier::AddToPropertyList(_In_ Var item, _Inout_ BVSparse<Recycler>* pr
         propertyName = this->scriptContext->GetIntegerString(item);
         break;
     case TypeIds_String:
-        propertyName = JavascriptString::UnsafeFromVar(item);
+        propertyName = UnsafeVarTo<JavascriptString>(item);
         break;
     case TypeIds_Number:
     case TypeIds_NumberObject:
@@ -728,7 +728,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
 #endif
 
     case TypeIds_String:
-        prop->stringValue = JavascriptString::UnsafeFromVar(valueObj);
+        prop->stringValue = UnsafeVarTo<JavascriptString>(valueObj);
         prop->type = JSONContentType::String;
         this->totalStringLength = UInt32Math::Add(this->totalStringLength, CalculateStringElementLength(prop->stringValue));
         return;

@@ -1124,12 +1124,12 @@ using namespace Js;
                 if(IsPackedInfo(pointer2))
                 {
                     Assert(pointerIndex != 0);
-                    s = JavascriptString::FromVar(blockPointers[--pointerIndex]);
+                    s = VarTo<JavascriptString>(blockPointers[--pointerIndex]);
                 }
                 else
     #endif
                 {
-                    s = JavascriptString::FromVar(pointer2);
+                    s = VarTo<JavascriptString>(pointer2);
                     pointer2 = nullptr;
                 }
 
@@ -1144,7 +1144,7 @@ using namespace Js;
             }
             else
             {
-                JavascriptString *const s = JavascriptString::FromVar(pointer);
+                JavascriptString *const s = VarTo<JavascriptString>(pointer);
                 const CharCount copyCharLength = s->GetLength();
 
                 Assert(remainingCharLengthToCopy >= copyCharLength);

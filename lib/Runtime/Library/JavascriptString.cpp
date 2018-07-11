@@ -219,9 +219,9 @@ namespace Js
         return IsValidCharCount(idx) && idx < GetLength();
     }
 
-    bool JavascriptString::Is(Var aValue)
+    template <> bool VarIs<JavascriptString>(RecyclableObject* obj)
     {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_String;
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_String;
     }
 
     void JavascriptString::GetPropertyRecord(_Out_ Js::PropertyRecord const ** propertyRecord, bool dontLookupFromDictionary)
@@ -238,20 +238,6 @@ namespace Js
     void JavascriptString::CachePropertyRecord(_In_ PropertyRecord const* propertyRecord)
     {
         // Base string doesn't have enough room to keep this value, so do nothing
-    }
-
-    JavascriptString* JavascriptString::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptString *>(aValue);
-    }
-
-    JavascriptString* JavascriptString::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptString *>(aValue);
     }
 
     charcount_t
@@ -1665,9 +1651,9 @@ case_2:
         {
             *ppSearchRegEx = JavascriptRegExp::FromVar(aValue);
         }
-        else if (JavascriptString::Is(aValue))
+        else if (VarIs<JavascriptString>(aValue))
         {
-            *ppSearchString = JavascriptString::FromVar(aValue);
+            *ppSearchString = VarTo<JavascriptString>(aValue);
         }
         else
         {
@@ -1684,9 +1670,9 @@ case_2:
         {
             *ppReplaceFn = JavascriptFunction::FromVar(aValue);
         }
-        else if (JavascriptString::Is(aValue))
+        else if (VarIs<JavascriptString>(aValue))
         {
-            *ppReplaceString = JavascriptString::FromVar(aValue);
+            *ppReplaceString = VarTo<JavascriptString>(aValue);
         }
         else
         {
@@ -3095,10 +3081,10 @@ case_2:
     //
     bool JavascriptString::LessThan(Var aLeft, Var aRight)
     {
-        AssertMsg(JavascriptString::Is(aLeft) && JavascriptString::Is(aRight), "string LessThan");
+        AssertMsg(VarIs<JavascriptString>(aLeft) && VarIs<JavascriptString>(aRight), "string LessThan");
 
-        JavascriptString *leftString  = JavascriptString::FromVar(aLeft);
-        JavascriptString *rightString = JavascriptString::FromVar(aRight);
+        JavascriptString *leftString  = VarTo<JavascriptString>(aLeft);
+        JavascriptString *rightString = VarTo<JavascriptString>(aRight);
 
         if (JavascriptString::strcmp(leftString, rightString) < 0)
         {
@@ -3113,9 +3099,9 @@ case_2:
         Assert(pString);
 
         // 1. If Type(value) is String, return value.
-        if (JavascriptString::Is(aValue))
+        if (VarIs<JavascriptString>(aValue))
         {
-            *pString = JavascriptString::FromVar(aValue);
+            *pString = VarTo<JavascriptString>(aValue);
             return TRUE;
         }
         // 2. If Type(value) is Object and value has a [[StringData]] internal slot
@@ -3126,7 +3112,7 @@ case_2:
             // a. Let s be the value of value's [[StringData]] internal slot.
             // b. If s is not undefined, then return s.
             *pString = pStringObj->Unwrap();
-            *pString = JavascriptString::FromVar(CrossSite::MarshalVar(scriptContext,
+            *pString = VarTo<JavascriptString>(CrossSite::MarshalVar(scriptContext,
               *pString, pStringObj->GetScriptContext()));
             return TRUE;
         }
@@ -3174,8 +3160,8 @@ case_2:
         //
         // pszProp = _u("href");
         // pszTag = _u("a");
-        // pThis = JavascriptString::FromVar(args[0]);
-        // pPropertyValue = JavascriptString::FromVar(args[1]);
+        // pThis = VarTo<JavascriptString>(args[0]);
+        // pPropertyValue = VarTo<JavascriptString>(args[1]);
         //
         // pResult = _u("<a href=\"[[pPropertyValue]]\">[[pThis]]</a>");
         //

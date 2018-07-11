@@ -783,7 +783,7 @@ namespace Js
                 {
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        return JavascriptString::FromVar(func->CallFunction(args));
+                        return VarTo<JavascriptString>(func->CallFunction(args));
                     }
                     END_SAFE_REENTRANT_CALL
                 }
@@ -794,7 +794,7 @@ namespace Js
                 {
                     BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
                     {
-                        return JavascriptString::FromVar(func->CallFunction(args));
+                        return VarTo<JavascriptString>(func->CallFunction(args));
                     }
                     END_SAFE_REENTRANT_CALL
                 }
@@ -810,7 +810,7 @@ namespace Js
                 Var result;
                 if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(EntryToLocaleString, args, &result))
                 {
-                    return JavascriptString::FromVar(result);
+                    return VarTo<JavascriptString>(result);
                 }
             }
 
@@ -1094,7 +1094,7 @@ namespace Js
 
         JavascriptString *result = nullptr;
 
-        JavascriptString *dblStr = JavascriptString::FromVar(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
+        JavascriptString *dblStr = VarTo<JavascriptString>(FormatDoubleToString(value, NumberUtilities::FormatFixed, -1, scriptContext));
         const char16* szValue = dblStr->GetSz();
         const size_t szLength = dblStr->GetLength();
 

@@ -2455,7 +2455,7 @@ ExitTempAllocator:
                 hr = ps.ParseCesu8Source(&parseTree, pszSrc, cbLength, grfscr, pse, &sourceContextInfo->nextLocalFunctionId,
                     sourceContextInfo);
             }
-            
+
             utf8SourceInfo->SetParseFlags(grfscr);
             srcLength = ps.GetSourceLength();
 
@@ -4568,7 +4568,7 @@ ExitTempAllocator:
                     else
                     {
                         // it is string because user had called in toString extract name from it
-                        Assert(JavascriptString::Is(sourceString));
+                        Assert(VarIs<JavascriptString>(sourceString));
                         const char16 *pwszToString = ((JavascriptString *)sourceString)->GetSz();
                         const char16 *pwszNameStart = wcsstr(pwszToString, _u(" "));
                         const char16 *pwszNameEnd = wcsstr(pwszToString, _u("("));

@@ -3168,8 +3168,8 @@ LABEL1:
             }
             else
             {
-                Assert(JavascriptString::Is(sourceString));
-                pString = JavascriptString::FromVar(sourceString);
+                Assert(VarIs<JavascriptString>(sourceString));
+                pString = VarTo<JavascriptString>(sourceString);
             }
         }
 
@@ -3248,8 +3248,8 @@ LABEL1:
                 *name = scriptContext->GetPropertyString(propertyIdOfSourceString);
                 return true;
             }
-            Assert(JavascriptString::Is(sourceString));
-            *name = JavascriptString::FromVar(sourceString);
+            Assert(VarIs<JavascriptString>(sourceString));
+            *name = VarTo<JavascriptString>(sourceString);
             return true;
         }
         return false;

@@ -1210,12 +1210,12 @@ CHAKRA_API JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::JavascriptString::Is(value))
+        if (!Js::VarIs<Js::JavascriptString>(value))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        *length = Js::JavascriptString::FromVar(value)->GetLengthAsSignedInt();
+        *length = Js::VarTo<Js::JavascriptString>(value)->GetLengthAsSignedInt();
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -1252,13 +1252,13 @@ CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_
     PARAM_NOT_NULL(stringLength);
     *stringLength = 0;
 
-    if (!Js::JavascriptString::Is(stringValue))
+    if (!Js::VarIs<Js::JavascriptString>(stringValue))
     {
         return JsErrorInvalidArgument;
     }
 
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        Js::JavascriptString *jsString = Js::JavascriptString::FromVar(stringValue);
+        Js::JavascriptString *jsString = Js::VarTo<Js::JavascriptString>(stringValue);
 
         *stringPtr = jsString->GetSz();
         *stringLength = jsString->GetLength();
@@ -1271,7 +1271,7 @@ CHAKRA_API JsConvertValueToString(_In_ JsValueRef value, _Out_ JsValueRef *resul
     PARAM_NOT_NULL(result);
     *result = nullptr;
 
-    if (value != nullptr && Js::JavascriptString::Is(value))
+    if (value != nullptr && Js::VarIs<Js::JavascriptString>(value))
     {
         return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
             PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTVarToStringConversion, (Js::Var)value);
@@ -1486,7 +1486,7 @@ static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
     switch(key->GetTypeId())
     {
     case Js::TypeIds_String:
-        scriptContext->GetOrAddPropertyRecord(Js::JavascriptString::FromVar(key),
+        scriptContext->GetOrAddPropertyRecord(Js::VarTo<Js::JavascriptString>(key),
             (Js::PropertyRecord const **)propertyRecord);
         break;
     case Js::TypeIds_Symbol:
@@ -2919,9 +2919,9 @@ void SetErrorMessage(Js::ScriptContext *scriptContext, Js::JavascriptError *newE
     if (!Js::JavascriptOperators::IsUndefined(message))
     {
         Js::JavascriptString *messageStr = nullptr;
-        if (Js::JavascriptString::Is(message))
+        if (Js::VarIs<Js::JavascriptString>(message))
         {
-            messageStr = Js::JavascriptString::FromVar(message);
+            messageStr = Js::VarTo<Js::JavascriptString>(message);
         }
         else
         {
@@ -3723,7 +3723,7 @@ JsErrorCode GetScriptBufferDetails(
     *script = nullptr;
 
     const bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal);
-    const bool isString = !isExternalArray && Js::JavascriptString::Is(scriptVal);
+    const bool isString = !isExternalArray && Js::VarIs<Js::JavascriptString>(scriptVal);
     if (!isExternalArray && !isString)
     {
         return JsErrorInvalidArgument;
@@ -4956,7 +4956,7 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     }
     else
     {
-        isString = Js::JavascriptString::Is(scriptVal);
+        isString = Js::VarIs<Js::JavascriptString>(scriptVal);
         if (!isString)
         {
             return JsErrorInvalidArgument;
@@ -4966,19 +4966,19 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     JsErrorCode error = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         if (isString)
         {
-            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(scriptVal);
+            Js::JavascriptString* jsString = Js::VarTo<Js::JavascriptString>(scriptVal);
             script = (const byte*)jsString->GetSz();
 
             // JavascriptString is 2 bytes (WCHAR/char16)
             cb = jsString->GetLength() * sizeof(WCHAR);
         }
 
-        if (!Js::JavascriptString::Is(sourceUrl))
+        if (!Js::VarIs<Js::JavascriptString>(sourceUrl))
         {
             return JsErrorInvalidArgument;
         }
 
-        url = Js::JavascriptString::FromVar(sourceUrl)->GetSz();
+        url = Js::VarTo<Js::JavascriptString>(sourceUrl)->GetSz();
 
         return JsNoError;
 
@@ -5133,7 +5133,7 @@ CHAKRA_API JsParseSerialized(
 
     const WCHAR *url;
 
-    if (Js::JavascriptString::Is(sourceUrl))
+    if (Js::VarIs<Js::JavascriptString>(sourceUrl))
     {
         url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
     }
@@ -5167,7 +5167,7 @@ CHAKRA_API JsRunSerialized(
     PARAM_NOT_NULL(bufferVal);
     const WCHAR *url;
 
-    if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+    if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
     {
         url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
     }
@@ -5697,7 +5697,7 @@ CHAKRA_API JsRunScriptWithParserState(
 
         JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
 
-        if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+        if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
         {
             url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
         }

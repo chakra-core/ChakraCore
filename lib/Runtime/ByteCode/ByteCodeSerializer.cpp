@@ -1459,7 +1459,7 @@ public:
 
     uint32 PrependStringConstant(BufferBuilderList & builder, Var var)
     {
-        auto str = JavascriptString::FromVar(var);
+        auto str = VarTo<JavascriptString>(var);
         uint32 size = 0;
 
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
@@ -1550,7 +1550,7 @@ public:
 
         case TypeIds_String:
         {
-            auto size = PrependByte(builder, _u("String Constant 16"), 
+            auto size = PrependByte(builder, _u("String Constant 16"),
                 Js::PropertyString::Is(var)? ctPropertyString16 : ctString16);
             return size + PrependStringConstant(builder, var);
         }
@@ -2294,7 +2294,7 @@ public:
             definedFields.has_attributes = true;
             PrependInt32(builder, _u("Attributes"), attributes);
         }
-       
+
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         PrependInt32(builder, _u("Offset Into Source for toString"), function->PrintableStartOffset());
         if (function->GetNestedCount() > 0)
@@ -2896,7 +2896,7 @@ public:
         uint32 countOfAuxiliaryStructure;
         current = ReadUInt32(current, &countOfAuxiliaryStructure);
         Assert(countOfAuxiliaryStructure != 0);
-        
+
         uint32 sizeOfAuxiliaryBlock;
         uint32 sizeOfAuxiliaryContextBlock;
         current = ReadUInt32(current, &sizeOfAuxiliaryBlock);
@@ -3428,7 +3428,7 @@ public:
         current = ReadUInt32(current, &count);
 
         Js::AuxArray<uint32> * slotIdInCachedScopeToNestedIndexArray = functionBody->AllocateSlotIdInCachedScopeToNestedIndexArray(count);
-            
+
         uint32 value;
         for (uint i = 0; i < count; i++)
         {
@@ -3484,7 +3484,7 @@ public:
     {
         Assert(function);
         Assert(debuggerScopeCount != 0);
-        
+
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
@@ -4879,7 +4879,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 
     int32 sourceCharLength = utf8SourceInfo->GetCchLength();
     ByteCodeBufferBuilder builder(sourceByteLength, sourceCharLength, utf8Source, utf8SourceInfo, scriptContext, alloc, dwFlags, builtInPropertyCount);
-    
+
     hr = builder.AddTopFunctionBody(function, srcInfo, cache);
 
     if (SUCCEEDED(hr))

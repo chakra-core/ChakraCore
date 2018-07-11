@@ -196,7 +196,7 @@ CommonNumber:
             switch (rightType)
             {
             case TypeIds_String:
-                return JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                return JavascriptString::Equals(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
             }
             break;
 #if DBG
@@ -643,7 +643,7 @@ CommonNumber:
             case TypeIds_String:
                 {
                     ScriptContext* aValueScriptContext = Js::UnsafeVarTo<Js::RecyclableObject>(aValue)->GetScriptContext();
-                    return JavascriptString::UnsafeFromVar(CrossSite::MarshalVar(scriptContext,
+                    return UnsafeVarTo<JavascriptString>(CrossSite::MarshalVar(scriptContext,
                       aValue, aValueScriptContext));
                 }
             case TypeIds_VariantDate:
@@ -701,7 +701,7 @@ CommonNumber:
             return JavascriptNumber::ToLocaleString(JavascriptNumber::GetValue(aValue), scriptContext);
 
         case TypeIds_String:
-            return JavascriptString::UnsafeFromVar(aValue);
+            return UnsafeVarTo<JavascriptString>(aValue);
 
         case TypeIds_VariantDate:
             // Legacy behavior was to create an empty object and call toLocaleString on it, which would result in this value
@@ -722,9 +722,9 @@ CommonNumber:
                     {
                         return CALL_FUNCTION(scriptContext->GetThreadContext(), toLocaleStringFunction, CallInfo(1), aValue);
                     });
-                    if (JavascriptString::Is(aResult))
+                    if (VarIs<JavascriptString>(aResult))
                     {
-                        return JavascriptString::UnsafeFromVar(aResult);
+                        return UnsafeVarTo<JavascriptString>(aResult);
                     }
                     else
                     {
@@ -795,7 +795,7 @@ CommonNumber:
 
         case TypeIds_String:
             {
-                JavascriptString * pstValue = JavascriptString::UnsafeFromVar(aValue);
+                JavascriptString * pstValue = UnsafeVarTo<JavascriptString>(aValue);
                 return pstValue->GetLength() > 0;
             }
 
@@ -895,7 +895,7 @@ CommonNumber:
                 return (double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue();
 
             case TypeIds_String:
-                return JavascriptString::UnsafeFromVar(aValue)->ToDouble();
+                return UnsafeVarTo<JavascriptString>(aValue)->ToDouble();
 
             case TypeIds_VariantDate:
                 return Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(JavascriptVariantDate::UnsafeFromVar(aValue)->GetValue()), scriptContext);
@@ -948,7 +948,7 @@ CommonNumber:
             case TypeIds_UInt64Number:
                 return ToInteger((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
             case TypeIds_String:
-                return ToInteger(JavascriptString::UnsafeFromVar(aValue)->ToDouble());
+                return ToInteger(UnsafeVarTo<JavascriptString>(aValue)->ToDouble());
 
             case TypeIds_VariantDate:
                 return ToInteger(ToNumber_Full(aValue, scriptContext));
@@ -1030,7 +1030,7 @@ CommonNumber:
         case TypeIds_String:
         {
             double result;
-            if (JavascriptString::UnsafeFromVar(aValue)->ToDouble(&result))
+            if (UnsafeVarTo<JavascriptString>(aValue)->ToDouble(&result))
             {
                 return JavascriptMath::ToInt32Core(result);
             }
@@ -1077,7 +1077,7 @@ CommonNumber:
         case TypeIds_String:
         {
             double result;
-            if (JavascriptString::UnsafeFromVar(aValue)->ToDouble(&result))
+            if (UnsafeVarTo<JavascriptString>(aValue)->ToDouble(&result))
             {
                 return ToInt32(result);
             }
@@ -1137,7 +1137,7 @@ CommonNumber:
                 return ToInt32Finite((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue(), result);
 
             case TypeIds_String:
-                return ToInt32Finite(JavascriptString::UnsafeFromVar(aValue)->ToDouble(), result);
+                return ToInt32Finite(UnsafeVarTo<JavascriptString>(aValue)->ToDouble(), result);
 
             case TypeIds_VariantDate:
                 return ToInt32Finite(ToNumber_Full(aValue, scriptContext), result);
@@ -1268,7 +1268,7 @@ CommonNumber:
             case TypeIds_String:
             {
                 double result;
-                if (JavascriptString::UnsafeFromVar(aValue)->ToDouble(&result))
+                if (UnsafeVarTo<JavascriptString>(aValue)->ToDouble(&result))
                 {
                     return JavascriptMath::ToUInt32(result);
                 }
@@ -1349,7 +1349,7 @@ CommonNumber:
             case TypeIds_String:
             {
                 double result;
-                if (JavascriptString::UnsafeFromVar(aValue)->ToDouble(&result))
+                if (UnsafeVarTo<JavascriptString>(aValue)->ToDouble(&result))
                 {
                     return ToUInt16(result);
                 }

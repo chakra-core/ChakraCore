@@ -678,7 +678,7 @@ namespace Js
             case TypeIds_Symbol:
                 goto ReturnFalse;
             case TypeIds_String:
-                *value = JavascriptString::Equals(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                *value = JavascriptString::Equals(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
                 return TRUE;
             case TypeIds_Number:
             case TypeIds_Integer:

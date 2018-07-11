@@ -173,9 +173,9 @@ namespace Js
             else
             {
                 Var value = JavascriptConversion::ToPrimitive<Js::JavascriptHint::None>(args[1], scriptContext);
-                if (JavascriptString::Is(value))
+                if (VarIs<JavascriptString>(value))
                 {
-                    timeValue = ParseHelper(scriptContext, JavascriptString::FromVar(value));
+                    timeValue = ParseHelper(scriptContext, VarTo<JavascriptString>(value));
                 }
                 else
                 {
@@ -254,9 +254,9 @@ namespace Js
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Date[Symbol.toPrimitive]"));
             }
 
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                JavascriptString* StringObject = JavascriptString::FromVar(args[1]);
+                JavascriptString* StringObject = VarTo<JavascriptString>(args[1]);
                 const char16 * str = StringObject->GetString();
 
                 if (wcscmp(str, _u("default")) == 0 || wcscmp(str, _u("string")) == 0)

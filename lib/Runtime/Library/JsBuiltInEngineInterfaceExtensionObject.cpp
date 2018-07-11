@@ -254,11 +254,11 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && VarIs<JavascriptString>(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
-        JavascriptString* methodName = JavascriptString::UnsafeFromVar(args.Values[1]);
+        JavascriptString* methodName = UnsafeVarTo<JavascriptString>(args.Values[1]);
 
         // chakra library functions, since they aren't public, can be constructors (__chakraLibrary.ArrayIterator is one)
         ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
@@ -434,7 +434,7 @@ FUNCTIONKIND_VALUES(VALUE)
 
         for (unsigned i = 0; i < propCount; i++)
         {
-            JavascriptString *propName = JavascriptString::FromVar(args.Values[i + 3]);
+            JavascriptString *propName = VarTo<JavascriptString>(args.Values[i + 3]);
             obj->SetPropertyWithAttributes(JavascriptOperators::GetPropertyId(propName, scriptContext), scriptContext->GetLibrary()->GetNull(), PropertyWritable, nullptr);
         }
 

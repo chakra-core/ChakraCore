@@ -197,7 +197,7 @@ namespace Js
 #else
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
-                    Output::Print(_u(" (\"%s\")%s"), JavascriptString::FromVar(varConst)->GetSz(), Js::PropertyString::Is(varConst) ? _u(" [prop]") : _u(""));
+                    Output::Print(_u(" (\"%s\")%s"), VarTo<JavascriptString>(varConst)->GetSz(), Js::PropertyString::Is(varConst) ? _u(" [prop]") : _u(""));
                     break;
                 case Js::TypeIds_GlobalObject:
 #if ENABLE_NATIVE_CODEGEN

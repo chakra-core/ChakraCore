@@ -547,10 +547,10 @@ namespace Js
 
             // The description property always overrides any error message
             Var description = Js::JavascriptOperators::GetProperty(errorObject, Js::PropertyIds::description, scriptContext, NULL);
-            if (JavascriptString::Is(description))
+            if (VarIs<JavascriptString>(description))
             {
                 // Always report the description to IE if it is a string, even if the user sets it
-                JavascriptString * messageString = JavascriptString::FromVar(description);
+                JavascriptString * messageString = VarTo<JavascriptString>(description);
                 *pMessage = messageString->GetSz();
             }
             else if (Js::JavascriptError::Is(errorObject) && Js::JavascriptError::FromVar(errorObject)->originalRuntimeErrorMessage != nullptr)

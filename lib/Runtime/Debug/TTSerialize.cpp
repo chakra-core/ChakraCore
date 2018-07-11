@@ -1924,21 +1924,21 @@ namespace TTD
                 this->AppendLiteral("'");
                 if(!skipStringContents)
                 {
-                    if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
+                    if(Js::VarTo<Js::JavascriptString>(var)->GetLength() <= 40)
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                     else
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), 40);
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), 40);
                         this->AppendLiteral("...");
-                        this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                 }
                 else
                 {
                     this->AppendLiteral("string@length=");
-                    this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     this->AppendLiteral("...");
                 }
                 this->AppendLiteral("'");

@@ -111,7 +111,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count < 2 || !JavascriptString::Is(args[1]))
+    if (args.Info.Count < 2 || !VarIs<JavascriptString>(args[1]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }

@@ -780,7 +780,7 @@ namespace Js
         if (displayInfo->IsInDeadZone())
         {
             // The uninitialized string is already set in the var for the dead zone display.
-            Assert(JavascriptString::Is(displayInfo->aVar));
+            Assert(VarIs<JavascriptString>(displayInfo->aVar));
             returnedVar = displayInfo->aVar;
         }
         else
@@ -1634,7 +1634,7 @@ namespace Js
             {
                 // If we're in a dead zone, the value will be the
                 // [Uninitialized block variable] string.
-                Assert(JavascriptString::Is(value));
+                Assert(VarIs<JavascriptString>(value));
             }
 #endif // DBG
 
@@ -1697,7 +1697,7 @@ namespace Js
             {
                 // If we're in a dead zone, the value will be the
                 // [Uninitialized block variable] string.
-                Assert(JavascriptString::Is(value));
+                Assert(VarIs<JavascriptString>(value));
             }
 #endif // DBG
 

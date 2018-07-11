@@ -461,7 +461,7 @@ JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext
 
     // 17. Return the String that is the result of concatenating "[object ", tag, and "]".
     auto buildToString = [&scriptContext](Var tag) {
-        JavascriptString *tagStr = JavascriptString::FromVar(tag);
+        JavascriptString *tagStr = VarTo<JavascriptString>(tag);
         const WCHAR objectStartString[9] = _u("[object ");
         const WCHAR objectEndString[1] = { _u(']') };
         CompoundString *const cs = CompoundString::NewWithCharCapacity(_countof(objectStartString)
@@ -473,7 +473,7 @@ JavascriptString* JavascriptObject::ToStringTagHelper(Var thisArg, ScriptContext
 
         return cs;
     };
-    if (tag != nullptr && JavascriptString::Is(tag))
+    if (tag != nullptr && VarIs<JavascriptString>(tag))
     {
         return buildToString(tag);
     }
@@ -1108,7 +1108,7 @@ Var JavascriptObject::GetValuesOrEntries(RecyclableObject* object, bool valuesTo
     for (uint32 i = 0, index = 0; i < length; i++)
     {
         nextKey = ownKeysResult->DirectGetItem(i);
-        Assert(JavascriptString::Is(nextKey));
+        Assert(VarIs<JavascriptString>(nextKey));
 
         PropertyDescriptor propertyDescriptor;
 
@@ -1740,7 +1740,7 @@ void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from,
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(JavascriptSymbol::Is(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         // Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
@@ -1982,7 +1982,7 @@ Var JavascriptObject::DefinePropertiesHelperForProxyObjects(RecyclableObject *ob
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || JavascriptString::Is(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(JavascriptSymbol::Is(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
         AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoProperty.");

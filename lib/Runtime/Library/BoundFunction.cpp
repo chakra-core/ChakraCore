@@ -262,9 +262,9 @@ namespace Js
         if (targetFunction != nullptr)
         {
             Var value = JavascriptOperators::GetPropertyNoCache(targetFunction, PropertyIds::name, targetFunction->GetScriptContext());
-            if (JavascriptString::Is(value))
+            if (VarIs<JavascriptString>(value))
             {
-                displayName = JavascriptString::FromVar(value);
+                displayName = VarTo<JavascriptString>(value);
             }
         }
         return JavascriptString::Concat(GetLibrary()->GetBoundFunctionPrefixString(), displayName);

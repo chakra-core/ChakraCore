@@ -2705,9 +2705,9 @@ namespace Js
         else
         {
             double dIndexValue = 0;
-            if (JavascriptString::Is(index))
+            if (VarIs<JavascriptString>(index))
             {
-                if (JavascriptConversion::CanonicalNumericIndexString(JavascriptString::FromVar(index), &dIndexValue, GetScriptContext()))
+                if (JavascriptConversion::CanonicalNumericIndexString(VarTo<JavascriptString>(index), &dIndexValue, GetScriptContext()))
                 {
                     if (JavascriptNumber::IsNegZero(dIndexValue))
                     {

@@ -226,7 +226,7 @@ using namespace Js;
                 }
                 else if (typeLeft == TypeIds_String)
                 {
-                    return JavascriptString::Concat(JavascriptString::UnsafeFromVar(aLeft), JavascriptString::UnsafeFromVar(aRight));
+                    return JavascriptString::Concat(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
                 }
             }
             else if(typeLeft == TypeIds_Number && typeRight == TypeIds_Integer)
@@ -307,8 +307,8 @@ using namespace Js;
                 {
                     if( typeRight == TypeIds_String )
                     {
-                        JavascriptString* leftString = JavascriptString::UnsafeFromVar(aLeft);
-                        JavascriptString* rightString = JavascriptString::UnsafeFromVar(aRight);
+                        JavascriptString* leftString = UnsafeVarTo<JavascriptString>(aLeft);
+                        JavascriptString* rightString = UnsafeVarTo<JavascriptString>(aRight);
                         return JavascriptString::Concat(leftString, rightString);
                     }
                     break;
@@ -374,13 +374,13 @@ using namespace Js;
             JIT_HELPER_REENTRANT_HEADER(Op_AddLeftDead);
             if (JavascriptOperators::GetTypeId(aLeft) == TypeIds_String)
             {
-                JavascriptString* leftString = JavascriptString::UnsafeFromVar(aLeft);
+                JavascriptString* leftString = UnsafeVarTo<JavascriptString>(aLeft);
                 JavascriptString* rightString;
                 TypeId rightType = JavascriptOperators::GetTypeId(aRight);
                 switch(rightType)
                 {
                     case TypeIds_String:
-                        rightString = JavascriptString::UnsafeFromVar(aRight);
+                        rightString = UnsafeVarTo<JavascriptString>(aRight);
 
 StringCommon:
                         return leftString->ConcatDestructive(rightString);
@@ -433,12 +433,12 @@ StringCommon:
             // If either side is a string, then the result is also a string
             if (JavascriptOperators::GetTypeId(primLeft) == TypeIds_String)
             {
-                JavascriptString* stringLeft = JavascriptString::UnsafeFromVar(primLeft);
+                JavascriptString* stringLeft = UnsafeVarTo<JavascriptString>(primLeft);
                 JavascriptString* stringRight = nullptr;
 
                 if (JavascriptOperators::GetTypeId(primRight) == TypeIds_String)
                 {
-                    stringRight = JavascriptString::UnsafeFromVar(primRight);
+                    stringRight = UnsafeVarTo<JavascriptString>(primRight);
                 }
                 else
                 {
@@ -455,7 +455,7 @@ StringCommon:
             if (JavascriptOperators::GetTypeId(primRight) == TypeIds_String)
             {
                 JavascriptString* stringLeft = JavascriptConversion::ToString(primLeft, scriptContext);
-                JavascriptString* stringRight = JavascriptString::UnsafeFromVar(primRight);
+                JavascriptString* stringRight = UnsafeVarTo<JavascriptString>(primRight);
 
                 if(leftIsDead)
                 {

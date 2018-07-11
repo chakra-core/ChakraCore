@@ -257,7 +257,7 @@ namespace Js
 
         if (!isExternalArray)
         {
-            isString = Js::JavascriptString::Is(scriptVal);
+            isString = Js::VarIs<Js::JavascriptString>(scriptVal);
             if (!isString)
             {
                 Js::JavascriptError::ThrowOutOfMemoryError(nullptr);

@@ -254,7 +254,7 @@ namespace Js
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             JavascriptString* str = this->InternalUnwrap();
-            str = JavascriptString::FromVar(CrossSite::MarshalVar(requestContext, str, scriptContext));
+            str = VarTo<JavascriptString>(CrossSite::MarshalVar(requestContext, str, scriptContext));
 
             return JavascriptConversion::BooleanToPropertyQueryFlags(str->GetItemAt(index, value));
         }
@@ -365,7 +365,7 @@ namespace Js
         Var strObject = CrossSite::MarshalVar(requestContext,
           this->InternalUnwrap(), this->GetScriptContext());
 
-        JavascriptString* str = JavascriptString::FromVar(strObject);
+        JavascriptString* str = VarTo<JavascriptString>(strObject);
         if (str->GetItemAt(index, value))
         {
             return PropertyQueryFlags::Property_Found;
@@ -420,7 +420,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptStringObject::SetValue_TTD(Js::Var val)
     {
-        AssertMsg(val == nullptr || Js::JavascriptString::Is(val), "Only legal values!");
+        AssertMsg(val == nullptr || Js::VarIs<Js::JavascriptString>(val), "Only legal values!");
 
         this->value = static_cast<Js::JavascriptString*>(val);
     }
