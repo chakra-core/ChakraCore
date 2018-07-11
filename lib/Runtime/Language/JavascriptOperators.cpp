@@ -109,37 +109,51 @@ using namespace Js;
                 return IndexType_PropertyId;
             }
         }
+
+        if (JavascriptNumber::Is_NoTaggedIntCheck(indexVar))
+        {
+            // If this double can be a positive integer index, convert it.
+            int32 value = 0;
+            bool isInt32 = false;
+            if (JavascriptNumber::TryGetInt32OrUInt32Value(JavascriptNumber::GetValue(indexVar), &value, &isInt32)
+                && !isInt32
+                && static_cast<uint32>(value) < JavascriptArray::InvalidIndex)
+            {
+                *index = static_cast<uint32>(value);
+                return IndexType_Number;
+            }
+
+            // Fall through to slow string conversion.
+        }
+
+        JavascriptSymbol * symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(indexVar);
+        if (symbol)
+        {
+            // JavascriptSymbols cannot add a new PropertyRecord - they correspond to one and only one existing PropertyRecord.
+            // We already know what the PropertyRecord is since it is stored in the JavascriptSymbol itself so just return it.
+
+            *propertyRecord = symbol->GetValue();
+            return IndexType_PropertyId;
+        }
         else
         {
-            JavascriptSymbol * symbol = JavascriptOperators::TryFromVar<JavascriptSymbol>(indexVar);
-            if (symbol)
+            JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
+
+            char16 const * propertyName = indexStr->GetString();
+            charcount_t const propertyLength = indexStr->GetLength();
+
+            if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
             {
-                // JavascriptSymbols cannot add a new PropertyRecord - they correspond to one and only one existing PropertyRecord.
-                // We already know what the PropertyRecord is since it is stored in the JavascriptSymbol itself so just return it.
-
-                *propertyRecord = symbol->GetValue();
-                return IndexType_PropertyId;
-            }
-            else
-            {
-                JavascriptString* indexStr = JavascriptConversion::ToString(indexVar, scriptContext);
-
-                char16 const * propertyName = indexStr->GetString();
-                charcount_t const propertyLength = indexStr->GetLength();
-
-                if (!createIfNotFound && preferJavascriptStringOverPropertyRecord)
+                if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
+                    (*index != JavascriptArray::InvalidIndex))
                 {
-                    if (JavascriptOperators::TryConvertToUInt32(propertyName, propertyLength, index) &&
-                        (*index != JavascriptArray::InvalidIndex))
-                    {
-                        return IndexType_Number;
-                    }
-
-                    *propertyNameString = indexStr;
-                    return IndexType_JavascriptString;
+                    return IndexType_Number;
                 }
-                return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
+
+                *propertyNameString = indexStr;
+                return IndexType_JavascriptString;
             }
+            return GetIndexTypeFromString(propertyName, propertyLength, scriptContext, index, propertyRecord, createIfNotFound);
         }
     }
 
