@@ -116,24 +116,6 @@ namespace Js
         return newObject;
     }
 
-    bool EngineInterfaceObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_EngineInterfaceObject;
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
     void EngineInterfaceObject::Initialize()
     {
         Recycler* recycler = this->GetRecycler();

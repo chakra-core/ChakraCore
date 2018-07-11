@@ -673,7 +673,7 @@ namespace Js
                     }
                     else
                     {
-                        AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                        AssertOrFailFastMsg(VarIs<ES5Array>(arr), "The array should have been converted to an ES5Array");
                     }
                 }
             }
@@ -701,7 +701,7 @@ namespace Js
                         }
                         else
                         {
-                            AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                            AssertOrFailFastMsg(VarIs<ES5Array>(arr), "The array should have been converted to an ES5Array");
                         }
                     }
                 }

@@ -4565,7 +4565,7 @@ namespace Js
     {
         typeHandler->Convert(engineInterface, mode, 3);
 
-        EngineInterfaceObject::FromVar(engineInterface)->Initialize();
+        VarTo<EngineInterfaceObject>(engineInterface)->Initialize();
 
         engineInterface->SetHasNoEnumerableProperties(true);
 
@@ -4984,7 +4984,7 @@ namespace Js
 
     void JavascriptLibrary::SetLengthWritableES5Array_TTD(Js::RecyclableObject* es5Array, bool isLengthWritable)
     {
-        Js::ES5Array* es5a = Js::ES5Array::FromVar(es5Array);
+        Js::ES5Array* es5a = Js::VarTo<Js::ES5Array>(es5Array);
         if(es5a->IsLengthWritable() != isLengthWritable)
         {
             es5a->SetWritable(Js::PropertyIds::length, isLengthWritable ? TRUE : FALSE);
@@ -5317,11 +5317,11 @@ namespace Js
         // Key is combination of the raw string literals delimited by '${}' since string template literals cannot include that symbol.
         // `str1${expr1}str2${expr2}str3` => "str1${}str2${}str3"
 
-        ES5Array* callsiteObj = ES5Array::FromVar(callsite);
+        ES5Array* callsiteObj = VarTo<ES5Array>(callsite);
         ScriptContext* scriptContext = callsiteObj->GetScriptContext();
 
         Var var = JavascriptOperators::OP_GetProperty(callsiteObj, Js::PropertyIds::raw, scriptContext);
-        ES5Array* rawArray = ES5Array::FromVar(var);
+        ES5Array* rawArray = VarTo<ES5Array>(var);
         uint32 arrayLength = rawArray->GetLength();
         uint32 totalStringLength = 0;
         JavascriptString* str;
@@ -5387,7 +5387,7 @@ namespace Js
             return false;
         }
 
-        Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
+        Js::ES5Array* callsite = Js::VarTo<Js::ES5Array>(obj);
         uint32 length = callsite->GetLength();
         Js::Var element;
         Js::JavascriptString* str;
@@ -5403,7 +5403,7 @@ namespace Js
         Unused(reentrancyLock);
 
         element = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        Js::ES5Array* rawArray = Js::ES5Array::FromVar(element);
+        Js::ES5Array* rawArray = Js::VarTo<Js::ES5Array>(element);
 
         // Length of the raw strings should be the same as the cooked string literals.
         AssertOrFailFast(length != 0 && length == rawArray->GetLength());
@@ -5577,8 +5577,8 @@ namespace Js
             return true;
         }
 
-        Js::ES5Array* arrayLeft = Js::ES5Array::FromVar(objLeft);
-        Js::ES5Array* arrayRight = Js::ES5Array::FromVar(objRight);
+        Js::ES5Array* arrayLeft = Js::VarTo<Js::ES5Array>(objLeft);
+        Js::ES5Array* arrayRight = Js::VarTo<Js::ES5Array>(objRight);
         uint32 lengthLeft = arrayLeft->GetLength();
         uint32 lengthRight = arrayRight->GetLength();
         Js::Var varLeft;
@@ -5597,10 +5597,10 @@ namespace Js
 
         // Change to the set of raw strings.
         varLeft = Js::JavascriptOperators::OP_GetProperty(arrayLeft, Js::PropertyIds::raw, arrayLeft->GetScriptContext());
-        arrayLeft = Js::ES5Array::FromVar(varLeft);
+        arrayLeft = Js::VarTo<Js::ES5Array>(varLeft);
 
         varRight = Js::JavascriptOperators::OP_GetProperty(arrayRight, Js::PropertyIds::raw, arrayRight->GetScriptContext());
-        arrayRight = Js::ES5Array::FromVar(varRight);
+        arrayRight = Js::VarTo<Js::ES5Array>(varRight);
 
         // Length of the raw strings should be the same as the cooked string literals.
         AssertOrFailFast(lengthLeft == arrayLeft->GetLength());
@@ -5636,9 +5636,9 @@ namespace Js
         JS_REENTRANCY_LOCK(reentrancyLock, obj->GetScriptContext()->GetThreadContext());
         Unused(reentrancyLock);
 
-        Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
+        Js::ES5Array* callsite = Js::VarTo<Js::ES5Array>(obj);
         Js::Var var = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        Js::ES5Array* rawArray = Js::ES5Array::FromVar(var);
+        Js::ES5Array* rawArray = Js::VarTo<Js::ES5Array>(var);
 
         AssertOrFailFast(rawArray->GetLength() > 0);
 

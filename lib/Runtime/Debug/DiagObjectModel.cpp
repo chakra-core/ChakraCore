@@ -75,7 +75,7 @@ namespace Js
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableTypedArrayDisplay, this);
         }
-        else if (Js::ES5Array::Is(obj))
+        else if (Js::VarIs<Js::ES5Array>(obj))
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableES5ArrayDisplay, this);
         }
@@ -2640,7 +2640,7 @@ namespace Js
                         if (dynamicObject->HasNonEmptyObjectArray())
                         {
                             ArrayObject* objectArray = dynamicObject->GetObjectArray();
-                            if (Js::ES5Array::Is(objectArray))
+                            if (Js::VarIs<Js::ES5Array>(objectArray))
                             {
                                 innerArrayObjectWalker = Anew(arena, RecyclableES5ArrayWalker, scriptContext, objectArray, originalInstance);
                             }
@@ -2958,7 +2958,7 @@ namespace Js
     {
         AssertMsg(pResolvedObject, "Bad usage of RecyclableArrayWalker::Get");
 
-        if (Js::JavascriptArray::IsNonES5Array(instance) || Js::ES5Array::Is(instance))
+        if (Js::JavascriptArray::IsNonES5Array(instance) || Js::VarIs<Js::ES5Array>(instance))
         {
             Js::JavascriptArray* arrayObj = GetArrayObject();
 
@@ -2987,15 +2987,15 @@ namespace Js
 
     Js::JavascriptArray* RecyclableArrayWalker::GetArrayObject()
     {
-        Assert(Js::JavascriptArray::IsNonES5Array(instance) || Js::ES5Array::Is(instance));
-        return  Js::ES5Array::Is(instance) ?
+        Assert(Js::JavascriptArray::IsNonES5Array(instance) || Js::VarIs<Js::ES5Array>(instance));
+        return  Js::VarIs<Js::ES5Array>(instance) ?
                     static_cast<Js::JavascriptArray *>(VarTo<RecyclableObject>(instance)) :
                     Js::VarTo<Js::JavascriptArray>(instance);
     }
 
     uint32 RecyclableArrayWalker::GetChildrenCount()
     {
-        if (Js::JavascriptArray::IsNonES5Array(instance) || Js::ES5Array::Is(instance))
+        if (Js::JavascriptArray::IsNonES5Array(instance) || Js::VarIs<Js::ES5Array>(instance))
         {
             uint32 count = (!fOnlyOwnProperties ? RecyclableObjectWalker::GetChildrenCount() : 0);
 
@@ -3326,9 +3326,9 @@ namespace Js
 
     BOOL RecyclableES5ArrayAddress::Set(Var updateObject)
     {
-        if (Js::ES5Array::Is(parentArray))
+        if (Js::VarIs<Js::ES5Array>(parentArray))
         {
-            Js::ES5Array* arrayObj = Js::ES5Array::FromVar(parentArray);
+            Js::ES5Array* arrayObj = Js::VarTo<Js::ES5Array>(parentArray);
             return arrayObj->SetItem(index, updateObject, PropertyOperation_None);
         }
 
@@ -3346,7 +3346,7 @@ namespace Js
 
     BOOL RecyclableES5ArrayDisplay::HasChildren()
     {
-        if (Js::ES5Array::Is(instance))
+        if (Js::VarIs<Js::ES5Array>(instance))
         {
             Js::JavascriptArray* arrayObj = static_cast<Js::JavascriptArray *>(VarTo<RecyclableObject>(instance));
             if (HasChildrenInternal(arrayObj))

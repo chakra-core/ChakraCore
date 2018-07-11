@@ -1477,7 +1477,7 @@ public:
 
     uint32 PrependStringTemplateCallsiteConstant(BufferBuilderList & builder, Var var)
     {
-        ES5Array* callsite = ES5Array::FromVar(var);
+        ES5Array* callsite = VarTo<ES5Array>(var);
         Var element = nullptr;
         auto size = PrependInt32(builder, _u("String Template Callsite Constant String Count"), (int)callsite->GetLength());
 
@@ -1488,7 +1488,7 @@ public:
         }
 
         Var rawVar = JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        ES5Array* rawArray = ES5Array::FromVar(rawVar);
+        ES5Array* rawArray = VarTo<ES5Array>(rawVar);
 
         for (uint32 i = 0; i < rawArray->GetLength(); i++)
         {

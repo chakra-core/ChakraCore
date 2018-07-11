@@ -3941,7 +3941,7 @@ using namespace Js;
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -4811,7 +4811,7 @@ Case0:
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -5533,7 +5533,7 @@ Case0:
 
                 if (DynamicObject::IsAnyArray(protoObj))
                 {
-                    if (ES5Array::Is(protoObj))
+                    if (VarIs<ES5Array>(protoObj))
                     {
                         hasAnyES5Array = true;
                         break;
@@ -5543,7 +5543,7 @@ Case0:
                 {
                     DynamicObject* dynobj = UnsafeVarTo<DynamicObject>(protoObj);
                     ArrayObject* objectArray = dynobj->GetObjectArray();
-                    if (objectArray != nullptr && ES5Array::Is(objectArray))
+                    if (objectArray != nullptr && VarIs<ES5Array>(objectArray))
                     {
                         hasAnyES5Array = true;
                         break;
@@ -6330,7 +6330,7 @@ Case0:
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or end may convert the array to an ES5 array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -6429,7 +6429,7 @@ Case0:
         // we will process the array elements like an ES5Array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -6494,7 +6494,7 @@ Case0:
                         // we will process the rest of the array elements like an ES5Array.
                         if (!JavascriptArray::IsNonES5Array(obj))
                         {
-                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                             JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext));
                         }
                     }
@@ -6519,7 +6519,7 @@ Case0:
                     // we will process the rest of the array elements like an ES5Array.
                     if (!JavascriptArray::IsNonES5Array(obj))
                     {
-                        AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                        AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext));
                     }
                 }
@@ -7146,7 +7146,7 @@ Case0:
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or deleteCount may convert the array to an ES5 array.
         if (pArr && !JavascriptArray::IsNonES5Array(pObj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(pObj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(pObj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -8089,7 +8089,7 @@ Case0:
                     EnsureNonNativeArray(pArr);
                     JS_REENTRANT(jsReentLock, pArr->TruncateToProperties(MaxArrayLength, maxLen));
                     Assert(pArr->length + unshiftElements == MaxArrayLength);
-                    if (ES5Array::Is(pArr))
+                    if (VarIs<ES5Array>(pArr))
                     {
                         JS_REENTRANT_UNLOCK(jsReentLock, return UnshiftObjectHelper(args, scriptContext));
                     }
@@ -8519,7 +8519,7 @@ Case0:
                 // we will process the rest of the array elements like an ES5Array.
                 if (!JavascriptArray::IsNonES5Array(obj))
                 {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                     JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
                 }
             }
@@ -9243,7 +9243,7 @@ Case0:
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments may convert the array to an ES5 array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -9303,7 +9303,7 @@ Case0:
 
                         if (!JavascriptArray::IsNonES5Array(obj))
                         {
-                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                             pArr = nullptr;
                         }
                     }
@@ -9391,7 +9391,7 @@ Case0:
             // we will process the array elements like an ES5Array.
             if (pArr && !JavascriptArray::IsNonES5Array(obj))
             {
-                AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                 pArr = nullptr;
             }
         }
@@ -9598,7 +9598,7 @@ Case0:
         // we will process the array elements like an ES5Array.
         if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
-            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
         }
 
@@ -9639,7 +9639,7 @@ Case0:
                 // we will process the rest of the array elements like an ES5Array.
                 if (!JavascriptArray::IsNonES5Array(obj))
                 {
-                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    AssertOrFailFastMsg(VarIs<ES5Array>(obj), "The array should have been converted to an ES5Array");
                     JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::MapObjectHelper<T>(obj, length, k + 1, newObj, newArr, isBuiltinArrayCtor, callBackFn, thisArg, scriptContext));
                 }
             }
@@ -10769,9 +10769,9 @@ Case0:
             {
                 ScriptContext* scriptContext = obj->GetScriptContext();
 
-                Assert(ES5Array::Is(arr));
+                Assert(VarIs<ES5Array>(arr));
 
-                ES5Array* es5Array = ES5Array::FromVar(arr);
+                ES5Array* es5Array = VarTo<ES5Array>(arr);
                 ES5ArrayIndexStaticEnumerator<true> e(es5Array);
 
                 while (e.MoveNext())

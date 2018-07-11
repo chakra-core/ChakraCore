@@ -140,22 +140,9 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_ExternalIterator);
     }
 
-    bool CustomExternalIterator::Is(Var aValue)
+    template <> bool VarIs<CustomExternalIterator>(RecyclableObject* obj)
     {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_ExternalIterator;
-    }
-
-    CustomExternalIterator* CustomExternalIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'ExternalIterator'");
-        return static_cast<CustomExternalIterator *>(aValue);
-    }
-
-    CustomExternalIterator* CustomExternalIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'ExternalIterator'");
-        return static_cast<CustomExternalIterator *>(aValue);
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ExternalIterator;
     }
 
     Var CustomExternalIterator::CreateNextFunction(JavascriptLibrary *library, JavascriptTypeId typeId)
@@ -177,12 +164,12 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!CustomExternalIterator::Is(thisObj))
+        if (!VarIs<CustomExternalIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidIteratorObject, _u("Iterator.prototype.next"));
         }
 
-        CustomExternalIterator * currentIterator = CustomExternalIterator::FromVar(thisObj);
+        CustomExternalIterator * currentIterator = VarTo<CustomExternalIterator>(thisObj);
         if (iteratorNextFunction->GetExternalTypeId() != currentIterator->m_externalTypeId)
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidIteratorObject, _u("Iterator.prototype.next"));
