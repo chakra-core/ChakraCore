@@ -3548,7 +3548,7 @@ CommonNumber:
         case TypeIds_NativeFloatArray:
         {
             Var result;
-            if (OP_GetElementI_ArrayFastPath(JavascriptNativeFloatArray::UnsafeFromVar(instance), TaggedInt::ToInt32(index), &result, scriptContext))
+            if (OP_GetElementI_ArrayFastPath(UnsafeVarTo<JavascriptNativeFloatArray>(instance), TaggedInt::ToInt32(index), &result, scriptContext))
             {
                 return result;
             }
@@ -4727,7 +4727,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
             if (indexInt >= 0 && scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
             {
-                JavascriptNativeFloatArray *arr = JavascriptNativeFloatArray::FromVar(instance);
+                JavascriptNativeFloatArray *arr = VarTo<JavascriptNativeFloatArray>(instance);
                 if (!(arr->TryGrowHeadSegmentAndSetItem<double, JavascriptNativeFloatArray>((uint32)indexInt, dValue)))
                 {
                     arr->SetItem(indexInt, dValue);
@@ -10041,7 +10041,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_NativeIntArray:
             return JavascriptNativeIntArray::BoxStackInstance(UnsafeVarTo<JavascriptNativeIntArray>(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
-            return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance), deepCopy);
+            return JavascriptNativeFloatArray::BoxStackInstance(UnsafeVarTo<JavascriptNativeFloatArray>(instance), deepCopy);
         case Js::TypeIds_Function:
             Assert(allowStackFunction);
             // Stack functions are deal with not mar mark them, but by nested function escape analysis
@@ -10273,7 +10273,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 Js::JavascriptOperators::ObjectToNativeArray(Js::UnsafeVarTo<Js::JavascriptArray>(arrayObject), valueType, length, elementSize, buffer, scriptContext);
                 break;
             case TypeIds_NativeFloatArray:
-                Js::JavascriptOperators::ObjectToNativeArray(Js::JavascriptNativeFloatArray::UnsafeFromVar(arrayObject), valueType, length, elementSize, buffer, scriptContext);
+                Js::JavascriptOperators::ObjectToNativeArray(Js::UnsafeVarTo<Js::JavascriptNativeFloatArray>(arrayObject), valueType, length, elementSize, buffer, scriptContext);
                 break;
             case TypeIds_NativeIntArray:
                 Js::JavascriptOperators::ObjectToNativeArray(Js::UnsafeVarTo<Js::JavascriptNativeIntArray>(arrayObject), valueType, length, elementSize, buffer, scriptContext);

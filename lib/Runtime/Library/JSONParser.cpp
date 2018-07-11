@@ -86,7 +86,7 @@ namespace JSON
         if (Js::DynamicObject::IsAnyArray(value))
         {
             Js::JavascriptArray* arrayVal = JavascriptArray::EnsureNonNativeArray(Js::JavascriptArray::FromAnyArray(value));
-            Assert(!Js::VarIs<Js::JavascriptNativeIntArray>(arrayVal) && !Js::JavascriptNativeFloatArray::Is(arrayVal));
+            Assert(!Js::VarIs<Js::JavascriptNativeIntArray>(arrayVal) && !Js::VarIs<Js::JavascriptNativeFloatArray>(arrayVal));
             uint length = arrayVal->GetLength();
             if (!arrayVal->IsCrossSiteObject())
             {

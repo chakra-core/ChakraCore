@@ -383,7 +383,7 @@ namespace Js
         template<typename Func>
         void WalkExisting(Func func)
         {
-            Assert(!VarIs<JavascriptNativeIntArray>(this) && !JavascriptNativeFloatArray::Is(this));
+            Assert(!VarIs<JavascriptNativeIntArray>(this) && !VarIs<JavascriptNativeFloatArray>(this));
             ArrayElementEnumerator e(this, 0);
             while(e.MoveNext<Var>())
             {
@@ -727,7 +727,7 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeFloatArray>(this), startIndex, limitIndex, scriptContext, fn);
                 break;
             default:
                 Assert(false);
@@ -747,7 +747,7 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, missingItem, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeFloatArray>(this), startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             default:
                 Assert(false);
@@ -1214,10 +1214,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeFloatArray* FromVar(Var aValue);
-        static JavascriptNativeFloatArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef double TElement;
@@ -1299,6 +1296,11 @@ namespace Js
         }
 
     };
+
+    template <> inline bool VarIs<JavascriptNativeFloatArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeFloatArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
 
     template <>
     inline bool JavascriptArray::MayChangeType<JavascriptNativeIntArray>() { return true; }

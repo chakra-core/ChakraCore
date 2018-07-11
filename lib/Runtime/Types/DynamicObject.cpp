@@ -120,7 +120,7 @@ namespace Js
             // that can be allocated on the stack).
             Assert(Js::JavascriptArray::IsNonES5Array(instance->GetObjectArrayOrFlagsAsArray())
                 || Js::VarIs<Js::JavascriptNativeIntArray>(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeFloatArray>(instance->GetObjectArrayOrFlagsAsArray())
             );
 
             // Since a deep copy was requested for this DynamicObject, deep copy the object array as well
