@@ -126,7 +126,7 @@ namespace TTD
         {
             const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::SetActiveScriptContextActionTag>(evt);
             Js::Var gvar = InflateVarInReplay(executeContext, GetVarItem_0(action));
-            TTDAssert(gvar == nullptr || Js::GlobalObject::Is(gvar), "Something is not right here!");
+            TTDAssert(gvar == nullptr || Js::VarIs<Js::GlobalObject>(gvar), "Something is not right here!");
 
             Js::GlobalObject* gobj = static_cast<Js::GlobalObject*>(gvar);
             Js::ScriptContext* newCtx = (gobj != nullptr) ? gobj->GetScriptContext() : nullptr;

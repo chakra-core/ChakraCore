@@ -995,12 +995,12 @@ CHAKRA_API JsBooleanToBool(_In_ JsValueRef value, _Out_ bool *boolValue)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::JavascriptBoolean::Is(value))
+        if (!Js::VarIs<Js::JavascriptBoolean>(value))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        *boolValue = Js::JavascriptBoolean::FromVar(value)->GetValue() ? true : false;
+        *boolValue = Js::VarTo<Js::JavascriptBoolean>(value)->GetValue() ? true : false;
     }
     END_JSRT_NO_EXCEPTION
 }

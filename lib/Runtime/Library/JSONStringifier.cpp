@@ -701,7 +701,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Boolean:
-        if (JavascriptBoolean::UnsafeFromVar(valueObj)->GetValue() != FALSE)
+        if (UnsafeVarTo<JavascriptBoolean>(valueObj)->GetValue() != FALSE)
         {
             prop->type = JSONContentType::True;
             this->totalStringLength = UInt32Math::Add(this->totalStringLength, Constants::TrueStringLength);

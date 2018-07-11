@@ -7618,7 +7618,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 PropertyValueInfo info;
                 if (propertyRecordUsageCache->TryGetPropertyFromCache<false /* OwnPropertyOnly */, true /* OutputExistence */, false /* ReturnOperationInfo */>(instance, object, &value, scriptContext, &info, cacheOwner, nullptr))
                 {
-                    Assert(JavascriptBoolean::Is(value));
+                    Assert(VarIs<JavascriptBoolean>(value));
                     return value;
                 }
                 result = JavascriptOperators::GetPropertyWPCache<true /* OutputExistence */>(instance, object, propertyRecordUsageCache->GetPropertyRecord()->GetPropertyId(), &value, scriptContext, &info);

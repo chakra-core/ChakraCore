@@ -1906,7 +1906,7 @@ namespace TTD
                 this->AppendLiteral("null");
                 break;
             case Js::TypeIds_Boolean:
-                this->AppendBool(!!Js::JavascriptBoolean::FromVar(var)->GetValue());
+                this->AppendBool(!!Js::VarTo<Js::JavascriptBoolean>(var)->GetValue());
                 break;
             case Js::TypeIds_Integer:
                 this->AppendInteger(Js::TaggedInt::ToInt64(var));

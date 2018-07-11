@@ -3630,7 +3630,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                     switch (Js::VarTo<Js::RecyclableObject>(address)->GetTypeId())
                     {
                     case Js::TypeIds_Boolean:
-                        WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
+                        WriteToBuffer(&buffer, &n, Js::VarTo<Js::JavascriptBoolean>(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
                         break;
                     case Js::TypeIds_String:
                         WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::VarTo<Js::JavascriptString>(address)->GetSz());

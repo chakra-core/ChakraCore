@@ -902,7 +902,7 @@ namespace TTD
             return;
         }
 
-        if(JsSupport::IsVarPrimitiveKind(val) && !Js::GlobalObject::Is(parent))
+        if(JsSupport::IsVarPrimitiveKind(val) && !Js::VarIs<Js::GlobalObject>(parent))
         {
             return; //we keep primitives from global object only -- may need others but this is a simple way to start to get undefined, null, infy, etc.
         }

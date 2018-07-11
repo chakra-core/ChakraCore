@@ -332,7 +332,7 @@ namespace TTD
                 case Js::TypeIds_Null:
                     break;
                 case Js::TypeIds_Boolean:
-                    snapValue->u_boolValue = Js::JavascriptBoolean::FromVar(jsValue)->GetValue();
+                    snapValue->u_boolValue = Js::VarTo<Js::JavascriptBoolean>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_Number:
                     snapValue->u_doubleValue = Js::JavascriptNumber::GetValue(jsValue);

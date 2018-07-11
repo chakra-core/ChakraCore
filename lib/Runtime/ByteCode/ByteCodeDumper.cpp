@@ -181,7 +181,7 @@ namespace Js
                     break;
                 case Js::TypeIds_Boolean:
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(
-                        JavascriptBoolean::FromVar(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
+                        VarTo<JavascriptBoolean>(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
                     break;
                 case Js::TypeIds_Number:
 #if ENABLE_NATIVE_CODEGEN

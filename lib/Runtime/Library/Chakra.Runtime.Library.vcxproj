@@ -307,7 +307,6 @@
     <None Include="ConcatString.inl" />
     <None Include="SparseArraySegment.inl" />
     <None Include="JavascriptArray.inl" />
-    <None Include="JavascriptBoolean.inl" />
     <None Include="JavascriptLibrary.inl" />
     <None Include="JavascriptNumber.inl" />
     <None Include="JavascriptString.inl" />

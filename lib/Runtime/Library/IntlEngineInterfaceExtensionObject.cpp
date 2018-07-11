@@ -207,7 +207,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
     GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) \
 
 #define GetTypedPropertyBuiltInFrom(obj, builtInPropID, Type) \
-    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID)/* FIXME && Type::Is(propertyValue)*/) \
+    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && VarIs<Type>(propertyValue)) \
 
 #define HasPropertyOn(obj, propID) \
     Js::JavascriptOperators::HasProperty(obj, propID) \
@@ -1668,7 +1668,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
         if (GetTypedPropertyBuiltInFrom(options, __useGrouping, JavascriptBoolean))
         {
-            IfFailThrowHr(numberFormatterOptions->put_IsGrouped((boolean)(JavascriptBoolean::FromVar(propertyValue)->GetValue())));
+            IfFailThrowHr(numberFormatterOptions->put_IsGrouped((boolean)(VarTo<JavascriptBoolean>(propertyValue)->GetValue())));
         }
 
         //Get the numeral system and add it to the object since it will be located in the locale
@@ -1732,7 +1732,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (args.Info.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !JavascriptBoolean::Is(args.Values[2]))
+        if (args.Info.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !VarIs<JavascriptBoolean>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
@@ -1808,7 +1808,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         SetPropertyBuiltInOn(obj, __patternStrings, patternStrings);
 
         //This parameter tells us whether we are caching it this time around; or just validating pattern strings
-        if ((boolean)(JavascriptBoolean::FromVar(args.Values[2])->GetValue()))
+        if ((boolean)(VarTo<JavascriptBoolean>(args.Values[2])->GetValue()))
         {
             //If timeZone is undefined; then use the standard dateTimeFormatter to format in local time; otherwise use the IDateTimeFormatter2 to format using specified timezone (UTC)
             if (!GetPropertyBuiltInFrom(obj, __timeZone) || JavascriptOperators::IsUndefinedObject(propertyValue))
@@ -1849,13 +1849,13 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             VarIs<JavascriptString>(args[1]) &&
             VarIs<JavascriptString>(args[2]) &&
             DynamicObject::IsBaseDynamicObject(args[3]) &&
-            JavascriptBoolean::Is(args[4])
+            VarIs<JavascriptBoolean>(args[4])
         );
 
         JavascriptString *left = UnsafeVarTo<JavascriptString>(args[1]);
         JavascriptString *right = UnsafeVarTo<JavascriptString>(args[2]);
         DynamicObject *state = UnsafeVarTo<DynamicObject>(args[3]);
-        bool forStringPrototypeLocaleCompare = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
+        bool forStringPrototypeLocaleCompare = UnsafeVarTo<JavascriptBoolean>(args[4])->GetValue();
         if (forStringPrototypeLocaleCompare)
         {
             CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_localeCompare);
@@ -2084,14 +2084,14 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
                 sensitivity = static_cast<CollatorSensitivity>(TaggedInt::ToUInt16(args.Values[4]));
             }
 
-            if (!JavascriptOperators::IsUndefinedObject(args.Values[5]) && JavascriptBoolean::Is(args.Values[5]))
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[5]) && VarIs<JavascriptBoolean>(args.Values[5]))
             {
-                ignorePunctuation = (JavascriptBoolean::FromVar(args.Values[5])->GetValue() != 0);
+                ignorePunctuation = (VarTo<JavascriptBoolean>(args.Values[5])->GetValue() != 0);
             }
 
-            if (!JavascriptOperators::IsUndefinedObject(args.Values[6]) && JavascriptBoolean::Is(args.Values[6]))
+            if (!JavascriptOperators::IsUndefinedObject(args.Values[6]) && VarIs<JavascriptBoolean>(args.Values[6]))
             {
-                numeric = (JavascriptBoolean::FromVar(args.Values[6])->GetValue() != 0);
+                numeric = (VarTo<JavascriptBoolean>(args.Values[6])->GetValue() != 0);
             }
 
             if (!JavascriptOperators::IsUndefinedObject(args.Values[7]) && TaggedInt::Is(args.Values[7]))
@@ -2410,14 +2410,14 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             args.Info.Count == 5 &&
             (TaggedInt::Is(args[1]) || JavascriptNumber::Is(args[1])) &&
             DynamicObject::IsBaseDynamicObject(args[2]) &&
-            JavascriptBoolean::Is(args[3]) &&
-            JavascriptBoolean::Is(args[4])
+            VarIs<JavascriptBoolean>(args[3]) &&
+            VarIs<JavascriptBoolean>(args[4])
         );
 
         double num = JavascriptConversion::ToNumber(args[1], scriptContext);
         DynamicObject *state = UnsafeVarTo<DynamicObject>(args[2]);
-        bool toParts = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
-        bool forNumberPrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
+        bool toParts = UnsafeVarTo<JavascriptBoolean>(args[3])->GetValue();
+        bool forNumberPrototypeToLocaleString = UnsafeVarTo<JavascriptBoolean>(args[4])->GetValue();
         Var cachedUNumberFormat = nullptr; // cached by EntryIntl_CacheNumberFormat
         AssertOrFailFast(state->GetInternalProperty(state, InternalPropertyIds::CachedUNumberFormat, &cachedUNumberFormat, NULL, scriptContext));
 
@@ -2645,12 +2645,12 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             args.Info.Count == 5 &&
             DynamicObject::IsBaseDynamicObject(args[1]) &&
             (TaggedInt::Is(args[2]) || JavascriptNumber::Is(args[2])) &&
-            JavascriptBoolean::Is(args[3]) &&
-            JavascriptBoolean::Is(args[4])
+            VarIs<JavascriptBoolean>(args[3]) &&
+            VarIs<JavascriptBoolean>(args[4])
         );
 
         DynamicObject *state = UnsafeVarTo<DynamicObject>(args[1]);
-        bool toParts = Js::JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
+        bool toParts = Js::UnsafeVarTo<Js::JavascriptBoolean>(args[3])->GetValue();
 
         // 1. Let x be TimeClip(x)
         // 2. If x is NaN, throw a RangeError exception
@@ -2660,7 +2660,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidDate);
         }
 
-        bool forDatePrototypeToLocaleString = JavascriptBoolean::UnsafeFromVar(args[4])->GetValue();
+        bool forDatePrototypeToLocaleString = UnsafeVarTo<JavascriptBoolean>(args[4])->GetValue();
         if (forDatePrototypeToLocaleString)
         {
             CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Date_Prototype_toLocaleString);

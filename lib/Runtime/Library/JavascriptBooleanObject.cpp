@@ -71,7 +71,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptBooleanObject::SetValue_TTD(Js::Var val)
     {
-        TTDAssert(val == nullptr || Js::JavascriptBoolean::Is(val), "Only allowable values!");
+        TTDAssert(val == nullptr || Js::VarIs<Js::JavascriptBoolean>(val), "Only allowable values!");
 
         this->value = static_cast<Js::JavascriptBoolean*>(val);
     }

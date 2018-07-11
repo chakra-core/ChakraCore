@@ -609,7 +609,7 @@ CommonNumber:
                 return scriptContext->GetIntegerString(aValue);
 
             case TypeIds_Boolean:
-                return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
+                return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
 
             case TypeIds_Number:
                 return JavascriptNumber::ToStringRadix10(JavascriptNumber::GetValue(aValue), scriptContext);
@@ -689,7 +689,7 @@ CommonNumber:
             return JavascriptNumber::ToLocaleString(TaggedInt::ToInt32(aValue), scriptContext);
 
         case TypeIds_Boolean:
-            return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
+            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
 
         case TypeIds_Int64Number:
             return JavascriptNumber::ToLocaleString((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue(), scriptContext);
@@ -771,7 +771,7 @@ CommonNumber:
             return true;
 
         case TypeIds_Boolean:
-            return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue();
+            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue();
 
 #if !FLOATVAR
         case TypeIds_Number:
@@ -883,7 +883,7 @@ CommonNumber:
                 return TaggedInt::ToDouble(aValue);
 
             case TypeIds_Boolean:
-                return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+                return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
             case TypeIds_Number:
                 return JavascriptNumber::GetValue(aValue);
@@ -937,7 +937,7 @@ CommonNumber:
                 return TaggedInt::ToInt32(aValue);
 
             case TypeIds_Boolean:
-                return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+                return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
             case TypeIds_Number:
                 return ToInteger(JavascriptNumber::GetValue(aValue));
@@ -1015,7 +1015,7 @@ CommonNumber:
             return TaggedInt::ToInt32(aValue);
 
         case TypeIds_Boolean:
-            return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
         case TypeIds_Int64Number:
             // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
@@ -1059,7 +1059,7 @@ CommonNumber:
             return TaggedInt::ToInt32(aValue);
 
         case TypeIds_Boolean:
-            return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
         case TypeIds_Number:
             return ToInt32(JavascriptNumber::GetValue(aValue));
@@ -1120,7 +1120,7 @@ CommonNumber:
                 return true;
 
             case TypeIds_Boolean:
-                *result = JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+                *result = UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
                 return true;
 
             case TypeIds_Number:
@@ -1250,7 +1250,7 @@ CommonNumber:
                 return TaggedInt::ToUInt32(aValue);
 
             case TypeIds_Boolean:
-                return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+                return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
             case TypeIds_Number:
                 return JavascriptMath::ToUInt32(JavascriptNumber::GetValue(aValue));
@@ -1331,7 +1331,7 @@ CommonNumber:
                 return TaggedInt::ToUInt16(aValue);
 
             case TypeIds_Boolean:
-                return JavascriptBoolean::UnsafeFromVar(aValue)->GetValue() ? 1 : +0;
+                return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? 1 : +0;
 
             case TypeIds_Number:
                 return ToUInt16(JavascriptNumber::GetValue(aValue));

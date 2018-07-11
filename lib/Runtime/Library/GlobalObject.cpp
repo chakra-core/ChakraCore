@@ -54,23 +54,6 @@ using namespace Js;
         library = localLibrary;
     }
 
-    bool GlobalObject::Is(Var aValue)
-    {
-        return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_GlobalObject);
-    }
-
-    GlobalObject* GlobalObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'GlobalObject'");
-        return static_cast<GlobalObject*>(aValue);
-    }
-
-    GlobalObject* GlobalObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'GlobalObject'");
-        return static_cast<GlobalObject*>(aValue);
-    }
-
     HRESULT GlobalObject::SetDirectHostObject(RecyclableObject* hostObject, RecyclableObject* secureDirectHostObject)
     {
         HRESULT hr = S_OK;
@@ -1656,7 +1639,7 @@ LHexError:
         TTDAssert(args.Info.Count >= 2 && Js::VarIs<Js::JavascriptString>(args[1]), "Bad arguments!!!");
 
         Js::JavascriptString* jsString = Js::VarTo<Js::JavascriptString>(args[1]);
-        bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());
+        bool doPrint = (args.Info.Count == 3) && Js::VarIs<Js::JavascriptBoolean>(args[2]) && (Js::VarTo<Js::JavascriptBoolean>(args[2])->GetValue());
 
         if(function->GetScriptContext()->ShouldPerformReplayAction())
         {

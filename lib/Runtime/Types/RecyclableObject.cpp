@@ -697,7 +697,7 @@ namespace Js
             case TypeIds_Symbol:
                 goto ReturnFalse;
             case TypeIds_Boolean:
-                *value = JavascriptBoolean::FromVar(aLeft)->GetValue() == JavascriptBoolean::FromVar(aRight)->GetValue();
+                *value = VarTo<JavascriptBoolean>(aLeft)->GetValue() == VarTo<JavascriptBoolean>(aRight)->GetValue();
                 return TRUE;
             case TypeIds_Number:
             case TypeIds_Integer:

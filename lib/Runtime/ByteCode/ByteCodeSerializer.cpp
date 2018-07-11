@@ -1520,7 +1520,7 @@ public:
             return PrependByte(builder, _u("Null Constant"), ctNull);
 
         case TypeIds_Boolean:
-            return PrependByte(builder, _u("Boolean Constant"), JavascriptBoolean::FromVar(var)->GetValue()? ctTrue : ctFalse);
+            return PrependByte(builder, _u("Boolean Constant"), VarTo<JavascriptBoolean>(var)->GetValue()? ctTrue : ctFalse);
 
         case TypeIds_Number:
         {

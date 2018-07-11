@@ -19,26 +19,6 @@ namespace Js
         }
     }
 
-    bool JavascriptArrayIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_ArrayIterator;
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
     Var JavascriptArrayIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -56,12 +36,12 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptArrayIterator::Is(thisObj))
+        if (!VarIs<JavascriptArrayIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedArrayIterator, _u("Array Iterator.prototype.next"));
         }
 
-        JavascriptArrayIterator* iterator = JavascriptArrayIterator::FromVar(thisObj);
+        JavascriptArrayIterator* iterator = VarTo<JavascriptArrayIterator>(thisObj);
         Var iterable = iterator->m_iterableObject;
 
         if (iterable == nullptr)

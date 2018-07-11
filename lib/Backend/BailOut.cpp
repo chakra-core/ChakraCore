@@ -656,7 +656,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     if (branchValueRegSlot != Js::Constants::NoRegister)
     {
         // Used when a t1 = CmCC is optimize to BrCC, and the branch bails out. T1 needs to be restored
-        Assert(branchValue && Js::JavascriptBoolean::Is(branchValue));
+        Assert(branchValue && Js::VarIs<Js::JavascriptBoolean>(branchValue));
         Assert(branchValueRegSlot < newInstance->GetJavascriptFunction()->GetFunctionBody()->GetLocalsCount());
         newInstance->m_localSlots[branchValueRegSlot] = branchValue;
     }

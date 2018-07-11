@@ -557,7 +557,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptConversion.inl"
 #include "Types/RecyclableObject.inl"
 #include "Types/DynamicObject.inl"
-#include "Library/JavascriptBoolean.inl"
 #include "Library/JavascriptArray.inl"
 #include "Library/SparseArraySegment.inl"
 #include "Library/JavascriptNumber.inl"

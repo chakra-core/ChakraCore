@@ -189,4 +189,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIs<GlobalObject>(RecyclableObject* obj)
+    {
+        return obj->GetTypeId() == TypeIds_GlobalObject;
+    }
 }

@@ -35,7 +35,7 @@ namespace Js
             valueStr = scriptContext->GetIntegerString(this);
             break;
         case TypeIds_Boolean:
-            valueStr = JavascriptBoolean::FromVar(this)->GetValue() ?
+            valueStr = VarTo<JavascriptBoolean>(this)->GetValue() ?
                            GetLibrary()->GetTrueDisplayString()
                          : GetLibrary()->GetFalseDisplayString();
             break;

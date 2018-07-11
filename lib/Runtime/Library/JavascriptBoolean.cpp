@@ -70,7 +70,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if(JavascriptBoolean::Is(args[0]))
+        if(VarIs<JavascriptBoolean>(args[0]))
         {
             return args[0];
         }
@@ -98,9 +98,9 @@ namespace Js
 
         BOOL bval;
         Var aValue = args[0];
-        if(JavascriptBoolean::Is(aValue))
+        if(VarIs<JavascriptBoolean>(aValue))
         {
-            bval = JavascriptBoolean::FromVar(aValue)->GetValue();
+            bval = VarTo<JavascriptBoolean>(aValue)->GetValue();
         }
         else if (JavascriptBooleanObject::Is(aValue))
         {
@@ -167,7 +167,7 @@ namespace Js
             *value = left->GetValue() ? JavascriptUInt64Number::FromVar(right)->GetValue() == 1 : JavascriptUInt64Number::FromVar(right)->GetValue() == 0;
             break;
         case TypeIds_Boolean:
-            *value = left->GetValue() == JavascriptBoolean::FromVar(right)->GetValue();
+            *value = left->GetValue() == VarTo<JavascriptBoolean>(right)->GetValue();
             break;
         case TypeIds_String:
             *value = left->GetValue() ? JavascriptConversion::ToNumber(right, requestContext) == 1.0 : JavascriptConversion::ToNumber(right, requestContext) == 0.0;
