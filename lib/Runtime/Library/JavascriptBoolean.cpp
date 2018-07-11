@@ -74,9 +74,9 @@ namespace Js
         {
             return args[0];
         }
-        else if (JavascriptBooleanObject::Is(args[0]))
+        else if (VarIs<JavascriptBooleanObject>(args[0]))
         {
-            JavascriptBooleanObject* booleanObject = JavascriptBooleanObject::FromVar(args[0]);
+            JavascriptBooleanObject* booleanObject = VarTo<JavascriptBooleanObject>(args[0]);
             return scriptContext->GetLibrary()->CreateBoolean(booleanObject->GetValue());
         }
         else
@@ -102,9 +102,9 @@ namespace Js
         {
             bval = VarTo<JavascriptBoolean>(aValue)->GetValue();
         }
-        else if (JavascriptBooleanObject::Is(aValue))
+        else if (VarIs<JavascriptBooleanObject>(aValue))
         {
-            JavascriptBooleanObject* booleanObject = JavascriptBooleanObject::FromVar(aValue);
+            JavascriptBooleanObject* booleanObject = VarTo<JavascriptBooleanObject>(aValue);
             bval = booleanObject->GetValue();
         }
         else

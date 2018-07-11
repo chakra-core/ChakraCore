@@ -4939,7 +4939,7 @@ namespace Js
         switch(obj->GetTypeId())
         {
         case Js::TypeIds_BooleanObject:
-            Js::JavascriptBooleanObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptBooleanObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_NumberObject:
             Js::JavascriptNumberObject::FromVar(obj)->SetValue_TTD(value);

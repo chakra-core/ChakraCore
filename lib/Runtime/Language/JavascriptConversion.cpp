@@ -383,7 +383,7 @@ CommonNumber:
         case TypeIds_Date:
         case TypeIds_WinRTDate:
             {
-                JavascriptDate* dateObject = JavascriptDate::UnsafeFromVar(aValue);
+                JavascriptDate* dateObject = UnsafeVarTo<JavascriptDate>(aValue);
                 if(hint == JavascriptHint::HintNumber)
                 {
                     if (dateObject->GetScriptContext()->optimizationOverrides.GetSideEffects() & SideEffects_ValueOf)

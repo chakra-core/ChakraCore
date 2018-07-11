@@ -257,7 +257,7 @@ JSONStringifier::TryConvertPrimitiveObject(_In_ RecyclableObject* value)
     }
     else if (TypeIds_BooleanObject == id)
     {
-        return (JavascriptBooleanObject::UnsafeFromVar(value)->GetValue() != FALSE)
+        return (UnsafeVarTo<JavascriptBooleanObject>(value)->GetValue() != FALSE)
             ? this->scriptContext->GetLibrary()->GetTrue()
             : this->scriptContext->GetLibrary()->GetFalse();
     }
