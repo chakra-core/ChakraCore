@@ -194,7 +194,7 @@ public:
     ~Parser(void);
 
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-
+    void ReleaseTemporaryGuestArena();
     bool IsCreatingStateCache();
 
 #if ENABLE_BACKGROUND_PARSING
@@ -273,6 +273,7 @@ private:
     bool                m_isInBackground;
     bool                m_doingFastScan;
 #endif
+    bool                m_tempGuestArenaReleased;
     int                 m_nextBlockId;
 
     AutoRecyclerRootPtr<Js::TempArenaAllocatorWrapper<true>> m_tempGuestArena;
@@ -1153,5 +1154,4 @@ private:
 public:
     charcount_t GetSourceIchLim() { return m_sourceLim; }
     static BOOL NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, uint32 cch);
-
 };

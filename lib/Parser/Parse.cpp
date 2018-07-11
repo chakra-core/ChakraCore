@@ -82,6 +82,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_doingFastScan(false),
 #endif
     m_nextBlockId(0),
+    m_tempGuestArenaReleased(false),
     m_tempGuestArena(scriptContext->GetTemporaryGuestAllocator(_u("ParserRegex")), scriptContext->GetRecycler()),
     // use the GuestArena directly for keeping the RegexPattern* alive during byte code generation
     m_registeredRegexPatterns(m_tempGuestArena->GetAllocator()),
@@ -155,11 +156,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 
 Parser::~Parser(void)
 {
-    m_registeredRegexPatterns.Reset();
-    if (m_scriptContext != nullptr)
-    {
-        m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
-    }
+    this->ReleaseTemporaryGuestArena();
 
 #if ENABLE_BACKGROUND_PARSING
     if (this->m_hasParallelJob)
@@ -13906,6 +13903,23 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
             fflush(stdout);
         }
 #endif
+    }
+}
+
+void Parser::ReleaseTemporaryGuestArena()
+{
+    // In case of modules the Parser lives longer than the temporary Guest Arena. We may have already released the arena explicitly.
+    if (!m_tempGuestArenaReleased)
+    {
+        // The regex patterns list has references to the temporary Guest Arena. Reset it first.
+        m_registeredRegexPatterns.Reset();
+
+        if (this->m_scriptContext != nullptr)
+        {
+            this->m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
+        }
+
+        m_tempGuestArenaReleased = true;
     }
 }
 
