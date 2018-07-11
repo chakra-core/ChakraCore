@@ -6,62 +6,81 @@
 
 namespace Js
 {
+
+    namespace DictionaryPropertyDescriptorFlags
+    {
+        enum class Flags : uint8
+        {
+            None                         = 0,
+            PreventFalseReference        = 1 << 0,
+            IsShadowed                   = 1 << 1,
+            IsAccessor                   = 1 << 2,
+#if ENABLE_FIXED_FIELDS
+            IsInitialized                = 1 << 3,
+            IsOnlyOneAccessorInitialized = 1 << 4,
+            IsFixed                      = 1 << 5,
+            UsedAsFixed                  = 1 << 6,
+#endif
+        };
+
+        ENUM_CLASS_HELPERS(Flags, uint8);
+
+        inline Flags FlagIf(bool condition, Flags flag)
+        {
+            return condition ? flag : Flags::None;
+        }
+    }
+
     template <typename TPropertyIndex>
     class DictionaryPropertyDescriptor
     {
         template <typename T>
         friend class DictionaryPropertyDescriptor;
     public:
+
+        using Flags = DictionaryPropertyDescriptorFlags::Flags;
+
         DictionaryPropertyDescriptor(TPropertyIndex dataSlot, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
-            Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults),
+            Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults), flags(Flags::PreventFalseReference
 #if ENABLE_FIXED_FIELDS
-            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+            | FlagIf(isInitialized, Flags::IsInitialized) | FlagIf(isFixed, Flags::IsFixed) | FlagIf(usedAsFixed, Flags::UsedAsFixed)
 #endif
-            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) {}
+            ) { }
 
         DictionaryPropertyDescriptor(TPropertyIndex getterSlot, TPropertyIndex setterSlot, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
-            Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(PropertyDynamicTypeDefaults),
+            Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(PropertyDynamicTypeDefaults), flags(Flags::PreventFalseReference | Flags::IsAccessor
 #if ENABLE_FIXED_FIELDS
-            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+            | FlagIf(isInitialized, Flags::IsInitialized) | FlagIf(isFixed, Flags::IsFixed) | FlagIf(usedAsFixed, Flags::UsedAsFixed)
 #endif
-            PreventFalseReference(true), IsShadowed(false), IsAccessor(true) {}
+            ) { }
 
         DictionaryPropertyDescriptor(TPropertyIndex dataSlot, PropertyAttributes attributes, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
-            Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(attributes),
+            Data(dataSlot), Getter(NoSlots), Setter(NoSlots), Attributes(attributes), flags(Flags::PreventFalseReference
 #if ENABLE_FIXED_FIELDS
-            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+            | FlagIf(isInitialized, Flags::IsInitialized) | FlagIf(isFixed, Flags::IsFixed) | FlagIf(usedAsFixed, Flags::UsedAsFixed)
 #endif
-            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) { }
+            ) { }
 
         DictionaryPropertyDescriptor(TPropertyIndex getterSlot, TPropertyIndex setterSlot, PropertyAttributes attributes, bool isInitialized = false, bool isFixed = false, bool usedAsFixed = false) :
-            Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(attributes),
+            Data(NoSlots), Getter(getterSlot), Setter(setterSlot), Attributes(attributes), flags(Flags::PreventFalseReference | Flags::IsAccessor
 #if ENABLE_FIXED_FIELDS
-            IsInitialized(isInitialized), IsOnlyOneAccessorInitialized(false), IsFixed(isFixed), UsedAsFixed(usedAsFixed),
+            | FlagIf(isInitialized, Flags::IsInitialized) | FlagIf(isFixed, Flags::IsFixed) | FlagIf(usedAsFixed, Flags::UsedAsFixed)
 #endif
-            PreventFalseReference(true), IsShadowed(false), IsAccessor(true) { }
+            ) { }
 
         // this is for initialization.
-        DictionaryPropertyDescriptor() : Data(NoSlots), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults),
-#if ENABLE_FIXED_FIELDS
-            IsInitialized(false), IsOnlyOneAccessorInitialized(false), IsFixed(false), UsedAsFixed(false),
-#endif
-            PreventFalseReference(true), IsShadowed(false), IsAccessor(false) { }
+        DictionaryPropertyDescriptor() : Data(NoSlots), Getter(NoSlots), Setter(NoSlots), Attributes(PropertyDynamicTypeDefaults), flags(Flags::PreventFalseReference) { }
 
         template <typename TPropertyIndexFrom>
         void CopyFrom(DictionaryPropertyDescriptor<TPropertyIndexFrom>& descriptor);
 
+    private:
         // SimpleDictionaryPropertyDescriptor is allocated by a dictionary along with the PropertyRecord
-        // so it cannot be allocated as leaf, tag the lower bit to prevent false reference.
-        bool PreventFalseReference:1;
-        bool IsShadowed : 1;
-        bool IsAccessor : 1;
-#if ENABLE_FIXED_FIELDS
-        bool IsInitialized:1;
-        bool IsOnlyOneAccessorInitialized:1;
-        bool IsFixed:1;
-        bool UsedAsFixed:1;
-#endif
+        // so it cannot be allocated as leaf, tag the lower bit to prevent false reference: flags must
+        // always have PreventFalseReference set
+        Flags flags;
 
+    public:
         PropertyAttributes Attributes;
     private:
         TPropertyIndex Data;
@@ -78,17 +97,55 @@ namespace Js
 
         bool HasNonLetConstGlobal() const
         {
-            return (this->Attributes & PropertyLetConstGlobal) == 0 || this->IsShadowed;
+            return (this->Attributes & PropertyLetConstGlobal) == 0 || GetIsShadowed();
         }
         void AddShadowedData(TPropertyIndex& nextPropertyIndex, bool addingLetConstGlobal);
+
+#define EXPOSE_FLAG_ACCESSOR(flag) \
+        inline bool Get##flag() const\
+        {\
+            return HasFlag(Flags::flag);\
+        }\
+        inline void Set##flag(bool set)\
+        {\
+            SetFlag(Flags::flag, set);\
+        }
+
+        EXPOSE_FLAG_ACCESSOR(IsShadowed);
+        EXPOSE_FLAG_ACCESSOR(IsAccessor);
+#if ENABLE_FIXED_FIELDS
+        EXPOSE_FLAG_ACCESSOR(IsInitialized);
+        EXPOSE_FLAG_ACCESSOR(IsOnlyOneAccessorInitialized);
+        EXPOSE_FLAG_ACCESSOR(IsFixed);
+        EXPOSE_FLAG_ACCESSOR(UsedAsFixed);
+#endif
+#undef EXPOSE_FLAG_ACCESSOR
+
     private:
         static const TPropertyIndex NoSlots = PropertyIndexRanges<TPropertyIndex>::NoSlots;
+
+        inline bool HasFlag(Flags flag) const
+        {
+            return (this->flags & flag) == flag;
+        }
+
+        inline void SetFlag(Flags flag, bool set)
+        {
+            if (set)
+            {
+                this->flags = this->flags | flag;
+            }
+            else
+            {
+                this->flags = this->flags & ~flag;
+            }
+        }
 
     public:
         bool IsOrMayBecomeFixed()
         {
 #if ENABLE_FIXED_FIELDS
-            return !IsInitialized || IsFixed;
+            return !GetIsInitialized() || GetIsFixed();
 #else
             return false;
 #endif
@@ -97,8 +154,8 @@ namespace Js
         bool SanityCheckFixedBits()
         {
             return
-                ((!this->IsFixed && !this->UsedAsFixed) ||
-                (!(this->Attributes & PropertyDeleted) && (this->Data != NoSlots || this->Getter != NoSlots || this->Setter != NoSlots)));
+                (!GetIsFixed() && !GetUsedAsFixed()) ||
+                (!(this->Attributes & PropertyDeleted) && (this->Data != NoSlots || this->Getter != NoSlots || this->Setter != NoSlots));
         }
 #endif
 
@@ -124,7 +181,7 @@ namespace Js
             {
                 return this->Data;
             }
-            else if (this->IsShadowed && !this->IsAccessor)
+            else if (GetIsShadowed() && !GetIsAccessor())
             {
                 // if it is a let const global, if the setter slot is empty, then the Getter slot must be
                 // the shadowed data slot, return that.
@@ -133,7 +190,7 @@ namespace Js
         }
         else
         {
-            Assert(!this->IsAccessor || this->Data == NoSlots);
+            Assert(!GetIsAccessor() || this->Data == NoSlots);
             return this->Data;
         }
         return NoSlots;
@@ -158,11 +215,11 @@ namespace Js
     template <typename TPropertyIndex>
     void DictionaryPropertyDescriptor<TPropertyIndex>::ConvertToData()
     {
-        if (this->IsAccessor)
+        if (GetIsAccessor())
         {
             Assert(this->Getter != NoSlots && this->Setter != NoSlots);
-            this->IsAccessor = false;
-            if (this->IsShadowed)
+            SetIsAccessor(false);
+            if (GetIsShadowed())
             {
                 Assert(this->Data != NoSlots);
             }
@@ -179,9 +236,9 @@ namespace Js
     template <typename TPropertyIndex>
     void DictionaryPropertyDescriptor<TPropertyIndex>::AddShadowedData(TPropertyIndex& nextPropertyIndex, bool addingLetConstGlobal)
     {
-        Assert(!this->IsShadowed);
-        this->IsShadowed = true;
-        if (this->IsAccessor)
+        Assert(!GetIsShadowed());
+        SetIsShadowed(true);
+        if (GetIsAccessor())
         {
             Assert(this->Data == NoSlots);
             if (addingLetConstGlobal)
@@ -218,7 +275,7 @@ namespace Js
         //
         // NOTE: Do not create slot for Getter/Setter if they are already valid; possible after previous conversion from Accessor to Data, or deletion of Accessor, etc.
 
-        if (this->IsAccessor)
+        if (GetIsAccessor())
         {
             // Accessor property
             // Accessor property + LetConstGlobal
@@ -226,10 +283,10 @@ namespace Js
             return false;
         }
 
-        this->IsAccessor = true;
+        SetIsAccessor(true);
         if (this->Attributes & PropertyLetConstGlobal)
         {
-            if (this->IsShadowed)
+            if (GetIsShadowed())
             {
                 // Data property + LetConstGlobal
                 Assert(this->Getter != NoSlots);
@@ -237,7 +294,7 @@ namespace Js
             else
             {
                 // LetConstGlobal
-                this->IsShadowed = true;
+                SetIsShadowed(true);
             }
         }
         else
@@ -272,18 +329,8 @@ namespace Js
         this->Data = (descriptor.Data == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Data;
         this->Getter = (descriptor.Getter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Getter;
         this->Setter = (descriptor.Setter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Setter;
-        this->IsAccessor = descriptor.IsAccessor;
 
-        // Not strictly required, PreventFalseReference must always be 1
-        this->PreventFalseReference = descriptor.PreventFalseReference;
-        this->IsShadowed = descriptor.IsShadowed;
-
-#if ENABLE_FIXED_FIELDS
-        this->IsInitialized = descriptor.IsInitialized;
-        this->IsOnlyOneAccessorInitialized = descriptor.IsOnlyOneAccessorInitialized;
-        this->IsFixed = descriptor.IsFixed;
-        this->UsedAsFixed = descriptor.UsedAsFixed;
-#endif
+        this->flags = descriptor.flags;
     }
 
 #if DBG_DUMP
@@ -294,14 +341,14 @@ namespace Js
         const unsigned fieldIndent(indent + 2);
 
         Output::Print(_u("%*sDictionaryPropertyDescriptor (0x%p)\n"), indent, padding, this);
-        Output::Print(_u("%*sPreventFalseReference: %d\n"), fieldIndent, padding, this->PreventFalseReference);
-        Output::Print(_u("%*sIsShadowed: %d\n"), fieldIndent, padding, this->IsShadowed);
-        Output::Print(_u("%*sIsAccessor: %d\n"), fieldIndent, padding, this->IsAccessor);
+        Output::Print(_u("%*sPreventFalseReference: %d\n"), fieldIndent, padding, HasFlag(Flags::PreventFalseReference));
+        Output::Print(_u("%*sIsShadowed: %d\n"), fieldIndent, padding, GetIsShadowed());
+        Output::Print(_u("%*sIsAccessor: %d\n"), fieldIndent, padding, GetIsAccessor());
 #if ENABLE_FIXED_FIELDS
-        Output::Print(_u("%*sIsInitialized: %d\n"), fieldIndent, padding, this->IsInitialized);
-        Output::Print(_u("%*sIsOnlyOneAccessorInitialized: %d\n"), fieldIndent, padding, this->IsOnlyOneAccessorInitialized);
-        Output::Print(_u("%*sIsFixed: %d\n"), fieldIndent, padding, this->IsFixed);
-        Output::Print(_u("%*sUsedAsFixed: %d\n"), fieldIndent, padding, this->UsedAsFixed);
+        Output::Print(_u("%*sIsInitialized: %d\n"), fieldIndent, padding, GetIsInitialized());
+        Output::Print(_u("%*sIsOnlyOneAccessorInitialized: %d\n"), fieldIndent, padding, GetIsOnlyOneAccessorInitialized());
+        Output::Print(_u("%*sIsFixed: %d\n"), fieldIndent, padding, GetIsFixed());
+        Output::Print(_u("%*sUsedAsFixed: %d\n"), fieldIndent, padding, GetUsedAsFixed());
 #endif
         Output::Print(_u("%*sAttributes: 0x%02x "), fieldIndent, padding, this->Attributes);
         if (this->Attributes != PropertyNone)
