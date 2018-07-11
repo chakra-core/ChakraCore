@@ -1010,7 +1010,7 @@ StringCommon:
 #if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayArg);
 #endif
-                JavascriptNativeArray * argsArray = JavascriptNativeArray::UnsafeFromVar(arrayArg);
+                JavascriptNativeArray * argsArray = UnsafeVarTo<JavascriptNativeArray>(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)
                 {
@@ -1083,7 +1083,7 @@ StringCommon:
 #if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayArg);
 #endif
-                JavascriptNativeArray * argsArray = JavascriptNativeArray::UnsafeFromVar(arrayArg);
+                JavascriptNativeArray * argsArray = UnsafeVarTo<JavascriptNativeArray>(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)
                 {

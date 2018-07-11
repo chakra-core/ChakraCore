@@ -994,10 +994,7 @@ namespace Js
         Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
     public:
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeArray* FromVar(Var aValue);
-        static JavascriptNativeArray* UnsafeFromVar(Var aValue);
 
         void SetArrayCallSite(ProfileId index, RecyclerWeakReference<FunctionBody> *weakRef)
         {
@@ -1028,6 +1025,11 @@ namespace Js
 
         static void PopWithNoDst(Var nativeArray);
     };
+
+    template <> inline bool VarIs<JavascriptNativeArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
 
     class JavascriptNativeFloatArray;
     class JavascriptNativeIntArray : public JavascriptNativeArray

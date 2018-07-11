@@ -538,7 +538,7 @@ using namespace Js;
         }
 
         SparseArraySegmentBase* inlineHeadSegment = nullptr;
-        if (JavascriptNativeArray::Is(pArr))
+        if (VarIs<JavascriptNativeArray>(pArr))
         {
             if (JavascriptNativeFloatArray::Is(pArr))
             {
@@ -1802,7 +1802,7 @@ using namespace Js;
     template<>
     void JavascriptArray::ChangeArrayTypeToNativeArray<double>(JavascriptArray * varArray, ScriptContext * scriptContext)
     {
-        AssertMsg(!JavascriptNativeArray::Is(varArray), "Ensure that the incoming Array is a Var array");
+        AssertMsg(!VarIs<JavascriptNativeArray>(varArray), "Ensure that the incoming Array is a Var array");
 
         if (varArray->GetType() == scriptContext->GetLibrary()->GetArrayType())
         {
@@ -1849,7 +1849,7 @@ using namespace Js;
     template<>
     void JavascriptArray::ChangeArrayTypeToNativeArray<int32>(JavascriptArray * varArray, ScriptContext * scriptContext)
     {
-        AssertMsg(!JavascriptNativeArray::Is(varArray), "Ensure that the incoming Array is a Var array");
+        AssertMsg(!VarIs<JavascriptNativeArray>(varArray), "Ensure that the incoming Array is a Var array");
 
         if (varArray->GetType() == scriptContext->GetLibrary()->GetArrayType())
         {
@@ -1909,7 +1909,7 @@ using namespace Js;
     template<typename NativeArrayType, typename T>
     NativeArrayType *JavascriptArray::ConvertToNativeArrayInPlace(JavascriptArray *varArray)
     {
-        AssertMsg(!JavascriptNativeArray::Is(varArray), "Ensure that the incoming Array is a Var array");
+        AssertMsg(!VarIs<JavascriptNativeArray>(varArray), "Ensure that the incoming Array is a Var array");
 
         ScriptContext *scriptContext = varArray->GetScriptContext();
         SparseArraySegmentBase *seg, *nextSeg, *prevSeg = nullptr;
@@ -4941,7 +4941,7 @@ Case0:
     void JavascriptNativeArray::PopWithNoDst(Var nativeArray)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_NativePopWithNoDst);
-        Assert(JavascriptNativeArray::Is(nativeArray));
+        Assert(VarIs<JavascriptNativeArray>(nativeArray));
         JavascriptArray * arr = VarTo<JavascriptArray>(nativeArray);
 
         // we will bailout on length 0
@@ -13000,29 +13000,9 @@ Case0:
         return TRUE;
     }
 
-    bool JavascriptNativeArray::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return JavascriptNativeArray::Is(typeId);
-    }
-
     bool JavascriptNativeArray::Is(TypeId typeId)
     {
         return JavascriptNativeIntArray::Is(typeId) || JavascriptNativeFloatArray::Is(typeId);
-    }
-
-    JavascriptNativeArray* JavascriptNativeArray::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeArray'");
-
-        return static_cast<JavascriptNativeArray *>(aValue);
-    }
-
-    JavascriptNativeArray* JavascriptNativeArray::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeArray'");
-
-        return static_cast<JavascriptNativeArray *>(aValue);
     }
 
     bool JavascriptNativeIntArray::Is(Var aValue)
