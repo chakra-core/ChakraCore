@@ -119,7 +119,7 @@ namespace Js
             // stack will only have one of these three types (as these are also the only array types
             // that can be allocated on the stack).
             Assert(Js::JavascriptArray::IsNonES5Array(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeIntArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeIntArray>(instance->GetObjectArrayOrFlagsAsArray())
                 || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
             );
 

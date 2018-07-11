@@ -251,12 +251,18 @@ namespace Js
         template <typename T>
         __forceinline static T* TryFromVar(_In_ RecyclableObject* value)
         {
-            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            AssertOrFailFastMsg(false, "FIXME");
+            return nullptr;
+            // old: return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            // update to: return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         template <typename T>
         __forceinline static T* TryFromVar(_In_ Var value)
         {
-            return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            AssertOrFailFastMsg(false, "FIXME");
+            return nullptr;
+            // old: return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
+            // update to: return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         static BOOL IsObject(_In_ Var instance);
         static BOOL IsObject(_In_ RecyclableObject* instance);
@@ -782,50 +788,4 @@ namespace Js
 
         static BOOL IsRemoteArray(RecyclableObject* instance);
     };
-
-    // Any of the following that just do VarIs are conversion scaffolding, to be removed before checkin.
-    // Others are cases where we should consider whether to keep the old weird behavior.
-
-    template <typename T> T* UpdatedTryFromVar(_In_ RecyclableObject* value)
-    {
-        return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
-    }
-    template <typename T> T* UpdatedTryFromVar(_In_ Var value)
-    {
-        return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
-    }
-
-    template <>
-    __forceinline RecyclableObject* JavascriptOperators::TryFromVar<RecyclableObject>(_In_ RecyclableObject* value)
-    {
-        return UpdatedTryFromVar<RecyclableObject>(value);
-    }
-    template <>
-    __forceinline RecyclableObject* JavascriptOperators::TryFromVar<RecyclableObject>(_In_ Var value)
-    {
-        return UpdatedTryFromVar<RecyclableObject>(value);
-    }
-
-    template <>
-    __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ RecyclableObject* value)
-    {
-        return DynamicObject::IsBaseDynamicObject(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
-    }
-    template <>
-    __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ Var value)
-    {
-        return DynamicObject::IsBaseDynamicObject(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
-    }
-
-    template <>
-    __forceinline JavascriptNativeArray* JavascriptOperators::TryFromVar<JavascriptNativeArray>(_In_ RecyclableObject* value)
-    {
-        return UpdatedTryFromVar<JavascriptNativeArray>(value);
-    }
-    template <>
-    __forceinline JavascriptNativeArray* JavascriptOperators::TryFromVar<JavascriptNativeArray>(_In_ Var value)
-    {
-        return UpdatedTryFromVar<JavascriptNativeArray>(value);
-    }
-
 } // namespace Js

@@ -3539,7 +3539,7 @@ CommonNumber:
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
 #endif
             Var result;
-            if (OP_GetElementI_ArrayFastPath(JavascriptNativeIntArray::UnsafeFromVar(instance), TaggedInt::ToInt32(index), &result, scriptContext))
+            if (OP_GetElementI_ArrayFastPath(UnsafeVarTo<JavascriptNativeIntArray>(instance), TaggedInt::ToInt32(index), &result, scriptContext))
             {
                 return result;
             }
@@ -4658,7 +4658,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             int32 indexInt = TaggedInt::ToInt32(aElementIndex);
             if (indexInt >= 0 && scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
             {
-                JavascriptNativeIntArray *arr = JavascriptNativeIntArray::FromVar(instance);
+                JavascriptNativeIntArray *arr = VarTo<JavascriptNativeIntArray>(instance);
                 if (!(arr->TryGrowHeadSegmentAndSetItem<int32, JavascriptNativeIntArray>((uint32)indexInt, iValue)))
                 {
                     arr->SetItem(indexInt, iValue);
@@ -10039,7 +10039,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Array:
             return JavascriptArray::BoxStackInstance(UnsafeVarTo<JavascriptArray>(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
-            return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance), deepCopy);
+            return JavascriptNativeIntArray::BoxStackInstance(UnsafeVarTo<JavascriptNativeIntArray>(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
             return JavascriptNativeFloatArray::BoxStackInstance(JavascriptNativeFloatArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_Function:
@@ -10276,7 +10276,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 Js::JavascriptOperators::ObjectToNativeArray(Js::JavascriptNativeFloatArray::UnsafeFromVar(arrayObject), valueType, length, elementSize, buffer, scriptContext);
                 break;
             case TypeIds_NativeIntArray:
-                Js::JavascriptOperators::ObjectToNativeArray(Js::JavascriptNativeIntArray::UnsafeFromVar(arrayObject), valueType, length, elementSize, buffer, scriptContext);
+                Js::JavascriptOperators::ObjectToNativeArray(Js::UnsafeVarTo<Js::JavascriptNativeIntArray>(arrayObject), valueType, length, elementSize, buffer, scriptContext);
                 break;
                 // We can have more specialized template if needed.
             default:

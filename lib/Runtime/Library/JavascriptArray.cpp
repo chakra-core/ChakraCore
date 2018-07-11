@@ -546,7 +546,7 @@ using namespace Js;
             }
             else
             {
-                AssertOrFailFast(JavascriptNativeIntArray::Is(pArr));
+                AssertOrFailFast(VarIs<JavascriptNativeIntArray>(pArr));
                 inlineHeadSegment = DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>((JavascriptNativeIntArray*)pArr);
             }
 
@@ -2529,7 +2529,7 @@ using namespace Js;
 
     Var JavascriptNativeArray::FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax)
     {
-        if (JavascriptNativeIntArray::Is(this))
+        if (VarIs<JavascriptNativeIntArray>(this))
         {
             return this->FindMinOrMax<int32, false>(scriptContext, findMax);
         }
@@ -2744,7 +2744,7 @@ using namespace Js;
 
     uint32 JavascriptArray::GetNextIndex(uint32 index) const
     {
-        if (JavascriptNativeIntArray::Is((Var)this))
+        if (VarIs<JavascriptNativeIntArray>((Var)this))
         {
             return this->GetNextIndexHelper<int32>(index);
         }
@@ -3384,7 +3384,7 @@ using namespace Js;
             bool spreadable = false;
             JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
 
-            if (!JavascriptNativeIntArray::Is(pDestArray))
+            if (!VarIs<JavascriptNativeIntArray>(pDestArray))
             {
                 JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest,
                                                 spreadable ? ConcatSpreadableState_CheckedAndTrue : ConcatSpreadableState_CheckedAndFalse));
@@ -3395,7 +3395,7 @@ using namespace Js;
             {
                 JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
                 idxDest++;
-                if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (!VarIs<JavascriptNativeIntArray>(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
                     JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
@@ -3598,7 +3598,7 @@ using namespace Js;
                 JavascriptArray * pItemArray = JavascriptArray::FromAnyArray(aItem);
                 if (isFloat)
                 {
-                    if (!JavascriptNativeIntArray::Is(pItemArray))
+                    if (!VarIs<JavascriptNativeIntArray>(pItemArray))
                     {
                         isInt = false;
                         if (!JavascriptNativeFloatArray::Is(pItemArray))
@@ -3705,7 +3705,7 @@ using namespace Js;
             // so that the data will be converted on copy.
             if (isInt)
             {
-                if (JavascriptNativeIntArray::Is(pDestObj))
+                if (VarIs<JavascriptNativeIntArray>(pDestObj))
                 {
                     isArray = true;
                 }
@@ -3758,7 +3758,7 @@ using namespace Js;
         {
             if (isInt)
             {
-                JavascriptNativeIntArray *pIntArray = isArray ? JavascriptNativeIntArray::FromVar(pDestObj) : scriptContext->GetLibrary()->CreateNativeIntArray(cDestLength);
+                JavascriptNativeIntArray *pIntArray = isArray ? VarTo<JavascriptNativeIntArray>(pDestObj) : scriptContext->GetLibrary()->CreateNativeIntArray(cDestLength);
                 pIntArray->EnsureHead<int32>();
 
                 JS_REENTRANT(jsReentLock, pDestArray = ConcatIntArgs(pIntArray, remoteTypeIds, args, scriptContext));
@@ -3974,7 +3974,7 @@ using namespace Js;
                 case Js::TypeIds_Array:
                     JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext));
                 case Js::TypeIds_NativeIntArray:
-                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::UnsafeFromVar(pArr), search, fromIndex, len, scriptContext));
+                    JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(UnsafeVarTo<JavascriptNativeIntArray>(pArr), search, fromIndex, len, scriptContext));
                 case Js::TypeIds_NativeFloatArray:
                     JS_REENTRANT_UNLOCK(jsReentLock, return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::UnsafeFromVar(pArr), search, fromIndex, len, scriptContext));
                 default:
@@ -4554,7 +4554,7 @@ using namespace Js;
                     JS_REENTRANT(jsReentLock, res = JoinArrayHelper(arr, separator, scriptContext));
                     break;
                 case Js::TypeIds_NativeIntArray:
-                    JS_REENTRANT(jsReentLock, res = JoinArrayHelper(JavascriptNativeIntArray::UnsafeFromVar(arr), separator, scriptContext));
+                    JS_REENTRANT(jsReentLock, res = JoinArrayHelper(UnsafeVarTo<JavascriptNativeIntArray>(arr), separator, scriptContext));
                     break;
                 case Js::TypeIds_NativeFloatArray:
                     JS_REENTRANT(jsReentLock, res = JoinArrayHelper(JavascriptNativeFloatArray::UnsafeFromVar(arr), separator, scriptContext));
@@ -4822,7 +4822,7 @@ Case0:
             case Js::TypeIds_Array:
                 JS_REENTRANT_UNLOCK(jsReentLock, return LastIndexOfHelper(pArr, search, fromIndex, scriptContext));
             case Js::TypeIds_NativeIntArray:
-                JS_REENTRANT_UNLOCK(jsReentLock, return LastIndexOfHelper(JavascriptNativeIntArray::UnsafeFromVar(pArr), search, fromIndex, scriptContext));
+                JS_REENTRANT_UNLOCK(jsReentLock, return LastIndexOfHelper(UnsafeVarTo<JavascriptNativeIntArray>(pArr), search, fromIndex, scriptContext));
             case Js::TypeIds_NativeFloatArray:
                 JS_REENTRANT_UNLOCK(jsReentLock, return LastIndexOfHelper(JavascriptNativeFloatArray::UnsafeFromVar(pArr), search, fromIndex, scriptContext));
             default:
@@ -4963,8 +4963,8 @@ Case0:
     int32 JavascriptNativeIntArray::Pop(ScriptContext * scriptContext, Var object)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(Array_NativeIntPop, reentrancylock, scriptContext->GetThreadContext());
-        Assert(JavascriptNativeIntArray::Is(object));
-        JavascriptNativeIntArray * arr = JavascriptNativeIntArray::FromVar(object);
+        Assert(VarIs<JavascriptNativeIntArray>(object));
+        JavascriptNativeIntArray * arr = VarTo<JavascriptNativeIntArray>(object);
 
         Assert(arr->GetLength() != 0);
 
@@ -5151,7 +5151,7 @@ Case0:
         // JavascriptArray::Push will handle other cases.
         if (JavascriptNativeIntArray::IsNonCrossSite(array))
         {
-            JavascriptNativeIntArray * nativeIntArray = JavascriptNativeIntArray::UnsafeFromVar(array);
+            JavascriptNativeIntArray * nativeIntArray = UnsafeVarTo<JavascriptNativeIntArray>(array);
             Assert(!nativeIntArray->IsCrossSiteObject());
             uint32 n = nativeIntArray->length;
 
@@ -5638,7 +5638,7 @@ Case0:
 
             pArr->ClearSegmentMap(); // Just dump the segment map on reverse
 
-            if (JavascriptNativeIntArray::Is(pArr))
+            if (VarIs<JavascriptNativeIntArray>(pArr))
             {
                 isIntArray = true;
             }
@@ -5982,7 +5982,7 @@ Case0:
             bool isIntArray = false;
             bool isFloatArray = false;
 
-            if(JavascriptNativeIntArray::Is(pArr))
+            if(VarIs<JavascriptNativeIntArray>(pArr))
             {
                 isIntArray = true;
             }
@@ -6139,7 +6139,7 @@ Case0:
             Js::JavascriptNativeIntArray *pnewArr = scriptContext->GetLibrary()->CreateNativeIntArray(len);
             pnewArr->EnsureHead<int32>();
 #if ENABLE_PROFILE_INFO
-            pnewArr->CopyArrayProfileInfo(Js::JavascriptNativeIntArray::UnsafeFromVar(baseArray));
+            pnewArr->CopyArrayProfileInfo(Js::UnsafeVarTo<Js::JavascriptNativeIntArray>(baseArray));
 #endif
 
             return pnewArr;
@@ -6464,7 +6464,7 @@ Case0:
                     {
                         if (isIntArray)
                         {
-                            JS_REENTRANT(jsReentLock, CopyNativeIntArrayElements(JavascriptNativeIntArray::FromVar(newArr), 0, JavascriptNativeIntArray::FromVar(pArr), start, start + newLen));
+                            JS_REENTRANT(jsReentLock, CopyNativeIntArrayElements(VarTo<JavascriptNativeIntArray>(newArr), 0, VarTo<JavascriptNativeIntArray>(pArr), start, start + newLen));
                         }
                         else if (isFloatArray)
                         {
@@ -7481,7 +7481,7 @@ Case0:
         // insert elements
         if (insertLen > 0)
         {
-            Assert(!JavascriptNativeIntArray::Is(pArr) && !JavascriptNativeFloatArray::Is(pArr));
+            Assert(!VarIs<JavascriptNativeIntArray>(pArr) && !JavascriptNativeFloatArray::Is(pArr));
 
             // InsertPhase
             SparseArraySegment<T> *segInsert = nullptr;
@@ -8101,7 +8101,7 @@ Case0:
                 bool isIntArray = false;
                 bool isFloatArray = false;
 
-                if (JavascriptNativeIntArray::Is(pArr))
+                if (VarIs<JavascriptNativeIntArray>(pArr))
                 {
                     isIntArray = true;
                 }
@@ -10703,7 +10703,7 @@ Case0:
         uint32 random1 = static_cast<uint32>(rand());
         if (random1 % 2 == 0)
         {
-            if (JavascriptNativeIntArray::Is(this))
+            if (VarIs<JavascriptNativeIntArray>(this))
             {
                 uint32 random2 = static_cast<uint32>(rand());
                 if (random2 % 2 == 0)
@@ -11453,7 +11453,7 @@ Case0:
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
 #endif
-        if (JavascriptNativeIntArray::Is(arr))
+        if (VarIs<JavascriptNativeIntArray>(arr))
         {
             arr = JavascriptNativeIntArray::ToVarArray((JavascriptNativeIntArray*)arr);
         }
@@ -11980,7 +11980,7 @@ Case0:
             arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptArray>(UnsafeVarTo<JavascriptArray>(arrayObject));
             break;
         case Js::TypeIds_NativeIntArray:
-            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeIntArray>(JavascriptNativeIntArray::UnsafeFromVar(arrayObject));
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeIntArray>(UnsafeVarTo<JavascriptNativeIntArray>(arrayObject));
             break;
         case Js::TypeIds_NativeFloatArray:
             arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeFloatArray>(JavascriptNativeFloatArray::UnsafeFromVar(arrayObject));
@@ -13005,12 +13005,6 @@ Case0:
         return JavascriptNativeIntArray::Is(typeId) || JavascriptNativeFloatArray::Is(typeId);
     }
 
-    bool JavascriptNativeIntArray::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return JavascriptNativeIntArray::Is(typeId);
-    }
-
 #if ENABLE_COPYONACCESS_ARRAY
     bool JavascriptCopyOnAccessNativeIntArray::Is(Var aValue)
     {
@@ -13034,22 +13028,8 @@ Case0:
     bool JavascriptNativeIntArray::IsNonCrossSite(Var aValue)
     {
         bool ret = !TaggedInt::Is(aValue) && VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(aValue);
-        Assert(ret == (JavascriptNativeIntArray::Is(aValue) && !JavascriptNativeIntArray::FromVar(aValue)->IsCrossSiteObject()));
+        Assert(ret == (VarIs<JavascriptNativeIntArray>(aValue) && !VarTo<JavascriptNativeIntArray>(aValue)->IsCrossSiteObject()));
         return ret;
-    }
-
-    JavascriptNativeIntArray* JavascriptNativeIntArray::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeIntArray'");
-
-        return static_cast<JavascriptNativeIntArray *>(aValue);
-    }
-
-    JavascriptNativeIntArray* JavascriptNativeIntArray::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptNativeIntArray'");
-
-        return static_cast<JavascriptNativeIntArray *>(aValue);
     }
 
 #if ENABLE_COPYONACCESS_ARRAY

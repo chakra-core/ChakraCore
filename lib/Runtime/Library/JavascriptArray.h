@@ -383,7 +383,7 @@ namespace Js
         template<typename Func>
         void WalkExisting(Func func)
         {
-            Assert(!JavascriptNativeIntArray::Is(this) && !JavascriptNativeFloatArray::Is(this));
+            Assert(!VarIs<JavascriptNativeIntArray>(this) && !JavascriptNativeFloatArray::Is(this));
             ArrayElementEnumerator e(this, 0);
             while(e.MoveNext<Var>())
             {
@@ -724,7 +724,7 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(this, startIndex, limitIndex, scriptContext, fn);
                 break;
             case TypeIds_NativeIntArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeIntArray::FromVar(this), startIndex, limitIndex, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
                 TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, scriptContext, fn);
@@ -744,7 +744,7 @@ namespace Js
                 TemplatedForEachItemInRange<hasSideEffect>(this, startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             case TypeIds_NativeIntArray:
-                TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeIntArray::FromVar(this), startIndex, limitIndex, missingItem, scriptContext, fn);
+                TemplatedForEachItemInRange<hasSideEffect>(VarTo<JavascriptNativeIntArray>(this), startIndex, limitIndex, missingItem, scriptContext, fn);
                 break;
             case TypeIds_NativeFloatArray:
                 TemplatedForEachItemInRange<hasSideEffect>(JavascriptNativeFloatArray::FromVar(this), startIndex, limitIndex, missingItem, scriptContext, fn);
@@ -945,17 +945,6 @@ namespace Js
         return JavascriptArray::IsNonES5Array(aValue);
     }
 
-    template <>
-    __forceinline JavascriptArray* JavascriptOperators::TryFromVar<JavascriptArray>(_In_ RecyclableObject* value)
-    {
-        return JavascriptArray::IsNonES5Array(value) ? UnsafeVarTo<JavascriptArray>(value) : nullptr;
-    }
-    template <>
-    __forceinline JavascriptArray* JavascriptOperators::TryFromVar<JavascriptArray>(_In_ Var value)
-    {
-        return JavascriptArray::IsNonES5Array(value) ? UnsafeVarTo<JavascriptArray>(value) : nullptr;
-    }
-
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
     // so we are checking for failure on DeleteProperty/DeleteItem/... etc instead. This helper makes that checking a little less intrusive.
     class ThrowTypeErrorOnFailureHelper
@@ -1057,10 +1046,7 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
-        static bool Is(Var aValue);
         static bool Is(TypeId typeId);
-        static JavascriptNativeIntArray* FromVar(Var aValue);
-        static JavascriptNativeIntArray* UnsafeFromVar(Var aValue);
         static bool IsNonCrossSite(Var aValue);
 
         typedef int32 TElement;
@@ -1137,6 +1123,11 @@ namespace Js
             return VtableHelper();
         }
     };
+
+    template <> inline bool VarIs<JavascriptNativeIntArray>(RecyclableObject* obj)
+    {
+        return JavascriptNativeIntArray::Is(JavascriptOperators::GetTypeId(obj));
+    }
 
 #if ENABLE_COPYONACCESS_ARRAY
     class JavascriptCopyOnAccessNativeIntArray : public JavascriptNativeIntArray
