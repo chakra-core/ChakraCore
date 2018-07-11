@@ -75,7 +75,7 @@ namespace Js
         if (JavascriptArray::IsNonES5Array(iterable) && !VarTo<JavascriptArray>(iterable)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
-            Assert(!JavascriptCopyOnAccessNativeIntArray::Is(iterable));
+            Assert(!VarIs<JavascriptCopyOnAccessNativeIntArray>(iterable));
 #endif
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();

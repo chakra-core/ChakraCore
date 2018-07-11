@@ -1147,11 +1147,6 @@ namespace Js
 
         virtual BOOL IsCopyOnAccessArray() { return TRUE; }
 
-        static bool Is(Var aValue);
-        static bool Is(TypeId typeId);
-        static JavascriptCopyOnAccessNativeIntArray* FromVar(Var aValue);
-        static JavascriptCopyOnAccessNativeIntArray* UnsafeFromVar(Var aValue);
-
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
         void ConvertCopyOnAccessSegment();
 
@@ -1186,6 +1181,11 @@ namespace Js
         }
 
     };
+
+    template <> inline bool VarIs<JavascriptCopyOnAccessNativeIntArray>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_CopyOnAccessNativeIntArray;
+    }
 #endif
 
     class JavascriptNativeFloatArray : public JavascriptNativeArray

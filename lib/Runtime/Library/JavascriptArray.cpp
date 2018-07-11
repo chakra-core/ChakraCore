@@ -13005,25 +13005,10 @@ Case0:
         return JavascriptNativeIntArray::Is(typeId) || JavascriptNativeFloatArray::Is(typeId);
     }
 
-#if ENABLE_COPYONACCESS_ARRAY
-    bool JavascriptCopyOnAccessNativeIntArray::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return JavascriptCopyOnAccessNativeIntArray::Is(typeId);
-    }
-#endif
-
     bool JavascriptNativeIntArray::Is(TypeId typeId)
     {
         return typeId == TypeIds_NativeIntArray;
     }
-
-#if ENABLE_COPYONACCESS_ARRAY
-    bool JavascriptCopyOnAccessNativeIntArray::Is(TypeId typeId)
-    {
-        return typeId == TypeIds_CopyOnAccessNativeIntArray;
-    }
-#endif
 
     bool JavascriptNativeIntArray::IsNonCrossSite(Var aValue)
     {
@@ -13031,23 +13016,6 @@ Case0:
         Assert(ret == (VarIs<JavascriptNativeIntArray>(aValue) && !VarTo<JavascriptNativeIntArray>(aValue)->IsCrossSiteObject()));
         return ret;
     }
-
-#if ENABLE_COPYONACCESS_ARRAY
-    JavascriptCopyOnAccessNativeIntArray* JavascriptCopyOnAccessNativeIntArray::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptCopyOnAccessNativeIntArray'");
-
-        return static_cast<JavascriptCopyOnAccessNativeIntArray *>(aValue);
-    }
-
-    JavascriptCopyOnAccessNativeIntArray* JavascriptCopyOnAccessNativeIntArray::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptCopyOnAccessNativeIntArray'");
-
-        return static_cast<JavascriptCopyOnAccessNativeIntArray *>(aValue);
-    }
-
-#endif
 
     bool JavascriptNativeFloatArray::Is(Var aValue)
     {
