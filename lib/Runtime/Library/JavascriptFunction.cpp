@@ -483,7 +483,7 @@ using namespace Js;
         }
         else
         {
-            bool isArray = JavascriptArray::Is(argArray);
+            bool isArray = JavascriptArray::IsNonES5Array(argArray);
             TypeId typeId = JavascriptOperators::GetTypeId(argArray);
             bool isNullOrUndefined = typeId <= TypeIds_UndefinedOrNull;
 
@@ -505,7 +505,7 @@ using namespace Js;
 #if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(argArray);
 #endif
-                arr = JavascriptArray::FromVar(argArray);
+                arr = VarTo<JavascriptArray>(argArray);
                 len = arr->GetLength();
             }
             else

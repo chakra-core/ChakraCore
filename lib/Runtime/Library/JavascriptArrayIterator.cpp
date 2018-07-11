@@ -72,7 +72,7 @@ namespace Js
         int64 length;
         JavascriptArray* pArr = nullptr;
         TypedArrayBase *typedArrayBase = nullptr;
-        if (JavascriptArray::Is(iterable) && !JavascriptArray::FromVar(iterable)->IsCrossSiteObject())
+        if (JavascriptArray::IsNonES5Array(iterable) && !VarTo<JavascriptArray>(iterable)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
             Assert(!JavascriptCopyOnAccessNativeIntArray::Is(iterable));

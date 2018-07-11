@@ -1401,16 +1401,16 @@ CommonNumber:
 
         RecyclableObject* function = GetIteratorFunction(aRight, scriptContext);
         JavascriptMethod method = function->GetEntryPoint();
-        if (((JavascriptArray::Is(aRight) &&
+        if (((JavascriptArray::IsNonES5Array(aRight) &&
               (
                   JavascriptLibrary::IsDefaultArrayValuesFunction(function, scriptContext)
                   // Verify that the head segment of the array covers all elements with no gaps.
                   // Accessing an element on the prototype could have side-effects that would invalidate the optimization.
-                  && JavascriptArray::UnsafeFromVar(aRight)->GetHead()->next == nullptr
-                  && JavascriptArray::UnsafeFromVar(aRight)->GetHead()->left == 0
-                  && JavascriptArray::UnsafeFromVar(aRight)->GetHead()->length == JavascriptArray::FromVar(aRight)->GetLength()
-                  && JavascriptArray::UnsafeFromVar(aRight)->HasNoMissingValues()
-                  && !JavascriptArray::UnsafeFromVar(aRight)->IsCrossSiteObject()
+                  && UnsafeVarTo<JavascriptArray>(aRight)->GetHead()->next == nullptr
+                  && UnsafeVarTo<JavascriptArray>(aRight)->GetHead()->left == 0
+                  && UnsafeVarTo<JavascriptArray>(aRight)->GetHead()->length == VarTo<JavascriptArray>(aRight)->GetLength()
+                  && UnsafeVarTo<JavascriptArray>(aRight)->HasNoMissingValues()
+                  && !UnsafeVarTo<JavascriptArray>(aRight)->IsCrossSiteObject()
               )) ||
              (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
             // We can't optimize away the iterator if the array iterator prototype is user defined.
@@ -1636,7 +1636,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::OP_HasOwnPropScoped(Var scope, PropertyId propertyId, Var defaultInstance, ScriptContext* scriptContext)
     {
-        AssertMsg(scope == scriptContext->GetLibrary()->GetNull() || JavascriptArray::Is(scope),
+        AssertMsg(scope == scriptContext->GetLibrary()->GetNull() || JavascriptArray::IsNonES5Array(scope),
                   "Invalid scope chain pointer passed - should be null or an array");
 
         JavascriptArray* arrScope = JavascriptOperators::TryFromVar<JavascriptArray>(scope);
@@ -3494,7 +3494,7 @@ CommonNumber:
             return false;
         }
 
-        JavascriptArray* arrayPrototype = JavascriptArray::UnsafeFromVar(prototype); //Prototype must be Array.prototype (unless changed through __proto__)
+        JavascriptArray* arrayPrototype = UnsafeVarTo<JavascriptArray>(prototype); //Prototype must be Array.prototype (unless changed through __proto__)
         if (arrayPrototype->GetLength() && arrayPrototype->GetItem(arrayPrototype, (uint32)indexInt, result, scriptContext))
         {
             return true;
@@ -3527,7 +3527,7 @@ CommonNumber:
         case TypeIds_Array: //fast path for array
         {
             Var result;
-            if (OP_GetElementI_ArrayFastPath(JavascriptArray::UnsafeFromVar(instance), TaggedInt::ToInt32(index), &result, scriptContext))
+            if (OP_GetElementI_ArrayFastPath(UnsafeVarTo<JavascriptArray>(instance), TaggedInt::ToInt32(index), &result, scriptContext))
             {
                 return result;
             }
@@ -4074,7 +4074,7 @@ CommonNumber:
             {
                 return JavascriptNativeIntArray::MissingItem;
             }
-            JavascriptArray * arr = JavascriptArray::FromVar(instance);
+            JavascriptArray * arr = VarTo<JavascriptArray>(instance);
             int32 result;
             if (arr->DirectGetItemAt((uint32)indexInt, &result))
             {
@@ -4092,7 +4092,7 @@ CommonNumber:
                 {
                     return JavascriptNativeIntArray::MissingItem;
                 }
-                JavascriptArray * arr = JavascriptArray::FromVar(instance);
+                JavascriptArray * arr = VarTo<JavascriptArray>(instance);
                 int32 result;
                 if (arr->DirectGetItemAt((uint32)indexInt, &result))
                 {
@@ -4151,7 +4151,7 @@ CommonNumber:
             }
             else
             {
-                JavascriptArray * arr = JavascriptArray::FromVar(instance);
+                JavascriptArray * arr = VarTo<JavascriptArray>(instance);
                 if (!arr->DirectGetItemAt((uint32)indexInt, &result))
                 {
                     result = JavascriptNativeFloatArray::MissingItem;
@@ -4171,7 +4171,7 @@ CommonNumber:
                 }
                 else
                 {
-                    JavascriptArray * arr = JavascriptArray::FromVar(instance);
+                    JavascriptArray * arr = VarTo<JavascriptArray>(instance);
                     if (!arr->DirectGetItemAt((uint32)indexInt, &result))
                     {
                         result = JavascriptNativeFloatArray::MissingItem;
@@ -4551,7 +4551,7 @@ CommonNumber:
                     int indexInt = TaggedInt::ToInt32(index);
                     if (indexInt >= 0 && scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
                     {
-                        JavascriptArray::UnsafeFromVar(instance)->SetItem((uint32)indexInt, value, flags);
+                        UnsafeVarTo<JavascriptArray>(instance)->SetItem((uint32)indexInt, value, flags);
                         return TRUE;
                     }
                     break;
@@ -4857,8 +4857,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 break;
             }
             // Upper bounds check for source array
-            JavascriptArray* srcArray = JavascriptArray::UnsafeFromVar(srcInstance);
-            JavascriptArray* dstArray = JavascriptArray::FromVar(dstInstance);
+            JavascriptArray* srcArray = UnsafeVarTo<JavascriptArray>(srcInstance);
+            JavascriptArray* dstArray = VarTo<JavascriptArray>(dstInstance);
             if (scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
             {
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(dstInstance);
@@ -4946,7 +4946,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 INT_PTR vt = VirtualTableInfoBase::GetVirtualTable(instance);
                 if (instanceType == TypeIds_Array)
                 {
-                    returnValue = JavascriptArray::UnsafeFromVar(instance)->DirectSetItemAtRange<Var>(start, length, value);
+                    returnValue = UnsafeVarTo<JavascriptArray>(instance)->DirectSetItemAtRange<Var>(start, length, value);
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
@@ -4960,7 +4960,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                     {
                         return false;
                     }
-                    returnValue = JavascriptArray::UnsafeFromVar(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
+                    returnValue = UnsafeVarTo<JavascriptArray>(instance)->DirectSetItemAtRange<int32>(start, length, intValue);
                 }
                 else
                 {
@@ -4980,7 +4980,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                     {
                         return false;
                     }
-                    returnValue = JavascriptArray::UnsafeFromVar(instance)->DirectSetItemAtRange<double>(start, length, doubleValue);
+                    returnValue = UnsafeVarTo<JavascriptArray>(instance)->DirectSetItemAtRange<double>(start, length, doubleValue);
                 }
                 returnValue &= vt == VirtualTableInfoBase::GetVirtualTable(instance);
             }
@@ -10037,7 +10037,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Object:
             return DynamicObject::BoxStackInstance(VarTo<DynamicObject>(instance), deepCopy);
         case Js::TypeIds_Array:
-            return JavascriptArray::BoxStackInstance(JavascriptArray::UnsafeFromVar(instance), deepCopy);
+            return JavascriptArray::BoxStackInstance(UnsafeVarTo<JavascriptArray>(instance), deepCopy);
         case Js::TypeIds_NativeIntArray:
             return JavascriptNativeIntArray::BoxStackInstance(JavascriptNativeIntArray::UnsafeFromVar(instance), deepCopy);
         case Js::TypeIds_NativeFloatArray:
@@ -10270,7 +10270,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             switch (Js::JavascriptOperators::GetTypeId(arrayObject))
             {
             case TypeIds_Array:
-                Js::JavascriptOperators::ObjectToNativeArray(Js::JavascriptArray::UnsafeFromVar(arrayObject), valueType, length, elementSize, buffer, scriptContext);
+                Js::JavascriptOperators::ObjectToNativeArray(Js::UnsafeVarTo<Js::JavascriptArray>(arrayObject), valueType, length, elementSize, buffer, scriptContext);
                 break;
             case TypeIds_NativeFloatArray:
                 Js::JavascriptOperators::ObjectToNativeArray(Js::JavascriptNativeFloatArray::UnsafeFromVar(arrayObject), valueType, length, elementSize, buffer, scriptContext);

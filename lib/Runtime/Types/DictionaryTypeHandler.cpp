@@ -2328,7 +2328,7 @@ namespace Js
     template <typename T>
     DynamicTypeHandler* DictionaryTypeHandlerBase<T>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ? ConvertToES5ArrayType(instance) : this;
+        return JavascriptArray::IsNonES5Array(instance) ? ConvertToES5ArrayType(instance) : this;
     }
 
     template <typename T>

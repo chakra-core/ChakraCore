@@ -993,7 +993,7 @@ StringCommon:
             TypeId typeId = JavascriptOperators::GetTypeId(arrayArg);
             if (!JavascriptNativeArray::Is(typeId) && !(TypedArrayBase::Is(typeId) && typeId != TypeIds_CharArray && typeId != TypeIds_BoolArray))
             {
-                if (JavascriptArray::IsVarArray(typeId) && JavascriptArray::UnsafeFromVar(arrayArg)->GetLength() == 0)
+                if (JavascriptArray::IsVarArray(typeId) && UnsafeVarTo<JavascriptArray>(arrayArg)->GetLength() == 0)
                 {
                     return scriptContext->GetLibrary()->GetNegativeInfinite();
                 }
@@ -1066,7 +1066,7 @@ StringCommon:
             TypeId typeId = JavascriptOperators::GetTypeId(arrayArg);
             if (!JavascriptNativeArray::Is(typeId) && !(TypedArrayBase::Is(typeId) && typeId != TypeIds_CharArray && typeId != TypeIds_BoolArray))
             {
-                if (JavascriptArray::Is(typeId) && JavascriptArray::UnsafeFromVar(arrayArg)->GetLength() == 0)
+                if (JavascriptArray::IsNonES5Array(typeId) && UnsafeVarTo<JavascriptArray>(arrayArg)->GetLength() == 0)
                 {
                     return scriptContext->GetLibrary()->GetPositiveInfinite();
                 }

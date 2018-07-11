@@ -160,15 +160,15 @@ namespace Js
         Assert(!CrossSite::IsThunk(instance->GetType()->GetEntryPoint()));
 
         ScriptContext *scriptContext = instance->GetScriptContext();
-        PathTypeHandlerBase* newTypeHandler = 
+        PathTypeHandlerBase* newTypeHandler =
             PathTypeHandlerNoAttr::New(
-                scriptContext, 
-                scriptContext->GetLibrary()->GetRootPath(), 
-                0, 
-                static_cast<PropertyIndex>(this->GetSlotCapacity()), 
-                this->GetInlineSlotCapacity(), 
-                this->GetOffsetOfInlineSlots(), 
-                true, 
+                scriptContext,
+                scriptContext->GetLibrary()->GetRootPath(),
+                0,
+                static_cast<PropertyIndex>(this->GetSlotCapacity()),
+                this->GetInlineSlotCapacity(),
+                this->GetOffsetOfInlineSlots(),
+                true,
                 false);
         newTypeHandler->SetMayBecomeShared();
 
@@ -1139,7 +1139,7 @@ namespace Js
     template<size_t size>
     DynamicTypeHandler* SimpleTypeHandler<size>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ?
+        return JavascriptArray::IsNonES5Array(instance) ?
             ConvertToES5ArrayType(instance) : ConvertToDictionaryType(instance);
     }
 

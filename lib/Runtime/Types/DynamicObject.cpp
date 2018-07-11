@@ -118,7 +118,7 @@ namespace Js
             // While the objectArray can be any array type, a DynamicObject that is created on the
             // stack will only have one of these three types (as these are also the only array types
             // that can be allocated on the stack).
-            Assert(Js::JavascriptArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+            Assert(Js::JavascriptArray::IsNonES5Array(instance->GetObjectArrayOrFlagsAsArray())
                 || Js::JavascriptNativeIntArray::Is(instance->GetObjectArrayOrFlagsAsArray())
                 || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
             );
@@ -159,6 +159,11 @@ namespace Js
         bool result = DynamicType::Is(obj->GetTypeId());
         Assert(result == obj->DbgIsDynamicObject());
         return result;
+    }
+
+    template <> bool LegacyVarIs<DynamicObject>(Var aValue)
+    {
+        return DynamicObject::IsBaseDynamicObject(aValue);
     }
 
     ArrayObject* DynamicObject::EnsureObjectArray()
@@ -209,13 +214,18 @@ namespace Js
     // Check if a typeId is of any array type (JavascriptArray or ES5Array).
     bool DynamicObject::IsAnyArrayTypeId(TypeId typeId)
     {
-        return JavascriptArray::Is(typeId) || typeId == TypeIds_ES5Array;
+        return JavascriptArray::IsNonES5Array(typeId) || typeId == TypeIds_ES5Array;
     }
 
     // Check if a Var is either a JavascriptArray* or ES5Array*.
     bool DynamicObject::IsAnyArray(const Var aValue)
     {
         return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(aValue));
+    }
+
+    bool DynamicObject::IsAnyArray(DynamicObject* obj)
+    {
+        return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(obj));
     }
 
     BOOL DynamicObject::HasObjectArrayItem(uint32 index)
@@ -968,7 +978,7 @@ namespace Js
         {
             return false;
         }
-        if (HasObjectArray() || (JavascriptArray::Is(this) && JavascriptArray::FromVar(this)->GetLength() != 0))
+        if (HasObjectArray() || (JavascriptArray::IsNonES5Array(this) && VarTo<JavascriptArray>(this)->GetLength() != 0))
         {
             return false;
         }

@@ -512,4 +512,15 @@ namespace Js {
         Assert(VarIs<T>(aValue));
         return reinterpret_cast<T*>(aValue);
     }
+
+    // To avoid behavior change during refactoring, this attempts to retain old inconsistent behavior.
+    // Types that want to specialize it should declare that intent here, to ensure that no compilation
+    // unit includes this base implementation but not the specialization.
+    template <typename T> bool LegacyVarIs(Var aValue)
+    {
+        return VarIs<T>(aValue);
+    }
+
+    template <> bool LegacyVarIs<DynamicObject>(Var aValue);
+    template <> bool LegacyVarIs<JavascriptArray>(Var aValue);
 }

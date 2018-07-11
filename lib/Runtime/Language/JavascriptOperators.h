@@ -783,6 +783,9 @@ namespace Js
         static BOOL IsRemoteArray(RecyclableObject* instance);
     };
 
+    // Any of the following that just do VarIs are conversion scaffolding, to be removed before checkin.
+    // Others are cases where we should consider whether to keep the old weird behavior.
+
     template <>
     __forceinline RecyclableObject* JavascriptOperators::TryFromVar<RecyclableObject>(_In_ RecyclableObject* value)
     {
@@ -797,12 +800,12 @@ namespace Js
     template <>
     __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ RecyclableObject* value)
     {
-        return VarIs<DynamicObject>(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
+        return DynamicObject::IsBaseDynamicObject(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
     }
     template <>
     __forceinline DynamicObject* JavascriptOperators::TryFromVar<DynamicObject>(_In_ Var value)
     {
-        return VarIs<DynamicObject>(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
+        return DynamicObject::IsBaseDynamicObject(value) ? UnsafeVarTo<DynamicObject>(value) : nullptr;
     }
 
 } // namespace Js

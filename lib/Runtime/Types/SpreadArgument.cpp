@@ -32,9 +32,9 @@ namespace Js
 
         if (useDirectCall)
         {
-            if (JavascriptArray::Is(iterator))
+            if (JavascriptArray::IsNonES5Array(iterator))
             {
-                JavascriptArray *array = JavascriptArray::FromVar(iterator);
+                JavascriptArray *array = VarTo<JavascriptArray>(iterator);
                 if (!array->HasNoMissingValues())
                 {
                     AssertAndFailFast();

@@ -211,10 +211,8 @@ namespace Js
             return this->DirectGetItemAt(index, &value) ? WritableData : None;
         }
 
-        static bool Is(Var aValue);
-        static bool Is(TypeId typeId);
-        static JavascriptArray* FromVar(Var aValue);
-        static JavascriptArray* UnsafeFromVar(Var aValue);
+        static bool IsNonES5Array(Var aValue);
+        static bool IsNonES5Array(TypeId typeId);
 
         static bool IsVarArray(Var aValue);
         static bool IsVarArray(TypeId typeId);
@@ -663,13 +661,14 @@ namespace Js
                 Var element;
                 fn(i, TryTemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
 
-                if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
+                AssertOrFailFastMsg(false, "FIXME");
+                if (hasSideEffect && MayChangeType<T>()/* && !T::Is(arr)*/)
                 {
-                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                     // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                    if (JavascriptArray::Is(arr))
+                    if (JavascriptArray::IsNonES5Array(arr))
                     {
-                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                        VarTo<JavascriptArray>(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                         return;
                     }
                     else
@@ -693,11 +692,11 @@ namespace Js
                     AssertOrFailFastMsg(false, "FIXME");
                     if (hasSideEffect && MayChangeType<T>()/* && !T::Is(arr)*/)
                     {
-                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                        if (JavascriptArray::Is(arr))
+                        if (JavascriptArray::IsNonES5Array(arr))
                         {
-                            JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                            VarTo<JavascriptArray>(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                             return;
                         }
                         else
@@ -856,11 +855,11 @@ namespace Js
         static void SetConcatItem(Var aItem, uint idxArg, JavascriptArray* pDestArray, RecyclableObject* pDestObj, T idxDest, ScriptContext *scriptContext);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, 
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start,
             BigIndex startIdxDest, ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, 
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u,
             ConcatSpreadableState previousItemSpreadableState = ConcatSpreadableState_NotChecked, BigIndex *firstPromotedItemLength = nullptr);
 
         static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
@@ -935,6 +934,27 @@ namespace Js
             return VtableHelper();
         }
     };
+
+    template <> inline bool VarIs<JavascriptArray>(RecyclableObject* obj)
+    {
+        return DynamicObject::IsAnyArray(obj);
+    }
+
+    template <> inline bool LegacyVarIs<JavascriptArray>(Var aValue)
+    {
+        return JavascriptArray::IsNonES5Array(aValue);
+    }
+
+    template <>
+    __forceinline JavascriptArray* JavascriptOperators::TryFromVar<JavascriptArray>(_In_ RecyclableObject* value)
+    {
+        return JavascriptArray::IsNonES5Array(value) ? UnsafeVarTo<JavascriptArray>(value) : nullptr;
+    }
+    template <>
+    __forceinline JavascriptArray* JavascriptOperators::TryFromVar<JavascriptArray>(_In_ Var value)
+    {
+        return JavascriptArray::IsNonES5Array(value) ? UnsafeVarTo<JavascriptArray>(value) : nullptr;
+    }
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change
     // so we are checking for failure on DeleteProperty/DeleteItem/... etc instead. This helper makes that checking a little less intrusive.

@@ -387,7 +387,7 @@ using namespace Js;
     JavascriptArray::JavascriptArray(uint32 length, DynamicType * type)
         : ArrayObject(type, false, length)
     {
-        Assert(JavascriptArray::Is(type->GetTypeId()));
+        Assert(JavascriptArray::IsNonES5Array(type->GetTypeId()));
         Assert(EmptySegment->length == 0 && EmptySegment->size == 0 && EmptySegment->next == NULL);
         InitArrayFlags(DynamicObjectFlags::InitialArrayValue);
         SetHeadAndLastUsedSegment(const_cast<SparseArraySegmentBase *>(EmptySegment));
@@ -452,13 +452,13 @@ using namespace Js;
         SparseArraySegment<double>::From(head)->FillSegmentBuffer(0, size);
     }
 
-    bool JavascriptArray::Is(Var aValue)
+    bool JavascriptArray::IsNonES5Array(Var aValue)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return JavascriptArray::Is(typeId);
+        return JavascriptArray::IsNonES5Array(typeId);
     }
 
-    bool JavascriptArray::Is(TypeId typeId)
+    bool JavascriptArray::IsNonES5Array(TypeId typeId)
     {
         return typeId >= TypeIds_ArrayFirst && typeId <= TypeIds_ArrayLast;
     }
@@ -506,31 +506,17 @@ using namespace Js;
         }
     }
 
-    JavascriptArray* JavascriptArray::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(IsAnyArray(aValue), "Ensure var is actually a 'JavascriptArray'");
-
-        return static_cast<JavascriptArray *>(aValue);
-    }
-
-    JavascriptArray* JavascriptArray::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(IsAnyArray(aValue), "Ensure var is actually a 'JavascriptArray'");
-
-        return static_cast<JavascriptArray *>(aValue);
-    }
-
     // Get JavascriptArray* from a Var, which is either a JavascriptArray* or ESArray*.
     JavascriptArray* JavascriptArray::FromAnyArray(Var aValue)
     {
-        AssertOrFailFastMsg(Is(aValue) || ES5Array::Is(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
+        AssertOrFailFastMsg(VarIs<JavascriptArray>(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
 
         return static_cast<JavascriptArray *>(VarTo<RecyclableObject>(aValue));
     }
 
     JavascriptArray* JavascriptArray::UnsafeFromAnyArray(Var aValue)
     {
-        AssertMsg(Is(aValue) || ES5Array::Is(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
+        AssertMsg(VarIs<JavascriptArray>(aValue), "Ensure var is actually a 'JavascriptArray' or 'ES5Array'");
 
         return static_cast<JavascriptArray *>(UnsafeVarTo<RecyclableObject>(aValue));
     }
@@ -684,7 +670,7 @@ using namespace Js;
         if(vtable == VirtualTableInfo<DynamicObject>::Address)
         {
             ArrayObject* objectArray = VarTo<DynamicObject>(var)->GetObjectArray();
-            array = (objectArray && Is(objectArray)) ? FromVar(objectArray) : nullptr;
+            array = (objectArray && IsNonES5Array(objectArray)) ? VarTo<JavascriptArray>(objectArray) : nullptr;
             if(!array)
             {
                 return nullptr;
@@ -712,7 +698,7 @@ using namespace Js;
 
         if(!array)
         {
-            array = FromVar(var);
+            array = VarTo<JavascriptArray>(var);
         }
         return array;
     }
@@ -3255,7 +3241,7 @@ using namespace Js;
             }
 
             if (pDestArray && JavascriptArray::IsDirectAccessArray(aItem) && JavascriptArray::IsDirectAccessArray(pDestArray)
-                && BigIndex(idxDest + JavascriptArray::UnsafeFromVar(aItem)->length).IsSmallIndex() && !JavascriptArray::UnsafeFromVar(aItem)->IsFillFromPrototypes()) // Fast path
+                && BigIndex(idxDest + UnsafeVarTo<JavascriptArray>(aItem)->length).IsSmallIndex() && !UnsafeVarTo<JavascriptArray>(aItem)->IsFillFromPrototypes()) // Fast path
             {
                 JavascriptNativeIntArray *pIntItemArray = JavascriptOperators::TryFromVar<JavascriptNativeIntArray>(aItem);
                 if (pIntItemArray)
@@ -3273,7 +3259,7 @@ using namespace Js;
                     }
                     else
                     {
-                        JavascriptArray* pItemArray = JavascriptArray::UnsafeFromVar(aItem);
+                        JavascriptArray* pItemArray = UnsafeVarTo<JavascriptArray>(aItem);
                         JS_REENTRANT(jsReentLock, CopyArrayElements(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray));
                         idxDest = idxDest + pItemArray->length;
                     }
@@ -3505,7 +3491,7 @@ using namespace Js;
             bool converted = false;
             if (JavascriptArray::IsAnyArray(aItem) || remoteTypeIds[idxArg] == TypeIds_Array)
             {
-                bool isFillFromPrototypes = JavascriptArray::UnsafeFromVar(aItem)->IsFillFromPrototypes();
+                bool isFillFromPrototypes = UnsafeVarTo<JavascriptArray>(aItem)->IsFillFromPrototypes();
                 JavascriptNativeIntArray * pIntItemArray = JavascriptOperators::TryFromVar<JavascriptNativeIntArray>(aItem);
                 if (pIntItemArray && !isFillFromPrototypes) // Fast path
                 {
@@ -3727,7 +3713,7 @@ using namespace Js;
                 {
                     isInt = false;
                     isFloat = JavascriptNativeFloatArray::Is(pDestObj);
-                    isArray = JavascriptArray::Is(pDestObj);
+                    isArray = JavascriptArray::IsNonES5Array(pDestObj);
                 }
             }
             else if (isFloat)
@@ -3741,7 +3727,7 @@ using namespace Js;
                 else
                 {
                     isFloat = JavascriptNativeFloatArray::Is(pDestObj);
-                    isArray = JavascriptArray::Is(pDestObj);
+                    isArray = JavascriptArray::IsNonES5Array(pDestObj);
                 }
             }
             else
@@ -3762,7 +3748,7 @@ using namespace Js;
                     }
                     else
                     {
-                        isArray = JavascriptArray::Is(pDestObj);
+                        isArray = JavascriptArray::IsNonES5Array(pDestObj);
                     }
                 }
             }
@@ -3787,7 +3773,7 @@ using namespace Js;
             else
             {
 
-                pDestArray = isArray ?  JavascriptArray::FromVar(pDestObj) : scriptContext->GetLibrary()->CreateArray(cDestLength);
+                pDestArray = isArray ?  VarTo<JavascriptArray>(pDestObj) : scriptContext->GetLibrary()->CreateArray(cDestLength);
                 // if the constructor has changed then we no longer specialize for ints and floats
                 pDestArray->EnsureHead<Var>();
 
@@ -3953,7 +3939,7 @@ using namespace Js;
         }
 
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -4244,7 +4230,7 @@ using namespace Js;
 
     int32 JavascriptArray::HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm, ScriptContext * scriptContext)
     {
-        Assert(Is(GetTypeId()) && !JavascriptNativeArray::Is(GetTypeId()));
+        Assert(IsNonES5Array(GetTypeId()) && !JavascriptNativeArray::Is(GetTypeId()));
 
         if (!HasNoMissingValues() || fromIndex >= GetHead()->length)
         {
@@ -4823,7 +4809,7 @@ Case0:
         }
 
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -4956,7 +4942,7 @@ Case0:
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_NativePopWithNoDst);
         Assert(JavascriptNativeArray::Is(nativeArray));
-        JavascriptArray * arr = JavascriptArray::FromVar(nativeArray);
+        JavascriptArray * arr = VarTo<JavascriptArray>(nativeArray);
 
         // we will bailout on length 0
         Assert(arr->GetLength() != 0);
@@ -5032,9 +5018,9 @@ Case0:
     Var JavascriptArray::Pop(ScriptContext * scriptContext, Var object)
     {
         JIT_HELPER_REENTRANT_HEADER(Array_VarPop);
-        if (JavascriptArray::Is(object))
+        if (JavascriptArray::IsNonES5Array(object))
         {
-            return EntryPopJavascriptArray(scriptContext, JavascriptArray::FromVar(object));
+            return EntryPopJavascriptArray(scriptContext, VarTo<JavascriptArray>(object));
         }
         else
         {
@@ -5141,9 +5127,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.pop"));
         }
 
-        if (JavascriptArray::Is(args[0]))
+        if (JavascriptArray::IsNonES5Array(args[0]))
         {
-            JS_REENTRANT_UNLOCK(jsReentLock, return EntryPopJavascriptArray(scriptContext, JavascriptArray::FromVar(args.Values[0])));
+            JS_REENTRANT_UNLOCK(jsReentLock, return EntryPopJavascriptArray(scriptContext, VarTo<JavascriptArray>(args.Values[0])));
         }
         else
         {
@@ -5227,7 +5213,7 @@ Case0:
         args[0] = object;
         args[1] = value;
 
-        if (JavascriptArray::Is(object))
+        if (JavascriptArray::IsNonES5Array(object))
         {
             return EntryPushJavascriptArray(scriptContext, args, 2);
         }
@@ -5443,7 +5429,7 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.push"));
         }
 
-        if (JavascriptArray::Is(args[0]))
+        if (JavascriptArray::IsNonES5Array(args[0]))
         {
             return EntryPushJavascriptArray(scriptContext, args.Values, args.Info.Count);
         }
@@ -5955,13 +5941,13 @@ Case0:
             return res;
         }
 
-        bool useNoSideEffectShift = JavascriptArray::Is(args[0])
-            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject()
-            && !HasAnyES5ArrayInPrototypeChain(JavascriptArray::UnsafeFromVar(args[0]));
+        bool useNoSideEffectShift = JavascriptArray::IsNonES5Array(args[0])
+            && !VarTo<JavascriptArray>(args[0])->IsCrossSiteObject()
+            && !HasAnyES5ArrayInPrototypeChain(UnsafeVarTo<JavascriptArray>(args[0]));
 
         if (useNoSideEffectShift)
         {
-            JavascriptArray * pArr = JavascriptArray::UnsafeFromVar(args[0]);
+            JavascriptArray * pArr = UnsafeVarTo<JavascriptArray>(args[0]);
 
             if (pArr->length == 0)
             {
@@ -6342,7 +6328,7 @@ Case0:
         }
 
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or end may convert the array to an ES5 array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -6441,7 +6427,7 @@ Case0:
 
         // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
         // we will process the array elements like an ES5Array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -6506,7 +6492,7 @@ Case0:
 
                         // Side-effects in the prototype lookup may have changed the source array into an ES5Array. If this happens
                         // we will process the rest of the array elements like an ES5Array.
-                        if (!JavascriptArray::Is(obj))
+                        if (!JavascriptArray::IsNonES5Array(obj))
                         {
                             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                             JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext));
@@ -6531,7 +6517,7 @@ Case0:
 
                     // Side-effects in the prototype lookup may have changed the source array into an ES5Array. If this happens
                     // we will process the rest of the array elements like an ES5Array.
-                    if (!JavascriptArray::Is(obj))
+                    if (!JavascriptArray::IsNonES5Array(obj))
                     {
                         AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext));
@@ -7030,13 +7016,13 @@ Case0:
 
         SETOBJECT_FOR_MUTATION(jsReentLock, args[0]);
 
-        bool useNoSideEffectSort = JavascriptArray::Is(args[0])
-            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject()
-            && !HasAnyES5ArrayInPrototypeChain(JavascriptArray::UnsafeFromVar(args[0]));
+        bool useNoSideEffectSort = JavascriptArray::IsNonES5Array(args[0])
+            && !VarTo<JavascriptArray>(args[0])->IsCrossSiteObject()
+            && !HasAnyES5ArrayInPrototypeChain(UnsafeVarTo<JavascriptArray>(args[0]));
 
         if (useNoSideEffectSort)
         {
-            JavascriptArray *arr = JavascriptArray::UnsafeFromVar(args[0]);
+            JavascriptArray *arr = UnsafeVarTo<JavascriptArray>(args[0]);
 
             if (arr->length <= 1)
             {
@@ -7158,7 +7144,7 @@ Case0:
         }
 
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or deleteCount may convert the array to an ES5 array.
-        if (pArr && !JavascriptArray::Is(pObj))
+        if (pArr && !JavascriptArray::IsNonES5Array(pObj))
         {
             AssertOrFailFastMsg(ES5Array::Is(pObj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -7879,7 +7865,7 @@ Case0:
 
         if (JavascriptArray::IsDirectAccessArray(args[0]))
         {
-            JavascriptArray* arr = JavascriptArray::UnsafeFromVar(args[0]);
+            JavascriptArray* arr = UnsafeVarTo<JavascriptArray>(args[0]);
             JS_REENTRANT_UNLOCK(jsReentLock, return ToLocaleString(arr, scriptContext));
         }
         else
@@ -8063,13 +8049,13 @@ Case0:
         }
 
         JavascriptArray * pArr = nullptr;
-        if (JavascriptArray::Is(args[0])
-            && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
+        if (JavascriptArray::IsNonES5Array(args[0])
+            && !VarTo<JavascriptArray>(args[0])->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
 #endif
-            pArr = JavascriptArray::FromVar(args[0]);
+            pArr = VarTo<JavascriptArray>(args[0]);
         }
 
         uint32 unshiftElements = args.Info.Count - 1;
@@ -8531,7 +8517,7 @@ Case0:
 
                 // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
                 // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
+                if (!JavascriptArray::IsNonES5Array(obj))
                 {
                     AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                     JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::FindObjectHelper<findIndex>(obj, length, k + 1, callBackFn, thisArg, scriptContext));
@@ -9255,7 +9241,7 @@ Case0:
         }
 
         // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments may convert the array to an ES5 array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -9315,7 +9301,7 @@ Case0:
                             val = pArr->DirectGetItem(fromIndex),
                             pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible));
 
-                        if (!JavascriptArray::Is(obj))
+                        if (!JavascriptArray::IsNonES5Array(obj))
                         {
                             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                             pArr = nullptr;
@@ -9403,7 +9389,7 @@ Case0:
 
             // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
             // we will process the array elements like an ES5Array.
-            if (pArr && !JavascriptArray::Is(obj))
+            if (pArr && !JavascriptArray::IsNonES5Array(obj))
             {
                 AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                 pArr = nullptr;
@@ -9610,7 +9596,7 @@ Case0:
 
         // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
         // we will process the array elements like an ES5Array.
-        if (pArr && !JavascriptArray::Is(obj))
+        if (pArr && !JavascriptArray::IsNonES5Array(obj))
         {
             AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
             pArr = nullptr;
@@ -9651,7 +9637,7 @@ Case0:
 
                 // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
                 // we will process the rest of the array elements like an ES5Array.
-                if (!JavascriptArray::Is(obj))
+                if (!JavascriptArray::IsNonES5Array(obj))
                 {
                     AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
                     JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::MapObjectHelper<T>(obj, length, k + 1, newObj, newArr, isBuiltinArrayCtor, callBackFn, thisArg, scriptContext));
@@ -9706,7 +9692,7 @@ Case0:
         }
 
 #ifdef VALIDATE_ARRAY
-        if (JavascriptArray::Is(newObj))
+        if (JavascriptArray::IsNonES5Array(newObj))
         {
             newArr->ValidateArray();
         }
@@ -9757,7 +9743,7 @@ Case0:
         }
 
 #ifdef VALIDATE_ARRAY
-        if (JavascriptArray::Is(newObj))
+        if (JavascriptArray::IsNonES5Array(newObj))
         {
             newArr->ValidateArray();
         }
@@ -10761,7 +10747,7 @@ Case0:
 
         if (arr != nullptr)
         {
-            if (JavascriptArray::Is(arr))
+            if (JavascriptArray::IsNonES5Array(arr))
             {
                 arr = EnsureNonNativeArray(arr);
                 ArrayElementEnumerator e(arr, startIndex, limitIndex);
@@ -11558,7 +11544,7 @@ Case0:
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arrayToSpread);
 #endif
-        JavascriptArray *array = FromVar(arrayToSpread);
+        JavascriptArray *array = VarTo<JavascriptArray>(arrayToSpread);
         uint32 arrayLength = array->GetLength();
         uint32 actualLength = arrayLength;
 
@@ -11568,7 +11554,7 @@ Case0:
                 actualLength = UInt32Math::Add(actualLength - 1, GetSpreadArgLen(array->DirectGetItem(spreadIndices->elements[i]), scriptContext)));
         }
 
-        JavascriptArray *result = FromVar(OP_NewScArrayWithMissingValues(actualLength, scriptContext));
+        JavascriptArray *result = VarTo<JavascriptArray>(OP_NewScArrayWithMissingValues(actualLength, scriptContext));
 
         // Now we copy each element and expand the spread parameters inline.
         for (unsigned i = 0, spreadArrIndex = 0, resultIndex = 0; i < arrayLength && resultIndex < actualLength; ++i)
@@ -11991,7 +11977,7 @@ Case0:
         switch (typeId)
         {
         case Js::TypeIds_Array:
-            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptArray>(JavascriptArray::UnsafeFromVar(arrayObject));
+            arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptArray>(UnsafeVarTo<JavascriptArray>(arrayObject));
             break;
         case Js::TypeIds_NativeIntArray:
             arrayCopy = JavascriptArray::DeepCopyInstance<JavascriptNativeIntArray>(JavascriptNativeIntArray::UnsafeFromVar(arrayObject));
@@ -12235,7 +12221,7 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, originalArray);
 
-        if (JavascriptArray::Is(originalArray)
+        if (JavascriptArray::IsNonES5Array(originalArray)
             && !UnsafeVarTo<DynamicObject>(originalArray)->GetDynamicType()->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor()
             && UnsafeVarTo<DynamicObject>(originalArray)->GetPrototype() == scriptContext->GetLibrary()->GetArrayPrototype()
             && !scriptContext->GetLibrary()->GetArrayObjectHasUserDefinedSpecies())
@@ -12298,7 +12284,7 @@ Case0:
             else
             {
                 // If the constructor function is the built-in Array constructor, we can be smart and create the right type of native array.
-                JavascriptArray* pArr = JavascriptArray::FromVar(originalArray);
+                JavascriptArray* pArr = VarTo<JavascriptArray>(originalArray);
                 pArr->GetArrayTypeAndConvert(pIsIntArray, pIsFloatArray);
                 return CreateNewArrayHelper(static_cast<uint32>(length), *pIsIntArray, *pIsFloatArray, pArr, scriptContext);
             }

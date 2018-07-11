@@ -394,7 +394,7 @@ FUNCTIONKIND_VALUES(VALUE)
         Var iterable = args.Values[1];
 
         TypedArrayBase *typedArrayBase = nullptr;
-        Assert(!JavascriptArray::Is(iterable));
+        Assert(!JavascriptArray::IsNonES5Array(iterable));
 
         if (TypedArrayBase::Is(iterable))
         {

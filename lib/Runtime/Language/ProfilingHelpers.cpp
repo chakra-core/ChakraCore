@@ -36,7 +36,7 @@ using namespace Js;
         const bool fastPath = isJsArray;
         if(fastPath)
         {
-            JavascriptArray *const array = JavascriptArray::UnsafeFromVar(base);
+            JavascriptArray *const array = UnsafeVarTo<JavascriptArray>(base);
             ldElemInfo.arrayType = ValueType::FromArray(ObjectType::Array, array, TypeIds_Array).ToLikely();
 
             const Var element = ProfiledLdElem_FastPath(array, varIndex, functionBody->GetScriptContext(), &ldElemInfo);
@@ -257,7 +257,7 @@ using namespace Js;
         const bool fastPath = isJsArray && !JavascriptOperators::SetElementMayHaveImplicitCalls(scriptContext);
         if(fastPath)
         {
-            JavascriptArray *const array = JavascriptArray::UnsafeFromVar(base);
+            JavascriptArray *const array = UnsafeVarTo<JavascriptArray>(base);
             stElemInfo.arrayType = ValueType::FromArray(ObjectType::Array, array, TypeIds_Array).ToLikely();
             stElemInfo.createdMissingValue = array->HasNoMissingValues();
 
@@ -273,7 +273,7 @@ using namespace Js;
         TypeId arrayTypeId;
         if(isJsArray)
         {
-            array = JavascriptArray::UnsafeFromVar(base);
+            array = UnsafeVarTo<JavascriptArray>(base);
             isObjectWithArray = false;
             arrayTypeId = TypeIds_Array;
         }

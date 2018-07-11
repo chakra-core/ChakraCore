@@ -230,7 +230,7 @@ namespace Js
     template <class T>
     void ES5ArrayTypeHandlerBase<T>::SetInstanceTypeHandler(DynamicObject* instance, bool hasChanged)
     {
-        Assert(JavascriptArray::Is(instance));
+        Assert(JavascriptArray::IsNonES5Array(instance));
         if (this->GetFlags() & DynamicTypeHandler::IsPrototypeFlag)
         {
             // We have ES5 array has array/object prototype, we can't use array fast path for set
@@ -243,7 +243,7 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
 #endif
-        JavascriptArray * arrayInstance = JavascriptArray::EnsureNonNativeArray(JavascriptArray::FromVar(instance));
+        JavascriptArray * arrayInstance = JavascriptArray::EnsureNonNativeArray(VarTo<JavascriptArray>(instance));
 #if DBG
         bool doneConversion = false;
         Js::Type* oldType = arrayInstance->GetType();

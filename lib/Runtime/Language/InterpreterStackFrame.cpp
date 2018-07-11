@@ -5050,7 +5050,7 @@ skipThunk:
         {
             element =
                 ProfilingHelpers::ProfiledLdElem_FastPath(
-                    JavascriptArray::UnsafeFromVar(instance),
+                    UnsafeVarTo<JavascriptArray>(instance),
                     GetReg(playout->Element),
                     GetScriptContext());
         }
@@ -5088,7 +5088,7 @@ skipThunk:
             !JavascriptOperators::SetElementMayHaveImplicitCalls(GetScriptContext()))
         {
             ProfilingHelpers::ProfiledStElem_FastPath(
-                JavascriptArray::UnsafeFromVar(instance),
+                UnsafeVarTo<JavascriptArray>(instance),
                 varIndex,
                 value,
                 GetScriptContext(),

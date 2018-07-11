@@ -185,6 +185,7 @@ namespace Js
 
         // Check if a Var is either a JavascriptArray* or ES5Array*.
         static bool IsAnyArray(const Var aValue);
+        static bool IsAnyArray(DynamicObject* obj);
 
         // Check if a Var is a typedarray.
         static bool IsAnyTypedArray(const Var aValue);
