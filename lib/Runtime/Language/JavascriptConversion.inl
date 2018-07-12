@@ -248,7 +248,7 @@ namespace Js {
            {
                return nullptr;
            }
-           int64 int64Val = JavascriptInt64Number::UnsafeFromVar(value)->GetValue();
+           int64 int64Val = UnsafeVarTo<JavascriptInt64Number>(value)->GetValue();
 
            return TryCanonicalizeIntHelper<int64, allowNegOne>(int64Val);
 
@@ -259,7 +259,7 @@ namespace Js {
            {
                return nullptr;
            }
-           uint64 uint64Val = JavascriptUInt64Number::UnsafeFromVar(value)->GetValue();
+           uint64 uint64Val = UnsafeVarTo<JavascriptUInt64Number>(value)->GetValue();
 
            return TryCanonicalizeIntHelper<uint64, allowNegOne>(uint64Val);
        }

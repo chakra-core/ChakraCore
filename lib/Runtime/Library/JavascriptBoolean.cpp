@@ -161,10 +161,10 @@ namespace Js
             *value = left->GetValue() ? JavascriptNumber::GetValue(right) == 1.0 : JavascriptNumber::GetValue(right) == 0.0;
             break;
         case TypeIds_Int64Number:
-            *value = left->GetValue() ? JavascriptInt64Number::FromVar(right)->GetValue() == 1 : JavascriptInt64Number::FromVar(right)->GetValue() == 0;
+            *value = left->GetValue() ? VarTo<JavascriptInt64Number>(right)->GetValue() == 1 : VarTo<JavascriptInt64Number>(right)->GetValue() == 0;
             break;
         case TypeIds_UInt64Number:
-            *value = left->GetValue() ? JavascriptUInt64Number::FromVar(right)->GetValue() == 1 : JavascriptUInt64Number::FromVar(right)->GetValue() == 0;
+            *value = left->GetValue() ? VarTo<JavascriptUInt64Number>(right)->GetValue() == 1 : VarTo<JavascriptUInt64Number>(right)->GetValue() == 0;
             break;
         case TypeIds_Boolean:
             *value = left->GetValue() == VarTo<JavascriptBoolean>(right)->GetValue();

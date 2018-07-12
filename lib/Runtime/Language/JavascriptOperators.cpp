@@ -679,15 +679,15 @@ using namespace Js;
                 {
                 case TypeIds_Int64Number:
                     {
-                        __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                        __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                        __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                        __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                         return leftValue < rightValue;
                     }
                     break;
                 case TypeIds_UInt64Number:
                     {
-                        __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                        unsigned __int64 rightValue = JavascriptUInt64Number::UnsafeFromVar(aRight)->GetValue();
+                        __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                        unsigned __int64 rightValue = UnsafeVarTo<JavascriptUInt64Number>(aRight)->GetValue();
                         if (rightValue <= INT_MAX && leftValue >= 0)
                         {
                             return leftValue < (__int64)rightValue;
@@ -695,7 +695,7 @@ using namespace Js;
                     }
                     break;
                 }
-                dblLeft = (double)JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft = (double)UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
             }
             break;
@@ -709,8 +709,8 @@ using namespace Js;
                 {
                 case TypeIds_Int64Number:
                     {
-                        unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                        __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                        unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                        __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                         if (leftValue < INT_MAX && rightValue >= 0)
                         {
                             return (__int64)leftValue < rightValue;
@@ -719,13 +719,13 @@ using namespace Js;
                     break;
                 case TypeIds_UInt64Number:
                     {
-                        unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                        unsigned __int64 rightValue = JavascriptUInt64Number::UnsafeFromVar(aRight)->GetValue();
+                        unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                        unsigned __int64 rightValue = UnsafeVarTo<JavascriptUInt64Number>(aRight)->GetValue();
                         return leftValue < rightValue;
                     }
                     break;
                 }
-                dblLeft = (double)JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft = (double)UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
             }
             break;
@@ -857,18 +857,18 @@ using namespace Js;
             {
             case TypeIds_Int64Number:
                 {
-                    __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                    __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                    __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                    __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                     return leftValue == rightValue;
                 }
             case TypeIds_UInt64Number:
                 {
-                    __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                    unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                    __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                    unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                     return ((unsigned __int64)leftValue == rightValue);
                 }
             case TypeIds_Number:
-                dblLeft     = (double)JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft     = (double)UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 dblRight    = JavascriptNumber::GetValue(aRight);
                 goto CommonNumber;
             }
@@ -878,18 +878,18 @@ using namespace Js;
             {
             case TypeIds_Int64Number:
                 {
-                    unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                    __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                    unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                    __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                     return (leftValue == (unsigned __int64)rightValue);
                 }
             case TypeIds_UInt64Number:
                 {
-                    unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                    unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                    unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                    unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                     return leftValue == rightValue;
                 }
             case TypeIds_Number:
-                dblLeft     = (double)JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft     = (double)UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 dblRight    = JavascriptNumber::GetValue(aRight);
                 goto CommonNumber;
             }
@@ -904,11 +904,11 @@ using namespace Js;
                 goto CommonNumber;
             case TypeIds_Int64Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);
-                dblRight = (double)JavascriptInt64Number::FromVar(aRight)->GetValue();
+                dblRight = (double)VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 goto CommonNumber;
             case TypeIds_UInt64Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);
-                dblRight = (double)JavascriptUInt64Number::UnsafeFromVar(aRight)->GetValue();
+                dblRight = (double)UnsafeVarTo<JavascriptUInt64Number>(aRight)->GetValue();
                 goto CommonNumber;
             case TypeIds_Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);

@@ -338,10 +338,10 @@ namespace TTD
                     snapValue->u_doubleValue = Js::JavascriptNumber::GetValue(jsValue);
                     break;
                 case Js::TypeIds_Int64Number:
-                    snapValue->u_int64Value = Js::JavascriptInt64Number::FromVar(jsValue)->GetValue();
+                    snapValue->u_int64Value = Js::VarTo<Js::JavascriptInt64Number>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_UInt64Number:
-                    snapValue->u_uint64Value = Js::JavascriptUInt64Number::FromVar(jsValue)->GetValue();
+                    snapValue->u_uint64Value = Js::VarTo<Js::JavascriptUInt64Number>(jsValue)->GetValue();
                     break;
                 case Js::TypeIds_String:
                     snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();

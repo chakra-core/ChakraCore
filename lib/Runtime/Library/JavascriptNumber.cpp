@@ -1020,12 +1020,12 @@ namespace Js
         }
         else if (typeId == TypeIds_Int64Number)
         {
-            *pDouble = (double)JavascriptInt64Number::FromVar(aValue)->GetValue();
+            *pDouble = (double)VarTo<JavascriptInt64Number>(aValue)->GetValue();
             return TRUE;
         }
         else if (typeId == TypeIds_UInt64Number)
         {
-            *pDouble = (double)JavascriptUInt64Number::FromVar(aValue)->GetValue();
+            *pDouble = (double)VarTo<JavascriptUInt64Number>(aValue)->GetValue();
             return TRUE;
         }
         else if (JavascriptNumber::Is_NoTaggedIntCheck(aValue))

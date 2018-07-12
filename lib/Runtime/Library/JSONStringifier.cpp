@@ -714,11 +714,11 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Int64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(UnsafeVarTo<JavascriptInt64Number>(valueObj)->GetValue()), valueObj, prop);
         return;
 
     case TypeIds_UInt64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptUInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(UnsafeVarTo<JavascriptUInt64Number>(valueObj)->GetValue()), valueObj, prop);
         return;
 
 #if !FLOATVAR

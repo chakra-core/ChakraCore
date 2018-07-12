@@ -88,13 +88,13 @@ using namespace Js;
             case TypeIds_Int64Number:
                 {
                 int leftValue = TaggedInt::ToInt32(aLeft);
-                __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return leftValue == rightValue;
                 }
             case TypeIds_UInt64Number:
                 {
                 int leftValue = TaggedInt::ToInt32(aLeft);
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return leftValue == rightValue;
                 }
             }
@@ -104,24 +104,24 @@ using namespace Js;
             {
             case TypeIds_Integer:
                 {
-                __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 int rightValue = TaggedInt::ToInt32(aRight);
                 return leftValue == rightValue;
                 }
             case TypeIds_Number:
-                dblLeft     = (double)JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft     = (double)UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
                 dblRight    = JavascriptNumber::GetValue(aRight);
                 goto CommonNumber;
             case TypeIds_Int64Number:
                 {
-                __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return leftValue == rightValue;
                 }
             case TypeIds_UInt64Number:
                 {
-                __int64 leftValue = JavascriptInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return ((unsigned __int64)leftValue == rightValue);
                 }
             }
@@ -131,24 +131,24 @@ using namespace Js;
             {
             case TypeIds_Integer:
                 {
-                unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 __int64 rightValue = TaggedInt::ToInt32(aRight);
                 return (leftValue == (unsigned __int64)rightValue);
                 }
             case TypeIds_Number:
-                dblLeft     = (double)JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
+                dblLeft     = (double)UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
                 dblRight    = JavascriptNumber::GetValue(aRight);
                 goto CommonNumber;
             case TypeIds_Int64Number:
                 {
-                unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                __int64 rightValue = JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return (leftValue == (unsigned __int64)rightValue);
                 }
             case TypeIds_UInt64Number:
                 {
-                unsigned __int64 leftValue = JavascriptUInt64Number::UnsafeFromVar(aLeft)->GetValue();
-                unsigned __int64 rightValue = JavascriptInt64Number::FromVar(aRight)->GetValue();
+                unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
                 return leftValue == rightValue;
                 }
             }
@@ -162,11 +162,11 @@ using namespace Js;
                 goto CommonNumber;
             case TypeIds_Int64Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);
-                dblRight    = (double)JavascriptInt64Number::UnsafeFromVar(aRight)->GetValue();
+                dblRight    = (double)UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
                 goto CommonNumber;
             case TypeIds_UInt64Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);
-                dblRight    = (double)JavascriptUInt64Number::UnsafeFromVar(aRight)->GetValue();
+                dblRight    = (double)UnsafeVarTo<JavascriptUInt64Number>(aRight)->GetValue();
                 goto CommonNumber;
             case TypeIds_Number:
                 dblLeft     = JavascriptNumber::GetValue(aLeft);
@@ -408,9 +408,9 @@ CommonNumber:
 
         // convert to JavascriptNumber
         case TypeIds_Int64Number:
-            return JavascriptInt64Number::UnsafeFromVar(aValue)->ToJavascriptNumber();
+            return UnsafeVarTo<JavascriptInt64Number>(aValue)->ToJavascriptNumber();
         case TypeIds_UInt64Number:
-            return JavascriptUInt64Number::UnsafeFromVar(aValue)->ToJavascriptNumber();
+            return UnsafeVarTo<JavascriptUInt64Number>(aValue)->ToJavascriptNumber();
 
         default:
             // if no Method exists this function falls back to OrdinaryToPrimitive
@@ -616,7 +616,7 @@ CommonNumber:
 
             case TypeIds_Int64Number:
                 {
-                    __int64 value = JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue();
+                    __int64 value = UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue();
                     if (!TaggedInt::IsOverflow(value))
                     {
                         return scriptContext->GetIntegerString((int)value);
@@ -629,7 +629,7 @@ CommonNumber:
 
             case TypeIds_UInt64Number:
                 {
-                    unsigned __int64 value = JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue();
+                    unsigned __int64 value = UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue();
                     if (!TaggedInt::IsOverflow(value))
                     {
                         return scriptContext->GetIntegerString((uint)value);
@@ -692,10 +692,10 @@ CommonNumber:
             return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue() ? scriptContext->GetLibrary()->GetTrueDisplayString() : scriptContext->GetLibrary()->GetFalseDisplayString();
 
         case TypeIds_Int64Number:
-            return JavascriptNumber::ToLocaleString((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue(), scriptContext);
+            return JavascriptNumber::ToLocaleString((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue(), scriptContext);
 
         case TypeIds_UInt64Number:
-            return JavascriptNumber::ToLocaleString((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue(), scriptContext);
+            return JavascriptNumber::ToLocaleString((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue(), scriptContext);
 
         case TypeIds_Number:
             return JavascriptNumber::ToLocaleString(JavascriptNumber::GetValue(aValue), scriptContext);
@@ -783,13 +783,13 @@ CommonNumber:
 
         case TypeIds_Int64Number:
             {
-                __int64 value = JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue();
+                __int64 value = UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue();
                 return value != 0;
             }
 
         case TypeIds_UInt64Number:
             {
-                unsigned __int64 value = JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue();
+                unsigned __int64 value = UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue();
                 return value != 0;
             }
 
@@ -889,10 +889,10 @@ CommonNumber:
                 return JavascriptNumber::GetValue(aValue);
 
             case TypeIds_Int64Number:
-                return (double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue();
+                return (double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue();
 
             case TypeIds_UInt64Number:
-                return (double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue();
+                return (double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue();
 
             case TypeIds_String:
                 return UnsafeVarTo<JavascriptString>(aValue)->ToDouble();
@@ -943,10 +943,10 @@ CommonNumber:
                 return ToInteger(JavascriptNumber::GetValue(aValue));
 
             case TypeIds_Int64Number:
-                return ToInteger((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return ToInteger((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue());
 
             case TypeIds_UInt64Number:
-                return ToInteger((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return ToInteger((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
             case TypeIds_String:
                 return ToInteger(UnsafeVarTo<JavascriptString>(aValue)->ToDouble());
 
@@ -1020,12 +1020,12 @@ CommonNumber:
         case TypeIds_Int64Number:
             // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
             // treat it as double anyhow.
-            return JavascriptMath::ToInt32Core((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue());
+            return JavascriptMath::ToInt32Core((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue());
 
         case TypeIds_UInt64Number:
             // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
             // treat it as double anyhow.
-            return JavascriptMath::ToInt32Core((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
+            return JavascriptMath::ToInt32Core((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
 
         case TypeIds_String:
         {
@@ -1067,12 +1067,12 @@ CommonNumber:
         case TypeIds_Int64Number:
             // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
             // treat it as double anyhow.
-            return JavascriptMath::ToInt32Core((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue());
+            return JavascriptMath::ToInt32Core((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue());
 
         case TypeIds_UInt64Number:
             // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
             // treat it as double anyhow.
-            return JavascriptMath::ToInt32Core((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
+            return JavascriptMath::ToInt32Core((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
 
         case TypeIds_String:
         {
@@ -1129,12 +1129,12 @@ CommonNumber:
             case TypeIds_Int64Number:
                 // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return ToInt32Finite((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue(), result);
+                return ToInt32Finite((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue(), result);
 
             case TypeIds_UInt64Number:
                 // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return ToInt32Finite((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue(), result);
+                return ToInt32Finite((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue(), result);
 
             case TypeIds_String:
                 return ToInt32Finite(UnsafeVarTo<JavascriptString>(aValue)->ToDouble(), result);
@@ -1172,12 +1172,12 @@ CommonNumber:
             }
         case TypeIds_Int64Number:
             {
-            JavascriptInt64Number* int64Number = JavascriptInt64Number::UnsafeFromVar(aValue);
+            JavascriptInt64Number* int64Number = UnsafeVarTo<JavascriptInt64Number>(aValue);
             return int64Number->GetValue();
             }
         case TypeIds_UInt64Number:
             {
-            JavascriptUInt64Number* uint64Number = JavascriptUInt64Number::UnsafeFromVar(aValue);
+            JavascriptUInt64Number* uint64Number = UnsafeVarTo<JavascriptUInt64Number>(aValue);
             return (__int64)uint64Number->GetValue();
             }
         case TypeIds_Number:
@@ -1197,12 +1197,12 @@ CommonNumber:
             }
         case TypeIds_Int64Number:
             {
-            JavascriptInt64Number* int64Number = JavascriptInt64Number::UnsafeFromVar(aValue);
+            JavascriptInt64Number* int64Number = UnsafeVarTo<JavascriptInt64Number>(aValue);
             return (unsigned __int64)int64Number->GetValue();
             }
         case TypeIds_UInt64Number:
             {
-            JavascriptUInt64Number* uint64Number = JavascriptUInt64Number::UnsafeFromVar(aValue);
+            JavascriptUInt64Number* uint64Number = UnsafeVarTo<JavascriptUInt64Number>(aValue);
             return uint64Number->GetValue();
             }
         case TypeIds_Number:
@@ -1258,12 +1258,12 @@ CommonNumber:
             case TypeIds_Int64Number:
                 // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return JavascriptMath::ToUInt32((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return JavascriptMath::ToUInt32((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue());
 
             case TypeIds_UInt64Number:
                 // we won't lose precision if the int64 is within 32bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return JavascriptMath::ToUInt32((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return JavascriptMath::ToUInt32((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
 
             case TypeIds_String:
             {
@@ -1339,12 +1339,12 @@ CommonNumber:
             case TypeIds_Int64Number:
                 // we won't lose precision if the int64 is within 16bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return ToUInt16((double)JavascriptInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return ToUInt16((double)UnsafeVarTo<JavascriptInt64Number>(aValue)->GetValue());
 
             case TypeIds_UInt64Number:
                 // we won't lose precision if the int64 is within 16bit boundary; otherwise we need to
                 // treat it as double anyhow.
-                return ToUInt16((double)JavascriptUInt64Number::UnsafeFromVar(aValue)->GetValue());
+                return ToUInt16((double)UnsafeVarTo<JavascriptUInt64Number>(aValue)->GetValue());
 
             case TypeIds_String:
             {

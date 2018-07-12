@@ -1915,10 +1915,10 @@ namespace TTD
                 this->AppendDouble(Js::JavascriptNumber::GetValue(var));
                 break;
             case Js::TypeIds_Int64Number:
-                this->AppendInteger(Js::JavascriptInt64Number::FromVar(var)->GetValue());
+                this->AppendInteger(Js::VarTo<Js::JavascriptInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_UInt64Number:
-                this->AppendUnsignedInteger(Js::JavascriptUInt64Number::FromVar(var)->GetValue());
+                this->AppendUnsignedInteger(Js::VarTo<Js::JavascriptUInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");

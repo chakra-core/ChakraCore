@@ -2012,11 +2012,11 @@ namespace Js
             }
             else if (Js::JavascriptOperators::GetTypeId(instance) == TypeIds_Int64Number)
             {
-                value = (double)JavascriptInt64Number::FromVar(instance)->GetValue();
+                value = (double)VarTo<JavascriptInt64Number>(instance)->GetValue();
             }
             else if (Js::JavascriptOperators::GetTypeId(instance) == TypeIds_UInt64Number)
             {
-                value = (double)JavascriptUInt64Number::FromVar(instance)->GetValue();
+                value = (double)VarTo<JavascriptUInt64Number>(instance)->GetValue();
             }
             else
             {
