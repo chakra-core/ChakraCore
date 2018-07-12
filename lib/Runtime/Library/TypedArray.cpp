@@ -1007,9 +1007,9 @@ namespace Js
             *outOffset = 0;
             *outLength = buffer->GetByteLength();
         }
-        else if (Js::DataView::Is(instance))
+        else if (Js::VarIs<Js::DataView>(instance))
         {
-            Js::DataView* dView = Js::DataView::FromVar(instance);
+            Js::DataView* dView = Js::VarTo<Js::DataView>(instance);
             *outBuffer = dView->GetArrayBuffer()->GetAsArrayBuffer();
             *outOffset = dView->GetByteOffset();
             *outLength = dView->GetLength();

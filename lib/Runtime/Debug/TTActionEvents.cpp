@@ -740,7 +740,7 @@ namespace TTD
             const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::GetDataViewInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
 
-            Js::DataView* dataView = Js::DataView::FromVar(var);
+            Js::DataView* dataView = Js::VarTo<Js::DataView>(var);
             Js::Var res = dataView->GetArrayBuffer();
 
             //Need additional notify since JsRTActionHandleResultForReplay may allocate but GetDataViewInfo does not enter runtime

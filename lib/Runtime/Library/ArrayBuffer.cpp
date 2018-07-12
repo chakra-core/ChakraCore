@@ -196,7 +196,7 @@ namespace Js
             break;
 
         case TypeIds_DataView:
-                DataView::FromVar(parent)->ClearLengthAndBufferOnDetach();
+                VarTo<DataView>(parent)->ClearLengthAndBufferOnDetach();
             break;
 
         default:
@@ -405,7 +405,7 @@ namespace Js
         }
 
         // Only DataView or any TypedArray objects have [[ViewedArrayBuffer]] internal slots
-        if (DataView::Is(arg) || VarIs<TypedArrayBase>(arg))
+        if (VarIs<DataView>(arg) || VarIs<TypedArrayBase>(arg))
         {
             return library->GetTrue();
         }

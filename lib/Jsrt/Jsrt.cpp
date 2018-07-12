@@ -2326,12 +2326,12 @@ CHAKRA_API JsGetDataViewStorage(_In_ JsValueRef instance, _Outptr_result_bytebuf
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::DataView::Is(instance))
+        if (!Js::VarIs<Js::DataView>(instance))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        Js::DataView* dataView = Js::DataView::FromVar(instance);
+        Js::DataView* dataView = Js::VarTo<Js::DataView>(instance);
         *buffer = dataView->GetArrayBuffer()->GetBuffer() + dataView->GetByteOffset();
         *bufferLength = dataView->GetLength();
     }
@@ -5456,12 +5456,12 @@ CHAKRA_API JsGetDataViewInfo(
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::DataView::Is(dataView))
+        if (!Js::VarIs<Js::DataView>(dataView))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        Js::DataView* dv = Js::DataView::FromVar(dataView);
+        Js::DataView* dv = Js::VarTo<Js::DataView>(dataView);
         if (arrayBuffer != nullptr) {
             *arrayBuffer = dv->GetArrayBuffer();
         }
