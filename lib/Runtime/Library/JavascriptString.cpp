@@ -1647,9 +1647,9 @@ case_2:
 
         // When the config is enabled, the operation is handled by a Symbol function (e.g. Symbol.replace).
         if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-            && JavascriptRegExp::Is(aValue))
+            && VarIs<JavascriptRegExp>(aValue))
         {
-            *ppSearchRegEx = JavascriptRegExp::FromVar(aValue);
+            *ppSearchRegEx = VarTo<JavascriptRegExp>(aValue);
         }
         else if (VarIs<JavascriptString>(aValue))
         {
@@ -1884,9 +1884,9 @@ case_2:
 
             // When the config is enabled, the operation is handled by RegExp.prototype[@@split].
             if (!scriptContext->GetConfig()->IsES6RegExSymbolsEnabled()
-                && JavascriptRegExp::Is(args[1]))
+                && VarIs<JavascriptRegExp>(args[1]))
             {
-                return RegexHelper::RegexSplit(scriptContext, JavascriptRegExp::UnsafeFromVar(args[1]), input, limit,
+                return RegexHelper::RegexSplit(scriptContext, UnsafeVarTo<JavascriptRegExp>(args[1]), input, limit,
                     RegexHelper::IsResultNotUsed(callInfo.Flags));
             }
             else
@@ -3105,9 +3105,9 @@ case_2:
             return TRUE;
         }
         // 2. If Type(value) is Object and value has a [[StringData]] internal slot
-        else if ( JavascriptStringObject::Is(aValue))
+        else if ( VarIs<JavascriptStringObject>(aValue))
         {
-            JavascriptStringObject* pStringObj = JavascriptStringObject::FromVar(aValue);
+            JavascriptStringObject* pStringObj = VarTo<JavascriptStringObject>(aValue);
 
             // a. Let s be the value of value's [[StringData]] internal slot.
             // b. If s is not undefined, then return s.

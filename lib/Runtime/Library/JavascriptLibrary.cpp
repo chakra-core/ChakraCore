@@ -775,9 +775,9 @@ namespace Js
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
         ScriptFunction *scriptFunction = nullptr;
         bool useAnonymous = false;
-        if (ScriptFunction::Is(function))
+        if (VarIs<ScriptFunction>(function))
         {
-            scriptFunction = Js::ScriptFunction::FromVar(function);
+            scriptFunction = Js::VarTo<Js::ScriptFunction>(function);
             useAnonymous = scriptFunction->IsAnonymousFunction();
         }
 
@@ -4903,7 +4903,7 @@ namespace Js
 #if ENABLE_TTD
     Js::PropertyId JavascriptLibrary::ExtractPrimitveSymbolId_TTD(Var value)
     {
-        return Js::JavascriptSymbol::FromVar(value)->GetValue()->GetPropertyId();
+        return Js::VarTo<Js::JavascriptSymbol>(value)->GetValue()->GetPropertyId();
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::PropertyId pid)
@@ -4945,10 +4945,10 @@ namespace Js
             Js::VarTo<Js::JavascriptNumberObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_StringObject:
-            Js::JavascriptStringObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptStringObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_SymbolObject:
-            Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptSymbolObject>(obj)->SetValue_TTD(value);
             break;
         default:
             TTDAssert(false, "Unsupported nullptr value boxed object.");
@@ -5179,7 +5179,7 @@ namespace Js
     {
         Assert(function->GetDynamicType()->GetIsLocked());
 
-        if (ScriptFunction::Is(function))
+        if (VarIs<ScriptFunction>(function))
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }

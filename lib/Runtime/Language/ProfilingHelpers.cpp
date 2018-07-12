@@ -526,7 +526,7 @@ using namespace Js;
         ...)
     {
         ARGUMENTS(args, callee, framePointer, profileId, arrayProfileId, callInfo);
-        ScriptFunction* func = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        ScriptFunction* func = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArray);
         return
             ProfiledNewScObjArray(
@@ -549,7 +549,7 @@ using namespace Js;
     {
         ARGUMENTS(args, spreadIndices, callee, framePointer, profileId, arrayProfileId, callInfo);
 
-        Js::ScriptFunction *function = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        Js::ScriptFunction *function = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ScriptContext* scriptContext = function->GetScriptContext();
 
         JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArraySpread);
@@ -751,7 +751,7 @@ using namespace Js;
         void *const framePointer)
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdLen);
-        ScriptFunction * const scriptFunction = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        ScriptFunction * const scriptFunction = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         FunctionBody * functionBody = scriptFunction->GetFunctionBody();
         DynamicProfileInfo * profileInfo = functionBody->GetDynamicProfileInfo();
 
@@ -778,7 +778,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, false>(
                 instance,
@@ -799,7 +799,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdSuperFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, false>(
             instance,
@@ -819,7 +819,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFldForTypeOf);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
         return ProfiledLdFldForTypeOf<false, false, false>(
             instance,
@@ -839,7 +839,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld_CallApplyTarget);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, true>(
                 instance,
@@ -859,7 +859,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdMethodFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, true, false>(
                 instance,
@@ -879,7 +879,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<true, false, false>(
                 instance,
@@ -899,7 +899,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFldForTypeOf);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
         return ProfiledLdFldForTypeOf<true, false, false>(
             instance,
@@ -918,7 +918,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootMethodFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<true, true, false>(
                 instance,
@@ -959,12 +959,12 @@ using namespace Js;
             RecyclableObject *const object = UnsafeVarTo<RecyclableObject>(instance);
             RecyclableObject *const thisObject = UnsafeVarTo<RecyclableObject>(thisInstance);
 
-            if (!Root && Method && (propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && ScriptFunction::Is(object))
+            if (!Root && Method && (propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && VarIs<ScriptFunction>(object))
             {
                 // If the property being loaded is "apply"/"call", make an optimistic assumption that apply/call is not overridden and
                 // undefer the function right here if it was defer parsed before. This is required so that the load of "apply"/"call"
                 // happens from the same "type". Otherwise, we will have a polymorphic cache for load of "apply"/"call".
-                ScriptFunction *fn = ScriptFunction::UnsafeFromVar(object);
+                ScriptFunction *fn = UnsafeVarTo<ScriptFunction>(object);
                 if (fn->GetType()->GetEntryPoint() == JavascriptFunction::DeferredParsingThunk)
                 {
                     JavascriptFunction::DeferredParse(&fn);
@@ -1086,7 +1086,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1109,7 +1109,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStSuperFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1131,7 +1131,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStFld_Strict);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1153,7 +1153,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
             instance,
             propertyId,
@@ -1175,7 +1175,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld_Strict);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
             instance,
             propertyId,
@@ -1326,7 +1326,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledInitFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledInitFld(
             VarTo<RecyclableObject>(instance),
             propertyId,
@@ -1436,7 +1436,7 @@ using namespace Js;
 
         return
             scriptFunction->GetHasInlineCaches()
-                ? ScriptFunctionWithInlineCache::UnsafeFromVar(scriptFunction)->GetInlineCache(inlineCacheIndex)
+                ? UnsafeVarTo<ScriptFunctionWithInlineCache>(scriptFunction)->GetInlineCache(inlineCacheIndex)
                 : scriptFunction->GetFunctionBody()->GetInlineCache(inlineCacheIndex);
     }
 #endif

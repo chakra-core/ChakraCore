@@ -861,7 +861,7 @@ namespace Js
                     itemObj = scriptContext->GetLibrary()->GetUndefined();
                 }
 
-                AssertMsg(!RootObjectBase::Is(object) || !isConst, "root object shouldn't produce const properties through IsPropertyValid");
+                AssertMsg(!VarIs<RootObjectBase>(object) || !isConst, "root object shouldn't produce const properties through IsPropertyValid");
 
                 DebuggerPropertyDisplayInfo *info = AllocateNewPropertyDisplayInfo(
                     propertyId,
@@ -892,8 +892,8 @@ namespace Js
             ScriptContext * scriptContext = pFrame->GetScriptContext();
             ArenaAllocator *arena = GetArenaFromContext(scriptContext);
 
-            Assert(Js::RootObjectBase::Is(instance));
-            Js::RootObjectBase* object = Js::RootObjectBase::FromVar(instance);
+            Assert(Js::VarIs<Js::RootObjectBase>(instance));
+            Js::RootObjectBase* object = Js::VarTo<Js::RootObjectBase>(instance);
 
             int count = object->GetPropertyCount();
             pMembersList = JsUtil::List<DebuggerPropertyDisplayInfo *, ArenaAllocator>::New(arena, count);
@@ -2603,7 +2603,7 @@ namespace Js
                         // Provide [Set] group object.
                         EnsureFakeGroupObjectWalkerList();
 
-                        JavascriptSet* set = JavascriptSet::FromVar(object);
+                        JavascriptSet* set = VarTo<JavascriptSet>(object);
                         RecyclableSetObjectWalker *pSetWalker = Anew(arena, RecyclableSetObjectWalker, scriptContext, set);
                         fakeGroupObjectWalkerList->Add(pSetWalker);
                     }
@@ -2612,7 +2612,7 @@ namespace Js
                         // Provide [WeakMap] group object.
                         EnsureFakeGroupObjectWalkerList();
 
-                        JavascriptWeakMap* weakMap = JavascriptWeakMap::FromVar(object);
+                        JavascriptWeakMap* weakMap = VarTo<JavascriptWeakMap>(object);
                         RecyclableWeakMapObjectWalker *pWeakMapWalker = Anew(arena, RecyclableWeakMapObjectWalker, scriptContext, weakMap);
                         fakeGroupObjectWalkerList->Add(pWeakMapWalker);
                     }
@@ -2621,7 +2621,7 @@ namespace Js
                         // Provide [WeakSet] group object.
                         EnsureFakeGroupObjectWalkerList();
 
-                        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(object);
+                        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(object);
                         RecyclableWeakSetObjectWalker *pWeakSetWalker = Anew(arena, RecyclableWeakSetObjectWalker, scriptContext, weakSet);
                         fakeGroupObjectWalkerList->Add(pWeakSetWalker);
                     }
@@ -3582,7 +3582,7 @@ namespace Js
     template <>
     void RecyclableCollectionObjectWalker<JavascriptSet>::GetChildren()
     {
-        JavascriptSet* data = JavascriptSet::FromVar(instance);
+        JavascriptSet* data = VarTo<JavascriptSet>(instance);
         auto iterator = data->GetIterator();
         while (iterator.Next())
         {
@@ -3594,7 +3594,7 @@ namespace Js
     template <>
     void RecyclableCollectionObjectWalker<JavascriptWeakMap>::GetChildren()
     {
-        JavascriptWeakMap* data = JavascriptWeakMap::FromVar(instance);
+        JavascriptWeakMap* data = VarTo<JavascriptWeakMap>(instance);
         data->Map([&](Var key, Var value)
         {
             propertyList->Add(RecyclableCollectionObjectWalkerPropertyData<JavascriptWeakMap>(key, value));
@@ -3604,7 +3604,7 @@ namespace Js
     template <>
     void RecyclableCollectionObjectWalker<JavascriptWeakSet>::GetChildren()
     {
-        JavascriptWeakSet* data = JavascriptWeakSet::FromVar(instance);
+        JavascriptWeakSet* data = VarTo<JavascriptWeakSet>(instance);
         data->Map([&](Var value)
         {
             propertyList->Add(RecyclableCollectionObjectWalkerPropertyData<JavascriptWeakSet>(value));

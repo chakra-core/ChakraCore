@@ -559,12 +559,12 @@ namespace TTD
 
             //These really don't have any effect, we need the marshal in validate, so just skip since Js::JavascriptSymbol has strange declaration order
             //
-            //if(!Js::JavascriptSymbol::Is(sym))
+            //if(!Js::VarIs<Js::JavascriptSymbol>(sym))
             //{
             //    return JsErrorPropertyNotSymbol;
             //}
             //
-            //Js::JavascriptSymbol::FromVar(symbol)->GetValue();
+            //Js::VarTo<Js::JavascriptSymbol>(symbol)->GetValue();
         }
 
         void GetPrototypeAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
@@ -861,7 +861,7 @@ namespace TTD
 
             //
             //TODO: we will want to look at this at some point -- either treat as "top-level" call or maybe constructors are fast so we can just jump back to previous "real" code
-            //TTDAssert(!Js::ScriptFunction::Is(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
+            //TTDAssert(!Js::VarIs<Js::ScriptFunction>(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
             //
 
             Js::Var res = nullptr;

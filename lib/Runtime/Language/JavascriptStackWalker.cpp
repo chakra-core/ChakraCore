@@ -454,7 +454,7 @@ namespace Js
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
             // has the native offset of the current physical frame.
             Assert(!*inlinee);
-            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/);
+            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, VarTo<ScriptFunction>(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/);
             inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
             tmpFrameWalker.Close();
         }
@@ -559,7 +559,7 @@ namespace Js
                         }
 
                         bool hasInlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/);
+                            VarTo<ScriptFunction>(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/);
 
                         if (hasInlinedFramesOnStack)
                         {
@@ -610,7 +610,7 @@ namespace Js
                     bool inlinedFramesFound = InlinedFrameWalker::FromPhysicalFrame(
                         inlinedFrameWalker,
                         currentFrame,
-                        ScriptFunction::FromVar(function),
+                        VarTo<ScriptFunction>(function),
                         false,  // fromBailout
                         -1,     // loopNum
                         nullptr,// walker
@@ -956,7 +956,7 @@ namespace Js
                 // wouldn't have created a new interpreterFrame if the bailout were from the loop body itself.
                 Assert(this->interpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut));
                 InlinedFrameWalker tmpFrameWalker;
-                Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
+                Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]),
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
@@ -993,7 +993,7 @@ namespace Js
                 return false;
             }
 
-            ScriptFunction* funcObj = Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]);
+            ScriptFunction* funcObj = Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]);
             if (funcObj->GetFunctionBody()->GetIsAsmjsMode())
             {
                 return false;
@@ -1003,7 +1003,7 @@ namespace Js
             if (((CallInfo const *)&argv[JavascriptFunctionArgIndex_CallInfo])->Flags & CallFlags_InternalFrame)
             {
                 if (includeInlineFrames &&
-                    InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
+                    InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]),
                         false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, false /*noAlloc*/))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.

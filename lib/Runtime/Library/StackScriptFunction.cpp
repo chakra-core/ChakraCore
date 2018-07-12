@@ -65,7 +65,7 @@ namespace Js
     StackScriptFunction *
     StackScriptFunction::FromVar(Var var)
     {
-        AssertOrFailFast(ScriptFunction::Is(var));
+        AssertOrFailFast(VarIs<ScriptFunction>(var));
         Assert(ThreadContext::IsOnStack(var));
         return static_cast<StackScriptFunction *>(var);
     }
@@ -73,7 +73,7 @@ namespace Js
     StackScriptFunction *
     StackScriptFunction::UnsafeFromVar(Var var)
     {
-        Assert(ScriptFunction::Is(var));
+        Assert(VarIs<ScriptFunction>(var));
         Assert(ThreadContext::IsOnStack(var));
         return static_cast<StackScriptFunction *>(var);
     }
@@ -168,7 +168,7 @@ namespace Js
                 continue;
             }
 
-            ScriptFunction * callerScriptFunction = ScriptFunction::FromVar(caller);
+            ScriptFunction * callerScriptFunction = VarTo<ScriptFunction>(caller);
             FunctionBody * callerFunctionBody = callerScriptFunction->GetFunctionBody();
             if (hasInlineeToBox || this->NeedBoxFrame(callerFunctionBody))
             {
@@ -697,9 +697,9 @@ namespace Js
         for (uint i = 0; i < count; i++)
         {
             Js::Var slotValue = scopeSlots.Get(i);
-            if (ScriptFunction::Is(slotValue))
+            if (VarIs<ScriptFunction>(slotValue))
             {
-                ScriptFunction * stackFunction = ScriptFunction::FromVar(slotValue);
+                ScriptFunction * stackFunction = VarTo<ScriptFunction>(slotValue);
                 slotValue = BoxStackFunction(stackFunction);
             }
             boxedScopeSlots.Set(i, slotValue);

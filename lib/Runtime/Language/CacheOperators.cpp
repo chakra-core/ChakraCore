@@ -35,7 +35,7 @@ namespace Js
         PropertyIndex propertyIndex = info->GetPropertyIndex();
 
         Assert(propertyIndex == objectWithProperty->GetPropertyIndex(propertyId) ||
-            (RootObjectBase::Is(objectWithProperty) && propertyIndex == RootObjectBase::FromVar(objectWithProperty)->GetRootPropertyIndex(propertyId)));
+            (VarIs<RootObjectBase>(objectWithProperty) && propertyIndex == VarTo<RootObjectBase>(objectWithProperty)->GetRootPropertyIndex(propertyId)));
         Assert(DynamicType::Is(objectWithProperty->GetTypeId()));
 
 #if ENABLE_FIXED_FIELDS
@@ -197,7 +197,7 @@ namespace Js
         }
 
         Assert((!isRoot && propertyIndex == object->GetPropertyIndex(propertyId)) || isSetter ||
-            (isRoot && propertyIndex == RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId)));
+            (isRoot && propertyIndex == VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId)));
         Assert(DynamicType::Is(object->GetTypeId()));
         AssertMsg((info->GetFlags() & InlineCacheGetterFlag) == 0, "invalid getter for CachePropertyWrite");
 

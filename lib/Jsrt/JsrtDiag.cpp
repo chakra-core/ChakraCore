@@ -566,12 +566,12 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         *functionPosition = JS_INVALID_REFERENCE;
 
-        if (!Js::VarIs<Js::RecyclableObject>(function) || !Js::ScriptFunction::Is(function))
+        if (!Js::VarIs<Js::RecyclableObject>(function) || !Js::VarIs<Js::ScriptFunction>(function))
         {
             return JsErrorInvalidArgument;
         }
 
-        Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(function);
+        Js::ScriptFunction* jsFunction = Js::VarTo<Js::ScriptFunction>(function);
 
         BOOL fParsed = jsFunction->GetParseableFunctionInfo()->IsFunctionParsed();
         if (!fParsed)

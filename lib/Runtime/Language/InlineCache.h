@@ -460,7 +460,7 @@ namespace Js
                 *propertyValue = InlineCache::GetPropertyValue<slotType>(cache->GetSourceObject<cacheType>(propertyObject), cache->GetSlotIndex<cacheType>());
                 DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
                 Assert(*propertyValue == getPropertyValue ||
-                    (RootObjectBase::Is(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext))||
+                    (VarIs<RootObjectBase>(propertyObject) && *propertyValue == JavascriptOperators::GetRootProperty(propertyObject, propertyId, requestContext))||
                     // In some cases, such as CustomExternalObject, if implicit calls are disabled GetPropertyQuery may return null. See CustomExternalObject::GetPropertyQuery for an example.
                     (getPropertyValue == requestContext->GetLibrary()->GetNull() && requestContext->GetThreadContext()->IsDisableImplicitCall() && propertyObject->GetType()->IsExternal()));
             }

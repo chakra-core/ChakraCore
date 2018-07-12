@@ -18,25 +18,6 @@ JavascriptSet* JavascriptSet::New(ScriptContext* scriptContext)
     return set;
 }
 
-bool JavascriptSet::Is(Var aValue)
-{
-    return JavascriptOperators::GetTypeId(aValue) == TypeIds_Set;
-}
-
-JavascriptSet* JavascriptSet::FromVar(Var aValue)
-{
-    AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
-
-    return static_cast<JavascriptSet *>(aValue);
-}
-
-JavascriptSet* JavascriptSet::UnsafeFromVar(Var aValue)
-{
-    AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSet'");
-
-    return static_cast<JavascriptSet *>(aValue);
-}
-
 JavascriptSet::SetDataList::Iterator JavascriptSet::GetIterator()
 {
     return this->list.GetIterator();

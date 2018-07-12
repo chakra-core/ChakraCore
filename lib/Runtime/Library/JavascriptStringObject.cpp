@@ -37,25 +37,6 @@ namespace Js
         }
     }
 
-    bool JavascriptStringObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_StringObject;
-    }
-
-    JavascriptStringObject* JavascriptStringObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptStringObject *>(aValue);
-    }
-
-    JavascriptStringObject* JavascriptStringObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptString'");
-
-        return static_cast<JavascriptStringObject *>(aValue);
-    }
-
     void JavascriptStringObject::Initialize(JavascriptString* value)
     {
         Assert(this->value == nullptr);

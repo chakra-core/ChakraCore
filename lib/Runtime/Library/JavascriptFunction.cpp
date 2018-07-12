@@ -121,7 +121,7 @@ using namespace Js;
     /* static */
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
-        return ScriptFunctionBase::Is(objectWithProperty)
+        return VarIs<ScriptFunctionBase>(objectWithProperty)
             && (propertyId == PropertyIds::length || (VarTo<JavascriptFunction>(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
@@ -1902,7 +1902,7 @@ LABEL1:
             }
 
             Var* addressOfFuncObj = GetAddressOfFuncObj();
-            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !ScriptFunction::Is(*addressOfFuncObj))
+            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !VarIs<ScriptFunction>(*addressOfFuncObj))
             {
                 return nullptr;
             }
@@ -2289,12 +2289,12 @@ LABEL1:
             return false;
         }
 
-        bool isAsmJs = AsmJsScriptFunction::Is(func);
-        bool isWasmOnly = WasmScriptFunction::Is(func);
+        bool isAsmJs = VarIs<AsmJsScriptFunction>(func);
+        bool isWasmOnly = VarIs<WasmScriptFunction>(func);
         uintptr_t faultingAddr = helper.GetFaultingAddress();
         if (isAsmJs)
         {
-            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
+            AsmJsScriptFunction* asmFunc = VarTo<AsmJsScriptFunction>(func);
             // some extra checks for asm.js because we have slightly more information that we can validate
             if (!asmFunc->GetModuleEnvironment())
             {
@@ -2306,7 +2306,7 @@ LABEL1:
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
-                WebAssemblyMemory* mem = WasmScriptFunction::FromVar(func)->GetWebAssemblyMemory();
+                WebAssemblyMemory* mem = VarTo<WasmScriptFunction>(func)->GetWebAssemblyMemory();
                 arrayBuffer = mem->GetBuffer();
                 reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
@@ -2455,7 +2455,7 @@ LABEL1:
         {
             Assert(CrossSite::IsThunk(callEntryPoint));
         }
-        else if (ScriptFunction::Is(this))
+        else if (VarIs<ScriptFunction>(this))
         {
         }
         else
@@ -2704,15 +2704,15 @@ LABEL1:
                 funcCaller = nullValue;
             }
 
-            if (ScriptFunction::Is(funcCaller))
+            if (VarIs<ScriptFunction>(funcCaller))
             {
                 // If this is the internal function of a generator function then return the original generator function
-                funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+                funcCaller = VarTo<ScriptFunction>(funcCaller)->GetRealFunctionObject();
 
                 // This function is escaping, so make sure there isn't some nested parent that has a cached scope.
-                if (ScriptFunction::Is(funcCaller))
+                if (VarIs<ScriptFunction>(funcCaller))
                 {
-                    FrameDisplay * pFrameDisplay = Js::ScriptFunction::FromVar(funcCaller)->GetEnvironment();
+                    FrameDisplay * pFrameDisplay = Js::VarTo<Js::ScriptFunction>(funcCaller)->GetEnvironment();
                     uint length = (uint)pFrameDisplay->GetLength();
                     for (uint i = 0; i < length; i++)
                     {
@@ -3212,7 +3212,7 @@ LABEL1:
             return true;
         }
 
-        Assert(!ScriptFunction::Is(thisFunction));
+        Assert(!VarIs<ScriptFunction>(thisFunction));
         return GetSourceStringName(name);
     }
 

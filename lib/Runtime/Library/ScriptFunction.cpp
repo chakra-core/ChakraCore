@@ -14,28 +14,16 @@ using namespace Js;
         JavascriptFunction(type, functionInfo)
     {}
 
-    bool ScriptFunctionBase::Is(Var func)
+    template <> bool Js::VarIs<ScriptFunctionBase>(RecyclableObject* obj)
     {
-        if (VarIs<JavascriptFunction>(func))
+        if (VarIs<JavascriptFunction>(obj))
         {
-            JavascriptFunction *function = UnsafeVarTo<JavascriptFunction>(func);
+            JavascriptFunction *function = UnsafeVarTo<JavascriptFunction>(obj);
             return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
                 || JavascriptAsyncFunction::Test(function);
         }
 
         return false;
-    }
-
-    ScriptFunctionBase * ScriptFunctionBase::FromVar(Var func)
-    {
-        AssertOrFailFast(ScriptFunctionBase::Is(func));
-        return reinterpret_cast<ScriptFunctionBase *>(func);
-    }
-
-    ScriptFunctionBase * ScriptFunctionBase::UnsafeFromVar(Var func)
-    {
-        Assert(ScriptFunctionBase::Is(func));
-        return reinterpret_cast<ScriptFunctionBase *>(func);
     }
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
@@ -163,23 +151,6 @@ using namespace Js;
             RecyclableObject *scopeObj = VarTo<RecyclableObject>(scope);
             scopeObj->InvalidateCachedScope();
         }
-    }
-
-    bool ScriptFunction::Is(Var func)
-    {
-        return VarIs<JavascriptFunction>(func) && UnsafeVarTo<JavascriptFunction>(func)->IsScriptFunction();
-    }
-
-    ScriptFunction * ScriptFunction::FromVar(Var func)
-    {
-        AssertOrFailFast(ScriptFunction::Is(func));
-        return reinterpret_cast<ScriptFunction *>(func);
-    }
-
-    ScriptFunction * ScriptFunction::UnsafeFromVar(Var func)
-    {
-        Assert(ScriptFunction::Is(func));
-        return reinterpret_cast<ScriptFunction *>(func);
     }
 
     ProxyEntryPointInfo * ScriptFunction::GetEntryPointInfo() const
@@ -562,23 +533,6 @@ using namespace Js;
         ScriptFunction(proxy, deferredPrototypeType), m_moduleEnvironment(nullptr)
     {}
 
-    bool AsmJsScriptFunction::Is(Var func)
-    {
-        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->IsAsmJsFunction();
-    }
-
-    AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)
-    {
-        AssertOrFailFast(AsmJsScriptFunction::Is(func));
-        return reinterpret_cast<AsmJsScriptFunction *>(func);
-    }
-
-    AsmJsScriptFunction* AsmJsScriptFunction::UnsafeFromVar(Var func)
-    {
-        Assert(AsmJsScriptFunction::Is(func));
-        return reinterpret_cast<AsmJsScriptFunction *>(func);
-    }
-
     AsmJsScriptFunction * AsmJsScriptFunction::OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
     {
         AssertMsg(infoRef != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
@@ -614,23 +568,6 @@ using namespace Js;
         Assert(!proxy->GetFunctionInfo()->HasComputedName());
     }
 
-    bool WasmScriptFunction::Is(Var func)
-    {
-        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->IsWasmFunction();
-    }
-
-    WasmScriptFunction* WasmScriptFunction::FromVar(Var func)
-    {
-        AssertOrFailFast(WasmScriptFunction::Is(func));
-        return reinterpret_cast<WasmScriptFunction *>(func);
-    }
-
-    WasmScriptFunction* WasmScriptFunction::UnsafeFromVar(Var func)
-    {
-        Assert(WasmScriptFunction::Is(func));
-        return reinterpret_cast<WasmScriptFunction *>(func);
-    }
-
     WebAssemblyMemory* WasmScriptFunction::GetWebAssemblyMemory() const
     {
         return (WebAssemblyMemory*)PointerValue(
@@ -641,23 +578,6 @@ using namespace Js;
     ScriptFunctionWithInlineCache::ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType) :
         ScriptFunction(proxy, deferredPrototypeType)
     {}
-
-    bool ScriptFunctionWithInlineCache::Is(Var func)
-    {
-        return ScriptFunction::Is(func) && ScriptFunction::UnsafeFromVar(func)->GetHasInlineCaches();
-    }
-
-    ScriptFunctionWithInlineCache* ScriptFunctionWithInlineCache::FromVar(Var func)
-    {
-        AssertOrFailFast(ScriptFunctionWithInlineCache::Is(func));
-        return reinterpret_cast<ScriptFunctionWithInlineCache *>(func);
-    }
-
-    ScriptFunctionWithInlineCache* ScriptFunctionWithInlineCache::UnsafeFromVar(Var func)
-    {
-        Assert(ScriptFunctionWithInlineCache::Is(func));
-        return reinterpret_cast<ScriptFunctionWithInlineCache *>(func);
-    }
 
     InlineCache * ScriptFunctionWithInlineCache::GetInlineCache(uint index)
     {
@@ -817,9 +737,9 @@ using namespace Js;
 
     bool ScriptFunction::GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t* length)
     {
-        if (nullptr != computedNameVar && JavascriptSymbol::Is(computedNameVar))
+        if (nullptr != computedNameVar && VarIs<JavascriptSymbol>(computedNameVar))
         {
-            const PropertyRecord* symbolRecord = JavascriptSymbol::FromVar(computedNameVar)->GetValue();
+            const PropertyRecord* symbolRecord = VarTo<JavascriptSymbol>(computedNameVar)->GetValue();
             *symbolName = symbolRecord->GetBuffer();
             *length = symbolRecord->GetLength();
             return true;

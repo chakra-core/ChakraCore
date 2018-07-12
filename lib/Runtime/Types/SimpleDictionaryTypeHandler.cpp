@@ -1122,7 +1122,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetProperty_Internal<true>(instance, originalInstance, propertyId, value, info, requestContext);
     }
 
@@ -1277,7 +1277,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return SetProperty_Internal<true>(instance, propertyId, value, flags, info);
     }
 
@@ -1444,7 +1444,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     DescriptorFlags SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetSetter_Internal<true>(instance, propertyId, setterValue, info, requestContext);
     }
 
@@ -1652,7 +1652,7 @@ namespace Js
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     BOOL SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return DeleteProperty_Internal<true>(instance, propertyId, propertyOperationFlags);
     }
 
@@ -1833,7 +1833,7 @@ namespace Js
         {
             if (descriptor->Attributes & PropertyLetConstGlobal)
             {
-                AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+                AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
                 return true;
             }
             return descriptor->Attributes & PropertyConfigurable;

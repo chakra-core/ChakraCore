@@ -360,7 +360,7 @@ namespace Js
         TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
 #ifdef ENABLE_WASM
-        if (WasmScriptFunction::Is(function))
+        if (VarIs<WasmScriptFunction>(function))
         {
             entryPoint = Js::AsmJsExternalEntryPoint;
         } else
@@ -370,7 +370,7 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
-            entryPoint = ScriptFunction::FromVar(function)->GetEntryPointInfo()->jsMethod;
+            entryPoint = VarTo<ScriptFunction>(function)->GetEntryPointInfo()->jsMethod;
             if (funcInfo->IsDeferred() && scriptContext->IsProfiling())
             {
                 // if the current entrypoint is deferred parse we need to update it appropriately for the profiler mode.
@@ -415,7 +415,7 @@ namespace Js
             else
 #endif
             {
-                entryPoint = ScriptFunction::FromVar(function)->GetEntryPointInfo()->jsMethod;
+                entryPoint = VarTo<ScriptFunction>(function)->GetEntryPointInfo()->jsMethod;
             }
         }
         else
@@ -491,7 +491,7 @@ namespace Js
         CheckCodeGenFunction checkCodeGenFunction = GetCheckCodeGenFunction(entryPoint);
         if (checkCodeGenFunction != nullptr)
         {
-            ScriptFunction* callFunc = ScriptFunction::FromVar(function);
+            ScriptFunction* callFunc = VarTo<ScriptFunction>(function);
             entryPoint = checkCodeGenFunction(callFunc);
             Assert(CrossSite::IsThunk(function->GetEntryPoint()));
         }

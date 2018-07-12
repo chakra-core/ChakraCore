@@ -1740,7 +1740,7 @@ void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from,
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(VarIs<JavascriptSymbol>(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         // Spec doesn't strictly call for us to use ToPropertyKey but since we know nextKey is already a symbol or string primitive, ToPropertyKey will be a nop and return us the propertyRecord
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
@@ -1982,7 +1982,7 @@ Var JavascriptObject::DefinePropertiesHelperForProxyObjects(RecyclableObject *ob
     {
         PropertyDescriptor propertyDescriptor;
         nextKey = keys->DirectGetItem(j);
-        AssertMsg(JavascriptSymbol::Is(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+        AssertMsg(VarIs<JavascriptSymbol>(nextKey) || VarIs<JavascriptString>(nextKey), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
         JavascriptConversion::ToPropertyKey(nextKey, scriptContext, &propertyRecord, nullptr);
         propertyId = propertyRecord->GetPropertyId();
         AssertMsg(propertyId != Constants::NoProperty, "DefinePropertiesHelper - OwnPropertyKeys returned a propertyId with value NoProperty.");
@@ -2090,8 +2090,8 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
         charcount_t propertyLength = propertyRecord->GetLength();
 
         if (descriptor.GetterSpecified()
-            && Js::ScriptFunction::Is(descriptor.GetGetter())
-            && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
+            && Js::VarIs<Js::ScriptFunction>(descriptor.GetGetter())
+            && _wcsicmp(Js::VarTo<Js::ScriptFunction>(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
         {
             // modify to name.get
             const char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
@@ -2099,14 +2099,14 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
             {
                 FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                Js::VarTo<Js::ScriptFunction>(descriptor.GetGetter())->GetFunctionProxy()->SetDisplayName(finalName,
                     propertyLength + 4 /*".get"*/, propertyLength + 1, flags);
             }
         }
 
         if (descriptor.SetterSpecified()
-            && Js::ScriptFunction::Is(descriptor.GetSetter())
-            && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
+            && Js::VarIs<Js::ScriptFunction>(descriptor.GetSetter())
+            && _wcsicmp(Js::VarTo<Js::ScriptFunction>(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
         {
             // modify to name.set
             const char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
@@ -2114,7 +2114,7 @@ void JavascriptObject::ModifyGetterSetterFuncName(const PropertyRecord * propert
             {
                 FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
 
-                Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
+                Js::VarTo<Js::ScriptFunction>(descriptor.GetSetter())->GetFunctionProxy()->SetDisplayName(finalName,
                     propertyLength + 4 /*".set"*/, propertyLength + 1, flags);
             }
         }

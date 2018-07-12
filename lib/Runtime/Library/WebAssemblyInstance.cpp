@@ -319,10 +319,10 @@ void WebAssemblyInstance::LoadImports(
             Assert(wasmModule->GetFunctionIndexType(counter) == Wasm::FunctionIndexTypes::ImportThunk);
 
             env->SetImportedFunction(counter, prop);
-            if (WasmScriptFunction::Is(prop))
+            if (VarIs<WasmScriptFunction>(prop))
             {
                 Assert(env->GetWasmFunction(counter) == nullptr);
-                WasmScriptFunction* func = WasmScriptFunction::FromVar(prop);
+                WasmScriptFunction* func = VarTo<WasmScriptFunction>(prop);
                 if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
                     char16 temp[2048] = { 0 };

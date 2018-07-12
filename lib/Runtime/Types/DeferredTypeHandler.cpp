@@ -43,7 +43,7 @@ namespace Js
             if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
             {
                 Assert(!functionProxy->GetUndeferredFunctionType());
-                functionProxy->SetUndeferredFunctionType(ScriptFunction::UnsafeFromVar(instance)->GetScriptFunctionType());
+                functionProxy->SetUndeferredFunctionType(UnsafeVarTo<ScriptFunction>(instance)->GetScriptFunctionType());
                 instance->ShareType();
             }
         }

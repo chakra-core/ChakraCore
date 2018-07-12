@@ -604,7 +604,7 @@ using namespace Js;
                 // This is console scope scenario. DebugEval script context is on the top of the stack. But we are going
                 // to execute the user script from target script context. In order to fix the script context stack we
                 // need to marshall the function object.
-                pfuncScript = ScriptFunction::FromVar(CrossSite::MarshalVar(debugEvalScriptContext, pfuncScript));
+                pfuncScript = VarTo<ScriptFunction>(CrossSite::MarshalVar(debugEvalScriptContext, pfuncScript));
             }
 
             if (useEvalMap && !found)

@@ -422,13 +422,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptRegExp>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
         JavascriptString *stringToUse = VarTo<JavascriptString>(args.Values[1]);
-        JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
+        JavascriptRegExp *regexpToUse = VarTo<JavascriptRegExp>(args.Values[2]);
 
         return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
     }

@@ -217,7 +217,7 @@ namespace Js
         {
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(isRoot || object->GetPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, true));
-            Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, true));
+            Assert(!isRoot || VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, true));
             Assert(object->CanStorePropertyValueDirectly(propertyId, isRoot));
             UnsafeVarTo<DynamicObject>(object)->SetInlineSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
             if (ReturnOperationInfo)
@@ -233,7 +233,7 @@ namespace Js
         {
             Assert(object->GetScriptContext() == requestContext); // we never cache a type from another script context
             Assert(isRoot || object->GetPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, false));
-            Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, false));
+            Assert(!isRoot || VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(u.local.slotIndex, false));
             Assert(object->CanStorePropertyValueDirectly(propertyId, isRoot));
             UnsafeVarTo<DynamicObject>(object)->SetAuxSlot(SetSlotArgumentsRoot(propertyId, isRoot, u.local.slotIndex, propertyValue));
             if (ReturnOperationInfo)
@@ -271,7 +271,7 @@ namespace Js
             dynamicObject->type = typeWithProperty;
 
             Assert(isRoot || object->GetPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, true));
-            Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, true));
+            Assert(!isRoot || VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, true));
 
             dynamicObject->SetInlineSlot(SetSlotArgumentsRoot(propertyId, isRoot, propertyIndex, propertyValue));
 
@@ -312,7 +312,7 @@ namespace Js
             dynamicObject->type = typeWithProperty;
 
             Assert(isRoot || object->GetPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, false));
-            Assert(!isRoot || RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, false));
+            Assert(!isRoot || VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId) == VarTo<DynamicObject>(object)->GetTypeHandler()->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, false));
 
             dynamicObject->SetAuxSlot(SetSlotArgumentsRoot(propertyId, isRoot, propertyIndex, propertyValue));
 

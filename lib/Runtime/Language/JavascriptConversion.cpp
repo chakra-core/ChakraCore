@@ -203,8 +203,8 @@ CommonNumber:
         case TypeIds_Symbol:
             if (rightType == TypeIds_Symbol)
             {
-                JavascriptSymbol* leftSymbol = JavascriptSymbol::UnsafeFromVar(aLeft);
-                JavascriptSymbol* rightSymbol = JavascriptSymbol::UnsafeFromVar(aRight);
+                JavascriptSymbol* leftSymbol = UnsafeVarTo<JavascriptSymbol>(aLeft);
+                JavascriptSymbol* rightSymbol = UnsafeVarTo<JavascriptSymbol>(aRight);
                 Assert(leftSymbol->GetValue() != rightSymbol->GetValue());
             }
 #endif
@@ -275,10 +275,10 @@ CommonNumber:
     {
         Var key = JavascriptConversion::ToPrimitive<JavascriptHint::HintString>(argument, scriptContext);
         PropertyString * propertyString = nullptr;
-        if (JavascriptSymbol::Is(key))
+        if (VarIs<JavascriptSymbol>(key))
         {
             // If we are looking up a property keyed by a symbol, we already have the PropertyId in the symbol
-            *propertyRecord = JavascriptSymbol::UnsafeFromVar(key)->GetValue();
+            *propertyRecord = UnsafeVarTo<JavascriptSymbol>(key)->GetValue();
         }
         else
         {
@@ -330,7 +330,7 @@ CommonNumber:
         case TypeIds_VariantDate:
             {
                 Var result = nullptr;
-                if (JavascriptVariantDate::UnsafeFromVar(aValue)->ToPrimitive(hint, &result, requestContext) != TRUE)
+                if (UnsafeVarTo<JavascriptVariantDate>(aValue)->ToPrimitive(hint, &result, requestContext) != TRUE)
                 {
                     result = nullptr;
                 }
@@ -339,7 +339,7 @@ CommonNumber:
 
         case TypeIds_StringObject:
             {
-                JavascriptStringObject * stringObject = JavascriptStringObject::UnsafeFromVar(aValue);
+                JavascriptStringObject * stringObject = UnsafeVarTo<JavascriptStringObject>(aValue);
                 ScriptContext * objectScriptContext = stringObject->GetScriptContext();
                 if (objectScriptContext->optimizationOverrides.GetSideEffects() & (hint == JavascriptHint::HintString ? SideEffects_ToString : SideEffects_ValueOf))
                 {
@@ -375,7 +375,7 @@ CommonNumber:
 
         case TypeIds_SymbolObject:
             {
-                JavascriptSymbolObject* symbolObject = JavascriptSymbolObject::UnsafeFromVar(aValue);
+                JavascriptSymbolObject* symbolObject = UnsafeVarTo<JavascriptSymbolObject>(aValue);
 
                 return CrossSite::MarshalVar(requestContext, symbolObject->Unwrap(), symbolObject->GetScriptContext());
             }
@@ -647,13 +647,13 @@ CommonNumber:
                       aValue, aValueScriptContext));
                 }
             case TypeIds_VariantDate:
-                return JavascriptVariantDate::FromVar(aValue)->GetValueString(scriptContext);
+                return VarTo<JavascriptVariantDate>(aValue)->GetValueString(scriptContext);
 
             case TypeIds_Symbol:
-                return JavascriptSymbol::UnsafeFromVar(aValue)->ToString(scriptContext);
+                return UnsafeVarTo<JavascriptSymbol>(aValue)->ToString(scriptContext);
 
             case TypeIds_SymbolObject:
-                return JavascriptSymbol::ToString(JavascriptSymbolObject::UnsafeFromVar(aValue)->GetValue(), scriptContext);
+                return JavascriptSymbol::ToString(UnsafeVarTo<JavascriptSymbolObject>(aValue)->GetValue(), scriptContext);
 
             case TypeIds_GlobalObject:
                 aValue = static_cast<Js::GlobalObject*>(aValue)->ToThis();
@@ -708,7 +708,7 @@ CommonNumber:
             return scriptContext->GetLibrary()->GetObjectDisplayString();
 
         case TypeIds_Symbol:
-            return JavascriptSymbol::UnsafeFromVar(aValue)->ToString(scriptContext);
+            return UnsafeVarTo<JavascriptSymbol>(aValue)->ToString(scriptContext);
 
         default:
             {
@@ -898,7 +898,7 @@ CommonNumber:
                 return UnsafeVarTo<JavascriptString>(aValue)->ToDouble();
 
             case TypeIds_VariantDate:
-                return Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(JavascriptVariantDate::UnsafeFromVar(aValue)->GetValue()), scriptContext);
+                return Js::DateImplementation::GetTvUtc(Js::DateImplementation::JsLocalTimeFromVarDate(UnsafeVarTo<JavascriptVariantDate>(aValue)->GetValue()), scriptContext);
 
             default:
                 {

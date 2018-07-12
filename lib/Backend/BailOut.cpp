@@ -1004,7 +1004,7 @@ BailOutRecord::BailOutCommonNoCodeGen(Js::JavascriptCallStackLayout * layout, Ba
     BailOutReturnValue * bailOutReturnValue, void * argoutRestoreAddress)
 {
     Assert(bailOutRecord->parent == nullptr);
-    Assert(Js::ScriptFunction::Is(layout->functionObject));
+    Assert(Js::VarIs<Js::ScriptFunction>(layout->functionObject));
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ArgumentReader args(&layout->callInfo, layout->args);
     Js::Var result = BailOutHelper(layout, functionRef, args, false, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, bailOutReturnValue, layout->GetArgumentsObjectLocation(), branchValue, argoutRestoreAddress);
@@ -1031,7 +1031,7 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Imp
         sizeof(registerSaves));
 
     Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, registerSaves, bailOutReturnValue, argoutRestoreAddress);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1060,7 +1060,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     }
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1076,7 +1076,7 @@ BailOutRecord::BailOutFromLoopBodyCommon(Js::JavascriptCallStackLayout * layout,
     js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
     uint32 result = BailOutFromLoopBodyHelper(layout, bailOutRecord, bailOutOffset, bailOutKind, branchValue, registerSaves);
-    ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind);
+    ScheduleLoopBodyCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), nullptr, bailOutRecord, bailOutKind);
     return result;
 }
 
@@ -1106,7 +1106,7 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
 
     uint32 result = BailOutFromLoopBodyHelper(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset,
         bailOutKind, nullptr, registerSaves, &bailOutReturnValue);
-    ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
+    ScheduleLoopBodyCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
     return result;
 }
 
@@ -1118,7 +1118,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
     BailOutReturnValue * lastBailOutReturnValue = nullptr;
     *innerMostInlinee = nullptr;
 
-    Js::FunctionBody* functionBody = Js::ScriptFunction::FromVar(layout->functionObject)->GetFunctionBody();
+    Js::FunctionBody* functionBody = Js::VarTo<Js::ScriptFunction>(layout->functionObject)->GetFunctionBody();
 
     Js::EntryPointInfo *entryPointInfo;
     if(isInLoopBody)
@@ -1162,7 +1162,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
 
         Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&(inlinedFrame->function);
         AnalysisAssert(*functionRef);
-        Assert(Js::ScriptFunction::Is(inlinedFrame->function));
+        Assert(Js::VarIs<Js::ScriptFunction>(inlinedFrame->function));
 
         if (*innerMostInlinee == nullptr)
         {

@@ -1035,9 +1035,9 @@ namespace Js
 
     void InterpreterStackFrame::Setup::SetupInternal()
     {
-        if (this->function->GetHasInlineCaches() && Js::ScriptFunctionWithInlineCache::Is(this->function))
+        if (this->function->GetHasInlineCaches() && Js::VarIs<Js::ScriptFunctionWithInlineCache>(this->function))
         {
-            this->inlineCaches = (void**)Js::ScriptFunctionWithInlineCache::FromVar(this->function)->GetInlineCaches();
+            this->inlineCaches = (void**)Js::VarTo<Js::ScriptFunctionWithInlineCache>(this->function)->GetInlineCaches();
             Assert(this->inlineCaches != nullptr);
         }
         else
@@ -1756,7 +1756,7 @@ skipThunk:
 
     Var InterpreterStackFrame::InterpreterThunk(JavascriptCallStackLayout* layout)
     {
-        Js::ScriptFunction * function = Js::ScriptFunction::UnsafeFromVar(layout->functionObject);
+        Js::ScriptFunction * function = Js::UnsafeVarTo<Js::ScriptFunction>(layout->functionObject);
         Js::ArgumentReader args(&layout->callInfo, layout->args);
         void* localReturnAddress = _ReturnAddress();
         void* localAddressOfReturnAddress = _AddressOfReturnAddress();
@@ -1770,8 +1770,8 @@ skipThunk:
         ARGUMENTS(args, callInfo);
         void* localReturnAddress = _ReturnAddress();
         void* localAddressOfReturnAddress = _AddressOfReturnAddress();
-        Assert(ScriptFunction::Is(function));
-        return InterpreterHelper(ScriptFunction::FromVar(function), args, localReturnAddress, localAddressOfReturnAddress);
+        Assert(VarIs<ScriptFunction>(function));
+        return InterpreterHelper(VarTo<ScriptFunction>(function), args, localReturnAddress, localAddressOfReturnAddress);
     }
 #pragma optimize("", on)
 #endif
@@ -2214,7 +2214,7 @@ skipThunk:
     template<typename T>
     T InterpreterStackFrame::AsmJsInterpreter(AsmJsCallStackLayout* layout)
     {
-        Js::ScriptFunction * function = Js::ScriptFunction::FromVar(layout->functionObject);
+        Js::ScriptFunction * function = Js::VarTo<Js::ScriptFunction>(layout->functionObject);
         int  flags = CallFlags_Value;
         ArgSlot nbArgs = ArgSlotMath::Add(function->GetFunctionBody()->GetAsmJsFunctionInfo()->GetArgCount(), 1);
 
@@ -2946,13 +2946,13 @@ skipThunk:
         }
 
         // Load module environment
-        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(this->function);
+        AsmJsScriptFunction* asmJsFunc = VarTo<AsmJsScriptFunction>(this->function);
         m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = asmJsFunc->GetModuleEnvironment();
         m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = nullptr;
 #ifdef ENABLE_WASM
-        if (WasmScriptFunction::Is(func))
+        if (VarIs<WasmScriptFunction>(func))
         {
-            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            WasmScriptFunction* wasmFunc = VarTo<WasmScriptFunction>(func);
             m_wasmMemory = wasmFunc->GetWebAssemblyMemory();
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
         }
@@ -3700,7 +3700,7 @@ skipThunk:
     }
     void InterpreterStackFrame::OP_CallAsmInternalCommon(ScriptFunction* function, RegSlot returnReg)
     {
-        AsmJsScriptFunction* scriptFunc = AsmJsScriptFunction::FromVar(function);
+        AsmJsScriptFunction* scriptFunc = VarTo<AsmJsScriptFunction>(function);
         AsmJsFunctionInfo* asmInfo = scriptFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
         uint alignedArgsSize = ::Math::Align<uint32>(asmInfo->GetArgByteSize(), 16);
 #if _M_X64 && _WIN32
@@ -8701,7 +8701,7 @@ skipThunk:
     void InterpreterStackFrame::OP_CheckSignature(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        ScriptFunction * func = ScriptFunction::FromVar(GetRegRawPtr(playout->R0));
+        ScriptFunction * func = VarTo<ScriptFunction>(GetRegRawPtr(playout->R0));
         int sigIndex = playout->C1;
         Wasm::WasmSignature * expected = &m_signatures[sigIndex];
         if (func->GetFunctionInfo()->IsDeferredParseFunction())

@@ -476,7 +476,7 @@ namespace Js
     BOOL DictionaryTypeHandlerBase<T>::GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId,
         Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetProperty_Internal<true>(instance, originalInstance, propertyId, value, info, requestContext);
     }
 
@@ -493,7 +493,7 @@ namespace Js
         DictionaryPropertyDescriptor<T>* descriptor, Var* value, PropertyValueInfo* info, PropertyType propertyT, ScriptContext* requestContext)
     {
         bool const isLetConstGlobal = (descriptor->Attributes & PropertyLetConstGlobal) != 0;
-        AssertMsg(!isLetConstGlobal || RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+        AssertMsg(!isLetConstGlobal || VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
         if (allowLetConstGlobal)
         {
             // GetRootProperty: false if not global
@@ -613,7 +613,7 @@ namespace Js
     template <typename T>
     DescriptorFlags DictionaryTypeHandlerBase<T>::GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetSetter_Internal<true>(instance, propertyId, setterValue, info, requestContext);
     }
 
@@ -693,7 +693,7 @@ namespace Js
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return SetProperty_Internal<true>(instance, propertyId, value, flags, info);
     }
     template <typename T>
@@ -1002,7 +1002,7 @@ namespace Js
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return DeleteProperty_Internal<true>(instance, propertyId, propertyOperationFlags);
     }
 
@@ -1179,7 +1179,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
 
                 return true;
             }
@@ -1209,7 +1209,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return !(descriptor->Attributes & PropertyConst);
             }
             return descriptor->Attributes & PropertyWritable;
@@ -1238,7 +1238,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return true;
             }
             return descriptor->Attributes & PropertyConfigurable;
@@ -1272,7 +1272,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1317,7 +1317,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1359,7 +1359,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1452,7 +1452,7 @@ namespace Js
 #if DBG
             else
             {
-                AssertMsg(RootObjectBase::Is(instance), "instance needs to be global object when letconst global is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "instance needs to be global object when letconst global is set");
             }
 #endif
         }
@@ -1895,7 +1895,7 @@ namespace Js
 #if DEBUG
                     Var ctor = JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext);
 #endif
-                    AssertMsg(RootObjectBase::Is(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
+                    AssertMsg(VarIs<RootObjectBase>(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
                         // ValidateAndApplyPropertyDescriptor says to preserve Configurable and Enumerable flags
 
                         // For InitRootFld, which is equivalent to

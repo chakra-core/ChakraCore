@@ -476,7 +476,7 @@ namespace TTD
             case MarkTableTag::CompoundObjectTag:
             {
                 this->ExtractTypeIfNeeded(this->m_marks.GetPtrValue<Js::RecyclableObject*>()->GetType(), threadContext);
-                if(Js::ScriptFunction::Is(this->m_marks.GetPtrValue<Js::RecyclableObject*>()))
+                if(Js::VarIs<Js::ScriptFunction>(this->m_marks.GetPtrValue<Js::RecyclableObject*>()))
                 {
                     this->ExtractScriptFunctionEnvironmentIfNeeded(this->m_marks.GetPtrValue<Js::ScriptFunction*>());
                 }

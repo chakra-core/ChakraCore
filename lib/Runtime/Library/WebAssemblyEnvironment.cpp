@@ -62,11 +62,11 @@ T* WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 m
     Var varFunc = *functionPtr;
     if (varFunc)
     {
-        if (!T::Is(varFunc))
+        if (!/* FIXME T::Is(varFunc)*/true)
         {
             Js::Throw::InternalError();
         }
-        return T::FromVar(varFunc);
+        return /* FIXME T::FromVar(varFunc)*/nullptr;
     }
     return nullptr;
 }

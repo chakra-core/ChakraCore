@@ -546,7 +546,7 @@ namespace Js
         AsmJsSIMDValue* simdArg;
 
         // setup stack memory
-        AsmJsScriptFunction* asmJsFunc = AsmJsScriptFunction::FromVar(func);
+        AsmJsScriptFunction* asmJsFunc = VarTo<AsmJsScriptFunction>(func);
         Var moduleEnv = asmJsFunc->GetModuleEnvironment();
         JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;

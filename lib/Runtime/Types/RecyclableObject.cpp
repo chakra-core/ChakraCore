@@ -33,7 +33,7 @@ namespace Js
         // Make sure the given prop and usage cache match
         Assert(
             prop == nullptr && propertyRecordUsageCache == nullptr ||
-            JavascriptSymbol::Is(prop) && JavascriptSymbol::UnsafeFromVar(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
+            VarIs<JavascriptSymbol>(prop) && UnsafeVarTo<JavascriptSymbol>(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache ||
             VarIs<PropertyString>(prop) && UnsafeVarTo<PropertyString>(prop)->GetPropertyRecordUsageCache() == propertyRecordUsageCache);
 
         info->prop = prop;
@@ -722,11 +722,11 @@ namespace Js
                 goto ReturnFalse;
             case TypeIds_Symbol:
                 *value = (aLeft == aRight);
-                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbol::UnsafeFromVar(aRight)->GetValue()) == *value);
+                Assert((UnsafeVarTo<JavascriptSymbol>(aLeft)->GetValue() == UnsafeVarTo<JavascriptSymbol>(aRight)->GetValue()) == *value);
                 return TRUE;
             case TypeIds_SymbolObject:
-                *value = (aLeft == JavascriptSymbolObject::UnsafeFromVar(aRight)->Unwrap());
-                Assert((JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue() == JavascriptSymbolObject::UnsafeFromVar(aRight)->GetValue()) == *value);
+                *value = (aLeft == UnsafeVarTo<JavascriptSymbolObject>(aRight)->Unwrap());
+                Assert((UnsafeVarTo<JavascriptSymbol>(aLeft)->GetValue() == UnsafeVarTo<JavascriptSymbolObject>(aRight)->GetValue()) == *value);
                 return TRUE;
             default:
                 goto RedoRight;

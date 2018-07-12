@@ -173,7 +173,7 @@ namespace Js
             for (uint32 i = 0; i < len; i++)
             {
                 if (!JavascriptOperators::GetItem(trapResultArray, i, &element, scriptContext) || // missing
-                    !(VarIs<JavascriptString>(element) || JavascriptSymbol::Is(element)))  // neither String nor Symbol
+                    !(VarIs<JavascriptString>(element) || VarIs<JavascriptSymbol>(element)))  // neither String nor Symbol
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }

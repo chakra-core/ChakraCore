@@ -235,7 +235,7 @@ namespace Js
 
         Var propertyName = GetName(requestContext, propertyId);
 
-        Assert(VarIs<JavascriptString>(propertyName) || JavascriptSymbol::Is(propertyName));
+        Assert(VarIs<JavascriptString>(propertyName) || VarIs<JavascriptSymbol>(propertyName));
         //8. Let trapResultObj be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target and P.
         //9. ReturnIfAbrupt(trapResultObj).
         //10. If Type(trapResultObj) is neither Object nor Undefined, then throw a TypeError exception.
@@ -1291,7 +1291,7 @@ namespace Js
         for (uint i = 0; i < resultArray->GetLength(); i++)
         {
             itemVar = resultArray->DirectGetItem(i);
-            AssertMsg(JavascriptSymbol::Is(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+            AssertMsg(VarIs<JavascriptSymbol>(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
             JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
             PropertyId propertyId = propertyRecord->GetPropertyId();
             if (JavascriptObject::GetOwnPropertyDescriptorHelper(obj, propertyId, scriptContext, propertyDescriptor))
@@ -1344,7 +1344,7 @@ namespace Js
             for (uint i = 0; i < resultArray->GetLength(); i++)
             {
                 itemVar = resultArray->DirectGetItem(i);
-                AssertMsg(JavascriptSymbol::Is(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+                AssertMsg(VarIs<JavascriptSymbol>(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
                 JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
                 JavascriptObject::DefineOwnPropertyHelper(obj, propertyId, propertyDescriptor, scriptContext);
@@ -1372,7 +1372,7 @@ namespace Js
             for (uint i = 0; i < resultArray->GetLength(); i++)
             {
                 itemVar = resultArray->DirectGetItem(i);
-                AssertMsg(JavascriptSymbol::Is(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+                AssertMsg(VarIs<JavascriptSymbol>(itemVar) || VarIs<JavascriptString>(itemVar), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
                 JavascriptConversion::ToPropertyKey(itemVar, scriptContext, &propertyRecord, nullptr);
                 PropertyId propertyId = propertyRecord->GetPropertyId();
                 PropertyDescriptor propertyDescriptor;
@@ -2492,7 +2492,7 @@ namespace Js
             for (uint32 i = 0; i < targetKeys->GetLength(); i++)
             {
                 element = targetKeys->DirectGetItem(i);
-                AssertMsg(JavascriptSymbol::Is(element) || VarIs<JavascriptString>(element), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
+                AssertMsg(VarIs<JavascriptSymbol>(element) || VarIs<JavascriptString>(element), "Invariant check during ownKeys proxy trap should make sure we only get property key here. (symbol or string primitives)");
                 JavascriptConversion::ToPropertyKey(element, requestContext, &propertyRecord, nullptr);
                 propertyId = propertyRecord->GetPropertyId();
 

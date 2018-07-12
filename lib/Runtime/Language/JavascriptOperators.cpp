@@ -540,7 +540,7 @@ using namespace Js;
             {
                 return false;
             }
-            else if (JavascriptVariantDate::Is(aLeft) == false) // only need to check on aLeft - since they are the same var, aRight would do the same
+            else if (VarIs<JavascriptVariantDate>(aLeft) == false) // only need to check on aLeft - since they are the same var, aRight would do the same
             {
                 return true;
             }
@@ -937,8 +937,8 @@ CommonNumber:
         case TypeIds_Symbol:
             if (rightType == TypeIds_Symbol)
             {
-                    const PropertyRecord* leftValue = JavascriptSymbol::UnsafeFromVar(aLeft)->GetValue();
-                    const PropertyRecord* rightValue = JavascriptSymbol::UnsafeFromVar(aRight)->GetValue();
+                    const PropertyRecord* leftValue = UnsafeVarTo<JavascriptSymbol>(aLeft)->GetValue();
+                    const PropertyRecord* rightValue = UnsafeVarTo<JavascriptSymbol>(aRight)->GetValue();
                     Assert(leftValue != rightValue);
             }
             break;
@@ -1117,7 +1117,7 @@ CommonNumber:
             {
                 element = proxyResult->DirectGetItem(i);
 
-                Assert(!JavascriptSymbol::Is(element));
+                Assert(!VarIs<JavascriptSymbol>(element));
 
                 PropertyDescriptor propertyDescriptor;
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord, nullptr);
@@ -1489,7 +1489,7 @@ CommonNumber:
 
     BOOL JavascriptOperators::HasRootProperty(RecyclableObject* instance, PropertyId propertyId)
     {
-        Assert(RootObjectBase::Is(instance));
+        Assert(VarIs<RootObjectBase>(instance));
 
         RootObjectBase* rootObject = static_cast<RootObjectBase*>(instance);
         if (rootObject->HasRootProperty(propertyId))
@@ -1578,7 +1578,7 @@ CommonNumber:
             {
                 Var value = nullptr;
                 if (!JavascriptConversion::PropertyQueryFlagsToBoolean(dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &value, NULL, requestContext)) ||
-                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
+                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || VarIs<RootObjectBase>(instance))))
                 {
                     return FALSE;
                 }
@@ -1590,7 +1590,7 @@ CommonNumber:
             {
                 Var value = nullptr;
                 if (!object->GetProperty(instance, propertyId, &value, NULL, requestContext) ||
-                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
+                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || VarIs<RootObjectBase>(instance))))
                 {
                     return FALSE;
                 }
@@ -1704,7 +1704,7 @@ CommonNumber:
         BOOL foundProperty = FALSE;
         if (isRoot)
         {
-            Assert(RootObjectBase::Is(object));
+            Assert(VarIs<RootObjectBase>(object));
 
             RootObjectBase* rootObject = static_cast<RootObjectBase*>(object);
             foundProperty = rootObject->GetRootProperty(instance, propertyId, value, info, requestContext);
@@ -1993,7 +1993,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetRootProperty(Var instance, PropertyId propertyId, PropertyValueInfo * info, ScriptContext* scriptContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Root must be an object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Root must be an object!");
 
         Var value = nullptr;
         if (JavascriptOperators::GetRootProperty(VarTo<RecyclableObject>(instance), propertyId, &value, scriptContext, info))
@@ -2163,7 +2163,7 @@ CommonNumber:
 
         if (isRoot)
         {
-            foundProperty = RootObjectBase::FromVar(object)->GetRootPropertyReference(instance, propertyId, value, info, requestContext);
+            foundProperty = VarTo<RootObjectBase>(object)->GetRootPropertyReference(instance, propertyId, value, info, requestContext);
         }
         if (!foundProperty)
         {
@@ -2792,7 +2792,7 @@ CommonNumber:
         PropertyOperationFlags flags = instance->GetScriptContext()->IsUndeclBlockVar(newValue) ? PropertyOperation_SpecialValue : PropertyOperation_None;
         PropertyAttributes attributes = PropertyLetDefaults;
 
-        if (RootObjectBase::Is(instance))
+        if (VarIs<RootObjectBase>(instance))
         {
             attributes |= PropertyLetConstGlobal;
         }
@@ -2811,7 +2811,7 @@ CommonNumber:
         PropertyOperationFlags flags = instance->GetScriptContext()->IsUndeclBlockVar(newValue) ? PropertyOperation_SpecialValue : PropertyOperation_None;
         PropertyAttributes attributes = PropertyConstDefaults;
 
-        if (RootObjectBase::Is(instance))
+        if (VarIs<RootObjectBase>(instance))
         {
             attributes |= PropertyLetConstGlobal;
         }
@@ -2974,7 +2974,7 @@ CommonNumber:
     {
         // In Edge the root is an External Object which can call Dispose and thus, can have reentrancy.
         JIT_HELPER_REENTRANT_HEADER(Op_DeleteRootProperty);
-        AssertMsg(RootObjectBase::Is(instance), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Root must be a global object!");
         RootObjectBase* rootObject = static_cast<RootObjectBase*>(instance);
 
         return scriptContext->GetLibrary()->CreateBoolean(
@@ -5664,7 +5664,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         ScriptFunction *func = isGAFunction ?
             VarTo<JavascriptGeneratorFunction>(varFunc)->GetGeneratorVirtualScriptFunction() :
-            ScriptFunction::FromVar(varFunc);
+            VarTo<ScriptFunction>(varFunc);
 
 #ifdef PROFILE_OBJECT_LITERALS
         // Empty objects not counted in the object literal counts
@@ -7554,8 +7554,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_EnsureNoRootProperty(Var instance, PropertyId propertyId)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_EnsureNoRootProperty);
-        Assert(RootObjectBase::Is(instance));
-        RootObjectBase *obj = RootObjectBase::FromVar(instance);
+        Assert(VarIs<RootObjectBase>(instance));
+        RootObjectBase *obj = VarTo<RootObjectBase>(instance);
         obj->EnsureNoProperty(propertyId);
         JIT_HELPER_END(Op_EnsureNoRootProperty);
     }
@@ -7563,7 +7563,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_EnsureNoRootRedeclProperty(Var instance, PropertyId propertyId)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_EnsureNoRootRedeclProperty);
-        Assert(RootObjectBase::Is(instance));
+        Assert(VarIs<RootObjectBase>(instance));
         RecyclableObject *obj = VarTo<RecyclableObject>(instance);
         obj->EnsureNoRedeclProperty(propertyId);
         JIT_HELPER_END(Op_EnsureNoRootRedeclProperty);
@@ -7824,7 +7824,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     inline Var JavascriptOperators::PatchGetRootValue(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, DynamicObject * object, PropertyId propertyId)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_PatchGetRootValue);
-        AssertMsg(RootObjectBase::Is(object), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(object), "Root must be a global object!");
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
@@ -7857,7 +7857,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     Var JavascriptOperators::PatchGetRootValueForTypeOf(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, DynamicObject * object, PropertyId propertyId)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_PatchGetRootValueForTypeOf);
-        AssertMsg(RootObjectBase::Is(object), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(object), "Root must be a global object!");
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
@@ -7912,7 +7912,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     Var JavascriptOperators::PatchGetRootValueNoFastPath(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, DynamicObject* object, PropertyId propertyId)
     {
-        AssertMsg(RootObjectBase::Is(object), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(object), "Root must be a global object!");
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
@@ -8077,7 +8077,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchGetRootMethod);
         Assert(inlineCache != nullptr);
 
-        AssertMsg(RootObjectBase::Is(object), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(object), "Root must be a global object!");
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
 
@@ -8139,7 +8139,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, !IsFromFullJit);
-        const bool isRoot = RootObjectBase::Is(object);
+        const bool isRoot = VarIs<RootObjectBase>(object);
         Var value;
         if (CacheOperators::TryGetProperty<true, true, true, false, true, false, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false, false>(
                 instance, isRoot, object, propertyId, &value, scriptContext, nullptr, &info))
@@ -8200,7 +8200,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     Var JavascriptOperators::PatchGetRootMethodNoFastPath(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, DynamicObject* object, PropertyId propertyId)
     {
-        AssertMsg(RootObjectBase::Is(object), "Root must be a global object!");
+        AssertMsg(VarIs<RootObjectBase>(object), "Root must be a global object!");
 
         PropertyValueInfo info;
         PropertyValueInfo::SetCacheInfo(&info, functionBody, inlineCache, inlineCacheIndex, true);
@@ -8216,7 +8216,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         if (isRootLd)
         {
-            RootObjectBase* rootObject = RootObjectBase::FromVar(instance);
+            RootObjectBase* rootObject = VarTo<RootObjectBase>(instance);
             foundValue = JavascriptOperators::GetRootPropertyReference(rootObject, propertyId, &value, scriptContext, info);
         }
         else
@@ -9688,14 +9688,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_SetComputedNameVar(Var method, Var computedNameVar)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(SetComputedNameVar);
-        ScriptFunctionBase *scriptFunction = ScriptFunctionBase::FromVar(method);
+        ScriptFunctionBase *scriptFunction = VarTo<ScriptFunctionBase>(method);
         scriptFunction->SetComputedNameVar(computedNameVar);
         JIT_HELPER_END(SetComputedNameVar);
     }
 
     void JavascriptOperators::OP_SetHomeObj(Var method, Var homeObj)
     {
-        ScriptFunctionBase *scriptFunction = ScriptFunctionBase::FromVar(method);
+        ScriptFunctionBase *scriptFunction = VarTo<ScriptFunctionBase>(method);
         scriptFunction->SetHomeObj(homeObj);
     }
 
@@ -9703,12 +9703,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(LdHomeObj, reentrancylock, scriptContext->GetThreadContext());
         // Ensure this is not a stack ScriptFunction
-        if (!ScriptFunction::Is(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
+        if (!VarIs<ScriptFunction>(scriptFunction) || ThreadContext::IsOnStack(scriptFunction))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        ScriptFunction *instance = ScriptFunction::UnsafeFromVar(scriptFunction);
+        ScriptFunction *instance = UnsafeVarTo<ScriptFunction>(scriptFunction);
 
         // We keep a reference to the current class rather than its super prototype
         // since the prototype could change.
@@ -10033,7 +10033,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         case Js::TypeIds_Integer:
             return instance;
         case Js::TypeIds_RegEx:
-            return JavascriptRegExp::BoxStackInstance(JavascriptRegExp::FromVar(instance), deepCopy);
+            return JavascriptRegExp::BoxStackInstance(VarTo<JavascriptRegExp>(instance), deepCopy);
         case Js::TypeIds_Object:
             return DynamicObject::BoxStackInstance(VarTo<DynamicObject>(instance), deepCopy);
         case Js::TypeIds_Array:

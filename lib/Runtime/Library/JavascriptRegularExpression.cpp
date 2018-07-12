@@ -71,11 +71,6 @@ using namespace Js;
         Assert(!ThreadContext::IsOnStack(instance->lastIndexVar));
     }
 
-    bool JavascriptRegExp::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_RegEx;
-    }
-
     // IsRegExp in the spec.
     bool JavascriptRegExp::IsRegExpLike(Var aValue, ScriptContext* scriptContext)
     {
@@ -96,21 +91,7 @@ using namespace Js;
             }
         }
 
-        return JavascriptRegExp::Is(aValue);
-    }
-
-    JavascriptRegExp* JavascriptRegExp::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
-
-        return static_cast<JavascriptRegExp *>(aValue);
-    }
-
-    JavascriptRegExp* JavascriptRegExp::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
-
-        return static_cast<JavascriptRegExp *>(aValue);
+        return VarIs<JavascriptRegExp>(aValue);
     }
 
     CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -284,9 +265,9 @@ using namespace Js;
                 return regexLikeObj;
             }
 
-            if (JavascriptRegExp::Is(regexLikeObj))
+            if (VarIs<JavascriptRegExp>(regexLikeObj))
             {
-                JavascriptRegExp* source = JavascriptRegExp::FromVar(regexLikeObj);
+                JavascriptRegExp* source = VarTo<JavascriptRegExp>(regexLikeObj);
 
                 if (callInfo.Count > 2)
                 {
@@ -398,9 +379,9 @@ using namespace Js;
         JIT_HELPER_REENTRANT_HEADER(Op_CoerseRegex);
         // This is called as helper from OpCode::CoerseRegEx. If aValue is regex pattern /a/, CreatePattern converts
         // it to pattern "/a/" instead of "a". So if we know that aValue is regex, then just return the same object
-        if (JavascriptRegExp::Is(aValue))
+        if (VarIs<JavascriptRegExp>(aValue))
         {
-            return JavascriptRegExp::FromVar(aValue);
+            return VarTo<JavascriptRegExp>(aValue);
         }
         else
         {
@@ -574,9 +555,9 @@ using namespace Js;
         {
             pattern = scriptContext->GetLibrary()->GetEmptyRegexPattern();
         }
-        else if (JavascriptRegExp::Is(args[1]))
+        else if (VarIs<JavascriptRegExp>(args[1]))
         {
-            JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
+            JavascriptRegExp* source = VarTo<JavascriptRegExp>(args[1]);
             //compile with a regular expression
             pattern = source->GetPattern();
             splitPattern = source->GetSplitPattern();

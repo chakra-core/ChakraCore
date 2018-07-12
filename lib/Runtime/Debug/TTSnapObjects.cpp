@@ -739,7 +739,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapScriptFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         {
-            Js::ScriptFunction* fobj = Js::ScriptFunction::FromVar(obj);
+            Js::ScriptFunction* fobj = Js::VarTo<Js::ScriptFunction>(obj);
             SnapScriptFunctionInfo* snapFuncInfo = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject);
             DoAddtlValueInstantiation_SnapScriptFunctionInfoEx(snapFuncInfo, fobj, inflator);
         }

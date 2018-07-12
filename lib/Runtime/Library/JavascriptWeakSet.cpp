@@ -12,25 +12,6 @@ namespace Js
     {
     }
 
-    bool JavascriptWeakSet::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_WeakSet;
-    }
-
-    JavascriptWeakSet* JavascriptWeakSet::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
-
-        return static_cast<JavascriptWeakSet *>(aValue);
-    }
-
-    JavascriptWeakSet* JavascriptWeakSet::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptWeakSet'");
-
-        return static_cast<JavascriptWeakSet *>(aValue);
-    }
-
     Var JavascriptWeakSet::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -99,12 +80,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.add"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
 
@@ -137,12 +118,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.delete"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool didDelete = false;
@@ -178,12 +159,12 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        if (!JavascriptWeakSet::Is(args[0]))
+        if (!VarIs<JavascriptWeakSet>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("WeakSet.prototype.has"), _u("WeakSet"));
         }
 
-        JavascriptWeakSet* weakSet = JavascriptWeakSet::FromVar(args[0]);
+        JavascriptWeakSet* weakSet = VarTo<JavascriptWeakSet>(args[0]);
 
         Var key = (args.Info.Count > 1) ? args[1] : scriptContext->GetLibrary()->GetUndefined();
         bool hasValue = false;

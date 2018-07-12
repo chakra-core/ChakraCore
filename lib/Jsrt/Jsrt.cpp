@@ -1490,7 +1490,7 @@ static JsErrorCode InternalGetPropertyRecord(Js::ScriptContext * scriptContext,
             (Js::PropertyRecord const **)propertyRecord);
         break;
     case Js::TypeIds_Symbol:
-        *propertyRecord = Js::JavascriptSymbol::FromVar(key)->GetValue();
+        *propertyRecord = Js::VarTo<Js::JavascriptSymbol>(key)->GetValue();
         break;
     default:
         return JsErrorInvalidArgument;
@@ -2815,7 +2815,7 @@ CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValue
 
         //
         //TODO: we will want to look at this at some point -- either treat as "top-level" call or maybe constructors are fast so we can just jump back to previous "real" code
-        //TTDAssert(!Js::ScriptFunction::Is(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
+        //TTDAssert(!Js::VarIs<Js::ScriptFunction>(jsFunction) || execContext->GetThreadContext()->TTDRootNestingCount != 0, "This will cause user code to execute and we need to add support for that as a top-level call source!!!!");
         //
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -3348,12 +3348,12 @@ CHAKRA_API JsGetPropertyIdFromSymbol(_In_ JsValueRef symbol, _Out_ JsPropertyIdR
         PARAM_NOT_NULL(propertyId);
         *propertyId = nullptr;
 
-        if (!Js::JavascriptSymbol::Is(symbol))
+        if (!Js::VarIs<Js::JavascriptSymbol>(symbol))
         {
             return JsErrorPropertyNotSymbol;
         }
 
-        *propertyId = (JsPropertyIdRef)Js::JavascriptSymbol::FromVar(symbol)->GetValue();
+        *propertyId = (JsPropertyIdRef)Js::VarTo<Js::JavascriptSymbol>(symbol)->GetValue();
         return JsNoError;
     },
     /*allowInObjectBeforeCollectCallback*/true);
