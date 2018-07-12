@@ -105,10 +105,6 @@ public:
 
     const char16* GetSz() override sealed;
 
-    static bool Is(Var var);
-
-    static LazyJSONString* TryFromVar(Var var);
-
     virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
     {
         return VTableValue::VtableLazyJSONString;

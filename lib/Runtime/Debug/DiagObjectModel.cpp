@@ -2527,7 +2527,7 @@ namespace Js
                                     }
 
                                     auto containsPredicate = [&](Js::DebuggerPropertyDisplayInfo* info) { return info->propId == propertyId; };
-                                    if (Js::BoundFunction::Is(object)
+                                    if (Js::VarIs<Js::BoundFunction>(object)
                                         && this->pMembersList->Any(containsPredicate))
                                     {
                                         // Bound functions can already contain their special properties,

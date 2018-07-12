@@ -5183,7 +5183,7 @@ namespace Js
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
-        else if (BoundFunction::Is(function))
+        else if (VarIs<BoundFunction>(function))
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
