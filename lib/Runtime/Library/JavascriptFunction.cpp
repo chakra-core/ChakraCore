@@ -1062,9 +1062,9 @@ using namespace Js;
                 // Expand the spread element.
                 Var instance = args[spreadIndex];
 
-                if (SpreadArgument::Is(instance))
+                if (VarIs<SpreadArgument>(instance))
                 {
-                    SpreadArgument* spreadedArgs = SpreadArgument::FromVar(instance);
+                    SpreadArgument* spreadedArgs = VarTo<SpreadArgument>(instance);
                     uint size = spreadedArgs->GetArgumentSpreadCount();
                     if (size > 0)
                     {

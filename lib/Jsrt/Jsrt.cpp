@@ -2684,7 +2684,7 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        *value = JsrtExternalObject::Is(object);
+        *value = Js::VarIs<JsrtExternalObject>(object);
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -2696,9 +2696,9 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (JsrtExternalObject::Is(object))
+        if (Js::VarIs<JsrtExternalObject>(object))
         {
-            *data = JsrtExternalObject::FromVar(object)->GetSlotData();
+            *data = Js::VarTo<JsrtExternalObject>(object)->GetSlotData();
         }
         else
         {
@@ -2715,9 +2715,9 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (JsrtExternalObject::Is(object))
+        if (Js::VarIs<JsrtExternalObject>(object))
         {
-            JsrtExternalObject::FromVar(object)->SetSlotData(data);
+            Js::VarTo<JsrtExternalObject>(object)->SetSlotData(data);
         }
         else
         {

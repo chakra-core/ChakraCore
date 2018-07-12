@@ -11630,9 +11630,9 @@ Case0:
             {
                 JS_REENTRANT(jsReentLock, Var instance = array->DirectGetItem(i));
 
-                if (SpreadArgument::Is(instance))
+                if (VarIs<SpreadArgument>(instance))
                 {
-                    SpreadArgument* spreadArgument = SpreadArgument::FromVar(instance);
+                    SpreadArgument* spreadArgument = VarTo<SpreadArgument>(instance);
                     uint32 len = spreadArgument->GetArgumentSpreadCount();
                     const Var*  spreadItems = spreadArgument->GetArgumentSpread();
                     for (uint32 j = 0; j < len; j++)
@@ -11674,9 +11674,9 @@ Case0:
             return tarr->GetLength();
         }
 
-        if (SpreadArgument::Is(spreadArg))
+        if (VarIs<SpreadArgument>(spreadArg))
         {
-            SpreadArgument *spreadFunctionArgs = SpreadArgument::FromVar(spreadArg);
+            SpreadArgument *spreadFunctionArgs = VarTo<SpreadArgument>(spreadArg);
             return spreadFunctionArgs->GetArgumentSpreadCount();
         }
 

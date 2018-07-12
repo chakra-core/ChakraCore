@@ -1763,7 +1763,7 @@ CommonNumber:
             // Don't cache the information if the value is undecl block var
             // REVIEW: We might want to only check this if we need to (For LdRootFld or ScopedLdFld)
             //         Also we might want to throw here instead of checking it again in the caller
-            if (value && !requestContext->IsUndeclBlockVar(*value) && !WithScopeObject::Is(object))
+            if (value && !requestContext->IsUndeclBlockVar(*value) && !VarIs<WithScopeObject>(object))
             {
                 CacheOperators::CachePropertyRead(propertyObject, object, isRoot, propertyId, false, info, requestContext);
             }
@@ -1876,7 +1876,7 @@ CommonNumber:
 
             if (result != PropertyQueryFlags::Property_NotFound)
             {
-                if (!WithScopeObject::Is(object) && info->GetPropertyRecordUsageCache())
+                if (!VarIs<WithScopeObject>(object) && info->GetPropertyRecordUsageCache())
                 {
                     PropertyId propertyId = info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
@@ -2317,7 +2317,7 @@ CommonNumber:
                     }
                     if (setterValueOrProxy)
                     {
-                        if (!WithScopeObject::Is(receiver) && info->GetPropertyRecordUsageCache() && !JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
+                        if (!VarIs<WithScopeObject>(receiver) && info->GetPropertyRecordUsageCache() && !JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
                         {
                             CacheOperators::CachePropertyWrite(VarTo<RecyclableObject>(receiver), false, object->GetType(), info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
                         }
@@ -2535,7 +2535,7 @@ CommonNumber:
                     RecyclableObject* func = VarTo<RecyclableObject>(setterValueOrProxy);
                     Assert(!info || info->GetFlags() == InlineCacheSetterFlag || info->GetPropertyIndex() == Constants::NoSlot);
 
-                    if (WithScopeObject::Is(receiver))
+                    if (VarIs<WithScopeObject>(receiver))
                     {
                         receiver = (VarTo<RecyclableObject>(receiver))->GetThisObjectOrUnWrap();
                     }

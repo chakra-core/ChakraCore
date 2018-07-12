@@ -6,23 +6,6 @@
 #include "Types/SpreadArgument.h"
 namespace Js
 {
-    bool SpreadArgument::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_SpreadArgument;
-    }
-
-    SpreadArgument* SpreadArgument::FromVar(Var aValue)
-    {
-        AssertOrFailFast(SpreadArgument::Is(aValue));
-        return static_cast<SpreadArgument*>(aValue);
-    }
-
-    SpreadArgument* SpreadArgument::UnsafeFromVar(Var aValue)
-    {
-        Assert(SpreadArgument::Is(aValue));
-        return static_cast<SpreadArgument*>(aValue);
-    }
-
     SpreadArgument::SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type)
         : DynamicObject(type), iteratorIndices(nullptr)
     {
