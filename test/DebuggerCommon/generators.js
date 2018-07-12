@@ -124,12 +124,28 @@ g = gf4(); /**bp:
 
                 stack();resume('step_into');
                 stack();resume('step_into');
-                stack();resume('step_into');
-                stack();resume('step_out');
-                stack();resume('step_out');
             **/
 
 g.next(1);
 g.return(2);
+
+function* gf5() {
+    try {
+        yield 32;
+    } catch (e) {
+    }
+}
+
+g = gf5(); /**bp:
+                stack();resume('step_over');
+
+                resume('step_over');
+
+                stack();resume('step_into');
+                stack();resume('step_out');
+                stack();
+            **/
+g.next();
+g.return(1);
 
 WScript.Echo("PASS");
