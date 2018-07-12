@@ -221,26 +221,7 @@ namespace Js
     {
     protected:
         DEFINE_VTABLE_CTOR(TypedArray, TypedArrayBase);
-        virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext)
-        {
-            Assert(this->GetScriptContext() != scriptContext);
-            AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal to script context");
-
-            VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
-            ArrayBufferBase* arrayBuffer = this->GetArrayBuffer();
-            if (arrayBuffer && !arrayBuffer->IsCrossSiteObject())
-            {
-                arrayBuffer->MarshalToScriptContext(scriptContext);
-            }
-        }
-
-#if ENABLE_TTD
-        virtual void MarshalCrossSite_TTDInflate()
-        {
-            AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal");
-            VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
-        }
-#endif
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(TypedArray);
 
         TypedArray(DynamicType *type): TypedArrayBase(nullptr, 0, 0, sizeof(TypeName), type) { buffer = nullptr; }
 
