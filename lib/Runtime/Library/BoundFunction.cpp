@@ -85,7 +85,7 @@ namespace Js
         // Reduce length number of bound args
         len = len - this->count;
         len = max(len, 0);
-            
+
         SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(len), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
     }
 
@@ -137,7 +137,7 @@ namespace Js
                     args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(newTarget, scriptContext);
                 }
             }
-            else if (!JavascriptProxy::Is(targetFunction))
+            else if (!VarIs<JavascriptProxy>(targetFunction))
             {
                 // No new target and target is not a proxy can make a new object in a "normal" way.
                 // NewScObjectNoCtor will either construct an object or return targetFunction depending
@@ -240,9 +240,9 @@ namespace Js
         if (targetFunction != nullptr)
         {
             RecyclableObject* _targetFunction = targetFunction;
-            while (JavascriptProxy::Is(_targetFunction))
+            while (VarIs<JavascriptProxy>(_targetFunction))
             {
-                _targetFunction = JavascriptProxy::FromVar(_targetFunction)->GetTarget();
+                _targetFunction = VarTo<JavascriptProxy>(_targetFunction)->GetTarget();
             }
 
             if (VarIs<JavascriptFunction>(_targetFunction))

@@ -152,9 +152,9 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     Assert(JavascriptOperators::IsObject(object));
     Assert(JavascriptOperators::IsObjectOrNull(newPrototype));
 
-    if (JavascriptProxy::Is(object))
+    if (VarIs<JavascriptProxy>(object))
     {
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(object);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(object);
         CrossSite::ForceCrossSiteThunkOnPrototypeChain(newPrototype);
         return proxy->SetPrototypeTrap(newPrototype, shouldThrow, scriptContext);
     }
@@ -1619,7 +1619,7 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
     JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(from);
 #endif
     // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
-    if (JavascriptProxy::Is(from))
+    if (VarIs<JavascriptProxy>(from))
     {
         CopyDataPropertiesForProxyObjects<assign>(from, to, excluded, scriptContext);
     }
@@ -1848,7 +1848,7 @@ Var JavascriptObject::EntryCreate(RecyclableObject* function, CallInfo callInfo,
 
 Var JavascriptObject::DefinePropertiesHelper(RecyclableObject *object, RecyclableObject* props, ScriptContext *scriptContext)
 {
-    if (JavascriptProxy::Is(props))
+    if (VarIs<JavascriptProxy>(props))
     {
         return DefinePropertiesHelperForProxyObjects(object, props, scriptContext);
     }
@@ -1943,7 +1943,7 @@ Var JavascriptObject::DefinePropertiesHelperForGenericObjects(RecyclableObject *
 //ES5 15.2.3.7
 Var JavascriptObject::DefinePropertiesHelperForProxyObjects(RecyclableObject *object, RecyclableObject* props, ScriptContext *scriptContext)
 {
-    Assert(JavascriptProxy::Is(props));
+    Assert(VarIs<JavascriptProxy>(props));
 
     //1.  If Type(O) is not Object throw a TypeError exception.
     //2.  Let props be ToObject(Properties).

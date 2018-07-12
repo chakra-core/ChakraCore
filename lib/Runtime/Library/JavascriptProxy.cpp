@@ -6,16 +6,6 @@
 
 namespace Js
 {
-    BOOL JavascriptProxy::Is(_In_ RecyclableObject* obj)
-    {
-        return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
-    }
-
-    BOOL JavascriptProxy::Is(_In_ Var obj)
-    {
-        return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
-    }
-
     bool JavascriptProxy::IsRevoked() const
     {
         return (target == nullptr);
@@ -82,9 +72,9 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(target);
 #endif
-        if (JavascriptProxy::Is(target))
+        if (VarIs<JavascriptProxy>(target))
         {
-            if (JavascriptProxy::FromVar(target)->target == nullptr)
+            if (VarTo<JavascriptProxy>(target)->target == nullptr)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("target"));
             }
@@ -95,9 +85,9 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("handler"));
         }
         handler = VarTo<DynamicObject>(args[2]);
-        if (JavascriptProxy::Is(handler))
+        if (VarIs<JavascriptProxy>(handler))
         {
-            if (JavascriptProxy::FromVar(handler)->handler == nullptr)
+            if (VarTo<JavascriptProxy>(handler)->handler == nullptr)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u("handler"));
             }
@@ -110,7 +100,7 @@ namespace Js
             newProxy->GetDynamicType()->SetEntryPoint(JavascriptProxy::FunctionCallTrap);
         }
         return isCtorSuperCall ?
-            JavascriptProxy::FromVar(JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newProxy, nullptr, scriptContext)) :
+            VarTo<JavascriptProxy>(JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newProxy, nullptr, scriptContext)) :
             newProxy;
     }
 
@@ -168,7 +158,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidProxyArgument, _u(""));
         }
         function->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, scriptContext->GetLibrary()->GetNull(), PropertyOperationFlags::PropertyOperation_Force, nullptr);
-        (JavascriptProxy::FromVar(revokableProxy))->RevokeObject();
+        (VarTo<JavascriptProxy>(revokableProxy))->RevokeObject();
 
         return scriptContext->GetLibrary()->GetUndefined();
     }
@@ -1273,7 +1263,7 @@ namespace Js
         // at this time this is called from proxy only; when we extend this to other objects, we need to handle the other codepath.
         //7. Let keys be O.[[OwnPropertyKeys]]().
         //8. ReturnIfAbrupt(keys).
-        Assert(JavascriptProxy::Is(obj));
+        Assert(VarIs<JavascriptProxy>(obj));
         JavascriptArray* resultArray = JavascriptOperators::GetOwnPropertyKeys(obj, scriptContext);
 
         //9. Repeat for each element k of keys,
@@ -1323,7 +1313,7 @@ namespace Js
         //5. If status is false, return false.
 
         // at this time this is called from proxy only; when we extend this to other objects, we need to handle the other codepath.
-        Assert(JavascriptProxy::Is(obj));
+        Assert(VarIs<JavascriptProxy>(obj));
         if (obj->PreventExtensions() == FALSE)
             return FALSE;
 
@@ -1692,7 +1682,7 @@ namespace Js
 
     BOOL JavascriptProxy::GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor)
     {
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(obj);
         return proxy->GetPropertyDescriptorTrap(propertyId, propertyDescriptor, requestContext);
     }
 
@@ -1709,7 +1699,7 @@ namespace Js
             return FALSE;
         }
 
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(obj);
 
         //1. Assert: IsPropertyKey(P) is true.
         //2. Let handler be the value of the[[ProxyHandler]] internal slot of O.
@@ -2037,7 +2027,7 @@ namespace Js
     RecyclableObject* JavascriptProxy::AutoProxyWrapper(Var obj)
     {
         RecyclableObject* object = VarTo<RecyclableObject>(obj);
-        if (!JavascriptOperators::IsObject(object) || JavascriptProxy::Is(object))
+        if (!JavascriptOperators::IsObject(object) || VarIs<JavascriptProxy>(object))
         {
             return object;
         }
@@ -2097,7 +2087,7 @@ namespace Js
         bool isNewCall = args.IsNewCall() || hasOverridingNewTarget;
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        if (!JavascriptProxy::Is(function))
+        if (!VarIs<JavascriptProxy>(function))
         {
             if (args.Info.Flags & CallFlags_New)
             {
@@ -2110,7 +2100,7 @@ namespace Js
         }
 
         Var newTarget = nullptr;
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(function);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(function);
         Js::RecyclableObject *handlerObj = proxy->handler;
         Js::RecyclableObject *targetObj = proxy->target;
 

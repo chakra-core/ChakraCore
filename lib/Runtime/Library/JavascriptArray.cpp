@@ -3620,7 +3620,7 @@ using namespace Js;
                     // worth it.
                     isInt = false;
                     isFloat = false;
-                    if (!JavascriptProxy::Is(aItem))
+                    if (!VarIs<JavascriptProxy>(aItem))
                     {
                         if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
                         {
@@ -3912,7 +3912,7 @@ using namespace Js;
         // The evaluation of method arguments may change the type of the array. Hence, we do that prior to the actual helper method calls.
         // The if clause of the conditional statement below applies to an JavascriptArray or TypedArray instances. The rest of the conditional
         // clauses apply to an ES5Array or other valid Javascript objects.
-        if ((pArr || TypedArrayBase::Is(obj)) && (length.IsSmallIndex() || length.IsUint32Max()))
+        if ((pArr || VarIs<TypedArrayBase>(obj)) && (length.IsSmallIndex() || length.IsUint32Max()))
         {
             uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
             JS_REENTRANT(jsReentLock, BOOL gotParam = GetParamForIndexOf(len, args, search, fromIndex, scriptContext));
@@ -5524,7 +5524,7 @@ Case0:
                 RecyclableObject* protoObj = prototype;
 
                 if (!(DynamicObject::IsAnyArray(protoObj) || JavascriptOperators::IsObject(protoObj))
-                    || JavascriptProxy::Is(protoObj)
+                    || VarIs<JavascriptProxy>(protoObj)
                     || protoObj->IsExternal())
                 {
                     hasAnyES5Array = true;
@@ -5579,9 +5579,9 @@ Case0:
         }
 
         // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
-        if (!isTypedArrayEntryPoint && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (!isTypedArrayEntryPoint && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         ThrowTypeErrorOnFailureHelper h(scriptContext, methodName);
@@ -6340,9 +6340,9 @@ Case0:
         }
 
         // If we came from Array.prototype.slice and source object is not a JavascriptArray, source could be a TypedArray
-        if (!isTypedArrayEntryPoint && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (!isTypedArrayEntryPoint && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         // If the entry point is %TypedArray%.prototype.slice or the source object is an Array exotic object we should try to load the constructor property
@@ -6527,7 +6527,7 @@ Case0:
         }
         else if (typedArrayBase)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
 
             // Source is a TypedArray, we must have created the return object via a call to constructor, but newObj may not be a TypedArray (or an array either)
             TypedArrayBase* newTypedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
@@ -8477,9 +8477,9 @@ Case0:
         }
 
         // If we came from Array.prototype.find/findIndex and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
@@ -8803,9 +8803,9 @@ Case0:
         }
 
         // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         Var element = nullptr;
@@ -8815,7 +8815,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (uint32 k = 0; k < end; k++)
@@ -8955,9 +8955,9 @@ Case0:
         }
 
         // If we came from Array.prototype.some and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
@@ -8967,7 +8967,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (uint32 k = 0; k < end; k++)
@@ -9163,9 +9163,9 @@ Case0:
         int64 finalVal = length;
 
         // If we came from Array.prototype.copyWithin and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         if (args.Info.Count > 1)
@@ -9359,9 +9359,9 @@ Case0:
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
         // If we came from Array.prototype.fill and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         Var fillValue;
@@ -9528,9 +9528,9 @@ Case0:
         }
 
         // If we came from Array.prototype.map and source object is not a JavascriptArray, source could be a TypedArray
-        if (!isTypedArrayEntryPoint && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (!isTypedArrayEntryPoint && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         // If the entry point is %TypedArray%.prototype.map or the source object is an Array exotic object we should try to load the constructor property
@@ -9646,7 +9646,7 @@ Case0:
         }
         else if (typedArrayBase != nullptr)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
 
             // Source is a TypedArray, we may have tried to call a constructor, but newObj may not be a TypedArray (or an array either)
             TypedArrayBase* newTypedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
@@ -9941,9 +9941,9 @@ Case0:
         }
 
         // If we came from Array.prototype.reduce and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         T k = 0;
@@ -9966,7 +9966,7 @@ Case0:
 
             if (typedArrayBase)
             {
-                AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+                AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
                 for (; k < end && bPresent == false; k++)
@@ -10006,7 +10006,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (; k < end; k++)
@@ -10121,9 +10121,9 @@ Case0:
         }
 
         // If we came from Array.prototype.reduceRight and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && TypedArrayBase::Is(obj))
+        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(obj);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
 
         RecyclableObject* callBackFn = VarTo<RecyclableObject>(args[1]);
@@ -10146,7 +10146,7 @@ Case0:
             bool bPresent = false;
             if (typedArrayBase)
             {
-                AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+                AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
                 for (; k < end && bPresent == false; k++)
@@ -10184,7 +10184,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(TypedArrayBase::Is(typedArrayBase));
+            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (; k < end; k++)
@@ -10537,9 +10537,9 @@ Case0:
                 SETOBJECT_FOR_MUTATION(jsReentLock, newArr);
 
             }
-            else if (TypedArrayBase::Is(newObj))
+            else if (VarIs<TypedArrayBase>(newObj))
             {
-                newTypedArray = TypedArrayBase::UnsafeFromVar(newObj);
+                newTypedArray = UnsafeVarTo<TypedArrayBase>(newObj);
             }
         }
         else
@@ -11574,7 +11574,7 @@ Case0:
             // Designed to have interchangeable arguments with CopyAnyArrayElementsToVar.
             auto slowCopy = [&scriptContext, &needArraySlowCopy
                 ](JavascriptArray *dstArray, unsigned dstIndex, Var srcArray, uint32 start, uint32 end) {
-                Assert(needArraySlowCopy(srcArray) || VarIs<ArgumentsObject>(srcArray) || TypedArrayBase::Is(srcArray) || VarIs<JavascriptString>(srcArray));
+                Assert(needArraySlowCopy(srcArray) || VarIs<ArgumentsObject>(srcArray) || VarIs<TypedArrayBase>(srcArray) || VarIs<JavascriptString>(srcArray));
                 JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
                 RecyclableObject *propertyObject;

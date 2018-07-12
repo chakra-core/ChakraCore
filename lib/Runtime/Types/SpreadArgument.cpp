@@ -39,9 +39,9 @@ namespace Js
                     Assert(length == array->GetLength());
                 }
             }
-            else if (TypedArrayBase::Is(iterator))
+            else if (VarIs<TypedArrayBase>(iterator))
             {
-                TypedArrayBase *typedArray = TypedArrayBase::UnsafeFromVar(iterator);
+                TypedArrayBase *typedArray = UnsafeVarTo<TypedArrayBase>(iterator);
 
                 if (typedArray->IsDetachedBuffer())
                 {

@@ -120,9 +120,6 @@ namespace Js
         static JavascriptAsyncFunction* New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction);
         static DWORD GetOffsetOfScriptFunction() { return JavascriptGeneratorFunction::GetOffsetOfScriptFunction(); }
 
-        static JavascriptAsyncFunction* FromVar(Var var);
-        static JavascriptAsyncFunction* UnsafeFromVar(Var var);
-        static bool Is(Var var);
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)

@@ -304,7 +304,7 @@ namespace TTD
                     continue;
                 }
 
-                TTDAssert(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
+                TTDAssert(!Js::VarIs<Js::JavascriptProxy>(obj), "I didn't think proxies could have real properties directly on them.");
 
                 Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
 

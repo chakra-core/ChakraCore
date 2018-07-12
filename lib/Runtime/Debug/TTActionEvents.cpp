@@ -726,7 +726,7 @@ namespace TTD
             const JsRTSingleVarArgumentAction* action = GetInlineEventDataAs<JsRTSingleVarArgumentAction, EventKind::GetTypedArrayInfoActionTag>(evt);
             Js::Var var = InflateVarInReplay(executeContext, GetVarItem_0(action));
 
-            Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(var);
+            Js::TypedArrayBase* typedArrayBase = Js::VarTo<Js::TypedArrayBase>(var);
             Js::Var res = typedArrayBase->GetArrayBuffer();
 
             //Need additional notify since JsRTActionHandleResultForReplay may allocate but GetTypedArrayInfo does not enter runtime

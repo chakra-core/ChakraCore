@@ -71,7 +71,7 @@ namespace Js
         IDiagObjectModelDisplay* pOMDisplay = nullptr;
         ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
 
-        if (Js::TypedArrayBase::Is(obj))
+        if (Js::VarIs<Js::TypedArrayBase>(obj))
         {
             pOMDisplay = Anew(pRefArena->Arena(), RecyclableTypedArrayDisplay, this);
         }
@@ -2466,7 +2466,7 @@ namespace Js
                             // Provide [Proxy] group object
                             EnsureFakeGroupObjectWalkerList();
 
-                            JavascriptProxy* proxy = JavascriptProxy::FromVar(object);
+                            JavascriptProxy* proxy = VarTo<JavascriptProxy>(object);
                             RecyclableProxyObjectWalker* proxyWalker = Anew(arena, RecyclableProxyObjectWalker, scriptContext, proxy);
                             fakeGroupObjectWalkerList->Add(proxyWalker);
                         }
@@ -3268,9 +3268,9 @@ namespace Js
     {
         if (!indexedItemCount)
         {
-            Assert(Js::TypedArrayBase::Is(instance));
+            Assert(Js::VarIs<Js::TypedArrayBase>(instance));
 
-            Js::TypedArrayBase * typedArrayObj = Js::TypedArrayBase::FromVar(instance);
+            Js::TypedArrayBase * typedArrayObj = Js::VarTo<Js::TypedArrayBase>(instance);
 
             indexedItemCount = typedArrayObj->GetLength() + (!fOnlyOwnProperties ? RecyclableObjectWalker::GetChildrenCount() : 0);
         }
@@ -3282,9 +3282,9 @@ namespace Js
     {
         AssertMsg(pResolvedObject, "Bad usage of RecyclableTypedArrayWalker::Get");
 
-        Assert(Js::TypedArrayBase::Is(instance));
+        Assert(Js::VarIs<Js::TypedArrayBase>(instance));
 
-        Js::TypedArrayBase * typedArrayObj = Js::TypedArrayBase::FromVar(instance);
+        Js::TypedArrayBase * typedArrayObj = Js::VarTo<Js::TypedArrayBase>(instance);
 
         int nonArrayElementCount = (!fOnlyOwnProperties ? RecyclableObjectWalker::GetChildrenCount() : 0);
 
@@ -3753,7 +3753,7 @@ namespace Js
 
     BOOL RecyclableProxyObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
     {
-        JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
+        JavascriptProxy* proxy = VarTo<JavascriptProxy>(instance);
         if (proxy->GetTarget() == nullptr || proxy->GetHandler() == nullptr)
         {
             return FALSE;

@@ -74,7 +74,7 @@ namespace Js
         }
         else if (object->GetTypeId() == TypeIds_Proxy)
         {
-            RecyclableObject * target = JavascriptProxy::FromVar(object)->GetTarget();
+            RecyclableObject * target = VarTo<JavascriptProxy>(object)->GetTarget();
             if (JavascriptConversion::IsCallable(target))
             {
                 Assert(JavascriptProxy::FunctionCallTrap == object->GetEntryPoint());
@@ -305,7 +305,7 @@ namespace Js
         {
             if (!dynamicObject->IsCrossSiteObject())
             {
-                if (JavascriptProxy::Is(dynamicObject))
+                if (VarIs<JavascriptProxy>(dynamicObject))
                 {
                     // We don't need to marshal the prototype chain in the case of Proxy. Otherwise we will go to the user code.
                     TTD_XSITE_LOG(object->GetScriptContext(), "MarshalDynamicObject", object);
@@ -428,7 +428,7 @@ namespace Js
     Var CrossSite::CrossSiteProxyCallTrap(RecyclableObject* function, CallInfo callInfo, ...)
     {
         RUNTIME_ARGUMENTS(args, callInfo);
-        Assert(JavascriptProxy::Is(function));
+        Assert(VarIs<JavascriptProxy>(function));
 
         return CrossSite::CommonThunk(function, JavascriptProxy::FunctionCallTrap, args);
     }
@@ -468,7 +468,7 @@ namespace Js
         {
             i = 1;
             Assert(args.IsNewCall());
-            Assert(JavascriptProxy::Is(function) || (VarIs<JavascriptFunction>(function) && VarTo<JavascriptFunction>(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
+            Assert(VarIs<JavascriptProxy>(function) || (VarIs<JavascriptFunction>(function) && VarTo<JavascriptFunction>(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
         }
         uint count = args.Info.Count;
         for (; i < count; i++)
@@ -579,7 +579,7 @@ namespace Js
         {
             return;
         }
-        while (DynamicType::Is(object->GetTypeId()) && !JavascriptProxy::Is(object))
+        while (DynamicType::Is(object->GetTypeId()) && !VarIs<JavascriptProxy>(object))
         {
             DynamicObject* dynamicObject = UnsafeVarTo<DynamicObject>(object);
             if (!dynamicObject->IsCrossSiteObject() && !dynamicObject->IsExternal())

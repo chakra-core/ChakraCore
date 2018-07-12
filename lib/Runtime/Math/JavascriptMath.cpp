@@ -1031,7 +1031,7 @@ StringCommon:
             }
             else
             {
-                TypedArrayBase * argsArray = TypedArrayBase::UnsafeFromVar(arrayArg);
+                TypedArrayBase * argsArray = UnsafeVarTo<TypedArrayBase>(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)
                 {
@@ -1104,7 +1104,7 @@ StringCommon:
             }
             else
             {
-                TypedArrayBase * argsArray = TypedArrayBase::UnsafeFromVar(arrayArg);
+                TypedArrayBase * argsArray = UnsafeVarTo<TypedArrayBase>(arrayArg);
                 uint len = argsArray->GetLength();
                 if (len == 0)
                 {

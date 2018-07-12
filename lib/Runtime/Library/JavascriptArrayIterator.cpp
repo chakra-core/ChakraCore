@@ -60,9 +60,9 @@ namespace Js
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();
         }
-        else if (TypedArrayBase::Is(iterable))
+        else if (VarIs<TypedArrayBase>(iterable))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(iterable);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);

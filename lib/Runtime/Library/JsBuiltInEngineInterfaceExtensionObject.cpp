@@ -396,9 +396,9 @@ FUNCTIONKIND_VALUES(VALUE)
         TypedArrayBase *typedArrayBase = nullptr;
         Assert(!JavascriptArray::IsNonES5Array(iterable));
 
-        if (TypedArrayBase::Is(iterable))
+        if (VarIs<TypedArrayBase>(iterable))
         {
-            typedArrayBase = TypedArrayBase::FromVar(iterable);
+            typedArrayBase = VarTo<TypedArrayBase>(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);

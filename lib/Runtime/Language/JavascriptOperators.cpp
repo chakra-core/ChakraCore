@@ -1001,7 +1001,7 @@ CommonNumber:
         }
         RecyclableObject* object = UnsafeVarTo<RecyclableObject>(instance);
 
-        if (JavascriptProxy::Is(instance))
+        if (VarIs<JavascriptProxy>(instance))
         {
             PropertyDescriptor desc;
             return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
@@ -1181,7 +1181,7 @@ CommonNumber:
         Assert(scriptContext);
         Assert(propertyDescriptor);
 
-        if (JavascriptProxy::Is(obj))
+        if (VarIs<JavascriptProxy>(obj))
         {
             return JavascriptProxy::GetOwnPropertyDescriptor(obj, propertyId, scriptContext, propertyDescriptor);
         }
@@ -1412,7 +1412,7 @@ CommonNumber:
                   && UnsafeVarTo<JavascriptArray>(aRight)->HasNoMissingValues()
                   && !UnsafeVarTo<JavascriptArray>(aRight)->IsCrossSiteObject()
               )) ||
-             (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
+             (VarIs<TypedArrayBase>(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
             // We can't optimize away the iterator if the array iterator prototype is user defined.
             && !JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext))
         {
@@ -2330,8 +2330,8 @@ CommonNumber:
                 }
                 else if ((flags & Proxy) == Proxy)
                 {
-                    Assert(JavascriptProxy::Is(setterValueOrProxy));
-                    JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                    Assert(VarIs<JavascriptProxy>(setterValueOrProxy));
+                    JavascriptProxy* proxy = VarTo<JavascriptProxy>(setterValueOrProxy);
                     auto fn = [&](RecyclableObject* target) -> BOOL {
                         return JavascriptOperators::SetPropertyWPCache(receiver, target, propertyKey, newValue, requestContext, propertyOperationFlags, info);
                     };
@@ -2373,7 +2373,7 @@ CommonNumber:
             // in 9.1.9, step 5, we should return false if receiver is not object, and that will happen in default RecyclableObject operation anyhow.
             if (receiverObject->SetProperty(propertyKey, newValue, propertyOperationFlags, info))
             {
-                if (!JavascriptProxy::Is(receiver) && info->GetPropertyRecordUsageCache() && info->GetFlags() != InlineCacheSetterFlag && !object->IsExternal())
+                if (!VarIs<JavascriptProxy>(receiver) && info->GetPropertyRecordUsageCache() && info->GetFlags() != InlineCacheSetterFlag && !object->IsExternal())
                 {
                     CacheOperators::CachePropertyWrite(VarTo<RecyclableObject>(receiver), false, typeWithoutProperty, info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
 
@@ -2420,8 +2420,8 @@ CommonNumber:
                 }
                 else if ((flags & Proxy) == Proxy)
                 {
-                    Assert(JavascriptProxy::Is(setterValueOrProxy));
-                    JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                    Assert(VarIs<JavascriptProxy>(setterValueOrProxy));
+                    JavascriptProxy* proxy = VarTo<JavascriptProxy>(setterValueOrProxy);
                     const PropertyRecord* propertyRecord = nullptr;
                     proxy->PropertyIdFromInt(index, &propertyRecord);
                     return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemOnTaggedNumberKind, propertyRecord->GetPropertyId(), newValue, requestContext, propertyOperationFlags);
@@ -2470,8 +2470,8 @@ CommonNumber:
                 }
                 else if ((flags & Proxy) == Proxy)
                 {
-                    Assert(JavascriptProxy::Is(setterValueOrProxy));
-                    JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                    Assert(VarIs<JavascriptProxy>(setterValueOrProxy));
+                    JavascriptProxy* proxy = VarTo<JavascriptProxy>(setterValueOrProxy);
                     return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetPropertyOnTaggedNumberKind, propertyId, newValue, requestContext, propertyOperationFlags);
                 }
                 else
@@ -2556,8 +2556,8 @@ CommonNumber:
             }
             else if ((flags & Proxy) == Proxy)
             {
-                Assert(JavascriptProxy::Is(setterValueOrProxy));
-                JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                Assert(VarIs<JavascriptProxy>(setterValueOrProxy));
+                JavascriptProxy* proxy = VarTo<JavascriptProxy>(setterValueOrProxy);
                 // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
                 // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
                 PropertyValueInfo::SetNoCache(info, proxy);
@@ -2655,7 +2655,7 @@ CommonNumber:
 
             if (updateCache)
             {
-                if (!JavascriptProxy::Is(receiver))
+                if (!VarIs<JavascriptProxy>(receiver))
                 {
                     CacheOperators::CachePropertyWrite(VarTo<RecyclableObject>(receiver), isRoot, typeWithoutProperty, propertyId, info, requestContext);
                 }
@@ -3059,7 +3059,7 @@ CommonNumber:
                     CacheOperators::TraceCache(inlineCache, _u("PatchSetPropertyScoped"), propertyId, scriptContext, object);
                 }
 #endif
-                if (!JavascriptProxy::Is(object) && !allowUndecInConsoleScope)
+                if (!VarIs<JavascriptProxy>(object) && !allowUndecInConsoleScope)
                 {
                     CacheOperators::CachePropertyWrite(object, false, type, propertyId, &info2, scriptContext);
                 }
@@ -3315,8 +3315,8 @@ CommonNumber:
             }
             else if ((flags & Proxy) == Proxy)
             {
-                Assert(JavascriptProxy::Is(setterValueOrProxy));
-                JavascriptProxy* proxy = JavascriptProxy::FromVar(setterValueOrProxy);
+                Assert(VarIs<JavascriptProxy>(setterValueOrProxy));
+                JavascriptProxy* proxy = VarTo<JavascriptProxy>(setterValueOrProxy);
                 const PropertyRecord* propertyRecord = nullptr;
                 proxy->PropertyIdFromInt(index, &propertyRecord);
                 return proxy->SetPropertyTrap(receiver, JavascriptProxy::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, scriptContext, propertyOperationFlags, skipPrototypeCheck);
@@ -3573,7 +3573,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(instance))
             {
-                Int8VirtualArray* int8Array = Int8VirtualArray::UnsafeFromVar(instance);
+                Int8VirtualArray* int8Array = UnsafeVarTo<Int8VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return int8Array->DirectGetItem(indexInt);
@@ -3581,7 +3581,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Int8Array>::HasVirtualTable(instance))
             {
-                Int8Array* int8Array = Int8Array::UnsafeFromVar(instance);
+                Int8Array* int8Array = UnsafeVarTo<Int8Array>(instance);
                 if (indexInt >= 0)
                 {
                     return int8Array->DirectGetItem(indexInt);
@@ -3596,7 +3596,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(instance))
             {
-                Uint8VirtualArray* uint8Array = Uint8VirtualArray::UnsafeFromVar(instance);
+                Uint8VirtualArray* uint8Array = UnsafeVarTo<Uint8VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return uint8Array->DirectGetItem(indexInt);
@@ -3604,7 +3604,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Uint8Array>::HasVirtualTable(instance))
             {
-                Uint8Array* uint8Array = Uint8Array::UnsafeFromVar(instance);
+                Uint8Array* uint8Array = UnsafeVarTo<Uint8Array>(instance);
                 if (indexInt >= 0)
                 {
                     return uint8Array->DirectGetItem(indexInt);
@@ -3619,7 +3619,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(instance))
             {
-                Uint8ClampedVirtualArray* uint8ClampedArray = Uint8ClampedVirtualArray::UnsafeFromVar(instance);
+                Uint8ClampedVirtualArray* uint8ClampedArray = UnsafeVarTo<Uint8ClampedVirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return uint8ClampedArray->DirectGetItem(indexInt);
@@ -3627,7 +3627,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(instance))
             {
-                Uint8ClampedArray* uint8ClampedArray = Uint8ClampedArray::UnsafeFromVar(instance);
+                Uint8ClampedArray* uint8ClampedArray = UnsafeVarTo<Uint8ClampedArray>(instance);
                 if (indexInt >= 0)
                 {
                     return uint8ClampedArray->DirectGetItem(indexInt);
@@ -3643,7 +3643,7 @@ CommonNumber:
 
             if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(instance))
             {
-                Int16VirtualArray* int16Array = Int16VirtualArray::UnsafeFromVar(instance);
+                Int16VirtualArray* int16Array = UnsafeVarTo<Int16VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return int16Array->DirectGetItem(indexInt);
@@ -3651,7 +3651,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Int16Array>::HasVirtualTable(instance))
             {
-                Int16Array* int16Array = Int16Array::UnsafeFromVar(instance);
+                Int16Array* int16Array = UnsafeVarTo<Int16Array>(instance);
                 if (indexInt >= 0)
                 {
                     return int16Array->DirectGetItem(indexInt);
@@ -3667,7 +3667,7 @@ CommonNumber:
 
             if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(instance))
             {
-                Uint16VirtualArray* uint16Array = Uint16VirtualArray::UnsafeFromVar(instance);
+                Uint16VirtualArray* uint16Array = UnsafeVarTo<Uint16VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return uint16Array->DirectGetItem(indexInt);
@@ -3675,7 +3675,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Uint16Array>::HasVirtualTable(instance))
             {
-                Uint16Array* uint16Array = Uint16Array::UnsafeFromVar(instance);
+                Uint16Array* uint16Array = UnsafeVarTo<Uint16Array>(instance);
                 if (indexInt >= 0)
                 {
                     return uint16Array->DirectGetItem(indexInt);
@@ -3689,7 +3689,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(instance))
             {
-                Int32VirtualArray* int32Array = Int32VirtualArray::UnsafeFromVar(instance);
+                Int32VirtualArray* int32Array = UnsafeVarTo<Int32VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return int32Array->DirectGetItem(indexInt);
@@ -3697,7 +3697,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Int32Array>::HasVirtualTable(instance))
             {
-                Int32Array* int32Array = Int32Array::UnsafeFromVar(instance);
+                Int32Array* int32Array = UnsafeVarTo<Int32Array>(instance);
                 if (indexInt >= 0)
                 {
                     return int32Array->DirectGetItem(indexInt);
@@ -3712,7 +3712,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(instance))
             {
-                Uint32VirtualArray* uint32Array = Uint32VirtualArray::UnsafeFromVar(instance);
+                Uint32VirtualArray* uint32Array = UnsafeVarTo<Uint32VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return uint32Array->DirectGetItem(indexInt);
@@ -3720,7 +3720,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Uint32Array>::HasVirtualTable(instance))
             {
-                Uint32Array* uint32Array = Uint32Array::UnsafeFromVar(instance);
+                Uint32Array* uint32Array = UnsafeVarTo<Uint32Array>(instance);
                 if (indexInt >= 0)
                 {
                     return uint32Array->DirectGetItem(indexInt);
@@ -3735,7 +3735,7 @@ CommonNumber:
 
             if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(instance))
             {
-                Float32VirtualArray* float32Array = Float32VirtualArray::UnsafeFromVar(instance);
+                Float32VirtualArray* float32Array = UnsafeVarTo<Float32VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return float32Array->DirectGetItem(indexInt);
@@ -3743,7 +3743,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Float32Array>::HasVirtualTable(instance))
             {
-                Float32Array* float32Array = Float32Array::UnsafeFromVar(instance);
+                Float32Array* float32Array = UnsafeVarTo<Float32Array>(instance);
                 if (indexInt >= 0)
                 {
                     return float32Array->DirectGetItem(indexInt);
@@ -3757,7 +3757,7 @@ CommonNumber:
             int32 indexInt = TaggedInt::ToInt32(index);
             if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(instance))
             {
-                Float64VirtualArray* float64Array = Float64VirtualArray::UnsafeFromVar(instance);
+                Float64VirtualArray* float64Array = UnsafeVarTo<Float64VirtualArray>(instance);
                 if (indexInt >= 0)
                 {
                     return float64Array->DirectGetItem(indexInt);
@@ -3765,7 +3765,7 @@ CommonNumber:
             }
             else if (VirtualTableInfo<Float64Array>::HasVirtualTable(instance))
             {
-                Float64Array* float64Array = Float64Array::UnsafeFromVar(instance);
+                Float64Array* float64Array = UnsafeVarTo<Float64Array>(instance);
                 if (indexInt >= 0)
                 {
                     return float64Array->DirectGetItem(indexInt);
@@ -4393,12 +4393,12 @@ CommonNumber:
 
                     if (VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(instance))
                     {
-                        Int8VirtualArray* int8Array = Int8VirtualArray::UnsafeFromVar(instance);
+                        Int8VirtualArray* int8Array = UnsafeVarTo<Int8VirtualArray>(instance);
                         returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if( VirtualTableInfo<Int8Array>::HasVirtualTable(instance))
                     {
-                        Int8Array* int8Array = Int8Array::UnsafeFromVar(instance);
+                        Int8Array* int8Array = UnsafeVarTo<Int8Array>(instance);
                         returnValue = int8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4409,12 +4409,12 @@ CommonNumber:
                     // The typed array will deal with all possible values for the index
                     if (VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(instance))
                     {
-                        Uint8VirtualArray* uint8Array = Uint8VirtualArray::UnsafeFromVar(instance);
+                        Uint8VirtualArray* uint8Array = UnsafeVarTo<Uint8VirtualArray>(instance);
                         returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Uint8Array>::HasVirtualTable(instance))
                     {
-                        Uint8Array* uint8Array = Uint8Array::UnsafeFromVar(instance);
+                        Uint8Array* uint8Array = UnsafeVarTo<Uint8Array>(instance);
                         returnValue = uint8Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4425,12 +4425,12 @@ CommonNumber:
                     // The typed array will deal with all possible values for the index
                     if (VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(instance))
                     {
-                        Uint8ClampedVirtualArray* uint8ClampedArray = Uint8ClampedVirtualArray::UnsafeFromVar(instance);
+                        Uint8ClampedVirtualArray* uint8ClampedArray = UnsafeVarTo<Uint8ClampedVirtualArray>(instance);
                         returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if(VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(instance))
                     {
-                        Uint8ClampedArray* uint8ClampedArray = Uint8ClampedArray::UnsafeFromVar(instance);
+                        Uint8ClampedArray* uint8ClampedArray = UnsafeVarTo<Uint8ClampedArray>(instance);
                         returnValue = uint8ClampedArray->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4441,12 +4441,12 @@ CommonNumber:
                     // The type array will deal with all possible values for the index
                     if (VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(instance))
                     {
-                        Int16VirtualArray* int16Array = Int16VirtualArray::UnsafeFromVar(instance);
+                        Int16VirtualArray* int16Array = UnsafeVarTo<Int16VirtualArray>(instance);
                         returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Int16Array>::HasVirtualTable(instance))
                     {
-                        Int16Array* int16Array = Int16Array::UnsafeFromVar(instance);
+                        Int16Array* int16Array = UnsafeVarTo<Int16Array>(instance);
                         returnValue = int16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4458,12 +4458,12 @@ CommonNumber:
 
                     if (VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(instance))
                     {
-                        Uint16VirtualArray* uint16Array = Uint16VirtualArray::UnsafeFromVar(instance);
+                        Uint16VirtualArray* uint16Array = UnsafeVarTo<Uint16VirtualArray>(instance);
                         returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Uint16Array>::HasVirtualTable(instance))
                     {
-                        Uint16Array* uint16Array = Uint16Array::UnsafeFromVar(instance);
+                        Uint16Array* uint16Array = UnsafeVarTo<Uint16Array>(instance);
                         returnValue = uint16Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4473,12 +4473,12 @@ CommonNumber:
                     // The type array will deal with all possible values for the index
                     if (VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(instance))
                     {
-                        Int32VirtualArray* int32Array = Int32VirtualArray::UnsafeFromVar(instance);
+                        Int32VirtualArray* int32Array = UnsafeVarTo<Int32VirtualArray>(instance);
                         returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if(VirtualTableInfo<Int32Array>::HasVirtualTable(instance))
                     {
-                        Int32Array* int32Array = Int32Array::UnsafeFromVar(instance);
+                        Int32Array* int32Array = UnsafeVarTo<Int32Array>(instance);
                         returnValue = int32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4489,12 +4489,12 @@ CommonNumber:
 
                     if (VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(instance))
                     {
-                        Uint32VirtualArray* uint32Array = Uint32VirtualArray::UnsafeFromVar(instance);
+                        Uint32VirtualArray* uint32Array = UnsafeVarTo<Uint32VirtualArray>(instance);
                         returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Uint32Array>::HasVirtualTable(instance))
                     {
-                        Uint32Array* uint32Array = Uint32Array::UnsafeFromVar(instance);
+                        Uint32Array* uint32Array = UnsafeVarTo<Uint32Array>(instance);
                         returnValue = uint32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4504,12 +4504,12 @@ CommonNumber:
                     // The type array will deal with all possible values for the index
                     if (VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(instance))
                     {
-                        Float32VirtualArray* float32Array = Float32VirtualArray::UnsafeFromVar(instance);
+                        Float32VirtualArray* float32Array = UnsafeVarTo<Float32VirtualArray>(instance);
                         returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Float32Array>::HasVirtualTable(instance))
                     {
-                        Float32Array* float32Array = Float32Array::UnsafeFromVar(instance);
+                        Float32Array* float32Array = UnsafeVarTo<Float32Array>(instance);
                         returnValue = float32Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4519,12 +4519,12 @@ CommonNumber:
                     // The type array will deal with all possible values for the index
                     if (VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(instance))
                     {
-                        Float64VirtualArray* float64Array = Float64VirtualArray::UnsafeFromVar(instance);
+                        Float64VirtualArray* float64Array = UnsafeVarTo<Float64VirtualArray>(instance);
                         returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     else if (VirtualTableInfo<Float64Array>::HasVirtualTable(instance))
                     {
-                        Float64Array* float64Array = Float64Array::UnsafeFromVar(instance);
+                        Float64Array* float64Array = UnsafeVarTo<Float64Array>(instance);
                         returnValue = float64Array->ValidateIndexAndDirectSetItem(index, value, &isNumericIndex);
                     }
                     break;
@@ -4799,7 +4799,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
 
         BOOL  returnValue = false;
-#define MEMCOPY_TYPED_ARRAY(type, conversion) type ## ::FromVar(dstInstance)->DirectSetItemAtRange( type ## ::FromVar(srcInstance), srcStart, dstStart, length, JavascriptConversion:: ## conversion)
+#define MEMCOPY_TYPED_ARRAY(type, conversion) VarTo< type ## >(dstInstance)->DirectSetItemAtRange( VarTo< type ## >(srcInstance), srcStart, dstStart, length, JavascriptConversion:: ## conversion)
         switch (instanceType)
         {
         case TypeIds_Int8Array:
@@ -4913,7 +4913,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         { \
             type## ::TypedArrayType typedValue = 0; \
             if (!MemsetConversion<type## ::TypedArrayType, JavascriptConversion:: ##conversion>(value, scriptContext, &typedValue)) return false; \
-            returnValue = type## ::FromVar(instance)->DirectSetItemAtRange(start, length, typedValue); \
+            returnValue = VarTo< type## >(instance)->DirectSetItemAtRange(start, length, typedValue); \
             break; \
         }
         switch (instanceType)
@@ -6154,7 +6154,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // We can still call into NewScObjectNoCtor variations in JIT code for performance; however for proxy we don't
         // really need the new object as the trap will handle the "this" pointer separately. pass back nullptr to ensure
         // failure in invalid case.
-        return (JavascriptProxy::Is(instance)) ? nullptr : NewScObjectNoCtorCommon(instance, requestContext, false);
+        return (VarIs<JavascriptProxy>(instance)) ? nullptr : NewScObjectNoCtorCommon(instance, requestContext, false);
         JIT_HELPER_END(NewScObjectNoCtor);
     }
 
@@ -6324,7 +6324,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         Assert(newObject->GetTypeHandler()->GetPropertyCount() == 0);
 
         if (prototypeCanBeCached && functionBody != nullptr && requestContext == constructorScriptContext &&
-            !Js::JavascriptProxy::Is(newObject) &&
+            !Js::VarIs<Js::JavascriptProxy>(newObject) &&
             !PHASE_OFF1(ConstructorCachePhase) && !PHASE_OFF(ConstructorCachePhase, functionBody))
         {
             DynamicType* newObjectType = newObject->GetDynamicType();
@@ -8671,7 +8671,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         Assert(obj);
         Assert(scriptContext);
 
-        if (JavascriptProxy::Is(obj))
+        if (VarIs<JavascriptProxy>(obj))
         {
             return JavascriptProxy::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
         }
@@ -8716,7 +8716,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         BOOL tempResult = obj->SetPropertyWithAttributes(propId, filledDescriptor.GetValue(), filledDescriptor.GetAttributes(), nullptr);
                         if (!obj->IsExternal() && !tempResult)
                         {
-                            Assert(TypedArrayBase::Is(obj)); // typed array returns false when canonical numeric index is not integer or out of range
+                            Assert(VarIs<TypedArrayBase>(obj)); // typed array returns false when canonical numeric index is not integer or out of range
                             return FALSE;
                         }
                     }
@@ -9282,7 +9282,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     BOOL JavascriptOperators::ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext)
     {
-        if (JavascriptProxy::Is(propertySpec) || (
+        if (VarIs<JavascriptProxy>(propertySpec) || (
             VarIs<RecyclableObject>(propertySpec) &&
             JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(VarTo<RecyclableObject>(propertySpec)->GetPrototype())))
         {

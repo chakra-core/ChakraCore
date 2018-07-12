@@ -923,9 +923,9 @@ using namespace Js;
         CallInfo newCallInfo(newFlags, args.Info.Count);
         Arguments newArgs(newCallInfo, newValues);
 
-        if (JavascriptProxy::Is(v))
+        if (VarIs<JavascriptProxy>(v))
         {
-            JavascriptProxy* proxy = JavascriptProxy::FromVar(v);
+            JavascriptProxy* proxy = VarTo<JavascriptProxy>(v);
             return proxy->ConstructorTrap(newArgs, scriptContext, spreadIndices);
         }
 
@@ -1553,9 +1553,9 @@ dbl_align:
         // callable proxy is considered as having [[Call]] internal method
         // and should behave here like a function.
         // we will defer to the underlying target.
-        while (JavascriptProxy::Is(arg0) && JavascriptConversion::IsCallable(arg0))
+        while (VarIs<JavascriptProxy>(arg0) && JavascriptConversion::IsCallable(arg0))
         {
-            arg0 = JavascriptProxy::FromVar(arg0)->GetTarget();
+            arg0 = VarTo<JavascriptProxy>(arg0)->GetTarget();
         }
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
@@ -3293,7 +3293,7 @@ LABEL1:
         RecyclableObject * constructor = VarTo<RecyclableObject>(args[0]);
         Var instance = args[1];
 
-        Assert(JavascriptProxy::Is(constructor) || VarIs<JavascriptFunction>(constructor));
+        Assert(VarIs<JavascriptProxy>(constructor) || VarIs<JavascriptFunction>(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);
     }
 

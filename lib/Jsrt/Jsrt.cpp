@@ -2207,7 +2207,7 @@ CHAKRA_API JsGetTypedArrayInfo(_In_ JsValueRef typedArray, _Out_opt_ JsTypedArra
             *arrayType = GetTypedArrayType(typeId);
         }
 
-        Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(typedArray);
+        Js::TypedArrayBase* typedArrayBase = Js::VarTo<Js::TypedArrayBase>(typedArray);
         if (arrayBuffer != nullptr) {
             *arrayBuffer = typedArrayBase->GetArrayBuffer();
         }
@@ -2268,7 +2268,7 @@ CHAKRA_API JsGetTypedArrayStorage(_In_ JsValueRef instance, _Outptr_result_byteb
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        Js::TypedArrayBase* typedArrayBase = Js::TypedArrayBase::FromVar(instance);
+        Js::TypedArrayBase* typedArrayBase = Js::VarTo<Js::TypedArrayBase>(instance);
         *buffer = typedArrayBase->GetByteBuffer();
         *bufferLength = typedArrayBase->GetByteLength();
 
@@ -2459,7 +2459,7 @@ Js::ArrayObject* CreateTypedArray(Js::ScriptContext *scriptContext, void* data, 
 template <class T, bool clamped = false>
 void GetObjectArrayData(Js::ArrayObject* objectArray, void** data, JsTypedArrayType* arrayType, uint* length)
 {
-    Js::TypedArray<T, clamped>* typedArray = Js::TypedArray<T, clamped>::FromVar(objectArray);
+    Js::TypedArray<T, clamped>* typedArray = Js::VarTo<Js::TypedArray<T, clamped>>(objectArray);
     *data = typedArray->GetArrayBuffer()->GetBuffer();
     *arrayType = TypedArrayTypeTraits<T, clamped>::cTypedArrayType;
     *length = typedArray->GetLength();
@@ -5511,14 +5511,14 @@ CHAKRA_API JsGetProxyProperties (_In_ JsValueRef object, _Out_ bool* isProxy, _O
             *handler = JS_INVALID_REFERENCE;
         }
 
-        *isProxy = Js::JavascriptProxy::Is(object);
+        *isProxy = Js::VarIs<Js::JavascriptProxy>(object);
 
         if (!*isProxy)
         {
             return JsNoError;
         }
 
-        Js::JavascriptProxy* proxy = Js::JavascriptProxy::UnsafeFromVar(object);
+        Js::JavascriptProxy* proxy = Js::UnsafeVarTo<Js::JavascriptProxy>(object);
         bool revoked = proxy->IsRevoked();
 
         if (target != nullptr && !revoked)

@@ -350,7 +350,7 @@ namespace Js
             }
 
             // Before allowing proxies to cache, we would need to solve various issues (see JavascriptProxy::GetPropertyQuery).
-            Assert(!JavascriptProxy::Is(objectWithProperty));
+            Assert(!VarIs<JavascriptProxy>(objectWithProperty));
         }
         else
         {
