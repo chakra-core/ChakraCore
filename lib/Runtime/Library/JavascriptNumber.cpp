@@ -383,9 +383,9 @@ namespace Js
             {
                 result = args[1];
             }
-            else if (JavascriptNumberObject::Is(args[1]))
+            else if (VarIs<JavascriptNumberObject>(args[1]))
             {
-                result = JavascriptNumber::ToVarNoCheck(JavascriptNumberObject::FromVar(args[1])->GetValue(), scriptContext);
+                result = JavascriptNumber::ToVarNoCheck(VarTo<JavascriptNumberObject>(args[1])->GetValue(), scriptContext);
             }
             else
             {
@@ -905,9 +905,9 @@ namespace Js
         {
             return value;
         }
-        else if (JavascriptNumberObject::Is(value))
+        else if (VarIs<JavascriptNumberObject>(value))
         {
-            JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(value);
+            JavascriptNumberObject* obj = VarTo<JavascriptNumberObject>(value);
             return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else if (Js::JavascriptOperators::GetTypeId(value) == TypeIds_Int64Number)
@@ -1035,7 +1035,7 @@ namespace Js
         }
         else if (typeId == TypeIds_NumberObject)
         {
-            JavascriptNumberObject* obj = JavascriptNumberObject::FromVar(aValue);
+            JavascriptNumberObject* obj = VarTo<JavascriptNumberObject>(aValue);
             *pDouble = obj->GetValue();
             return TRUE;
         }

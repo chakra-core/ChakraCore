@@ -236,7 +236,7 @@ Var WebAssembly::EntryQueryResponse(RecyclableObject* function, CallInfo callInf
     END_SAFE_REENTRANT_CALL
 
     // Make sure res.arrayBuffer() is a Promise
-    if (!JavascriptPromise::Is(arrayBufferRes))
+    if (!VarIs<JavascriptPromise>(arrayBufferRes))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);
     }
@@ -271,13 +271,13 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
         // We already have a response object, query it now
         responsePromise = CALL_ENTRYPOINT_NOASSERT(EntryQueryResponse, function, Js::CallInfo(CallFlags_Value, 2), thisArg, responseArg);
     }
-    else if (JavascriptPromise::Is(responseArg))
+    else if (VarIs<JavascriptPromise>(responseArg))
     {
         JavascriptPromise* promise = (JavascriptPromise*)responseArg;
         // Wait until this promise resolves and then try to query the response object (if it's a response object)
         responsePromise = JavascriptPromise::CreateThenPromise(promise, library->GetWebAssemblyQueryResponseFunction(), library->GetThrowerFunction(), scriptContext);
     }
-    if (responsePromise && !JavascriptPromise::Is(responsePromise))
+    if (responsePromise && !VarIs<JavascriptPromise>(responsePromise))
     {
         AssertMsg(UNREACHED, "How did we end up with something other than a promise here ?");
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedResponse);

@@ -1997,7 +1997,7 @@ namespace Js
 
         if(Js::TaggedInt::Is(instance)
             || Js::JavascriptNumber::Is(instance)
-            || Js::JavascriptNumberObject::Is(instance)
+            || Js::VarIs<Js::JavascriptNumberObject>(instance)
             || Js::JavascriptOperators::GetTypeId(instance) == TypeIds_Int64Number
             || Js::JavascriptOperators::GetTypeId(instance) == TypeIds_UInt64Number)
         {
@@ -2020,7 +2020,7 @@ namespace Js
             }
             else
             {
-                Js::JavascriptNumberObject* numobj = Js::JavascriptNumberObject::FromVar(instance);
+                Js::JavascriptNumberObject* numobj = Js::VarTo<Js::JavascriptNumberObject>(instance);
                 value = numobj->GetValue();
             }
 
@@ -2594,7 +2594,7 @@ namespace Js
                         // Provide [Map] group object.
                         EnsureFakeGroupObjectWalkerList();
 
-                        JavascriptMap* map = JavascriptMap::FromVar(object);
+                        JavascriptMap* map = VarTo<JavascriptMap>(object);
                         RecyclableMapObjectWalker *pMapWalker = Anew(arena, RecyclableMapObjectWalker, scriptContext, map);
                         fakeGroupObjectWalkerList->Add(pMapWalker);
                     }
@@ -2630,7 +2630,7 @@ namespace Js
                         // Provide [Promise] group object.
                         EnsureFakeGroupObjectWalkerList();
 
-                        JavascriptPromise* promise = JavascriptPromise::FromVar(object);
+                        JavascriptPromise* promise = VarTo<JavascriptPromise>(object);
                         RecyclablePromiseObjectWalker *pPromiseWalker = Anew(arena, RecyclablePromiseObjectWalker, scriptContext, promise);
                         fakeGroupObjectWalkerList->Add(pPromiseWalker);
                     }
@@ -3556,7 +3556,7 @@ namespace Js
     template <typename TData>
     uint32 RecyclableCollectionObjectWalker<TData>::GetChildrenCount()
     {
-        TData* data = TData::FromVar(instance);
+        TData* data = /* FIXME VarTo<TData>(instance)*/nullptr;
         if (data->Size() > 0 && propertyList == nullptr)
         {
             propertyList = JsUtil::List<RecyclableCollectionObjectWalkerPropertyData<TData>, ArenaAllocator>::New(GetArenaFromContext(scriptContext));
@@ -3569,7 +3569,7 @@ namespace Js
     template <>
     void RecyclableCollectionObjectWalker<JavascriptMap>::GetChildren()
     {
-        JavascriptMap* data = JavascriptMap::FromVar(instance);
+        JavascriptMap* data = VarTo<JavascriptMap>(instance);
         auto iterator = data->GetIterator();
         while (iterator.Next())
         {
@@ -3832,7 +3832,7 @@ namespace Js
 
     BOOL RecyclablePromiseObjectWalker::Get(int i, ResolvedObject* pResolvedObject)
     {
-        JavascriptPromise* promise = JavascriptPromise::FromVar(instance);
+        JavascriptPromise* promise = VarTo<JavascriptPromise>(instance);
 
         if (i == 0)
         {

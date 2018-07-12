@@ -5227,12 +5227,12 @@ CHAKRA_API JsGetPromiseState(_In_ JsValueRef promise, _Out_ JsPromiseState *stat
 
         *state = JsPromiseStatePending;
 
-        if (!Js::JavascriptPromise::Is(promise))
+        if (!Js::VarIs<Js::JavascriptPromise>(promise))
         {
             return JsErrorInvalidArgument;
         }
 
-        Js::JavascriptPromise *jsPromise = Js::JavascriptPromise::FromVar(promise);
+        Js::JavascriptPromise *jsPromise = Js::VarTo<Js::JavascriptPromise>(promise);
         Js::JavascriptPromise::PromiseStatus status = jsPromise->GetStatus();
 
         switch (status)
@@ -5260,12 +5260,12 @@ CHAKRA_API JsGetPromiseResult(_In_ JsValueRef promise, _Out_ JsValueRef *result)
 
         *result = JS_INVALID_REFERENCE;
 
-        if (!Js::JavascriptPromise::Is(promise))
+        if (!Js::VarIs<Js::JavascriptPromise>(promise))
         {
             return JsErrorInvalidArgument;
         }
 
-        Js::JavascriptPromise *jsPromise = Js::JavascriptPromise::FromVar(promise);
+        Js::JavascriptPromise *jsPromise = Js::VarTo<Js::JavascriptPromise>(promise);
         Js::Var jsResult = jsPromise->GetResult();
 
         if (jsResult == nullptr)

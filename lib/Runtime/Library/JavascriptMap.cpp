@@ -18,25 +18,6 @@ JavascriptMap* JavascriptMap::New(ScriptContext* scriptContext)
     return map;
 }
 
-bool JavascriptMap::Is(Var aValue)
-{
-    return JavascriptOperators::GetTypeId(aValue) == TypeIds_Map;
-}
-
-JavascriptMap* JavascriptMap::FromVar(Var aValue)
-{
-    AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
-
-    return static_cast<JavascriptMap *>(aValue);
-}
-
-JavascriptMap* JavascriptMap::UnsafeFromVar(Var aValue)
-{
-    AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMap'");
-
-    return static_cast<JavascriptMap *>(aValue);
-}
-
 JavascriptMap::MapDataList::Iterator JavascriptMap::GetIterator()
 {
     return list.GetIterator();

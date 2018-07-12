@@ -117,25 +117,6 @@ namespace Js
         *reject = library->CreatePromiseResolveOrRejectFunction(EntryResolveOrRejectFunction, promise, true, alreadyResolvedRecord);
     }
 
-    bool JavascriptPromise::Is(Var aValue)
-    {
-        return Js::JavascriptOperators::GetTypeId(aValue) == TypeIds_Promise;
-    }
-
-    JavascriptPromise* JavascriptPromise::FromVar(Js::Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptPromise'");
-
-        return static_cast<JavascriptPromise *>(aValue);
-    }
-
-    JavascriptPromise* JavascriptPromise::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptPromise'");
-
-        return static_cast<JavascriptPromise *>(aValue);
-    }
-
     BOOL JavascriptPromise::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         stringBuilder->AppendCppLiteral(_u("[...]"));
@@ -521,7 +502,7 @@ namespace Js
         }
 
         // 3. If IsPromise(x) is true,
-        if (JavascriptPromise::Is(x))
+        if (VarIs<JavascriptPromise>(x))
         {
             // a. Let xConstructor be Get(x, "constructor").
             Var xConstructor = JavascriptOperators::GetProperty((RecyclableObject*)x, PropertyIds::constructor, scriptContext);
@@ -550,13 +531,13 @@ namespace Js
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Promise.prototype.then"));
 
-        if (args.Info.Count < 1 || !JavascriptPromise::Is(args[0]))
+        if (args.Info.Count < 1 || !VarIs<JavascriptPromise>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedPromise, _u("Promise.prototype.then"));
         }
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        JavascriptPromise* promise = JavascriptPromise::FromVar(args[0]);
+        JavascriptPromise* promise = VarTo<JavascriptPromise>(args[0]);
         RecyclableObject* rejectionHandler;
         RecyclableObject* fulfillmentHandler;
 
@@ -669,7 +650,7 @@ namespace Js
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        JavascriptPromiseThenFinallyFunction* thenFinallyFunction = JavascriptPromiseThenFinallyFunction::FromVar(function);
+        JavascriptPromiseThenFinallyFunction* thenFinallyFunction = VarTo<JavascriptPromiseThenFinallyFunction>(function);
 
         // 1. Let onFinally be F.[[OnFinally]]
         // 2. Assert: IsCallable(onFinally)=true
@@ -736,7 +717,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        JavascriptPromiseThunkFinallyFunction* thunkFinallyFunction = JavascriptPromiseThunkFinallyFunction::FromVar(function);
+        JavascriptPromiseThunkFinallyFunction* thunkFinallyFunction = VarTo<JavascriptPromiseThunkFinallyFunction>(function);
 
         if (!thunkFinallyFunction->GetShouldThrow())
         {
@@ -769,7 +750,7 @@ namespace Js
             resolution = undefinedVar;
         }
 
-        JavascriptPromiseResolveOrRejectFunction* resolveOrRejectFunction = JavascriptPromiseResolveOrRejectFunction::FromVar(function);
+        JavascriptPromiseResolveOrRejectFunction* resolveOrRejectFunction = VarTo<JavascriptPromiseResolveOrRejectFunction>(function);
 
         if (resolveOrRejectFunction->IsAlreadyResolved())
         {
@@ -897,7 +878,7 @@ namespace Js
             }
         }
 
-        JavascriptPromiseCapabilitiesExecutorFunction* capabilitiesExecutorFunction = JavascriptPromiseCapabilitiesExecutorFunction::FromVar(function);
+        JavascriptPromiseCapabilitiesExecutorFunction* capabilitiesExecutorFunction = VarTo<JavascriptPromiseCapabilitiesExecutorFunction>(function);
         JavascriptPromiseCapability* promiseCapability = capabilitiesExecutorFunction->GetCapability();
 
         if (!JavascriptOperators::IsUndefined(promiseCapability->GetResolve()) || !JavascriptOperators::IsUndefined(promiseCapability->GetReject()))
@@ -921,7 +902,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
 
-        JavascriptPromiseReactionTaskFunction* reactionTaskFunction = JavascriptPromiseReactionTaskFunction::FromVar(function);
+        JavascriptPromiseReactionTaskFunction* reactionTaskFunction = VarTo<JavascriptPromiseReactionTaskFunction>(function);
         JavascriptPromiseReaction* reaction = reactionTaskFunction->GetReaction();
         Var argument = reactionTaskFunction->GetArgument();
         JavascriptPromiseCapability* promiseCapability = reaction->GetCapabilities();
@@ -938,9 +919,9 @@ namespace Js
                 // correctly break on exceptions raised in promises that result in uhandled rejection
                 // notifications
                 Var promiseVar = promiseCapability->GetPromise();
-                if (JavascriptPromise::Is(promiseVar))
+                if (VarIs<JavascriptPromise>(promiseVar))
                 {
-                    JavascriptPromise* promise = JavascriptPromise::FromVar(promiseVar);
+                    JavascriptPromise* promise = VarTo<JavascriptPromise>(promiseVar);
                     isPromiseRejectionHandled = !promise->WillRejectionBeUnhandled();
                 }
             }
@@ -1007,9 +988,9 @@ namespace Js
                         JavascriptPromiseReaction* reaction = pair.rejectReaction;
                         Var promiseVar = reaction->GetCapabilities()->GetPromise();
 
-                        if (JavascriptPromise::Is(promiseVar))
+                        if (VarIs<JavascriptPromise>(promiseVar))
                         {
-                            JavascriptPromise* p = JavascriptPromise::FromVar(promiseVar);
+                            JavascriptPromise* p = VarTo<JavascriptPromise>(promiseVar);
                             if (!p->GetIsHandled())
                             {
                                 RecyclableObject* handler = reaction->GetHandler();
@@ -1171,7 +1152,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        JavascriptPromiseResolveThenableTaskFunction* resolveThenableTaskFunction = JavascriptPromiseResolveThenableTaskFunction::FromVar(function);
+        JavascriptPromiseResolveThenableTaskFunction* resolveThenableTaskFunction = VarTo<JavascriptPromiseResolveThenableTaskFunction>(function);
         JavascriptPromise* promise = resolveThenableTaskFunction->GetPromise();
         RecyclableObject* thenable = resolveThenableTaskFunction->GetThenable();
         RecyclableObject* thenFunction = resolveThenableTaskFunction->GetThenFunction();
@@ -1279,7 +1260,7 @@ namespace Js
             x = undefinedVar;
         }
 
-        JavascriptPromiseAllResolveElementFunction* allResolveElementFunction = JavascriptPromiseAllResolveElementFunction::FromVar(function);
+        JavascriptPromiseAllResolveElementFunction* allResolveElementFunction = VarTo<JavascriptPromiseAllResolveElementFunction>(function);
 
         if (allResolveElementFunction->IsAlreadyCalled())
         {
@@ -1331,8 +1312,8 @@ namespace Js
         resolve = args[1];
         reject = args[2];
 
-        Assert(JavascriptPromiseAsyncSpawnExecutorFunction::Is(function));
-        JavascriptPromiseAsyncSpawnExecutorFunction* asyncSpawnExecutorFunction = JavascriptPromiseAsyncSpawnExecutorFunction::FromVar(function);
+        Assert(VarIs<JavascriptPromiseAsyncSpawnExecutorFunction>(function));
+        JavascriptPromiseAsyncSpawnExecutorFunction* asyncSpawnExecutorFunction = VarTo<JavascriptPromiseAsyncSpawnExecutorFunction>(function);
         Var self = asyncSpawnExecutorFunction->GetTarget();
 
         Var varCallArgs[] = { undefinedVar, self };
@@ -1349,7 +1330,7 @@ namespace Js
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = VarTo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(function);
         Var argument = asyncSpawnStepArgumentExecutorFunction->GetArgument();
 
         JavascriptFunction* next = function->GetScriptContext()->GetLibrary()->EnsureGeneratorNextFunction();
@@ -1364,7 +1345,7 @@ namespace Js
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepArgumentExecutorFunction = VarTo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(function);
         JavascriptFunction* throw_ = function->GetScriptContext()->GetLibrary()->EnsureGeneratorThrowFunction();
         BEGIN_SAFE_REENTRANT_CALL(function->GetScriptContext()->GetThreadContext())
         {
@@ -1389,7 +1370,7 @@ namespace Js
             argument = args[1];
         }
 
-        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepExecutorFunction = JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(function);
+        JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* asyncSpawnStepExecutorFunction = VarTo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(function);
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* functionArg;
         JavascriptGenerator* gen = asyncSpawnStepExecutorFunction->GetGenerator();
         Var reject = asyncSpawnStepExecutorFunction->GetReject();
@@ -1461,7 +1442,7 @@ namespace Js
         JavascriptFunction* promiseResolve = library->EnsurePromiseResolveFunction();
         value = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
         Var promiseVar = CALL_FUNCTION(scriptContext->GetThreadContext(), promiseResolve, CallInfo(CallFlags_Value, 2), library->GetPromiseConstructor(), value);
-        JavascriptPromise* promise = FromVar(promiseVar);
+        JavascriptPromise* promise = VarTo<JavascriptPromise>(promiseVar);
 
         Var promiseThen = JavascriptOperators::GetProperty(promise, PropertyIds::then, scriptContext);
         if (!JavascriptConversion::IsCallable(promiseThen))
@@ -1681,33 +1662,6 @@ namespace Js
         : RuntimeFunction(type, functionInfo), promise(promise), isReject(isReject), alreadyResolvedWrapper(alreadyResolvedRecord)
     { }
 
-    bool JavascriptPromiseResolveOrRejectFunction::Is(Var var)
-    {
-        if (VarIs<JavascriptFunction>(var))
-        {
-            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
-
-            return VirtualTableInfo<JavascriptPromiseResolveOrRejectFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveOrRejectFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
-
-    JavascriptPromiseResolveOrRejectFunction* JavascriptPromiseResolveOrRejectFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptPromiseResolveOrRejectFunction::Is(var));
-
-        return static_cast<JavascriptPromiseResolveOrRejectFunction*>(var);
-    }
-
-    JavascriptPromiseResolveOrRejectFunction* JavascriptPromiseResolveOrRejectFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptPromiseResolveOrRejectFunction::Is(var));
-
-        return static_cast<JavascriptPromiseResolveOrRejectFunction*>(var);
-    }
-
     JavascriptPromise* JavascriptPromiseResolveOrRejectFunction::GetPromise()
     {
         return this->promise;
@@ -1768,34 +1722,6 @@ namespace Js
         : RuntimeFunction(type, functionInfo), generator(generator), target(target)
     { }
 
-    bool JavascriptPromiseAsyncSpawnExecutorFunction::Is(Var var)
-    {
-        if (VarIs<JavascriptFunction>(var))
-        {
-            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
-
-            return VirtualTableInfo<JavascriptPromiseAsyncSpawnExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
-
-    JavascriptPromiseAsyncSpawnExecutorFunction* JavascriptPromiseAsyncSpawnExecutorFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptPromiseAsyncSpawnExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAsyncSpawnExecutorFunction*>(var);
-    }
-
-    JavascriptPromiseAsyncSpawnExecutorFunction* JavascriptPromiseAsyncSpawnExecutorFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptPromiseAsyncSpawnExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAsyncSpawnExecutorFunction*>(var);
-    }
-
-
     JavascriptGenerator* JavascriptPromiseAsyncSpawnExecutorFunction::GetGenerator()
     {
         return this->generator;
@@ -1837,33 +1763,6 @@ namespace Js
     JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, Var resolve, Var reject, bool isReject)
         : RuntimeFunction(type, functionInfo), generator(generator), argument(argument), resolve(resolve), reject(reject), isReject(isReject)
     { }
-
-    bool JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::Is(Var var)
-    {
-        if (VarIs<JavascriptFunction>(var))
-        {
-            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
-
-            return VirtualTableInfo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
-
-    JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction*>(var);
-    }
-
-    JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction*>(var);
-    }
 
     JavascriptGenerator* JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetGenerator()
     {
@@ -1998,33 +1897,6 @@ namespace Js
     JavascriptPromiseCapabilitiesExecutorFunction::JavascriptPromiseCapabilitiesExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromiseCapability* capability)
         : RuntimeFunction(type, functionInfo), capability(capability)
     { }
-
-    bool JavascriptPromiseCapabilitiesExecutorFunction::Is(Var var)
-    {
-        if (VarIs<JavascriptFunction>(var))
-        {
-            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
-
-            return VirtualTableInfo<JavascriptPromiseCapabilitiesExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseCapabilitiesExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
-
-    JavascriptPromiseCapabilitiesExecutorFunction* JavascriptPromiseCapabilitiesExecutorFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptPromiseCapabilitiesExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseCapabilitiesExecutorFunction*>(var);
-    }
-
-    JavascriptPromiseCapabilitiesExecutorFunction* JavascriptPromiseCapabilitiesExecutorFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptPromiseCapabilitiesExecutorFunction::Is(var));
-
-        return static_cast<JavascriptPromiseCapabilitiesExecutorFunction*>(var);
-    }
 
     JavascriptPromiseCapability* JavascriptPromiseCapabilitiesExecutorFunction::GetCapability()
     {
@@ -2257,33 +2129,6 @@ namespace Js
     JavascriptPromiseAllResolveElementFunction::JavascriptPromiseAllResolveElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper)
         : RuntimeFunction(type, functionInfo), index(index), values(values), capabilities(capabilities), remainingElementsWrapper(remainingElementsWrapper), alreadyCalled(false)
     { }
-
-    bool JavascriptPromiseAllResolveElementFunction::Is(Var var)
-    {
-        if (VarIs<JavascriptFunction>(var))
-        {
-            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
-
-            return VirtualTableInfo<JavascriptPromiseAllResolveElementFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAllResolveElementFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
-
-    JavascriptPromiseAllResolveElementFunction* JavascriptPromiseAllResolveElementFunction::FromVar(Var var)
-    {
-        AssertOrFailFast(JavascriptPromiseAllResolveElementFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAllResolveElementFunction*>(var);
-    }
-
-    JavascriptPromiseAllResolveElementFunction* JavascriptPromiseAllResolveElementFunction::UnsafeFromVar(Var var)
-    {
-        Assert(JavascriptPromiseAllResolveElementFunction::Is(var));
-
-        return static_cast<JavascriptPromiseAllResolveElementFunction*>(var);
-    }
 
     JavascriptPromiseCapability* JavascriptPromiseAllResolveElementFunction::GetCapabilities()
     {

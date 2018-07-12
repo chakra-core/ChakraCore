@@ -4942,7 +4942,7 @@ namespace Js
             Js::VarTo<Js::JavascriptBooleanObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_NumberObject:
-            Js::JavascriptNumberObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptNumberObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_StringObject:
             Js::JavascriptStringObject::FromVar(obj)->SetValue_TTD(value);
@@ -5138,7 +5138,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
     {
-        TTDAssert(JavascriptPromise::Is(promise), "Not a promise!");
+        TTDAssert(VarIs<JavascriptPromise>(promise), "Not a promise!");
 
         return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
     }

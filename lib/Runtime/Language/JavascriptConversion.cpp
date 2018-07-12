@@ -351,7 +351,7 @@ CommonNumber:
 
         case TypeIds_NumberObject:
             {
-                JavascriptNumberObject * numberObject = JavascriptNumberObject::UnsafeFromVar(aValue);
+                JavascriptNumberObject * numberObject = UnsafeVarTo<JavascriptNumberObject>(aValue);
                 ScriptContext * objectScriptContext = numberObject->GetScriptContext();
                 if (hint == JavascriptHint::HintString)
                 {
