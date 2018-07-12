@@ -21,29 +21,6 @@ WebAssemblyTable::WebAssemblyTable(
 {
 }
 
-/* static */
-bool
-WebAssemblyTable::Is(Var value)
-{
-    return JavascriptOperators::GetTypeId(value) == TypeIds_WebAssemblyTable;
-}
-
-/* static */
-WebAssemblyTable *
-WebAssemblyTable::FromVar(Var value)
-{
-    AssertOrFailFast(WebAssemblyTable::Is(value));
-    return static_cast<WebAssemblyTable*>(value);
-}
-
-/* static */
-WebAssemblyTable *
-WebAssemblyTable::UnsafeFromVar(Var value)
-{
-    Assert(WebAssemblyTable::Is(value));
-    return static_cast<WebAssemblyTable*>(value);
-}
-
 Var
 WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
 {
@@ -96,11 +73,11 @@ WebAssemblyTable::EntryGetterLength(RecyclableObject* function, CallInfo callInf
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyTable::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyTable>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
-    WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
+    WebAssemblyTable * table = VarTo<WebAssemblyTable>(args[0]);
     return JavascriptNumber::ToVar(table->m_currentLength, scriptContext);
 }
 
@@ -114,11 +91,11 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyTable::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyTable>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
-    WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
+    WebAssemblyTable * table = VarTo<WebAssemblyTable>(args[0]);
     uint32 oldLength = table->m_currentLength;
 
     Var deltaVar = args.Info.Count >= 2 ? args[1] : scriptContext->GetLibrary()->GetUndefined();
@@ -151,11 +128,11 @@ WebAssemblyTable::EntryGet(RecyclableObject* function, CallInfo callInfo, ...)
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyTable::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyTable>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
-    WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
+    WebAssemblyTable * table = VarTo<WebAssemblyTable>(args[0]);
 
     Var indexVar = scriptContext->GetLibrary()->GetUndefined();
     if (args.Info.Count >= 2)
@@ -185,11 +162,11 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyTable::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyTable>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedTableObject);
     }
-    WebAssemblyTable * table = WebAssemblyTable::FromVar(args[0]);
+    WebAssemblyTable * table = VarTo<WebAssemblyTable>(args[0]);
 
     if (args.Info.Count < 3)
     {

@@ -123,7 +123,7 @@ namespace Js
         void SetFrameObject(ActivationObject * value)
         {
             AssertMsg(frameObject == nullptr, "Setting the frame object again?");
-            Assert(!value || ActivationObject::Is(value));
+            Assert(!value || VarIs<ActivationObject>(value));
             frameObject = value;
         }
 

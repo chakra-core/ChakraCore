@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    bool ActivationObject::Is(void* instance)
+    template <> bool VarIs<ActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<Js::ActivationObject>::HasVirtualTable(instance) ||
             VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance) ||

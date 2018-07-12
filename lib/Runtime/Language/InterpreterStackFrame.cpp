@@ -4963,7 +4963,7 @@ skipThunk:
     void InterpreterStackFrame::OP_InitUndeclConsoleLetProperty(unaligned T* playout)
     {
         FrameDisplay* pScope = (FrameDisplay*)this->LdEnv();
-        AssertMsg(ConsoleScopeActivationObject::Is((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
+        AssertMsg(VarIs<ConsoleScopeActivationObject>((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
         PropertyId propertyId = m_functionBody->GetReferencedPropertyId(playout->PropertyIdIndex);
         JavascriptOperators::OP_InitLetProperty(pScope->GetItem(0), propertyId, this->scriptContext->GetLibrary()->GetUndeclBlockVar());
     }
@@ -4972,7 +4972,7 @@ skipThunk:
     void InterpreterStackFrame::OP_InitUndeclConsoleConstProperty(unaligned T* playout)
     {
         FrameDisplay* pScope = (FrameDisplay*)this->LdEnv();
-        AssertMsg(ConsoleScopeActivationObject::Is((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
+        AssertMsg(VarIs<ConsoleScopeActivationObject>((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
         PropertyId propertyId = m_functionBody->GetReferencedPropertyId(playout->PropertyIdIndex);
         JavascriptOperators::OP_InitConstProperty(pScope->GetItem(0), propertyId, this->scriptContext->GetLibrary()->GetUndeclBlockVar());
     }
@@ -5512,7 +5512,7 @@ skipThunk:
 
     Var InterpreterStackFrame::OP_GetCachedFunc(Var instance, int32 index)
     {
-        ActivationObjectEx *obj = ActivationObjectEx::FromVar(instance);
+        ActivationObjectEx *obj = VarTo<ActivationObjectEx>(instance);
 
         FuncCacheEntry *entry = obj->GetFuncCacheEntry((uint)index);
         return entry->func;
@@ -5526,7 +5526,7 @@ skipThunk:
 
     void InterpreterStackFrame::OP_CommitScopeHelper(const PropertyIdArray *propIds)
     {
-        ActivationObjectEx *obj = ActivationObjectEx::FromVar(this->localClosure);
+        ActivationObjectEx *obj = VarTo<ActivationObjectEx>(this->localClosure);
         ScriptFunction *func = obj->GetParentFunc();
 
         Assert(obj->GetParentFunc() == func);
@@ -7414,7 +7414,7 @@ skipThunk:
     {
         uint innerScopeIndex = playout->C1;
         Var scope = this->InnerScopeFromIndex(innerScopeIndex);
-        BlockActivationObject* blockScope = BlockActivationObject::FromVar(scope);
+        BlockActivationObject* blockScope = VarTo<BlockActivationObject>(scope);
 
         scope = JavascriptOperators::OP_CloneBlockScope(blockScope, scriptContext);
         this->SetInnerScopeFromIndex(innerScopeIndex, scope);
@@ -8682,7 +8682,7 @@ skipThunk:
     void InterpreterStackFrame::OP_LdArrWasmFunc(const unaligned T* playout)
     {
 #ifdef ENABLE_WASM
-        WebAssemblyTable * table = WebAssemblyTable::FromVar(GetRegRawPtr(playout->Instance));
+        WebAssemblyTable * table = VarTo<WebAssemblyTable>(GetRegRawPtr(playout->Instance));
         const uint32 index = (uint32)GetRegRawInt(playout->SlotIndex);
         if (index >= table->GetCurrentLength())
         {
@@ -9267,7 +9267,7 @@ skipThunk:
             isCachedScope = m_functionBody->HasCachedScopePropIds();
             propIds = this->m_functionBody->GetFormalsPropIdArray();
 
-            if (isScopeObjRestored && ActivationObject::Is(frameObject))
+            if (isScopeObjRestored && VarIs<ActivationObject>(frameObject))
             {
                 Assert(this->GetFunctionBody()->GetDoScopeObjectCreation());
                 isCachedScope = true;
@@ -9315,7 +9315,7 @@ skipThunk:
 
         if (heapArgObj)
         {
-            Assert(frameObject == nullptr || ActivationObject::Is(frameObject));
+            Assert(frameObject == nullptr || VarIs<ActivationObject>(frameObject));
             heapArgObj->SetFormalCount(formalsCount);
             heapArgObj->SetFrameObject(frameObject != nullptr ?
                 static_cast<ActivationObject*>(frameObject) : nullptr);

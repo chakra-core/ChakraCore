@@ -3991,7 +3991,7 @@ namespace Js
 
     LPCWSTR ScopeVariablesGroupDisplay::Value(int radix)
     {
-        if (ActivationObject::Is(instance))
+        if (VarIs<ActivationObject>(instance))
         {
             // The scope is defined by the activation object.
             Js::RecyclableObject *object = Js::VarTo<Js::RecyclableObject>(instance);

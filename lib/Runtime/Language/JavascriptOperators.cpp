@@ -1578,7 +1578,7 @@ CommonNumber:
             {
                 Var value = nullptr;
                 if (!JavascriptConversion::PropertyQueryFlagsToBoolean(dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &value, NULL, requestContext)) ||
-                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || VarIs<RootObjectBase>(instance))))
+                    (requestContext->IsUndeclBlockVar(value) && (VarIs<ActivationObject>(instance) || VarIs<RootObjectBase>(instance))))
                 {
                     return FALSE;
                 }
@@ -1590,7 +1590,7 @@ CommonNumber:
             {
                 Var value = nullptr;
                 if (!object->GetProperty(instance, propertyId, &value, NULL, requestContext) ||
-                    (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || VarIs<RootObjectBase>(instance))))
+                    (requestContext->IsUndeclBlockVar(value) && (VarIs<ActivationObject>(instance) || VarIs<RootObjectBase>(instance))))
                 {
                     return FALSE;
                 }
@@ -2853,7 +2853,7 @@ CommonNumber:
     BOOL JavascriptOperators::OP_InitUndeclConsoleLetProperty(Var obj, PropertyId propertyId)
     {
         FrameDisplay *pScope = (FrameDisplay*)obj;
-        AssertMsg(ConsoleScopeActivationObject::Is((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
+        AssertMsg(VarIs<ConsoleScopeActivationObject>((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
         RecyclableObject* instance = VarTo<RecyclableObject>(pScope->GetItem(0));
         JIT_HELPER_NOT_REENTRANT_HEADER(Op_InitUndeclConsoleLetFld, reentrancylock, instance->GetScriptContext()->GetThreadContext());
 
@@ -2867,7 +2867,7 @@ CommonNumber:
     BOOL JavascriptOperators::OP_InitUndeclConsoleConstProperty(Var obj, PropertyId propertyId)
     {
         FrameDisplay *pScope = (FrameDisplay*)obj;
-        AssertMsg(ConsoleScopeActivationObject::Is((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
+        AssertMsg(VarIs<ConsoleScopeActivationObject>((DynamicObject*)pScope->GetItem(pScope->GetLength() - 1)), "How come we got this opcode without ConsoleScopeActivationObject?");
         RecyclableObject* instance = VarTo<RecyclableObject>(pScope->GetItem(0));
         JIT_HELPER_NOT_REENTRANT_HEADER(Op_InitUndeclConsoleConstFld, reentrancylock, instance->GetScriptContext()->GetThreadContext());
 
@@ -3005,7 +3005,7 @@ CommonNumber:
         {
             object = UnsafeVarTo<RecyclableObject>(pDisplay->GetItem(i));
 
-            AssertMsg(!ConsoleScopeActivationObject::Is(object) || (i == length - 1), "Invalid location for ConsoleScopeActivationObject");
+            AssertMsg(!VarIs<ConsoleScopeActivationObject>(object) || (i == length - 1), "Invalid location for ConsoleScopeActivationObject");
 
             Type* type = object->GetType();
             if (CacheOperators::TrySetProperty<true, true, true, true, true, !TInlineCache::IsPolymorphic, TInlineCache::IsPolymorphic, false>(
@@ -3071,7 +3071,7 @@ CommonNumber:
         Assert(!isLexicalThisSlotSymbol);
 
         // If we have console scope and no one in the scope had the property add it to console scope
-        if ((length > 0) && ConsoleScopeActivationObject::Is(pDisplay->GetItem(length - 1)))
+        if ((length > 0) && VarIs<ConsoleScopeActivationObject>(pDisplay->GetItem(length - 1)))
         {
             // CheckPrototypesForAccessorOrNonWritableProperty does not check for const in global object. We should check it here.
             if (length > 1)
@@ -5762,7 +5762,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         Var item = disp->GetItem(envIndex);
         if (item != nullptr)
         {
-            Assert(ActivationObjectEx::Is(item));
+            Assert(VarIs<ActivationObjectEx>(item));
             RecyclableObject *objScope = VarTo<RecyclableObject>(item);
             objScope->InvalidateCachedScope();
         }
@@ -5772,7 +5772,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(OP_InitCachedFuncs, reentrancylock, scriptContext->GetThreadContext());
-        ActivationObjectEx *scopeObj = ActivationObjectEx::FromVar(varScope);
+        ActivationObjectEx *scopeObj = VarTo<ActivationObjectEx>(varScope);
         Assert(scopeObj->GetTypeHandler()->GetInlineSlotCapacity() == 0);
 
         uint funcCount = info->count;

@@ -92,9 +92,9 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
             importObject = args[2];
         }
 
-        if (WebAssemblyModule::Is(args[1]))
+        if (VarIs<WebAssemblyModule>(args[1]))
         {
-            resultObject = WebAssemblyInstance::CreateInstance(WebAssemblyModule::FromVar(args[1]), importObject);
+            resultObject = WebAssemblyInstance::CreateInstance(VarTo<WebAssemblyModule>(args[1]), importObject);
         }
         else
         {

@@ -748,7 +748,7 @@ namespace TTD
         {
             if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
             {
-                func->SetCachedScope(Js::ActivationObjectEx::FromVar(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
+                func->SetCachedScope(Js::VarTo<Js::ActivationObjectEx>(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
             }
 
             if(snapFuncInfo->HomeObjId != TTD_INVALID_PTR_ID)

@@ -40,29 +40,6 @@ _Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uin
     return initBytes <= bufferLength && bufferLength <= maxBytes;
 }
 
-/* static */
-bool
-WebAssemblyMemory::Is(Var value)
-{
-    return JavascriptOperators::GetTypeId(value) == TypeIds_WebAssemblyMemory;
-}
-
-/* static */
-WebAssemblyMemory *
-WebAssemblyMemory::FromVar(Var value)
-{
-    AssertOrFailFast(WebAssemblyMemory::Is(value));
-    return static_cast<WebAssemblyMemory*>(value);
-}
-
-/* static */
-WebAssemblyMemory *
-WebAssemblyMemory::UnsafeFromVar(Var value)
-{
-    Assert(WebAssemblyMemory::Is(value));
-    return static_cast<WebAssemblyMemory*>(value);
-}
-
 Var
 WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
 {
@@ -126,12 +103,12 @@ WebAssemblyMemory::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (!WebAssemblyMemory::Is(args[0]))
+    if (!VarIs<WebAssemblyMemory>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedMemoryObject);
     }
 
-    WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
+    WebAssemblyMemory* memory = VarTo<WebAssemblyMemory>(args[0]);
     Assert(VarIs<ArrayBufferBase>(memory->m_buffer));
 
     Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
@@ -281,12 +258,12 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyMemory::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyMemory>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedMemoryObject);
     }
 
-    WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
+    WebAssemblyMemory* memory = VarTo<WebAssemblyMemory>(args[0]);
     Assert(VarIs<ArrayBufferBase>(memory->m_buffer));
     return CrossSite::MarshalVar(scriptContext, memory->m_buffer);
 }

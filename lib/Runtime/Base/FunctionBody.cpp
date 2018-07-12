@@ -5562,7 +5562,7 @@ namespace Js
 
     ScopeType FrameDisplay::GetScopeType(void* scope)
     {
-        if(Js::ActivationObject::Is(scope))
+        if(Js::VarIs<Js::ActivationObject>(scope))
         {
             return ScopeType_ActivationObject;
         }
@@ -5574,7 +5574,7 @@ namespace Js
     }
 
     // ScopeSlots
-    bool ScopeSlots::IsDebuggerScopeSlotArray() 
+    bool ScopeSlots::IsDebuggerScopeSlotArray()
     {
         return DebuggerScope::Is(slotArray[ScopeMetadataSlotIndex]);
     }
@@ -8217,7 +8217,7 @@ namespace Js
     void EntryPointInfo::OnNativeCodeInstallFailure()
     {
         // If more data is transferred from the background thread to the main thread in ProcessJitTransferData,
-        // corresponding fields on the entryPointInfo should be rolled back here.        
+        // corresponding fields on the entryPointInfo should be rolled back here.
         this->nativeEntryPointData->ClearTypeRefsAndGuards(GetScriptContext());
         this->ResetOnNativeCodeInstallFailure();
     }
@@ -8233,7 +8233,7 @@ namespace Js
     }
 #endif
 
-   
+
     void EntryPointInfo::PinTypeRefs(ScriptContext* scriptContext)
     {
         NativeEntryPointData * nativeEntryPointData = this->GetNativeEntryPointData();
@@ -8324,7 +8324,7 @@ namespace Js
         if (jitTransferData->equivalentTypeGuardOffsets)
         {
             // InstallGuards
-            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;            
+            int guardCount = jitTransferData->equivalentTypeGuardOffsets->count;
             EquivalentTypeCache* cache = this->nativeEntryPointData->EnsureEquivalentTypeCache(guardCount, scriptContext, this);
             char * nativeDataBuffer = this->GetOOPNativeEntryPointData()->GetNativeDataBuffer();
             for (int i = 0; i < guardCount; i++)
@@ -8833,7 +8833,7 @@ namespace Js
             this->OnCleanup(isShutdown);
 
             if (this->nativeEntryPointData)
-            {                
+            {
                 this->nativeEntryPointData->Cleanup(GetScriptContext(), isShutdown, false);
                 this->nativeEntryPointData = nullptr;
             }
@@ -8913,7 +8913,7 @@ namespace Js
     void EntryPointInfo::SetTJCodeSize(ptrdiff_t size)
     {
         Assert(isAsmJsFunction);
-        // TODO: We don't need the whole NativeEntryPointData to just hold just the code and size for TJ mode 
+        // TODO: We don't need the whole NativeEntryPointData to just hold just the code and size for TJ mode
         this->EnsureNativeEntryPointData()->SetTJCodeSize(size);
     }
 
