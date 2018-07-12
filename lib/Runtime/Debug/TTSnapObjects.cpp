@@ -2337,7 +2337,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapGeneratorFunctionInfo(const SnapObject *snpObject, Js::RecyclableObject *obj, InflateMap *inflator)
         {
-            Js::JavascriptGeneratorFunction *func = Js::JavascriptGeneratorFunction::FromVar(obj);
+            Js::JavascriptGeneratorFunction *func = Js::VarTo<Js::JavascriptGeneratorFunction>(obj);
             SnapGeneratorFunctionInfo *sfi = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapGeneratorFunction>(snpObject);
 
             if(sfi->scriptFunction != TTD_INVALID_PTR_ID)
@@ -2379,7 +2379,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapAsyncFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         {
-            Js::JavascriptAsyncFunction* func = Js::JavascriptAsyncFunction::FromVar(obj);
+            Js::JavascriptAsyncFunction* func = Js::VarTo<Js::JavascriptAsyncFunction>(obj);
             SnapGeneratorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapAsyncFunction>(snpObject);
 
             if (info->scriptFunction != TTD_INVALID_PTR_ID)

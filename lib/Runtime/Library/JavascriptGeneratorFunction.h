@@ -27,9 +27,8 @@ namespace Js
         virtual JavascriptString* GetDisplayNameImpl() const override;
         GeneratorVirtualScriptFunction* GetGeneratorVirtualScriptFunction() { return scriptFunction; }
 
-        static JavascriptGeneratorFunction* FromVar(Var var);
-        static JavascriptGeneratorFunction* UnsafeFromVar(Var var);
-        static bool Is(Var var);
+        // Returns whether this function is exactly a JavascriptGeneratorFunction, not a JavascriptAsyncFunction
+        static bool IsBaseGeneratorFunction(RecyclableObject* obj);
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
@@ -97,6 +96,13 @@ namespace Js
         }
     };
 
+    template <> bool VarIs<JavascriptGeneratorFunction>(RecyclableObject* obj);
+
+    template <> inline bool LegacyVarIs<JavascriptGeneratorFunction>(Var var)
+    {
+        return VarIs<RecyclableObject>(var) && JavascriptGeneratorFunction::IsBaseGeneratorFunction(UnsafeVarTo<RecyclableObject>(var));
+    }
+
     class JavascriptAsyncFunction : public JavascriptGeneratorFunction
     {
     private:
@@ -135,6 +141,17 @@ namespace Js
         }
     };
 
+    template <> inline bool VarIs<JavascriptAsyncFunction>(RecyclableObject* obj)
+    {
+        if (VarIs<JavascriptFunction>(obj))
+        {
+            return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
+        }
+
+        return false;
+    }
+
     class GeneratorVirtualScriptFunction : public ScriptFunction
     {
     private:
@@ -145,7 +162,7 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(GeneratorVirtualScriptFunction, ScriptFunction);
- 
+
     public:
         GeneratorVirtualScriptFunction(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType) : ScriptFunction(proxy, deferredPrototypeType) { }
 

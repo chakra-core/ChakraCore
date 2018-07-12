@@ -699,7 +699,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        JavascriptGeneratorFunction *function = JavascriptGeneratorFunction::FromVar(instance);
+        JavascriptGeneratorFunction *function = VarTo<JavascriptGeneratorFunction>(instance);
         bool isAnonymousFunction = function->IsAnonymousFunction();
 
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
@@ -801,7 +801,7 @@ namespace Js
             else
             {
                 typeHandler->ConvertFunction(function, useLengthType ? javascriptLibrary->functionWithPrototypeAndLengthTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
-            }    
+            }
             DynamicObject *protoObject = javascriptLibrary->CreateConstructorPrototypeObject(function);
             if (scriptFunction && scriptFunction->GetFunctionInfo()->IsClassConstructor())
             {

@@ -5663,7 +5663,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
 
         ScriptFunction *func = isGAFunction ?
-            JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :
+            VarTo<JavascriptGeneratorFunction>(varFunc)->GetGeneratorVirtualScriptFunction() :
             ScriptFunction::FromVar(varFunc);
 
 #ifdef PROFILE_OBJECT_LITERALS
