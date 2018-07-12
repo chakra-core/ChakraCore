@@ -161,9 +161,9 @@ namespace Js
         return result;
     }
 
-    template <> bool LegacyVarIs<DynamicObject>(Var aValue)
+    template <> bool LegacyVarIs<DynamicObject>(RecyclableObject* obj)
     {
-        return DynamicObject::IsBaseDynamicObject(aValue);
+        return DynamicObject::IsBaseDynamicObject(obj);
     }
 
     ArrayObject* DynamicObject::EnsureObjectArray()

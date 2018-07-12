@@ -251,18 +251,12 @@ namespace Js
         template <typename T>
         __forceinline static T* TryFromVar(_In_ RecyclableObject* value)
         {
-            AssertOrFailFastMsg(false, "FIXME");
-            return nullptr;
-            // old: return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
-            // update to: return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
+            return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         template <typename T>
         __forceinline static T* TryFromVar(_In_ Var value)
         {
-            AssertOrFailFastMsg(false, "FIXME");
-            return nullptr;
-            // old: return T::Is(value) ? T::UnsafeFromVar(value) : nullptr;
-            // update to: return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
+            return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         static BOOL IsObject(_In_ Var instance);
         static BOOL IsObject(_In_ RecyclableObject* instance);

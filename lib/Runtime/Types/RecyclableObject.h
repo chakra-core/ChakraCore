@@ -516,11 +516,24 @@ namespace Js {
     // To avoid behavior change during refactoring, this attempts to retain old inconsistent behavior.
     // Types that want to specialize it should declare that intent here, to ensure that no compilation
     // unit includes this base implementation but not the specialization.
+    template <typename T> bool LegacyVarIs(RecyclableObject* obj)
+    {
+        return VarIs<T>(obj);
+    }
     template <typename T> bool LegacyVarIs(Var aValue)
     {
-        return VarIs<T>(aValue);
+        AssertMsg(aValue != nullptr, "VarIs: aValue is null");
+
+#if INT32VAR
+        bool isRecyclableObject = (((uintptr_t)aValue) >> VarTag_Shift) == 0;
+#else
+        bool isRecyclableObject = (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
+#endif
+
+        return isRecyclableObject && LegacyVarIs<T>(UnsafeVarTo<RecyclableObject>(aValue));
     }
 
-    template <> bool LegacyVarIs<DynamicObject>(Var aValue);
-    template <> bool LegacyVarIs<JavascriptArray>(Var aValue);
+    template <> bool LegacyVarIs<DynamicObject>(RecyclableObject* obj);
+    template <> bool LegacyVarIs<JavascriptArray>(RecyclableObject* obj);
+    template <> bool LegacyVarIs<JavascriptGeneratorFunction>(RecyclableObject* obj);
 }

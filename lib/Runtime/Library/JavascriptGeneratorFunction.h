@@ -98,9 +98,9 @@ namespace Js
 
     template <> bool VarIs<JavascriptGeneratorFunction>(RecyclableObject* obj);
 
-    template <> inline bool LegacyVarIs<JavascriptGeneratorFunction>(Var var)
+    template <> inline bool LegacyVarIs<JavascriptGeneratorFunction>(RecyclableObject* obj)
     {
-        return VarIs<RecyclableObject>(var) && JavascriptGeneratorFunction::IsBaseGeneratorFunction(UnsafeVarTo<RecyclableObject>(var));
+        return JavascriptGeneratorFunction::IsBaseGeneratorFunction(obj);
     }
 
     class JavascriptAsyncFunction : public JavascriptGeneratorFunction

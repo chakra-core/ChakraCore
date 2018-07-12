@@ -648,8 +648,7 @@ namespace Js
         template<typename T, typename P>
         static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            AssertOrFailFastMsg(false, "FIXME");
-            return /*T::Is(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :*/
+            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -661,8 +660,7 @@ namespace Js
                 Var element;
                 fn(i, TryTemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
 
-                AssertOrFailFastMsg(false, "FIXME");
-                if (hasSideEffect && MayChangeType<T>()/* && !T::Is(arr)*/)
+                if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(arr))
                 {
                     // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                     // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
@@ -689,8 +687,7 @@ namespace Js
                 {
                     fn(i, element);
 
-                    AssertOrFailFastMsg(false, "FIXME");
-                    if (hasSideEffect && MayChangeType<T>()/* && !T::Is(arr)*/)
+                    if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(arr))
                     {
                         // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
@@ -940,9 +937,9 @@ namespace Js
         return DynamicObject::IsAnyArray(obj);
     }
 
-    template <> inline bool LegacyVarIs<JavascriptArray>(Var aValue)
+    template <> inline bool LegacyVarIs<JavascriptArray>(RecyclableObject* obj)
     {
-        return JavascriptArray::IsNonES5Array(aValue);
+        return JavascriptArray::IsNonES5Array(obj);
     }
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change

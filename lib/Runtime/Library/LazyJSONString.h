@@ -112,7 +112,7 @@ public:
 
 }; // class LazyJSONString
 
-template <> bool VarIs<LazyJSONString>(RecyclableObject* obj)
+template <> inline bool VarIs<LazyJSONString>(RecyclableObject* obj)
 {
     return VirtualTableInfo<LazyJSONString>::HasVirtualTable(obj);
 }

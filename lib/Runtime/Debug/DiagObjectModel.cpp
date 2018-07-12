@@ -3556,7 +3556,7 @@ namespace Js
     template <typename TData>
     uint32 RecyclableCollectionObjectWalker<TData>::GetChildrenCount()
     {
-        TData* data = /* FIXME VarTo<TData>(instance)*/nullptr;
+        TData* data = VarTo<TData>(instance);
         if (data->Size() > 0 && propertyList == nullptr)
         {
             propertyList = JsUtil::List<RecyclableCollectionObjectWalkerPropertyData<TData>, ArenaAllocator>::New(GetArenaFromContext(scriptContext));
