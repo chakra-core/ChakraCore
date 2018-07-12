@@ -240,12 +240,12 @@ namespace Js
     }
     uint32 FunctionBody::SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
     {
-        Assert(!counters.isLockedDown);
+        Assert(!counters.isLockedDown || counters.isClosing);
         return counters.Set(fieldEnum, val, this);
     }
     uint32 FunctionBody::IncreaseCountField(FunctionBody::CounterFields fieldEnum)
     {
-        Assert(!counters.isLockedDown);
+        Assert(!counters.isLockedDown || counters.isClosing);
         return counters.Increase(fieldEnum, this);
     }
 
@@ -7500,7 +7500,7 @@ namespace Js
             return;
         }
 
-        DebugOnly(this->UnlockCounters());
+        DebugOnly(this->SetIsClosing());
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
@@ -7539,8 +7539,6 @@ namespace Js
 #endif
 
         this->cleanedUp = true;
-
-        DebugOnly(this->LockDownCounters());
     }
 
 

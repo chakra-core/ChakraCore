@@ -33,7 +33,8 @@ namespace Js
         FieldWithBarrier(uint8) fieldSize;
 #if DBG
 
-        mutable FieldWithBarrier(bool) isLockedDown;
+        mutable FieldWithBarrier(bool) isLockedDown:1;
+		mutable FieldWithBarrier(bool) isClosing:1;
 #endif
         typename FieldWithBarrier(Fields*) fields;
 
@@ -42,6 +43,7 @@ namespace Js
             :fieldSize(0)
 #if DBG
             , isLockedDown(false)
+			, isClosing(false)
 #endif
         {
             AllocCounters<uint8>(host);
