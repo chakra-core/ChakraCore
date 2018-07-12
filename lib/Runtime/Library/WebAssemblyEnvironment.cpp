@@ -74,8 +74,8 @@ T* WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 m
 template<typename T>
 void WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
 {
-    if (index >= maxCount ||
-        !T::Is(val))
+    if (index >= maxCount/* FIXME ||
+        !T::Is(val)*/)
     {
         Js::Throw::InternalError();
     }

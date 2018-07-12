@@ -148,9 +148,9 @@ namespace Js
 
         inline static bool Is(Var var)
         {
-            if (JavascriptFunction::Is(var))
+            if (VarIs<JavascriptFunction>(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+                JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
                 return VirtualTableInfo<JavascriptPromiseResolveThenableTaskFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveThenableTaskFunction>>::HasVirtualTable(obj);
@@ -198,9 +198,9 @@ namespace Js
 
         inline static bool Is(Var var)
         {
-            if (JavascriptFunction::Is(var))
+            if (VarIs<JavascriptFunction>(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+                JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
                 return VirtualTableInfo<JavascriptPromiseReactionTaskFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseReactionTaskFunction>>::HasVirtualTable(obj);
@@ -245,9 +245,9 @@ namespace Js
 
         inline static bool Is(Var var)
         {
-            if (JavascriptFunction::Is(var))
+            if (VarIs<JavascriptFunction>(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+                JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
                 return VirtualTableInfo<JavascriptPromiseThenFinallyFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThenFinallyFunction>>::HasVirtualTable(obj);
@@ -286,9 +286,9 @@ namespace Js
 
         inline static bool Is(Var var)
         {
-            if (JavascriptFunction::Is(var))
+            if (VarIs<JavascriptFunction>(var))
             {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+                JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
                 return VirtualTableInfo<JavascriptPromiseThunkFinallyFunction>::HasVirtualTable(obj)
                     || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThunkFinallyFunction>>::HasVirtualTable(obj);
@@ -398,7 +398,7 @@ namespace Js
         //Do any additional marking that is needed for a TT snapshotable object
         void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
 
-        //Do the extraction 
+        //Do the extraction
         void ExtractSnapPromiseCapabilityInto(TTD::NSSnapValues::SnapPromiseCapabilityInfo* snapPromiseCapability, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
 #endif
     };
@@ -440,7 +440,7 @@ namespace Js
         //Do any additional marking that is needed for a TT snapshotable object
         void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
 
-        //Do the extraction 
+        //Do the extraction
         void ExtractSnapPromiseReactionInto(TTD::NSSnapValues::SnapPromiseReactionInfo* snapPromiseReaction, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
 #endif
     };

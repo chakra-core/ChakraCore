@@ -50,7 +50,7 @@ namespace Js
         if (object->GetTypeId() == TypeIds_Function)
         {
             AssertMsg(object != object->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction(), "default accessor marshalled");
-            JavascriptFunction * function = JavascriptFunction::FromVar(object);
+            JavascriptFunction * function = VarTo<JavascriptFunction>(object);
 
             //TODO: this may be too aggressive and create x-site thunks that are't technically needed -- see uglify-2js test.
 
@@ -174,7 +174,7 @@ namespace Js
 
     bool CrossSite::DoRequestWrapper(Js::RecyclableObject* object, bool fRequestWrapper)
     {
-        return fRequestWrapper && JavascriptFunction::Is(object) && JavascriptFunction::FromVar(object)->IsExternalFunction();
+        return fRequestWrapper && VarIs<JavascriptFunction>(object) && VarTo<JavascriptFunction>(object)->IsExternalFunction();
     }
 
 #if ENABLE_TTD
@@ -185,7 +185,7 @@ namespace Js
         if(obj->GetTypeId() == TypeIds_Function)
         {
             AssertMsg(obj != obj->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction(), "default accessor marshalled -- I don't think this should ever happen as it is marshalled in a special case?");
-            JavascriptFunction * function = JavascriptFunction::FromVar(obj);
+            JavascriptFunction * function = VarTo<JavascriptFunction>(obj);
 
             //
             //TODO: what happens if the gaurd in marshal (MarshalDynamicObject) isn't true?
@@ -345,7 +345,7 @@ namespace Js
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     Var CrossSite::ProfileThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
-        JavascriptFunction* function = JavascriptFunction::FromVar(callable);
+        JavascriptFunction* function = VarTo<JavascriptFunction>(callable);
         Assert(function->GetTypeId() == TypeIds_Function);
         Assert(function->GetEntryPoint() == CrossSite::ProfileThunk);
         RUNTIME_ARGUMENTS(args, callInfo);
@@ -390,7 +390,7 @@ namespace Js
 
     Var CrossSite::DefaultThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
-        JavascriptFunction* function = JavascriptFunction::FromVar(callable);
+        JavascriptFunction* function = VarTo<JavascriptFunction>(callable);
         Assert(function->GetTypeId() == TypeIds_Function);
         Assert(function->GetEntryPoint() == CrossSite::DefaultThunk);
         RUNTIME_ARGUMENTS(args, callInfo);
@@ -437,7 +437,7 @@ namespace Js
     {
         DynamicObject* function = VarTo<DynamicObject>(recyclableObject);
 
-        FunctionInfo * functionInfo = (JavascriptFunction::Is(function) ? JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr);
+        FunctionInfo * functionInfo = (VarIs<JavascriptFunction>(function) ? VarTo<JavascriptFunction>(function)->GetFunctionInfo() : nullptr);
         AutoDisableRedeferral autoDisableRedeferral(functionInfo);
 
         ScriptContext* targetScriptContext = function->GetScriptContext();
@@ -468,7 +468,7 @@ namespace Js
         {
             i = 1;
             Assert(args.IsNewCall());
-            Assert(JavascriptProxy::Is(function) || (JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
+            Assert(JavascriptProxy::Is(function) || (VarIs<JavascriptFunction>(function) && VarTo<JavascriptFunction>(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
         }
         uint count = args.Info.Count;
         for (; i < count; i++)

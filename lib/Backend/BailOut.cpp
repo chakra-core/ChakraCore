@@ -1381,7 +1381,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         // when resuming a generator and not needed when yielding from a generator, as is occurring
         // here.
         AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
-        Js::JavascriptGenerator* generator = Js::JavascriptGenerator::FromVar(args[0]);
+        Js::JavascriptGenerator* generator = Js::VarTo<Js::JavascriptGenerator>(args[0]);
         newInstance = generator->GetFrame();
 
         if (newInstance != nullptr)

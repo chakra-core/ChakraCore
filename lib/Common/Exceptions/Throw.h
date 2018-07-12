@@ -210,7 +210,7 @@ namespace Js {
 #define GET_RUNTIME_ERROR_IMPL(hr, GetRuntimeErrorFunc, exceptionObject) \
     {   \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr);   \
-        if (errorObject != nullptr && (Js::JavascriptError::Is(errorObject) ||  \
+        if (errorObject != nullptr && (Js::VarIs<Js::JavascriptError>(errorObject) ||  \
             Js::JavascriptError::IsRemoteError(errorObject)))   \
         {       \
             hr = GetRuntimeErrorFunc(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr);   \

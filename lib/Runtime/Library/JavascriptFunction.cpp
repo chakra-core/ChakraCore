@@ -96,27 +96,9 @@ using namespace Js;
         return functionInfo->HasBody();
     }
 
-    bool JavascriptFunction::Is(Var aValue)
+    template <> bool Js::VarIs<JavascriptFunction>(RecyclableObject* obj)
     {
-        if (JavascriptOperators::GetTypeId(aValue) == TypeIds_Function)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    JavascriptFunction* JavascriptFunction::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
-
-        return static_cast<JavascriptFunction *>(aValue);
-    }
-
-    JavascriptFunction* JavascriptFunction::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
-
-        return static_cast<JavascriptFunction *>(aValue);
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Function;
     }
 
     BOOL JavascriptFunction::IsStrictMode() const
@@ -140,7 +122,7 @@ using namespace Js;
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
         return ScriptFunctionBase::Is(objectWithProperty)
-            && (propertyId == PropertyIds::length || (JavascriptFunction::FromVar(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
+            && (propertyId == PropertyIds::length || (VarTo<JavascriptFunction>(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
 
@@ -678,7 +660,7 @@ using namespace Js;
         {
             ScriptContext* requestContext = scriptContext->GetThreadContext()->
               GetPreviousHostScriptContext()->GetScriptContext();
-            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+            func = VarTo<JavascriptFunction>(CrossSite::MarshalVar(requestContext,
               func, scriptContext));
         }
         return func->CallRootFunction(args, scriptContext, true);
@@ -839,10 +821,10 @@ using namespace Js;
             && !scriptContext->IsInterpreted() && !CONFIG_FLAG(ForceDiagnosticsMode)    // Does not work nicely if we change the default settings.
             && function->GetEntryPoint() != scriptContext->CurrentThunk
             && !CrossSite::IsThunk(function->GetEntryPoint())
-            && JavascriptFunction::Is(function))
+            && VarIs<JavascriptFunction>(function))
         {
 
-            JavascriptFunction *jsFunction = JavascriptFunction::FromVar(function);
+            JavascriptFunction *jsFunction = VarTo<JavascriptFunction>(function);
             if (!jsFunction->IsBoundFunction()
                 && !jsFunction->GetFunctionInfo()->IsDeferred()
                 && (jsFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::DoNotProfile) != FunctionInfo::DoNotProfile
@@ -968,8 +950,8 @@ using namespace Js;
             FinishConstructor(
                 functionResult,
                 resultObject,
-                JavascriptFunction::Is(functionObj) && functionObj->GetScriptContext() == scriptContext ?
-                JavascriptFunction::FromVar(functionObj) :
+                VarIs<JavascriptFunction>(functionObj) && functionObj->GetScriptContext() == scriptContext ?
+                VarTo<JavascriptFunction>(functionObj) :
                 nullptr,
                 overridingNewTarget != nullptr);
     }
@@ -1577,11 +1559,11 @@ dbl_align:
         }
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        if (args.Info.Count == 0 || !JavascriptFunction::Is(arg0))
+        if (args.Info.Count == 0 || !VarIs<JavascriptFunction>(arg0))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.toString"));
         }
-        JavascriptFunction *pFunc = JavascriptFunction::FromVar(arg0);
+        JavascriptFunction *pFunc = VarTo<JavascriptFunction>(arg0);
 
         // pFunc can be from a different script context if Function.prototype.toString is invoked via .call/.apply.
         // Marshal the resulting string to the current script context (that of the toString)
@@ -2819,7 +2801,7 @@ LABEL1:
             }
         }
 
-        if (Js::JavascriptFunction::Is(*value) && Js::JavascriptFunction::FromVar(*value)->IsStrictMode())
+        if (Js::VarIs<Js::JavascriptFunction>(*value) && Js::VarTo<Js::JavascriptFunction>(*value)->IsStrictMode())
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
@@ -3311,7 +3293,7 @@ LABEL1:
         RecyclableObject * constructor = VarTo<RecyclableObject>(args[0]);
         Var instance = args[1];
 
-        Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
+        Assert(JavascriptProxy::Is(constructor) || VarIs<JavascriptFunction>(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);
     }
 

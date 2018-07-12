@@ -756,7 +756,7 @@ namespace Js
                         Assert(value != nullptr);
                         // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                         Assert(!instance->IsExternal());
-                        descriptor->SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value))));
+                        descriptor->SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                     }
                 }
             }
@@ -2176,7 +2176,7 @@ namespace Js
                 Assert(value != nullptr);
                 // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                 Assert(!instance->IsExternal());
-                newDescriptor.SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() & CheckHeuristicsForFixedDataProps(instance, propertyRecord, value))));
+                newDescriptor.SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() & CheckHeuristicsForFixedDataProps(instance, propertyRecord, value)));
             }
         }
 #endif
@@ -2378,7 +2378,7 @@ namespace Js
                             // Because DictionaryTypeHandlers are never shared we should always have a property value if the handler
                             // says it's initialized.
                             Assert(value != nullptr);
-                            descriptor->SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyRecord, value))));
+                            descriptor->SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyRecord, value)));
                         }
                         else if (descriptor->GetIsAccessor())
                         {
@@ -2579,7 +2579,7 @@ namespace Js
                 {
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(dataSlot);
-                    if (value && ((IsFixedMethodProperty(propertyType) && JavascriptFunction::Is(value)) || IsFixedDataProperty(propertyType)))
+                    if (value && ((IsFixedMethodProperty(propertyType) && VarIs<JavascriptFunction>(value)) || IsFixedDataProperty(propertyType)))
                     {
                         *pProperty = value;
                         if (markAsUsed)
@@ -2621,7 +2621,7 @@ namespace Js
                 {
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(accessorSlot);
-                    if (value && IsFixedAccessorProperty(propertyType) && JavascriptFunction::Is(value))
+                    if (value && IsFixedAccessorProperty(propertyType) && VarIs<JavascriptFunction>(value))
                     {
                         *pAccessor = value;
                         if (markAsUsed)

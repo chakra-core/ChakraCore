@@ -2768,7 +2768,7 @@ CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef
             VALIDATE_INCOMING_REFERENCE(args[index], scriptContext);
         }
 
-        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(function);
+        Js::JavascriptFunction *jsFunction = Js::VarTo<Js::JavascriptFunction>(function);
         Js::CallInfo callInfo(cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 
@@ -2809,7 +2809,7 @@ CHAKRA_API JsConstructObject(_In_ JsValueRef function, _In_reads_(cargs) JsValue
             VALIDATE_INCOMING_REFERENCE(args[index], scriptContext);
         }
 
-        Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(function);
+        Js::JavascriptFunction *jsFunction = Js::VarTo<Js::JavascriptFunction>(function);
         Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, cargs);
         Js::Arguments jsArgs(callInfo, reinterpret_cast<Js::Var *>(args));
 

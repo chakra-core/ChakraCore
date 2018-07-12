@@ -1679,7 +1679,7 @@ namespace Js
             return requestContext->GetLibrary()->GetObjectTypeDisplayString();
         }
         // if exotic object has [[Call]] we should return "function", otherwise return "object"
-        if (JavascriptFunction::Is(this->target))
+        if (VarIs<JavascriptFunction>(this->target))
         {
             return requestContext->GetLibrary()->GetFunctionTypeDisplayString();
         }
@@ -1963,14 +1963,14 @@ namespace Js
         {
             return nullptr;
         }
-        if (!JavascriptFunction::Is(varMethod))
+        if (!VarIs<JavascriptFunction>(varMethod))
         {
             JavascriptError::ThrowTypeError(requestContext, JSERR_NeedFunction, requestContext->GetPropertyName(methodId)->GetBuffer());
         }
 
-        JavascriptFunction* function = JavascriptFunction::FromVar(varMethod);
+        JavascriptFunction* function = VarTo<JavascriptFunction>(varMethod);
 
-        return JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+        return VarTo<JavascriptFunction>(CrossSite::MarshalVar(requestContext,
           function, function->GetScriptContext()));
     }
 

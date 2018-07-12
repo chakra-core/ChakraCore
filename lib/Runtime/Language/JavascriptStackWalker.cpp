@@ -280,7 +280,7 @@ namespace Js
 #endif
             if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments().Values;
         }
         else
@@ -1043,7 +1043,7 @@ namespace Js
             if (this->isNativeLibraryFrame)
         {
             // Return saved function. Do not read from stack as compiler may stackpack/optimize args.
-            return JavascriptFunction::FromVar(this->prevNativeLibraryEntry->function);
+            return VarTo<JavascriptFunction>(this->prevNativeLibraryEntry->function);
         }
         else
         {
@@ -1083,7 +1083,7 @@ namespace Js
         }
         else if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             callInfo = gen->GetArguments().Info;
         }
         else if (this->isNativeLibraryFrame)
@@ -1116,7 +1116,7 @@ namespace Js
 
         if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments()[0];
         }
 

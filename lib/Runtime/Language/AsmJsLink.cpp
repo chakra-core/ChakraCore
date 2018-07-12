@@ -143,14 +143,14 @@ namespace Js{
         {
         case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_byteLength:
             arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::byteLength, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
+            if (VarIs<JavascriptFunction>(arrayFuncObj))
             {
                 JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
                 if (arrayLibFunc->IsBoundFunction())
                 {
                     BoundFunction* boundFunc = (BoundFunction*)arrayLibFunc;
                     RecyclableObject* thisObj = boundFunc->GetBoundThis();
-                    if (JavascriptFunction::Is(thisObj))
+                    if (VarIs<JavascriptFunction>(thisObj))
                     {
                         JavascriptFunction * thisFunc = (JavascriptFunction*)thisObj;
                         if (thisFunc->GetFunctionInfo()->GetOriginalEntryPoint() != (&ArrayBuffer::EntryInfo::GetterByteLength)->GetOriginalEntryPoint())
@@ -191,8 +191,8 @@ namespace Js{
     bool ASMLink::CheckIsBuiltinFunction(ScriptContext* scriptContext, const Var object, PropertyId propertyId, const FunctionInfo& funcInfo)
     {
         Var mathFuncObj = JavascriptOperators::OP_GetProperty(object, propertyId, scriptContext);
-        return JavascriptFunction::Is(mathFuncObj) &&
-            JavascriptFunction::FromVar(mathFuncObj)->GetFunctionInfo()->GetOriginalEntryPoint() == funcInfo.GetOriginalEntryPoint();
+        return VarIs<JavascriptFunction>(mathFuncObj) &&
+            VarTo<JavascriptFunction>(mathFuncObj)->GetFunctionInfo()->GetOriginalEntryPoint() == funcInfo.GetOriginalEntryPoint();
     }
 
     bool ASMLink::CheckIsBuiltinValue(ScriptContext* scriptContext, const Var object, PropertyId propertyId, double value)

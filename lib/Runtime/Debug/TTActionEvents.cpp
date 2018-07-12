@@ -855,7 +855,7 @@ namespace TTD
                 ccAction->ExecArgs[i - 1] = argi;
             }
 
-            Js::JavascriptFunction* jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
+            Js::JavascriptFunction* jsFunction = Js::VarTo<Js::JavascriptFunction>(jsFunctionVar);
             Js::CallInfo callInfo(Js::CallFlags::CallFlags_New, (ushort)(ccAction->ArgCount - 1));
             Js::Arguments jsArgs(callInfo, ccAction->ExecArgs);
 
@@ -1064,9 +1064,9 @@ namespace TTD
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
 
-            if(Js::JavascriptFunction::Is(funcVar))
+            if(Js::VarIs<Js::JavascriptFunction>(funcVar))
             {
-                Js::JavascriptString* displayName = Js::JavascriptFunction::FromVar(funcVar)->GetDisplayName();
+                Js::JavascriptString* displayName = Js::VarTo<Js::JavascriptFunction>(funcVar)->GetDisplayName();
                 alloc.CopyStringIntoWLength(displayName->GetString(), displayName->GetLength(), cfAction->FunctionName);
             }
             else
@@ -1119,7 +1119,7 @@ namespace TTD
             Js::Var jsFunctionVar = InflateVarInReplay(executeContext, cfAction->ArgArray[0]);
             TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(jsFunctionVar, ctx);
 
-            Js::JavascriptFunction *jsFunction = Js::JavascriptFunction::FromVar(jsFunctionVar);
+            Js::JavascriptFunction *jsFunction = Js::VarTo<Js::JavascriptFunction>(jsFunctionVar);
 
             //remove implicit constructor function as first arg in callInfo and argument loop below
             Js::CallInfo callInfo((ushort)(cfAction->ArgCount - 1));

@@ -3830,9 +3830,9 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
-                if (!func->IsOOPJIT() && Js::JavascriptFunction::Is(dynamicObject))
+                if (!func->IsOOPJIT() && Js::VarIs<Js::JavascriptFunction>(dynamicObject))
                 {
-                    DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
+                    DumpFunctionInfo(&buffer, &n, Js::VarTo<Js::JavascriptFunction>((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else

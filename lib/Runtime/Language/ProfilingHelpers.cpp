@@ -701,7 +701,7 @@ using namespace Js;
             const auto calleeObject = JavascriptOperators::GetCallableObjectOrThrow(callee, scriptContext);
             const auto calleeFunctionInfo =
                 calleeObject->GetTypeId() == TypeIds_Function
-                    ? JavascriptFunction::UnsafeFromVar(calleeObject)->GetFunctionInfo()
+                    ? UnsafeVarTo<JavascriptFunction>(calleeObject)->GetFunctionInfo()
                     : nullptr;
             DynamicProfileInfo *profileInfo = callerFunctionBody->GetDynamicProfileInfo();
             profileInfo->RecordCallSiteInfo(

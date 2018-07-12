@@ -4509,7 +4509,7 @@ ExitTempAllocator:
         RUNTIME_ARGUMENTS(args, callInfo);
 
         Assert(!WasmScriptFunction::Is(callable));
-        JavascriptFunction* function = JavascriptFunction::FromVar(callable);
+        JavascriptFunction* function = VarTo<JavascriptFunction>(callable);
         ScriptContext* scriptContext = function->GetScriptContext();
 
         // We can come here when profiling is not on
@@ -5022,7 +5022,7 @@ ExitTempAllocator:
 
     void ScriptContext::RegisterIsInstInlineCache(Js::IsInstInlineCache * cache, Js::Var function)
     {
-        Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
+        Assert(VarTo<JavascriptFunction>(function)->GetScriptContext() == this);
         hasIsInstInlineCache = true;
 #if DBG
         this->isInstInlineCacheAllocator.Unlock();

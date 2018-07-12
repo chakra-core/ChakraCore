@@ -3123,7 +3123,7 @@ namespace Js
             if (ShouldFixAnyProperties() && CanBeSingletonInstance(instance))
             {
                 bool markAsFixed = !isNonFixed && !IsInternalPropertyId(propertyId) &&
-                    (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() || ShouldFixAccessorProperties() :
+                    (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() || ShouldFixAccessorProperties() :
                                     (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyRecord, propertyId, value)));
 
                 // Mark the newly added field as fixed and prevent population of inline caches.
@@ -3261,7 +3261,7 @@ namespace Js
         }
 
         Var value = this->GetTypePath()->GetSingletonFixedFieldAt(index, GetPathLength(), requestContext);
-        if (value && ((IsFixedMethodProperty(propertyType) && JavascriptFunction::Is(value)) || IsFixedDataProperty(propertyType)))
+        if (value && ((IsFixedMethodProperty(propertyType) && VarIs<JavascriptFunction>(value)) || IsFixedDataProperty(propertyType)))
         {
             *pProperty = value;
             if (markAsUsed)

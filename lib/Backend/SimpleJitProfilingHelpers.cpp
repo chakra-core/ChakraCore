@@ -69,7 +69,7 @@ using namespace Js;
         DynamicProfileInfo * dynamicProfileInfo = callerFunctionBody->GetDynamicProfileInfo();
 
         JavascriptFunction *const calleeFunction =
-            JavascriptFunction::Is(callee) ? JavascriptFunction::FromVar(callee) : nullptr;
+            VarIs<JavascriptFunction>(callee) ? VarTo<JavascriptFunction>(callee) : nullptr;
         FunctionInfo* calleeFunctionInfo = calleeFunction ? calleeFunction->GetFunctionInfo() : nullptr;
 
         auto const ctor = !!(info.Flags & CallFlags_New);

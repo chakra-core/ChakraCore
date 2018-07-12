@@ -1951,9 +1951,9 @@ namespace Js
             if (typeId == TypeIds_Object && GetPropertyWithScriptEnter(obj, obj, PropertyIds::constructor, &value, scriptContext))
             {
                 builder->AppendCppLiteral(_u("Object"));
-                if (Js::JavascriptFunction::Is(value))
+                if (Js::VarIs<Js::JavascriptFunction>(value))
                 {
-                    Js::JavascriptFunction *pfunction = Js::JavascriptFunction::FromVar(value);
+                    Js::JavascriptFunction *pfunction = Js::VarTo<Js::JavascriptFunction>(value);
                     // For an odd chance that the constructor wasn't called to create the object.
                     Js::ParseableFunctionInfo *pFuncBody = pfunction->GetFunctionProxy() != nullptr ? pfunction->GetFunctionProxy()->EnsureDeserialized() : nullptr;
                     if (pFuncBody)
@@ -2139,7 +2139,7 @@ namespace Js
                 {
                     // The For in enumerator can throw an exception and we will use the error object as a child in that case.
                     Var error = err.GetAndClear()->GetThrownObject(scriptContext);
-                    if (error != nullptr && Js::JavascriptError::Is(error))
+                    if (error != nullptr && Js::VarIs<Js::JavascriptError>(error))
                     {
                         return TRUE;
                     }
@@ -2454,7 +2454,7 @@ namespace Js
                         catch (const JavascriptException& err)
                         {
                             Var error = err.GetAndClear()->GetThrownObject(scriptContext);
-                            if (error != nullptr && Js::JavascriptError::Is(error))
+                            if (error != nullptr && Js::VarIs<Js::JavascriptError>(error))
                             {
                                 Js::PropertyId propertyId = scriptContext->GetOrAddPropertyIdTracked(_u("{error}"));
                                 InsertItem(propertyId, false /*isConst*/, false /*isUnscoped*/, error, &pMethodsGroupWalker);
@@ -2542,7 +2542,7 @@ namespace Js
                                     InsertItem(originalObject, object, propertyId, isConst, isUnscoped, &pMethodsGroupWalker);
                                 }
                             }
-                            if (Js::JavascriptFunction::Is(object))
+                            if (Js::VarIs<Js::JavascriptFunction>(object))
                             {
                                 // We need to special-case RegExp constructor here because it has some special properties (above) and some
                                 // special enumerable properties which should all show up in the debugger.
@@ -2781,7 +2781,7 @@ namespace Js
         catch(const JavascriptException& err)
         {
             Var error = err.GetAndClear()->GetThrownObject(instance->GetScriptContext());
-            if (error != nullptr && Js::JavascriptError::Is(error))
+            if (error != nullptr && Js::VarIs<Js::JavascriptError>(error))
             {
                 obj = error;
             }
@@ -4005,9 +4005,9 @@ namespace Js
                     {
                         Js::RecyclableObject *argObject = Js::VarTo<Js::RecyclableObject>(value);
                         Var calleeFunc = nullptr;
-                        if (GetPropertyWithScriptEnter(argObject, argObject, PropertyIds::callee, &calleeFunc, scriptContext) && Js::JavascriptFunction::Is(calleeFunc))
+                        if (GetPropertyWithScriptEnter(argObject, argObject, PropertyIds::callee, &calleeFunc, scriptContext) && Js::VarIs<Js::JavascriptFunction>(calleeFunc))
                         {
-                            Js::JavascriptFunction *calleeFunction = Js::JavascriptFunction::FromVar(calleeFunc);
+                            Js::JavascriptFunction *calleeFunction = Js::VarTo<Js::JavascriptFunction>(calleeFunc);
                             Js::FunctionBody *pFuncBody = calleeFunction->GetFunctionBody();
 
                             if (pFuncBody)

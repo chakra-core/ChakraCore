@@ -1708,12 +1708,12 @@ namespace Js
 
         if (args.Info.Count >= 3)
         {
-            if (!JavascriptFunction::Is(args[2]))
+            if (!VarIs<JavascriptFunction>(args[2]))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].from"));
             }
 
-            mapFn = JavascriptFunction::FromVar(args[2]);
+            mapFn = VarTo<JavascriptFunction>(args[2]);
 
             if (args.Info.Count >= 4)
             {

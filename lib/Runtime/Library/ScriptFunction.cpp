@@ -16,9 +16,9 @@ using namespace Js;
 
     bool ScriptFunctionBase::Is(Var func)
     {
-        if (JavascriptFunction::Is(func))
+        if (VarIs<JavascriptFunction>(func))
         {
-            JavascriptFunction *function = JavascriptFunction::UnsafeFromVar(func);
+            JavascriptFunction *function = UnsafeVarTo<JavascriptFunction>(func);
             return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
                 || JavascriptAsyncFunction::Test(function);
         }
@@ -167,7 +167,7 @@ using namespace Js;
 
     bool ScriptFunction::Is(Var func)
     {
-        return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->IsScriptFunction();
+        return VarIs<JavascriptFunction>(func) && UnsafeVarTo<JavascriptFunction>(func)->IsScriptFunction();
     }
 
     ScriptFunction * ScriptFunction::FromVar(Var func)

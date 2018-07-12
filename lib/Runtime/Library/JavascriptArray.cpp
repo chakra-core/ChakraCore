@@ -1081,8 +1081,8 @@ using namespace Js;
         JIT_HELPER_REENTRANT_HEADER(ScrArr_ProfiledNewInstance);
         ARGUMENTS(args, callInfo);
 
-        Assert(JavascriptFunction::Is(function) &&
-               JavascriptFunction::FromVar(function)->GetFunctionInfo() == &JavascriptArray::EntryInfo::NewInstance);
+        Assert(VarIs<JavascriptFunction>(function) &&
+               VarTo<JavascriptFunction>(function)->GetFunctionInfo() == &JavascriptArray::EntryInfo::NewInstance);
         Assert(callInfo.Count >= 2);
 
         ArrayCallSiteInfo *arrayInfo = (ArrayCallSiteInfo*)args[0];
@@ -1299,8 +1299,8 @@ using namespace Js;
     Var JavascriptArray::ProfiledNewInstanceNoArg(RecyclableObject *function, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(ScrArr_ProfiledNewInstanceNoArg, reentrancylock, scriptContext->GetThreadContext());
-        Assert(JavascriptFunction::Is(function) &&
-               JavascriptFunction::FromVar(function)->GetFunctionInfo() == &JavascriptArray::EntryInfo::NewInstance);
+        Assert(VarIs<JavascriptFunction>(function) &&
+               VarTo<JavascriptFunction>(function)->GetFunctionInfo() == &JavascriptArray::EntryInfo::NewInstance);
 
         if (arrayInfo->IsNativeIntArray())
         {
@@ -10295,12 +10295,12 @@ Case0:
 
         if (args.Info.Count >= 3 && !JavascriptOperators::IsUndefinedObject(args[2]))
         {
-            if (!JavascriptFunction::Is(args[2]))
+            if (!VarIs<JavascriptFunction>(args[2]))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.from"));
             }
 
-            mapFn = JavascriptFunction::FromVar(args[2]);
+            mapFn = VarTo<JavascriptFunction>(args[2]);
 
             if (args.Info.Count >= 4)
             {

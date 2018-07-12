@@ -3129,7 +3129,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
                 topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2));
         }
 #endif
-        GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::JavascriptFunction::FromVar(function) : nullptr, 0);
+        GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::VarTo<Js::JavascriptFunction>(function) : nullptr, 0);
 
         jitTimeData->sharedPropertyGuards = entryPoint->GetNativeEntryPointData()->GetSharedPropertyGuards(recycler, jitTimeData->sharedPropertyGuardCount);
 

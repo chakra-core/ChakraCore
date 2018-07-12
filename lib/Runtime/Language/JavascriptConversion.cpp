@@ -469,7 +469,7 @@ CommonNumber:
         {
             return OrdinaryToPrimitive<hint>(value, requestContext);
         }
-        if (!JavascriptFunction::Is(varMethod))
+        if (!VarIs<JavascriptFunction>(varMethod))
         {
             // Don't error if we disabled implicit calls
             JavascriptError::TryThrowTypeError(scriptContext, requestContext, JSERR_Property_NeedFunction, requestContext->GetPropertyName(PropertyIds::_symbolToPrimitive)->GetBuffer());
@@ -477,7 +477,7 @@ CommonNumber:
         }
 
         // Let exoticToPrim be GetMethod(input, @@toPrimitive).
-        JavascriptFunction* exoticToPrim = JavascriptFunction::UnsafeFromVar(varMethod);
+        JavascriptFunction* exoticToPrim = UnsafeVarTo<JavascriptFunction>(varMethod);
         JavascriptString* hintString = nullptr;
 
         if (hint == JavascriptHint::HintString)

@@ -245,9 +245,9 @@ namespace Js
                 _targetFunction = JavascriptProxy::FromVar(_targetFunction)->GetTarget();
             }
 
-            if (JavascriptFunction::Is(_targetFunction))
+            if (VarIs<JavascriptFunction>(_targetFunction))
             {
-                return JavascriptFunction::FromVar(_targetFunction);
+                return VarTo<JavascriptFunction>(_targetFunction);
             }
 
             // targetFunction should always be a JavascriptFunction.

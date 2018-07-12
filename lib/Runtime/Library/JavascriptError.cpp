@@ -27,12 +27,6 @@ namespace Js
         return hr;
     }
 
-    bool JavascriptError::Is(Var aValue)
-    {
-        AssertMsg(aValue != NULL, "Error is NULL - did it come from an oom exception?");
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Error;
-    }
-
     bool JavascriptError::IsRemoteError(Var aValue)
     {
         // IJscriptInfo is not remotable (we don't register the proxy),
@@ -553,10 +547,10 @@ namespace Js
                 JavascriptString * messageString = VarTo<JavascriptString>(description);
                 *pMessage = messageString->GetSz();
             }
-            else if (Js::JavascriptError::Is(errorObject) && Js::JavascriptError::FromVar(errorObject)->originalRuntimeErrorMessage != nullptr)
+            else if (Js::VarIs<Js::JavascriptError>(errorObject) && Js::VarTo<Js::JavascriptError>(errorObject)->originalRuntimeErrorMessage != nullptr)
             {
                 // use the runtime error message
-                *pMessage = Js::JavascriptError::FromVar(errorObject)->originalRuntimeErrorMessage;
+                *pMessage = Js::VarTo<Js::JavascriptError>(errorObject)->originalRuntimeErrorMessage;
             }
             else if (FACILITY_CONTROL == HRESULT_FACILITY(hr))
             {

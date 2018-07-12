@@ -1851,7 +1851,7 @@ skipThunk:
         Assert(threadContext->IsScriptActive());
         Assert(threadContext->IsInScript());
 
-        FunctionBody* executeFunction = JavascriptFunction::UnsafeFromVar(function)->GetFunctionBody();
+        FunctionBody* executeFunction = UnsafeVarTo<JavascriptFunction>(function)->GetFunctionBody();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {
@@ -1934,7 +1934,7 @@ skipThunk:
             // generator object.
             AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
 
-            JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
+            JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
             newInstance = generator->GetFrame();
 
             if (newInstance != nullptr)
@@ -2675,7 +2675,7 @@ skipThunk:
                 AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Accessing foreign function import %s has side effects"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 return this->ProcessLinkFailedAsmJsModule();
             }
-            if (!JavascriptFunction::Is(importFunc))
+            if (!VarIs<JavascriptFunction>(importFunc))
             {
                 AsmJSCompiler::OutputError(this->scriptContext, _u("Asm.js Runtime Error : Foreign function import %s is not a function"), this->scriptContext->GetPropertyName(import.field)->GetBuffer());
                 goto linkFailure;
@@ -3893,7 +3893,7 @@ skipThunk:
         FunctionBody* functionBody = this->m_functionBody;
         DynamicProfileInfo * dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         FunctionInfo* functionInfo = function->GetTypeId() == TypeIds_Function ?
-            JavascriptFunction::FromVar(function)->GetFunctionInfo() : nullptr;
+            VarTo<JavascriptFunction>(function)->GetFunctionInfo() : nullptr;
         bool isConstructorCall = (CallFlags_New & flags) == CallFlags_New;
         dynamicProfileInfo->RecordCallSiteInfo(functionBody, profileId, functionInfo, functionInfo ? static_cast<JavascriptFunction*>(function) : nullptr, playout->ArgCount, isConstructorCall, inlineCacheIndex);
         OP_CallCommon<T>(playout, function, flags, spreadIndices);

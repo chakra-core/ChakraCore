@@ -439,14 +439,14 @@ using namespace Js;
         LPCWSTR fixedPropertyResultType = nullptr;
         bool log = false;
 
-        if (pProperty && *pProperty && ((Js::JavascriptFunction::Is(*pProperty) && (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))) ||
+        if (pProperty && *pProperty && ((Js::VarIs<Js::JavascriptFunction>(*pProperty) && (PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::FixedMethodsPhase))) ||
             ((PHASE_VERBOSE_TRACE1(Js::UseFixedDataPropsPhase) || PHASE_VERBOSE_TESTTRACE1(Js::UseFixedDataPropsPhase))) ))
         {
             if(*pProperty == nullptr)
             {
                 fixedPropertyResultType = _u("null");
             }
-            else if (Js::JavascriptFunction::Is(*pProperty))
+            else if (Js::VarIs<Js::JavascriptFunction>(*pProperty))
             {
                 fixedPropertyResultType = _u("function");
             }

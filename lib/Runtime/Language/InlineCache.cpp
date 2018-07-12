@@ -468,7 +468,7 @@ namespace Js
             {
                 isUseFixedProperty = propertyOwnerTypeHandler->TryUseFixedAccessor(methodPropertyRecord, &fixedMethod, Js::FixedPropertyKind::FixedAccessorProperty, this->IsGetterAccessor(), functionBody->GetScriptContext());
             }
-            AssertMsg(fixedMethod == nullptr || Js::JavascriptFunction::Is(fixedMethod), "The fixed value should have been a Method !!!");
+            AssertMsg(fixedMethod == nullptr || Js::VarIs<Js::JavascriptFunction>(fixedMethod), "The fixed value should have been a Method !!!");
             *pFixedMethod = reinterpret_cast<JavascriptFunction*>(fixedMethod);
             return isUseFixedProperty;
         }

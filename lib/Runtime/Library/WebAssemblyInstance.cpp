@@ -311,7 +311,7 @@ void WebAssemblyInstance::LoadImports(
         {
         case Wasm::ExternalKinds::Function:
         {
-            if (!JavascriptFunction::Is(prop))
+            if (!VarIs<JavascriptFunction>(prop))
             {
                 JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidImport, import->modName, import->importName, _u("Function"));
             }

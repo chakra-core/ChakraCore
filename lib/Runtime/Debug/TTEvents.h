@@ -64,7 +64,7 @@
 #define TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
         { \
             TTD_REPLAY_VALIDATE_JSREF(p); \
-            if(!Js::JavascriptFunction::Is(p)) \
+            if(!Js::VarIs<Js::JavascriptFunction>(p)) \
             { \
                 return; \
             } \

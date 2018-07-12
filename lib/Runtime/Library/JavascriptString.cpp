@@ -1666,9 +1666,9 @@ case_2:
         *ppReplaceFn = nullptr;
         *ppReplaceString = nullptr;
 
-        if (JavascriptFunction::Is(aValue))
+        if (VarIs<JavascriptFunction>(aValue))
         {
-            *ppReplaceFn = JavascriptFunction::FromVar(aValue);
+            *ppReplaceFn = VarTo<JavascriptFunction>(aValue);
         }
         else if (VarIs<JavascriptString>(aValue))
         {

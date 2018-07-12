@@ -107,7 +107,7 @@ typedef struct {} TTDRecorder;
 #define VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
         { \
             VALIDATE_JSREF(p); \
-            if (!Js::JavascriptFunction::Is(p)) \
+            if (!Js::VarIs<Js::JavascriptFunction>(p)) \
             { \
                 return JsErrorInvalidArgument; \
             } \

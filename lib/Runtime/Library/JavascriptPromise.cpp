@@ -1013,9 +1013,9 @@ namespace Js
                             if (!p->GetIsHandled())
                             {
                                 RecyclableObject* handler = reaction->GetHandler();
-                                if (JavascriptFunction::Is(handler))
+                                if (VarIs<JavascriptFunction>(handler))
                                 {
-                                    JavascriptFunction* func = JavascriptFunction::FromVar(handler);
+                                    JavascriptFunction* func = VarTo<JavascriptFunction>(handler);
                                     FunctionInfo* functionInfo = func->GetFunctionInfo();
 
 #ifdef DEBUG
@@ -1683,9 +1683,9 @@ namespace Js
 
     bool JavascriptPromiseResolveOrRejectFunction::Is(Var var)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
             return VirtualTableInfo<JavascriptPromiseResolveOrRejectFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveOrRejectFunction>>::HasVirtualTable(obj);
@@ -1770,9 +1770,9 @@ namespace Js
 
     bool JavascriptPromiseAsyncSpawnExecutorFunction::Is(Var var)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
             return VirtualTableInfo<JavascriptPromiseAsyncSpawnExecutorFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnExecutorFunction>>::HasVirtualTable(obj);
@@ -1840,9 +1840,9 @@ namespace Js
 
     bool JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::Is(Var var)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
             return VirtualTableInfo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>>::HasVirtualTable(obj);
@@ -2001,9 +2001,9 @@ namespace Js
 
     bool JavascriptPromiseCapabilitiesExecutorFunction::Is(Var var)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
             return VirtualTableInfo<JavascriptPromiseCapabilitiesExecutorFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptPromiseCapabilitiesExecutorFunction>>::HasVirtualTable(obj);
@@ -2260,9 +2260,9 @@ namespace Js
 
     bool JavascriptPromiseAllResolveElementFunction::Is(Var var)
     {
-        if (JavascriptFunction::Is(var))
+        if (VarIs<JavascriptFunction>(var))
         {
-            JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
+            JavascriptFunction* obj = UnsafeVarTo<JavascriptFunction>(var);
 
             return VirtualTableInfo<JavascriptPromiseAllResolveElementFunction>::HasVirtualTable(obj)
                 || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAllResolveElementFunction>>::HasVirtualTable(obj);

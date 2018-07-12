@@ -881,7 +881,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (args.Info.Count < 2 || !JavascriptError::Is(args.Values[1]))
+        if (args.Info.Count < 2 || !VarIs<JavascriptError>(args.Values[1]))
         {
             AssertMsg(false, "Intl's Assert platform API was called incorrectly.");
             return scriptContext->GetLibrary()->GetUndefined();
@@ -891,7 +891,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 #ifdef INTL_ICU_DEBUG
         Output::Print(_u("EntryIntl_RaiseAssert\n"));
 #endif
-        JavascriptExceptionOperators::Throw(JavascriptError::FromVar(args.Values[1]), scriptContext);
+        JavascriptExceptionOperators::Throw(VarTo<JavascriptError>(args.Values[1]), scriptContext);
 #else
         return scriptContext->GetLibrary()->GetUndefined();
 #endif
@@ -3174,9 +3174,9 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
         // This function will only be used during the construction of the Intl object, hence Asserts are in place.
-        Assert(args.Info.Count >= 3 && JavascriptFunction::Is(args.Values[1]) && TaggedInt::Is(args.Values[2]));
+        Assert(args.Info.Count >= 3 && VarIs<JavascriptFunction>(args.Values[1]) && TaggedInt::Is(args.Values[2]));
 
-        JavascriptFunction *func = JavascriptFunction::FromVar(args.Values[1]);
+        JavascriptFunction *func = VarTo<JavascriptFunction>(args.Values[1]);
         int32 id = TaggedInt::ToInt32(args.Values[2]);
         Assert(id >= 0 && id < (int32)BuiltInFunctionID::Max);
 

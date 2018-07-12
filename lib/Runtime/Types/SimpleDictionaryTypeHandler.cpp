@@ -1399,7 +1399,7 @@ namespace Js
                         Assert(value != nullptr);
                         // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                         Assert(!instance->IsExternal());
-                        descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
+                        descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                     }
                 }
             }
@@ -2450,7 +2450,7 @@ namespace Js
                             Assert(value != nullptr);
                             // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                             Assert(!instance->IsExternal());
-                            descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
+                            descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                         }
                     }
                 }
@@ -2709,7 +2709,7 @@ namespace Js
         bool markAsInitialized = ((flags & PropertyOperation_PreInit) == 0);
         bool markAsFixed = markAsInitialized && !TPropertyKey_IsInternalPropertyId(propertyKey) && (flags & (PropertyOperation_NonFixedValue | PropertyOperation_SpecialValue)) == 0 &&
             typeHandler->singletonInstance != nullptr && typeHandler->singletonInstance->Get() == instance
-            && (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
+            && (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
 #else
         bool markAsInitialized = true;
         bool markAsFixed = false;
@@ -2890,7 +2890,7 @@ namespace Js
 
                                 // saravind:If the instance is used by a CrossSiteObject, then we are conservative and do not mark any field as fixed in that instance.
                                 // We need to relax this in the future and support fixed fields for Cross Site Context usage
-                                descriptor->isFixed = (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
+                                descriptor->isFixed = (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyKey, value)));
 
                                 // Since we have a new type we can clear all used as fixed bits.  That's because any instance field loads
                                 // will have been invalidated by the type transition, and there are no proto fields loads from this object
@@ -3149,7 +3149,7 @@ namespace Js
                     AssertMsg(!(descriptor->Attributes & PropertyLetConstGlobal), "can't have fixed global let/const");
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(descriptor->propertyIndex);
-                    if (value && ((IsFixedMethodProperty(propertyType) && JavascriptFunction::Is(value)) || IsFixedDataProperty(propertyType)))
+                    if (value && ((IsFixedMethodProperty(propertyType) && VarIs<JavascriptFunction>(value)) || IsFixedDataProperty(propertyType)))
                     {
                         *pProperty = value;
                         if (markAsUsed)

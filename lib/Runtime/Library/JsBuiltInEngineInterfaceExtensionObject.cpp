@@ -106,7 +106,7 @@ namespace Js
         JavascriptString * methodName = JavascriptString::NewWithSz(_u("ArrayIterator"), scriptContext);
         auto arrayIterator = JavascriptOperators::GetProperty(library->GetChakraLib(), JavascriptOperators::GetPropertyId(methodName, scriptContext), scriptContext);
         library->arrayIteratorPrototype = VarTo<DynamicObject>(JavascriptOperators::GetProperty(VarTo<DynamicObject>(arrayIterator), PropertyIds::prototype, scriptContext));
-        library->arrayIteratorPrototypeBuiltinNextFunction = JavascriptFunction::FromVar(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
+        library->arrayIteratorPrototypeBuiltinNextFunction = VarTo<JavascriptFunction>(JavascriptOperators::GetProperty(library->arrayIteratorPrototype, PropertyIds::next, scriptContext));
     }
 
     void JsBuiltInEngineInterfaceExtensionObject::InjectJsBuiltInLibraryCode(ScriptContext * scriptContext)
@@ -254,7 +254,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count >= 3 && VarIs<JavascriptString>(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && VarIs<JavascriptString>(args.Values[1]) && VarIs<ScriptFunction>(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
@@ -281,7 +281,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count == 3 && TaggedInt::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count == 3 && TaggedInt::Is(args.Values[1]) && VarIs<ScriptFunction>(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 

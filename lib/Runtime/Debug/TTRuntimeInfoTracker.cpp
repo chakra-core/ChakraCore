@@ -833,13 +833,13 @@ namespace TTD
                 {
                     if(getter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(getter))
                     {
-                        TTDAssert(Js::JavascriptFunction::Is(getter), "The getter is not a function?");
+                        TTDAssert(Js::VarIs<Js::JavascriptFunction>(getter), "The getter is not a function?");
                         this->EnqueueNewPathVarAsNeeded(curr, getter, precord, _u(">"));
                     }
 
                     if(setter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(setter))
                     {
-                        TTDAssert(Js::JavascriptFunction::Is(setter), "The setter is not a function?");
+                        TTDAssert(Js::VarIs<Js::JavascriptFunction>(setter), "The setter is not a function?");
                         this->EnqueueNewPathVarAsNeeded(curr, Js::VarTo<Js::RecyclableObject>(setter), precord, _u("<"));
                     }
                 }

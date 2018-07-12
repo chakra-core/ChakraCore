@@ -771,7 +771,7 @@ namespace Js
     template<bool addPrototype, bool addName, bool useLengthType>
     bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        JavascriptFunction * function = JavascriptFunction::FromVar(instance);
+        JavascriptFunction * function = VarTo<JavascriptFunction>(instance);
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
         ScriptFunction *scriptFunction = nullptr;
         bool useAnonymous = false;
@@ -4615,7 +4615,7 @@ namespace Js
 
     void JavascriptLibrary::EnqueueTask(Var taskVar)
     {
-        Assert(JavascriptFunction::Is(taskVar));
+        Assert(VarIs<JavascriptFunction>(taskVar));
 
         if(this->nativeHostPromiseContinuationFunction)
         {
@@ -6722,7 +6722,7 @@ namespace Js
     {
         JavascriptListIterator* iterator = RecyclerNew(this->GetRecycler(), JavascriptListIterator, listIteratorType, list);
         RuntimeFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
-        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, RuntimeFunction::FromVar(nextFunction), GetScriptContext(), PropertyOperation_None);
+        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, VarTo<JavascriptFunction>(nextFunction), GetScriptContext(), PropertyOperation_None);
         return iterator;
     }
 

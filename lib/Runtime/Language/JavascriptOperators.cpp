@@ -5654,11 +5654,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(OP_InitCachedScope, reentrancylock, scriptContext->GetThreadContext());
-        bool isGAFunction = JavascriptFunction::Is(varFunc);
+        bool isGAFunction = VarIs<JavascriptFunction>(varFunc);
         Assert(isGAFunction);
         if (isGAFunction)
         {
-            JavascriptFunction *function = JavascriptFunction::FromVar(varFunc);
+            JavascriptFunction *function = VarTo<JavascriptFunction>(varFunc);
             isGAFunction = JavascriptGeneratorFunction::Test(function) || JavascriptAsyncFunction::Test(function);
         }
 
@@ -5942,7 +5942,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         TypeId typeId = JavascriptOperators::GetTypeId(instance);
         if (typeId == TypeIds_Function)
         {
-            JavascriptFunction * function =  JavascriptFunction::UnsafeFromVar(instance);
+            JavascriptFunction * function =  UnsafeVarTo<JavascriptFunction>(instance);
             return function->GetFunctionInfo();
         }
         if (typeId != TypeIds_HostDispatch && typeId != TypeIds_Proxy)
@@ -6054,7 +6054,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             DynamicType* newObjectType = newObject->GetDynamicType();
             Assert(newObjectType->GetIsShared());
 
-            JavascriptFunction* constructor = JavascriptFunction::FromVar(instance);
+            JavascriptFunction* constructor = VarTo<JavascriptFunction>(instance);
             Assert(!constructor->GetConstructorCache()->NeedsUpdateAfterCtor());
 #endif
 
@@ -6084,7 +6084,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             DynamicType* newArrayType = newArray->GetDynamicType();
             Assert(newArrayType->GetIsShared());
 
-            JavascriptFunction* constructor = JavascriptFunction::FromVar(instance);
+            JavascriptFunction* constructor = VarTo<JavascriptFunction>(instance);
             Assert(!constructor->GetConstructorCache()->NeedsUpdateAfterCtor());
 #endif
 
@@ -6200,7 +6200,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // the inline cache arena to allow it to be zeroed, but retain a recycler-allocated portion to hold on to the size of
         // inlined slots.
 
-        JavascriptFunction* constructor = JavascriptFunction::UnsafeFromVar(function);
+        JavascriptFunction* constructor = UnsafeVarTo<JavascriptFunction>(function);
         if (functionInfo->IsClassConstructor() && !isBaseClassConstructorNewScObject)
         {
             // If we are calling new on a class constructor, the contract is that we pass new.target as the 'this' argument.
@@ -6380,7 +6380,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(UpdateNewScObjectCache, reentrancylock, requestContext->GetThreadContext());
-        JavascriptFunction* constructor = JavascriptFunction::FromVar(function);
+        JavascriptFunction* constructor = VarTo<JavascriptFunction>(function);
         if(constructor->GetScriptContext() != requestContext)
         {
             // The cache is populated only when the constructor function's context is the same as the calling context. However,
@@ -6957,7 +6957,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         RecyclableObject* instance = VarTo<RecyclableObject>(object);
 
         // instance will be a function if it is the class constructor (otherwise it would be an object)
-        if (JavascriptFunction::Is(instance) && Js::PropertyIds::prototype == propertyId)
+        if (VarIs<JavascriptFunction>(instance) && Js::PropertyIds::prototype == propertyId)
         {
             // It is a TypeError to have a static member with a computed name that evaluates to 'prototype'
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassStaticMethodCannotBePrototype);
@@ -7028,7 +7028,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         RecyclableObject* instance = VarTo<RecyclableObject>(object);
 
         // instance will be a function if it is the class constructor (otherwise it would be an object)
-        if (JavascriptFunction::Is(instance) && Js::PropertyIds::prototype == propertyId)
+        if (VarIs<JavascriptFunction>(instance) && Js::PropertyIds::prototype == propertyId)
         {
             // It is a TypeError to have a static member with a computed name that evaluates to 'prototype'
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassStaticMethodCannotBePrototype);
@@ -7054,7 +7054,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         RecyclableObject* instance = VarTo<RecyclableObject>(object);
 
         // instance will be a function if it is the class constructor (otherwise it would be an object)
-        if (JavascriptFunction::Is(instance) && Js::PropertyIds::prototype == propertyId)
+        if (VarIs<JavascriptFunction>(instance) && Js::PropertyIds::prototype == propertyId)
         {
             // It is a TypeError to have a static member with a computed name that evaluates to 'prototype'
             JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassStaticMethodCannotBePrototype);
