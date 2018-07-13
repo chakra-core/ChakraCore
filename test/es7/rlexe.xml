@@ -22,8 +22,8 @@
   <test>
     <default>
       <files>asyncawait-functionality.js</files>
-      <compile-flags>-es6experimental -nodeferparse -debuglaunch -args summary -endargs</compile-flags>
-      <baseline>asyncawait-functionality.js.dbg.baseline</baseline>
+      <compile-flags>-dbgbaseline:asyncawait-functionality.js.dbg.baseline -es6experimental -nodeferparse -debuglaunch -args summary -endargs</compile-flags>
+      <baseline>asyncawait-functionality.baseline</baseline>
     </default>
   </test>
   <test>
