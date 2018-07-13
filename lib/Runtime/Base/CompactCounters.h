@@ -43,7 +43,7 @@ namespace Js
             :fieldSize(0)
 #if DBG
             , isLockedDown(false)
-			, isClosing(false)
+            , isClosing(false)
 #endif
         {
             AllocCounters<uint8>(host);
