@@ -296,8 +296,9 @@ namespace Js
         virtual bool CanStorePropertyValueDirectly(PropertyId propertyId, bool allowLetConst) override;
 #endif
 
-        virtual void RemoveFromPrototype(ScriptContext * requestContext) override;
-        virtual void AddToPrototype(ScriptContext * requestContext) override;
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
+        virtual bool ClearProtoCachesWereInvalidated() override;
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
         virtual BOOL IsCrossSiteObject() const { return FALSE; }

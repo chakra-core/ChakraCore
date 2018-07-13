@@ -227,10 +227,13 @@ using namespace Js;
 
         if (isInvalidationOfInlineCacheNeeded)
         {
+            bool allProtoCachesInvalidated = false;
+
             // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
-            JavascriptOperators::MapObjectAndPrototypes<true>(object->GetPrototype(), [=](RecyclableObject* obj)
+            JavascriptOperators::MapObjectAndPrototypesUntil<true>(object->GetPrototype(), [&](RecyclableObject* obj)->bool
             {
-                obj->RemoveFromPrototype(scriptContext);
+                obj->RemoveFromPrototype(scriptContext, &allProtoCachesInvalidated);
+                return allProtoCachesInvalidated;
             });
 
             // Examine new prototype chain. If it brings in any special property, we need to invalidate related caches.
@@ -271,17 +274,20 @@ using namespace Js;
                 object->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
             }
 
-            if (!objectAndPrototypeChainHasOnlyWritableDataProperties)
+            if (!allProtoCachesInvalidated)
             {
                 // Invalidate StoreField/PropertyGuards for any non-WritableData property in the new chain
-                JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [=](RecyclableObject* obj)
+                JavascriptOperators::MapObjectAndPrototypesUntil<true>(newPrototype, [&](RecyclableObject* obj)->bool
                 {
-                    if (!obj->HasOnlyWritableDataProperties())
-                    {
-                        obj->AddToPrototype(scriptContext);
-                    }
+                    obj->AddToPrototype(scriptContext, &allProtoCachesInvalidated);
+                    return allProtoCachesInvalidated;
                 });
             }
+
+            JavascriptOperators::MapObjectAndPrototypesUntil<true>(object->GetPrototype(), [](RecyclableObject* obj)->bool
+            {
+                return obj->ClearProtoCachesWereInvalidated();
+            });
         }
 
         // Set to new prototype

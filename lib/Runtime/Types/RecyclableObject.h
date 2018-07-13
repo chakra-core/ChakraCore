@@ -369,9 +369,10 @@ namespace Js {
         virtual bool CanStorePropertyValueDirectly(PropertyId propertyId, bool allowLetConst) { Assert(false); return false; };
 #endif
 
-        virtual void RemoveFromPrototype(ScriptContext * requestContext) { AssertMsg(false, "Shouldn't call this implementation."); }
-        virtual void AddToPrototype(ScriptContext * requestContext) { AssertMsg(false, "Shouldn't call this implementation."); }
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) { AssertMsg(false, "Shouldn't call this implementation."); }
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) { AssertMsg(false, "Shouldn't call this implementation."); }
         virtual void SetPrototype(RecyclableObject* newPrototype) { AssertMsg(false, "Shouldn't call this implementation."); }
+        virtual bool ClearProtoCachesWereInvalidated() { AssertMsg(false, "Shouldn't call this implementation."); return false; }
 
         virtual BOOL ToString(Js::Var* value, Js::ScriptContext* scriptContext) { AssertMsg(FALSE, "Do not use this function."); return false; }
 

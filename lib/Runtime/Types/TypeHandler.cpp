@@ -64,7 +64,8 @@ using namespace Js;
         flags(flags),
         propertyTypes(PropertyTypesWritableDataOnly | PropertyTypesReserved),
         offsetOfInlineSlots(offsetOfInlineSlots),
-        unusedBytes(Js::AtomTag)
+        unusedBytes(Js::AtomTag),
+        protoCachesWereInvalidated(false)
     {
         Assert(!GetIsOrMayBecomeShared() || GetIsLocked());
         Assert(offsetOfInlineSlots != 0 || inlineSlotCapacity == 0);
@@ -263,7 +264,7 @@ using namespace Js;
     }
 
     template<bool isStoreField>
-    void DynamicTypeHandler::InvalidateInlineCachesForAllProperties(ScriptContext* requestContext)
+    bool DynamicTypeHandler::InvalidateInlineCachesForAllProperties(ScriptContext* requestContext)
     {
         int count = GetPropertyCount();
         if (count < 128) // Invalidate a propertyId involves dictionary lookups. Only do this when the number is relatively small.
@@ -276,31 +277,51 @@ using namespace Js;
                     isStoreField ? requestContext->InvalidateStoreFieldCaches(propertyId) : requestContext->InvalidateProtoCaches(propertyId);
                 }
             }
+            return false;
         }
         else
         {
             isStoreField ? requestContext->InvalidateAllStoreFieldCaches() : requestContext->InvalidateAllProtoCaches();
+            return true;
         }
     }
 
-    void DynamicTypeHandler::InvalidateProtoCachesForAllProperties(ScriptContext* requestContext)
+    bool DynamicTypeHandler::InvalidateProtoCachesForAllProperties(ScriptContext* requestContext)
     {
-        InvalidateInlineCachesForAllProperties<false>(requestContext);
+        bool result = InvalidateInlineCachesForAllProperties<false>(requestContext);
+        this->SetProtoCachesWereInvalidated();
+        return result;
     }
 
-    void DynamicTypeHandler::InvalidateStoreFieldCachesForAllProperties(ScriptContext* requestContext)
+    bool DynamicTypeHandler::InvalidateStoreFieldCachesForAllProperties(ScriptContext* requestContext)
     {
-        InvalidateInlineCachesForAllProperties<true>(requestContext);
+        return InvalidateInlineCachesForAllProperties<true>(requestContext);
     }
 
-    void DynamicTypeHandler::RemoveFromPrototype(DynamicObject* instance, ScriptContext * requestContext)
+    bool DynamicTypeHandler::ClearProtoCachesWereInvalidated()
     {
-        InvalidateProtoCachesForAllProperties(requestContext);
+        bool done = !this->ProtoCachesWereInvalidated();
+        this->protoCachesWereInvalidated = false;
+        return done;
     }
 
-    void DynamicTypeHandler::AddToPrototype(DynamicObject* instance, ScriptContext * requestContext)
+    void DynamicTypeHandler::RemoveFromPrototype(DynamicObject* instance, ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
-        InvalidateStoreFieldCachesForAllProperties(requestContext);
+        Assert(!*allProtoCachesInvalidated);
+        *allProtoCachesInvalidated = InvalidateProtoCachesForAllProperties(requestContext);
+    }
+
+    void DynamicTypeHandler::AddToPrototype(DynamicObject* instance, ScriptContext * requestContext, bool * allProtoCachesInvalidated)
+    {
+        Assert(!*allProtoCachesInvalidated);
+        if (this->ProtoCachesWereInvalidated())
+        {
+            *allProtoCachesInvalidated = true;
+        }
+        else
+        {
+            *allProtoCachesInvalidated = InvalidateProtoCachesForAllProperties(requestContext);
+        }
     }
 
     void DynamicTypeHandler::SetPrototype(DynamicObject* instance, RecyclableObject* newPrototype)
