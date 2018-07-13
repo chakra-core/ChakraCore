@@ -482,7 +482,7 @@ namespace Js {
         bool isRecyclableObject = (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
 #endif
 
-        return isRecyclableObject && VarIs<T>(UnsafeVarTo<RecyclableObject>(aValue));
+        return isRecyclableObject && VarIs<T>(reinterpret_cast<RecyclableObject*>(aValue));
     }
 
     template <> inline bool VarIs<RecyclableObject>(RecyclableObject* obj) { return true; }
@@ -530,7 +530,7 @@ namespace Js {
         bool isRecyclableObject = (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
 #endif
 
-        return isRecyclableObject && LegacyVarIs<T>(UnsafeVarTo<RecyclableObject>(aValue));
+        return isRecyclableObject && LegacyVarIs<T>(reinterpret_cast<RecyclableObject*>(aValue));
     }
 
     template <> bool LegacyVarIs<DynamicObject>(RecyclableObject* obj);
