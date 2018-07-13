@@ -47,6 +47,15 @@ namespace JsUtil
 
 #if ENABLE_WEAK_REFERENCE_REGIONS
 
+    template<bool, typename T = void>
+    struct enable_if {};
+
+    template<typename T>
+    struct enable_if<true, T>
+    {
+        typedef T type;
+    };
+
     template <
         class TEntry,
         class TWeak,
@@ -248,7 +257,7 @@ namespace JsUtil
         bool Contains(KeyValuePair<TBKey, TBValue> keyValuePair)
         {
             int i = FindEntry(keyValuePair.Key());
-            TBValue val = this->GetValue<keyIsWeak>(i);
+            TBValue val = this->GetValue(i);
             if (i >= 0 && Comparer<TBValue>::Equals(val, keyValuePair.Value()))
             {
                 return true;
@@ -267,7 +276,7 @@ namespace JsUtil
             int i = FindEntryWithKey(key);
             if (i >= 0)
             {
-                return this->GetValue<keyIsWeak>(i);
+                return this->GetValue(i);
             }
             return defaultValue;
         }
@@ -283,7 +292,7 @@ namespace JsUtil
             int i = FindEntryWithKey(key);
             if (i >= 0)
             {
-                *value = this->GetValue<keyIsWeak>(i);
+                *value = this->GetValue(i);
                 return true;
             }
             return false;
@@ -296,7 +305,7 @@ namespace JsUtil
             uint targetBucket;
             if (FindEntryWithKey(key, &i, &last, &targetBucket))
             {
-                *value = this->GetValue<keyIsWeak>(i);
+                *value = this->GetValue(i);
                 RemoveAt(i, last, targetBucket);
                 return true;
             }
@@ -321,7 +330,7 @@ namespace JsUtil
             uint targetBucket;
             if (FindEntryWithKey(keyValuePair.Key(), &i, &last, &targetBucket))
             {
-                const TBValue& value = this->GetValue<keyIsWeak>(i);
+                const TBValue& value = this->GetValue(i);
                 if (Comparer<TBValue>::Equals(value, keyValuePair.Value()))
                 {
                     RemoveAt(i, last, targetBucket);
@@ -473,8 +482,8 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket], last = -1; i >= 0;)
                 {
-                    TBKey k = this->GetKey<keyIsWeak>(i);
-                    if (this->RemoveIfCollected<keyIsWeak>(k, &i, last, targetBucket))
+                    TBKey k = this->GetKey(i);
+                    if (this->RemoveIfCollected(k, &i, last, targetBucket))
                     {
                         continue;
                     }
@@ -502,8 +511,8 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (*i = localBuckets[*targetBucket]; *i >= 0;)
                 {
-                    TBKey k = this->GetKey<keyIsWeak>(*i);
-                    if (this->RemoveIfCollected<keyIsWeak>(k, i, *last, *targetBucket))
+                    TBKey k = this->GetKey(*i);
+                    if (this->RemoveIfCollected(k, i, *last, *targetBucket))
                     {
                         continue;
                     }
@@ -579,7 +588,7 @@ namespace JsUtil
                         continue;
                     }
 
-                    hash_t hashCode = GetHashCodeWithKey<TBKey>(this->GetKey<keyIsWeak>(currentEntry));
+                    hash_t hashCode = GetHashCodeWithKey<TBKey>(this->GetKey(currentEntry));
                     int bucket = GetBucket(hashCode, newBucketCount, modFunctionIndex);
                     newEntries[count].next = newBuckets[bucket];
                     newEntries[count].SetValue(this->entries[currentEntry].Value());
@@ -623,8 +632,8 @@ namespace JsUtil
                 EntryType * localEntries = entries;
                 for (int i = localBuckets[targetBucket], last = -1; i >= 0;)
                 {
-                    TBKey k = this->GetKey<keyIsWeak>(i);
-                    if (this->RemoveIfCollected<keyIsWeak>(k, &i, last, targetBucket))
+                    TBKey k = this->GetKey(i);
+                    if (this->RemoveIfCollected(k, &i, last, targetBucket))
                     {
                         continue;
                     }
@@ -634,7 +643,7 @@ namespace JsUtil
                         Assert(op != Insert_Add);
                         if (op == Insert_Item)
                         {
-                            SetValue<keyIsWeak>(value, i);
+                            SetValue(value, i);
                             return i;
                         }
                         return -1;
@@ -690,7 +699,7 @@ namespace JsUtil
                 Assert(index < size);
             }
 
-            SetKeyValue<keyIsWeak>(key, value, index);
+            SetKeyValue(key, value, index);
             entries[index].next = buckets[targetBucket];
             buckets[targetBucket] = index;
 
@@ -741,41 +750,32 @@ namespace JsUtil
             *ppWeakRefs = newWeakRefs;
         }
 
-        template <bool weakKey>
-        inline TBKey GetKey(int index) const;
-
-        template <>
-        inline TBKey GetKey<true>(int index) const
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<weakKey, TBKey>::type GetKey(int index) const
         {
             return this->weakRefs[index];
         }
 
-        template <>
-        inline TBKey GetKey<false>(int index) const
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<!weakKey, TBKey>::type GetKey(int index) const
         {
             return this->entries[index].Value();
         }
 
-        template <bool weakKey>
-        inline TBValue GetValue(int index) const;
-
-        template <>
-        inline TBValue GetValue<true>(int index) const
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<weakKey, TBValue>::type GetValue(int index) const
         {
             return this->entries[index].Value();
         }
 
-        template <>
-        inline TBValue GetValue<false>(int index) const
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<!weakKey, TBValue>::type GetValue(int index) const
         {
             return this->weakRefs[index];
         }
 
-        template <bool weakKey>
-        inline bool RemoveIfCollected(TBKey const key, int* i, int last, int bucketIndex);
-
-        template <>
-        inline bool RemoveIfCollected<true>(TBKey const key, int* i, int last, int targetBucket)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<weakKey, bool>::type RemoveIfCollected(TBKey const key, int* i, int last, int targetBucket)
         {
             if (key == nullptr)
             {
@@ -788,40 +788,34 @@ namespace JsUtil
             return false;
         }
 
-        template <>
-        inline bool RemoveIfCollected<false>(TBKey const key, int* i, int last, int targetBucket)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<!weakKey, bool>::type RemoveIfCollected(TBKey const key, int* i, int last, int targetBucket)
         {
             return false;
         }
 
-        template <bool weakKey>
-        inline void SetKeyValue(const TBKey& key, const TBValue& value, int index);
-
-        template <>
-        inline void SetKeyValue<true>(const TBKey& key, const TBValue& value, int index)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<weakKey, void>::type SetKeyValue(const TBKey& key, const TBValue& value, int index)
         {
             weakRefs[index] = key;
             entries[index].SetValue(value);
         }
 
-        template <>
-        inline void SetKeyValue<false>(const TBKey& key, const TBValue& value, int index)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<!weakKey, void>::type SetKeyValue(const TBKey& key, const TBValue& value, int index)
         {
             entries[index].SetValue(key);
             weakRefs[index] = value;
         }
 
-        template <bool weakKey>
-        inline void SetValue(const TBValue& value, int index);
-
-        template <>
-        inline void SetValue<true>(const TBValue& value, int index)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<weakKey, void>::type SetValue(const TBValue& value, int index)
         {
             this->entries[index].SetValue(value);
         }
 
-        template <>
-        inline void SetValue<false>(const TBValue& value, int index)
+        template <bool weakKey = keyIsWeak>
+        inline typename enable_if<!weakKey, void>::type SetValue(const TBValue& value, int index)
         {
             this->weakRefs[index] = value;
         }
