@@ -155,15 +155,19 @@ const tests = [
         }
     },
     {
-        name: "Negative 0",
+        name: "Negative 0 (https://github.com/tc39/ecma402/issues/219)",
         body() {
             assert.areEqual(
                 0,
                 new Intl.NumberFormat(undefined, { minimumFractionDigits: -0 }).resolvedOptions().minimumFractionDigits,
                 "Passing -0 for minimumFractionDigits should get normalized to 0 by DefaultNumberOption"
             );
-            // This assert may need to change in the future, pending any decision made on https://github.com/tc39/ecma402/issues/219
-            assert.areEqual("0", (-0).toLocaleString(), "-0 should be formatted as 0");
+
+            assert.areEqual("-0", (-0).toLocaleString(), "-0 should be treated as a negative number (toLocaleString)");
+            assert.areEqual("-0", new Intl.NumberFormat().format(-0), "-0 should be treated as a negative number (NumberFormat.prototype.format)");
+            if (WScript.Platform.INTL_LIBRARY === "icu") {
+                assert.areEqual("-0", new Intl.NumberFormat().formatToParts(-0).map(v => v.value).join(""), "-0 should be treated as a negative number (NumberFormat.prototype.formatToParts)");
+            }
         }
     },
     {
