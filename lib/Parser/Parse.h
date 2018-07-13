@@ -177,6 +177,8 @@ namespace Js
 {
     class ParseableFunctionInfo;
     class FunctionBody;
+    template <bool isGuestArena>
+    class TempArenaAllocatorWrapper;
 };
 
 class Parser
@@ -192,7 +194,7 @@ public:
     ~Parser(void);
 
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-
+    void ReleaseTemporaryGuestArena();
     bool IsCreatingStateCache();
 
 #if ENABLE_BACKGROUND_PARSING
@@ -271,10 +273,12 @@ private:
     bool                m_isInBackground;
     bool                m_doingFastScan;
 #endif
+    bool                m_tempGuestArenaReleased;
     int                 m_nextBlockId;
 
+    AutoRecyclerRootPtr<Js::TempArenaAllocatorWrapper<true>> m_tempGuestArena;
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
-    // is created during byte code generation. The RegexPattern pointer is stored in the script context's guest
+    // is created during byte code generation. The RegexPattern pointer is stored in a temporary guest
     // arena for that purpose. This list is then unregistered from the guest arena at the end of parsing/scanning.
     SList<UnifiedRegex::RegexPattern *, ArenaAllocator> m_registeredRegexPatterns;
 
@@ -1150,5 +1154,4 @@ private:
 public:
     charcount_t GetSourceIchLim() { return m_sourceLim; }
     static BOOL NodeEqualsName(ParseNodePtr pnode, LPCOLESTR sz, uint32 cch);
-
 };

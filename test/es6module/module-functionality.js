@@ -350,6 +350,19 @@ var tests = [
             testRunner.LoadModule(functionBody, 'samethread');
         }
     },
+    {
+        name: "OS18171347 - Module's parser leaks temporary Guest Arena allocator when module has a regex pattern.",
+        body: function() {
+            testRunner.LoadModule(` /x/ ;`, 'samethread');
+
+            try
+            {
+                // syntax error
+                testRunner.LoadModule(` /x/ ; for(i=0);`, 'samethread', {shouldFail:true});
+            }
+            catch(e){}
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
