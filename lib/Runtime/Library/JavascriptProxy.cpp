@@ -1507,12 +1507,12 @@ namespace Js
         return nullptr;
     }
 
-    void JavascriptProxy::RemoveFromPrototype(ScriptContext * requestContext)
+    void JavascriptProxy::RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
         Assert(FALSE);
     }
 
-    void JavascriptProxy::AddToPrototype(ScriptContext * requestContext)
+    void JavascriptProxy::AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
         Assert(FALSE);
     }

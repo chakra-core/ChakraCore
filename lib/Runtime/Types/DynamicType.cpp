@@ -609,14 +609,19 @@ namespace Js
     }
 #endif
 
-    void DynamicObject::RemoveFromPrototype(ScriptContext * requestContext)
+    bool DynamicObject::ClearProtoCachesWereInvalidated()
     {
-        GetTypeHandler()->RemoveFromPrototype(this, requestContext);
+        return GetTypeHandler()->ClearProtoCachesWereInvalidated();
     }
 
-    void DynamicObject::AddToPrototype(ScriptContext * requestContext)
+    void DynamicObject::RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
-        GetTypeHandler()->AddToPrototype(this, requestContext);
+        GetTypeHandler()->RemoveFromPrototype(this, requestContext, allProtoCachesInvalidated);
+    }
+
+    void DynamicObject::AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
+    {
+        GetTypeHandler()->AddToPrototype(this, requestContext, allProtoCachesInvalidated);
     }
 
     void DynamicObject::SetPrototype(RecyclableObject* newPrototype)

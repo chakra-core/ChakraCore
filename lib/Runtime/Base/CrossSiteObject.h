@@ -33,8 +33,8 @@ namespace Js
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags) override;
-        virtual void RemoveFromPrototype(ScriptContext * requestContext) override;
-        virtual void AddToPrototype(ScriptContext * requestContext) override;
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
         virtual BOOL IsCrossSiteObject() const override { return TRUE; }
@@ -227,15 +227,15 @@ namespace Js
     }
 
     template <typename T>
-    void CrossSiteObject<T>::RemoveFromPrototype(ScriptContext * requestContext)
+    void CrossSiteObject<T>::RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
-        __super::RemoveFromPrototype(this->GetScriptContext());
+        __super::RemoveFromPrototype(this->GetScriptContext(), allProtoCachesInvalidated);
     }
 
     template <typename T>
-    void CrossSiteObject<T>::AddToPrototype(ScriptContext * requestContext)
+    void CrossSiteObject<T>::AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
-        __super::AddToPrototype(this->GetScriptContext());
+        __super::AddToPrototype(this->GetScriptContext(), allProtoCachesInvalidated);
     }
 
     template <typename T>
