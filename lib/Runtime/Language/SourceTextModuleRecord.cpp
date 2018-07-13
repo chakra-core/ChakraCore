@@ -915,6 +915,11 @@ namespace Js
                 childModuleRecord->GenerateRootFunction();
             });
         }
+
+        if (this->parser != nullptr)
+        {
+            this->parser->ReleaseTemporaryGuestArena();
+        }
     }
 
     Var SourceTextModuleRecord::ModuleEvaluation()

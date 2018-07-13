@@ -82,8 +82,10 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_doingFastScan(false),
 #endif
     m_nextBlockId(0),
+    m_tempGuestArenaReleased(false),
+    m_tempGuestArena(scriptContext->GetTemporaryGuestAllocator(_u("ParserRegex")), scriptContext->GetRecycler()),
     // use the GuestArena directly for keeping the RegexPattern* alive during byte code generation
-    m_registeredRegexPatterns(scriptContext->GetGuestArena()),
+    m_registeredRegexPatterns(m_tempGuestArena->GetAllocator()),
 
     m_scriptContext(scriptContext),
     m_token(), // should initialize to 0/nullptrs
@@ -154,12 +156,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
 
 Parser::~Parser(void)
 {
-    if (m_scriptContext == nullptr || m_scriptContext->GetGuestArena() == nullptr)
-    {
-        // If the scriptContext or guestArena have gone away, there is no point clearing each item of this list.
-        // Just reset it so that destructor of the SList will be no-op
-        m_registeredRegexPatterns.Reset();
-    }
+    this->ReleaseTemporaryGuestArena();
 
 #if ENABLE_BACKGROUND_PARSING
     if (this->m_hasParallelJob)
@@ -1925,7 +1922,7 @@ void Parser::RegisterRegexPattern(UnifiedRegex::RegexPattern *const regexPattern
     Assert(regexPattern);
 
     // ensure a no-throw add behavior here, to catch out of memory exceptions, using the guest arena allocator
-    if (!m_registeredRegexPatterns.PrependNoThrow(m_scriptContext->GetGuestArena(), regexPattern))
+    if (!m_registeredRegexPatterns.PrependNoThrow(m_tempGuestArena->GetAllocator(), regexPattern))
     {
         Parser::Error(ERRnoMemory);
     }
@@ -13906,6 +13903,23 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
             fflush(stdout);
         }
 #endif
+    }
+}
+
+void Parser::ReleaseTemporaryGuestArena()
+{
+    // In case of modules the Parser lives longer than the temporary Guest Arena. We may have already released the arena explicitly.
+    if (!m_tempGuestArenaReleased)
+    {
+        // The regex patterns list has references to the temporary Guest Arena. Reset it first.
+        m_registeredRegexPatterns.Reset();
+
+        if (this->m_scriptContext != nullptr)
+        {
+            this->m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
+        }
+
+        m_tempGuestArenaReleased = true;
     }
 }
 
