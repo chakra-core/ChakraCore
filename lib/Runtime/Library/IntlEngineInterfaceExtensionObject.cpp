@@ -388,9 +388,9 @@ namespace Js
         Var propertyValue = nullptr;
         JavascriptOperators::GetProperty(state, propertyId, &propertyValue, state->GetScriptContext());
 
-        AssertOrFailFast(propertyValue && T::Is(propertyValue));
+        AssertOrFailFast(propertyValue && VarIs<T>(propertyValue));
 
-        return T::UnsafeFromVar(propertyValue);
+        return UnsafeVarTo<T>(propertyValue);
     }
 
     static JavascriptString *AssertStringProperty(_In_ DynamicObject *state, _In_ PropertyIds propertyId)
