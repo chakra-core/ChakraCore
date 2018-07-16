@@ -115,12 +115,26 @@ testRunner.runTests([
         body() {
             function test(options, n, expected) {
                 const pr = new Intl.PluralRules("en", options);
+                const res = pr.resolvedOptions();
                 assert.areEqual(expected, pr.select(n), `Incorrect result using n = ${n} and options = ${JSON.stringify(options)}`);
+
+                // We should only report sigfigs in the resolved options if they were asked for https://github.com/tc39/ecma402/issues/244
+                if (options.minimumSignificantDigits !== undefined || options.maximumSignificantDigits !== undefined) {
+                    if (options.minimumSignificantDigits !== undefined) {
+                        assert.areEqual(options.minimumSignificantDigits, res.minimumSignificantDigits, "Incorrect minimumSignificantDigits");
+                    }
+                    if (options.maximumSignificantDigits !== undefined) {
+                        assert.areEqual(options.maximumSignificantDigits, res.maximumSignificantDigits, "Incorrect maximumSignificantDigits");
+                    }
+                } else {
+                    assert.isFalse(res.hasOwnProperty("minimumSignificantDigits"), "Reported minimumSignificantDigits when it shouldn't have been");
+                    assert.isFalse(res.hasOwnProperty("maximumSignificantDigits"), "Reported maximumSignificantDigits when it shouldn't have been");
+                }
             }
 
-            test(undefined, 1.0, "one");
-            test(undefined, 1.1, "other");
-            test(undefined, 1.001, "other");
+            test({}, 1.0, "one");
+            test({}, 1.1, "other");
+            test({}, 1.001, "other");
 
             test({ minimumFractionDigits: 1 }, 1.0, "one");
             test({ minimumFractionDigits: 1 }, 1.1, "other");
@@ -145,6 +159,9 @@ testRunner.runTests([
             test({ maximumSignificantDigits: 1 }, 1.0, "one");
             test({ maximumSignificantDigits: 1 }, 1.1, "one");
             test({ maximumSignificantDigits: 1 }, 1.001, "one");
+
+            // significantDigits should override fractionDigits and integerDigits
+            test({ maximumSignificantDigits: 2, maximumFractionDigits: 0 }, 1.1, "other");
         }
     },
 ], { verbose: false });
