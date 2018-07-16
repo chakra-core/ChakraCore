@@ -4454,7 +4454,7 @@ namespace Js
 
     void FunctionBody::PrintStatementSourceLine(uint statementIndex)
     {
-        if (m_isWasmFunction)
+        if (m_isWasmFunction || this->GetUtf8SourceInfo()->GetIsLibraryCode())
         {
             // currently no source view support for wasm
             return;
