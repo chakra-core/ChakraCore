@@ -32,7 +32,6 @@ namespace Js
     private:
         FieldWithBarrier(uint8) fieldSize;
 #if DBG
-
         mutable FieldWithBarrier(bool) isLockedDown:1;
 		mutable FieldWithBarrier(bool) isClosing:1;
 #endif
