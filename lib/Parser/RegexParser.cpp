@@ -2167,7 +2167,7 @@ namespace UnifiedRegex
                     {
                         if (unicodeFlagPresent)
                         {
-                            //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                            //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
                             //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
                             Fail(JSERR_UnicodeRegExpRangeContainsCharClass); //From #sec-patterns-static-semantics-early-errors-annexb
                         }
@@ -2212,7 +2212,7 @@ namespace UnifiedRegex
             {
                 if (prevprevWasACharSetAndPartOfRange)
                 {
-                    //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                    //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
                     //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
                     if (unicodeFlagPresent)
                     {
@@ -2500,7 +2500,7 @@ namespace UnifiedRegex
                 }
                 else
                 {
-                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar SPEC #prod-annexB-Term 
+                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term 
 
                     if (!IsEOF())
                     {
@@ -2633,7 +2633,7 @@ namespace UnifiedRegex
                 standardChars->SetNonWordChars(ctAllocator, deferredSetNode->set);
                 return deferredSetNode;
             case 'c':
-                if (standardEncodedChars->IsWord(ECLookahead())) // terminating 0 is not a word
+                if (standardEncodedChars->IsWord(ECLookahead())) // terminating 0 is not a word character
                 {
                     c = UTC(Chars<EncodedChar>::CTU(ECLookahead()) % 32);
                     ECConsume();
@@ -2641,7 +2641,7 @@ namespace UnifiedRegex
                 }
                 else
                 {
-                    // If the lookahead is a non-alphanumeric and not a dash('-'), then treat '\' and 'c' separately.
+                    // If the lookahead is a non-alphanumeric and not an underscore ('_'), then treat '\' and 'c' separately.
                     //#sec-regular-expression-patterns-semantics 
                     ECRevert(1); //Put cursor back at 'c' and treat it as a non-escaped character.
                     deferredCharNode->cs[0] = '\\';
