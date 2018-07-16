@@ -82,7 +82,10 @@ public:
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
     OOPEmitBufferManager * GetEmitBufferManager(bool asmJsManager);
     void DecommitEmitBufferManager(bool asmJsManager);
-    Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
+#ifdef PROFILE_EXEC
+    Js::ScriptContextProfiler*  GetCodeGenProfiler(_In_ PageAllocator* pageAllocator);
+    Js::ScriptContextProfiler* GetFirstCodeGenProfiler() const;
+#endif
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
     OOPCodeGenAllocators * GetCodeGenAllocators();
@@ -94,7 +97,8 @@ public:
 private:
     JITDOMFastPathHelperMap * m_domFastPathHelperMap;
 #ifdef PROFILE_EXEC
-    Js::ScriptContextProfiler * m_codeGenProfiler;
+    Js::ScriptContextProfiler * codeGenProfiler;
+    CriticalSection profilerCS;
 #endif
     ArenaAllocator m_sourceCodeArena;
 
