@@ -29,7 +29,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_codeGenAlloc(nullptr, nullptr, threadContextInfo, threadContextInfo->GetCodePageAllocators(), threadContextInfo->GetProcessHandle()),
     m_globalThisAddr(0),
 #ifdef PROFILE_EXEC
-    m_codeGenProfiler(nullptr),
+    codeGenProfiler(nullptr),
 #endif
     m_refCount(0),
     m_isClosed(false)
@@ -39,12 +39,6 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_codeGenAlloc.canCreatePreReservedSegment = threadContextInfo->CanCreatePreReservedSegment();
 #endif
 
-#ifdef PROFILE_EXEC
-    if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
-    {
-        m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
-    }
-#endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
 
@@ -57,9 +51,11 @@ ServerScriptContext::~ServerScriptContext()
     });
 
 #ifdef PROFILE_EXEC
-    if (m_codeGenProfiler)
+    while (this->codeGenProfiler)
     {
-        HeapDelete(m_codeGenProfiler);
+        Js::ScriptContextProfiler* profiler = this->codeGenProfiler;
+        this->codeGenProfiler = this->codeGenProfiler->next;
+        HeapDelete(profiler);
     }
 #endif
 }
@@ -416,14 +412,46 @@ ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExp
     m_moduleRecords.Add(moduleId, record);
 }
 
-Js::ScriptContextProfiler *
-ServerScriptContext::GetCodeGenProfiler() const
-{
 #ifdef PROFILE_EXEC
-    return m_codeGenProfiler;
-#else
+Js::ScriptContextProfiler*
+ServerScriptContext::GetCodeGenProfiler(_In_ PageAllocator* pageAllocator)
+{
+    if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
+    {
+        AutoCriticalSection cs(&this->profilerCS);
+
+        Js::ScriptContextProfiler* profiler = this->codeGenProfiler;
+        while (profiler)
+        {
+            if (profiler->pageAllocator == pageAllocator)
+            {
+                if (!profiler->IsInitialized())
+                {
+                    profiler->Initialize(pageAllocator, nullptr);
+                }
+                return profiler;
+            }
+            profiler = profiler->next;
+        }
+
+        // If we didn't find a profiler, allocate a new one
+
+        profiler = HeapNew(Js::ScriptContextProfiler);
+        profiler->Initialize(pageAllocator, nullptr);
+        profiler->next = this->codeGenProfiler;
+
+        this->codeGenProfiler = profiler;
+
+        return profiler;
+    }
     return nullptr;
-#endif
 }
 
-#endif
+Js::ScriptContextProfiler*
+ServerScriptContext::GetFirstCodeGenProfiler() const
+{
+    return this->codeGenProfiler;
+}
+#endif // PROFILE_EXEC
+
+#endif // ENABLE_OOP_NATIVE_CODEGEN

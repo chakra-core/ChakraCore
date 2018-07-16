@@ -3447,41 +3447,7 @@ NativeCodeGenerator::SetProfilerFromNativeCodeGen(NativeCodeGenerator * nativeCo
 void
 NativeCodeGenerator::ProfilePrint()
 {
-    Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
-    if (Js::Configuration::Global.flags.Verbose)
-    {
-        //Print individual CodegenProfiler information in verbose mode
-        while (codegenProfiler)
-        {
-            codegenProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-            codegenProfiler = codegenProfiler->next;
-        }
-    }
-    else
-    {
-        //Merge all the codegenProfiler for single snapshot.
-        Js::ScriptContextProfiler* mergeToProfiler = codegenProfiler;
-
-        // find the first initialized profiler
-        while (mergeToProfiler != nullptr && !mergeToProfiler->IsInitialized())
-        {
-            mergeToProfiler = mergeToProfiler->next;
-        }
-        if (mergeToProfiler != nullptr)
-        {
-            // merge the rest profiler to the above initialized profiler
-            codegenProfiler = mergeToProfiler->next;
-            while (codegenProfiler)
-            {
-                if (codegenProfiler->IsInitialized())
-                {
-                    mergeToProfiler->ProfileMerge(codegenProfiler);
-                }
-                codegenProfiler = codegenProfiler->next;
-            }
-            mergeToProfiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-        }
-    }
+    this->backgroundCodeGenProfiler->ProfilePrint();
 }
 
 void
