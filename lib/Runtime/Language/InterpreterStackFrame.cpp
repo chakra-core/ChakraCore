@@ -2363,8 +2363,9 @@ namespace Js
             if (exception)
             {
                 bool skipException = false;
-                if (exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject()
-                    && exception != scriptContext->GetThreadContext()->GetPendingOOMErrorObject())
+                if (!exception->IsGeneratorReturnException() &&
+                    exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject() &&
+                    exception != scriptContext->GetThreadContext()->GetPendingOOMErrorObject())
                 {
                     skipException = exception->IsDebuggerSkip();
                 }
