@@ -2096,7 +2096,10 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
     else
     {
         // We have to wait until it is parsed before we populate the stack nested func parent.
-        FuncInfo * parentFunc = top->GetParamScope() ? top->GetParamScope()->GetEnclosingFunc() : top->GetBodyScope()->GetEnclosingFunc();
+        Scope * enclosingScope = top->GetParamScope() ? top->GetParamScope() :
+                                 top->GetBodyScope() ? top->GetBodyScope() :
+                                 top->GetFuncExprScope();
+        FuncInfo * parentFunc = enclosingScope->GetEnclosingFunc();
         if (!parentFunc->IsGlobalFunction())
         {
             Assert(parentFunc->byteCodeFunction != rootFuncBody);
