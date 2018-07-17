@@ -22325,7 +22325,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file uint8array.js
 test1
 10
@@ -23401,7 +23401,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file int16array.js
 test1
 10
@@ -24348,7 +24348,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file uint16array.js
 test1
 10
@@ -25313,7 +25313,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file int32array.js
 test1
 10
@@ -26248,7 +26248,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file uint32array.js
 test1
 10
@@ -27138,7 +27138,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file float32array.js
 test1
 10
@@ -28037,7 +28037,7 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }
 testing file float64array.js
 test1
 10
@@ -28887,4 +28887,4 @@ property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
 property of global: valueToSet
-sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
+sub object valueOf in valueToSet is function() { WScript.Echo(count); return count++; }

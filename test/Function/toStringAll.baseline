@@ -1,0 +1,66 @@
+function/*ß*/ a/*ß*/()/*ß*/ { console.log('a'); }
+a
+(/*ß*/)/*ß*/ => { console.log('b'); }
+b
+async/*ß*/ function/*ß*/ c/*ß*/()/*ß*/ { console.log('c'); }
+c
+function/*ß*/ */*ß*/d/*ß*/(/*ß*/)/*ß*/ { console.log('d'); }
+d
+a/*ß*/() /*ß*/{ console.log('a'); }
+a
+()/*ß*/ => { console.log('b'); }
+b
+async/*ß*/ c/*ß*/()/*ß*/ { console.log('c'); }
+c
+*/*ß*/ d/*ß*/()/*ß*/ { console.log('d'); }
+d
+['e']/*ß*/()/*ß*/ { console.log('e'); }
+e
+async/*ß*/ ['f']/*ß*/()/*ß*/ { console.log('f'); }
+f
+*/*ß*/ ['g']/*ß*/()/*ß*/ { console.log('g'); }
+g
+get/*ß*/()/*ß*/ { console.log('get'); }
+get
+set/*ß*/()/*ß*/ { console.log('set'); }
+set
+[/]/.exec(']')]/*ß*/()/*ß*/ { console.log('regex'); }
+regex
+[(function () { return 'h'})()]/*ß*/()/*ß*/ { console.log('function'); }
+function
+get/*ß*/ a/*ß*/()/*ß*/ { console.log('getter'); }
+getter
+set /*ß*/a/*ß*/(x)/*ß*/ { console.log('setter'); }
+setter
+a/*ß*/()/*ß*/ {}
+async/*ß*/ b()/*ß*/ {}
+*/*ß*/ c/*ß*/()/*ß*/ {}
+['d']/*ß*/()/*ß*/ {}
+async /*ß*/['e']/*ß*/()/*ß*/ {}
+* /*ß*/['f']/*ß*/()/*ß*/ {}
+g/*ß*/()/*ß*/ {}
+async/*ß*/ h/*ß*/()/*ß*/ {}
+*/*ß*/ i/*ß*/()/*ß*/ {}
+['j']/*ß*/()/*ß*/ {}
+async/*ß*/ ['k']/*ß*/()/*ß*/ {}
+* /*ß*/['l']/*ß*/()/*ß*/ {}
+class ClassTest {
+  constructor/*ß*/()/*ß*/ {}
+  static /*ß*/a/*ß*/()/*ß*/ {}
+  static /*ß*/async/*ß*/ b()/*ß*/ {}
+  static /*ß*/*/*ß*/ c/*ß*/()/*ß*/ {}
+  static /*ß*/['d']/*ß*/()/*ß*/ {}
+  static /*ß*/async /*ß*/['e']/*ß*/()/*ß*/ {}
+  static /*ß*/* /*ß*/['f']/*ß*/()/*ß*/ {}
+
+  g/*ß*/()/*ß*/ {}
+  async/*ß*/ h/*ß*/()/*ß*/ {}
+  */*ß*/ i/*ß*/()/*ß*/ {}
+  ['j']/*ß*/()/*ß*/ {}
+  async/*ß*/ ['k']/*ß*/()/*ß*/ {}
+  * /*ß*/['l']/*ß*/()/*ß*/ {}
+}
+[yield 'a']/*ß*/()/*ß*/ { console.log("yield a"); }
+yield a
+[await 'a']/*ß*/()/*ß*/ { console.log("await a"); }
+await a

@@ -175,7 +175,7 @@ var tests = [
         body: function() {
             var foo;
 
-            assert.areEqual("function () { return 'foo called'; }", `${foo = function() { return 'foo called'; }}`, "Function declaration (+assignment) in string template");
+            assert.areEqual("function() { return 'foo called'; }", `${foo = function() { return 'foo called'; }}`, "Function declaration (+assignment) in string template");
             assert.areEqual('function', typeof foo, "Assignment inside string template substitution expression");
             assert.areEqual('foo called', foo(), "Function declared in template expression can be called later");
 

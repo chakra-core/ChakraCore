@@ -71,7 +71,6 @@ namespace Js
         Field(ActivationObjectEx *) cachedScopeObj;
         Field(bool) hasInlineCaches;
 
-        JavascriptString * FormatToString(JavascriptString* inputString);
         static JavascriptString* GetComputedName(Var computedNameVar, ScriptContext * scriptContext);
         static bool GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t *length);
     protected:

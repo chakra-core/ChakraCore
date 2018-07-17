@@ -245,6 +245,37 @@
   </test>
   <test>
     <default>
+      <files>toStringAll.js</files>
+      <baseline>toStringAll.baseline</baseline>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>toStringAll.js</files>
+      <baseline>toStringAll.baseline</baseline>
+      <compile-flags>-force:DeferParse</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>toStringAll.js</files>
+      <baseline>toStringAll.baseline</baseline>
+      <compile-flags>-force:DeferParse -ForceSerialized</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>toStringAll.js</files>
+      <baseline>toStringAll.baseline</baseline>
+      <compile-flags>-force:DeferParse -UseParserStateCache -ParserStateCache</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>funcExpr.js</files>
       <baseline>funcExpr5.baseline</baseline>
     </default>

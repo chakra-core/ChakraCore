@@ -984,6 +984,7 @@ ParseNodeProg * Parser::CreateProgNode(bool isModuleSource, ULONG lineNumber)
     }
 
     pnodeProg->cbMin = this->GetScanner()->IecpMinTok();
+    pnodeProg->cbStringMin = pnodeProg->cbMin;
     pnodeProg->lineNumber = lineNumber;
     pnodeProg->homeObjLocation = Js::Constants::NoRegister;
     return pnodeProg;
@@ -3346,8 +3347,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         pnode = ParseFncDeclNoCheckScope<buildAST>(flags, pNameHint, false, true, fUnaryOrParen);
         if (isAsyncExpr)
         {
-            pnode->AsParseNodeFnc()->cbMin = iecpMin;
-            pnode->ichMin = ichMin;
+            pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
         }
         fCanAssign = FALSE;
         break;
@@ -4218,7 +4218,7 @@ template<bool buildAST> void Parser::ParseComputedName(ParseNodePtr* ppnodeName,
     { get foo(){ ... }, set bar(arg) { ... } }
 ***************************************************************************/
 template<bool buildAST>
-ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
+ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint, size_t iecpMin, charcount_t ichMin)
 {
     ParseNodePtr pnodeName = nullptr;
     Assert(nop == knopGetMember || nop == knopSetMember);
@@ -4316,15 +4316,17 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
     ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(flags, *ppNameHint,
         /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
 
+    pnodeFnc->cbStringMin = iecpMin;
+
     if (isComputedName)
     {
         pnodeFnc->SetHasComputedName();
     }
     pnodeFnc->SetHasHomeObj();
+    pnodeFnc->SetIsAccessor();
 
     if (buildAST)
     {
-        pnodeFnc->SetIsAccessor();
         return CreateBinNode(nop, pnodeName, pnodeFnc);
     }
     else
@@ -4372,8 +4374,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         }
 #endif
         bool isAsyncMethod = false;
-        charcount_t ichMin = 0;
-        size_t iecpMin = 0;
+        charcount_t ichMin = this->GetScanner()->IchMinTok();
+        size_t iecpMin = this->GetScanner()->IecpMinTok();
         if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
@@ -4659,13 +4661,14 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
             if (isAsyncMethod || isGenerator)
             {
-                pnodeFnc->cbMin = iecpMin;
-                pnodeFnc->ichMin = ichMin;
+                pnodeFnc->cbStringMin = iecpMin;
             }
 
             if (isComputedName)
             {
                 pnodeFnc->SetHasComputedName();
+                pnodeFnc->cbStringMin = iecpMin;
+                
             }
             pnodeFnc->SetHasHomeObj();
 
@@ -4698,7 +4701,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 LPCOLESTR pNameGetOrSet = nullptr;
                 OpCode op = pidHint == wellKnownPropertyPids.get ? knopGetMember : knopSetMember;
 
-                pnodeArg = ParseMemberGetSet<buildAST>(op, &pNameGetOrSet);
+                pnodeArg = ParseMemberGetSet<buildAST>(op, &pNameGetOrSet, iecpMin, ichMin);
 
                 if (CONFIG_FLAG(UseFullName) && buildAST && pnodeArg->pnode2->nop == knopFncDecl)
                 {
@@ -4980,6 +4983,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
 
     pnodeFnc->nestedFuncEscapes = false;
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
+    pnodeFnc->cbStringMin = pnodeFnc->cbMin;
     pnodeFnc->functionId = (*m_nextFunctionId)++;
 
 
@@ -5869,8 +5873,11 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
 
         Assert(pnodeFnc->ichMin == stub->ichMin
             || (stub->fncFlags & kFunctionIsAsync) == kFunctionIsAsync
-            || ((stub->fncFlags & kFunctionIsGenerator) == kFunctionIsGenerator && (stub->fncFlags & kFunctionIsMethod) == kFunctionIsMethod));
-
+            || ((stub->fncFlags & kFunctionIsMethod) == kFunctionIsMethod && (
+                   (stub->fncFlags & kFunctionIsAccessor) == kFunctionIsAccessor
+                || (stub->fncFlags & kFunctionIsGenerator) == kFunctionIsGenerator
+                || (stub->fncFlags & kFunctionHasComputedName) == kFunctionHasComputedName
+                )));
         if (stub->fncFlags & kFunctionCallsEval)
         {
             this->MarkEvalCaller();
@@ -6777,6 +6784,7 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->ichMin = this->GetScanner()->IchMinTok();
     pnodeFnc->cbLim = this->GetScanner()->IecpLimTok();
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
+    pnodeFnc->cbStringMin = pnodeFnc->cbMin;
     pnodeFnc->lineNumber = this->GetScanner()->LineCur();
 
     pnodeFnc->functionId = (*m_nextFunctionId);
@@ -7579,8 +7587,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         }
 
         ushort fncDeclFlags = fFncNoName | fFncMethod | fFncClassMember;
-        charcount_t ichMin = 0;
-        size_t iecpMin = 0;
+        charcount_t ichMin = this->GetScanner()->IchMinTok();
+        size_t iecpMin = this->GetScanner()->IecpMinTok();
         ParseNodePtr pnodeMemberName = nullptr;
         IdentPtr pidHint = nullptr;
         IdentPtr memberPid = nullptr;
@@ -7774,6 +7782,11 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                         pnodeFnc->cbMin = iecpMin;
                         pnodeFnc->ichMin = ichMin;
                     }
+
+                    if (isAsyncMethod || isGenerator || isComputedName)
+                    {
+                        pnodeFnc->cbStringMin = iecpMin;
+                    }
                 }
                 pnodeFnc->SetIsStaticMember(isStatic);
                 if (isComputedName)
@@ -7843,6 +7856,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     if (buildAST)
     {
         pnodeConstructor->cbMin = cbMinConstructor;
+        pnodeConstructor->cbStringMin = cbMinConstructor;
         pnodeConstructor->cbLim = cbLimConstructor;
         pnodeConstructor->ichMin = pnodeClass->ichMin;
         pnodeConstructor->ichLim = pnodeClass->ichLim;
@@ -8884,8 +8898,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             pnode = ParseFncDeclNoCheckScope<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false, /* fUnaryOrParen = */ false, fAllowIn);
             if (isAsyncMethod)
             {
-                pnode->AsParseNodeFnc()->cbMin = iecpMin;
-                pnode->ichMin = ichMin;
+                pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
             }
 
             // ArrowFunction/AsyncArrowFunction is part of AssignmentExpression, which should terminate the expression unless followed by a comma
@@ -9740,8 +9753,7 @@ LRestart:
         }
         if (isAsyncMethod)
         {
-            pnode->AsParseNodeFnc()->cbMin = iecpMin;
-            pnode->ichMin = ichMin;
+            pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
         }
         break;
     }
@@ -11440,8 +11452,6 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
         {
             // Defer parse for a single function should just parse that one function - there are no other statements.
             ushort flags = fFncNoFlgs;
-            size_t iecpMin = 0;
-            charcount_t ichMin = 0;
             bool isAsync = false;
             bool isGenerator = false;
             bool isMethod = false;
@@ -11468,55 +11478,52 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
                 m_grfscr &= ~fscrDeferredFncIsMethod;
                 isMethod = true;
                 flags |= fFncNoName | fFncMethod;
+
+                if (m_grfscr & fscrDeferredFncIsGenerator)
+                {
+                    m_grfscr &= ~fscrDeferredFncIsGenerator;
+                    isGenerator = true;
+                    flags |= fFncGenerator;
+                }
+
+                if (m_token.tk == tkStar && m_scriptContext->GetConfig()->IsES6GeneratorsEnabled())
+                {
+                    Assert(isGenerator && !isMethod);
+                    this->GetScanner()->Scan();
+                }
             }
 
-            // These are the cases which can confirm async function:
-            //   async function() {}         -> async function
-            //   async () => {}              -> async lambda with parens around the formal parameter
-            //   async arg => {}             -> async lambda with single identifier parameter
-            //   async name() {}             -> async method
-            //   async [computed_name]() {}  -> async method with a computed name
-            if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            if (m_grfscr & fscrDeferredFncIsAsync)
             {
-                ichMin = this->GetScanner()->IchMinTok();
-                iecpMin = this->GetScanner()->IecpMinTok();
+                m_grfscr &= ~fscrDeferredFncIsAsync;
+                isAsync = true;
+                flags |= fFncAsync;
+            }
 
-                // Keep state so we can rewind if it turns out that this isn't an async function:
-                //   async() {}              -> method named async
-                //   async => {}             -> lambda with single parameter named async
-                RestorePoint termStart;
-                this->GetScanner()->Capture(&termStart);
 
+#if DBG
+            if (isMethod && m_token.tk == tkID)
+            {
+                RestorePoint atPid;
+                IdentPtr pidHint = m_token.GetIdentifier(this->GetHashTbl());
+                this->GetScanner()->Capture(&atPid);
                 this->GetScanner()->Scan();
-
-                if (m_token.tk == tkDArrow || (m_token.tk == tkLParen && isMethod) || this->GetScanner()->FHadNewLine())
+                if ((pidHint == wellKnownPropertyPids.get || pidHint == wellKnownPropertyPids.set) && NextTokenIsPropertyNameStart())
                 {
-                    this->GetScanner()->SeekTo(termStart);
+                    // Getter/setter
+                    // Skip the get/set keyword and continue normally
+                    AssertMsg(false, "We should not be re-parsing the get/set part of member accessor functions");
                 }
                 else
                 {
-                    flags |= fFncAsync;
-                    isAsync = true;
+                    // Not a getter/setter; rewind and treat the token as a name.
+                    this->GetScanner()->SeekTo(atPid);
                 }
             }
+#endif
 
-            if (m_token.tk == tkStar && m_scriptContext->GetConfig()->IsES6GeneratorsEnabled())
-            {
-                ichMin = this->GetScanner()->IchMinTok();
-                iecpMin = this->GetScanner()->IecpMinTok();
-
-                flags |= fFncGenerator;
-                isGenerator = true;
-
-                this->GetScanner()->Scan();
-            }
-
-            // Eat the computed name expression
-            if (m_token.tk == tkLBrack && isMethod)
-            {
-                this->GetScanner()->Scan();
-                ParseExpr<false>();
-            }
+            // Ensure this isn't a computed name
+            AssertMsg(!(m_token.tk == tkLBrack && isMethod), "Can't defer parse a computed name expression, we should have started after this");
 
             if (!isMethod && (m_token.tk == tkID || m_token.tk == tkLParen))
             {
@@ -11528,12 +11535,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
             pnodeProg->pnodeBody = nullptr;
             AddToNodeList(&pnodeProg->pnodeBody, &lastNodeRef, pnodeFnc);
 
-            // Include the async keyword or star character in the function extents
-            if (isAsync || isGenerator)
-            {
-                pnodeFnc->AsParseNodeFnc()->cbMin = iecpMin;
-                pnodeFnc->ichMin = ichMin;
-            }
+            // No need to update the cbStringMin property since no ParseableFunctionInfo will be created from this defer-parsed pnodeFnc
         }
         else
         {

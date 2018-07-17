@@ -2296,6 +2296,7 @@ public:
         }
        
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
+        PrependInt32(builder, _u("Offset Into Source for toString"), function->PrintableStartOffset());
         if (function->GetNestedCount() > 0)
         {
             definedFields.has_m_nestedCount = true;
@@ -4003,7 +4004,9 @@ public:
         }
 
         uint32 offsetIntoSource = 0;
+        uint32 offsetIntoSourcePrintable = 0;
         current = ReadUInt32(current, &offsetIntoSource);
+        current = ReadUInt32(current, &offsetIntoSourcePrintable);
 
         int nestedCount = 0;
         if (definedFields->has_m_nestedCount)
@@ -4115,7 +4118,8 @@ public:
         (*function)->m_isClassMember = (bitflags & ffIsClassMember) ? true : false;
 
         // This is offsetIntoSource is the start offset in bytes as well.
-        (*function)->m_cbStartOffset = (size_t) offsetIntoSource;
+        (*function)->m_cbStartOffset = offsetIntoSource;
+        (*function)->m_cbStartPrintOffset = offsetIntoSourcePrintable;
         (*function)->m_sourceIndex = this->sourceIndex;
 
 #define DEFINE_FUNCTION_PROXY_FIELDS 1

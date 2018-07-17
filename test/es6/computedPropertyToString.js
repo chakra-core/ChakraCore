@@ -11,6 +11,7 @@ var tests = [
        body: function ()
        {
            var date = new Date(2011,10,30);
+           var sym = Symbol("FAZ");
            var name0 = function() { var a = 1; var b = 2; var c = 3; return a+c+b};
            var name1 = function() { var a = 1; var b = "1"; var c = "b"; return a+b+c};
            var name2 = function() { var a = {}; var b = date; var c = {}; return a+b+c};
@@ -19,7 +20,7 @@ var tests = [
            var name5 = function() { return null;}
            var name6 = function() { return true;}
            var name7 = function() { return false;}
-           var name8 = function() { return Symbol("FAZ");}
+           var name8 = function() { return sym;}
            var name9 = function() { return date;}
            var qux = class {
                [name0()]() {}
@@ -34,15 +35,27 @@ var tests = [
                [name9()]() {}
                }
            var quxObj = new qux();
-           assert.areEqual("6() {}",           quxObj[name0()].toString(), "name0() adds 1+2+3, expecting 6");
-           assert.areEqual("11b() {}",         quxObj[name1()].toString(), "name1() returns number 1 plus string 1 and string b should evaluate to 11b");
-           assert.areEqual({}+date+{}+"() {}", quxObj[name2()].toString(), "name2() returns object + date + object should be toStrings of all three");
-           assert.areEqual("NaN() {}",         quxObj[name3()].toString(), "name3() returns NaN, which should be the name");
-           assert.areEqual("undefined() {}",   quxObj[name4()].toString(), "name4() returns undefined for the name");
-           assert.areEqual("null() {}",        quxObj[name5()].toString(), "name5() returns null as the name");
-           assert.areEqual("true() {}",        quxObj[name6()].toString(), "name6() returns true as the name");
-           assert.areEqual("false() {}",       quxObj[name7()].toString(), "name7() returns false as the name");
-           assert.areEqual(date+"() {}",       quxObj[name9()].toString(), "name8() returns a date as the name");
+           assert.areEqual("6",           quxObj[name0()].name, "name0() adds 1+2+3, expecting 6");
+           assert.areEqual("11b",         quxObj[name1()].name, "name1() returns number 1 plus string 1 and string b should evaluate to 11b");
+           assert.areEqual({}+date+{}+"", quxObj[name2()].name, "name2() returns object + date + object should be toStrings of all three");
+           assert.areEqual("NaN",         quxObj[name3()].name, "name3() returns NaN, which should be the name");
+           assert.areEqual("undefined",   quxObj[name4()].name, "name4() returns undefined for the name");
+           assert.areEqual("null",        quxObj[name5()].name, "name5() returns null as the name");
+           assert.areEqual("true",        quxObj[name6()].name, "name6() returns true as the name");
+           assert.areEqual("false",       quxObj[name7()].name, "name7() returns false as the name");
+           //assert.areEqual(sym,         quxObj[name8()].name, "name8() returns false as the name"); // Symbol doesn't play nicely
+           assert.areEqual(date+"",       quxObj[name9()].name, "name9() returns a date as the name");
+
+           assert.areEqual("[name0()]() {}",           quxObj[name0()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name1()]() {}",           quxObj[name1()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name2()]() {}",           quxObj[name2()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name3()]() {}",           quxObj[name3()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name4()]() {}",           quxObj[name4()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name5()]() {}",           quxObj[name5()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name6()]() {}",           quxObj[name6()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name7()]() {}",           quxObj[name7()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name8()]() {}",           quxObj[name8()].toString(), "toString should be the uninterpreted original source");
+           assert.areEqual("[name9()]() {}",           quxObj[name9()].toString(), "toString should be the uninterpreted original source");
        }
    },
    {
@@ -62,12 +75,12 @@ var tests = [
                       ["fo\0o"+"bar"]() {}
                     }
            var quxObj = new qux();
-           assert.areEqual("5() {}",        quxObj[5].toString(),     "the result of 1+4 for the name");
-           assert.areEqual(date+"() {}",    quxObj[date].toString(),  "date as the name");
-           assert.areEqual("6() {}",        quxObj[6].toString(),     "the result of 4 + 2 for the name");
-           assert.areEqual("4c() {}",       quxObj["4c"].toString(),  "the result of numeric value 4 plus string c");
-           assert.areEqual("foo() {}",      quxObj["foo"].toString(), "the result of the string foo");
-           assert.areEqual("fo\0obar() {}", quxObj["fo\0obar"].toString(), "the result of the concatenation of two strings");
+           assert.areEqual("5",        quxObj[5].name,     "the result of 1+4 for the name");
+           assert.areEqual(date+"",    quxObj[date].name,  "date as the name");
+           assert.areEqual("6",        quxObj[6].name,     "the result of 4 + 2 for the name");
+           assert.areEqual("4c",       quxObj["4c"].name,  "the result of numeric value 4 plus string c");
+           assert.areEqual("foo",      quxObj["foo"].name, "the result of the string foo");
+           assert.areEqual("fo\0obar", quxObj["fo\0obar"].name, "the result of the concatenation of two strings");
        }
    },
 

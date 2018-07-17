@@ -180,6 +180,12 @@ namespace Js
     }
 
     LPCUTF8
+        ParseableFunctionInfo::GetToStringSource(const  char16* reason) const
+    {
+        return this->GetUtf8SourceInfo()->GetSource(reason == nullptr ? _u("ParseableFunctionInfo::GetToStringSource") : reason) + this->PrintableStartOffset();
+    }
+
+    LPCUTF8
     ParseableFunctionInfo::GetStartOfDocument(const char16* reason) const
     {
         return this->GetUtf8SourceInfo()->GetSource(reason == nullptr ? _u("ParseableFunctionInfo::GetStartOfDocument") : reason);
@@ -207,6 +213,12 @@ namespace Js
     ParseableFunctionInfo::StartOffset() const
     {
         return this->m_cbStartOffset;
+    }
+
+    uint
+    ParseableFunctionInfo::PrintableStartOffset() const
+    {
+        return this->m_cbStartPrintOffset;
     }
 
     void ParseableFunctionInfo::RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle)
@@ -1507,6 +1519,7 @@ namespace Js
         CopyDeferParseField(m_lineNumber);
         CopyDeferParseField(m_columnNumber);
         CopyDeferParseField(m_cbStartOffset);
+        CopyDeferParseField(m_cbStartPrintOffset);
         CopyDeferParseField(m_cbLength);
 
         this->CopyNestedArray(other);
@@ -1608,6 +1621,7 @@ namespace Js
       m_cbLength(0),
       m_cchStartOffset(0),
       m_cbStartOffset(0),
+      m_cbStartPrintOffset(0),
       m_lineNumber(0),
       m_columnNumber(0),
       m_isEval(false),
@@ -2401,6 +2415,24 @@ namespace Js
                         grfscr &= ~fscrDeferredFncIsMethod;
                     }
 
+                    if (funcBody->IsAsync())
+                    {
+                        grfscr |= fscrDeferredFncIsAsync;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsAsync;
+                    }
+
+                    if (funcBody->IsGenerator())
+                    {
+                        grfscr |= fscrDeferredFncIsGenerator;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsGenerator;
+                    }
+
                     if (isDebugOrAsmJsReparse)
                     {
                         grfscr &= ~fscrWillDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
@@ -2840,7 +2872,9 @@ namespace Js
             {
                 Js::Throw::OutOfMemory();
             }
+            Assert(node->cbStringMin <= node->cbMin);
             this->m_cbStartOffset = (uint)cbMin;
+            this->m_cbStartPrintOffset = (uint)node->cbStringMin;
             this->m_cbLength = (uint)lengthInBytes;
 
             Assert(this->m_utf8SourceInfo != nullptr);
@@ -2898,6 +2932,7 @@ namespace Js
             this->m_columnNumber = 0;
 
             this->m_cbStartOffset = 0;
+            this->m_cbStartPrintOffset = 0;
             this->m_cbLength = 0;
 
             this->m_utf8SourceHasBeenSet = true;

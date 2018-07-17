@@ -12,6 +12,8 @@ SkipNestedDeferred:	Pushing a reference to 'x'
 Pass: Nested unnamed function expression
 Skipping nested deferred function 11. a1: 1438...1546
 SkipNestedDeferred:	Pushing a reference to 'x'
+Skipping nested deferred function 12. a2: 1469...1517
+SkipNestedDeferred:	Pushing a reference to 'x'
 Pass: Function with nested async functions
 Skipping nested deferred function 14. g1: 1670...1785
 SkipNestedDeferred:	Pushing a reference to 'x'

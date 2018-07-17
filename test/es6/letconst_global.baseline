@@ -8,7 +8,7 @@ global var a
 global undecl b
 global let c
 global const d
-function e() { }
+function e () { }
 
 this. references
 
@@ -16,10 +16,10 @@ global var a
 global undecl b
 undefined
 undefined
-function e() { }
+function e () { }
 
 for-in enumeration of this
 
 a: global var a
-e: function e() { }
+e: function e () { }
 b: global undecl b
