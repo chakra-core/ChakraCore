@@ -20,12 +20,12 @@ namespace Js {
 
     private:
         FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
-        Field(void *) callbackState;
+        FieldNoBarrier(void *) callbackState;
 
         class JsrtExternalArrayBufferDetachedState : public ExternalArrayBufferDetachedState
         {
             FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
-            Field(void *) callbackState;
+            FieldNoBarrier(void *) callbackState;
         public:
             JsrtExternalArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength, JsFinalizeCallback finalizeCallback, void *callbackState);
             virtual void ClearSelfOnly() override;
