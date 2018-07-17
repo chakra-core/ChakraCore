@@ -484,6 +484,29 @@ var tests = [
             var obj2 = Reflect.construct(proxy2, [20]);
             assert.areEqual(20, obj2.x);
         }
+    },
+    {
+        name: "Getter/setter on array should trigger proxy traps in prototype",
+        body() {
+            var setterCalled = 0;
+            var getterCalled = 0;
+            var obj = [];
+            var p = new Proxy({}, {
+              get(t, k) {
+                getterCalled = 1;
+                return Reflect.get(t, k);
+              },
+              set(t, k, v) {
+                setterCalled = 1;
+                return Reflect.set(t, k, v);
+              }
+            });
+            Object.setPrototypeOf(obj, p);
+            obj[0] = 3;
+            obj[0];
+            assert.areEqual(1, getterCalled, "Get trap on proxy in array prototype chain is called");
+            assert.areEqual(1, setterCalled, "Set trap on proxy in array prototype chain is called");
+        }
     }
 ];
 
