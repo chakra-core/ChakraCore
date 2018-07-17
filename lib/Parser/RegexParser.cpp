@@ -1529,7 +1529,13 @@ namespace UnifiedRegex
         else if (ECLookahead() == 'c')
         {
             if (standardEncodedChars->IsLetter(ECLookahead(1))) // terminating 0 is not a letter
+            {
                 ECConsume(2);
+            }
+            else
+            {
+                DeferredFailIfUnicode(JSERR_RegExpInvalidEscape);
+            }
             return false;
         }
         else
@@ -2161,7 +2167,7 @@ namespace UnifiedRegex
                     {
                         if (unicodeFlagPresent)
                         {
-                            //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                            //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
                             //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
                             Fail(JSERR_UnicodeRegExpRangeContainsCharClass); //From #sec-patterns-static-semantics-early-errors-annexb
                         }
@@ -2206,7 +2212,7 @@ namespace UnifiedRegex
             {
                 if (prevprevWasACharSetAndPartOfRange)
                 {
-                    //We a range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                    //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
                     //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
                     if (unicodeFlagPresent)
                     {
@@ -2494,6 +2500,8 @@ namespace UnifiedRegex
                 }
                 else
                 {
+                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term 
+
                     if (!IsEOF())
                     {
                         EncodedChar ecLookahead = ECLookahead();
@@ -2625,7 +2633,7 @@ namespace UnifiedRegex
                 standardChars->SetNonWordChars(ctAllocator, deferredSetNode->set);
                 return deferredSetNode;
             case 'c':
-                if (standardEncodedChars->IsLetter(ECLookahead())) // terminating 0 is not a letter
+                if (standardEncodedChars->IsWord(ECLookahead())) // terminating 0 is not a word character
                 {
                     c = UTC(Chars<EncodedChar>::CTU(ECLookahead()) % 32);
                     ECConsume();
@@ -2633,25 +2641,11 @@ namespace UnifiedRegex
                 }
                 else
                 {
-                    // SPEC DEVIATION: For non-letters, still take lower 5 bits, e.g. [\c1] == [\x11].
-                    //                 However, '-', ']', and EOF make the \c just a 'c'.
-                    if (!IsEOF())
-                    {
-                        EncodedChar ec = ECLookahead();
-                        switch (ec)
-                        {
-                        case '-':
-                        case ']':
-                            // fall-through for identity escape with 'c'
-                            break;
-                        default:
-                            c = UTC(Chars<EncodedChar>::CTU(ec) % 32);
-                            ECConsume();
-                            // fall-through for identity escape
-                            break;
-                        }
-                    }
-                    // else: fall-through for identity escape with 'c'
+                    // If the lookahead is a non-alphanumeric and not an underscore ('_'), then treat '\' and 'c' separately.
+                    //#sec-regular-expression-patterns-semantics 
+                    ECRevert(1); //Put cursor back at 'c' and treat it as a non-escaped character.
+                    deferredCharNode->cs[0] = '\\';
+                    return deferredCharNode;
                 }
                 break;
             case 'x':
