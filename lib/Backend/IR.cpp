@@ -1001,20 +1001,6 @@ void ByteCodeUsesInstr::AggregateFollowingByteCodeUses()
     }
 }
 
-void ByteCodeUsesInstr::AggregatePrecedingByteCodeUses()
-{
-    IR::Instr * instr = this->m_prev;
-    while(instr && CanAggregateByteCodeUsesAcrossInstr(instr))
-    {
-        if (instr->IsByteCodeUsesInstr() && instr->GetByteCodeOffset() == this->GetByteCodeOffset())
-        {
-            IR::ByteCodeUsesInstr* precedingByteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            this->Aggregate(precedingByteCodeUsesInstr);
-        }
-        instr = instr->m_prev;
-    }
-}
-
 void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 {
     Assert(this->m_func == byteCodeUsesInstr->m_func);
@@ -1037,7 +1023,7 @@ void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 
 bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
 {
-    return !instr->EndsBasicBlock() && 
+    return !instr->StartsBasicBlock() && 
         instr->m_func == this->m_func &&
         ((instr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset) ||
         (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
