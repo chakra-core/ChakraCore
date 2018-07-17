@@ -4538,34 +4538,38 @@ CommonNumber:
         }
         else
         {
-            if (TaggedInt::Is(index))
+            if (!(RecyclableObject::Is(instance)
+                && JavascriptOperators::CheckIfPrototypeChainContainsProxyObject(RecyclableObject::FromVar(instance)->GetPrototype())))
             {
-            TaggedIntIndex:
-                switch (instanceType)
+                if (TaggedInt::Is(index))
                 {
-                case TypeIds_NativeIntArray:
-                case TypeIds_NativeFloatArray:
-                case TypeIds_Array: // fast path for array
-                {
-                    int indexInt = TaggedInt::ToInt32(index);
-                    if (indexInt >= 0 && scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
+                TaggedIntIndex:
+                    switch (instanceType)
                     {
-                        JavascriptArray::UnsafeFromVar(instance)->SetItem((uint32)indexInt, value, flags);
-                        return TRUE;
+                    case TypeIds_NativeIntArray:
+                    case TypeIds_NativeFloatArray:
+                    case TypeIds_Array: // fast path for array
+                    {
+                        int indexInt = TaggedInt::ToInt32(index);
+                        if (indexInt >= 0 && scriptContext->optimizationOverrides.IsEnabledArraySetElementFastPath())
+                        {
+                            JavascriptArray::UnsafeFromVar(instance)->SetItem((uint32)indexInt, value, flags);
+                            return TRUE;
+                        }
+                        break;
                     }
-                    break;
+                    }
                 }
-                }
-            }
-            else if (JavascriptNumber::Is_NoTaggedIntCheck(index))
-            {
-                double dIndexValue = JavascriptNumber::GetValue(index);
-                uint32 uint32Index = JavascriptConversion::ToUInt32(index, scriptContext);
-
-                if ((double)uint32Index == dIndexValue && !TaggedInt::IsOverflow(uint32Index))
+                else if (JavascriptNumber::Is_NoTaggedIntCheck(index))
                 {
-                    index = TaggedInt::ToVarUnchecked(uint32Index);
-                    goto TaggedIntIndex;
+                    double dIndexValue = JavascriptNumber::GetValue(index);
+                    uint32 uint32Index = JavascriptConversion::ToUInt32(index, scriptContext);
+
+                    if ((double)uint32Index == dIndexValue && !TaggedInt::IsOverflow(uint32Index))
+                    {
+                        index = TaggedInt::ToVarUnchecked(uint32Index);
+                        goto TaggedIntIndex;
+                    }
                 }
             }
         }
