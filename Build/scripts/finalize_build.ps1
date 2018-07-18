@@ -20,7 +20,9 @@ param (
     [ValidateSet("default", "codecoverage", "pogo")]
     [string]$subtype = "default",
 
-    $corePathSegment = "" # e.g. "core"
+    $corePathSegment = "", # e.g. "core"
+
+    [string]$destinationBase = $Env:DropPath
 )
 
 . $PSScriptRoot\pre_post_util.ps1
@@ -34,18 +36,13 @@ $coreSourcesDir = Join-Path $sourcesDir $corePathSegment
 $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
 #
-# Clean up the sentinel which previously marked this build flavor as incomplete.
-#
-
-Remove-Item -Path $Env:FlavorBuildIncompleteFile -Force
-
-#
 # Copy all logs to DropPath
 #
 
-$buildlogsDropPath = Join-Path $Env:DropPath "buildlogs"
-$logsDropPath = Join-Path $Env:DropPath "logs"
-$testlogsDropPath = Join-Path $Env:DropPath "testlogs"
+$logBase = Join-Path $destinationBase "logs"
+$buildlogsDropPath = Join-Path $logBase "buildlogs"
+$logsDropPath = Join-Path $logBase "logs"
+$testlogsDropPath = Join-Path $logBase "testlogs"
 
 New-Item -Force -ItemType Directory -Path $buildlogsDropPath
 New-Item -Force -ItemType Directory -Path $logsDropPath
@@ -91,7 +88,7 @@ if ((-not $BuildSucceeded) -or (-not $TestsPassed)) {
     $Status = "failed"
 }
 
-$buildFlavorJsonFile = Join-Path $Env:DropPath "${Env:BuildName}.json"
+$buildFlavorJsonFile = Join-Path $logBase "${Env:BuildName}.json"
 $buildFlavorJson = New-Object System.Object
 
 $buildFlavorJson | Add-Member -type NoteProperty -name buildName -value $Env:BuildName
@@ -123,12 +120,22 @@ Get-ChildItem -Path (Join-Path $sourcesDir "Build") "*.nuspec" `
     | ForEach-Object { Copy-Item -Verbose -Force $_.FullName $metadataDir }
 
 #
+# Copy binaries directory
+#
+
+$BinFolder = Join-Path $Env:BinariesDirectory "bin\${Env:BuildName}"
+$BinDropPath = Join-Path $destinationBase "bin"
+Write-Output "Copying `"$BinFolder`" to `"$BinDropPath`"..."
+Copy-Item -Verbose $BinFolder $BinDropPath -Recurse -Force -Exclude "*_ttdlog*"
+
+#
 # Copy POGO directory if present for this build
 #
 
 $PogoFolder = Join-Path $Env:BinariesDirectory "bin\${Env:BuildType}_pogo"
 if (Test-Path $PogoFolder) {
-    $BinDropPath = Join-Path $Env:DropPath "bin"
-    Write-Output "Copying `"$PogoFolder`" to `"$BinDropPath`"..."
-    Copy-Item -Verbose $PogoFolder $BinDropPath -Recurse -Force
+    $PogoBinDropPath = Join-Path $destinationBase "bin_pogo"
+    Write-Output "Copying `"$PogoFolder`" to `"$PogoBinDropPath`"..."
+    Write-Output "##vso[task.setvariable variable=VSO_POGOPresent;]true"
+    Copy-Item -Verbose $PogoFolder $PogoBinDropPath -Recurse -Force
 }
