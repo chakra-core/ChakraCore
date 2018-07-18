@@ -361,6 +361,13 @@ var tests = [
                 testRunner.LoadModule(` /x/ ; for(i=0);`, 'samethread', {shouldFail:true});
             }
             catch(e){}
+
+            try
+            {
+                // import non-existent module
+                testRunner.LoadModule(` /x/  ;import 'funfuzz_moduleScript3';`, 'samethread', {shouldFail:true});
+            }
+            catch(e){}
         }
     },
 ];
