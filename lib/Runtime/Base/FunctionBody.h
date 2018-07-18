@@ -1894,6 +1894,7 @@ namespace Js
 #if DBG
             void LockDownCounters() { counters.isLockedDown = true; };
             void UnlockCounters() { counters.isLockedDown = false; };
+            void SetIsClosing() { counters.isClosing = true; };
 #endif
 
             struct StatementMap
