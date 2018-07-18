@@ -403,18 +403,20 @@ namespace Js
         strictHeapArgumentsTypePath->Add<true /*isSetter*/>(BuiltInPropertyRecords::callee);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::length);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::_symbolIterator);
-        ObjectSlotAttributes *strictHeapArgumentsAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, strictHeapArgumentsTypePath->GetPathSize());
+        uint8 strictHeapArgumentsTypePathSize = strictHeapArgumentsTypePath->GetPathSize();
+        AnalysisAssert(strictHeapArgumentsTypePathSize >= 4);
+        ObjectSlotAttributes *strictHeapArgumentsAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, strictHeapArgumentsTypePathSize);
         strictHeapArgumentsAttributes[0] = (ObjectSlotAttributes)(ObjectSlotAttr_Writable | ObjectSlotAttr_Accessor);
         strictHeapArgumentsAttributes[1] = ObjectSlotAttr_Setter;
         strictHeapArgumentsAttributes[2] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
         strictHeapArgumentsAttributes[3] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
-        for (int i = 4; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        for (int i = 4; i < strictHeapArgumentsTypePathSize; ++i)
         {
             strictHeapArgumentsAttributes[i] = ObjectSlotAttr_Default;
         }
-        PathTypeSetterSlotIndex * strictHeapArgumentsSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, strictHeapArgumentsTypePath->GetPathSize());
+        PathTypeSetterSlotIndex * strictHeapArgumentsSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, strictHeapArgumentsTypePathSize);
         strictHeapArgumentsSetters[0] = 1;
-        for (int i = 1; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        for (int i = 1; i < strictHeapArgumentsTypePathSize; ++i)
         {
             strictHeapArgumentsSetters[i] = NoSetterSlot;
         }
