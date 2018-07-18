@@ -387,17 +387,17 @@ public:
         switch (allocType)
         {
         case AllocationType::TraceAndFinalized:
-            mem = RecyclerAllocVisitedHostTracedAndFinalizedZero(recyclerInstance, size);
+            mem = RecyclerAllocVisitedHostTracedAndFinalized(recyclerInstance, size);
             break;
         case AllocationType::TraceOnly:
-            mem = RecyclerAllocVisitedHostTracedZero(recyclerInstance, size);
+            mem = RecyclerAllocVisitedHostTraced(recyclerInstance, size);
             break;
         case AllocationType::FinalizeLeaf:
-            mem = RecyclerAllocVisitedHostFinalizedZero(recyclerInstance, size);
+            mem = RecyclerAllocVisitedHostFinalized(recyclerInstance, size);
             break;
         default:
             Assert(allocType == AllocationType::Leaf);
-            mem = RecyclerAllocLeafZero(recyclerInstance, size);
+            mem = RecyclerAllocLeaf(recyclerInstance, size);
         }
 
         // Construct the v-table, allocType, and count information for the new object.

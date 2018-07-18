@@ -230,10 +230,11 @@ private:
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
 #ifdef RECYCLER_VISITED_HOST
-#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
-#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
-#define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
-#define RecyclerAllocLeafZero(recycler,size) recycler->AllocVisitedHost<LeafBit>(size)
+// We need to track these allocations. The RecyclerVisitedHost* object allocation APIs don't provide us with the type of the objects being allocated. Use the DummyVTableObject type used elsewhere to track the allocations.
+#define RecyclerAllocVisitedHostTracedAndFinalized(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
+#define RecyclerAllocVisitedHostFinalized(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
+#define RecyclerAllocVisitedHostTraced(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
+#define RecyclerAllocLeaf(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<LeafBit>(size)
 #endif
 
 #ifdef TRACE_OBJECT_LIFETIME
@@ -1348,7 +1349,7 @@ public:
     template <ObjectInfoBits infoBits>
     char * AllocVisitedHost(DECLSPEC_GUARD_OVERFLOW size_t size)
     {
-        return AllocZeroWithAttributes<infoBits, /* nothrow = */ true>(size);
+        return AllocWithAttributes<infoBits, /* nothrow = */ true>(size);
     }
 
     template<typename T>
