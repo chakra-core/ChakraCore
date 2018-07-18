@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#ifdef __clang__
+#if defined(__clang__) && !defined(_MSC_VER)
 #include <cxxabi.h>
 #endif
 
@@ -882,7 +882,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
     if (Recycler::DoProfileAllocTracker())
     {
         // need CheckMemoryLeak or KeepRecyclerTrackData flag to have the tracker data and show following detailed info
-#ifdef __clang__
+#if  defined(__clang__) && !defined(_MSC_VER)
         auto getDemangledName = [](const type_info* typeinfo) ->const char*
         {
             int status;

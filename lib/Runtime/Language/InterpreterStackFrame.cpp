@@ -3692,15 +3692,19 @@ namespace Js
         case AsmJsRetType::Uint8x16:
 #if _WIN32 //WASM.SIMD ToDo: Enable thunk for Xplat
 #if _M_X64
+#if !defined(__clang__)
             X86SIMDValue simdVal;
             simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
             m_localSimdSlots[returnReg] = X86SIMDValue::ToSIMDValue(simdVal);
 #else
+            AssertOrFailFastMsg(false, "This particular path causes linking issues in clang on windows; potential difference in name mangling?");
+#endif // !defined(__clang__)
+#else
             m_localSimdSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
-#endif
-#endif
+#endif // _M_X64
+#endif // _WIN32
             break;
-#endif
+#endif // ENABLE_WASM_SIMD
         default:
             Assume(UNREACHED);
         }
