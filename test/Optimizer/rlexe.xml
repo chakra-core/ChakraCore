@@ -1562,4 +1562,10 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1  -loopinterpretcount:1 -oopjit- -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>pathdepbug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:aggressiveinttypespec</compile-flags>
+    </default>
+  </test>
 </regress-exe>

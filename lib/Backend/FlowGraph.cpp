@@ -4854,13 +4854,15 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (branchTarget != this->GetLastInstr()->GetNextRealInstrOrLabel())
             {
                 IR::Instr* lastInstr = this->GetLastInstr();
+                // We add an empty ByteCodeUses with correct bytecodeoffset, for correct info on a post-op bailout of the previous instr
+                IR::Instr* emptyByteCodeUse = IR::ByteCodeUsesInstr::New(lastInstr->m_func, lastInstr->GetByteCodeOffset());
+                lastInstr->InsertAfter(emptyByteCodeUse);
                 IR::BranchInstr * newBranch = IR::BranchInstr::New(Js::OpCode::Br, branchTarget, branchTarget->m_func);
-                newBranch->SetByteCodeOffset(lastInstr);
                 if (lastInstr->IsBranchInstr())
                 {
                     globOpt->ConvertToByteCodeUses(lastInstr);
                 }
-                this->GetLastInstr()->InsertAfter(newBranch);
+                emptyByteCodeUse->InsertAfter(newBranch);
                 globOpt->func->m_fg->AddEdge(this, branchTarget->GetBasicBlock());
                 this->IncrementDataUseCount();
             }
