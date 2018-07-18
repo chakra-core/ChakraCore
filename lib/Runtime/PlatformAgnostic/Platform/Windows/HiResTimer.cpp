@@ -22,7 +22,7 @@ namespace DateTime
         double currentRandomWindowScaled = 0.0;
         ULONGLONG currentQuantizedQpc = 0;
     public:
-        JitterManager::JitterManager()
+        JitterManager()
         {
             // NOTE: We could cache the (1000/frequency) operation, as a double,
             // that is used later to convert from seconds to milliseconds so that
@@ -68,7 +68,7 @@ namespace DateTime
             quantizationToSelectedScaleFactor = max(quantizationToSelectedScaleFactor, 1.0);
         }
 
-        uint64 JitterManager::QuantizedQPC(uint64 qpc)
+        uint64 QuantizedQPC(uint64 qpc)
         {
             // Due to further analysis of some attacks, we're jittering on a more granular
             // frequency of as much as a full millisecond.

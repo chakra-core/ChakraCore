@@ -34,7 +34,7 @@ namespace Js
         EvalMapStringInternal& operator=(void * str)
         {
             Assert(str == null);
-            memset(this, 0, sizeof(EvalMapString));
+            memset(this, 0, sizeof(*this));
             return (*this);
         }
 

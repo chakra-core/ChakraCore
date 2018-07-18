@@ -32,30 +32,6 @@ bool Parser::IsES6DestructuringEnabled() const
     return m_scriptContext->GetConfig()->IsES6DestructuringEnabled();
 }
 
-struct StmtNest
-{
-    union
-    {
-        struct
-        {
-            ParseNodeStmt * pnodeStmt; // This statement node.
-        };
-        struct
-        {
-            bool isDeferred : 1;
-            OpCode op;              // This statement operation.
-        };
-    };
-    LabelId* pLabelId;              // Labels for this statement.
-    StmtNest *pstmtOuter;           // Enclosing statement.
-
-    OpCode GetNop() const
-    {
-        AnalysisAssert(isDeferred || pnodeStmt != nullptr);
-        return isDeferred ? op : pnodeStmt->nop;
-    }
-};
-
 struct BlockInfoStack
 {
     StmtNest pstmt;
