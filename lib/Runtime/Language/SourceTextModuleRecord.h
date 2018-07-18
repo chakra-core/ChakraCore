@@ -159,6 +159,7 @@ namespace Js
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
+        void ReleaseParserResources();
         void ImportModuleListsFromParser();
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
         void NotifyParentsAsNeeded();
