@@ -76,18 +76,18 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr){
+        if (this->ptr != nullptr){
             for (size_t i = 0; i < this->m_elementCount; i++)
             {
-                if (ptr[i] != nullptr)
+                if (this->ptr[i] != nullptr)
                 {
-                    ptr[i]->CleanUp();
-                    ptr[i] = nullptr;
+                    this->ptr[i]->CleanUp();
+                    this->ptr[i] = nullptr;
                 }
             }
 
-            HeapDeleteArray(m_elementCount, ptr);
-            ptr = nullptr;
+            HeapDeleteArray(this->m_elementCount, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
