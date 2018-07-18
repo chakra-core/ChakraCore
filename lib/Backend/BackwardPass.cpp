@@ -497,6 +497,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     {
         bool keepUpwardExposed = (this->tag == Js::BackwardPhase);
         JitArenaAllocator *upwardExposedArena = nullptr;
+
         if(!IsCollectionPass())
         {
             upwardExposedArena = keepUpwardExposed ? this->globOpt->alloc : this->tempAlloc;
@@ -2107,6 +2108,7 @@ BackwardPass::ProcessByteCodeUsesInstr(IR::Instr * instr)
                 {
                     StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
                     Assert(!stackSym->IsTypeSpec());
+
                     // We can only track first level function stack syms right now
                     if (stackSym->GetByteCodeFunc() == this->func)
                     {
@@ -2127,6 +2129,18 @@ BackwardPass::ProcessByteCodeUsesInstr(IR::Instr * instr)
             if (IsCollectionPass())
             {
                 return true;
+            }
+
+            if (!this->currentBlock->isDead && byteCodeUpwardExposedUsed)
+            {
+                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUpwardExposedUsed)
+                {
+                    StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
+                    Assert(!stackSym->IsTypeSpec());
+
+                    this->currentBlock->upwardExposedFields->Set(stackSym->m_id);
+                }
+                NEXT_BITSET_IN_SPARSEBV;
             }
 
             PropertySym *propertySymUse = byteCodeUsesInstr->propertySymUse;
