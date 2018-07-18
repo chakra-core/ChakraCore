@@ -1466,6 +1466,18 @@ public:
         }
     }
 
+    bool IsOldEntryPointInfo(Js::ProxyEntryPointInfo* entryPointInfo)
+    {
+        Js::FunctionEntryPointInfo* current = this->recyclableData->oldEntryPointInfo;
+        while (current != nullptr)
+        {
+            if (current == entryPointInfo)
+                return true;
+            current = current->nextEntryPoint;
+        }
+        return false;
+    }
+
     static bool IsOnStack(void const *ptr);
     _NOINLINE bool IsStackAvailable(size_t size, bool* isInterrupt = nullptr);
     _NOINLINE bool IsStackAvailableNoThrow(size_t size = Js::Constants::MinStackDefault);

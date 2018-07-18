@@ -27,6 +27,7 @@ public:
     JITTimeFunctionBody * GetBody() const;
     bool IsPolymorphicCallSite(Js::ProfileId profiledCallSiteId) const;
     intptr_t GetFunctionInfoAddr() const;
+    intptr_t GetEntryPointInfoAddr() const;
     intptr_t GetWeakFuncRef() const;
     uint GetLocalFunctionId() const;
     uint GetSourceContextId() const;

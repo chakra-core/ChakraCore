@@ -1288,6 +1288,7 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
     if (globalBailOutRecordDataTable == nullptr)
     {
         globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(allocator, GlobalBailOutRecordDataTable);
+        globalBailOutRecordDataTable->entryPointInfo = (Js::EntryPointInfo*)func->GetWorkItem()->GetJITTimeInfo()->GetEntryPointInfoAddr();
         globalBailOutRecordDataTable->length = globalBailOutRecordDataTable->size = 0;
         globalBailOutRecordDataTable->isInlinedFunction = !isTopFunc;
         globalBailOutRecordDataTable->hasNonSimpleParams = func->GetHasNonSimpleParams();
@@ -2603,14 +2604,14 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 // Avoid the temp reg that we have loaded in this basic block
                 regsBvNoTemps.Minus(this->tempRegs);
             }
-            
+
             BitVector regsBvNoTempsNoCallee = regsBvNoTemps;
             // Try to find a non-callee saved reg so that we don't have to save it in prolog
             regsBvNoTempsNoCallee.Minus(this->calleeSavedRegs);
 
             // Allocate a non-callee saved reg from the other end of the bit vector so that it can keep live for longer
             regIndex = regsBvNoTempsNoCallee.GetPrevBit();
-            
+
             if (regIndex == BVInvalidIndex)
             {
                 // If we don't have any non-callee saved reg then get the first available callee saved reg so that prolog can store adjacent registers
@@ -3730,7 +3731,7 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                     }
                     else
                     {
-                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...  
+                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...
                         // Deep copy in this case.
                         branchLabel->m_loweredBasicBlock = this->currentBlock->Clone(this->tempAlloc);
                     }
@@ -4730,7 +4731,7 @@ IR::Instr * LinearScan::GetIncInsertionPoint(IR::Instr *instr)
 }
 
 void LinearScan::DynamicStatsInstrument()
-{    
+{
     {
         IR::Instr *firstInstr = this->func->m_headInstr;
     IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetCallCountStatsAddr(), TyUint32, this->func);

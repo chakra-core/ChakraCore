@@ -202,6 +202,29 @@ using namespace Js;
         return type;
     }
 
+    void ScriptFunction::PrepareForConversionToNonPathType()
+    {
+        // We have a path type handler that is currently responsible for holding some number of entry point infos alive.
+        // The last one will be copied on to the new dictionary type handler, but if any previous instances in the path
+        // are holding different entry point infos, those need to be copied to somewhere safe.
+        // The number of entry points is likely low compared to length of path, so iterate those instead.
+
+        ProxyEntryPointInfo* entryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+
+        this->GetFunctionProxy()->MapFunctionObjectTypes([&](ScriptFunctionType* functionType)
+        {
+            CopyEntryPointInfoToThreadContextIfNecessary(functionType->GetEntryPointInfo(), entryPointInfo);
+        });
+    }
+
+    void ScriptFunction::ReplaceTypeWithPredecessorType(DynamicType * previousType)
+    {
+        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+        __super::ReplaceTypeWithPredecessorType(previousType);
+        ProxyEntryPointInfo* newEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
+        CopyEntryPointInfoToThreadContextIfNecessary(oldEntryPointInfo, newEntryPointInfo);
+    }
+
     bool ScriptFunction::HasFunctionBody()
     {
         // for asmjs we want to first check if the FunctionObject has a function body. Check that the function is not deferred
@@ -219,6 +242,20 @@ using namespace Js;
 
         bool isAsmJS = HasFunctionBody() && this->GetFunctionBody()->GetIsAsmjsMode();
         this->GetScriptFunctionType()->ChangeEntryPoint(entryPointInfo, entryPoint, isAsmJS);
+    }
+
+    void ScriptFunction::CopyEntryPointInfoToThreadContextIfNecessary(ProxyEntryPointInfo* oldEntryPointInfo, ProxyEntryPointInfo* newEntryPointInfo)
+    {
+        if (oldEntryPointInfo
+            && oldEntryPointInfo != newEntryPointInfo
+            && oldEntryPointInfo->SupportsExpiration())
+        {
+            // The old entry point could be executing so we need root it to make sure
+            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
+            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+
+            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
+        }
     }
 
     FunctionProxy * ScriptFunction::GetFunctionProxy() const
@@ -586,7 +623,7 @@ using namespace Js;
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapScriptFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapScriptFunctionObject>(objData, ssfi);
     }
-    
+
     // TODO:  Fixup function definition - something funky w/ header file includes - cycles?
     void ScriptFunction::ExtractSnapObjectDataIntoSnapScriptFunctionInfo(/*TTD::NSSnapObjects::SnapScriptFunctionInfo* */ void* snapScriptFunctionInfo, TTD::SlabAllocator& alloc)
     {
