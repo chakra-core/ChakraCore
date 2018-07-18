@@ -322,6 +322,8 @@ private:
     }
 };
 
+class AutoReentrancyHandler;
+
 class ThreadContext sealed :
     public DefaultRecyclerCollectionWrapper,
     public JsUtil::DoublyLinkedListElement<ThreadContext>,
