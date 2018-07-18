@@ -709,7 +709,7 @@ private:
     void                    DetermineLoopCount(Loop *const loop);
     void                    GenerateLoopCount(Loop *const loop, LoopCount *const loopCount);
     void                    GenerateLoopCountPlusOne(Loop *const loop, LoopCount *const loopCount);
-    void                    GenerateSecondaryInductionVariableBound(Loop *const loop, StackSym *const inductionVariableSym, const LoopCount *const loopCount, const int maxMagnitudeChange, StackSym *const boundSym);
+    void                    GenerateSecondaryInductionVariableBound(Loop *const loop, StackSym *const inductionVariableSym, LoopCount *const loopCount, const int maxMagnitudeChange, const bool needsMagnitudeAdjustment, StackSym *const boundSym);
 
 private:
     void                    DetermineArrayBoundCheckHoistability(bool needLowerBoundCheck, bool needUpperBoundCheck, ArrayLowerBoundCheckHoistInfo &lowerHoistInfo, ArrayUpperBoundCheckHoistInfo &upperHoistInfo, const bool isJsArray, StackSym *const indexSym, Value *const indexValue, const IntConstantBounds &indexConstantBounds, StackSym *const headSegmentLengthSym, Value *const headSegmentLengthValue, const IntConstantBounds &headSegmentLengthConstantBounds, Loop *const headSegmentLengthInvariantLoop, bool &failedToUpdateCompatibleLowerBoundCheck, bool &failedToUpdateCompatibleUpperBoundCheck);
