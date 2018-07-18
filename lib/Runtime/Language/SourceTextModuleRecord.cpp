@@ -251,6 +251,14 @@ namespace Js
         SetLocalExportRecordList(moduleParseNode->localExportEntries);
     }
 
+    void SourceTextModuleRecord::ReleaseParserResources()
+    {
+        if (this->parser != nullptr)
+        {
+            this->parser->ReleaseTemporaryGuestArena();
+        }
+    }
+
     HRESULT SourceTextModuleRecord::PostParseProcess()
     {
         HRESULT hr = NOERROR;
@@ -262,6 +270,9 @@ namespace Js
         {
             hr = PrepareForModuleDeclarationInitialization();
         }
+
+        this->ReleaseParserResources();
+
         return hr;
     }
 
@@ -305,6 +316,8 @@ namespace Js
                 }
             }
 
+            this->ReleaseParserResources();
+
             if (FAILED(hr))
             {
                 // We cannot just use the buffer in the specifier string - need to make a copy here.
@@ -319,6 +332,8 @@ namespace Js
                 return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext, this);
             }
         }
+
+        this->ReleaseParserResources();
 
         return this->promise;
     }
@@ -914,11 +929,6 @@ namespace Js
             {
                 childModuleRecord->GenerateRootFunction();
             });
-        }
-
-        if (this->parser != nullptr)
-        {
-            this->parser->ReleaseTemporaryGuestArena();
         }
     }
 
