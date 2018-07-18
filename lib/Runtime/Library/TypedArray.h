@@ -217,6 +217,34 @@ namespace Js
     };
 
     template <typename TypeName, bool clamped = false, bool virtualAllocated = false>
+    class TypedArray;
+
+    // These are referenced in the TypedArray implementation, so we need to forward-typedef these.
+
+    typedef TypedArray<int8>                Int8Array;
+    typedef TypedArray<uint8,false>         Uint8Array;
+    typedef TypedArray<uint8,true>          Uint8ClampedArray;
+    typedef TypedArray<int16>               Int16Array;
+    typedef TypedArray<uint16>              Uint16Array;
+    typedef TypedArray<int32>               Int32Array;
+    typedef TypedArray<uint32>              Uint32Array;
+    typedef TypedArray<float>               Float32Array;
+    typedef TypedArray<double>              Float64Array;
+    typedef TypedArray<int64>               Int64Array;
+    typedef TypedArray<uint64>              Uint64Array;
+    typedef TypedArray<bool>                BoolArray;
+    typedef TypedArray<int8, false, true>   Int8VirtualArray;
+    typedef TypedArray<uint8, false, true>  Uint8VirtualArray;
+    typedef TypedArray<uint8, true, true>   Uint8ClampedVirtualArray;
+    typedef TypedArray<int16, false, true>  Int16VirtualArray;
+    typedef TypedArray<uint16, false, true> Uint16VirtualArray;
+    typedef TypedArray<int32, false, true>  Int32VirtualArray;
+    typedef TypedArray<uint32, false, true> Uint32VirtualArray;
+    typedef TypedArray<float, false, true>  Float32VirtualArray;
+    typedef TypedArray<double, false, true> Float64VirtualArray;
+
+
+    template <typename TypeName, bool clamped /*= false*/, bool virtualAllocated /*= false*/>
     class TypedArray : public TypedArrayBase
     {
     protected:
@@ -625,34 +653,34 @@ namespace Js
 
 #if defined(__clang__)
 // hack for clang message: "...add an explicit instantiation declaration to .."
-#define __EXPLICIT_INSTANTINATE_TA(x) x;\
+#define __EXPLICIT_INSTANTINATE_TA(x) \
             template<> FunctionInfo Js::x::EntryInfo::NewInstance;\
             template<> FunctionInfo Js::x::EntryInfo::Set
 #else // MSVC
-#define __EXPLICIT_INSTANTINATE_TA(x) x
+#define __EXPLICIT_INSTANTINATE_TA(x)
 #endif
 
-    typedef TypedArray<int8>        __EXPLICIT_INSTANTINATE_TA(Int8Array);
-    typedef TypedArray<uint8,false> __EXPLICIT_INSTANTINATE_TA(Uint8Array);
-    typedef TypedArray<uint8,true>  __EXPLICIT_INSTANTINATE_TA(Uint8ClampedArray);
-    typedef TypedArray<int16>       __EXPLICIT_INSTANTINATE_TA(Int16Array);
-    typedef TypedArray<uint16>      __EXPLICIT_INSTANTINATE_TA(Uint16Array);
-    typedef TypedArray<int32>       __EXPLICIT_INSTANTINATE_TA(Int32Array);
-    typedef TypedArray<uint32>      __EXPLICIT_INSTANTINATE_TA(Uint32Array);
-    typedef TypedArray<float>       __EXPLICIT_INSTANTINATE_TA(Float32Array);
-    typedef TypedArray<double>      __EXPLICIT_INSTANTINATE_TA(Float64Array);
-    typedef TypedArray<int64>       __EXPLICIT_INSTANTINATE_TA(Int64Array);
-    typedef TypedArray<uint64>      __EXPLICIT_INSTANTINATE_TA(Uint64Array);
-    typedef TypedArray<bool>        __EXPLICIT_INSTANTINATE_TA(BoolArray);
-    typedef TypedArray<int8, false, true>   __EXPLICIT_INSTANTINATE_TA(Int8VirtualArray);
-    typedef TypedArray<uint8, false, true>  __EXPLICIT_INSTANTINATE_TA(Uint8VirtualArray);
-    typedef TypedArray<uint8, true, true>   __EXPLICIT_INSTANTINATE_TA(Uint8ClampedVirtualArray);
-    typedef TypedArray<int16, false, true>  __EXPLICIT_INSTANTINATE_TA(Int16VirtualArray);
-    typedef TypedArray<uint16, false, true> __EXPLICIT_INSTANTINATE_TA(Uint16VirtualArray);
-    typedef TypedArray<int32, false, true>  __EXPLICIT_INSTANTINATE_TA(Int32VirtualArray);
-    typedef TypedArray<uint32, false, true> __EXPLICIT_INSTANTINATE_TA(Uint32VirtualArray);
-    typedef TypedArray<float, false, true>  __EXPLICIT_INSTANTINATE_TA(Float32VirtualArray);
-    typedef TypedArray<double, false, true> __EXPLICIT_INSTANTINATE_TA(Float64VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Int8Array);
+    __EXPLICIT_INSTANTINATE_TA(Uint8Array);
+    __EXPLICIT_INSTANTINATE_TA(Uint8ClampedArray);
+    __EXPLICIT_INSTANTINATE_TA(Int16Array);
+    __EXPLICIT_INSTANTINATE_TA(Uint16Array);
+    __EXPLICIT_INSTANTINATE_TA(Int32Array);
+    __EXPLICIT_INSTANTINATE_TA(Uint32Array);
+    __EXPLICIT_INSTANTINATE_TA(Float32Array);
+    __EXPLICIT_INSTANTINATE_TA(Float64Array);
+    __EXPLICIT_INSTANTINATE_TA(Int64Array);
+    __EXPLICIT_INSTANTINATE_TA(Uint64Array);
+    __EXPLICIT_INSTANTINATE_TA(BoolArray);
+    __EXPLICIT_INSTANTINATE_TA(Int8VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Uint8VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Uint8ClampedVirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Int16VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Uint16VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Int32VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Uint32VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Float32VirtualArray);
+    __EXPLICIT_INSTANTINATE_TA(Float64VirtualArray);
 
 #undef __EXPLICIT_INSTANTINATE_TA
 }
