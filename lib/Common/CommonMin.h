@@ -53,8 +53,8 @@ using namespace Memory;
 #include "DataStructures/SList.h"
 #include "DataStructures/DList.h"
 #include "DataStructures/KeyValuePair.h"
-#include "DataStructures/BaseDictionary.h"
 #include "DataStructures/DictionaryEntry.h"
+#include "DataStructures/BaseDictionary.h"
 #include "DataStructures/ClusterList.h"
 
 // === Configurations Header ===

@@ -61,10 +61,10 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            DeleteArray<TAllocator>(m_allocator, m_elementCount, ptr);
-            ptr = nullptr;
+            DeleteArray<TAllocator>(m_allocator, this->m_elementCount, this->ptr);
+            this->ptr = nullptr;
         }
     }
 };
@@ -98,14 +98,14 @@ public:
 private:
     void Clear()
     {
-        if (ptr != nullptr)
+        if (this->ptr != nullptr)
         {
-            for (size_t i = 0; i < m_elementCount; i++)
+            for (size_t i = 0; i < this->m_elementCount; i++)
             {
-                if (ptr[i] != nullptr)
+                if (this->ptr[i] != nullptr)
                 {
-                    DeleteObject<TAllocator>(m_allocator, ptr[i]);
-                    ptr[i] = nullptr;
+                    DeleteObject<TAllocator>(this->m_allocator, this->ptr[i]);
+                    this->ptr[i] = nullptr;
                 }
             }
         }

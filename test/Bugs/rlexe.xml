@@ -511,4 +511,10 @@
       <files>OS_17745531.js</files>
     </default>
   </test>   
+  <test>
+    <default>
+      <files>SuperUndoDeferIssue.js</files>
+      <compile-flags>-forceundodefer</compile-flags>
+    </default>
+  </test>
 </regress-exe>
