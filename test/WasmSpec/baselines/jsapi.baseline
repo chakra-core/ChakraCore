@@ -1,5 +1,5 @@
 Harness Status: OK
-Found 104 tests: Pass = 87 Fail = 17
+Found 104 tests: Pass = 90 Fail = 14
 Pass 'WebAssembly' data property on global object  
 Pass 'WebAssembly' object  
 Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
@@ -23,7 +23,7 @@ Pass 'WebAssembly.Instance.prototype' object
 Pass 'WebAssembly.Instance' instance objects  
 Pass 'WebAssembly.Instance.prototype.exports' accessor property  
 Pass exports object  
-Fail Exported WebAssembly functions  assert_equals: expected 0 but got -1
+Pass Exported WebAssembly functions  
 Pass 'WebAssembly.Memory' data property  
 Pass 'WebAssembly.Memory' constructor function  
 Pass 'WebAssembly.Memory.prototype' data property  
@@ -101,6 +101,6 @@ Pass unexpected failure in assertInstantiateSuccess
 Pass unexpected failure in assertInstantiateSuccess  
 Pass unexpected failure in assertInstantiateSuccess  
 Pass unexpected failure in assertInstantiateSuccess  
-Fail Exported values have cached JS objects  assert_equals: expected "0" but got ""
-Fail Tables export cached  assert_equals: expected "0" but got ""
+Pass Exported values have cached JS objects  
+Pass Tables export cached  
 Pass WebAssembly integers are converted to JavaScript as if by ToInt32  

@@ -357,16 +357,7 @@ namespace Js
 #ifdef ENABLE_WASM
         if (WasmScriptFunction::Is(function))
         {
-            AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
-            Assert(asmInfo);
-            if (asmInfo->IsWasmDeferredParse())
-            {
-                entryPoint = WasmLibrary::WasmDeferredParseExternalThunk;
-            }
-            else
-            {
-                entryPoint = Js::AsmJsExternalEntryPoint;
-            }
+            entryPoint = Js::AsmJsExternalEntryPoint;
         } else
 #endif
         if (funcInfo->HasBody())
@@ -414,17 +405,7 @@ namespace Js
             if (funcInfo->GetFunctionProxy()->IsFunctionBody() &&
                 funcInfo->GetFunctionBody()->GetIsAsmJsFunction())
             {
-#ifdef ENABLE_WASM
-                AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
-                if (asmInfo && asmInfo->IsWasmDeferredParse())
-                {
-                    entryPoint = WasmLibrary::WasmDeferredParseExternalThunk;
-                }
-                else
-#endif
-                {
-                    entryPoint = Js::AsmJsExternalEntryPoint;
-                }
+                entryPoint = Js::AsmJsExternalEntryPoint;
             }
             else
 #endif

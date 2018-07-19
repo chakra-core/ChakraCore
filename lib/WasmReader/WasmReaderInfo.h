@@ -17,6 +17,5 @@ struct WasmReaderInfo
 {
     Field(WasmFunctionInfo*) m_funcInfo;
     Field(Js::WebAssemblyModule*) m_module;
-    Field(Js::Var) m_bufferSrc;
 };
 }

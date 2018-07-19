@@ -11,6 +11,7 @@
 #include "EmptyWasmByteCodeWriter.h"
 #include "ByteCode/ByteCodeDumper.h"
 #include "AsmJsByteCodeDumper.h"
+#include "Language/InterpreterStackFrame.h"
 
 #if DBG_DUMP
 #define DebugPrintOp(op) if (DO_WASM_TRACE_BYTECODE) { PrintOpBegin(op); }
@@ -428,6 +429,8 @@ void WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     WasmReaderInfo* readerInfo = RecyclerNew(m_recycler, WasmReaderInfo);
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
+
+    Js::WasmLibrary::ResetFunctionBodyDefaultEntryPoint(body);
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);

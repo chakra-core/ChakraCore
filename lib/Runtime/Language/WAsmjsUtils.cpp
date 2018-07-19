@@ -6,6 +6,7 @@
 #include "RuntimeLanguagePch.h"
 
 #if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
+#include "InterpreterStackFrame.h"
 
 namespace WAsmJs
 {
