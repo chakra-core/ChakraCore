@@ -5771,23 +5771,74 @@ CHAKRA_API JsRunScriptWithParserState(
         buffer, parserState, sourceContext, url, false, true, result, sourceIndex);
 }
 
-CHAKRA_API JsSetRuntimeBeforeSweepCallback(_In_ JsRuntimeHandle runtime, _In_opt_ void *callbackState, _In_ JsBeforeSweepCallback beforeSweepCallback)
+CHAKRA_API JsSetRuntimeBeforeSweepCallback(_In_ JsRuntimeHandle runtimeHandle, _In_opt_ void *callbackState, _In_ JsBeforeSweepCallback beforeSweepCallback)
 {
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        VALIDATE_INCOMING_RUNTIME_HANDLE(runtime);
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
-        JsrtRuntime::FromHandle(runtime)->SetBeforeSweepCallback(beforeSweepCallback, callbackState);
+        JsrtRuntime::FromHandle(runtimeHandle)->SetBeforeSweepCallback(beforeSweepCallback, callbackState);
         return JsNoError;
     });
 }
 
-CHAKRA_API JsTraceExternalReference(_In_ JsRuntimeHandle runtime, _In_ JsValueRef value)
+CHAKRA_API JsTraceExternalReference(_In_ JsRuntimeHandle runtimeHandle, _In_ JsValueRef value)
 {
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        VALIDATE_INCOMING_RUNTIME_HANDLE(runtime);
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
 
-        Recycler * recycler = JsrtRuntime::FromHandle(runtime)->GetThreadContext()->GetRecycler();
+        ThreadContext * threadContext = JsrtRuntime::FromHandle(runtimeHandle)->GetThreadContext();
+        ThreadContextScope scope(threadContext);
+
+        if (!scope.IsValid())
+        {
+            return JsErrorWrongThread;
+        }
+
+        Recycler * recycler = threadContext->GetRecycler();
         recycler->TryExternalMarkNonInterior(value);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsAllocRawData(_In_ JsRuntimeHandle runtimeHandle, _In_ size_t sizeInBytes, _Out_ JsRef * buffer)
+{
+    PARAM_NOT_NULL(buffer);
+
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
+        
+        ThreadContext * threadContext = JsrtRuntime::FromHandle(runtimeHandle)->GetThreadContext();
+        ThreadContextScope scope(threadContext);
+
+        if (!scope.IsValid())
+        {
+            return JsErrorWrongThread;
+        }
+
+        Recycler * recycler = threadContext->GetRecycler();
+        *buffer = RecyclerNewArray(recycler, char, sizeInBytes);
+        return JsNoError;
+    });
+}
+
+
+CHAKRA_API JsAllocRawDataZeroed(_In_ JsRuntimeHandle runtimeHandle, _In_ size_t sizeInBytes, _Out_ JsRef * buffer)
+{
+    PARAM_NOT_NULL(buffer);
+
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
+
+        ThreadContext * threadContext = JsrtRuntime::FromHandle(runtimeHandle)->GetThreadContext();
+        ThreadContextScope scope(threadContext);
+
+        if (!scope.IsValid())
+        {
+            return JsErrorWrongThread;
+        }
+
+        Recycler * recycler = threadContext->GetRecycler();
+        *buffer = RecyclerNewArrayZ(recycler, char, sizeInBytes);
         return JsNoError;
     });
 }

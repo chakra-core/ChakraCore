@@ -133,4 +133,6 @@
     JsObjectDefineProperty
     JsSetRuntimeBeforeSweepCallback
     JsTraceExternalReference
+    JsAllocRawData
+    JsAllocRawDataZeroed
 #endif

@@ -1310,5 +1310,18 @@ CHAKRA_API
         _In_ JsValueRef value
     );
 
+CHAKRA_API
+    JsAllocRawData(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ size_t sizeInBytes,
+        _Out_ JsRef * buffer
+    );
+
+CHAKRA_API
+    JsAllocRawDataZeroed(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ size_t sizeInBytes,
+        _Out_ JsRef * buffer
+    );
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_
