@@ -1,4 +1,4 @@
-//-------------------------------------------------------------------------------------------------------
+﻿//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -1296,6 +1296,8 @@ case_2:
 
     Var JavascriptString::EntryLocaleCompare(RecyclableObject* function, CallInfo callInfo, ...)
     {
+        using namespace PlatformAgnostic;
+
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
         ARGUMENTS(args, callInfo);
@@ -1371,25 +1373,18 @@ case_2:
         const char16* pThatStr = pThat->GetString();
         int thatStrCount = pThat->GetLength();
 
-        // xplat-todo: doing a locale-insensitive compare here
-        // but need to move locale-specific string comparison to
-        // platform agnostic interface
-#ifdef ENABLE_GLOBALIZATION
-        LCID lcid = GetUserDefaultLCID();
-        int result = CompareStringW(lcid, NULL, pThisStr, thisStrCount, pThatStr, thatStrCount );
-        if (result == 0)
+        int result = UnicodeText::LogicalStringCompare(pThisStr, thisStrCount, pThatStr, thatStrCount);
+
+        // LogicalStringCompare will return -2 if CompareStringEx fails.
+        if (result == -2)
         {
             // TODO there is no spec on the error thrown here.
             // When the support for HR errors is implemented replace this with the same error reported by v5.8
             JavascriptError::ThrowRangeError(function->GetScriptContext(),
                 VBSERR_InternalError /* TODO-ERROR: _u("Failed compare operation")*/ );
         }
-        return JavascriptNumber::ToVar(result-2, scriptContext);
-#else // !ENABLE_GLOBALIZATION
-        // no ICU / or external support for localization. Use c-lib
-        const int result = wcscmp(pThisStr, pThatStr);
-        return JavascriptNumber::ToVar(result > 0 ? 1 : result == 0 ? 0 : -1, scriptContext);
-#endif
+
+        return JavascriptNumber::ToVar(result, scriptContext);
     }
 
 
