@@ -6425,7 +6425,11 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
         //         SLIST during concurrent sweep.
         //      2. We are not in a Partial GC.
         //      3. At-least one heap bucket exceeds the RecyclerHeuristic::AllocDuringConcurrentSweepHeapBlockThreshold.
-        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && !this->recyclerSweepManager->InPartialCollect();
+        bool inPartialCollect = false;
+#if ENABLE_PARTIAL_GC
+        inPartialCollect = this->recyclerSweepManager->InPartialCollect();
+#endif
+        this->allowAllocationsDuringConcurrentSweepForCollection = this->isInScript && !inPartialCollect;
 
         // Do the actual 2-pass check only if the first 2 checks pass.
         if (this->allowAllocationsDuringConcurrentSweepForCollection)
