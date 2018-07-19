@@ -164,6 +164,15 @@ namespace PlatformAgnostic
             return CharacterClassificationType::Invalid;
         }
 
+        int LogicalStringCompare(const char16* string1, int str1size, const char16* string2, int str2size)
+        {
+            // CompareStringEx called with these flags is equivalent to calling StrCmpLogicalW
+            // and we have the added advantage of not having to link with shlwapi.lib just for one function
+            int i = CompareStringEx(LOCALE_NAME_USER_DEFAULT, NORM_IGNORECASE | SORT_DIGITSASNUMBERS, string1, str1size, string2, str2size, NULL, NULL, 0);
+
+            return i - CSTR_EQUAL;
+        }
+
 // Everything below this has a preferred ICU implementation in Platform\Common\UnicodeText.ICU.cpp
 #ifndef HAS_ICU
         template <typename TRet, typename Fn>
@@ -425,15 +434,6 @@ namespace PlatformAgnostic
                 return false; // in debug builds, this is unreachable code
 #endif
             }, false);
-        }
-
-        int LogicalStringCompare(const char16* string1, const char16* string2)
-        {
-            // CompareStringW called with these flags is equivalent to calling StrCmpLogicalW
-            // and we have the added advantage of not having to link with shlwapi.lib just for one function
-            int i = CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE | SORT_DIGITSASNUMBERS, string1, -1, string2, -1);
-
-            return i - CSTR_EQUAL;
         }
 #endif // HAS_ICU
     };
