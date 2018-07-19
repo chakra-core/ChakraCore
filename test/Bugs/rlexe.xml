@@ -472,23 +472,23 @@
       <files>symcmpbug.js</files>
     </default>
   </test>
-  <test> 
-    <default> 
-      <files>bug_OS17417473.js</files> 
-      <compile-flags>-pageheap:2 -CollectGarbage -lic:4 -Sja:4 -Fja:6 -maxInterpretCount:2 -MinBailOutsBeforeRejit:2 -args summary -endargs</compile-flags> 
-    </default> 
+  <test>
+    <default>
+      <files>bug_OS17417473.js</files>
+      <compile-flags>-pageheap:2 -CollectGarbage -lic:4 -Sja:4 -Fja:6 -maxInterpretCount:2 -MinBailOutsBeforeRejit:2 -args summary -endargs</compile-flags>
+    </default>
   </test>
-  <test> 
-    <default> 
+  <test>
+    <default>
       <files>HomeObjInLoop.js</files> 
-      <compile-flags>-forceNative -forcejitloopbody -off:aggressiveinttypespec -off:ArrayCheckHoist</compile-flags> 
-    </default> 
-  </test> 
+      <compile-flags>-forceNative -forcejitloopbody -off:aggressiveinttypespec -off:ArrayCheckHoist</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>bug17785360.js</files>
     </default>
-  </test> 
+  </test>
   <test>
     <default>
       <files>bug_OS17530048.js</files>
@@ -505,5 +505,11 @@
     <default>
       <files>bug_OS17614914.js</files>
     </default>
-  </test>  
+  </test>
+  <test>
+    <default>
+      <files>bug_OS18260560.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
 </regress-exe>
