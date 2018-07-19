@@ -43,7 +43,12 @@ public:
             uint32 bucketIndex = ReduceKeyToIndex(key);
 
             byte i = buckets[bucketIndex];
-            if (i == NIL)
+
+            // if the bucket was empty (NIL), put a tagged value to indicate the end of the chain.
+            // NB: [OS:17745531] In extreme rare cases 127th pid to insert hashes into a a bucket still unused by the previous 126 values.
+            //     We cannot tag 127 since it would become NIL and we would lose the value. 
+            //     We can however chain 127 --> NIL, since it is the same as having two 127 in the bucket, which is ok.
+            if ((i == NIL) & (value != 127))
             {
                 // set the highest bit to mark the value as the last in the chain
                 buckets[bucketIndex] = value | 128;

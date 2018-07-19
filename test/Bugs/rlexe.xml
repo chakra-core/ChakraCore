@@ -505,7 +505,12 @@
     <default>
       <files>bug_OS17614914.js</files>
     </default>
-  </test>
+  </test> 
+  <test>
+    <default>
+      <files>OS_17745531.js</files>
+    </default>
+  </test>   
   <test>
     <default>
       <files>SuperUndoDeferIssue.js</files>
