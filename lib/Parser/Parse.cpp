@@ -96,8 +96,6 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_funcInArray(0),
     m_scopeCountNoAst(0),
 
-    m_parsingSuperRestrictionState(ParsingSuperRestrictionState_SuperDisallowed),
-
     m_funcParenExprDepth(0),
     m_deferEllipsisError(false),
     m_deferEllipsisErrorLoc(), // calls default initializer
@@ -329,11 +327,6 @@ HRESULT Parser::ParseSourceInternal(
 
     try
     {
-        if ((grfscr & fscrEvalCode) != 0)
-        {
-            this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperPropertyAllowed;
-        }
-
         if ((grfscr & fscrIsModuleCode) != 0)
         {
             // Module source flag should not be enabled unless module is enabled
@@ -961,6 +954,7 @@ ParseNodeProg * Parser::CreateProgNode(bool isModuleSource, ULONG lineNumber)
     pnodeProg->cbMin = this->GetScanner()->IecpMinTok();
     pnodeProg->lineNumber = lineNumber;
     pnodeProg->homeObjLocation = Js::Constants::NoRegister;
+    pnodeProg->superRestrictionState = SuperRestrictionState::Disallowed;
     return pnodeProg;
 }
 
@@ -3050,7 +3044,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             {
                 Assert((stub->fncFlags & kFunctionIsLambda) == kFunctionIsLambda);
 
-                pnode = ParseFncDeclCheckScope<true>(fFncLambda, /* resetParsingSuperRestrictionState*/ false);
+                pnode = ParseFncDeclCheckScope<true>(fFncLambda);
                 break;
             }
         }
@@ -3318,7 +3312,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         {
             flags |= fFncAsync;
         }
-        pnode = ParseFncDeclNoCheckScope<buildAST>(flags, pNameHint, false, true, fUnaryOrParen);
+        pnode = ParseFncDeclNoCheckScope<buildAST>(flags, SuperRestrictionState::Disallowed, pNameHint, false, true, fUnaryOrParen);
         if (isAsyncExpr)
         {
             pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -4286,10 +4280,8 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint)
         flags |= fFncOneArg;
     }
 
-    AutoParsingSuperRestrictionStateRestorer restorer(this);
-    this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-    ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(flags, *ppNameHint,
-        /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
+    ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(flags, SuperRestrictionState::PropertyAllowed, *ppNameHint,
+        /*needsPIDOnRCurlyScan*/ false);
 
     if (isComputedName)
     {
@@ -4610,10 +4602,8 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             // Rewind to the PID and parse a function expression.
             this->GetScanner()->SeekTo(atPid);
 
-            AutoParsingSuperRestrictionStateRestorer restorer(this);
-            this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-            ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), pFullNameHint,
-                /*needsPIDOnRCurlyScan*/ false, /*resetParsingSuperRestrictionState*/ false);
+            ParseNodeFnc * pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isAsyncMethod ? fFncAsync : fFncNoFlgs), SuperRestrictionState::PropertyAllowed, pFullNameHint,
+                /*needsPIDOnRCurlyScan*/ false);
 
             if (isAsyncMethod || isGenerator)
             {
@@ -4825,7 +4815,7 @@ BOOL Parser::IsDeferredFnc()
 }
 
 template<bool buildAST>
-ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperRestrictionState, bool fAllowIn)
+ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool fAllowIn)
 {
     ParseNodeBlock * pnodeFncBlockScope = nullptr;
     ParseNodePtr *ppnodeScopeSave = nullptr;
@@ -4853,7 +4843,7 @@ ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperR
         }
     }
 
-    ParseNodeFnc * pnodeFnc = ParseFncDeclInternal<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan */ false, resetParsingSuperRestrictionState, /* fUnaryOrParen */ false, noStmtContext, fAllowIn);
+    ParseNodeFnc * pnodeFnc = ParseFncDeclInternal<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan */ false, /* fUnaryOrParen */ false, noStmtContext, SuperRestrictionState::Disallowed, fAllowIn);
 
     if (pnodeFncBlockScope)
     {
@@ -4872,22 +4862,15 @@ ParseNode * Parser::ParseFncDeclCheckScope(ushort flags, bool resetParsingSuperR
 }
 
 template<bool buildAST>
-ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool fAllowIn)
+ParseNodeFnc * Parser::ParseFncDeclNoCheckScope(ushort flags, SuperRestrictionState::State superRestrictionState, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool fUnaryOrParen, bool fAllowIn)
 {
     Assert((flags & fFncDeclaration) == 0);
-    return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, resetParsingSuperRestrictionState, fUnaryOrParen, /* noStmtContext */ false, fAllowIn);
+    return ParseFncDeclInternal<buildAST>(flags, pNameHint, needsPIDOnRCurlyScan, fUnaryOrParen, /* noStmtContext */ false, superRestrictionState, fAllowIn);
 }
 
 template<bool buildAST>
-ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen, bool noStmtContext, bool fAllowIn)
+ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool fUnaryOrParen, bool noStmtContext, SuperRestrictionState::State superRestrictionState, bool fAllowIn)
 {
-    AutoParsingSuperRestrictionStateRestorer restorer(this);
-    if (resetParsingSuperRestrictionState)
-    {
-        //  ParseFncDecl will always reset m_parsingSuperRestrictionState to super disallowed unless explicitly disabled
-        this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperDisallowed;
-    }
-
     ParseNodeFnc * pnodeFnc = nullptr;
     ParseNodePtr *ppnodeVarSave = nullptr;
 
@@ -4923,6 +4906,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->nestedFuncEscapes = false;
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->functionId = (*m_nextFunctionId)++;
+    pnodeFnc->superRestrictionState = superRestrictionState;
 
 
     // Push new parser state with this new function node
@@ -6689,7 +6673,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 template<bool buildAST>
 ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
-    ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, nullptr, false, true, true);
+    ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, SuperRestrictionState::Disallowed, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
 
     return callNode;
@@ -7378,24 +7362,6 @@ LPCOLESTR Parser::ConstructFinalHintNode(IdentPtr pClassName, IdentPtr pMemberNa
     return pFinalName;
 }
 
-class AutoParsingSuperRestrictionStateRestorer
-{
-public:
-    AutoParsingSuperRestrictionStateRestorer(Parser* parser) : m_parser(parser)
-    {
-        AssertMsg(this->m_parser != nullptr, "This just should not happen");
-        this->m_originalParsingSuperRestrictionState = this->m_parser->m_parsingSuperRestrictionState;
-    }
-    ~AutoParsingSuperRestrictionStateRestorer()
-    {
-        AssertMsg(this->m_parser != nullptr, "This just should not happen");
-        this->m_parser->m_parsingSuperRestrictionState = m_originalParsingSuperRestrictionState;
-    }
-private:
-    Parser * m_parser;
-    int m_originalParsingSuperRestrictionState;
-};
-
 template<bool buildAST>
 ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uint32 *pHintLength, uint32 *pShortNameOffset)
 {
@@ -7604,12 +7570,11 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             }
 
             {
-                AutoParsingSuperRestrictionStateRestorer restorer(this);
-                this->m_parsingSuperRestrictionState = hasExtends ? ParsingSuperRestrictionState_SuperCallAndPropertyAllowed : ParsingSuperRestrictionState_SuperPropertyAllowed;
+                SuperRestrictionState::State state = hasExtends ? SuperRestrictionState::CallAndPropertyAllowed : SuperRestrictionState::PropertyAllowed;
 
                 // Add the class constructor flag and base class constructor flag if pnodeExtends is nullptr
                 fncDeclFlags |= fFncClassConstructor | (hasExtends ? kFunctionNone : fFncBaseClassConstructor);
-                pnodeConstructor = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, pConstructorName, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState = */false);
+                pnodeConstructor = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, state, pConstructorName, /* needsPIDOnRCurlyScan */ true);
             }
 
             if (pnodeConstructor->IsGenerator())
@@ -7671,11 +7636,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
 
                 ParseNodeFnc * pnodeFnc = nullptr;
                 {
-                    AutoParsingSuperRestrictionStateRestorer restorer(this);
-                    this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
                     pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags | (isGetter ? fFncNoArg : fFncOneArg),
-                        pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true,
-                        /* resetParsingSuperRestrictionState */false);
+                        SuperRestrictionState::PropertyAllowed, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true);
                 }
 
                 pnodeFnc->SetIsStaticMember(isStatic);
@@ -7703,14 +7665,11 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
 
                 ParseNodeFnc * pnodeFnc = nullptr;
                 {
-                    AutoParsingSuperRestrictionStateRestorer restorer(this);
-                    this->m_parsingSuperRestrictionState = ParsingSuperRestrictionState_SuperPropertyAllowed;
-
                     if (isAsyncMethod)
                     {
                         fncDeclFlags |= fFncAsync;
                     }
-                    pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true, /* resetParsingSuperRestrictionState */false);
+                    pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, SuperRestrictionState::PropertyAllowed, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true);
                     if (isAsyncMethod)
                     {
                         pnodeFnc->cbMin = iecpMin;
@@ -8823,7 +8782,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     this->GetScanner()->SeekTo(termStart);
                 }
             }
-            pnode = ParseFncDeclNoCheckScope<buildAST>(flags, nullptr, /* needsPIDOnRCurlyScan = */false, /* resetParsingSuperRestrictionState = */false, /* fUnaryOrParen = */ false, fAllowIn);
+            pnode = ParseFncDeclNoCheckScope<buildAST>(flags, SuperRestrictionState::Disallowed, nullptr, /* needsPIDOnRCurlyScan = */false, /* fUnaryOrParen = */ false, fAllowIn);
             if (isAsyncMethod)
             {
                 pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -11466,7 +11425,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
                 flags |= fFncLambda;
             }
 
-            ParseNode * pnodeFnc = ParseFncDeclCheckScope<true>(flags, /* resetParsingSuperRestrictionState*/ false);
+            ParseNode * pnodeFnc = ParseFncDeclCheckScope<true>(flags);
             pnodeProg->pnodeBody = nullptr;
             AddToNodeList(&pnodeProg->pnodeBody, &lastNodeRef, pnodeFnc);
 
@@ -12278,6 +12237,7 @@ template <bool buildAST>
 IdentPtr Parser::ParseSuper(bool fAllowCall)
 {
     ParseNodeFnc * currentNodeFunc = GetCurrentFunctionNode();
+    ParseNodeFnc * currentNonLambdaFunc = GetCurrentNonLambdaFunctionNode();
     IdentPtr superPid = nullptr;
 
     switch (m_token.tk)
@@ -12309,12 +12269,14 @@ IdentPtr Parser::ParseSuper(bool fAllowCall)
     {
         Error(ERRInvalidSuper); // new super() is not allowed
     }
-    else if (this->m_parsingSuperRestrictionState == ParsingSuperRestrictionState_SuperCallAndPropertyAllowed)
+    else if ((currentNodeFunc->IsConstructor() && currentNodeFunc->superRestrictionState == SuperRestrictionState::CallAndPropertyAllowed)
+                || (currentNonLambdaFunc != nullptr && currentNonLambdaFunc->superRestrictionState == SuperRestrictionState::CallAndPropertyAllowed))
     {
         // Any super access is good within a class constructor
     }
-    else if (this->m_parsingSuperRestrictionState == ParsingSuperRestrictionState_SuperPropertyAllowed)
+    else if ((this->m_grfscr & fscrEval) == fscrEval || currentNonLambdaFunc->superRestrictionState == SuperRestrictionState::PropertyAllowed)
     {
+        // Currently for eval cases during compile time we use propertyallowed and throw during runtime for error cases
         if (m_token.tk == tkLParen)
         {
             if ((this->m_grfscr & fscrEval) == fscrNil)

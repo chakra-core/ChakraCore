@@ -455,6 +455,14 @@ enum FncFlags : uint
 struct RestorePoint;
 struct DeferredFunctionStub;
 
+namespace SuperRestrictionState {
+    enum State {
+        Disallowed = 0,
+        CallAndPropertyAllowed = 1,
+        PropertyAllowed = 2
+    };
+}
+
 // function declaration
 class ParseNodeFnc : public ParseNode
 {
@@ -503,6 +511,8 @@ public:
     Js::RegSlot homeObjLocation;    // Stores the RegSlot from where the home object needs to be copied
 
     static const int32 MaxStackClosureAST = 800000;
+
+    SuperRestrictionState::State superRestrictionState;
 
     static bool CanBeRedeferred(FncFlags flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
 
