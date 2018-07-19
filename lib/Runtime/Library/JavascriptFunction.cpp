@@ -1204,14 +1204,13 @@ using namespace Js;
             mov ecx, argsSize;
             rep movs byte ptr[edi], byte ptr[esi];
 
+            mov  ecx, entryPoint
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
-            mov  ecx, entryPoint
             call[__guard_check_icall_fptr]
-            ; no need to restore ecx('call entryPoint' is a __cdecl call)
 #endif
             push function;
-            call entryPoint;
+            call ecx;
             mov retVals.low, eax;
             mov retVals.high, edx;
             movaps retVals.xmm, xmm0;
@@ -1297,16 +1296,15 @@ dbl_align:
         // call variable argument function provided in entryPoint
         __asm
         {
+            mov  ecx, entryPoint
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
-            mov  ecx, entryPoint
             call [__guard_check_icall_fptr]
-            ; no need to restore ecx ('call entryPoint' is a __cdecl call)
 #endif
 
             push callInfo
             push function
-            call entryPoint
+            call ecx
 
             // Restore ESP
             mov esp, savedEsp

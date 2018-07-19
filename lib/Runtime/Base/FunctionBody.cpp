@@ -3564,23 +3564,33 @@ namespace Js
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
 
+        FunctionBody* body = this->GetFunctionBody();
+        Unused(body); // in some configuration
+#ifdef ASMJS_PLAT
+        if (body->GetIsAsmJsFunction())
+        {
+#ifdef ENABLE_WASM
+            if (body->IsWasmFunction() && body->GetByteCodeCount() == 0)
+            {
+                // The only valid 2 entrypoints if the function hasn't been parsed
+                return directEntryPoint == AsmJsDefaultEntryThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback;
+            }
+#endif
+            // Entrypoints valid only for asm.js/wasm
+            if (directEntryPoint == AsmJsDefaultEntryThunk || IsAsmJsCodeGenThunk(directEntryPoint))
+            {
+                return true;
+            }
+        }
+#endif
         // Check the direct entry point to see if it is codegen thunk
         // if it is not, the background codegen thread has updated both original entry point and direct entry point
         // and they should still match, same as cases other then code gen
         return IsIntermediateCodeGenThunk(directEntryPoint) || originalEntryPoint == directEntryPoint
 #if ENABLE_PROFILE_INFO
-            || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
-            this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
-#ifdef ENABLE_WASM
-            || (GetFunctionBody()->IsWasmFunction() &&
-                (directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback))
+            || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk && body->IsNativeOriginalEntryPoint())
 #endif
-#ifdef ASMJS_PLAT
-            || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
-            || IsAsmJsCodeGenThunk(directEntryPoint)
-#endif
-#endif
-        ;
+            ;
     }
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     bool FunctionProxy::HasValidProfileEntryPoint() const
@@ -3695,6 +3705,8 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
     void FunctionBody::GenerateDynamicInterpreterThunk()
     {
+        AssertOrFailFastMsg(!m_isWasmFunction || GetByteCodeCount() > 0, "The wasm function should have been parsed before generating the dynamic interpreter thunk");
+
         if (this->m_dynamicInterpreterThunk == nullptr)
         {
             // NOTE: Etw rundown thread may be reading this->dynamicInterpreterThunk concurrently. We don't need to synchronize
@@ -3746,6 +3758,7 @@ namespace Js
         this->EnsureDynamicProfileInfo();
 
         Assert(HasValidEntryPoint());
+        AssertMsg(!m_isWasmFunction || GetByteCodeCount() > 0, "Wasm function should be parsed by this point");
         if (InterpreterStackFrame::IsDelayDynamicInterpreterThunk(this->GetEntryPoint(entryPointInfo)))
         {
             // We are not doing code gen on this function, just change the entry point directly

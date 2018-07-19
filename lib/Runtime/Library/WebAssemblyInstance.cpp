@@ -191,31 +191,20 @@ void WebAssemblyInstance::CreateWasmFunctions(WebAssemblyModule * wasmModule, Sc
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         funcObj->SetEnvironment(frameDisplay);
 
-        // Todo:: need to fix issue #2452 before we can do this,
-        // otherwise we'll change the type of the functions and cause multiple instance to not share jitted code
-        //Wasm::WasmSignature* sig = wasmFuncInfo->GetSignature();
-        //funcObj->SetPropertyWithAttributes(PropertyIds::length, JavascriptNumber::ToVar(sig->GetParamCount(), ctx), PropertyNone, nullptr);
-        //funcObj->SetPropertyWithAttributes(PropertyIds::name, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, ctx), ctx), PropertyNone, nullptr);
+        Wasm::WasmSignature* sig = wasmFuncInfo->GetSignature();
+        funcObj->SetPropertyWithAttributes(PropertyIds::length, JavascriptNumber::ToVar(sig->GetParamCount(), ctx), PropertyNone, nullptr);
+        funcObj->SetPropertyWithAttributes(PropertyIds::name, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, ctx), ctx), PropertyNone, nullptr);
 
         env->SetWasmFunction(i, funcObj);
 
-        if (PHASE_ENABLED(WasmDeferredPhase, body))
+        FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+        AssertOrFailFast(entrypointInfo->GetIsAsmJSFunction());
+        AssertOrFailFast(!funcObj->IsCrossSiteObject());
+        funcObj->SetEntryPoint(Js::AsmJsExternalEntryPoint);
+        entrypointInfo->jsMethod = funcObj->GetFunctionInfo()->GetOriginalEntryPoint();
+        if (!PHASE_ENABLED(WasmDeferredPhase, body))
         {
-            // if we still have WasmReaderInfo we haven't yet parsed
-            if (body->GetAsmJsFunctionInfo()->GetWasmReaderInfo())
-            {
-                WasmLibrary::SetWasmEntryPointToInterpreter(funcObj, true);
-            }
-        }
-        else
-        {
-            AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
-            if (info->GetWasmReaderInfo())
-            {
-                WasmLibrary::SetWasmEntryPointToInterpreter(funcObj, false);
-                WAsmJs::JitFunctionIfReady(funcObj);
-                info->SetWasmReaderInfo(nullptr);
-            }
+            WAsmJs::JitFunctionIfReady(funcObj);
         }
     }
 }

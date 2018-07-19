@@ -1592,30 +1592,65 @@ namespace Js
 #endif
 #endif
 
+
 #if DYNAMIC_INTERPRETER_THUNK
 #ifdef _M_IX86
+    __declspec(naked)
+        Var InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        __asm
+        {
+            push ebp;
+            mov ebp, esp;
+            push[esp + 8];    // push function object
+            call WasmLibrary::EnsureWasmEntrypoint;
+            test eax, eax;
+            jne skipThunk;
+
+            push[esp + 8];    // push function object
+            call InterpreterStackFrame::EnsureDynamicInterpreterThunk;
+skipThunk:
+#ifdef _CONTROL_FLOW_GUARD
+            // verify that the call target is valid
+            mov  ecx, eax;
+            call[__guard_check_icall_fptr];
+            mov  eax, ecx;
+#endif
+
+            pop ebp;
+
+            jmp eax;
+        }
+    }
+
     __declspec(naked)
         Var InterpreterStackFrame::DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         __asm
         {
-            push ebp
-            mov ebp, esp
-            push[esp + 8]     // push function object
+            push ebp;
+            mov ebp, esp;
+            push[esp + 8];    // push function object
             call InterpreterStackFrame::EnsureDynamicInterpreterThunk;
 
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
-            push eax
-                mov  ecx, eax
-                call[__guard_check_icall_fptr]
-                pop eax
+            mov  ecx, eax;
+            call[__guard_check_icall_fptr];
+            mov  eax, ecx;
 #endif
 
-                pop ebp
+            pop ebp;
 
-                jmp eax
+            jmp eax;
         }
+    }
+#elif !defined(_M_AMD64)
+    Var InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        // Asm.js only supported on x64 and x86
+        AssertOrFailFast(UNREACHED);
+        return nullptr;
     }
 #endif
 #endif
@@ -1645,15 +1680,14 @@ namespace Js
 
     bool InterpreterStackFrame::IsDelayDynamicInterpreterThunk(JavascriptMethod entryPoint)
     {
-        return
+        return false
 #if DYNAMIC_INTERPRETER_THUNK
-#if _M_X64
-            entryPoint == InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk ||
+            || entryPoint == InterpreterStackFrame::DelayDynamicInterpreterThunk
+#ifdef ASMJS_PLAT
+            || entryPoint == InterpreterStackFrame::AsmJsDelayDynamicInterpreterThunk
 #endif
-            entryPoint == InterpreterStackFrame::DelayDynamicInterpreterThunk;
-#else
-            false;
 #endif
+            ;
     }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -3649,24 +3683,27 @@ namespace Js
         ScriptContext * scriptContext = function->GetScriptContext();
         Js::FunctionEntryPointInfo* entrypointInfo = (Js::FunctionEntryPointInfo*)function->GetEntryPointInfo();
         PROBE_STACK_CALL(scriptContext, function, alignedArgsSize + Js::Constants::MinStackDefault);
+        // Calling the jsMethod might change the entrypoint, adding the variable here 
+        // will save the method on the stack helping debug what really got called
+        JavascriptMethod jsMethod = entrypointInfo->jsMethod;
 
         switch (asmInfo->GetReturnType().which())
         {
         case AsmJsRetType::Void:
-            JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            JavascriptFunction::CallAsmJsFunction<int>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             break;
         case AsmJsRetType::Signed:
 
-            m_localIntSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<int>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            m_localIntSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<int>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             break;
         case AsmJsRetType::Int64:
-            m_localInt64Slots[returnReg] = JavascriptFunction::CallAsmJsFunction<int64>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            m_localInt64Slots[returnReg] = JavascriptFunction::CallAsmJsFunction<int64>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             break;
         case AsmJsRetType::Double:
-            m_localDoubleSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<double>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            m_localDoubleSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<double>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             break;
         case AsmJsRetType::Float:
-            m_localFloatSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<float>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            m_localFloatSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<float>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             break;
 #ifdef ENABLE_WASM_SIMD
         case AsmJsRetType::Float32x4:
@@ -3683,10 +3720,10 @@ namespace Js
 #if _WIN32 //WASM.SIMD ToDo: Enable thunk for Xplat
 #if _M_X64
             X86SIMDValue simdVal;
-            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            simdVal.m128_value = JavascriptFunction::CallAsmJsFunction<__m128>(function, jsMethod, m_outParams, alignedArgsSize, reg);
             m_localSimdSlots[returnReg] = X86SIMDValue::ToSIMDValue(simdVal);
 #else
-            m_localSimdSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, entrypointInfo->jsMethod, m_outParams, alignedArgsSize, reg);
+            m_localSimdSlots[returnReg] = JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(function, jsMethod, m_outParams, alignedArgsSize, reg);
 #endif
 #endif
             break;
