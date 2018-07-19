@@ -2122,8 +2122,8 @@ namespace Js
         _Inout_ uint& sourceIndex,
         _In_ bool isCesu8,
         _In_opt_ NativeModule* nativeModule,
-        _Out_ Js::ParseableFunctionInfo ** func,
-        _Out_ byte** parserStateCacheBuffer,
+        _Outptr_ Js::ParseableFunctionInfo ** func,
+        _Outptr_result_buffer_(*parserStateCacheByteCount) byte** parserStateCacheBuffer,
         _Out_ DWORD* parserStateCacheByteCount,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
@@ -2230,11 +2230,11 @@ namespace Js
 
     HRESULT ScriptContext::TrySerializeParserState(
         _In_ uint sourceCRC,
-        _In_ LPCUTF8 pszSrc,
+        _In_reads_bytes_(cbLength) LPCUTF8 pszSrc,
         _In_ size_t cbLength,
         _In_ SRCINFO *srcInfo,
         _In_ Js::ParseableFunctionInfo* func,
-        _In_ byte* parserStateCacheBuffer,
+        _In_reads_bytes_(parserStateCacheByteCount) byte* parserStateCacheBuffer,
         _In_ DWORD parserStateCacheByteCount,
         _In_ Js::SimpleDataCacheWrapper* pDataCache)
     {
@@ -2317,7 +2317,7 @@ namespace Js
         __in Js::Utf8SourceInfo* utf8SourceInfo,
         __in SRCINFO *srcInfo,
         __in BOOL fOriginalUTF8Code,
-        __in LPCUTF8 pszSrc,
+        _In_reads_bytes_(cbLength) LPCUTF8 pszSrc,
         __in size_t cbLength,
         __in ULONG grfscr,
         __in CompileScriptException *pse,
