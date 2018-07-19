@@ -434,8 +434,8 @@ ParseNodeFnc::ParseNodeFnc(OpCode nop, charcount_t ichMin, charcount_t ichLim)
 #endif
     this->pRestorePoint = nullptr;
     this->deferredStub = nullptr;
-
     this->capturedNames = nullptr;
+    this->superRestrictionState = SuperRestrictionState::Disallowed;
 }
 
 ParseNodeClass::ParseNodeClass(OpCode nop, charcount_t ichMin, charcount_t ichLim)

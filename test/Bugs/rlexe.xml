@@ -505,5 +505,11 @@
     <default>
       <files>bug_OS17614914.js</files>
     </default>
-  </test>  
+  </test>
+  <test>
+    <default>
+      <files>SuperUndoDeferIssue.js</files>
+      <compile-flags>-forceundodefer</compile-flags>
+    </default>
+  </test>
 </regress-exe>
