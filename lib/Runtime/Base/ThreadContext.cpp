@@ -213,6 +213,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , reentrancySafeOrHandled(false)
     , isInReentrancySafeRegion(false)
     , closedScriptContextCount(0)
+    , visibilityState(VisibilityState::Undefined)
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
     hostScriptContextStack = Anew(GetThreadAlloc(), JsUtil::Stack<HostScriptContext*>, GetThreadAlloc());
