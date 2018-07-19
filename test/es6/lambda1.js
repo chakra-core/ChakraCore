@@ -169,8 +169,8 @@ var tests = [
     {
         name: "Interesting valid and invalid syntax",
         body: function () {
+            assert.doesNotThrow(() => { eval('(x, ) => {};'); }, SyntaxError, "Trailing comma is valid syntax");
             assert.throws(() => { eval('(var x) => {};'); }, SyntaxError, "var not used in formals declaration", "Syntax error");
-            assert.throws(() => { eval('(x, ) => {};'); }, SyntaxError, "missing formal identifier in parameter list", "Syntax error");
             assert.throws(() => { eval('a.x => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Syntax error");
             assert.throws(() => { eval('(x, y)[7] => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Expected '=>'");
             assert.throws(() => { eval('x() => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Syntax error");
