@@ -917,10 +917,9 @@ namespace Js
 
 #if 0 && defined(_CONTROL_FLOW_GUARD)
             // verify that the call target is valid
-            mov  ebx, eax; save call target
             mov  ecx, eax
             call[__guard_check_icall_fptr]
-            mov  eax, ebx; restore call target
+            mov  eax, ecx; restore call target
 #endif
 
             // save the current frame ptr, and adjust the frame to access

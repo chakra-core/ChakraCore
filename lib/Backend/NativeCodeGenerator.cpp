@@ -1495,10 +1495,9 @@ NativeCodeGenerator::CheckAsmJsCodeGenThunk(Js::RecyclableObject* function, Js::
             call NativeCodeGenerator::CheckAsmJsCodeGen
 #ifdef _CONTROL_FLOW_GUARD
             // verify that the call target is valid
-            push eax
             mov  ecx, eax
             call[__guard_check_icall_fptr]
-            pop eax
+            mov  eax, ecx
 #endif
             pop ebp
             jmp  eax
@@ -1524,10 +1523,9 @@ NativeCodeGenerator::CheckCodeGenThunk(Js::RecyclableObject* function, Js::CallI
         call NativeCodeGenerator::CheckCodeGen
 #ifdef _CONTROL_FLOW_GUARD
         // verify that the call target is valid
-        push eax
         mov  ecx, eax
         call[__guard_check_icall_fptr]
-        pop eax
+        mov  eax, ecx
 #endif
         pop ebp
         jmp  eax
