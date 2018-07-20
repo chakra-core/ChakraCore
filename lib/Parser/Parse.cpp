@@ -3311,7 +3311,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         {
             flags |= fFncAsync;
         }
-        pnode = ParseFncDeclNoCheckScope<buildAST>(flags, SuperRestrictionState::Disallowed, pNameHint, false, true, fUnaryOrParen);
+        pnode = ParseFncDeclNoCheckScope<buildAST>(flags, SuperRestrictionState::Disallowed, pNameHint, /* needsPIDOnRCurlyScan */ false, fUnaryOrParen);
         if (isAsyncExpr)
         {
             pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -6672,7 +6672,7 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
 template<bool buildAST>
 ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
-    ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, SuperRestrictionState::Disallowed, nullptr, false, true, true);
+    ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, SuperRestrictionState::Disallowed, nullptr, /* needsPIDOnRCurlyScan */ false, /* fUnaryOrParen */ true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
 
     return callNode;
