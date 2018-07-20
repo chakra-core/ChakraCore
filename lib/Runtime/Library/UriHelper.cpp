@@ -29,7 +29,7 @@ namespace Js
             }
         }
 
-        return Encode(strURI->GetSz(), strURI->GetLength(), flags, scriptContext);
+        return Encode(strURI->GetString(), strURI->GetLength(), flags, scriptContext);
     }
 
     unsigned char UriHelper::s_uriProps[128] =
@@ -126,9 +126,9 @@ namespace Js
     }
 
     // The Encode algorithm described in sec. 15.1.3 of the spec. The input string is
-    // 'pSz' and the Unescaped set is described by the flags 'unescapedFlags'. The
+    // 'input' and the Unescaped set is described by the flags 'unescapedFlags'. The
     // output is a string var.
-    Var UriHelper::Encode(__in_ecount(len) const  char16* pSz, uint32 len, unsigned char unescapedFlags, ScriptContext* scriptContext )
+    Var UriHelper::Encode(__in_ecount(len) const  char16* input, uint32 len, unsigned char unescapedFlags, ScriptContext* scriptContext )
     {
         BYTE bUTF8[MaxUTF8Len];
 
@@ -136,7 +136,7 @@ namespace Js
         uint32 outputLen = 0;
         for( uint32 k = 0; k < len; k++ )
         {
-            char16 c = pSz[k];
+            char16 c = input[k];
             uint32 uVal;
             if( InURISet(c, unescapedFlags) )
             {
@@ -160,7 +160,7 @@ namespace Js
                         JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                     }
                     __analysis_assume(k < len); // because we throw exception if k==len
-                    char16 c1 = pSz[k];
+                    char16 c1 = input[k];
                     if( c1 < 0xDC00 || c1 > 0xDFFF )
                     {
                         JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
@@ -182,7 +182,7 @@ namespace Js
 
         for( uint32 k = 0; k < len; k++ )
         {
-            char16 c = pSz[k];
+            char16 c = input[k];
             uint32 uVal;
             if( InURISet(c, unescapedFlags) )
             {
@@ -211,7 +211,7 @@ namespace Js
                     }
 #endif
                     __analysis_assume(k < len);// because we throw exception if k==len
-                    char16 c1 = pSz[k];
+                    char16 c1 = input[k];
 
 #if DBG
                     if( c1 < 0xDC00 || c1 > 0xDFFF )
@@ -265,13 +265,13 @@ namespace Js
             }
         }
 
-        return Decode(strURI->GetSz(), strURI->GetLength(), reservedFlags, scriptContext);
+        return Decode(strURI->GetString(), strURI->GetLength(), reservedFlags, scriptContext);
     }
 
     // The Decode algorithm described in sec. 15.1.3 of the spec. The input string is
-    // 'pSZ' and the Reserved set is described by the flags 'reservedFlags'. The
+    // 'input' and the Reserved set is described by the flags 'reservedFlags'. The
     // output is a string var.
-    Var UriHelper::Decode(__in_ecount(len) const char16* pSz, uint32 len, unsigned char reservedFlags, ScriptContext* scriptContext)
+    Var UriHelper::Decode(__in_ecount(len) const char16* input, uint32 len, unsigned char reservedFlags, ScriptContext* scriptContext)
     {
         char16 c1;
         char16 c;
@@ -279,7 +279,7 @@ namespace Js
         uint32 outputLen = 0;
         for( uint32 k = 0; k < len; k++ )
         {
-            c = pSz[k];
+            c = input[k];
 
             if( c == '%')
             {
@@ -295,7 +295,7 @@ namespace Js
                 // characters outside the ASCII character set to be hexadecimal digits, so we can't use that. 'swscanf_s' seems
                 // to be overkill for this, so using a simple function that parses two hex digits and produces their value.
                 BYTE b;
-                if(!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b))
+                if(!DecodeByteFromHex(input[k + 1], input[k + 2], b))
                 {
                     JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError);
                 }
@@ -327,12 +327,12 @@ namespace Js
 
                     for( int j = 1; j < n; j++ )
                     {
-                        if( pSz[++k] != '%' )
+                        if( input[++k] != '%' )
                         {
                             JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 
-                        if(!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b))
+                        if(!DecodeByteFromHex(input[k + 1], input[k + 2], b))
                         {
                             JavascriptError::ThrowURIError(scriptContext, JSERR_URIDecodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
@@ -391,7 +391,7 @@ namespace Js
 
         for( uint32 k = 0; k < len; k++ )
         {
-            c = pSz[k];
+            c = input[k];
             if( c == '%')
             {
                 uint32 start = k;
@@ -408,10 +408,10 @@ namespace Js
                 __analysis_assume(!(k + 2 >= len));
 
                 BYTE b;
-                if(!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b))
+                if(!DecodeByteFromHex(input[k + 1], input[k + 2], b))
                 {
 #if DBG
-                    AssertMsg(false, "!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b)");
+                    AssertMsg(false, "!DecodeByteFromHex(input[k + 1], input[k + 2], b)");
                     JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
 #endif
                 }
@@ -453,17 +453,17 @@ namespace Js
                         ++k;
 
 #if DBG
-                        Assert(!(pSz[k] != '%'));
-                        if( pSz[k] != '%' )
+                        Assert(!(input[k] != '%'));
+                        if( input[k] != '%' )
                         {
                             JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
                         }
 #endif
 
-                        if(!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b))
+                        if(!DecodeByteFromHex(input[k + 1], input[k + 2], b))
                         {
 #if DBG
-                            AssertMsg(false, "!DecodeByteFromHex(pSz[k + 1], pSz[k + 2], b)");
+                            AssertMsg(false, "!DecodeByteFromHex(input[k + 1], input[k + 2], b)");
                             JavascriptError::ThrowURIError(scriptContext, VBSERR_InternalError /* TODO-ERROR: _u("NEED MESSAGE") */);
 #endif
                         }
@@ -523,7 +523,7 @@ namespace Js
                 }
                 else
                 {
-                    js_memcpy_s(outCurrent, (allocSize - (outCurrent - outURI)) * sizeof(char16), &pSz[start], (k - start + 1)*sizeof(char16));
+                    js_memcpy_s(outCurrent, (allocSize - (outCurrent - outURI)) * sizeof(char16), &input[start], (k - start + 1)*sizeof(char16));
                     outCurrent += k - start + 1;
                 }
             }

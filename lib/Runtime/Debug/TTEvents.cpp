@@ -433,7 +433,7 @@ namespace TTD
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
             Js::JavascriptString* displayName = function->GetDisplayName();
-            alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), callEvt->FunctionName);
+            alloc.CopyStringIntoWLength(displayName->GetString(), displayName->GetLength(), callEvt->FunctionName);
         }
 #endif
 
