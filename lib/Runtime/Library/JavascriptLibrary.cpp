@@ -5218,7 +5218,7 @@ namespace Js
         str = JavascriptString::FromVar(var);
 
         charcount_t len = str->GetLength();
-        js_wmemcpy_s(ptr, remainingSpace, str->GetSz(), len);
+        js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
         ptr += len;
         remainingSpace -= len;
 
@@ -5234,7 +5234,7 @@ namespace Js
             str = JavascriptString::FromVar(var);
 
             len = str->GetLength();
-            js_wmemcpy_s(ptr, remainingSpace, str->GetSz(), len);
+            js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
             ptr += len;
             remainingSpace -= len;
         }
@@ -5300,7 +5300,7 @@ namespace Js
             }
 
             // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
+            if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetString(), str->GetLength()))
             {
                 return false;
             }
@@ -5324,7 +5324,7 @@ namespace Js
         }
 
         // If the strings at this index are not equal, the callsite objects are not equal.
-        if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
+        if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetString(), str->GetLength()))
         {
             return false;
         }
@@ -6181,20 +6181,20 @@ namespace Js
     JavascriptPromiseThenFinallyFunction* JavascriptLibrary::CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow)
     {
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-        
+
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
 
         JavascriptPromiseThenFinallyFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseThenFinallyFunction, type, functionInfo, OnFinally, Constructor, shouldThrow);
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
-        
+
         return function;
     }
 
     JavascriptPromiseThunkFinallyFunction* JavascriptLibrary::CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow)
     {
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-        
+
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
