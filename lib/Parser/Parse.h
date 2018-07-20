@@ -455,6 +455,8 @@ private:
     bool m_hasDestructuringPattern;
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
+    bool m_deferEllipsisError;
+    bool m_deferCommaError;
     uint * m_pnestedCount; // count of functions nested at one level below the current node
 
     struct WellKnownPropertyPids
@@ -495,8 +497,8 @@ private:
 
     // Used for issuing spread and rest errors when there is ambiguity with lambda parameter lists and parenthesized expressions
     uint m_funcParenExprDepth;
-    bool m_deferEllipsisError;
     RestorePoint m_deferEllipsisErrorLoc;
+    RestorePoint m_deferCommaErrorLoc;
 
     uint m_tryCatchOrFinallyDepth;  // Used to determine if parsing is currently in a try/catch/finally block in order to throw error on yield expressions inside them
 
@@ -583,6 +585,33 @@ private:
         // For very basic validation purpose - to check that we are not going restore to some other block.
         BlockInfoStack *m_currentBlockInfo;
 #endif
+    };
+
+    class AutoDeferErrorsRestore
+    {
+    public:
+        AutoDeferErrorsRestore(Parser *p)
+            : m_parser(p)
+        {
+            m_deferEllipsisErrorSave = m_parser->m_deferEllipsisError;
+            m_deferCommaError = m_parser->m_deferCommaError;
+            m_ellipsisErrorLocSave = m_parser->m_deferEllipsisErrorLoc;
+            m_commaErrorLocSave = m_parser->m_deferCommaErrorLoc;
+        }
+
+        ~AutoDeferErrorsRestore()
+        {
+            m_parser->m_deferEllipsisError = m_deferEllipsisErrorSave;
+            m_parser->m_deferCommaError = m_deferCommaError;
+            m_parser->m_deferEllipsisErrorLoc = m_ellipsisErrorLocSave;
+            m_parser->m_deferCommaErrorLoc = m_commaErrorLocSave;
+        }
+    private:
+        Parser *m_parser;
+        RestorePoint m_ellipsisErrorLocSave;
+        RestorePoint m_commaErrorLocSave;
+        bool m_deferEllipsisErrorSave;
+        bool m_deferCommaError;
     };
 
     // This function is going to capture some of the important current state of the parser to an object. Once we learn

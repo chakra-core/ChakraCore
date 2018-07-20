@@ -85,6 +85,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_isInParsingArgList(false),
     m_hasDestructuringPattern(false),
     m_hasDeferredShorthandInitError(false),
+    m_deferCommaError(false),
     m_pnestedCount(nullptr),
 
     wellKnownPropertyPids(), // should initialize to nullptrs
@@ -100,7 +101,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_funcParenExprDepth(0),
     m_deferEllipsisError(false),
     m_deferEllipsisErrorLoc(), // calls default initializer
-
+    m_deferCommaErrorLoc(),
     m_tryCatchOrFinallyDepth(0),
 
     m_pstmtCur(nullptr),
@@ -3079,9 +3080,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         uint saveCurrBlockId = GetCurrentBlock()->blockId;
         GetCurrentBlock()->blockId = m_nextBlockId++;
 
-        // Push the deferred error state for ellipsis errors. It is possible that another syntax error will occur before we undefer this one.
-        bool deferEllipsisErrorSave = m_deferEllipsisError;
-        RestorePoint ellipsisErrorLocSave = m_deferEllipsisErrorLoc;
+        AutoDeferErrorsRestore deferErrorRestore(this);
 
         this->m_funcParenExprDepth++;
         pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen);
@@ -3101,21 +3100,21 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             // Put back the original next-block-ID so the existing pid ref stacks will be correct.
             m_nextBlockId = saveNextBlockId;
         }
-
-        // Emit a deferred ... error if one was parsed.
-        if (m_deferEllipsisError && m_token.tk != tkDArrow)
-        {
-            this->GetScanner()->SeekTo(m_deferEllipsisErrorLoc);
-            Error(ERRInvalidSpreadUse);
-        }
         else
         {
-            m_deferEllipsisError = false;
+            // Emit a deferred ... error if one was parsed.
+            if (m_deferEllipsisError)
+            {
+                this->GetScanner()->SeekTo(m_deferEllipsisErrorLoc);
+                Error(ERRInvalidSpreadUse);
+            }
+            else if (m_deferCommaError)
+            {
+                // Emit a comma error if that was deferred.
+                this->GetScanner()->SeekTo(m_deferCommaErrorLoc);
+                Error(ERRsyntax);
+            }
         }
-
-        // We didn't error out, so restore the deferred error state.
-        m_deferEllipsisError = deferEllipsisErrorSave;
-        m_deferEllipsisErrorLoc = ellipsisErrorLocSave;
 
         break;
     }
@@ -8848,6 +8847,14 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         }
         else // a binary operator
         {
+            if (nop == knopComma && m_token.tk == tkRParen)
+            {
+                // Trailing comma
+                this->GetScanner()->Capture(&m_deferCommaErrorLoc);
+                m_deferCommaError = true;
+                break;
+            }
+
             ParseNode* pnode1 = pnode;
 
             // Parse the operand, make a new node, and look for more

@@ -24,6 +24,16 @@ var tests = [
             assert.doesNotThrow(function () { eval("function foo() {}; foo(1, 2,);"); }, "Trailing comma in a user function call is a valid syntax");
             assert.doesNotThrow(function () { eval("Math.min(1, 2, );"); }, "Trailing comma in built-in function call is a valid syntax");
         }
+    },
+    {
+        name: "Trailing comma in arrow function",
+        body: function () {
+            assert.doesNotThrow(function () { eval("(a,) => {}"); }, "Trailing comma in an arrow function is a valid syntax");
+            assert.doesNotThrow(function () { eval("let f = (a,) => {}"); }, "Trailing comma in an arrow function is a valid syntax");
+            assert.doesNotThrow(function () { eval("(b = (a,) => {}) => {}"); }, "Trailing comma in an nested arrow function is a valid syntax");
+            assert.doesNotThrow(function () { eval("({b = (a,) => {}}) => {}"); }, "Trailing comma in an nested arrow function in destructuring is a valid syntax");
+            assert.throws(function () { eval("(b = (a,)) => {}"); }, SyntaxError, "Trailing comma in a comma expression is not valid syntax");
+        }
     }
 ];
 
