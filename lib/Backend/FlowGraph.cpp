@@ -1847,6 +1847,10 @@ FlowGraph::Destroy(void)
             }
         }
         NEXT_BLOCK;
+    }
+#endif
+    if (fHasTry)
+    {
         FOREACH_BLOCK_ALL(block, this)
         {
             if (block->GetFirstInstr()->IsLabelInstr())
@@ -1861,8 +1865,6 @@ FlowGraph::Destroy(void)
             }
         } NEXT_BLOCK;
     }
-#endif
-
     this->func->isFlowGraphValid = false;
 }
 
