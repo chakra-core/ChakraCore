@@ -26,7 +26,7 @@ namespace Js
         stringBuilder->AppendCppLiteral(_u("Object, (Arguments)"));
         return TRUE;
     }
-    
+
     bool ArgumentsObject::Is(Var aValue)
     {
         return JavascriptOperators::GetTypeId(aValue) == TypeIds_Arguments;
@@ -402,7 +402,7 @@ namespace Js
 
     BOOL HeapArgumentsObject::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetSz(), propertyNameString->GetLength()),
+        AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
         // TODO: In strict mode, "callee" and "caller" cannot be set.

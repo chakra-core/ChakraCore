@@ -202,7 +202,7 @@ namespace TTD
             Js::Var message = InflateVarInReplay(executeContext, GetVarItem_0(errorData));
             TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(message, ctx);
 
-            *res = nullptr; 
+            *res = nullptr;
             switch(eventKind)
             {
             case EventKind::CreateErrorActionTag:
@@ -1067,7 +1067,7 @@ namespace TTD
             if(Js::JavascriptFunction::Is(funcVar))
             {
                 Js::JavascriptString* displayName = Js::JavascriptFunction::FromVar(funcVar)->GetDisplayName();
-                alloc.CopyStringIntoWLength(displayName->GetSz(), displayName->GetLength(), cfAction->FunctionName);
+                alloc.CopyStringIntoWLength(displayName->GetString(), displayName->GetLength(), cfAction->FunctionName);
             }
             else
             {

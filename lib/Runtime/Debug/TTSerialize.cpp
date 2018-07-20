@@ -802,7 +802,7 @@ namespace TTD
 
         if(!endFound)
         {
-            // no ending found 
+            // no ending found
             return NSTokens::ParseTokenKind::Error;
         }
 
@@ -966,7 +966,7 @@ namespace TTD
 
         if(!endFound)
         {
-            // no ending found 
+            // no ending found
             return NSTokens::ParseTokenKind::Error;
         }
 
@@ -1882,7 +1882,7 @@ namespace TTD
             this->AppendLiteral(", attrib: ");
             this->AppendInteger(attrib);
             this->AppendLiteral(", name: ");
-            this->AppendText(pname->GetSz(), (uint32)pname->GetLength());
+            this->AppendText(pname->GetString(), (uint32)pname->GetLength());
         }
 
         this->AppendLiteral(")\n");
@@ -1926,11 +1926,11 @@ namespace TTD
                 {
                     if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), Js::JavascriptString::FromVar(var)->GetLength());
                     }
                     else
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), 40);
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), 40);
                         this->AppendLiteral("...");
                         this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
                     }
@@ -1983,7 +1983,7 @@ namespace TTD
         Js::JavascriptString* displayName = function->GetDisplayName();
 
         this->AppendIndent();
-        const char16* nameStr = displayName->GetSz();
+        const char16* nameStr = displayName->GetString();
         uint32 nameLength = displayName->GetLength();
         this->AppendText(nameStr, nameLength);
 
@@ -2024,7 +2024,7 @@ namespace TTD
 
         this->AppendIndent();
         this->AppendLiteral("return(");
-        this->AppendText(displayName->GetSz(), displayName->GetLength());
+        this->AppendText(displayName->GetString(), displayName->GetLength());
         this->AppendLiteral(") -> ");
         this->WriteVar(res);
 
@@ -2042,7 +2042,7 @@ namespace TTD
 
         this->AppendIndent();
         this->AppendLiteral("return(");
-        this->AppendText(displayName->GetSz(), displayName->GetLength());
+        this->AppendText(displayName->GetString(), displayName->GetLength());
         this->AppendLiteral(") -> !!exception");
 
         this->AppendLiteral(" @ ");
@@ -2059,7 +2059,7 @@ namespace TTD
         this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 128, "(l:%I32u, c:%I32u)\n", line + 1, column);
 
         ////
-        //Temp debugging help if needed 
+        //Temp debugging help if needed
         this->ForceFlush();
         //
         ////

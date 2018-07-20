@@ -345,7 +345,7 @@ namespace TTD
                     break;
                 case Js::TypeIds_String:
                     snapValue->u_stringValue = alloc.SlabAllocateStruct<TTString>();
-                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetSz(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->u_stringValue));
+                    alloc.CopyStringIntoWLength(Js::JavascriptString::FromVar(jsValue)->GetString(), Js::JavascriptString::FromVar(jsValue)->GetLength(), *(snapValue->u_stringValue));
                     break;
                 case Js::TypeIds_Symbol:
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
@@ -1902,7 +1902,7 @@ namespace TTD
             reader->ReadRecordEnd();
         }
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator>& allRootMap1, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator>& allRootMap2, TTDCompareMap& compareMap)
         {
             compareMap.DiagnosticAssert(snapCtx1->ScriptContextLogId == snapCtx2->ScriptContextLogId);

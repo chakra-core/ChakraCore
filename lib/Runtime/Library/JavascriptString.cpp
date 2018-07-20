@@ -2237,15 +2237,15 @@ case_2:
 
         ScriptContext* scriptContext = pThis->type->GetScriptContext();
         ApiError error = ApiError::NoError;
-        const char16 *pThisSz = pThis->GetSz();
         charcount_t pThisLength = pThis->GetLength();
 
         if (useInvariant)
         {
+            const char16 *pThisString = pThis->GetString();
             bool isAscii = true;
             for (charcount_t i = 0; i < pThisLength; i++)
             {
-                if (pThisSz[i] >= 0x80)
+                if (pThisString[i] >= 0x80)
                 {
                     isAscii = false;
                     break;
@@ -2258,7 +2258,7 @@ case_2:
                 const char16 diffBetweenCases = 32;
                 for (charcount_t i = 0; i < pThisLength; i++)
                 {
-                    char16 cur = pThisSz[i];
+                    char16 cur = pThisString[i];
                     if (toUpper)
                     {
                         if (cur >= _u('a') && cur <= _u('z'))
