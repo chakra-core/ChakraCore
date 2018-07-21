@@ -626,7 +626,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Spread               (true)
 #define DEFAULT_CONFIG_ES6String               (true)
 #define DEFAULT_CONFIG_ES6StringPrototypeFixes (true)
-#define DEFAULT_CONFIG_ES2018ObjectSpread      (false)
+#define DEFAULT_CONFIG_ES2018ObjectRestSpread  (false)
 #ifdef COMPILE_DISABLE_ES6PrototypeChain
     // If ES6PrototypeChain needs to be disabled by compile flag, DEFAULT_CONFIG_ES6PrototypeChain should be false
     #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
@@ -1122,7 +1122,7 @@ FLAGPR           (Boolean, ES6, ES6Rest                , "Enable ES6 Rest parame
 FLAGPR           (Boolean, ES6, ES6Spread              , "Enable ES6 Spread support"                                , DEFAULT_CONFIG_ES6Spread)
 FLAGPR           (Boolean, ES6, ES6String              , "Enable ES6 String extensions"                             , DEFAULT_CONFIG_ES6String)
 FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prototype fixes"                        , DEFAULT_CONFIG_ES6StringPrototypeFixes)
-FLAGPR           (Boolean, ES6, ES2018ObjectSpread     , "Enable ES2018 Object Spread"                              , DEFAULT_CONFIG_ES2018ObjectSpread)
+FLAGPR           (Boolean, ES6, ES2018ObjectRestSpread , "Enable ES2018 Object Rest/Spread"                         , DEFAULT_CONFIG_ES2018ObjectRestSpread)
 
 #ifndef COMPILE_DISABLE_ES6PrototypeChain
     #define COMPILE_DISABLE_ES6PrototypeChain 0

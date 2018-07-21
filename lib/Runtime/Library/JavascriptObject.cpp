@@ -1572,10 +1572,10 @@ PCWSTR GetCopyDataPropertiesEntryName() {
 
 /*static*/
 template <bool tryCopy, bool assign>
-void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to, ScriptContext* scriptContext, PropertyId* excluded, uint32 excludedLength)
+void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to, ScriptContext* scriptContext, const BVSparse<Recycler>* excluded)
 {
     // If assign is false, this performs CopyDataProperties(https://tc39.github.io/ecma262/#sec-copydataproperties).
-    //    Variables excluded and excludedLength are ignored.
+    //    Variable excluded is ignored.
     // Otherwise, it performs the loop body of step 4 in Object.assign (https://tc39.github.io/ecma262/#sec-object.assign).
     //    Value of tryCopy is ignored.
     // 1. Assert Type(to) is Object.
@@ -1616,7 +1616,7 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
     // if proxy, take slow path by calling [[OwnPropertyKeys]] on source
     if (JavascriptProxy::Is(from))
     {
-        CopyDataPropertiesForProxyObjects<assign>(from, to, excluded, excludedLength, scriptContext);
+        CopyDataPropertiesForProxyObjects<assign>(from, to, excluded, scriptContext);
     }
     // else use enumerator to extract keys from source
     else
@@ -1635,19 +1635,19 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
             }
             if (!copied)
             {
-                CopyDataPropertiesForGenericObjects<assign>(from, to, /*excluded*/ nullptr, /*excludedLength*/ 0, scriptContext);
+                CopyDataPropertiesForGenericObjects<assign>(from, to, /*excluded*/ nullptr, scriptContext);
             }
         }
         else
         {
-            CopyDataPropertiesForGenericObjects<assign>(from, to, excluded, excludedLength, scriptContext);
+            CopyDataPropertiesForGenericObjects<assign>(from, to, excluded, scriptContext);
         }
     }
 }
 
 /*static*/
 template <bool assign>
-void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext)
+void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, const BVSparse<Recycler>* excluded, ScriptContext* scriptContext)
 {
     // Steps 4 and 5 of CopyDataPropertiesHelper
 
@@ -1676,15 +1676,10 @@ void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* fro
         }
 
         bool found = false;
-        for (uint32 i = 0; i < excludedLength; i++)
+        if (excluded)
         {
-            if (excluded[i] == nextKey)
-            {
-                found = true;
-                break;
-            }
+            found = excluded->Test(nextKey);
         }
-
         if (!found)
         {
             PropertyString * propertyString = PropertyString::TryFromVar(propertyName);
@@ -1727,7 +1722,7 @@ void JavascriptObject::CopyDataPropertiesForGenericObjects(RecyclableObject* fro
 
 /*static*/
 template <bool assign>
-void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext)
+void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, const BVSparse<Recycler>* excluded, ScriptContext* scriptContext)
 {
     // Steps 4 and 5 of CopyDataPropertiesHelper
     JavascriptArray *keys = JavascriptOperators::GetOwnEnumerablePropertyNamesSymbols(from, scriptContext);
@@ -1747,15 +1742,10 @@ void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from,
         AssertMsg(propertyId != Constants::NoProperty, "CopyDataPropertiesForProxyObjects - OwnPropertyKeys returned a propertyId with value NoProperty.");
 
         bool found = false;
-        for (uint32 i = 0; i < excludedLength; i++)
+        if (excluded)
         {
-            if (excluded[i] == propertyId)
-            {
-                found = true;
-                break;
-            }
+            found = excluded->Test(propertyId);
         }
-
         if (!found)
         {
             if (JavascriptOperators::GetOwnPropertyDescriptor(from, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
@@ -1785,8 +1775,6 @@ void JavascriptObject::CopyDataPropertiesForProxyObjects(RecyclableObject* from,
         }
     }
 }
-
-
 
 BOOL JavascriptObject::CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext)
 {
@@ -1864,7 +1852,6 @@ Var JavascriptObject::DefinePropertiesHelper(RecyclableObject *object, Recyclabl
         return DefinePropertiesHelperForGenericObjects(object, props, scriptContext);
     }
 }
-
 
 Var JavascriptObject::DefinePropertiesHelperForGenericObjects(RecyclableObject *object, RecyclableObject* props, ScriptContext *scriptContext)
 {
@@ -2189,4 +2176,33 @@ void JavascriptObject::SpreadObjectLiteral(Var source, Var to, ScriptContext* sc
     bool succeeded = JavascriptConversion::ToObject(to, scriptContext, &target);
     AssertOrFailFast(succeeded);
     CopyDataPropertiesHelper<false, false>(source, target, scriptContext);
+}
+
+void JavascriptObject::Restify(Var source, Var to, void* excludedStatic, void* excludedComputed, ScriptContext* scriptContext)
+{
+    RecyclableObject* target = nullptr;
+    bool succeeded = JavascriptConversion::ToObject(to, scriptContext, &target);
+    AssertOrFailFast(succeeded);
+
+    const Js::PropertyIdArray* propIdsStatic = reinterpret_cast<const Js::PropertyIdArray*>(excludedStatic);
+    const Js::PropertyIdArray* propIdsComputed = reinterpret_cast<const Js::PropertyIdArray*>(excludedComputed);
+    // Create a set of the property ids for faster lookup
+    BVSparse<Recycler> excluded(scriptContext->GetRecycler());
+    for (uint32 i = 0; i < propIdsStatic->count; i++)
+    {
+        PropertyId id = propIdsStatic->elements[i];
+        excluded.Set(id);
+    }
+    // If these two are equal, this means there were no computed properties 
+    // and the static array was passed in to indicate this
+    if (propIdsStatic != propIdsComputed)
+    {
+        for (uint32 i = 0; i < propIdsComputed->count; i++)
+        {
+            PropertyId id = propIdsComputed->elements[i];
+            excluded.Set(id);
+        }
+    }
+
+    CopyDataPropertiesHelper<false, false>(source, target, scriptContext, &excluded);
 }

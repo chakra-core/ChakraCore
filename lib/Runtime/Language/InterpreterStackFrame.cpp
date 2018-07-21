@@ -283,6 +283,17 @@
 
 #define PROCESS_A1toA1MemNonVar(name, func) PROCESS_A1toA1MemNonVar_COMMON(name, func,)
 
+#define PROCESS_SIZEtoA1MemNonVar_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg1Unsigned1, suffix); \
+        SetNonVarReg(playout->R0, \
+                func(playout->C1, GetScriptContext())); \
+        break; \
+    }
+
+#define PROCESS_SIZEtoA1MemNonVar(name, func) PROCESS_SIZEtoA1MemNonVar_COMMON(name, func,)
+
 #define PROCESS_INNERtoA1_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
@@ -394,6 +405,16 @@
     { \
         PROCESS_READ_LAYOUT(name, Reg2, suffix); \
         func(GetReg(playout->R0), GetReg(playout->R1), GetScriptContext()); \
+        break; \
+    }
+
+#define PROCESS_A2A2NonVartoXXMem(name, func) PROCESS_A2A2NonVartoXXMem_COMMON(name, func,)
+
+#define PROCESS_A2A2NonVartoXXMem_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, Reg4, suffix); \
+        func(GetReg(playout->R0), GetReg(playout->R1), GetNonVarReg(playout->R2), GetNonVarReg(playout->R3), GetScriptContext()); \
         break; \
     }
 
@@ -837,6 +858,16 @@
     }
 
 #define PROCESS_SET_ELEM_SLOTNonVar(name, func) PROCESS_SET_ELEM_SLOTNonVar_COMMON(name, func,)
+
+#define PROCESS_SET_ELEM_SLOTMem_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ElementSlot, suffix); \
+        func(GetNonVarReg(playout->Instance), playout->SlotIndex, GetReg(playout->Value), GetScriptContext()); \
+        break; \
+    }
+
+#define PROCESS_SET_ELEM_SLOTMem(name, func) PROCESS_SET_ELEM_SLOTMem_COMMON(name, func,)
 
 #define PROCESS_SET_ELEM_LOCALSLOTNonVar_COMMON(name, func, suffix) \
     case OpCode::name: \
@@ -5555,6 +5586,21 @@ skipThunk:
     {
         const Js::PropertyIdArray *propIds = Js::ByteCodeReader::ReadPropertyIdArray(playout->Offset, this->GetFunctionBody());
         SetNonVarReg(playout->R0, (Var)propIds);
+    }
+
+    void InterpreterStackFrame::OP_StPropIdArrFromVar(Var instance, uint32 index, Var value, ScriptContext* scriptContext)
+    {
+        Js::PropertyIdArray * propIds = reinterpret_cast<Js::PropertyIdArray *>(instance);
+        AssertOrFailFast(index < propIds->count);
+        Js::PropertyId id = JavascriptOperators::GetPropertyId(value, scriptContext);
+        propIds->elements[index] = id;
+    }
+
+    Js::PropertyIdArray * InterpreterStackFrame::OP_NewPropIdArrForCompProps(uint32 size, ScriptContext* scriptContext)
+    {
+        uint extraAlloc = UInt32Math::Mul(size, sizeof(Js::PropertyId));
+        Js::PropertyIdArray * propIdArr = RecyclerNewPlusLeaf(scriptContext->GetRecycler(), extraAlloc, Js::PropertyIdArray, size, 0);
+        return propIdArr;
     }
 
     bool InterpreterStackFrame::IsCurrentLoopNativeAddr(void * codeAddr) const

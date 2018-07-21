@@ -209,10 +209,14 @@ LowererMD::LowerCallHelper(IR::Instr *instrCall)
         Assert(regArg->m_sym->m_isSingleDef);
         IR::Instr *instrArg = regArg->m_sym->m_instrDef;
 
-        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A ||
-            (helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope && instrArg->m_opcode == Js::OpCode::ExtendArg_A) ||
-            (helperMethod == IR::JnHelperMethod::HelperScrFunc_OP_NewScFuncHomeObj && instrArg->m_opcode == Js::OpCode::ExtendArg_A) ||
-            (helperMethod == IR::JnHelperMethod::HelperScrFunc_OP_NewScGenFuncHomeObj && instrArg->m_opcode == Js::OpCode::ExtendArg_A));
+        Assert(instrArg->m_opcode == Js::OpCode::ArgOut_A || instrArg->m_opcode == Js::OpCode::ExtendArg_A &&
+        (
+            helperMethod == IR::JnHelperMethod::HelperOP_InitCachedScope ||
+            helperMethod == IR::JnHelperMethod::HelperScrFunc_OP_NewScFuncHomeObj ||
+            helperMethod == IR::JnHelperMethod::HelperScrFunc_OP_NewScGenFuncHomeObj ||
+            helperMethod == IR::JnHelperMethod::HelperRestify ||
+            helperMethod == IR::JnHelperMethod::HelperStPropIdArrFromVar
+        ));
         prevInstr = this->LoadHelperArgument(prevInstr, instrArg->GetSrc1());
 
         argOpnd = instrArg->GetSrc2();

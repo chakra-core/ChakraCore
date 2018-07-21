@@ -84,6 +84,7 @@ class ParseNodeExportDefault;
 class ParseNodeStrTemplate;
 class ParseNodeSuperReference;
 class ParseNodeArrLit;
+class ParseNodeObjLit;
 class ParseNodeClass;
 class ParseNodeParamPattern;
 
@@ -129,6 +130,7 @@ public:
     ParseNodeStrTemplate * AsParseNodeStrTemplate();
     ParseNodeSuperReference * AsParseNodeSuperReference();
     ParseNodeArrLit * AsParseNodeArrLit();
+    ParseNodeObjLit * AsParseNodeObjLit();
 
     ParseNodeCall * AsParseNodeCall();
     ParseNodeSuperCall * AsParseNodeSuperCall();
@@ -403,6 +405,18 @@ public:
     BYTE hasMissingValues:1;
 
     DISABLE_SELF_CAST(ParseNodeArrLit);
+};
+
+class ParseNodeObjLit : public ParseNodeUni
+{
+public:
+    ParseNodeObjLit(OpCode nop, charcount_t ichMin, charcount_t ichLim, uint staticCnt=0, uint computedCnt=0, bool rest=false);
+
+    uint staticCount;
+    uint computedCount;
+    bool hasRest;
+
+    DISABLE_SELF_CAST(ParseNodeObjLit);
 };
 
 class FuncInfo;

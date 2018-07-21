@@ -1525,6 +1525,7 @@ StoreCommon:
 #endif
         case OpCode::StObjSlot:
         case OpCode::StObjSlotChkUndecl:
+        case OpCode::StPropIdArrFromVar:
             break;
 
         default:

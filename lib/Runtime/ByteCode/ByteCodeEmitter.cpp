@@ -2859,7 +2859,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
                 funcInfo->SetApplyEnclosesArgs(applyEnclosesArgs);
             }
         }
-
+        
         InitScopeSlotArray(funcInfo);
         FinalizeRegisters(funcInfo, byteCodeFunction);
         DebugOnly(Js::RegSlot firstTmpReg = funcInfo->varRegsCount);
@@ -6638,6 +6638,9 @@ void EmitDestructuredArray(
 
 void EmitNameInvoke(Js::RegSlot lhsLocation,
     Js::RegSlot objectLocation,
+    Js::RegSlot computedPropIdArrLocation,
+    uint32 *computedIndex,
+    bool hasRest,
     ParseNodePtr nameNode,
     ByteCodeGenerator* byteCodeGenerator,
     FuncInfo* funcInfo)
@@ -6649,6 +6652,11 @@ void EmitNameInvoke(Js::RegSlot lhsLocation,
         Emit(pnode1, byteCodeGenerator, funcInfo, false/*isConstructorCall*/);
 
         byteCodeGenerator->Writer()->Element(Js::OpCode::LdElemI_A, lhsLocation, objectLocation, pnode1->location);
+        if (hasRest)
+        {
+            byteCodeGenerator->Writer()->Slot(Js::OpCode::StPropIdArrFromVar, pnode1->location, computedPropIdArrLocation, *computedIndex);
+            (*computedIndex)++;
+        }
         funcInfo->ReleaseLoc(pnode1);
     }
     else
@@ -6719,18 +6727,36 @@ void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode,
 
 void EmitDestructuredObjectMember(ParseNodePtr memberNode,
     Js::RegSlot rhsLocation,
+    Js::RegSlot propIdArrLocation,
+    Js::RegSlot computedPropIdArrLocation,
+    uint32 *computedIndex,
+    bool hasRest,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
-    Assert(memberNode->nop == knopObjectPatternMember);
+    Assert(memberNode->nop == knopObjectPatternMember || memberNode->nop == knopEllipsis);
 
     Js::RegSlot nameLocation = funcInfo->AcquireTmpRegister();
-    EmitNameInvoke(nameLocation, rhsLocation, memberNode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo);
+    ParseNodePtr lhsElementNode = nullptr;
 
-    // Imagine we are transforming
-    // {x:x1} = {} to x1 = {}.x  (here x1 is the second node of the member but that is our lhsnode)
+    if (memberNode->nop == knopObjectPatternMember)
+    {
+        EmitNameInvoke(nameLocation, rhsLocation, computedPropIdArrLocation, 
+            computedIndex, hasRest, memberNode->AsParseNodeBin()->pnode1, byteCodeGenerator, funcInfo);
 
-    ParseNodePtr lhsElementNode = memberNode->AsParseNodeBin()->pnode2;
+        // Imagine we are transforming
+        // {x:x1} = {} to x1 = {}.x  (here x1 is the second node of the member but that is our lhsnode)
+
+        lhsElementNode = memberNode->AsParseNodeBin()->pnode2;
+    }
+    else
+    {
+        // memberNode->nop == knopEllipsis, aka we are performing Rest operation
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::NewScObjectSimple, nameLocation);
+        byteCodeGenerator->Writer()->Reg4(Js::OpCode::Restify, rhsLocation, nameLocation, propIdArrLocation, computedPropIdArrLocation);
+        lhsElementNode = memberNode->AsParseNodeUni()->pnode1;
+    }
+
     ParseNodePtr init = nullptr;
     if (lhsElementNode->IsVarLetOrConst())
     {
@@ -6747,13 +6773,50 @@ void EmitDestructuredObjectMember(ParseNodePtr memberNode,
     funcInfo->ReleaseTmpRegister(nameLocation);
 }
 
+void EmitObjectPropertyIdsToArray(ByteCodeGenerator *byteCodeGenerator, 
+    Js::PropertyId *ids, 
+    ParseNodePtr memberNodes, 
+    uint32 staticCount, 
+    bool *hasComputedProps)
+{
+    uint32 index = 0;
+    Parser::ForEachItemInList(memberNodes, [&](ParseNodePtr current) {
+        if (current->nop != knopEllipsis)
+        {
+            ParseNodePtr nameNode = current->AsParseNodeBin()->pnode1;
+            Assert(nameNode != nullptr);
+            Assert(nameNode->nop == knopComputedName || nameNode->nop == knopStr);
+
+            if (nameNode->nop == knopStr)
+            {
+                if (index >= staticCount)
+                {
+                    Js::Throw::InternalError();
+                    return;
+                }
+                ids[index] = nameNode->AsParseNodeStr()->pid->GetPropertyId();
+                index++;
+            }
+            else
+            {
+                *hasComputedProps = true;
+            }
+        }
+    }); 
+}
+
 void EmitDestructuredObject(ParseNode *lhs,
     Js::RegSlot rhsLocationOrig,
     ByteCodeGenerator *byteCodeGenerator,
     FuncInfo *funcInfo)
 {
     Assert(lhs->nop == knopObjectPattern);
-    ParseNodePtr pnode1 = lhs->AsParseNodeUni()->pnode1;
+    ParseNodeObjLit *pnodeObjLit = lhs->AsParseNodeObjLit();
+    ParseNodePtr pnode1 = pnodeObjLit->pnode1;
+    uint32 staticCount = pnodeObjLit->staticCount;
+    uint32 computedCount = pnodeObjLit->computedCount;
+    bool hasRest = pnodeObjLit->hasRest;
+    bool hasComputedProps = false;
 
     byteCodeGenerator->StartStatement(lhs);
 
@@ -6766,19 +6829,51 @@ void EmitDestructuredObject(ParseNode *lhs,
 
     if (pnode1 != nullptr)
     {
-        Assert(pnode1->nop == knopList || pnode1->nop == knopObjectPatternMember);
-
-        ParseNodePtr current = pnode1;
-        while (current->nop == knopList)
+        Js::RegSlot propIdArrLocation = Js::Constants::NoRegister;
+        Js::RegSlot computedPropIdArrLocation = Js::Constants::NoRegister;
+        if (hasRest)
         {
-            ParseNodePtr memberNode = current->AsParseNodeBin()->pnode1;
-            EmitDestructuredObjectMember(memberNode, rhsLocation, byteCodeGenerator, funcInfo);
-            current = current->AsParseNodeBin()->pnode2;
+            uint extraAlloc = UInt32Math::Mul(staticCount, sizeof(Js::PropertyId));
+            uint auxSize = UInt32Math::Add(sizeof(Js::PropertyIdArray), extraAlloc);
+            Js::PropertyIdArray *propIds = AnewPlus(byteCodeGenerator->GetAllocator(), extraAlloc, Js::PropertyIdArray, staticCount, 0);
+
+            Assert(pnode1->nop == knopList || pnode1->nop == knopObjectPatternMember || pnode1->nop == knopEllipsis);
+
+            EmitObjectPropertyIdsToArray(byteCodeGenerator, propIds->elements, pnode1, staticCount, &hasComputedProps);
+
+            // Load static PropertyIdArray here
+            propIdArrLocation = funcInfo->AcquireTmpRegister();
+            byteCodeGenerator->Writer()->Auxiliary(Js::OpCode::LdPropIds, propIdArrLocation, propIds, auxSize, staticCount);
+
+            if (hasComputedProps)
+            {
+                computedPropIdArrLocation = funcInfo->AcquireTmpRegister();
+                byteCodeGenerator->Writer()->Reg1Unsigned1(Js::OpCode::NewPropIdArrForCompProps, computedPropIdArrLocation, computedCount);
+            }
+            else
+            {
+                computedPropIdArrLocation = propIdArrLocation;
+            }
         }
-        EmitDestructuredObjectMember(current, rhsLocation, byteCodeGenerator, funcInfo);
+
+        uint32 index = 0;
+        Parser::ForEachItemInList(pnode1, [&](ParseNodePtr memberNode) {
+            EmitDestructuredObjectMember(memberNode, rhsLocation, propIdArrLocation, computedPropIdArrLocation, 
+                &index, hasRest, byteCodeGenerator, funcInfo);
+        });
+
+        if (hasRest)
+        {
+            if (hasComputedProps)
+            {
+                funcInfo->ReleaseTmpRegister(computedPropIdArrLocation);
+            }
+            funcInfo->ReleaseTmpRegister(propIdArrLocation);
+        }
     }
 
     funcInfo->ReleaseTmpRegister(rhsLocation);
+    
     byteCodeGenerator->EndStatement(lhs);
 }
 

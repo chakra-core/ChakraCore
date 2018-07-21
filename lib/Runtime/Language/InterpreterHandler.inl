@@ -397,6 +397,9 @@ EXDEF3_WMS(CUSTOM,                  EmitTmpRegCount,            OP_EmitTmpRegCou
 #endif
 EXDEF2    (EMPTY,                   BeginBodyScope,             OP_BeginBodyScope)
 EXDEF2_WMS(A2toXXMem,               SpreadObjectLiteral,        JavascriptObject::SpreadObjectLiteral)
+EXDEF2_WMS(A2A2NonVartoXXMem,       Restify,                    JavascriptObject::Restify)
+EXDEF2_WMS(SET_ELEM_SLOTMem,        StPropIdArrFromVar,         OP_StPropIdArrFromVar)
+EXDEF2_WMS(SIZEtoA1MemNonVar,       NewPropIdArrForCompProps,   OP_NewPropIdArrForCompProps)
 
 
 #endif

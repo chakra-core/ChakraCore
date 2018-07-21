@@ -513,6 +513,10 @@ HELPERCALL(SpreadArrayLiteral, Js::JavascriptArray::SpreadArrayArgs, 0)
 HELPERCALL(SpreadCall, Js::JavascriptFunction::EntrySpreadCall, 0)
 
 HELPERCALL(SpreadObjectLiteral, Js::JavascriptObject::SpreadObjectLiteral, 0)
+HELPERCALL(Restify, Js::JavascriptObject::Restify, 0)
+HELPERCALL(NewPropIdArrForCompProps, Js::InterpreterStackFrame::OP_NewPropIdArrForCompProps, AttrCanNotBeReentrant)
+HELPERCALL(StPropIdArrFromVar, Js::InterpreterStackFrame::OP_StPropIdArrFromVar, 0)
+
 
 HELPERCALLCHK(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)

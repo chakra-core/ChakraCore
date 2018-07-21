@@ -2303,12 +2303,35 @@ void
 IRBuilder::BuildReg4(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                     Js::RegSlot src2RegSlot, Js::RegSlot src3RegSlot)
 {
-    IR::Instr *     instr;
-    Assert(newOpcode == Js::OpCode::Concat3);
+    IR::Instr *     instr = nullptr;
+    Assert(newOpcode == Js::OpCode::Concat3 || newOpcode == Js::OpCode::Restify);
 
     IR::RegOpnd * src1Opnd = this->BuildSrcOpnd(src1RegSlot);
     IR::RegOpnd * src2Opnd = this->BuildSrcOpnd(src2RegSlot);
-    IR::RegOpnd * src3Opnd = this->BuildSrcOpnd(src3RegSlot);
+    IR::RegOpnd * src3Opnd = this->BuildSrcOpnd(src3RegSlot);    
+
+    if (newOpcode == Js::OpCode::Restify)
+    {
+        IR::RegOpnd * src0Opnd = this->BuildSrcOpnd(dstRegSlot);
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src3Opnd, m_func);
+        this->AddInstr(instr, offset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src2Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src1Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src0Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        IR::Opnd *firstArg = instr->GetDst();
+        instr = IR::Instr::New(newOpcode, m_func);
+        instr->SetSrc1(firstArg);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        return;
+    }
+
     IR::RegOpnd * dstOpnd = this->BuildDstOpnd(dstRegSlot);
 
     IR::RegOpnd * str1Opnd = InsertConvPrimStr(src1Opnd, offset, true);
@@ -2997,6 +3020,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
         dstOpnd->SetValueTypeFixed();
     }
 }
+
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::BuildReg2Int1
@@ -3423,6 +3447,29 @@ StSlotCommon:
             instr->SetSrc2(fieldSymOpnd);
         }
         break;
+
+    case Js::OpCode::StPropIdArrFromVar:
+    {
+        IR::RegOpnd *   src0Opnd = this->BuildSrcOpnd(fieldRegSlot);
+        IR::RegOpnd *   src1Opnd = this->BuildSrcOpnd(regSlot);
+        IntConstType    value = slotId;
+        IR::IntConstOpnd * valOpnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src1Opnd, m_func);
+        this->AddInstr(instr, offset);
+        offset = Js::Constants::NoByteCodeOffset;
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), valOpnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, offset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src0Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, offset);
+
+        IR::Opnd * firstArg = instr->GetDst();
+        instr = IR::Instr::New(newOpcode, m_func);
+        instr->SetSrc1(firstArg);
+        break;
+    }
 
     default:
         AssertMsg(UNREACHED, "Unknown ElementSlot opcode");
