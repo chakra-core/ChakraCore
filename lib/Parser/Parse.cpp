@@ -8508,6 +8508,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
             }
         }
+        else if (nop == knopAwait && m_token.tk == tkColon)
+        {
+            Error(ERRAwaitAsLabelInAsync);
+        }
         else
         {
             // Disallow spread after a unary operator.
@@ -9684,6 +9688,10 @@ LRestart:
     switch (tok)
     {
     case tkEOF:
+        if (labelledStatement)
+        {
+            Error(ERRLabelFollowedByEOF);
+        }
         if (buildAST)
         {
             pnode = nullptr;
@@ -9710,7 +9718,11 @@ LRestart:
         ParseNodeFnc* pNodeFnc = (ParseNodeFnc*)pnode;
         if (labelledStatement)
         {
-            if (pNodeFnc->IsAsync())
+            if (IsStrictMode())
+            {
+                Error(ERRFunctionAfterLabelInStrict);
+            }
+            else if (pNodeFnc->IsAsync())
             {
                 Error(ERRLabelBeforeAsyncFncDeclaration);
             }

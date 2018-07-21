@@ -112,6 +112,11 @@ var helpers = function helpers() {
         {
             return Object.prototype.toString.call(object);
         },
+        
+        getFileAndLineInfo: function getFileAndLineInfo() 
+        {   
+            return new Error().stack.toString().replace(/[\w\W]*at body\s*/, "").replace(/\n[\w\W]*/, "")
+        }
     }
 }(); // helpers module.
 
@@ -257,6 +262,7 @@ var testRunner = function testRunner() {
             } catch (ex) {
                 var message = ex.stack || ex.message || ex;
                 logTestNameIf(!_verbose);
+                var fileAndLineInfo = helpers.getFileAndLineInfo();
                 helpers.writeln("Test threw exception: ", message);
                 isSuccess = false;
             }
@@ -361,7 +367,7 @@ var assert = function assert() {
         } else {
             if (isObject(actual)) return "actual is an object";
             if (isNaN(expected) && isNaN(actual)) return true;
-            return "expected: " + expected + " actual: " + actual;
+            return "  expected: " + expected + "\n    actual: " + actual;
         }
     };
 
@@ -394,7 +400,8 @@ var assert = function assert() {
 
     var validate = function validate(result, assertType, message) {
         if (result !== true) {
-            var exMessage = addMessage("assert." + assertType + " failed: " + result);
+            var fileAndLineInfo = helpers.getFileAndLineInfo();
+            var exMessage = addMessage("assert." + assertType + " failed at " + fileAndLineInfo + ":\n" + result + "\n   ");
             exMessage = addMessage(exMessage, message);
             throwMessage(exMessage);
         }
@@ -402,11 +409,11 @@ var assert = function assert() {
 
     var addMessage = function addMessage(baseMessage, message) {
         if (message !== undefined) {
-            baseMessage += ": " + message;
+            baseMessage += "Message: " + message;
         }
         return baseMessage;
     }
-
+    
     return {
         strictEqual: function strictEqual(expected, actual, message) {
             validate(expected === actual, "strictEqual", message);
@@ -493,10 +500,11 @@ var assert = function assert() {
                   expectedException.toString().replace(/\n/g, "").replace(/.*function (.*)\(.*/g, "$1") :
                   "<any exception>";
                 if (expectedErrorMessage) {
-                    expectedString += " " + expectedErrorMessage;
+                    expectedString += ": " + expectedErrorMessage;
                 }
                 var actual = exception !== noException ? exception : "<no exception>";
-                throwMessage(addMessage("assert.throws failed: expected: " + expectedString + ", actual: " + actual, message));
+                var fileAndLineInfo = helpers.getFileAndLineInfo();
+                throwMessage(addMessage("assert.throws failed at " + fileAndLineInfo + ":\n  expected: " + expectedString + "\n    actual: " + actual + "\n   ", message));
             }
         },
 
@@ -512,13 +520,15 @@ var assert = function assert() {
             if (exception === noException) {
                 return;
             }
-
-            throwMessage(addMessage("assert.doesNotThrow failed: expected: <no exception>, actual: " + exception, message));
+            
+            var fileAndLineInfo = helpers.getFileAndLineInfo();
+            throwMessage(addMessage("assert.doesNotThrow failed at " + fileAndLineInfo + ":\n  expected: <no exception>,\n    actual: " + exception + "\n   ", message));
         },
 
         fail: function fail(message) {
             ///<summary>Can be used to fail the test.</summary>
-            throwMessage(message);
+            var fileAndLineInfo = helpers.getFileAndLineInfo();
+            throwMessage(addMessage("assert.fail failed at " + fileAndLineInfo + "\n   ", message));
         },
 
         matches: function matches(expected, actual, message) {

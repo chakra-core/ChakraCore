@@ -6,8 +6,8 @@ Exception: IterationStatement(do-while).Statement.FunctionDeclaration - SyntaxEr
 Exception: IterationStatement(while).Statement.FunctionDeclaration - SyntaxError
 Exception: IterationStatement(for).Statement.FunctionDeclaration - SyntaxError
 Exception: IterationStatement(for-in).Statement.FunctionDeclaration - SyntaxError
-Return: SourceElement.Statement.LabelledStatement.Statement.FunctionDeclaration
-Return: Block.Statement.LabelledStatement.Statement.FunctionDeclaration
+Exception: SourceElement.Statement.LabelledStatement.Statement.FunctionDeclaration - SyntaxError
+Exception: Block.Statement.LabelledStatement.Statement.FunctionDeclaration - SyntaxError
 Return: SwitchStatement.CaseBlock.CaseClause.StatementList.Statement.FunctionDeclaration
 Return: SwitchStatement.CaseBlock.DefaultClause.StatementList.Statement.FunctionDeclaration
 Return: SwitchStatement.CaseBlock.DefaultClause.StatementList.Statement.FunctionDeclaration

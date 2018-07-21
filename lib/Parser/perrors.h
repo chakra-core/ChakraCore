@@ -106,3 +106,6 @@ LSC_ERROR_MSG(1090, ERRLabelBeforeLexicalDeclaration, "Labels not allowed before
 LSC_ERROR_MSG(1091, ERRLabelBeforeGeneratorDeclaration, "Labels not allowed before generator declaration")
 LSC_ERROR_MSG(1092, ERRLabelBeforeAsyncFncDeclaration, "Labels not allowed before async function declaration")
 LSC_ERROR_MSG(1093, ERRLabelBeforeClassDeclaration, "Labels not allowed before class declaration")
+LSC_ERROR_MSG(1094, ERRLabelFollowedByEOF, "Unexpected end of script after a label.")
+LSC_ERROR_MSG(1095, ERRFunctionAfterLabelInStrict, "Function declarations not allowed after a label in strict mode.")
+LSC_ERROR_MSG(1096, ERRAwaitAsLabelInAsync, "Use of 'await' as label in async function is not allowed.")
