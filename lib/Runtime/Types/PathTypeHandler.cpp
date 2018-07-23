@@ -1880,8 +1880,8 @@ namespace Js
         return type;
     }
 
-    DynamicType *
-    PathTypeHandlerBase::CreateNewScopeObject(ScriptContext *scriptContext, DynamicType *type, const PropertyIdArray *propIds, PropertyAttributes extraAttributes, uint extraAttributesSlotCount)
+    template <bool skipLetAttrForArguments>
+    DynamicType * PathTypeHandlerBase::CreateNewScopeObject(ScriptContext *scriptContext, DynamicType *type, const PropertyIdArray *propIds, PropertyAttributes extraAttributes, uint extraAttributesSlotCount)
     {
         uint count = propIds->count;
 
@@ -1899,6 +1899,11 @@ namespace Js
             if (i < extraAttributesSlotCount)
             {
                 attributes |= extraAttributes;
+                if (skipLetAttrForArguments && propertyId == PropertyIds::arguments)
+                {
+                    // Do not add let attribute for built-in arguments symbol
+                    attributes &= ~PropertyLet;
+                }
             }
             typeHandler->Add(propertyRecord, attributes, scriptContext);
         }
@@ -1912,6 +1917,8 @@ namespace Js
 
         return type;
     }
+    template DynamicType * PathTypeHandlerBase::CreateNewScopeObject<true>(ScriptContext *scriptContext, DynamicType *type, const PropertyIdArray *propIds, PropertyAttributes extraAttributes, uint extraAttributesSlotCount);
+    template DynamicType * PathTypeHandlerBase::CreateNewScopeObject<false>(ScriptContext *scriptContext, DynamicType *type, const PropertyIdArray *propIds, PropertyAttributes extraAttributes, uint extraAttributesSlotCount);
 
     template <bool isObjectLiteral>
     DynamicType* PathTypeHandlerBase::PromoteType(DynamicType* predecessorType, const PathTypeSuccessorKey key, bool shareType, ScriptContext* scriptContext, DynamicObject* instance, PropertyIndex* propertyIndex)
