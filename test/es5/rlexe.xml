@@ -185,16 +185,6 @@
     <default>
       <files>hasItem.js</files>
       <baseline>hasItem.baseline</baseline>
-      <!-- Bug 16538950: jshost - adapt the ch change to support printing strings with U+0000 (NULL) -->
-      <tags>exclude_jshost</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>hasItem.js</files>
-      <baseline>hasItem.jshost.baseline</baseline>
-      <!-- Bug 16538950: jshost - adapt the ch change to support printing strings with U+0000 (NULL) -->
-      <tags>exclude_ch</tags>
     </default>
   </test>
   <test>
