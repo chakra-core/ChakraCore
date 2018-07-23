@@ -76,9 +76,66 @@ void RpcFailure_unrecoverable_error(HRESULT hr);
 void OutOfMemory_unrecoverable_error();
 void RecyclerSingleAllocationLimit_unrecoverable_error();
 void MemGCSingleAllocationLimit_unrecoverable_error();
+
 void OutOfMemoryTooManyPinnedObjects_unrecoverable_error();
 void OutOfMemoryTooManyClosedContexts_unrecoverable_error();
 void OutOfMemoryAllocationPolicy_unrecoverable_error();
+
+void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_visible();
+void OutOfMemoryTooManyClosedContexts_unrecoverable_error_visible();
+void OutOfMemoryAllocationPolicy_unrecoverable_error_visible();
+
+void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible();
+void OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible();
+void OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible();
+
+inline void OutOfMemoryTooManyPinnedObjects_unrecoverable_error(BYTE visibility)
+{
+    switch (visibility)
+    {
+    case 1:
+        OutOfMemoryTooManyPinnedObjects_unrecoverable_error_visible();
+        break;
+    case 2:
+        OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible();
+        break;
+    default:
+        OutOfMemoryTooManyPinnedObjects_unrecoverable_error();
+        break;
+    }
+}
+
+inline void OutOfMemoryTooManyClosedContexts_unrecoverable_error(BYTE visibility)
+{
+    switch (visibility)
+    {
+    case 1:
+        OutOfMemoryTooManyClosedContexts_unrecoverable_error_visible();
+        break;
+    case 2:
+        OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible();
+        break;
+    default:
+        OutOfMemoryTooManyClosedContexts_unrecoverable_error();
+        break;
+    }
+}
+
+inline void OutOfMemoryAllocationPolicy_unrecoverable_error(BYTE visibility)
+{
+    switch (visibility)
+    {
+    case 1:
+        OutOfMemoryAllocationPolicy_unrecoverable_error_visible();
+        break;
+    case 2:
+        OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible();
+        break;
+    default:
+        OutOfMemoryAllocationPolicy_unrecoverable_error();
+        break;
+    }
+}
 
 #ifndef DISABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.

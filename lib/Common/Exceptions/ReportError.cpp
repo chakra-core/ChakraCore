@@ -181,4 +181,48 @@ _NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error()
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
+///////
+//
+// The following variety of OOM unrecoverable errors are similar to the ones above 
+// and exist specifically for additional distinct bucketing of crash dumps for 
+// diagnostics purposes.
+//
+///////
+
+_NOINLINE void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_visible()
+{
+    int scenario = 15;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error_visible()
+{
+    int scenario = 16;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error_visible()
+{
+    int scenario = 17;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible()
+{
+    int scenario = 18;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible()
+{
+    int scenario = 19;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible()
+{
+    int scenario = 20;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
 #pragma optimize("",on)

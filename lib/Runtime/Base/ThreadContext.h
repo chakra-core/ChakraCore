@@ -866,6 +866,16 @@ public:
     // high number may indicate that context leaks have occured.
     uint closedScriptContextCount;
 
+    enum VisibilityState : BYTE
+    {
+        Undefined = 0,
+        Visible = 1,
+        NotVisible = 2
+    };
+
+    // indicates the visibility state of the hosting application/window/tab if known.
+    VisibilityState visibilityState;
+
 #if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
