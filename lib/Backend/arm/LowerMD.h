@@ -247,6 +247,7 @@ public:
             void                LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd);
             void                LowerTypeof(IR::Instr * typeOfInstr);
             void                GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+            IR::BranchInstr*    InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr);
 private:
     IR::Opnd* IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
 

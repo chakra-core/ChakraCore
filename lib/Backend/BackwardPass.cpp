@@ -4907,8 +4907,8 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
     }
 
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
-    if(!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || !instr->GetSrc1()->IsInt32()) &&
+    if (!baseValueType.IsNotNativeArray() &&
+        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
         !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
         !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {
