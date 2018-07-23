@@ -15376,7 +15376,7 @@ IR::Instr *Lowerer::InsertSub(
     return instr;
 }
 
-IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, bool postRegAlloc)
+IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr)
 {
     Assert(dst);
     Assert(src);
@@ -15388,11 +15388,11 @@ IR::Instr *Lowerer::InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::I
     IR::Instr *const instr = IR::Instr::New(LowererMD::MDLea, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-    return ChangeToLea(instr, postRegAlloc);
+    return ChangeToLea(instr);
 }
 
 IR::Instr *
-Lowerer::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
+Lowerer::ChangeToLea(IR::Instr * instr)
 {
     Assert(instr);
     Assert(instr->GetDst());
@@ -15402,7 +15402,7 @@ Lowerer::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
     Assert(!instr->GetSrc2());
 
     instr->m_opcode = LowererMD::MDLea;
-    LowererMD::Legalize(instr, postRegAlloc);
+    LowererMD::Legalize(instr);
     return instr;
 }
 
@@ -27185,7 +27185,7 @@ Lowerer::SetHasBailedOut(IR::Instr * bailoutInstr)
     IR::SymOpnd * hasBailedOutOpnd = IR::SymOpnd::New(this->m_func->m_hasBailedOutSym, TyUint32, this->m_func);
     IR::Instr * setInstr = IR::Instr::New(LowererMD::GetStoreOp(TyUint32), hasBailedOutOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), this->m_func);
     bailoutInstr->InsertBefore(setInstr);
-    LowererMD::Legalize(setInstr, true);
+    LowererMD::Legalize(setInstr);
 }
 
 IR::Instr*
@@ -27236,7 +27236,7 @@ Lowerer::EmitSaveEHBailoutReturnValueAndJumpToRetThunk(IR::Instr * insertAfterIn
     IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(NULL, LowererMD::GetRegReturn(TyMachReg), TyMachReg, this->m_func);
     IR::Instr * movInstr = IR::Instr::New(LowererMD::GetStoreOp(TyVar), bailoutReturnValueSymOpnd, eaxOpnd, this->m_func);
     insertAfterInstr->InsertAfter(movInstr);
-    LowererMD::Legalize(movInstr, true);
+    LowererMD::Legalize(movInstr);
 
     IR::BranchInstr * jumpInstr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, this->currentRegion->GetBailoutReturnThunkLabel(), this->m_func);
     movInstr->InsertAfter(jumpInstr);
@@ -27258,7 +27258,7 @@ Lowerer::EmitRestoreReturnValueFromEHBailout(IR::LabelInstr * restoreLabel, IR::
 
     epilogLabel->InsertBefore(restoreLabel);
     epilogLabel->InsertBefore(movInstr);
-    LowererMD::Legalize(movInstr, true);
+    LowererMD::Legalize(movInstr);
     restoreLabel->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, epilogLabel, this->m_func));
 }
 
