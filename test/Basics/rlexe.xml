@@ -72,7 +72,7 @@
   <test>
     <default>
       <files>Labels.js</files>
-      <compile-flags>-args summary -endargs</compile-flags>
+      <compile-flags>-MuteHostErrorMsg -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
