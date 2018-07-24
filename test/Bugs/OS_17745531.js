@@ -41,6 +41,13 @@ for (let j = 0; j < 127; j++)
     {
         console.log("fail");
     }
+
+    // just check for asserts when doing lookups
+    for (let i = 0; i < 500; i++) {
+        if (obj1['prop' + i] == "qq") {
+            console.log("hmm");
+        }
+    }
 }
 
 console.log("pass");
