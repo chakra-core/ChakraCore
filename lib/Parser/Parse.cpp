@@ -8442,6 +8442,10 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
             }
         }
+        else if (nop == knopAwait && m_token.tk == tkColon)
+        {
+            Error(ERRAwaitAsLabelInAsync);
+        }
         else
         {
             // Disallow spread after a unary operator.
@@ -9573,6 +9577,7 @@ ParseNodePtr Parser::ParseStatement()
     uint fnop;
     bool expressionStmt = false;
     bool isAsyncMethod = false;
+    bool labelledStatement = false;
     tokens tok;
 #if EXCEPTION_RECOVERY
     ParseNodeTryCatch * pParentTryCatch = nullptr;
@@ -9625,6 +9630,10 @@ LRestart:
     switch (tok)
     {
     case tkEOF:
+        if (labelledStatement)
+        {
+            Error(ERRLabelFollowedByEOF);
+        }
         if (buildAST)
         {
             pnode = nullptr;
@@ -9646,6 +9655,25 @@ LRestart:
         {
             pnode = ParseFncDeclCheckScope<buildAST>(fFncDeclaration | (isAsyncMethod ? fFncAsync : fFncNoFlgs));
         }
+
+        Assert(pnode != nullptr);
+        ParseNodeFnc* pNodeFnc = (ParseNodeFnc*)pnode;
+        if (labelledStatement)
+        {
+            if (IsStrictMode())
+            {
+                Error(ERRFunctionAfterLabelInStrict);
+            }
+            else if (pNodeFnc->IsAsync())
+            {
+                Error(ERRLabelBeforeAsyncFncDeclaration);
+            }
+            else if (pNodeFnc->IsGenerator())
+            {
+                Error(ERRLabelBeforeGeneratorDeclaration);
+            }
+        }
+        
         if (isAsyncMethod)
         {
             pnode->AsParseNodeFnc()->cbMin = iecpMin;
@@ -9655,7 +9683,11 @@ LRestart:
     }
 
     case tkCLASS:
-        if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
+        if (labelledStatement)
+        {
+            Error(ERRLabelBeforeClassDeclaration);
+        }
+        else if (m_scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled())
         {
             pnode = ParseClassDecl<buildAST>(TRUE, nullptr, nullptr, nullptr);
         }
@@ -9668,6 +9700,10 @@ LRestart:
     case tkID:
         if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
         {
+            if (labelledStatement)
+            {
+                Error(ERRLabelBeforeLexicalDeclaration);
+            }
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
             RestorePoint parsedLet;
@@ -9701,6 +9737,10 @@ LRestart:
 
     case tkCONST:
     case tkLET:
+        if (labelledStatement)
+        {
+            Error(ERRLabelBeforeLexicalDeclaration);
+        }
         ichMin = this->GetScanner()->IchMinTok();
 
         this->GetScanner()->Scan();
@@ -10570,6 +10610,7 @@ LDefaultToken:
                 pLabelId->next = pLabelIdList;
                 pLabelIdList = pLabelId;
                 this->GetScanner()->Scan();
+                labelledStatement = true;
                 goto LRestart;
             }
 

@@ -1,15 +1,24 @@
 *** Running test #1 (0): Uint8ClampedArray constructor exists and has expected properties
 PASSED
 *** Running test #2 (1): Uint8ClampedArray prototype has expected fields
-Test threw exception: assert.isTrue failed: expected: true actual: false: Uint8ClampedArray prototype should have a set method
+Test threw exception: assert.isTrue failed at (Uint8ClampedArray.js:34:13):
+  expected: true
+    actual: false
+   Message: Uint8ClampedArray prototype should have a set method
 FAILED
 *** Running test #3 (2): Uint8ClampedArray clamping functionality
 PASSED
 *** Running test #4 (3): ToString works correctly for Uint8Clamped array
-Test threw exception: assert.areEqual failed: expected: [object Uint8ClampedArray] actual: 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0: arr.toString == "[object Uint8ClampedArray]"
+Test threw exception: assert.areEqual failed at (Uint8ClampedArray.js:144:13):
+  expected: [object Uint8ClampedArray]
+    actual: 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   Message: arr.toString == "[object Uint8ClampedArray]"
 FAILED
 *** Running test #5 (4): Uint8ClampedArray.subarray functional test
-Test threw exception: assert.throws failed: expected: RangeError Invalid begin/end value in typed array subarray method, actual: <no exception>: Invalid begin/end value in typed array subarray method
+Test threw exception: assert.throws failed at (Uint8ClampedArray.js:158:13):
+  expected: RangeError: Invalid begin/end value in typed array subarray method
+    actual: <no exception>
+   Message: Invalid begin/end value in typed array subarray method
 FAILED
 *** Running test #6 (5): Uint8ClampedArray.set functional test
 PASSED
