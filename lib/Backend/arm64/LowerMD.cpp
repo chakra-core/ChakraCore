@@ -390,7 +390,7 @@ LowererMD::LoadDynamicArgument(IR::Instr *instr, uint argNumber)
     IR::Opnd* dst = GetOpndForArgSlot((Js::ArgSlot) (argNumber - 1));
     instr->SetDst(dst);
     instr->m_opcode = Js::OpCode::MOV;
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     return instr;
 }
@@ -404,13 +404,13 @@ LowererMD::LoadDynamicArgumentUsingLength(IR::Instr *instr)
     // We register store the first INT_ARG_REG_COUNT - 3 parameters, since the first 3 register parameters are taken by function object, callinfo, and this pointer
     IR::Instr *add = IR::Instr::New(Js::OpCode::SUB, IR::RegOpnd::New(src2->GetType(), this->m_func), src2, IR::IntConstOpnd::New(INT_ARG_REG_COUNT - 3, TyInt8, this->m_func), this->m_func);
     instr->InsertBefore(add);
-    LegalizeMD::LegalizeInstr(add, false);
+    LegalizeMD::LegalizeInstr(add);
     //We need store nth actuals, so stack location is after function object, callinfo & this pointer
     IR::RegOpnd *stackPointer   = IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, this->m_func);
     IR::IndirOpnd *actualsLocation = IR::IndirOpnd::New(stackPointer, add->GetDst()->AsRegOpnd(), GetDefaultIndirScale(), TyMachReg, this->m_func);
     instr->SetDst(actualsLocation);
     instr->m_opcode = Js::OpCode::LDR;
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     return instr;
 }
@@ -891,7 +891,7 @@ LowererMD::GenerateStackProbe(IR::Instr *insertInstr, bool afterProlog)
         instr->SetSrc1(IR::RegOpnd::New(nullptr, GetRegStackPointer(), TyMachReg, this->m_func));
         instr->SetSrc2(scratchOpnd);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
 
         // BHI done
         instr = IR::BranchInstr::New(Js::OpCode::BHI, doneLabelInstr, this->m_func);
@@ -988,7 +988,7 @@ LowererMD::GenerateStackDeallocation(IR::Instr *instr, uint32 allocSize)
         spOpnd,
         IR::IntConstOpnd::New(allocSize, TyMachReg, this->m_func, true), this->m_func);
     instr->InsertBefore(spAdjustInstr);
-    LegalizeMD::LegalizeInstr(spAdjustInstr, true);
+    LegalizeMD::LegalizeInstr(spAdjustInstr);
 }
 
 
@@ -2111,7 +2111,9 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType destType)
     {
         instr->m_opcode = IRType_IsFloat(destType) ? Js::OpCode::FMOV : Js::OpCode::MOV;
     }
-    LegalizeMD::LegalizeInstr(instr, false);
+
+    AutoRestoreLegalize restore(instr->m_func, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     return instr;
 }
@@ -2393,7 +2395,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
             instrPrev->SetSrc1(opndSrc1);
             instrPrev->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
             instr->InsertBefore(instrPrev);
-            LegalizeMD::LegalizeInstr(instrPrev, false);
+            LegalizeMD::LegalizeInstr(instrPrev);
 
             instr->m_opcode = Js::OpCode::BNE;
 
@@ -2407,7 +2409,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
             instrPrev->SetSrc1(opndSrc1);
             instrPrev->SetSrc2(IR::IntConstOpnd::New(0, TyInt32, m_func));
             instr->InsertBefore(instrPrev);
-            LegalizeMD::LegalizeInstr(instrPrev, false);
+            LegalizeMD::LegalizeInstr(instrPrev);
 
             instr->m_opcode = Js::OpCode::BEQ;
 
@@ -2427,7 +2429,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
                 instrPrev->SetSrc1(opndSrc1);
                 instrPrev->SetSrc2(opndSrc2);
                 instr->InsertBefore(instrPrev);
-                LegalizeMD::LegalizeInstr(instrPrev, false);
+                LegalizeMD::LegalizeInstr(instrPrev);
 
                 instr->m_opcode = LowererMD::MDBranchOpcode(instr->m_opcode);
             }
@@ -2440,7 +2442,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
                 instrPrev->SetSrc2(opndSrc2);
                 instr->InsertBefore(instrPrev);
 
-                LegalizeMD::LegalizeInstr(instrPrev, false);
+                LegalizeMD::LegalizeInstr(instrPrev);
 
                 instr->m_opcode = MDBranchOpcode(instr->m_opcode);
             }
@@ -2553,7 +2555,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //// s1 =  AND  src1, 0x80000001 | ((src2Value - 1) << 1)
     //instr = IR::Instr::New(Js::OpCode::AND, s1, src1, IR::IntConstOpnd::New((0x80000001 | ((src2Value - 1) << 1)), TyInt32, m_func), m_func);
     //instrDiv->InsertBefore(instr);
-    //LegalizeMD::LegalizeInstr(instr, false);
+    //LegalizeMD::LegalizeInstr(instr);
 
     ////       CMP s1, 1
     //instr = IR::Instr::New(Js::OpCode::CMP, m_func);
@@ -2568,12 +2570,12 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //// s1  = ASR  src1, log2(src2Value)  -- do the equal divide
     //instr = IR::Instr::New(Js::OpCode::ASR, s1, src1, IR::IntConstOpnd::New(Math::Log2(src2Value), TyInt32, m_func), m_func);
     //instrDiv->InsertBefore(instr);
-    //LegalizeMD::LegalizeInstr(instr, false);
+    //LegalizeMD::LegalizeInstr(instr);
 
     //// dst = ORR   s1, 1                 -- restore tagged int bit
     //instr = IR::Instr::New(Js::OpCode::ORR, dst, s1, IR::IntConstOpnd::New(1, TyInt32, m_func), m_func);
     //instrDiv->InsertBefore(instr);
-    //LegalizeMD::LegalizeInstr(instr, false);
+    //LegalizeMD::LegalizeInstr(instr);
     //
     ////       B  $done
     //instr = IR::BranchInstr::New(Js::OpCode::B, done, m_func);
@@ -2598,7 +2600,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //// s1 =  ASR  src1, log2(src2Value) + 1 -- do the integer divide and also shift out the tagged int bit
     //instr = IR::Instr::New(Js::OpCode::ASR, s1, src1, IR::IntConstOpnd::New(Math::Log2(src2Value) + 1, TyInt32, m_func), m_func);
     //instrDiv->InsertBefore(instr);
-    //LegalizeMD::LegalizeInstr(instr, false);
+    //LegalizeMD::LegalizeInstr(instr);
 
     //// Arg2: scriptContext
     //IR::JnHelperMethod helperMethod;
@@ -2610,7 +2612,7 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
     //    StackSym * tempNumberSym = this->m_lowerer->GetTempNumberSym(dst, instr->dstIsTempNumberTransferred);
 
     //    instr = this->m_lowerer->InsertLoadStackAddress(tempNumberSym, instrDiv);
-    //    LegalizeMD::LegalizeInstr(instr, false);
+    //    LegalizeMD::LegalizeInstr(instr);
 
     //    this->LoadHelperArgument(instrDiv, instr->GetDst());
     //}
@@ -2831,7 +2833,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* 
     instrCmp->SetSrc1(src1);
     instrCmp->SetSrc2(src2);
     instr->InsertBefore(instrCmp);
-    LegalizeMD::LegalizeInstr(instrCmp,false);
+    LegalizeMD::LegalizeInstr(instrCmp);
 
     instr->InsertBefore(IR::BranchInstr::New(opcode, fallthru, m_func));
     instr->InsertBefore(IR::Instr::New(Js::OpCode::LDIMM, dst, opndFalse, m_func));
@@ -2874,7 +2876,7 @@ IR::Instr * LowererMD::GenerateConvBool(IR::Instr *instr)
     instrTst->SetSrc1(src1);
     instrTst->SetSrc2(src1);
     instr->InsertBefore(instrTst);
-    LegalizeMD::LegalizeInstr(instrTst, false);
+    LegalizeMD::LegalizeInstr(instrTst);
 
     // BNE fallthrough
     instr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BNE, fallthru, m_func));
@@ -3405,7 +3407,7 @@ LowererMD::GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * insertInstr, 
         instr->SetSrc1(opndSrc);
         instr->SetSrc2(opndSrc);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
     }
 }
 
@@ -4001,7 +4003,7 @@ LowererMD::GenerateFastScopedFld(IR::Instr * instrScopedFld, bool isLoad)
     instr->SetSrc1(opndReg1);
     instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt8, this->m_func));
     instrScopedFld->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     // BNE $helper
     instr = IR::BranchInstr::New(Js::OpCode::BNE, labelHelper, this->m_func);
@@ -4156,7 +4158,7 @@ LowererMD::GenerateStFldFromLocalInlineCache(
         opndIndir = IR::IndirOpnd::New(opndBase, opndSlotIndex, LowererMD::GetDefaultIndirScale(), TyMachReg, instrStFld->m_func);
         instr = IR::Instr::New(Js::OpCode::STR, opndIndir, opndSrc, instrStFld->m_func);
         instrStFld->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
     }
     else
     {
@@ -4164,7 +4166,7 @@ LowererMD::GenerateStFldFromLocalInlineCache(
         opndIndir = IR::IndirOpnd::New(opndSlotArray, opndSlotIndex, LowererMD::GetDefaultIndirScale(), TyMachReg, instrStFld->m_func);
         instr = IR::Instr::New(Js::OpCode::STR, opndIndir, opndSrc, instrStFld->m_func);
         instrStFld->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
     }
 
     // B $done
@@ -4569,7 +4571,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         instr->SetSrc1(regBoolResult);
         instr->SetSrc2(regBoolResult);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
 
         // BNE $noBailOut
         labelNoBailOut = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
@@ -4595,7 +4597,7 @@ LowererMD::EmitLoadFloatFromNumber(IR::Opnd *dst, IR::Opnd *src, IR::Instr *inse
         // VLDR dst, [pResult].f64
         instr = IR::Instr::New(Js::OpCode::FLDR, dst, tempSymOpnd, this->m_func);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
     }
 }
 
@@ -4619,7 +4621,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         regFloatOpnd = IR::RegOpnd::New(TyFloat64, this->m_func);
         instr = IR::Instr::New(Js::OpCode::FLDR, regFloatOpnd, memRef, this->m_func);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
         isFloatConst = true;
     }
     // Src is constant?
@@ -4647,7 +4649,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
             instr = IR::Instr::New(Js::OpCode::FMOV, dst, regFloatOpnd, this->m_func);
             insertInstr->InsertBefore(instr);
         }
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
         return nullptr;
     }
     Assert(src->IsRegOpnd());
@@ -4686,7 +4688,7 @@ LowererMD::EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertIn
         instr = IR::Instr::New(Js::OpCode::FMOV, dst, reg2, this->m_func);
         insertInstr->InsertBefore(instr);
     }
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     // B $Done
     instr = IR::BranchInstr::New(Js::OpCode::B, labelDone, this->m_func);
@@ -4786,7 +4788,7 @@ LowererMD::EmitLoadFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, I
     {
         instr = IR::Instr::New(Js::OpCode::FLDR, dst , memAddress, this->m_func);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
     }
 
     // $Done
@@ -4820,21 +4822,21 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     // LDR newObjDst, allocator->freeObjectList
     IR::Instr * loadMemBlockInstr = IR::Instr::New(Js::OpCode::LDR, newObjDst, freeObjectListOpnd, this->m_func);
     insertionPointInstr->InsertBefore(loadMemBlockInstr);
-    LegalizeMD::LegalizeInstr(loadMemBlockInstr, false);
+    LegalizeMD::LegalizeInstr(loadMemBlockInstr);
 
     // nextMemBlock = ADD newObjDst, allocSize
     IR::RegOpnd * nextMemBlockOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::IntConstOpnd* allocSizeOpnd = IR::IntConstOpnd::New((int32)allocSize, TyInt32, this->m_func);
     IR::Instr * loadNextMemBlockInstr = IR::Instr::New(Js::OpCode::ADD, nextMemBlockOpnd, newObjDst, allocSizeOpnd, this->m_func);
     insertionPointInstr->InsertBefore(loadNextMemBlockInstr);
-    LegalizeMD::LegalizeInstr(loadNextMemBlockInstr, false);
+    LegalizeMD::LegalizeInstr(loadNextMemBlockInstr);
 
     // CMP nextMemBlock, allocator->endAddress
     IR::Instr * checkInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     checkInstr->SetSrc1(nextMemBlockOpnd);
     checkInstr->SetSrc2(endAddressOpnd);
     insertionPointInstr->InsertBefore(checkInstr);
-    LegalizeMD::LegalizeInstr(checkInstr, false);
+    LegalizeMD::LegalizeInstr(checkInstr);
 
     // BHI $allocHelper
     IR::BranchInstr * branchToAllocHelperInstr = IR::BranchInstr::New(Js::OpCode::BHI, allocHelperLabel, this->m_func);
@@ -4843,7 +4845,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     // LDR allocator->freeObjectList, nextMemBlock
     IR::Instr * setFreeObjectListInstr = IR::Instr::New(Js::OpCode::LDR, freeObjectListOpnd, nextMemBlockOpnd, this->m_func);
     insertionPointInstr->InsertBefore(setFreeObjectListInstr);
-    LegalizeMD::LegalizeInstr(setFreeObjectListInstr, false);
+    LegalizeMD::LegalizeInstr(setFreeObjectListInstr);
 
     // B $allocDone
     IR::BranchInstr * branchToAllocDoneInstr = IR::BranchInstr::New(Js::OpCode::B, allocDoneLabel, this->m_func);
@@ -4856,7 +4858,7 @@ LowererMD::GenerateClz(IR::Instr * instr)
     Assert(instr->GetSrc1()->IsIntegral32());
     Assert(IRType_IsNativeInt(instr->GetDst()->GetType()));
     instr->m_opcode = Js::OpCode::CLZ;
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 }
 
 void
@@ -5191,7 +5193,7 @@ br2_Common:
         break;
     }
 
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 }
 
 void
@@ -5354,7 +5356,7 @@ LowererMD::LowerInt4MulWithBailOut(
     IR::Opnd* s3 = IR::RegOpnd::New(TyInt64, instr->m_func);
     insertInstr = IR::Instr::New(Js::OpCode::SMULL, s3, src1, src2, instr->m_func);
     instr->InsertBefore(insertInstr);
-    LegalizeMD::LegalizeInstr(insertInstr, false);
+    LegalizeMD::LegalizeInstr(insertInstr);
 
     // dst = MOV_TRUNC s3
     instr->m_opcode = Js::OpCode::MOV_TRUNC;
@@ -5388,7 +5390,7 @@ LowererMD::LowerInt4MulWithBailOut(
         insertInstr->SetSrc1(src1);
         insertInstr->SetSrc2(src2);
         bailOutLabel->InsertBefore(insertInstr);
-        LegalizeMD::LegalizeInstr(insertInstr, false);
+        LegalizeMD::LegalizeInstr(insertInstr);
         bailOutLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BPL, skipBailOutLabel, instr->m_func));
 
         // Fall through to bailOutLabel
@@ -5417,7 +5419,7 @@ LowererMD::LowerInt4MulWithBailOut(
         insertInstr->SetSrc1(dst);
         insertInstr->SetSrc2(dst);
         insertBeforeInstr->InsertBefore(insertInstr);
-        LegalizeMD::LegalizeInstr(insertInstr, false);
+        LegalizeMD::LegalizeInstr(insertInstr);
 
         insertBeforeInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::BEQ, checkForNegativeZeroLabel, instr->m_func));
     }
@@ -5471,7 +5473,7 @@ LowererMD::LowerInt4RemWithBailOut(
         insertInstr->SetSrc1(dst);
         insertInstr->SetSrc2(dst);
         bailOutLabel->InsertBefore(insertInstr);
-        LegalizeMD::LegalizeInstr(insertInstr, false);
+        LegalizeMD::LegalizeInstr(insertInstr);
 
         IR::Instr *branchInstr = IR::BranchInstr::New(Js::OpCode::BNE, skipBailOutLabel, instr->m_func);
         bailOutLabel->InsertBefore(branchInstr);
@@ -5480,7 +5482,7 @@ LowererMD::LowerInt4RemWithBailOut(
         insertInstr->SetSrc1(src1);
         insertInstr->SetSrc2(src1);
         bailOutLabel->InsertBefore(insertInstr);
-        LegalizeMD::LegalizeInstr(insertInstr, false);
+        LegalizeMD::LegalizeInstr(insertInstr);
 
         branchInstr = IR::BranchInstr::New(Js::OpCode::BPL, skipBailOutLabel, instr->m_func);
         bailOutLabel->InsertBefore(branchInstr);
@@ -5850,7 +5852,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         Assert(helperMethod == (IR::JnHelperMethod)0);
         Assert(instr->GetSrc2() == nullptr);
         instr->m_opcode = Js::OpCode::FSQRT;
-        LegalizeMD::LegalizeInstr(instr, /* fPostRegAlloc = */ false);
+        LegalizeMD::LegalizeInstr(instr);
         break;
 
     case Js::OpCode::InlineMathAbs:
@@ -5979,7 +5981,7 @@ LowererMD::GenerateFastInlineMathFround(IR::Instr* instr)
         {
             Assert(dstType == TyFloat64);
             instr->m_opcode = Js::OpCode::FCVT;
-            LegalizeMD::LegalizeInstr(instr, false);
+            LegalizeMD::LegalizeInstr(instr);
         }
     }
     else
@@ -5988,7 +5990,7 @@ LowererMD::GenerateFastInlineMathFround(IR::Instr* instr)
         if (dstType == TyFloat32)
         {
             instr->m_opcode = Js::OpCode::FCVT;
-            LegalizeMD::LegalizeInstr(instr, false);
+            LegalizeMD::LegalizeInstr(instr);
         }
         else
         {
@@ -5998,7 +6000,7 @@ LowererMD::GenerateFastInlineMathFround(IR::Instr* instr)
             instr->InsertBefore(shortener);
             instr->SetSrc1(tempOpnd);
             instr->m_opcode = Js::OpCode::FCVT;
-            LegalizeMD::LegalizeInstr(instr, false);
+            LegalizeMD::LegalizeInstr(instr);
         }
     }
 }
@@ -6255,7 +6257,7 @@ LowererMD::LowerToFloat(IR::Instr *instr)
         Assume(UNREACHED);
     }
 
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
     return instr;
 }
 
@@ -6274,7 +6276,7 @@ LowererMD::LowerFloatCondBranch(IR::BranchInstr *instrBranch, bool ignoreNaN)
     instrCmp->SetSrc1(src1);
     instrCmp->SetSrc2(src2);
     instrBranch->InsertBefore(instrCmp);
-    LegalizeMD::LegalizeInstr(instrCmp, false);
+    LegalizeMD::LegalizeInstr(instrCmp);
 
     switch (instrBranch->m_opcode)
     {
@@ -6566,7 +6568,7 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     }
     IR::Instr * instr = IR::Instr::New(Js::OpCode::FLDR, opndDst, opnd, instrInsert->m_func);
     instrInsert->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr,false);
+    LegalizeMD::LegalizeInstr(instr);
     return instr;
 }
 
@@ -6583,7 +6585,7 @@ void LowererMD::GenerateFloatTest(IR::RegOpnd * opndSrc, IR::Instr * insertInstr
     instr->SetSrc1(opndSrc);
     instr->SetSrc2(floatTag);
     insertInstr->InsertBefore(instr);
-    LegalizeMD::LegalizeInstr(instr, false);
+    LegalizeMD::LegalizeInstr(instr);
 
     // BZ $helper
     instr = IR::BranchInstr::New(Js::OpCode::BEQ /* BZ */, labelHelper, this->m_func);
@@ -6602,7 +6604,7 @@ IR::RegOpnd* LowererMD::CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * in
         instr->SetSrc1(opndSrc);
         instr->SetSrc2(floatTag);
         insertInstr->InsertBefore(instr);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
 
         // BZ $helper
         instr = IR::BranchInstr::New(Js::OpCode::BEQ /* BZ */, labelHelper, this->m_func);
@@ -6628,7 +6630,7 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
         // NYI for the rest of legalization
         return;
     }
-    LegalizeMD::LegalizeInstr(instr, fPostRegAlloc);
+    LegalizeMD::LegalizeInstr(instr);
 }
 
 template void LowererMD::Legalize<false>(IR::Instr *const instr, bool fPostRegalloc);
@@ -6813,7 +6815,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
 {
     if (instr->m_opcode == Js::OpCode::LDIMM)
     {
-        LegalizeMD::LegalizeInstr(instr, true);
+        LegalizeMD::LegalizeInstr(instr);
 
         // LDIMM can expand into up to 4 instructions when the immediate is more than 16 bytes,
         // it can also expand into multiple different no-op (normally MOV) instrs when we obfuscate it, which is randomly.
@@ -6824,7 +6826,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
         Assert(instr->GetDst()->IsRegOpnd());
         if (!instr->GetSrc1()->IsRegOpnd())
         {
-            LegalizeMD::LegalizeSrc(instr, instr->GetSrc1(), 1, true);
+            LegalizeMD::LegalizeSrc(instr, instr->GetSrc1(), 1);
             return true;
         }
         instr->m_opcode = instr->GetSrc1()->IsFloat() ? Js::OpCode::FMOV : Js::OpCode::MOV;
@@ -6834,7 +6836,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
         Assert(instr->GetSrc1()->IsRegOpnd());
         if (!instr->GetDst()->IsRegOpnd())
         {
-            LegalizeMD::LegalizeDst(instr, true);
+            LegalizeMD::LegalizeDst(instr);
             return true;
         }
         instr->m_opcode = instr->GetDst()->IsFloat() ? Js::OpCode::FMOV : Js::OpCode::MOV;
@@ -6850,7 +6852,7 @@ LowererMD::FinalLowerAssign(IR::Instr * instr)
         uint32 argOutSize = UInt32Math::Mul(this->m_func->m_argSlotsForFunctionsCalled, MachRegInt, Js::Throw::OutOfMemory);
         instr->SetSrc1(IR::IntConstOpnd::New(argOutSize, TyMachReg, this->m_func));
         instr->m_opcode = Js::OpCode::LDIMM;
-        LegalizeMD::LegalizeInstr(instr, true);
+        LegalizeMD::LegalizeInstr(instr);
         return true;
     }
     else if (instr->m_opcode == Js::OpCode::REM)
@@ -6919,8 +6921,8 @@ LowererMD::LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailO
 
     // delay assigning to the final dst.
     IR::Instr * sinkedInstr = instr->SinkDst(Js::OpCode::MOV);
-    LegalizeMD::LegalizeInstr(instr, false);
-    LegalizeMD::LegalizeInstr(sinkedInstr, false);
+    LegalizeMD::LegalizeInstr(instr);
+    LegalizeMD::LegalizeInstr(sinkedInstr);
 
     IR::Opnd * resultOpnd = instr->GetDst();
     IR::Opnd * numerator = instr->GetSrc1();
@@ -6933,7 +6935,7 @@ LowererMD::LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailO
     IR::RegOpnd * mulResult = IR::RegOpnd::New(TyInt32, m_func);
     IR::Instr * mulInstr = IR::Instr::New(Js::OpCode::MUL, mulResult, resultOpnd, denominatorOpnd, m_func);
     insertBeforeInstr->InsertBefore(mulInstr);
-    LegalizeMD::LegalizeInstr(mulInstr, false);
+    LegalizeMD::LegalizeInstr(mulInstr);
 
     this->m_lowerer->InsertCompareBranch(mulResult, numerator, Js::OpCode::BrNeq_A, bailOutLabel, insertBeforeInstr);
     return insertBeforeInstr;

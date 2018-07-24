@@ -364,8 +364,8 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     }
     void NumberInstrs();
     bool IsTopFunc() const { return this->parentFunc == nullptr; }
-    Func const * GetTopFunc() const;
-    Func * GetTopFunc();
+    Func const * GetTopFunc() const { return this->topFunc; }
+    Func * GetTopFunc() { return this->topFunc; }
 
     void SetFirstArgOffset(IR::Instr* inlineeStart);
 
@@ -732,6 +732,7 @@ public:
     bool                hasTempObjectProducingInstr:1; // At least one instruction which can produce temp object
     bool                isTJLoopBody : 1;
     bool                isFlowGraphValid : 1;
+    bool                legalizePostRegAlloc : 1;
 #if DBG
     bool                hasCalledSetDoFastPaths:1;
     bool                isPostLower:1;
@@ -835,6 +836,8 @@ public:
                             curFunc = curFunc->GetParentFunc();
                         }
     }
+
+    bool                ShouldLegalizePostRegAlloc() const { return topFunc->legalizePostRegAlloc; }
 
     bool                GetApplyTargetInliningRemovedArgumentsAccess() const { return this->applyTargetInliningRemovedArgumentsAccess;}
     void                SetApplyTargetInliningRemovedArgumentsAccess() { this->applyTargetInliningRemovedArgumentsAccess = true;}
@@ -1024,6 +1027,7 @@ private:
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler *const m_codeGenProfiler;
 #endif
+    Func * const        topFunc;
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
     uint                maxInlineeArgOutSize;
@@ -1106,6 +1110,26 @@ private:
     bool dump;
     bool isPhaseComplete;
 };
+
+class AutoRestoreLegalize
+{
+public:
+    AutoRestoreLegalize(Func * func, bool val) : 
+        m_func(func->GetTopFunc()), 
+        m_originalValue(m_func->legalizePostRegAlloc)
+    {
+        m_func->legalizePostRegAlloc = val;
+    }
+
+    ~AutoRestoreLegalize()
+    {
+        m_func->legalizePostRegAlloc = m_originalValue;
+    }
+private:
+    Func * m_func;
+    bool m_originalValue;
+};
+
 #define BEGIN_CODEGEN_PHASE(func, phase) { AutoCodeGenPhase __autoCodeGen(func, phase);
 #define END_CODEGEN_PHASE(func, phase) __autoCodeGen.EndPhase(func, phase, true, true); }
 #define END_CODEGEN_PHASE_NO_DUMP(func, phase) __autoCodeGen.EndPhase(func, phase, false, true); }

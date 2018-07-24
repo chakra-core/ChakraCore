@@ -72,6 +72,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInstrNumber(false),
     maintainByteCodeOffset(true),
     frameSize(0),
+    topFunc(parentFunc ? parentFunc->topFunc : this),
     parentFunc(parentFunc),
     argObjSyms(nullptr),
     m_nonTempLocalVars(nullptr),
@@ -109,6 +110,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     isTJLoopBody(false),
     m_nativeCodeDataSym(nullptr),
     isFlowGraphValid(false),
+    legalizePostRegAlloc(false),
 #if DBG
     m_callSiteCount(0),
 #endif
@@ -1314,6 +1316,11 @@ Func::EndPhase(Js::Phase tag, bool dump)
     }
 #endif
 
+    if (tag == Js::RegAllocPhase)
+    {
+        this->legalizePostRegAlloc = true;
+    }
+
 #if DBG
     if (tag == Js::LowererPhase)
     {
@@ -1350,28 +1357,6 @@ Func::EndPhase(Js::Phase tag, bool dump)
     }
     this->m_alloc->MergeDelayFreeList();
 #endif
-}
-
-Func const *
-Func::GetTopFunc() const
-{
-    Func const * func = this;
-    while (!func->IsTopFunc())
-    {
-        func = func->parentFunc;
-    }
-    return func;
-}
-
-Func *
-Func::GetTopFunc()
-{
-    Func * func = this;
-    while (!func->IsTopFunc())
-    {
-        func = func->parentFunc;
-    }
-    return func;
 }
 
 StackSym *

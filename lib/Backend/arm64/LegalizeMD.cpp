@@ -41,7 +41,12 @@ static LegalForms LegalSrcForms(IR::Instr * instr, uint opndNum)
     return _InstrForms[instr->m_opcode - (Js::OpCode::MDStart+1)].src[opndNum-1];
 }
 
-void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
+RegNum LegalizeMD::GetScratchReg(IR::Instr * instr)
+{
+    return instr->m_func->ShouldLegalizePostRegAlloc() ? SCRATCH_REG : RegNOREG;
+}
+
+void LegalizeMD::LegalizeInstr(IR::Instr * instr)
 {
     if (!instr->IsLowered())
     {
@@ -68,9 +73,9 @@ void LegalizeMD::LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc)
         break;
     }
 
-    LegalizeDst(instr, fPostRegAlloc);
-    LegalizeSrc(instr, instr->GetSrc1(), 1, fPostRegAlloc);
-    LegalizeSrc(instr, instr->GetSrc2(), 2, fPostRegAlloc);
+    LegalizeDst(instr);
+    LegalizeSrc(instr, instr->GetSrc1(), 1);
+    LegalizeSrc(instr, instr->GetSrc2(), 2);
 }
 
 void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
@@ -99,8 +104,10 @@ void LegalizeMD::LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd)
     }
 }
 
-void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
+void LegalizeMD::LegalizeDst(IR::Instr * instr)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     LegalForms forms = LegalDstForms(instr);
 
     IR::Opnd * opnd = instr->GetDst();
@@ -134,15 +141,11 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
         intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
-        IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
-        if (fPostRegAlloc)
-        {
-            newReg->SetReg(SCRATCH_REG);
-        }
+        IR::RegOpnd *newReg = IR::RegOpnd::New(GetScratchReg(instr), TyMachPtr, instr->m_func);
         IR::Instr *newInstr = IR::Instr::New(Js::OpCode::LDIMM, newReg,
             IR::AddrOpnd::New(memLoc, opnd->AsMemRefOpnd()->GetAddrKind(), instr->m_func, true), instr->m_func);
         instr->InsertBefore(newInstr);
-        LegalizeMD::LegalizeInstr(newInstr, fPostRegAlloc);
+        LegalizeMD::LegalizeInstr(newInstr);
         IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(newReg, 0, opnd->GetType(), instr->m_func);
         opnd = instr->ReplaceDst(indirOpnd);
     }
@@ -150,16 +153,16 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
     case IR::OpndKindIndir:
         if (!(forms & L_IndirMask))
         {
-            instr = LegalizeStore(instr, forms, fPostRegAlloc);
+            instr = LegalizeStore(instr, forms);
             forms = LegalDstForms(instr);
         }
-        LegalizeIndirOffset(instr, opnd->AsIndirOpnd(), forms, fPostRegAlloc);
+        LegalizeIndirOffset(instr, opnd->AsIndirOpnd(), forms);
         break;
 
     case IR::OpndKindSym:
         if (!(forms & L_SymMask))
         {
-            instr = LegalizeStore(instr, forms, fPostRegAlloc);
+            instr = LegalizeStore(instr, forms);
             forms = LegalDstForms(instr);
         }
 
@@ -167,7 +170,7 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
         {
             // In order to legalize SymOffset we need to know final argument area, which is only available after lowerer.
             // So, don't legalize sym offset here, but it will be done as part of register allocator.
-            LegalizeSymOffset(instr, opnd->AsSymOpnd(), forms, fPostRegAlloc);
+            LegalizeSymOffset(instr, opnd->AsSymOpnd(), forms);
         }
         break;
 
@@ -177,8 +180,10 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
     }
 }
 
-IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool fPostRegAlloc)
+IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     if (LowererMD::IsAssign(instr) && instr->GetSrc1()->IsRegOpnd())
     {
         // We can just change this to a store in place.
@@ -198,8 +203,10 @@ IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool f
     return instr;
 }
 
-void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc)
+void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     LegalForms forms = LegalSrcForms(instr, opndNum);
     if (opnd == NULL)
     {
@@ -228,11 +235,11 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     case IR::OpndKindAddr:
     case IR::OpndKindHelperCall:
     case IR::OpndKindIntConst:
-        LegalizeImmed(instr, opnd, opndNum, opnd->GetImmediateValue(instr->m_func), forms, fPostRegAlloc);
+        LegalizeImmed(instr, opnd, opndNum, opnd->GetImmediateValue(instr->m_func), forms);
         break;
 
     case IR::OpndKindLabel:
-        LegalizeLabelOpnd(instr, opnd, opndNum, fPostRegAlloc);
+        LegalizeLabelOpnd(instr, opnd, opndNum);
         break;
 
     case IR::OpndKindMemRef:
@@ -241,14 +248,10 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
         intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
-        IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
-        if (fPostRegAlloc)
-        {
-            newReg->SetReg(SCRATCH_REG);
-        }
+        IR::RegOpnd *newReg = IR::RegOpnd::New(GetScratchReg(instr), TyMachPtr, instr->m_func);
         IR::Instr *newInstr = IR::Instr::New(Js::OpCode::LDIMM, newReg, IR::AddrOpnd::New(memLoc, IR::AddrOpndKindDynamicMisc, instr->m_func), instr->m_func);
         instr->InsertBefore(newInstr);
-        LegalizeMD::LegalizeInstr(newInstr, fPostRegAlloc);
+        LegalizeMD::LegalizeInstr(newInstr);
         IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(newReg, 0, opnd->GetType(), instr->m_func);
         if (opndNum == 1)
         {
@@ -263,16 +266,16 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     case IR::OpndKindIndir:
         if (!(forms & L_IndirMask))
         {
-            instr = LegalizeLoad(instr, opndNum, forms, fPostRegAlloc);
+            instr = LegalizeLoad(instr, opndNum, forms);
             forms = LegalSrcForms(instr, 1);
         }
-        LegalizeIndirOffset(instr, opnd->AsIndirOpnd(), forms, fPostRegAlloc);
+        LegalizeIndirOffset(instr, opnd->AsIndirOpnd(), forms);
         break;
 
     case IR::OpndKindSym:
         if (!(forms & L_SymMask))
         {
-            instr = LegalizeLoad(instr, opndNum, forms, fPostRegAlloc);
+            instr = LegalizeLoad(instr, opndNum, forms);
             forms = LegalSrcForms(instr, 1);
         }
 
@@ -280,7 +283,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
         {
             // In order to legalize SymOffset we need to know final argument area, which is only available after lowerer.
             // So, don't legalize sym offset here, but it will be done as part of register allocator.
-            LegalizeSymOffset(instr, opnd->AsSymOpnd(), forms, fPostRegAlloc);
+            LegalizeSymOffset(instr, opnd->AsSymOpnd(), forms);
         }
         break;
 
@@ -290,8 +293,10 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     }
 }
 
-IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc)
+IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
         // We can just change this to a load in place.
@@ -302,7 +307,7 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
         // Hoist the memory opnd. The caller will verify the offset.
         IR::Opnd* src = (opndNum == 1) ? instr->GetSrc1() : instr->GetSrc2();
         AssertMsg(!fPostRegAlloc || src->GetType() == TyMachReg, "Post RegAlloc other types disallowed");
-        instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
+        instr = GenerateHoistSrc(instr, opndNum, LowererMD::GetLoadOp(src->GetType()), GetScratchReg(instr));
     }
 
     if (instr->m_opcode == Js::OpCode::LDR && instr->GetSrc1()->IsSigned())
@@ -313,8 +318,10 @@ IR::Instr * LegalizeMD::LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms 
     return instr;
 }
 
-void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc)
+void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     // For LEA, we have special handling of indiropnds
     auto correctSize = [](IR::Instr* instr, IR::IndirOpnd* indirOpnd)
     {
@@ -373,15 +380,15 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
                 indexOpnd = newIndexOpnd;
             }
 
-            IR::Instr * instrAdd = Lowerer::HoistIndirIndexOpndAsAdd(instr, indirOpnd, baseOpnd, indexOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-            LegalizeMD::LegalizeInstr(instrAdd, fPostRegAlloc);
+            IR::Instr * instrAdd = Lowerer::HoistIndirIndexOpndAsAdd(instr, indirOpnd, baseOpnd, indexOpnd, GetScratchReg(instr));
+            LegalizeMD::LegalizeInstr(instrAdd);
         }
     }
     else if (indirOpnd->GetIndexOpnd() != nullptr && offset != 0)
     {
         // Can't have both offset and index, so hoist the offset and try again.
-        IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-        LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
+        IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, GetScratchReg(instr));
+        LegalizeMD::LegalizeInstr(addInstr);
         if (instr->m_opcode == Js::OpCode::LEA)
         {
             AssertOrFailFastMsg(indirOpnd->GetBaseOpnd() != nullptr && indirOpnd->GetBaseOpnd()->GetSize() == TySize[TyMachPtr], "Base operand of LEA must have pointer-width!");
@@ -440,16 +447,14 @@ void LegalizeMD::LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpn
     }
 
     // Offset is too large, so hoist it and replace it with an index
-    IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-    LegalizeMD::LegalizeInstr(addInstr, fPostRegAlloc);
+    IR::Instr *addInstr = Lowerer::HoistIndirOffset(instr, indirOpnd, GetScratchReg(instr));
+    LegalizeMD::LegalizeInstr(addInstr);
 }
 
-void LegalizeMD::LegalizeSymOffset(
-    IR::Instr * instr,
-    IR::SymOpnd * symOpnd,
-    LegalForms forms,
-    bool fPostRegAlloc)
+void LegalizeMD::LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * symOpnd, LegalForms forms)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     AssertMsg(fPostRegAlloc, "LegalizeMD::LegalizeSymOffset can (and will) be called as part of register allocation. Can't call it as part of lowerer, as final argument area is not available yet.");
 
     RegNum baseReg;
@@ -520,14 +525,14 @@ void LegalizeMD::LegalizeSymOffset(
         instr->m_opcode = Js::OpCode::ADD;
         instr->ReplaceSrc1(IR::RegOpnd::New(NULL, baseReg, TyMachPtr, instr->m_func));
         instr->SetSrc2(IR::IntConstOpnd::New(offset, TyMachReg, instr->m_func));
-        newInstr = instr->HoistSrc2(Js::OpCode::LDIMM, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-        LegalizeMD::LegalizeInstr(newInstr, fPostRegAlloc);
-        LegalizeMD::LegalizeInstr(instr, fPostRegAlloc);
+        newInstr = instr->HoistSrc2(Js::OpCode::LDIMM, GetScratchReg(instr));
+        LegalizeMD::LegalizeInstr(newInstr);
+        LegalizeMD::LegalizeInstr(instr);
     }
     else
     {
-        newInstr = Lowerer::HoistSymOffset(instr, symOpnd, baseReg, offset, fPostRegAlloc ? SCRATCH_REG : RegNOREG);
-        LegalizeMD::LegalizeInstr(newInstr, fPostRegAlloc);
+        newInstr = Lowerer::HoistSymOffset(instr, symOpnd, baseReg, offset, GetScratchReg(instr));
+        LegalizeMD::LegalizeInstr(newInstr);
     }
 }
 
@@ -536,9 +541,10 @@ void LegalizeMD::LegalizeImmed(
     IR::Opnd * opnd,
     uint opndNum,
     IntConstType immed,
-    LegalForms forms,
-    bool fPostRegAlloc)
+    LegalForms forms)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     int size = instr->GetDst()->GetSize();
     if (!(((forms & L_ImmLog12) && EncoderMD::CanEncodeLogicalConst(immed, size)) ||
          ((forms & L_ImmU12) && IS_CONST_UINT12(immed)) ||
@@ -549,7 +555,7 @@ void LegalizeMD::LegalizeImmed(
     {
         if (instr->m_opcode != Js::OpCode::LDIMM)
         {
-            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
+            instr = LegalizeMD::GenerateLDIMM(instr, opndNum, GetScratchReg(instr));
         }
 
         if (fPostRegAlloc)
@@ -562,12 +568,13 @@ void LegalizeMD::LegalizeImmed(
 void LegalizeMD::LegalizeLabelOpnd(
     IR::Instr * instr,
     IR::Opnd * opnd,
-    uint opndNum,
-    bool fPostRegAlloc)
+    uint opndNum)
 {
+    const bool fPostRegAlloc = instr->m_func->ShouldLegalizePostRegAlloc();
+
     if (instr->m_opcode != Js::OpCode::LDIMM)
     {
-        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, fPostRegAlloc ? SCRATCH_REG : RegNOREG, fPostRegAlloc);
+        instr = LegalizeMD::GenerateLDIMM(instr, opndNum, GetScratchReg(instr));
     }
     if (fPostRegAlloc)
     {
@@ -575,7 +582,7 @@ void LegalizeMD::LegalizeLabelOpnd(
     }
 }
 
-IR::Instr * LegalizeMD::GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc)
+IR::Instr * LegalizeMD::GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg)
 {
     IR::Instr * newInstr;
     if (opndNum == 1)
@@ -591,7 +598,7 @@ IR::Instr * LegalizeMD::GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::Op
     return newInstr;
 }
 
-IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc)
+IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg)
 {
     if (LowererMD::IsAssign(instr) && instr->GetDst()->IsRegOpnd())
     {
@@ -599,7 +606,7 @@ IR::Instr * LegalizeMD::GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum sc
     }
     else
     {
-        instr = GenerateHoistSrc(instr, opndNum, Js::OpCode::LDIMM, scratchReg, fPostRegAlloc);
+        instr = GenerateHoistSrc(instr, opndNum, Js::OpCode::LDIMM, scratchReg);
     }
 
     return instr;
