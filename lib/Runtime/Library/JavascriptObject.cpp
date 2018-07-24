@@ -287,7 +287,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
         JavascriptOperators::MapObjectAndPrototypesUntil<true>(object->GetPrototype(), [](RecyclableObject* obj)->bool
         {
             return obj->ClearProtoCachesWereInvalidated();
-		});
+        });
     }
 
     // Set to new prototype
