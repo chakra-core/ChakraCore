@@ -149,7 +149,6 @@ public:
                     (*pOut) = current->value;
                 }
 
-                count--;
                 FreeEntry(current);
 #if PROFILE_DICTIONARY
                 if (stats)
@@ -308,6 +307,7 @@ private:
 
     void FreeEntry(EntryType* current)
     {
+        count--;
         if ( freecount < 10 )
         {
             current->key = nullptr;
