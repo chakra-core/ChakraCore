@@ -210,7 +210,7 @@ public:
             IR::Opnd*           GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);
 
             template <bool verify = false>
-            static void         Legalize(IR::Instr *const instr, bool fPostRegAlloc = false);
+            static void         Legalize(IR::Instr *const instr);
 
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathFloor(IR::Instr *callInstr);
