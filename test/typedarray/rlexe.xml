@@ -303,7 +303,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
       <files>Uint8ClampedArray.js</files>
       <baseline>Uint8ClampedArray_es6.baseline</baseline>
-      <tags>typedarray</tags>
+      <tags>typedarray,exclude_jshost</tags> <!-->Disabled jshost, created issue #5520<!-->
     </default>
   </test>
   <test>
