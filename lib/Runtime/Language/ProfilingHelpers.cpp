@@ -547,7 +547,7 @@ using namespace Js;
         CallInfo callInfo,
         ...)
     {
-        ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, spreadIndices, callee, framePointer, profileId, arrayProfileId, callInfo);
 
         Js::ScriptFunction *function = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ScriptContext* scriptContext = function->GetScriptContext();

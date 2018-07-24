@@ -60,6 +60,11 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 {
     return 5;
 }
+template <class T1, class T2, class T3, class T4, class T5>
+inline int _count_args(const T1&, const T2&, const T3&, const T4&, const T5&, Js::CallInfo callInfo)
+{
+    return 6;
+}
 #endif
 
 
