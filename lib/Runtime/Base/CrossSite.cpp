@@ -99,6 +99,11 @@ namespace Js
             {
                 MarshalDynamicObject(scriptContext, prototypeObject);
             }
+            if (JavascriptProxy::Is(prototypeObject))
+            {
+                // Fetching prototype of proxy can invoke trap - which we don't want during the marshalling time.
+                break;
+            }
             prototype = prototypeObject->GetPrototype();
         }
     }
