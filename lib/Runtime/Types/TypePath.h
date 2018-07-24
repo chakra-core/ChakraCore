@@ -86,7 +86,7 @@ public:
                         break;
                     }
 
-                    Assert(idx != (next[idx] & 127));
+                    Assert(next[idx] == NIL || (next[idx] & 127) != idx);
                     i = next[idx];
                 }
             }
