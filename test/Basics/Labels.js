@@ -315,7 +315,7 @@ var tests = [
         name : "Label tests with keywords as labels",
         body : function () 
         {             
-            testModuleScript("await: for(let i = 0; i < 3; i++){break await;}","", shouldFail=true) 
+            testModuleScript("await: for(let i = 0; i < 3; i++){break await;}", "'await' expression not allowed in this context", shouldFail=true) 
             assert.doesNotThrow(() => eval(strictMode + "await: for(let i = 0; i < 3; i++){break await;}"), "Await as label should only be an error when in a module")
             assert.doesNotThrow(() => eval(strictMode + testAwaitAsLabelOutsideAsyncFnc), "'await' should be allowed as label outside of async functions, even in strict mode.")
             assert.throws(() => eval(strictMode + testAwaitAsLabelInsideAsyncFnc), SyntaxError, "Expected 'await' label in async function to be a syntax error.", "Use of 'await' as label in async function is not allowed.");
