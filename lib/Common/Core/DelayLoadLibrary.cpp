@@ -114,7 +114,7 @@ NtdllLibrary::NTSTATUS NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * Dyn
 
 #if DBG
         // Validate the PDATA was not registered or already unregistered
-        ULONG64            imageBase = 0;
+        ULONG_PTR            imageBase = 0;
         RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)RangeBase, &imageBase, nullptr);
         Assert(runtimeFunction == NULL);
 #endif

@@ -125,10 +125,12 @@ namespace Js {
         }
         throw OutOfMemoryException();
     }
+
+#if !defined(_M_IX86) && defined(_WIN32)
     void Throw::XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart)
     {
-        ULONG64            imageBase = 0;
-        RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)funcStart, &imageBase, nullptr);
+        ULONG_PTR            imageBase = 0;
+        RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry(funcStart, &imageBase, nullptr);
         Unused(runtimeFunction);
 
         if (JsUtil::ExternalApi::GetCurrentThreadContextId())
@@ -137,6 +139,7 @@ namespace Js {
         }
         throw OutOfMemoryException();
     }
+#endif
 
     void Throw::StackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
