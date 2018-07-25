@@ -145,13 +145,24 @@ namespace Js
     struct InlineeCallInfo
     {
         // Assumes big-endian layout.
-        size_t Count: 4;
-        size_t InlineeStartOffset: sizeof(void*) * CHAR_BIT - 4;
+        uint Count : 4;
+#if TARGET_32
+        uint InlineeStartOffset : 28;
+#else
+        uint unused : 28;
+        uint InlineeStartOffset;
+#endif
         static size_t const MaxInlineeArgoutCount = 0xF;
+#if TARGET_32
+        static uint const ksizeofInlineeStartOffset = 28;
+#else
+        static uint const ksizeofInlineeStartOffset = 32;
+#endif
+        static uint const inlineeStartOffsetShiftCount = (sizeof(void*) * CHAR_BIT - Js::InlineeCallInfo::ksizeofInlineeStartOffset);
 
         static bool Encode(intptr_t &callInfo, size_t count, size_t offset)
         {
-            const size_t offsetMask = (~(size_t)0) >> 4;
+            const size_t offsetMask = ~(uint)0 >> (sizeof(uint) * CHAR_BIT - ksizeofInlineeStartOffset);
             const size_t countMask  = 0x0000000F;
             if (count != (count & countMask))
             {
@@ -163,8 +174,7 @@ namespace Js
                 return false;
             }
 
-            callInfo = (offset << 4) | count;
-
+            callInfo = (offset << inlineeStartOffsetShiftCount) | count;
             return true;
         }
 
