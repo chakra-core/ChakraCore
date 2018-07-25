@@ -126,6 +126,8 @@ namespace Js
             Var thunkArgs[] = { this, yieldData };
             Arguments arguments(_countof(thunkArgs), thunkArgs);
 
+            JavascriptExceptionObject *exception = nullptr;
+
             try
             {
                 BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -137,12 +139,16 @@ namespace Js
             }
             catch (const JavascriptException& err)
             {
-                Js::JavascriptExceptionObject* exceptionObj = err.GetAndClear();
-                if (!exceptionObj->IsGeneratorReturnException())
+                exception = err.GetAndClear();
+            }
+
+            if (exception != nullptr)
+            {
+                if (!exception->IsGeneratorReturnException())
                 {
-                    JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
+                    JavascriptExceptionOperators::DoThrowCheckClone(exception, scriptContext);
                 }
-                result = exceptionObj->GetThrownObject(nullptr);
+                result = exception->GetThrownObject(nullptr);
             }
         }
 

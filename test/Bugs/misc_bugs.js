@@ -174,7 +174,22 @@ var tests = [
         assert.throws(() => {"use strict"; let p1 = new Proxy({}, { deleteProperty() {return false;}}); delete p1.foo;}, TypeError, "deleteProperty handler is returning false which will throw type error",  "Proxy deleteProperty handler returned false");
       }
   },
-  
+  {
+    name: "Generator : testing recursion",
+    body: function () {
+        // This will throw out of stack error
+        assert.throws(() => {
+            function foo() {
+                function *f() {
+                    yield foo();
+                }
+                f().next();
+            }
+            foo();
+        });
+      }
+  },
+
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
