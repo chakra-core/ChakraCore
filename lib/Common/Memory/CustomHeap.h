@@ -57,7 +57,7 @@ struct Page
 
     bool CanAllocate(BucketId targetBucket)
     {
-        return freeBitVector.FirstStringOfOnes(targetBucket + 1) != BVInvalidIndex;
+        return freeBitVector.FirstStringOfOnes(1 << targetBucket) != BVInvalidIndex;
     }
 
     Page(__in char* address, void* segment, BucketId bucket):
@@ -72,8 +72,9 @@ struct Page
 
     // Each bit in the bit vector corresponds to 128 bytes of memory
     // This implies that 128 bytes is the smallest allocation possible
-    static const uint Alignment = 128;
     static const uint MaxAllocationSize = 4096;
+    static const uint sizePerBit = MaxAllocationSize / 32; // pagesize / freeBitVector bit count
+    static const uint Alignment = sizePerBit; // 128
 };
 
 struct Allocation
