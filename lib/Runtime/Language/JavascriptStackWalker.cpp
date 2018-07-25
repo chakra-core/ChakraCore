@@ -1461,20 +1461,15 @@ namespace Js
     {
         Assert(!IsTopMostFrame());
         Assert(currentIndex);
-#pragma warning(push)
-#pragma warning(disable: 4254)
+
         return GetFrameAtIndex(currentIndex - 1)->callInfo.InlineeStartOffset;
-#pragma warning(pop)
     }
 
     uint32 InlinedFrameWalker::GetBottomMostInlineeOffset() const
     {
         Assert(frameCount);
 
-#pragma warning(push)
-#pragma warning(disable: 4254)
         return GetFrameAtIndex(frameCount - 1)->callInfo.InlineeStartOffset;
-#pragma warning(pop)
     }
 
     Js::JavascriptFunction *InlinedFrameWalker::GetBottomMostFunctionObject() const
