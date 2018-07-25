@@ -62,6 +62,7 @@ namespace Js
     {
         Var nextItem = nullptr;
         bool shouldCallReturn = false;
+        JavascriptExceptionObject *exception = nullptr;
         try
         {
             while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextItem))
@@ -73,13 +74,17 @@ namespace Js
         }
         catch (const JavascriptException& err)
         {
-            JavascriptExceptionObject * exceptionObj = err.GetAndClear();
+            exception = err.GetAndClear();
+        }
+
+        if (exception != nullptr)
+        {
             if (shouldCallReturn)
             {
                 // Closing the iterator
                 JavascriptOperators::IteratorClose(iterator, scriptContext);
             }
-            JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
+            JavascriptExceptionOperators::DoThrowCheckClone(exception, scriptContext);
         }
     }
 
