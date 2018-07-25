@@ -125,13 +125,19 @@ namespace Js {
         }
         throw OutOfMemoryException();
     }
-    void Throw::CheckAndThrowOutOfMemory(BOOLEAN status)
+    void Throw::XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart)
     {
-        if (!status)
+        ULONG64            imageBase = 0;
+        RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry((DWORD64)funcStart, &imageBase, nullptr);
+        Unused(runtimeFunction);
+
+        if (JsUtil::ExternalApi::GetCurrentThreadContextId())
         {
-            OutOfMemory();
+            XDataRegistration_unrecoverable_error(hr);
         }
+        throw OutOfMemoryException();
     }
+
     void Throw::StackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

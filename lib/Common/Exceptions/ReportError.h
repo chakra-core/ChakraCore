@@ -30,6 +30,7 @@ enum ErrorReason
     Fatal_OutOfMemory = 22,
     // Unused = 23,
     Fatal_JsBuiltIn_Error = 24,
+    Fatal_XDataRegistration = 25,
 };
 
 extern "C" void ReportFatalException(
@@ -88,6 +89,8 @@ void OutOfMemoryAllocationPolicy_unrecoverable_error_visible();
 void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible();
 void OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible();
 void OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible();
+
+void XDataRegistration_unrecoverable_error(HRESULT hr);
 
 inline void OutOfMemoryTooManyPinnedObjects_unrecoverable_error(BYTE visibility)
 {

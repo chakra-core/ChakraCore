@@ -181,6 +181,12 @@ _NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error()
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 
+_NOINLINE void XDataRegistration_unrecoverable_error(HRESULT hr)
+{
+    int scenario = 15;
+    ReportFatalException(NULL, hr, Fatal_XDataRegistration, scenario);
+}
+
 ///////
 //
 // The following variety of OOM unrecoverable errors are similar to the ones above 

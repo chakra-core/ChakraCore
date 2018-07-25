@@ -30,7 +30,7 @@ namespace Js {
 #ifdef ENABLE_JS_BUILTINS
         static void __declspec(noreturn) FatalJsBuiltInError();
 #endif
-        static void CheckAndThrowOutOfMemory(BOOLEAN status);
+        static void XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart);
 
         static bool ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message);
         static void LogAssert();

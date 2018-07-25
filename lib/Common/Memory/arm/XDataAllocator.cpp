@@ -88,7 +88,10 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, DWORD functionStart, 
         /*RangeBase*/ functionStart,
         /*RangeEnd*/ functionStart + functionSize);
 
-    Js::Throw::CheckAndThrowOutOfMemory(NT_SUCCESS(status));
+    if (!NT_SUCCESS(status))
+    {
+        Js::Throw::XDataRegistrationError(status, functionStart);
+    }
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
