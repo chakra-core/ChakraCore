@@ -472,7 +472,9 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
 
     // Don't release the page in shut down, the page allocator will release them faster
     // Leaf block's allocator need not be closed
-    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed());
+    // For non-large normal heap blocks ReleasePagesShutdown could be called during shutdown cleanup when the block is still pending concurrent
+    // sweep i.e. it resides in the pendingSweepList of the RecyclerSweep instance. In this case the page allocator may not have been closed yet.
+    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed() || this->isPendingConcurrentSweep);
 #endif
 
 }
