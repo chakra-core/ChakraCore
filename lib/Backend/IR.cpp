@@ -2697,8 +2697,8 @@ Instr::GetNextBranchOrLabel() const
 IR::Instr *
 Instr::GetNextByteCodeInstr() const
 {
-    IR::Instr * nextInstr = GetNextRealInstrOrLabel();
     uint32 currentOffset = GetByteCodeOffset();
+    IR::Instr * nextInstr = GetNextRealInstrOrLabel();
     const auto getNext = [](IR::Instr* nextInstr) -> IR::Instr*
     {
         if (nextInstr->IsBranchInstr())
@@ -2712,16 +2712,27 @@ Instr::GetNextByteCodeInstr() const
         }
         return nextInstr->GetNextRealInstrOrLabel();
     };
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() == currentOffset)
+    if (currentOffset == Js::Constants::NoByteCodeOffset)
     {
-        nextInstr = getNext(nextInstr);
+        while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset)
+        {
+            nextInstr = getNext(nextInstr);
+        }
+        AssertMsg(nextInstr->GetByteCodeOffset() == 0, "Only instrs before the first one are allowed to not have a bytecode offset");
     }
-    // This can happen due to break block removal
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() < currentOffset)
+    else
     {
-        nextInstr = getNext(nextInstr);
+        while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+            nextInstr->GetByteCodeOffset() == currentOffset)
+        {
+            nextInstr = getNext(nextInstr);
+        }
+        // This can happen due to break block removal
+        while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+            nextInstr->GetByteCodeOffset() < currentOffset)
+        {
+            nextInstr = getNext(nextInstr);
+        }
     }
     return nextInstr;
 }
