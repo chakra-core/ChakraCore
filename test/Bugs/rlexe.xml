@@ -517,4 +517,10 @@
       <compile-flags>-forceundodefer</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ArgumentsAttrIssue.js</files>
+      <compile-flags>-force:cachedScope</compile-flags>
+    </default>
+  </test>
 </regress-exe>

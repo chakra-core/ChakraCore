@@ -5706,11 +5706,18 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 uint formalsSlotLimit = (firstFuncSlot != Constants::NoProperty) ? (uint)firstFuncSlot :
                                         (firstVarSlot != Constants::NoProperty) ? (uint)firstVarSlot :
                                         propIds->count;
-                type = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, type, propIds, PropertyLet, formalsSlotLimit);
+                if (func->GetFunctionBody()->HasReferenceableBuiltInArguments())
+                {
+                    type = PathTypeHandlerBase::CreateNewScopeObject<true>(scriptContext, type, propIds, PropertyLet, formalsSlotLimit);
+                }
+                else
+                {
+                    type = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, type, propIds, PropertyLet, formalsSlotLimit);
+                }
             }
             else
             {
-                type = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, type, propIds);
+                type = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, type, propIds);
             }
             *literalType = type;
         }
@@ -7167,7 +7174,26 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
                 // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
                 // is ready for storing values directly to slots.
-                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+                DynamicType* newType = nullptr;
+                if (nonSimpleParamList)
+                {
+                    bool skipLetAttrForArguments = ((JavascriptGeneratorFunction::Is(funcCallee) || JavascriptAsyncFunction::Is(funcCallee)) ?
+                        JavascriptGeneratorFunction::FromVar(funcCallee)->GetGeneratorVirtualScriptFunction()->GetFunctionBody()->HasReferenceableBuiltInArguments()
+                        : funcCallee->GetFunctionBody()->HasReferenceableBuiltInArguments());
+
+                    if (skipLetAttrForArguments)
+                    {
+                        newType = PathTypeHandlerBase::CreateNewScopeObject<true>(scriptContext, frameObject->GetDynamicType(), propIds, PropertyLetDefaults);
+                    }
+                    else
+                    {
+                        newType = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, frameObject->GetDynamicType(), propIds, PropertyLetDefaults);
+                    }
+                }
+                else
+                {
+                    newType = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, frameObject->GetDynamicType(), propIds);
+                }
                 int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
                 int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
                 __analysis_assume((uint32)newSlotCapacity >= formalsCount);
@@ -7267,7 +7293,22 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
         // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
         // is ready for storing values directly to slots.
-        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+        DynamicType* newType = nullptr;
+        if (nonSimpleParamList)
+        {
+            if (calleeBody->HasReferenceableBuiltInArguments())
+            {
+                newType = PathTypeHandlerBase::CreateNewScopeObject<true>(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray(), PropertyLetDefaults);
+            }
+            else
+            {
+                newType = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray(), PropertyLetDefaults);
+            }
+        }
+        else
+        {
+            newType = PathTypeHandlerBase::CreateNewScopeObject<false>(scriptContext, frameObject->GetDynamicType(), calleeBody->GetFormalsPropIdArray());
+        }
 
         int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
         int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
