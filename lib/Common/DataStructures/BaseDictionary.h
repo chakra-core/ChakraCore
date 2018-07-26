@@ -30,6 +30,10 @@
 #include "DictionaryStats.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_CALLER_FAILING_TO_HOLD_MEDIUM_CONFIDENCE)
+
 namespace Js
 {
     template <class TDictionary>
@@ -44,20 +48,11 @@ namespace JsDiag
 
 namespace JsUtil
 {
-    struct contentStruct
-    {
-        Field(int) cs;
-    };
     class NoResizeLock
     {
     public:
-#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
-        void _Acquires_lock_(cs.cs) BeginResize() {}
-#pragma prefast(suppress:__WARNING_FAILING_TO_RELEASE_MEDIUM_CONFIDENCE)
-        void _Releases_lock_(cs.cs) EndResize() {}
-    private:
-        // For prefast analysis, we need to have a somewhat similar shape for both locks
-        Field(contentStruct) cs;
+        void BeginResize() {}
+        void EndResize() {}
     };
 
     class AsymetricResizeLock
@@ -126,10 +121,8 @@ namespace JsUtil
         class AutoDoResize
         {
         public:
-#pragma prefast(suppress:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
-            _Acquires_lock_(this->lock.cs.cs) AutoDoResize(Lock& lock) : lock(lock) { this->lock.BeginResize(); };
-#pragma prefast(suppress:__WARNING_CALLER_FAILING_TO_HOLD_MEDIUM_CONFIDENCE)
-            _Releases_lock_(this->lock.cs.cs) ~AutoDoResize() { this->lock.EndResize(); };
+            AutoDoResize(Lock& lock) : lock(lock) { this->lock.BeginResize(); };
+            ~AutoDoResize() { this->lock.EndResize(); };
         private:
             Lock& lock;
         };
@@ -1863,3 +1856,5 @@ namespace JsUtil
         PREVENT_COPY(SynchronizedDictionary);
     };
 }
+
+#pragma warning(pop)
