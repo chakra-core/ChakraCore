@@ -2189,6 +2189,16 @@ namespace Js
             {
                 AnalysisAssert(newCount == ((ushort)args.Info.Count) + 1);
                 newValues[args.Info.Count] = newTarget;
+
+                // If the function we're calling is a class constructor, it expects newTarget
+                // as the first arg so it knows how to construct "this". (We can leave the
+                // extra copy of newTarget at the end of the arguments; it's harmless so
+                // there's no need to introduce additional complexity here.)
+                FunctionInfo* functionInfo = JavascriptOperators::GetConstructorFunctionInfo(targetObj, scriptContext);
+                if (functionInfo && functionInfo->IsClassConstructor())
+                {
+                    newValues[0] = newTarget;
+                }
             }
 
             Js::Arguments arguments(calleeInfo, newValues);
