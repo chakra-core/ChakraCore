@@ -145,10 +145,6 @@ namespace Js
         BOOL SetPrototypeTrap(RecyclableObject* newPrototype, bool showThrow, ScriptContext * requestContext);
         Var ToString(Js::ScriptContext* scriptContext);
 
-        // proxy does not support IDispatch stuff.
-        virtual Var GetNamespaceParent(Js::Var aChild) { AssertMsg(false, "Shouldn't call this implementation."); return nullptr; }
-        virtual HRESULT QueryObjectInterface(REFIID riid, void **ppvObj) { AssertMsg(false, "Shouldn't call this implementation."); return E_NOTIMPL; }
-
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual RecyclableObject* ToObject(ScriptContext * requestContext) override;
         virtual Var GetTypeOfString(ScriptContext* requestContext) override;
