@@ -2472,6 +2472,13 @@ case_2:
                 Assert(idxEnd >= 0);
             }
         }
+
+        if (idxStart == 0 && idxEnd == len - 1)
+        {
+            AssertMsg(scriptContext == arg->GetScriptContext(), "Should have already marshaled the string in cross site thunk");
+            return arg;
+        }
+
         return SubstringCore(arg, idxStart, idxEnd - idxStart + 1, scriptContext);
     }
 
