@@ -146,7 +146,6 @@
   <test>
     <default>
       <files>delete.js</files>
-      <baseline>delete.baseline</baseline>
     </default>
   </test>
   <test>
