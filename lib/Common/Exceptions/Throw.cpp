@@ -131,11 +131,10 @@ namespace Js {
     {
         ULONG_PTR            imageBase = 0;
         RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry(funcStart, &imageBase, nullptr);
-        Unused(runtimeFunction);
 
         if (JsUtil::ExternalApi::GetCurrentThreadContextId())
         {
-            XDataRegistration_unrecoverable_error(hr);
+            XDataRegistration_unrecoverable_error(hr, (ULONG_PTR)runtimeFunction);
         }
         throw OutOfMemoryException();
     }
