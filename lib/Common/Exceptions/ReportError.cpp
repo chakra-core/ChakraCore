@@ -10,7 +10,7 @@ void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,
-    __in ULONG scenario)
+    __in ULONG_PTR scenario)
 {
     // avoid the error text methods to be optimized out.
     UNREFERENCED_PARAMETER(scenario);
@@ -179,6 +179,11 @@ _NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error()
 {
     int scenario = 14;
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void XDataRegistration_unrecoverable_error(HRESULT hr, ULONG_PTR scenario)
+{
+    ReportFatalException(NULL, hr, Fatal_XDataRegistration, scenario);
 }
 
 ///////
