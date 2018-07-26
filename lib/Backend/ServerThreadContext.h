@@ -72,7 +72,7 @@ public:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
     bool CanCreatePreReservedSegment() const;
-
+    void SetCanCreatePreReservedSegment(bool value);
     static intptr_t GetJITCRTBaseAddress();
 
 private:
