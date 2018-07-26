@@ -130,7 +130,7 @@ namespace Js
     // output is a string var.
     Var UriHelper::Encode(JavascriptString* strURI, unsigned char unescapedFlags, ScriptContext* scriptContext )
     {
-        uint32 len = strURI->GetLength();
+        charcount_t len = strURI->GetLength();
         __in_ecount(len) const char16* input = strURI->GetString();
         bool needsChanges = false;
         BYTE bUTF8[MaxUTF8Len];
@@ -285,7 +285,7 @@ namespace Js
     // output is a string var.
     Var UriHelper::Decode(JavascriptString* strURI, unsigned char reservedFlags, ScriptContext* scriptContext)
     {
-        uint32 len = strURI->GetLength();
+        charcount_t len = strURI->GetLength();
         __in_ecount(len) const char16* input = strURI->GetString();
         bool needsChanges = false;
         char16 c1;
