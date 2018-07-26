@@ -12237,6 +12237,9 @@ Case0:
     {
         if (propertyId == PropertyIds::length)
         {
+            JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                flags, GetScriptContext(), BuiltInPropertyRecords::length.buffer);
+
             return false;
         }
         return DynamicObject::DeleteProperty(propertyId, flags);
@@ -12246,6 +12249,9 @@ Case0:
     {
         if (BuiltInPropertyRecords::length.Equals(propertyNameString))
         {
+            JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                flags, GetScriptContext(), BuiltInPropertyRecords::length.buffer);
+
             return false;
         }
         return DynamicObject::DeleteProperty(propertyNameString, flags);
