@@ -30,13 +30,14 @@ enum ErrorReason
     Fatal_OutOfMemory = 22,
     // Unused = 23,
     Fatal_JsBuiltIn_Error = 24,
+    Fatal_XDataRegistration = 25,
 };
 
 extern "C" void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,
-    __in ULONG scenario);
+    __in ULONG_PTR scenario);
 
 // We can have other error handle code path with
 // unique call stack so we can collect data in Dr. Watson.
@@ -88,6 +89,8 @@ void OutOfMemoryAllocationPolicy_unrecoverable_error_visible();
 void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible();
 void OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible();
 void OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible();
+
+void XDataRegistration_unrecoverable_error(HRESULT hr, ULONG_PTR scenario);
 
 inline void OutOfMemoryTooManyPinnedObjects_unrecoverable_error(BYTE visibility)
 {
