@@ -9244,8 +9244,10 @@ Case0:
                     }
                     else if (pArr)
                     {
-                        JS_REENTRANT(jsReentLock, Var val = pArr->DirectGetItem(fromIndex));
-                        pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
+                        Var val = nullptr;
+                        JS_REENTRANT(jsReentLock,
+                            val = pArr->DirectGetItem(fromIndex),
+                            pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible));
 
                         if (!JavascriptArray::Is(obj))
                         {
