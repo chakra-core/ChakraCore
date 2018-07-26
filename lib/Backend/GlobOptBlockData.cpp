@@ -1086,7 +1086,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
     // but in different syms, create a new sym and record that the array sym requires compensation. Compensation will be
     // inserted later to initialize this new sym from all predecessors of the merged block.
 
-    StackSym *newHeadSegmentSym;
+    StackSym *newHeadSegmentSym = nullptr;
     if(toDataValueInfo->HeadSegmentSym() && fromDataValueInfo->HeadSegmentSym())
     {
         if(toDataValueInfo->HeadSegmentSym() == fromDataValueInfo->HeadSegmentSym())
@@ -1095,27 +1095,26 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            Assert(!this->globOpt->IsLoopPrePass());
-            Assert(symsRequiringCompensation);
-            symsRequiringCompensation->Set(arraySym->m_id);
-            Assert(symsCreatedForMerge);
-            if(symsCreatedForMerge->Test(toDataValueInfo->HeadSegmentSym()->m_id))
+            if (!this->globOpt->IsLoopPrePass())
             {
-                newHeadSegmentSym = toDataValueInfo->HeadSegmentSym();
-            }
-            else
-            {
-                newHeadSegmentSym = StackSym::New(TyMachPtr, this->globOpt->func);
-                symsCreatedForMerge->Set(newHeadSegmentSym->m_id);
+                // Adding compensation code in the prepass won't help, as the symstores would again be different in the main pass.
+                Assert(symsRequiringCompensation);
+                symsRequiringCompensation->Set(arraySym->m_id);
+                Assert(symsCreatedForMerge);
+                if (symsCreatedForMerge->Test(toDataValueInfo->HeadSegmentSym()->m_id))
+                {
+                    newHeadSegmentSym = toDataValueInfo->HeadSegmentSym();
+                }
+                else
+                {
+                    newHeadSegmentSym = StackSym::New(TyMachPtr, this->globOpt->func);
+                    symsCreatedForMerge->Set(newHeadSegmentSym->m_id);
+                }
             }
         }
     }
-    else
-    {
-        newHeadSegmentSym = nullptr;
-    }
 
-    StackSym *newHeadSegmentLengthSym;
+    StackSym *newHeadSegmentLengthSym = nullptr;
     if(toDataValueInfo->HeadSegmentLengthSym() && fromDataValueInfo->HeadSegmentLengthSym())
     {
         if(toDataValueInfo->HeadSegmentLengthSym() == fromDataValueInfo->HeadSegmentLengthSym())
@@ -1124,27 +1123,25 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            Assert(!this->globOpt->IsLoopPrePass());
-            Assert(symsRequiringCompensation);
-            symsRequiringCompensation->Set(arraySym->m_id);
-            Assert(symsCreatedForMerge);
-            if(symsCreatedForMerge->Test(toDataValueInfo->HeadSegmentLengthSym()->m_id))
+            if (!this->globOpt->IsLoopPrePass())
             {
-                newHeadSegmentLengthSym = toDataValueInfo->HeadSegmentLengthSym();
-            }
-            else
-            {
-                newHeadSegmentLengthSym = StackSym::New(TyUint32, this->globOpt->func);
-                symsCreatedForMerge->Set(newHeadSegmentLengthSym->m_id);
+                Assert(symsRequiringCompensation);
+                symsRequiringCompensation->Set(arraySym->m_id);
+                Assert(symsCreatedForMerge);
+                if (symsCreatedForMerge->Test(toDataValueInfo->HeadSegmentLengthSym()->m_id))
+                {
+                    newHeadSegmentLengthSym = toDataValueInfo->HeadSegmentLengthSym();
+                }
+                else
+                {
+                    newHeadSegmentLengthSym = StackSym::New(TyUint32, this->globOpt->func);
+                    symsCreatedForMerge->Set(newHeadSegmentLengthSym->m_id);
+                }
             }
         }
     }
-    else
-    {
-        newHeadSegmentLengthSym = nullptr;
-    }
 
-    StackSym *newLengthSym;
+    StackSym *newLengthSym = nullptr;
     if(toDataValueInfo->LengthSym() && fromDataValueInfo->LengthSym())
     {
         if(toDataValueInfo->LengthSym() == fromDataValueInfo->LengthSym())
@@ -1153,24 +1150,22 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            Assert(!this->globOpt->IsLoopPrePass());
-            Assert(symsRequiringCompensation);
-            symsRequiringCompensation->Set(arraySym->m_id);
-            Assert(symsCreatedForMerge);
-            if(symsCreatedForMerge->Test(toDataValueInfo->LengthSym()->m_id))
+            if (!this->globOpt->IsLoopPrePass())
             {
-                newLengthSym = toDataValueInfo->LengthSym();
-            }
-            else
-            {
-                newLengthSym = StackSym::New(TyUint32, this->globOpt->func);
-                symsCreatedForMerge->Set(newLengthSym->m_id);
+                Assert(symsRequiringCompensation);
+                symsRequiringCompensation->Set(arraySym->m_id);
+                Assert(symsCreatedForMerge);
+                if (symsCreatedForMerge->Test(toDataValueInfo->LengthSym()->m_id))
+                {
+                    newLengthSym = toDataValueInfo->LengthSym();
+                }
+                else
+                {
+                    newLengthSym = StackSym::New(TyUint32, this->globOpt->func);
+                    symsCreatedForMerge->Set(newLengthSym->m_id);
+                }
             }
         }
-    }
-    else
-    {
-        newLengthSym = nullptr;
     }
 
     if(newHeadSegmentSym || newHeadSegmentLengthSym || newLengthSym)
