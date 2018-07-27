@@ -1063,7 +1063,8 @@ CommonNumber:
 
     JavascriptArray* JavascriptOperators::GetOwnPropertyNames(Var instance, ScriptContext *scriptContext)
     {
-        RecyclableObject *object = VarTo<RecyclableObject>(ToObject(instance, scriptContext));
+        RecyclableObject *object = ToObject(instance, scriptContext);
+        AssertOrFailFast(VarIs<RecyclableObject>(object));
         JavascriptProxy * proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
@@ -1075,7 +1076,8 @@ CommonNumber:
 
     JavascriptArray* JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
     {
-        RecyclableObject *object = VarTo<RecyclableObject>(ToObject(instance, scriptContext));
+        RecyclableObject *object = ToObject(instance, scriptContext);
+        AssertOrFailFast(VarIs<RecyclableObject>(object));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertySymbols);
 
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
@@ -1089,7 +1091,8 @@ CommonNumber:
 
     JavascriptArray* JavascriptOperators::GetOwnPropertyKeys(Var instance, ScriptContext* scriptContext)
     {
-        RecyclableObject *object = VarTo<RecyclableObject>(ToObject(instance, scriptContext));
+        RecyclableObject *object = ToObject(instance, scriptContext);
+        AssertOrFailFast(VarIs<RecyclableObject>(object));
 
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
@@ -3099,7 +3102,7 @@ CommonNumber:
                 }
             }
 
-            RecyclableObject* obj = VarTo<RecyclableObject>((DynamicObject*)pDisplay->GetItem(length - 1));
+            RecyclableObject* obj = VarTo<RecyclableObject>(pDisplay->GetItem(length - 1));
             OUTPUT_TRACE(Js::ConsoleScopePhase, _u("Adding property '%s' to console scope object\n"), scriptContext->GetPropertyName(propertyId)->GetBuffer());
             JavascriptOperators::SetProperty(obj, obj, propertyId, newValue, scriptContext, propertyOperationFlags);
             return;
@@ -7878,7 +7881,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #endif
         value = nullptr;
         BEGIN_TYPEOF_ERROR_HANDLER(scriptContext);
-        if (JavascriptOperators::GetRootProperty(VarTo<RecyclableObject>(object), propertyId, &value, scriptContext, &info))
+        AssertOrFailFast(VarIs<RecyclableObject>(object));
+        if (JavascriptOperators::GetRootProperty(object, propertyId, &value, scriptContext, &info))
         {
             if (scriptContext->IsUndeclBlockVar(value))
             {

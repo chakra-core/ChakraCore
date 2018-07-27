@@ -646,9 +646,9 @@ namespace Js
         template <typename T> static bool MayChangeType() { return false; }
 
         template<typename T, typename P>
-        static BOOL TryTemplatedGetItem(T *arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
+        static BOOL TryTemplatedGetItem(RecyclableObject* arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(arr, index, element, scriptContext, checkHasItem) :
+            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(UnsafeVarTo<T>(arr), index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -658,20 +658,21 @@ namespace Js
             for (uint32 i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                fn(i, TryTemplatedGetItem(arr, i, &element, scriptContext) ? element : missingItem);
+                RecyclableObject* curArr = arr;
+                fn(i, TryTemplatedGetItem<T>(curArr, i, &element, scriptContext) ? element : missingItem);
 
-                if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(arr))
+                if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(curArr))
                 {
                     // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                     // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                    if (JavascriptArray::IsNonES5Array(arr))
+                    if (JavascriptArray::IsNonES5Array(curArr))
                     {
-                        VarTo<JavascriptArray>(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                        UnsafeVarTo<JavascriptArray>(curArr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
                         return;
                     }
                     else
                     {
-                        AssertOrFailFastMsg(VarIs<ES5Array>(arr), "The array should have been converted to an ES5Array");
+                        AssertOrFailFastMsg(VarIs<ES5Array>(curArr), "The array should have been converted to an ES5Array");
                     }
                 }
             }
@@ -683,22 +684,23 @@ namespace Js
             for (P i = startIndex; i < limitIndex; i++)
             {
                 Var element;
-                if (TryTemplatedGetItem(arr, i, &element, scriptContext))
+                RecyclableObject* curArr = arr;
+                if (TryTemplatedGetItem<T>(curArr, i, &element, scriptContext))
                 {
                     fn(i, element);
 
-                    if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(arr))
+                    if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(curArr))
                     {
                         // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
-                        if (JavascriptArray::IsNonES5Array(arr))
+                        if (JavascriptArray::IsNonES5Array(curArr))
                         {
-                            VarTo<JavascriptArray>(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                            UnsafeVarTo<JavascriptArray>(curArr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
                             return;
                         }
                         else
                         {
-                            AssertOrFailFastMsg(VarIs<ES5Array>(arr), "The array should have been converted to an ES5Array");
+                            AssertOrFailFastMsg(VarIs<ES5Array>(curArr), "The array should have been converted to an ES5Array");
                         }
                     }
                 }

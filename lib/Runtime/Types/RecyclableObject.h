@@ -489,8 +489,10 @@ namespace Js {
 
     CompileAssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
 
-    template <typename T> T* VarTo(RecyclableObject* obj)
+    template <typename T, typename U> T* VarTo(U* obj)
     {
+        static_assert(!std::is_same<T, U>::value, "Check should be unnecessary - did you prematurely cast?");
+        static_assert(std::is_base_of<U, T>::value, "VarTo should only downcast!");
         AssertOrFailFast(VarIs<T>(obj));
         return static_cast<T*>(obj);
     }

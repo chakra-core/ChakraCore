@@ -4322,7 +4322,8 @@ namespace Js
         }
         else
         {
-            objPrototype = Js::VarTo<Js::RecyclableObject>(prototype);
+            AssertOrFailFast(Js::VarIs<Js::RecyclableObject>(prototype));
+            objPrototype = prototype;
             Js::JavascriptOperators::InitProperty(objPrototype, Js::PropertyIds::constructor, function);
             objPrototype->SetEnumerable(Js::PropertyIds::constructor, false);
         }
@@ -6722,7 +6723,8 @@ namespace Js
     {
         JavascriptListIterator* iterator = RecyclerNew(this->GetRecycler(), JavascriptListIterator, listIteratorType, list);
         RuntimeFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
-        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, VarTo<JavascriptFunction>(nextFunction), GetScriptContext(), PropertyOperation_None);
+        AssertOrFailFast(VarIs<JavascriptFunction>(nextFunction));
+        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, nextFunction, GetScriptContext(), PropertyOperation_None);
         return iterator;
     }
 

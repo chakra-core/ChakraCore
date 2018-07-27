@@ -355,6 +355,12 @@ namespace Js
 #endif
     }
 
+    SharedArrayBuffer * SharedArrayBuffer::GetAsSharedArrayBuffer()
+    {
+        AssertOrFailFast(VarIs<SharedArrayBuffer>(this));
+        return this;
+    }
+
     CriticalSection SharedArrayBuffer::csSharedArrayBuffer;
 
     WaiterList *SharedArrayBuffer::GetWaiterList(uint index)

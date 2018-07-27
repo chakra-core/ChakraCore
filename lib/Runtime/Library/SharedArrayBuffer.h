@@ -85,7 +85,7 @@ namespace Js
         virtual bool IsArrayBuffer() override { return false; }
         virtual bool IsSharedArrayBuffer() override { return true; }
         virtual ArrayBuffer * GetAsArrayBuffer() { return nullptr; }
-        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override { return VarTo<SharedArrayBuffer>(this); }
+        virtual SharedArrayBuffer * GetAsSharedArrayBuffer() override;
 
         WaiterList *GetWaiterList(uint index);
         SharedContents *GetSharedContents() { return sharedContents; }

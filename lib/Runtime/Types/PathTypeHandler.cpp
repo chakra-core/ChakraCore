@@ -3680,7 +3680,8 @@ namespace Js
             Assert(setters != nullptr);
             PathTypeSetterSlotIndex setterSlot = setters[propertyIndex];
             Assert(setterSlot != NoSetterSlot && setterSlot < GetPathLength());
-            *setterValue = VarTo<DynamicObject>(instance)->GetSlot(setterSlot);
+            AssertOrFailFast(VarIs<DynamicObject>(instance));
+            *setterValue = instance->GetSlot(setterSlot);
             PropertyValueInfo::Set(info, instance, setterSlot, ObjectSlotAttributesToPropertyAttributes(attr), InlineCacheSetterFlag);
             return Accessor;
         }

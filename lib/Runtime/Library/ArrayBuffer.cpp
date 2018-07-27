@@ -282,6 +282,12 @@ namespace Js
         }
     }
 
+    ArrayBuffer * ArrayBuffer::GetAsArrayBuffer()
+    {
+        AssertOrFailFast(VarIs<ArrayBuffer>(this));
+        return this;
+    }
+
     uint32 ArrayBuffer::ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero)
     {
         if (JavascriptOperators::IsUndefined(value))

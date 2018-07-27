@@ -4189,7 +4189,7 @@ using namespace Js;
         //Consider: enumerating instead of walking all indices
         for (P i = fromIndex; i < toIndex; i++)
         {
-            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext, !includesAlgorithm))
+            if (!TryTemplatedGetItem<T>(pArr, i, &element, scriptContext, !includesAlgorithm))
             {
                 if (doUndefinedSearch)
                 {
@@ -4629,7 +4629,7 @@ CaseDefault:
                         cs->Append(separator);
                     }
 
-                    JS_REENTRANT(jsReentLock, gotItem = TryTemplatedGetItem(arr, i, &item, scriptContext));
+                    JS_REENTRANT(jsReentLock, gotItem = TryTemplatedGetItem<T>(arr, i, &item, scriptContext));
                     if (gotItem)
                     {
                         JS_REENTRANT(jsReentLock, cs->Append(JavascriptArray::JoinToString(item, scriptContext)));
@@ -4655,7 +4655,7 @@ CaseDefault:
                 {
                     JS_REENTRANT(jsReentLock, res = JavascriptArray::JoinToString(item, scriptContext));
                 }
-                JS_REENTRANT(jsReentLock, gotItem = TryTemplatedGetItem(arr, 1u, &item, scriptContext));
+                JS_REENTRANT(jsReentLock, gotItem = TryTemplatedGetItem<T>(arr, 1u, &item, scriptContext));
                 if (gotItem)
                 {
                     JS_REENTRANT(jsReentLock, JavascriptString *const itemString = JavascriptArray::JoinToString(item, scriptContext));
@@ -4911,7 +4911,7 @@ Case0:
         {
             uint32 index = end - i;
 
-            if (!TryTemplatedGetItem(pArr, index, &element, scriptContext))
+            if (!TryTemplatedGetItem<T>(pArr, index, &element, scriptContext))
             {
                 continue;
             }

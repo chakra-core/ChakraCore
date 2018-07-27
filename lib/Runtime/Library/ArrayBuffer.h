@@ -187,7 +187,7 @@ namespace Js
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
         virtual bool IsArrayBuffer() override { return true; }
         virtual bool IsSharedArrayBuffer() override { return false; }
-        virtual ArrayBuffer * GetAsArrayBuffer() override { return VarTo<ArrayBuffer>(this); }
+        virtual ArrayBuffer * GetAsArrayBuffer() override;
 
         static uint32 ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero = true);
 
