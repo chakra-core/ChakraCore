@@ -272,6 +272,8 @@ public:
         SourceContextInfo * sourceContextInfo, Js::ParseableFunctionInfo* functionInfo);
 
 protected:
+    static uint BuildDeferredStubTreeHelper(ParseNodeBlock* pnodeBlock, DeferredFunctionStub* deferredStubs, uint currentStubIndex, uint deferredStubCount, Recycler *recycler);
+
     HRESULT ParseSourceInternal(
         __out ParseNodeProg ** parseTree, LPCUTF8 pszSrc, size_t offsetInBytes,
         size_t lengthInCodePoints, charcount_t offsetInChars, bool isUtf8,

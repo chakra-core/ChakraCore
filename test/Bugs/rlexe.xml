@@ -488,7 +488,7 @@
     <default>
       <files>bug17785360.js</files>
     </default>
-  </test> 
+  </test>
   <test>
     <default>
       <files>bug_OS17530048.js</files>
@@ -510,7 +510,7 @@
     <default>
       <files>OS_17745531.js</files>
     </default>
-  </test>   
+  </test>
   <test>
     <default>
       <files>SuperUndoDeferIssue.js</files>
@@ -521,6 +521,13 @@
     <default>
       <files>ArgumentsAttrIssue.js</files>
       <compile-flags>-force:cachedScope</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>deferredStubBugs.js</files>
+      <tags>exclude_jshost</tags>
+      <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
 </regress-exe>
