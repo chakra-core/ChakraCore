@@ -904,7 +904,7 @@ namespace Js
         static JavascriptArray * BoxStackInstance(JavascriptArray * instance, bool deepCopy);
         static ArrayObject * DeepCopyInstance(ArrayObject * instance);
     protected:
-        template <typename T> void InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy);
+        template <typename T> void InitBoxedInlineSegments(T * instance, bool deepCopy);
 
         template <typename T> static T * BoxStackInstance(T * instance, bool deepCopy);
         template <typename T> static T * DeepCopyInstance(T * instance);

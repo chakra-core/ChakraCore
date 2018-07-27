@@ -11814,24 +11814,42 @@ Case0:
 #endif
 
     template <typename T>
-    void JavascriptArray::InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy)
+    void JavascriptArray::InitBoxedInlineSegments(T * instance, bool deepCopy)
     {
         // Don't copy the segment map, we will build it again
         SetFlags(GetFlags() & ~DynamicObjectFlags::HasSegmentMap);
 
-        SetHeadAndLastUsedSegment(dst);
+        SparseArraySegment<typename T::TElement>* src = SparseArraySegment<typename T::TElement>::From(instance->head);
+        SparseArraySegment<typename T::TElement>* dst;
 
-        // Copy head segment data
-        dst->left = src->left;
-        dst->length = src->length;
-        dst->size = src->size;
+        if (IsInlineSegment(src, instance))
+        {
+            Assert(src->size <= SparseArraySegmentBase::INLINE_CHUNK_SIZE);
+
+            // Copy head segment data between inlined head segments
+            dst = DetermineInlineHeadSegmentPointer<T, 0, true>(static_cast<T*>(this));
+            dst->left = src->left;
+            dst->length = src->length;
+            dst->size = src->size;
+        }
+        else
+        {
+            // Otherwise, ensure that the new head segment is allocated now in the recycler so that the data can be copied.
+            // Note: src->next is provided to control whether a leaf segment is allocated just as it is with instance. If
+            //  src->next is non-null, the appropriate update to dst->next will continue below.
+            dst = SparseArraySegment<typename T::TElement>::AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
+        }
+
+        SetHeadAndLastUsedSegment(dst);
         dst->CheckLengthvsSize();
+
+        Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
 
         CopyArray(dst->elements, dst->size, src->elements, src->size);
 
         if (!deepCopy)
         {
-            // Without a deep copy, point to the existing next segment
+            // Without a deep copy, point to the existing next segment from the original instance
             dst->next = src->next;
         }
         else
@@ -11845,10 +11863,10 @@ Case0:
                 {
                     // Allocate a new segment in the destination and copy from src
                     // note: PointerValue is to strip SWB wrapping before static_cast
-                    src = static_cast<SparseArraySegment<T>*>(PointerValue(src->next));
+                    src = static_cast<SparseArraySegment<typename T::TElement>*>(PointerValue(src->next));
 
                     dst->next = dst->AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
-                    dst = static_cast<SparseArraySegment<T>*>(PointerValue(dst->next));
+                    dst = static_cast<SparseArraySegment<typename T::TElement>*>(PointerValue(dst->next));
 
                     CopyArray(dst->elements, dst->size, src->elements, src->size);
                 }
@@ -11861,6 +11879,12 @@ Case0:
             } while (dst != nullptr);
             failFastError.Completed();
         }
+
+        // Assert either
+        // - there is only the head segment
+        // - the new head segment points to a new next segment
+        // - the new head segment points to the existing next segment because this is not a deepCopy
+        Assert(this->head->next == nullptr || this->head->next != src->next || !deepCopy);
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
@@ -11868,7 +11892,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head), false);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {
@@ -11880,13 +11904,19 @@ Case0:
     }
 
     // Allocate a new Array with its own segments and copy the data in instance
-    // into the new Array
+    // into the new Array. If the instance being deepCopy'd has an inline head
+    // segment, then make sure the new instance also has allocation for an inline
+    // head segment.
     template <typename T>
     T * JavascriptArray::DeepCopyInstance(T * instance)
     {
-        return RecyclerNewPlusZ(instance->GetRecycler(),
-            instance->GetTypeHandler()->GetInlineSlotsSize() + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-            T, instance, true /*boxHead*/, true /*deepCopy*/);
+        size_t allocSize = instance->GetTypeHandler()->GetInlineSlotsSize();
+        if (IsInlineSegment(instance->head, instance))
+        {
+            allocSize += sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement);
+        }
+
+        return RecyclerNewPlusZ(instance->GetRecycler(), allocSize, T, instance, true /*boxHead*/, true /*deepCopy*/);
     }
 
     ArrayObject* JavascriptArray::DeepCopyInstance(ArrayObject* arrayObject)
@@ -12051,7 +12081,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head), deepCopy);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {
@@ -12097,7 +12127,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head), deepCopy);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {

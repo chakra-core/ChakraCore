@@ -3880,6 +3880,16 @@ Lowerer::GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCal
             uint32 allocCount = count == 0 ? Js::SparseArraySegmentBase::SMALL_CHUNK_SIZE : count;
             arrayAllocSize = Js::JavascriptArray::DetermineAllocationSize<ArrayType, 0>(allocCount, nullptr, &alignedHeadSegmentSize);
         }
+
+        // Note that it is possible for the returned alignedHeadSegmentSize to be greater than INLINE_CHUNK_SIZE because
+        // of rounding the *entire* object, including the head segment, to the nearest aligned size. In that case, ensure
+        // that this size is still not larger than INLINE_CHUNK_SIZE size because the head segment is still inlined. This
+        // keeps consistency with the definition of HasInlineHeadSegment and maintained in the assert below.
+        uint inlineChunkSize = Js::SparseArraySegmentBase::INLINE_CHUNK_SIZE;
+        alignedHeadSegmentSize = min(alignedHeadSegmentSize, inlineChunkSize);
+
+        Assert(ArrayType::HasInlineHeadSegment(alignedHeadSegmentSize));
+
         leaHeadInstr = IR::Instr::New(Js::OpCode::LEA, headOpnd,
             IR::IndirOpnd::New(dstOpnd, sizeof(ArrayType), TyMachPtr, func), func);
         isHeadSegmentZeroed = true;
