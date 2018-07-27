@@ -14323,10 +14323,8 @@ GlobOpt::OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, 
         return false;
     }
 
-    // If the loopHeadVal is primitive, the current value should be as well.  This really should be
-    // srcVal->GetValueInfo()->IsPrimitive() instead of IsLikelyPrimitive, but this stronger assertion
-    // doesn't hold in some cases when this method is called out of the array code.
-    Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsLikelyPrimitive());
+    // Disabling this assert, because it does not hold true when we force specialize in the loop landing pad
+    //Assert((!loopHeadVal->GetValueInfo()->IsPrimitive()) || srcVal->GetValueInfo()->IsLikelyPrimitive());
 
     return true;
 }
