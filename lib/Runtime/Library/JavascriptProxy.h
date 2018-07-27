@@ -59,9 +59,16 @@ namespace Js
         // the proxies could be deep nested and cause SO when processed recursively.
         static const JavascriptProxy* UnwrapNestedProxies(const JavascriptProxy* proxy)
         {
-            while (proxy->handler != nullptr && JavascriptProxy::Is(proxy->target))
+            // continue while we have a proxy that is not revoked
+            while (proxy->handler != nullptr)
             {
-                proxy = JavascriptProxy::FromVar(proxy->target);
+                JavascriptProxy* nestedProxy = JavascriptOperators::TryFromVar<JavascriptProxy>(proxy->target);
+                if (nestedProxy == nullptr)
+                {
+                    break;
+                }
+
+                proxy = nestedProxy;
             }
 
             return proxy;

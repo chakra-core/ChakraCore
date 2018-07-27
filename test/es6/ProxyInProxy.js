@@ -225,17 +225,17 @@ function test7() {
 function test8() {
     print("*** deeply nested proxy and typeof");
 
-    var __v_8697 = Proxy.revocable([], {}).proxy;
-    for (var __v_8698 = 0; __v_8698 < 1e5; __v_8698++) {
-        __v_8697 = new Proxy(__v_8697, {});
+    var nestedProxy = Proxy.revocable([], {}).proxy;
+    for (let i = 0; i < 1e5; i++) {
+        nestedProxy = new Proxy(nestedProxy, {});
     }
-      var __v_8702 = new Proxy({}, {
-      });
-      (function () {
-        if (__v_8697 != null && typeof __v_8697 == "object") try {
+
+    (function () {
+        if (nestedProxy != null && typeof nestedProxy == "object")
+        {
             console.log("pass");
-        } catch (e) {}
-      })();
+        }
+    })();
 }
 
 test1();
