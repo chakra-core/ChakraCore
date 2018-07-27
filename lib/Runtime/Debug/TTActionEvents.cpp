@@ -506,8 +506,8 @@ namespace TTD
             Js::Var constructor = InflateVarInReplay(executeContext, GetVarItem_1(action));
             TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(constructor, ctx);
 
-            //Result is not needed but trigger computation for any effects
-            Js::RecyclableObject::FromVar(constructor)->HasInstance(object, ctx);
+            // Result is not needed but trigger computation for any effects
+            Js::JavascriptOperators::OP_IsInst(object, constructor, ctx, nullptr);
         }
 
         void EqualsAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)

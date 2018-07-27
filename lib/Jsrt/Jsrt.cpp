@@ -1415,7 +1415,8 @@ CHAKRA_API JsInstanceOf(_In_ JsValueRef object, _In_ JsValueRef constructor, _Ou
         VALIDATE_INCOMING_REFERENCE(constructor, scriptContext);
         PARAM_NOT_NULL(result);
 
-        *result = Js::RecyclableObject::FromVar(constructor)->HasInstance(object, scriptContext) ? true : false;
+        Js::Var value = Js::JavascriptOperators::OP_IsInst(object, constructor, scriptContext, nullptr);
+        *result = !!Js::JavascriptBoolean::FromVar(value)->GetValue();
 
         return JsNoError;
     });
