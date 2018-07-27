@@ -42,6 +42,7 @@ namespace UnifiedRegex
 #include "RuntimeCommon.h"
 
 #include <intsafe.h>
+#include <type_traits>
 
 #if !defined(UNREFERENCED_PARAMETER)
 #define UNREFERENCED_PARAMETER(x) (x)
