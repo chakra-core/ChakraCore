@@ -8278,7 +8278,7 @@ void Parser::DeferOrEmitPotentialSpreadError(ParseNodePtr pnodeT)
     }
 }
 
-bool Parser::IsTerminateToken()
+bool Parser::IsTerminateToken(bool fAllowIn)
 {
     return (m_token.tk == tkRCurly ||
         m_token.tk == tkRBrack ||
@@ -8287,6 +8287,7 @@ bool Parser::IsTerminateToken()
         m_token.tk == tkColon ||
         m_token.tk == tkComma ||
         m_token.tk == tkLimKwd ||
+        (m_token.tk == tkIN && fAllowIn) ||
         this->GetScanner()->FHadNewLine());
 }
 
@@ -8299,7 +8300,7 @@ template<bool buildAST>
 bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplMin, BOOL *pfCanAssign, BOOL fAllowIn, BOOL fAllowEllipsis, _Inout_opt_ IdentToken* pToken)
 {
     *pnode = nullptr;
-    if (IsTerminateToken())
+    if (IsTerminateToken(!fAllowIn))
     {
         return false;
     }
@@ -8433,7 +8434,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
 
         if (nop == knopYield)
         {
-            if (!ParseOptionalExpr<buildAST>(&pnodeT, false, opl, NULL, TRUE, fAllowEllipsis))
+            if (!ParseOptionalExpr<buildAST>(&pnodeT, false, opl, NULL, fAllowIn, fAllowEllipsis))
             {
                 nop = knopYieldLeaf;
                 if (buildAST)
@@ -8795,7 +8796,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             // ArrowFunction/AsyncArrowFunction is part of AssignmentExpression, which should terminate the expression unless followed by a comma
             if (m_token.tk != tkComma && m_token.tk != tkIN)
             {
-                if (!(IsTerminateToken()))
+                if (!(IsTerminateToken(false)))
                 {
                     Error(ERRnoSemic);
                 }

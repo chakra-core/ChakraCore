@@ -212,6 +212,14 @@ var tests = [
             assert.throws(function () { eval("function *gf() { (a = (yield) => {}) => {}; }"); }, SyntaxError, "yield expression is disallowed within arrow function default parameter expression in nested case too", "The use of a keyword for an identifier is invalid");
         }
     },
+    {
+        name : "yield is allowed before 'in' in a for loop control but not elsewhere bug issue #5203",
+        body : function () {
+            assert.doesNotThrow(function () { eval("function* gf() {for(var a = yield in {});}"); }, "Yield is allowed before 'in' in a for loop");
+            assert.throws(function () { eval("function* gf() {var a = yield in {};}"); }, SyntaxError, "Yield is not allowed before 'in' when not declaring a loop");
+            assert.throws(function () { eval("function* gf() {yield in {};}"); }, SyntaxError, "Yield is not allowed before 'in' when not declaring a loop");
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
