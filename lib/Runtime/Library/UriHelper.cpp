@@ -29,7 +29,7 @@ namespace Js
             }
         }
 
-        return Encode(strURI->GetString(), strURI->GetLength(), flags, scriptContext);
+        return Encode(strURI, flags, scriptContext);
     }
 
     unsigned char UriHelper::s_uriProps[128] =
@@ -126,10 +126,13 @@ namespace Js
     }
 
     // The Encode algorithm described in sec. 15.1.3 of the spec. The input string is
-    // 'input' and the Unescaped set is described by the flags 'unescapedFlags'. The
+    // 'strURI' and the Unescaped set is described by the flags 'unescapedFlags'. The
     // output is a string var.
-    Var UriHelper::Encode(__in_ecount(len) const  char16* input, uint32 len, unsigned char unescapedFlags, ScriptContext* scriptContext )
+    Var UriHelper::Encode(JavascriptString* strURI, unsigned char unescapedFlags, ScriptContext* scriptContext )
     {
+        charcount_t len = strURI->GetLength();
+        __in_ecount(len) const char16* input = strURI->GetString();
+        bool needsChanges = false;
         BYTE bUTF8[MaxUTF8Len];
 
         // pass 1 calculate output length and error check
@@ -144,6 +147,8 @@ namespace Js
             }
             else
             {
+                needsChanges = true;
+
                 if( c >= 0xDC00 && c <= 0xDFFF )
                 {
                     JavascriptError::ThrowURIError(scriptContext, JSERR_URIEncodeError /* TODO-ERROR: _u("NEED MESSAGE") */);
@@ -171,6 +176,13 @@ namespace Js
                 utfLen = UInt32Math::Mul(utfLen, 3);
                 outputLen = UInt32Math::Add(outputLen, utfLen);
             }
+        }
+
+        // If nothing needs encoding, then avoid extra work
+        if (!needsChanges)
+        {
+            AssertMsg(scriptContext == strURI->GetScriptContext(), "Should have already marshaled the string in cross site thunk");
+            return strURI;
         }
 
         //pass 2 generate the encoded URI
@@ -238,7 +250,7 @@ namespace Js
         __analysis_assume(outputLen + 1 == allocSize);
         outURI[outputLen] = _u('\0');
 
-        return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
+        return JavascriptString::NewWithBuffer(outURI, outputLen, scriptContext);
     }
 
     Var UriHelper::DecodeCoreURI(ScriptContext* scriptContext, Arguments& args, unsigned char reservedFlags )
@@ -265,14 +277,17 @@ namespace Js
             }
         }
 
-        return Decode(strURI->GetString(), strURI->GetLength(), reservedFlags, scriptContext);
+        return Decode(strURI, reservedFlags, scriptContext);
     }
 
     // The Decode algorithm described in sec. 15.1.3 of the spec. The input string is
-    // 'input' and the Reserved set is described by the flags 'reservedFlags'. The
+    // 'strURI' and the Reserved set is described by the flags 'reservedFlags'. The
     // output is a string var.
-    Var UriHelper::Decode(__in_ecount(len) const char16* input, uint32 len, unsigned char reservedFlags, ScriptContext* scriptContext)
+    Var UriHelper::Decode(JavascriptString* strURI, unsigned char reservedFlags, ScriptContext* scriptContext)
     {
+        charcount_t len = strURI->GetLength();
+        __in_ecount(len) const char16* input = strURI->GetString();
+        bool needsChanges = false;
         char16 c1;
         char16 c;
         // pass 1 calculate output length and error check
@@ -283,6 +298,8 @@ namespace Js
 
             if( c == '%')
             {
+                needsChanges = true;
+
                 uint32 start = k;
                 if( k + 2 >= len )
                 {
@@ -381,6 +398,13 @@ namespace Js
             {
                 outputLen++;
             }
+        }
+
+        // If nothing needs decoding, then avoid extra work
+        if (!needsChanges)
+        {
+            AssertMsg(scriptContext == strURI->GetScriptContext(), "Should have already marshaled the string in cross site thunk");
+            return strURI;
         }
 
         //pass 2 generate the decoded URI
@@ -538,7 +562,7 @@ namespace Js
         __analysis_assume(outputLen + 1 == allocSize);
         outURI[outputLen] = _u('\0');
 
-        return JavascriptString::NewCopyBuffer(outURI, outputLen, scriptContext);
+        return JavascriptString::NewWithBuffer(outURI, outputLen, scriptContext);
     }
 
     // Decodes a two-hexadecimal-digit wide character pair into the byte value it represents
