@@ -2717,11 +2717,21 @@ Instr::GetNextByteCodeInstr() const
     {
         nextInstr = getNext(nextInstr);
     }
-    // This can happen due to break block removal
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() < currentOffset)
+
+    // Do not check if the instr trying to bailout is in the function prologue
+    // nextInstr->GetByteCodeOffset() < currentOffset would always be true and we would crash
+    if (currentOffset != Js::Constants::NoByteCodeOffset)
     {
-        nextInstr = getNext(nextInstr);
+        // This can happen due to break block removal
+        while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+            nextInstr->GetByteCodeOffset() < currentOffset)
+        {
+            nextInstr = getNext(nextInstr);
+        }
+    }
+    else
+    {
+        AssertMsg(nextInstr->GetByteCodeOffset() == 0, "Only instrs before the first one are allowed to not have a bytecode offset");
     }
     return nextInstr;
 }
