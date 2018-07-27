@@ -22,36 +22,47 @@ namespace Js
     CONTEXT                 ep##c;                  \
     EXCEPTION_POINTERS      ep = {&ep##er, &ep##c};
 
+    // Typeof operator should return 'undefined' for undeclared or hoisted vars
+    // and propagate all other exceptions.
+    //
+    // NB: Re-throw from catch unwinds the active frame but doesn't clear the stack
+    // (catch clauses keep accumulating at the top of the stack until a catch 
+    // that doesn't re-throw). This is problematic if we've detected potential
+    // stack overflow and report it via exceptions: the handling of throw
+    // might actually overflow the stack and cause system SO exception.
+    // Thus, use catch to cache the exception, and re-throw it outside of the catch.
 #define TYPEOF_ERROR_HANDLER_CATCH(scriptContext, var) \
     } \
     catch (const JavascriptException& err) \
     { \
-        JavascriptExceptionObject* exceptionObject = err.GetAndClear(); \
-        Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
-        if (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
-        { \
-            HRESULT hr = Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr); \
-            if (JavascriptError::GetErrorNumberFromResourceID(JSERR_Property_CannotGet_NullOrUndefined) == (int32)hr \
-                || JavascriptError::GetErrorNumberFromResourceID(JSERR_UseBeforeDeclaration) == (int32)hr) \
-            { \
-                if (scriptContext->IsScriptContextInDebugMode()) \
-                { \
-                    JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, true); \
-                } \
-                else \
-                { \
-                    JavascriptExceptionOperators::DoThrow(exceptionObject, scriptContext); \
-                } \
-            } \
-        } \
-        var = scriptContext->GetLibrary()->GetUndefined();
+        exceptionObject = err.GetAndClear(); \
+        var = scriptContext->GetLibrary()->GetUndefined(); \
 
 #define TYPEOF_ERROR_HANDLER_THROW(scriptContext, var) \
+    } \
+    if (exceptionObject != nullptr) \
+    { \
+        Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
+        HRESULT hr = (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
+                     ? Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr) \
+                     : S_OK; \
+        if (JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr) \
+        { \
+            if (scriptContext->IsScriptContextInDebugMode()) \
+            { \
+                JavascriptExceptionOperators::ThrowExceptionObject(exceptionObject, scriptContext, true); \
+            } \
+            else \
+            { \
+                JavascriptExceptionOperators::DoThrowCheckClone(exceptionObject, scriptContext); \
+            } \
+        } \
     } \
     if (scriptContext->IsUndeclBlockVar(var)) \
     { \
         JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration); \
-    }
+    } \
+}
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
 #define BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL \
@@ -80,6 +91,8 @@ namespace Js
 #endif
 
 #define BEGIN_TYPEOF_ERROR_HANDLER(scriptContext)  \
+{ \
+    JavascriptExceptionObject* exceptionObject = nullptr; \
     try { \
         Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext); \
         BEGIN_TYPEOF_ERROR_HANDLER_DEBUGGER_THROW_IS_INTERNAL
