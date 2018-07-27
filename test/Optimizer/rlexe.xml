@@ -1568,4 +1568,10 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:aggressiveinttypespec</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>valuetypegap.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -force:inline</compile-flags>
+    </default>
+  </test>
 </regress-exe>
