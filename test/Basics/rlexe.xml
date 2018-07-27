@@ -148,7 +148,6 @@
   <test>
     <default>
       <files>typeof.js</files>
-      <baseline>typeof.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
