@@ -176,16 +176,14 @@ namespace Js
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord, nullptr);
                 propertyId = propertyRecord->GetPropertyId();
 
-                if (!targetToTrapResultMap.ContainsKey(propertyId))
+                if (propertyId != Constants::NoProperty)
                 {
-                    if (propertyId != Constants::NoProperty)
+                    if (targetToTrapResultMap.AddNew(propertyId, true) == -1)
                     {
-                        targetToTrapResultMap.Add(propertyId, true);
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DuplicateKeysFromOwnPropertyKeys);
                     }
                 }
 
-                // We explicitly allow duplicates in the results. A map is sufficient since the spec steps that remove entries
-                // remove ALL of them at the same time.
                 if (fn(propertyRecord))
                 {
                     trapResult->DirectSetItemAt(trapResultIndex++, element);

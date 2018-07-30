@@ -255,6 +255,7 @@ namespace JsUtil
             return Insert<Insert_Add>(key, value);
         }
 
+        // Returns -1 if the key is already in the dictionary
         int AddNew(const TKey& key, const TValue& value)
         {
             return Insert<Insert_AddNew>(key, value);
