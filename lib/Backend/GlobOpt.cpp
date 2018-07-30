@@ -2776,6 +2776,7 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                 }
                 bailOutInstr->SetSrc1(srcOpnd);
                 bailOutInstr->GetSrc1()->SetValueType(valueType);
+                bailOutInstr->SetByteCodeOffset(instr);
                 instr->InsertBefore(bailOutInstr);
                 if (this->currentBlock->loop)
                 {
