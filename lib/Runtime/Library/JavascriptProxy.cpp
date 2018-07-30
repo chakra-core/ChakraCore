@@ -2342,10 +2342,6 @@ namespace Js
         }
         RecyclableObject* trapResultArray = RecyclableObject::FromVar(ownKeysResult);
 
-        BOOL isTargetExtensible = targetObj->IsExtensible();
-
-        targetKeys = JavascriptOperators::GetOwnPropertyKeys(targetObj, requestContext);
-
         //15. Assert: targetKeys is a List containing only String and Symbol values.
         //16. Let targetConfigurableKeys be an empty List.
         //17. Let targetNonconfigurableKeys be an empty List.
@@ -2427,6 +2423,7 @@ namespace Js
         Var element;
         PropertyId propertyId;
         const PropertyRecord* propertyRecord = nullptr;
+        BOOL isTargetExtensible = FALSE;
 
         BEGIN_TEMP_ALLOCATOR(tempAllocator, requestContext, _u("Runtime"))
         {
@@ -2464,6 +2461,9 @@ namespace Js
                 });
                 break;
             }
+
+            isTargetExtensible = targetObj->IsExtensible();
+            targetKeys = JavascriptOperators::GetOwnPropertyKeys(targetObj, requestContext);
 
             for (uint32 i = 0; i < targetKeys->GetLength(); i++)
             {

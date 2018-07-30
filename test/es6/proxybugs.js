@@ -484,6 +484,17 @@ var tests = [
             var obj2 = Reflect.construct(proxy2, [20]);
             assert.areEqual(20, obj2.x);
         }
+    },
+    {
+        name: "Proxy's ownKeys is returning duplicate keys should throw",
+        body() {
+            var proxy = new Proxy({}, {
+                ownKeys: function (t) {
+                    return ["a", "a"];
+                }
+            });
+            assert.throws(()=> { Object.keys(proxy);}, TypeError, "proxy's ownKeys is returning duplicate keys", "Proxy's ownKeys trap returned duplicate keys");
+        }
     }
 ];
 
