@@ -391,6 +391,8 @@ private:
     ParseNodeParamPattern * CreateParamPatternNode(ParseNodePtr pnode1);
     ParseNodeParamPattern * CreateDummyParamPatternNode(charcount_t ichMin);
 
+    ParseNodeObjLit * CreateObjectPatternNode(ParseNodePtr pnodeMemberList, charcount_t ichMin, charcount_t ichLim, bool convertToPattern=false);
+
     Symbol*      AddDeclForPid(ParseNodeVar * pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl);
     void         CheckRedeclarationErrorForBlockId(IdentPtr pid, int blockId);
 
@@ -733,8 +735,15 @@ public:
         else
         {
             ForEachItemInList(patternNode->AsParseNodeUni()->pnode1, [&](ParseNodePtr item) {
-                Assert(item->nop == knopObjectPatternMember);
-                MapBindIdentifierFromElement(item->AsParseNodeBin()->pnode2, handler);
+                Assert(item->nop == knopObjectPatternMember || item->nop == knopEllipsis);
+                if (item->nop == knopObjectPatternMember)
+                {
+                    MapBindIdentifierFromElement(item->AsParseNodeBin()->pnode2, handler);
+                }
+                else
+                {
+                    MapBindIdentifierFromElement(item->AsParseNodeUni()->pnode1, handler);
+                }
             });
         }
     }
@@ -1026,7 +1035,7 @@ private:
         BOOL *nativeForOkay = nullptr);
 
     template <bool buildAST>
-    ParseNodePtr ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel = true, bool allowEmptyExpression = true);
+    ParseNodePtr ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel = true, bool allowEmptyExpression = true, bool isObjectPattern = false);
 
     template <bool buildAST>
     ParseNodePtr ParseDestructuredInitializer(ParseNodeUni * lhsNode,

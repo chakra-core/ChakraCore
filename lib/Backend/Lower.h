@@ -144,6 +144,8 @@ private:
     IR::Instr *     LowerNewScGenFunc(IR::Instr *instr);
     IR::Instr *     LowerNewScFuncHomeObj(IR::Instr *instr);
     IR::Instr *     LowerNewScGenFuncHomeObj(IR::Instr *instr);
+    IR::Instr *     LowerStPropIdArrFromVar(IR::Instr *instr);
+    IR::Instr *     LowerRestify(IR::Instr *instr);
     IR::Instr*      GenerateCompleteStFld(IR::Instr* instr, bool emitFastPath, IR::JnHelperMethod monoHelperAfterFastPath, IR::JnHelperMethod polyHelperAfterFastPath,
                         IR::JnHelperMethod monoHelperWithoutFastPath, IR::JnHelperMethod polyHelperWithoutFastPath, bool withPutFlags, Js::PropertyOperationFlags flags);
     bool            GenerateStFldWithCachedType(IR::Instr * instrStFld, bool* continueAsHelperOut, IR::LabelInstr** labelHelperOut, IR::RegOpnd** typeOpndOut);

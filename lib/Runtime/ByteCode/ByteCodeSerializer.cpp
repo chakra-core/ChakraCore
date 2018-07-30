@@ -4547,7 +4547,7 @@ public:
         auto propertyCount = serialized->propertyCount;
         auto extraSlotCount = serialized->extraSlots;
 
-        Assert(serialized->offset + sizeof(PropertyIdArray) < deserializeInto->GetLength());
+        Assert(serialized->offset + sizeof(PropertyIdArray) <= deserializeInto->GetLength());
         auto result = (PropertyIdArray *)(deserializeInto->GetBuffer() + serialized->offset);
         result->count = propertyCount;
         result->extraSlots = extraSlotCount;

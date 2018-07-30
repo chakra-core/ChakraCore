@@ -3094,6 +3094,18 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerBinaryHelperMem(instr, IR::HelperSpreadObjectLiteral);
             break;
 
+        case Js::OpCode::Restify:
+            instrPrev = this->LowerRestify(instr);
+            break;
+
+        case Js::OpCode::NewPropIdArrForCompProps:
+            this->LowerUnaryHelperMem(instr, IR::HelperNewPropIdArrForCompProps);
+            break;
+
+        case Js::OpCode::StPropIdArrFromVar:
+            instrPrev = this->LowerStPropIdArrFromVar(instr);
+            break;
+
         default:
 #ifdef ENABLE_WASM_SIMD
             if (IsSimd128Opcode(instr->m_opcode))
@@ -6872,6 +6884,30 @@ Lowerer::LowerNewScGenFuncHomeObj(IR::Instr * newScFuncInstr)
     return newScFuncInstr;
 }
 
+IR::Instr *
+Lowerer::LowerStPropIdArrFromVar(IR::Instr * stPropIdInstr)
+{
+    IR::HelperCallOpnd *helperOpnd = IR::HelperCallOpnd::New(IR::HelperStPropIdArrFromVar, this->m_func);
+
+    IR::Opnd * src1 = stPropIdInstr->UnlinkSrc1();
+    stPropIdInstr->SetSrc1(helperOpnd);
+    stPropIdInstr->SetSrc2(src1);
+
+    return m_lowererMD.LowerCallHelper(stPropIdInstr);
+}
+
+IR::Instr *
+Lowerer::LowerRestify(IR::Instr * newRestInstr)
+{
+    IR::HelperCallOpnd *helperOpnd = IR::HelperCallOpnd::New(IR::HelperRestify, this->m_func);
+
+    IR::Opnd * src1 = newRestInstr->UnlinkSrc1();
+    newRestInstr->SetSrc1(helperOpnd);
+    newRestInstr->SetSrc2(src1);
+
+    return m_lowererMD.LowerCallHelper(newRestInstr);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::LowerScopedLdFld
@@ -8615,7 +8651,7 @@ Lowerer::LowerBinaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod)
     // instrPrev.
     IR::Instr *instrPrev = nullptr;
 
-    AssertMsg((Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::Reg1Unsigned1 && !instr->GetDst()) ||
+    AssertMsg((Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::Reg1Unsigned1) ||
               Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::Reg3 ||
               Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::Reg2 ||
               Js::OpCodeUtil::GetOpCodeLayout(instr->m_opcode) == Js::OpLayoutType::Reg2Int1 ||

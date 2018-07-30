@@ -804,6 +804,11 @@ namespace Js
                 DumpU4(data->C1);
                 break;
             }
+            case OpCode::NewPropIdArrForCompProps:
+            {
+                Output::Print(_u(" R%u = [%u] "), data->R0, data->C1);
+                break;
+            }
             default:
                 DumpReg(data->R0);
                 Output::Print(_u("="));
@@ -840,6 +845,7 @@ namespace Js
 #endif
             case OpCode::StObjSlot:
             case OpCode::StObjSlotChkUndecl:
+            case OpCode::StPropIdArrFromVar:
                 Output::Print(_u(" R%d[%d] = R%d "),data->Instance,data->SlotIndex,data->Value);
                 break;
             case OpCode::LdSlot:
@@ -877,7 +883,7 @@ namespace Js
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
-                Output::Print(_u(" R%d = [%d] "),data->Value, data->SlotIndex);
+                Output::Print(_u(" R%d = [%d] "), data->Value, data->SlotIndex);
                 break;
             case OpCode::NewScFunc:
             case OpCode::NewStackScFunc:

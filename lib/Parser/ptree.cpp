@@ -103,6 +103,13 @@ ParseNodeArrLit * ParseNode::AsParseNodeArrLit()
     return reinterpret_cast<ParseNodeArrLit*>(this);
 }
 
+ParseNodeObjLit * ParseNode::AsParseNodeObjLit()
+{
+    // Currently only Object Assignment Pattern needs extra field to count members
+    Assert(this->nop == knopObjectPattern);
+    return reinterpret_cast<ParseNodeObjLit*>(this);
+}
+
 ParseNodeCall * ParseNode::AsParseNodeCall()
 {
     Assert(this->nop == knopCall || this->nop == knopNew);
@@ -393,6 +400,11 @@ ParseNodeVar::ParseNodeVar(OpCode nop, charcount_t ichMin, charcount_t ichLim, I
 
 ParseNodeArrLit::ParseNodeArrLit(OpCode nop, charcount_t ichMin, charcount_t ichLim)
     : ParseNodeUni(nop, ichMin, ichLim, nullptr)
+{
+}
+
+ParseNodeObjLit::ParseNodeObjLit(OpCode nop, charcount_t ichMin, charcount_t ichLim, uint staticCnt, uint computedCnt, bool rest)
+    : ParseNodeUni(nop, ichMin, ichLim, nullptr), staticCount(staticCnt), computedCount(computedCnt), hasRest(rest)
 {
 }
 

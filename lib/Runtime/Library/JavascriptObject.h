@@ -112,14 +112,15 @@ namespace Js
         static bool IsPrototypeOfStopAtProxy(RecyclableObject* proto, RecyclableObject* obj, ScriptContext* scriptContext);
 
         static void SpreadObjectLiteral(Var source, Var to, ScriptContext* scriptContext);
+        static void Restify(Var source, Var to, void* excludedStatic, void* excludedComputed, ScriptContext* scriptContext);
 
     private:
         template <bool tryCopy, bool assign>
-        static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, ScriptContext* scriptContext, PropertyId* excluded = nullptr, uint32 excludedLength = 0);
+        static void CopyDataPropertiesHelper(Var source, RecyclableObject* to, ScriptContext* scriptContext, const BVSparse<Recycler>* excluded = nullptr);
         template <bool assign>
-        static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+        static void CopyDataPropertiesForGenericObjects(RecyclableObject* from, RecyclableObject* to, const BVSparse<Recycler>* excluded, ScriptContext* scriptContext);
         template <bool assign>
-        static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, PropertyId* excluded, uint32 excludedLength, ScriptContext* scriptContext);
+        static void CopyDataPropertiesForProxyObjects(RecyclableObject* from, RecyclableObject* to, const BVSparse<Recycler>* excluded, ScriptContext* scriptContext);
 
         static BOOL CreateDataProperty(RecyclableObject* obj, PropertyId key, Var value, ScriptContext* scriptContext);
         static JavascriptArray* CreateKeysHelper(RecyclableObject* object, ScriptContext* scriptContext, BOOL enumNonEnumerable, bool includeSymbolProperties, bool includeStringProperties, bool includeSpecialProperties);

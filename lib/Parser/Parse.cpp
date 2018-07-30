@@ -1029,6 +1029,52 @@ ParseNodeParamPattern * Parser::CreateDummyParamPatternNode(charcount_t ichMin)
     return paramPatternNode;
 }
 
+ParseNodeObjLit * Parser::CreateObjectPatternNode(ParseNodePtr pnodeMemberList, charcount_t ichMin, charcount_t ichLim, bool convertToPattern) {
+    // Count the number of non-rest members in the object
+    uint32 staticCount = 0;
+    uint32 computedCount = 0;
+    bool hasRest = false;
+    ParseNodePtr pnodeMemberNodeList = convertToPattern ? nullptr : pnodeMemberList;
+    if (pnodeMemberList != nullptr)
+    {
+        Assert(pnodeMemberList->nop == knopList || 
+              (!convertToPattern && pnodeMemberList->nop == knopObjectPatternMember) || 
+              convertToPattern ||
+              pnodeMemberList->nop == knopEllipsis);
+        ForEachItemInList(pnodeMemberList, [&](ParseNodePtr item) {
+            ParseNodePtr memberNode = convertToPattern ? ConvertMemberToMemberPattern(item) : item;
+            if (convertToPattern)
+            {
+                AppendToList(&pnodeMemberNodeList, memberNode);
+            }
+            if (memberNode->nop != knopEllipsis)
+            {
+                ParseNodePtr nameNode = memberNode->AsParseNodeBin()->pnode1;
+                Assert(nameNode->nop == knopComputedName || nameNode->nop == knopStr);
+                if (nameNode->nop == knopComputedName)
+                {
+                    computedCount++;
+                }
+                else
+                {
+                    staticCount++;
+                }
+            }
+            else
+            {
+                hasRest = true;
+            }
+        });
+    }
+
+    ParseNodeObjLit * objectPatternNode = CreateNodeForOpT<knopObjectPattern>(ichMin, ichLim);
+    objectPatternNode->pnode1 = pnodeMemberNodeList;
+    objectPatternNode->computedCount = computedCount;
+    objectPatternNode->staticCount = staticCount;
+    objectPatternNode->hasRest = hasRest;
+    return objectPatternNode;
+}
+
 Symbol* Parser::AddDeclForPid(ParseNodeVar * pnodeVar, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
 {
     Assert(pnodeVar->IsVarLetOrConst());
@@ -4309,7 +4355,7 @@ template<bool buildAST>
 ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLength, tokens declarationType)
 {
     ParseNodeBin * pnodeArg = nullptr;
-    ParseNodePtr pnodeSpread = nullptr;
+    ParseNodePtr pnodeEllipsis = nullptr;
     ParseNodePtr pnodeName = nullptr;
     ParseNodePtr pnodeList = nullptr;
     ParseNodePtr *lastNodeRef = nullptr;
@@ -4317,6 +4363,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
     uint32 fullNameHintLength = pNameHintLength ? *pNameHintLength : 0;
     uint32 shortNameOffset = 0;
     bool isProtoDeclared = false;
+    bool seenRest = false;
 
     // we get declaration tkLCurly - when the possible object pattern found under the expression.
     bool isObjectPattern = (declarationType == tkVAR || declarationType == tkLET || declarationType == tkCONST || declarationType == tkLCurly) && IsES6DestructuringEnabled();
@@ -4384,7 +4431,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         charcount_t idHintIchMin = static_cast<charcount_t>(this->GetScanner()->IecpMinTok());
         charcount_t idHintIchLim = static_cast<charcount_t>(this->GetScanner()->IecpLimTok());
         bool wrapInBrackets = false;
-        bool useSpread = false;
+        bool seenEllipsis = false;
         switch (m_token.tk)
         {
         default:
@@ -4457,9 +4504,9 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             break;
 
         case tkEllipsis:
-            if (CONFIG_FLAG(ES2018ObjectSpread))
+            if (CONFIG_FLAG(ES2018ObjectRestSpread))
             {
-                useSpread = true;
+                seenEllipsis = true;
             }
             else 
             {
@@ -4485,7 +4532,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         RestorePoint atPid;
 
         // Only move to next token if spread op was not seen
-        if (!useSpread)
+        if (!seenEllipsis)
         {
             this->GetScanner()->Capture(&atPid);
             this->GetScanner()->ScanForcingPid();
@@ -4546,7 +4593,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
                     if (fLikelyPattern)
                     {
-                        pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                        pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, &seenRest/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/, true /*isObjectPattern*/);
                         if (m_token.tk != tkComma && m_token.tk != tkRCurly)
                         {
                             if (m_token.IsOperator())
@@ -4570,7 +4617,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 }
                 else
                 {
-                    pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                    pnodeExpr = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, &seenRest/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/, true /*isObjectPattern*/);
                     if (m_token.tk != tkComma && m_token.tk != tkRCurly)
                     {
                         if (m_token.IsOperator())
@@ -4642,12 +4689,19 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 pnodeArg = CreateBinNode(knopMember, pnodeName, pnodeFnc);
             }
         }
-        else if (useSpread)
+        else if (seenEllipsis)
         {
-            pnodeSpread = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */ TRUE);
+            if (!isObjectPattern)
+            {
+                pnodeEllipsis = ParseExpr<buildAST>(koplCma, nullptr, TRUE, /* fAllowEllipsis */ TRUE);  
+            }
+            else
+            {
+                pnodeEllipsis = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, &seenRest/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/, true /*isObjectPattern*/);
+            }
             if (buildAST)
             {
-                this->CheckArguments(pnodeSpread);
+                this->CheckArguments(pnodeEllipsis);
             }
         }
         else if (nullptr != pidHint) //It's either tkID/tkStrCon/tkFloatCon/tkIntCon
@@ -4715,7 +4769,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                 if (isObjectPattern)
                 {
                     this->GetScanner()->SeekTo(atPid);
-                    pnodeIdent = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, nullptr/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/);
+                    pnodeIdent = ParseDestructuredVarDecl<buildAST>(declarationType, declarationType != tkLCurly, &seenRest/* *hasSeenRest*/, false /*topLevel*/, false /*allowEmptyExpression*/, true /*isObjectPattern*/);
 
                     if (m_token.tk != tkComma && m_token.tk != tkRCurly)
                     {
@@ -4756,10 +4810,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
 
         if (buildAST)
         {
-            if (useSpread)
+            if (seenEllipsis)
             {
-                Assert(pnodeSpread != nullptr);
-                AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeSpread);
+                Assert(pnodeEllipsis != nullptr);
+                AddToNodeListEscapedUse(&pnodeList, &lastNodeRef, pnodeEllipsis);
             }
             else
             {
@@ -4785,6 +4839,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         if (tkRCurly == m_token.tk)
         {
             break;
+        }
+        if (seenRest) // Rest must be in the last position.
+        {
+            Error(ERRDestructRestLast);
         }
     }
 
@@ -12456,7 +12514,6 @@ ParseNodeUni * Parser::ConvertObjectToObjectPattern(ParseNodePtr pnodeMemberList
 {
     charcount_t ichMin = this->GetScanner()->IchMinTok();
     charcount_t ichLim = this->GetScanner()->IchLimTok();
-    ParseNodePtr pnodeMemberNodeList = nullptr;
     if (pnodeMemberList != nullptr && pnodeMemberList->nop == knopObject)
     {
         ichMin = pnodeMemberList->ichMin;
@@ -12464,12 +12521,8 @@ ParseNodeUni * Parser::ConvertObjectToObjectPattern(ParseNodePtr pnodeMemberList
         pnodeMemberList = pnodeMemberList->AsParseNodeUni()->pnode1;
     }
 
-    ForEachItemInList(pnodeMemberList, [&](ParseNodePtr item) {
-        ParseNodePtr memberNode = ConvertMemberToMemberPattern(item);
-        AppendToList(&pnodeMemberNodeList, memberNode);
-    });
-
-    return CreateUniNode(knopObjectPattern, pnodeMemberNodeList, ichMin, ichLim);
+    ParseNodeObjLit * objectPatternNode = CreateObjectPatternNode(pnodeMemberList, ichMin, ichLim, true/*convertToPattern*/);
+    return objectPatternNode;
 }
 
 ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
@@ -12503,7 +12556,7 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
 
 ParseNodePtr Parser::ConvertMemberToMemberPattern(ParseNodePtr pnodeMember)
 {
-    if (pnodeMember->nop == knopObjectPatternMember)
+    if (pnodeMember->nop == knopObjectPatternMember || pnodeMember->nop == knopEllipsis)
     {
         return pnodeMember;
     }
@@ -12680,19 +12733,19 @@ ParseNodeUni * Parser::ParseDestructuredObjectLiteral(tokens declarationType, bo
         declarationType = tkLCurly;
     }
     ParseNodePtr pnodeMemberList = ParseMemberList<buildAST>(nullptr/*pNameHint*/, nullptr/*pHintLength*/, declarationType);
-    Assert(m_token.tk == tkRCurly);
 
-    ParseNodeUni * objectPatternNode = nullptr;
-    if (buildAST)
-    {
-        charcount_t ichLim = this->GetScanner()->IchLimTok();
-        objectPatternNode = CreateUniNode(knopObjectPattern, pnodeMemberList, ichMin, ichLim);
-    }
+    charcount_t ichLim = this->GetScanner()->IchLimTok();
+
+    ParseNodeObjLit * objectPatternNode = buildAST ? CreateObjectPatternNode(pnodeMemberList, ichMin, ichLim) : nullptr;
+
+    Assert(m_token.tk == tkRCurly);
     return objectPatternNode;
 }
 
+
+
 template <bool buildAST>
-ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel/* = true*/, bool allowEmptyExpression/* = true*/)
+ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDecl, bool *hasSeenRest, bool topLevel/* = true*/, bool allowEmptyExpression/* = true*/, bool isObjectPattern/* =false*/)
 {
     ParseNodePtr pnodeElem = nullptr;
     int parenCount = 0;
@@ -12737,15 +12790,20 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             }
         }
 
-        if (m_token.tk != tkID && m_token.tk != tkTHIS && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
+        
+        if (m_token.tk != tkID && m_token.tk != tkTHIS && m_token.tk != tkSUPER)
         {
-            if (isDecl)
+            bool nestedDestructuring = m_token.tk == tkLCurly || m_token.tk == tkLBrack;
+            if ((isObjectPattern && nestedDestructuring) || (!isObjectPattern && !nestedDestructuring))
             {
-                Error(ERRnoIdent);
-            }
-            else
-            {
-                Error(ERRInvalidAssignmentTarget);
+                if (isDecl)
+                {
+                    Error(ERRnoIdent);
+                }
+                else
+                {
+                    Error(ERRInvalidAssignmentTarget);
+                }
             }
         }
     }
