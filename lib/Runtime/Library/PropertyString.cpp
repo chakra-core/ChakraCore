@@ -35,6 +35,11 @@ namespace Js
         return &this->propertyRecordUsageCache;
     }
 
+    template <> bool VarIs<PropertyString>(RecyclableObject * obj)
+    {
+        return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
+    }
+
     const void * PropertyString::GetOriginalStringReference()
     {
         // Property record is the allocation containing the string buffer

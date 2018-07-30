@@ -70,9 +70,6 @@ public:
     }
 };
 
-template <> inline bool VarIs<PropertyString>(RecyclableObject * obj)
-{
-    return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
-}
+template <> bool VarIs<PropertyString>(RecyclableObject * obj);
 
 } // namespace Js

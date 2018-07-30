@@ -40,16 +40,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseResolveOrRejectFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveOrRejectFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseAsyncSpawnExecutorFunction : public RuntimeFunction
     {
@@ -76,16 +67,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseAsyncSpawnExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction : public RuntimeFunction
     {
@@ -118,16 +100,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapabilitiesExecutorFunction : public RuntimeFunction
     {
@@ -152,16 +125,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseCapabilitiesExecutorFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseCapabilitiesExecutorFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseCapabilitiesExecutorFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseCapabilitiesExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseResolveThenableTaskFunction : public RuntimeFunction
     {
@@ -193,16 +157,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseResolveThenableTaskFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseResolveThenableTaskFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveThenableTaskFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseResolveThenableTaskFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseReactionTaskFunction : public RuntimeFunction
     {
@@ -231,16 +186,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseReactionTaskFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseReactionTaskFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseReactionTaskFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseReactionTaskFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseThenFinallyFunction : public RuntimeFunction
     {
@@ -263,16 +209,7 @@ namespace Js
         Field(bool) shouldThrow;
     };
 
-    template <> inline bool VarIs<JavascriptPromiseThenFinallyFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseThenFinallyFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThenFinallyFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseThenFinallyFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseThunkFinallyFunction : public RuntimeFunction
     {
@@ -293,15 +230,7 @@ namespace Js
         Field(bool) shouldThrow;
     };
 
-    template <> inline bool VarIs<JavascriptPromiseThunkFinallyFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseThunkFinallyFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThunkFinallyFunction>>::HasVirtualTable(obj);
-        }
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseThunkFinallyFunction>(RecyclableObject* obj);
 
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
     {
@@ -343,16 +272,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptPromiseAllResolveElementFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAllResolveElementFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapability : FinalizableObject
     {

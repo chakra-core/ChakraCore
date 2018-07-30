@@ -67,10 +67,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<BlockActivationObject>(RecyclableObject* instance)
-    {
-        return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance);
-    }
+    template <> bool VarIs<BlockActivationObject>(RecyclableObject* instance);
 
     // A pseudo-ActivationObject is a scope like a "catch" scope that shouldn't receive var inits.
     class PseudoActivationObject : public ActivationObject
@@ -93,10 +90,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<PseudoActivationObject>(RecyclableObject* instance)
-    {
-        return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
-    }
+    template <> bool VarIs<PseudoActivationObject>(RecyclableObject* instance);
 
     class ConsoleScopeActivationObject : public ActivationObject
     {
@@ -119,11 +113,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<ConsoleScopeActivationObject>(RecyclableObject* instance)
-    {
-        return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
-            || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
-    }
+    template <> bool VarIs<ConsoleScopeActivationObject>(RecyclableObject* instance);
 
     class ActivationObjectEx : public ActivationObject
     {
@@ -221,9 +211,5 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<ActivationObjectEx>(RecyclableObject* instance)
-    {
-        return VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
-            VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance);
-    }
+    template <> bool VarIs<ActivationObjectEx>(RecyclableObject* instance);
 };

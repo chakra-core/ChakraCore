@@ -62,6 +62,17 @@ using namespace Js;
         return JavascriptGeneratorFunction::IsBaseGeneratorFunction(obj) || VarIs<JavascriptAsyncFunction>(obj);
     }
 
+    template <> bool Js::VarIs<JavascriptAsyncFunction>(RecyclableObject* obj)
+    {
+        if (VarIs<JavascriptFunction>(obj))
+        {
+            return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
+        }
+
+        return false;
+    }
+
     JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
     {
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();

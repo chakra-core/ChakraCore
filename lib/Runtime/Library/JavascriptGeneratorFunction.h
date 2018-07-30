@@ -138,16 +138,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<JavascriptAsyncFunction>(RecyclableObject* obj)
-    {
-        if (VarIs<JavascriptFunction>(obj))
-        {
-            return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
-                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
-        }
-
-        return false;
-    }
+    template <> bool VarIs<JavascriptAsyncFunction>(RecyclableObject* obj);
 
     class GeneratorVirtualScriptFunction : public ScriptFunction
     {

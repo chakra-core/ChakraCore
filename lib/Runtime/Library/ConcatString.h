@@ -57,10 +57,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
-    {
-        return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
-    }
+    template <> bool VarIs<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj);
 
     // Base class for concat strings.
     // Concat string is a virtual string, or a non-leaf node in concat string tree.
@@ -292,8 +289,5 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<ConcatStringMulti>(RecyclableObject* obj)
-    {
-        return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(obj);
-    }
+    template <> bool VarIs<ConcatStringMulti>(RecyclableObject* obj);
 }

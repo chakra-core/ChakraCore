@@ -438,18 +438,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<CompoundString>(RecyclableObject * object)
-    {
-        bool result = VirtualTableInfo<CompoundString>::HasVirtualTable(object);
-#if DBG
-        if (result)
-        {
-            CompoundString *const cs = static_cast<CompoundString *>(object);
-            Assert(!cs->IsFinalized());
-        }
-#endif
-        return result;
-    }
+    template <> bool VarIs<CompoundString>(RecyclableObject * object);
 
     #pragma region CompoundString::Builder definition
     #ifndef CompoundStringJsDiag

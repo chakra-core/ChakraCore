@@ -152,6 +152,11 @@ namespace Js
         }
     }
 
+    template <> bool VarIs<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
+    {
+        return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
+    }
+
     void LiteralStringWithPropertyStringPtr::GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary)
     {
         return GetPropertyRecordImpl(propRecord, dontLookupFromDictionary);
@@ -524,6 +529,11 @@ namespace Js
         return RecyclerNewPlus(scriptContext->GetRecycler(),
             sizeof(JavascriptString *) * slotCount, ConcatStringMulti, slotCount, a1, a2,
             scriptContext->GetLibrary()->GetStringTypeStatic());
+    }
+
+    template <> bool VarIs<ConcatStringMulti>(RecyclableObject* obj)
+    {
+        return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(obj);
     }
 
     const char16 *

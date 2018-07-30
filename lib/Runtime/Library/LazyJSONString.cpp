@@ -205,4 +205,9 @@ LazyJSONString::GetSz()
     return target;
 }
 
+template <> bool VarIs<LazyJSONString>(RecyclableObject* obj)
+{
+    return VirtualTableInfo<LazyJSONString>::HasVirtualTable(obj);
+}
+
 } // namespace Js
