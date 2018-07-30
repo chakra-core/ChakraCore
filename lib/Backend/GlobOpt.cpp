@@ -6790,7 +6790,7 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
         {
             return false;
         }
-        *result = src1ValueInfo->IsObject();
+        *result = !src1ValueInfo->IsPrimitive();
         break;
     }
     default:
