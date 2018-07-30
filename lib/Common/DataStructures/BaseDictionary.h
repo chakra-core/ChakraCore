@@ -31,8 +31,10 @@
 #endif
 
 #pragma warning(push)
-#pragma warning(disable:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
 #pragma warning(disable:__WARNING_CALLER_FAILING_TO_HOLD_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_FAILING_TO_RELEASE_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_RELEASING_UNHELD_LOCK_MEDIUM_CONFIDENCE)
 
 namespace Js
 {
