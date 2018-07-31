@@ -13904,6 +13904,7 @@ void Parser::ReleaseTemporaryGuestArena()
         if (this->m_scriptContext != nullptr)
         {
             this->m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
+            m_tempGuestArena.Unroot();
         }
 
         m_tempGuestArenaReleased = true;
