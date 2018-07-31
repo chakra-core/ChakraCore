@@ -424,7 +424,7 @@ namespace Js
         }
 #endif
 
-        // TODO: Can we move this on Close()?
+        // This is need here for cases like dynamic detach.
         ClearHostScriptContext();
 
         if (this->hasProtoOrStoreFieldInlineCache)
@@ -830,6 +830,9 @@ namespace Js
         }
 
         InternalClose();
+
+        // This is needed here so the host script context is cleared in time for script site cleanup.
+        ClearHostScriptContext();
 
         if (!inDestructor && globalObject != nullptr)
         {
@@ -1536,6 +1539,7 @@ namespace Js
         if (this->hostScriptContext != nullptr)
         {
             this->hostScriptContext->Delete();
+            this->hostScriptContext = nullptr;
 #ifdef PROFILE_EXEC
             this->ensureParentInfo = false;
 #endif
