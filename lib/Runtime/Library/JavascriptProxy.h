@@ -54,6 +54,26 @@ namespace Js
         static BOOL Is(_In_ RecyclableObject* obj);
         static JavascriptProxy* FromVar(Var obj) { AssertOrFailFast(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
         static JavascriptProxy* UnsafeFromVar(Var obj) { Assert(Is(obj)); return static_cast<JavascriptProxy*>(obj); }
+
+        // before recursively calling something on 'target' use this helper in case there is nesting of proxies.
+        // the proxies could be deep nested and cause SO when processed recursively.
+        static const JavascriptProxy* UnwrapNestedProxies(const JavascriptProxy* proxy)
+        {
+            // continue while we have a proxy that is not revoked
+            while (proxy->handler != nullptr)
+            {
+                JavascriptProxy* nestedProxy = JavascriptOperators::TryFromVar<JavascriptProxy>(proxy->target);
+                if (nestedProxy == nullptr)
+                {
+                    break;
+                }
+
+                proxy = nestedProxy;
+            }
+
+            return proxy;
+        }
+
 #ifndef IsJsDiag
         RecyclableObject* GetTarget();
         RecyclableObject* GetHandler();

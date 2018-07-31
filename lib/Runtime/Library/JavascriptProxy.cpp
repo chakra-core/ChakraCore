@@ -1621,8 +1621,10 @@ namespace Js
 
     BOOL JavascriptProxy::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
+        const JavascriptProxy* proxy = UnwrapNestedProxies(this);
+
         //RecyclableObject* targetObj;
-        if (this->handler == nullptr)
+        if (proxy->handler == nullptr)
         {
             ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
             // the proxy has been revoked; TypeError.
@@ -1630,7 +1632,7 @@ namespace Js
                 return FALSE;
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_ErrorOnRevokedProxy, _u("getTypeString"));
         }
-        return target->GetDiagTypeString(stringBuilder, requestContext);
+        return proxy->target->GetDiagTypeString(stringBuilder, requestContext);
     }
 
     RecyclableObject* JavascriptProxy::ToObject(ScriptContext * requestContext)
@@ -1649,7 +1651,9 @@ namespace Js
 
     Var JavascriptProxy::GetTypeOfString(ScriptContext* requestContext)
     {
-        if (this->handler == nullptr)
+        const JavascriptProxy* proxy = UnwrapNestedProxies(this);
+
+        if (proxy->handler == nullptr)
         {
             // even if handler is nullptr, return typeof as "object"
             return requestContext->GetLibrary()->GetObjectTypeDisplayString();
@@ -1662,7 +1666,7 @@ namespace Js
         else
         {
             // handle nested cases recursively
-            return this->target->GetTypeOfString(requestContext);
+            return proxy->target->GetTypeOfString(requestContext);
         }
     }
 
