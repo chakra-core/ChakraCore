@@ -126,7 +126,16 @@ Get-ChildItem -Path (Join-Path $sourcesDir "Build") "*.nuspec" `
 $BinFolder = Join-Path $Env:BinariesDirectory "bin\${Env:BuildName}"
 $BinDropPath = Join-Path $destinationBase "bin"
 Write-Output "Copying `"$BinFolder`" to `"$BinDropPath`"..."
-Copy-Item -Verbose $BinFolder $BinDropPath -Recurse -Force -Exclude "*_ttdlog*"
+md $BinDropPath
+Get-ChildItem -Path $BinFolder -Recurse |
+  where {$_.FullName -notmatch ".*_ttdlog.*" } |
+  Copy-Item -Verbose -Force -Destination {
+    if ($_.PSIsContainer) {
+      Join-Path $BinDropPath $_.Parent.FullName.Substring($BinFolder.length)
+    } else {
+      Join-Path $BinDropPath $_.FullName.Substring($BinFolder.length)
+    }
+  }
 
 #
 # Copy POGO directory if present for this build
