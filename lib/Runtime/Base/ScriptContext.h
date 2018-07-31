@@ -2034,16 +2034,10 @@ private:
     ArenaAllocator * allocator = nullptr;
 
 #define ACQUIRE_TEMP_GUEST_ALLOCATOR(allocator, scriptContext, name) \
-    TryFinally([&]() \
-    { \
-        tempGuest##allocator = scriptContext->GetTemporaryGuestAllocator(name); \
-        allocator = tempGuest##allocator->GetAllocator();
+    tempGuest##allocator = scriptContext->GetTemporaryGuestAllocator(name); \
+    allocator = tempGuest##allocator->GetAllocator();
 
 #define RELEASE_TEMP_GUEST_ALLOCATOR(allocator, scriptContext) \
-    }, \
-    [&](bool /*hasException*/) \
-    { \
-        if (tempGuest##allocator) \
-        scriptContext->ReleaseTemporaryGuestAllocator(tempGuest##allocator); \
-    });
+    if (tempGuest##allocator) \
+    scriptContext->ReleaseTemporaryGuestAllocator(tempGuest##allocator);
 
