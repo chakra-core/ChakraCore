@@ -646,6 +646,7 @@
       <files>memset_invariant.js</files>
       <tags>Slow</tags>
       <compile-flags>-mic:1 -off:simplejit -mmoc:0 -off:JITLoopBody</compile-flags>
+      <timeout>300</timeout>
     </default>
   </test>
   <!--
