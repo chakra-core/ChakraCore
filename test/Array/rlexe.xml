@@ -775,4 +775,9 @@
       <files>bug16717501.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>FilterWithTypedArray.js</files>
+    </default>
+  </test>
 </regress-exe>
