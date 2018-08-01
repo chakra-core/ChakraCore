@@ -656,7 +656,14 @@ namespace Js
         // Not in attribute map
         if (!(GetDataItemAttributes() & PropertyConfigurable))
         {
-            return !HasDataItem(arr, index); // CantDelete
+            if (HasDataItem(arr, index))
+            {
+                JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                    propertyOperationFlags, instance->GetScriptContext(), TaggedInt::ToString(index, instance->GetScriptContext())->GetString());
+
+                return false;
+            }
+            return true; // non-existing non-configurable property can be deleted
         }
         return arr->DirectDeleteItemAt<Var>(index);
     }
