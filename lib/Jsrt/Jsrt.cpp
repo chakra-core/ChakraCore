@@ -1317,7 +1317,7 @@ CHAKRA_API JsCreateTracedExternalObjectWithPrototype(_In_opt_ void *data,
         Js::RecyclableObject * prototypeObject = nullptr;
         if (prototype != JS_INVALID_REFERENCE)
         {
-            VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
+            VALIDATE_INCOMING_OBJECT_OR_NULL(prototype, scriptContext);
             prototypeObject = Js::RecyclableObject::FromVar(prototype);
         }
 

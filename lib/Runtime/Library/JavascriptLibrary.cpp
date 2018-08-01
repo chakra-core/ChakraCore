@@ -4254,7 +4254,7 @@ namespace Js
 
     void JavascriptLibrary::CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, DynamicType* dynamicTypeToCache)
     {
-      jsrtExternalTypesCache->Item(JsrtExternalCallbacks(traceCallback, finalizeCallback), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
+        jsrtExternalTypesCache->Item(JsrtExternalCallbacks(traceCallback, finalizeCallback), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
 
     void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)
