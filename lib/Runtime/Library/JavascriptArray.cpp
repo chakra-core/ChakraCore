@@ -3129,13 +3129,22 @@ using namespace Js;
     {
         ScriptContext* scriptContext = pDestObj->GetScriptContext();
 
+        PropertyRecord const * propertyRecord;
         if (idxDest.IsSmallIndex())
         {
-            return pDestObj->SetItem(idxDest.GetSmallIndex(), aItem, Js::PropertyOperation_ThrowIfNotExtensible);
+            JavascriptOperators::GetPropertyIdForInt(idxDest.GetSmallIndex(), scriptContext, &propertyRecord);
         }
-        PropertyRecord const * propertyRecord;
-        JavascriptOperators::GetPropertyIdForInt(idxDest.GetBigIndex(), scriptContext, &propertyRecord);
-        return pDestObj->SetProperty(propertyRecord->GetPropertyId(), aItem, PropertyOperation_ThrowIfNotExtensible, nullptr);
+        else
+        {
+            JavascriptOperators::GetPropertyIdForInt(idxDest.GetBigIndex(), scriptContext, &propertyRecord);
+        }
+
+        PropertyDescriptor propertyDescriptor;
+        propertyDescriptor.SetConfigurable(true);
+        propertyDescriptor.SetEnumerable(true);
+        propertyDescriptor.SetWritable(true);
+        propertyDescriptor.SetValue(aItem);
+        return JavascriptObject::DefineOwnPropertyHelper(pDestObj, propertyRecord->GetPropertyId(), propertyDescriptor, scriptContext, false);
     }
 
     template<typename T>
