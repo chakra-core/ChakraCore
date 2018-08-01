@@ -1619,6 +1619,25 @@ namespace Js
         return JavascriptObject::ToStringHelper(target, scriptContext);
     }
 
+    // before recursively calling something on 'target' use this helper in case there is nesting of proxies.
+    // the proxies could be deep nested and cause SO when processed recursively.
+    const JavascriptProxy* JavascriptProxy::UnwrapNestedProxies(const JavascriptProxy* proxy)
+    {
+        // continue while we have a proxy that is not revoked
+        while (proxy->handler != nullptr)
+        {
+            JavascriptProxy* nestedProxy = JavascriptOperators::TryFromVar<JavascriptProxy>(proxy->target);
+            if (nestedProxy == nullptr)
+            {
+                break;
+            }
+
+            proxy = nestedProxy;
+        }
+
+        return proxy;
+    }
+
     BOOL JavascriptProxy::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
     {
         const JavascriptProxy* proxy = UnwrapNestedProxies(this);
