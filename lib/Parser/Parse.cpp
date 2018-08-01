@@ -9800,12 +9800,9 @@ LRestart:
         break;
 
     case tkID:
+    case tkLET:
         if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
         {
-            if (labelledStatement)
-            {
-                Error(ERRLabelBeforeLexicalDeclaration);
-            }
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
             RestorePoint parsedLet;
@@ -9813,7 +9810,16 @@ LRestart:
             ichMin = this->GetScanner()->IchMinTok();
 
             this->GetScanner()->Scan();
-            if (this->NextTokenConfirmsLetDecl())
+            if (labelledStatement)
+            {
+                if (!this->GetScanner()->FHadNewLine() || m_token.tk == tkLBrack)
+                {
+                    // In the case where a label is followed by a let, we want to fail when parsing if there is no new line after let, 
+                    // otherwise fail at runtime as let will be viewed as undefined. A left bracket after a let signifies a syntax error regardless.
+                    Error(ERRLabelBeforeLexicalDeclaration); 
+                }
+            }
+            else if (this->NextTokenConfirmsLetDecl())
             {
                 pnode = ParseVariableDeclaration<buildAST>(tkLET, ichMin);
                 goto LNeedTerminator;
@@ -9838,7 +9844,6 @@ LRestart:
         goto LDefaultToken;
 
     case tkCONST:
-    case tkLET:
         if (labelledStatement)
         {
             Error(ERRLabelBeforeLexicalDeclaration);
