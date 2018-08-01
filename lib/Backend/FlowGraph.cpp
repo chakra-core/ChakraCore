@@ -3958,7 +3958,6 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     }
 
     IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr);
-    cmpInstr->InsertAfter(bytecodeInstr);
 
     if (cmpSrc1 != newSrc1)
     {
@@ -3997,6 +3996,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         }
     }
 
+    cmpInstr->InsertBefore(bytecodeInstr);
     return true;
 }
 
