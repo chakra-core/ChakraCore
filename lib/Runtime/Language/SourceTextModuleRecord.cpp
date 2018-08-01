@@ -170,6 +170,9 @@ namespace Js
                     {
                         *exceptionVar = this->errorObject;
                     }
+
+                    // Cleanup in case of error.
+                    this->ReleaseParserResources();
                     return E_FAIL;
                 }
             }
@@ -270,8 +273,11 @@ namespace Js
         {
             hr = PrepareForModuleDeclarationInitialization();
         }
-
-        this->ReleaseParserResources();
+        else
+        {
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
+        }
 
         return hr;
     }
@@ -299,6 +305,8 @@ namespace Js
 
                 if (this->errorObject != nullptr)
                 {
+                    // Cleanup in case of error.
+                    this->ReleaseParserResources();
                     SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this);
                 }
                 else
@@ -316,10 +324,11 @@ namespace Js
                 }
             }
 
-            this->ReleaseParserResources();
-
             if (FAILED(hr))
             {
+                // Cleanup in case of error.
+                this->ReleaseParserResources();
+
                 // We cannot just use the buffer in the specifier string - need to make a copy here.
                 const char16* moduleName = this->GetSpecifierSz();
                 size_t length = wcslen(moduleName);
@@ -332,8 +341,6 @@ namespace Js
                 return SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, error, scriptContext, this);
             }
         }
-
-        this->ReleaseParserResources();
 
         return this->promise;
     }
@@ -385,6 +392,9 @@ namespace Js
             {
                 this->errorObject = childException;
             }
+
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
 
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded (childException)\n"), this->GetSpecifierSz());
             NotifyParentsAsNeeded();
@@ -838,6 +848,10 @@ namespace Js
         Assert(wasDeclarationInitialized);
         // Debugger can reparse the source and generate the byte code again. Don't cleanup the
         // helper information for now.
+
+        // Parser uses a temporary guest arena to keep regex patterns alive. We need to release this arena only after we have no further use
+        // for the regex pattern objects.
+        this->ReleaseParserResources();
     }
 
     bool SourceTextModuleRecord::ModuleDeclarationInstantiation()
@@ -882,6 +896,8 @@ namespace Js
         if (this->errorObject != nullptr)
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
             NotifyParentsAsNeeded();
             return false;
         }
@@ -953,6 +969,9 @@ namespace Js
 
         if (this->errorObject != nullptr)
         {
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
+
             if (this->promise != nullptr)
             {
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
