@@ -233,19 +233,22 @@ namespace Js
     uint32 FunctionBody::GetCountField(FunctionBody::CounterFields fieldEnum) const
     {
 #if DBG
-        Assert(ThreadContext::GetContextForCurrentThread() || counters.isLockedDown
+        bool isCountersLockedDown = counters.isLockedDown;
+        Assert(ThreadContext::GetContextForCurrentThread() || isCountersLockedDown
             || (ThreadContext::GetCriticalSection()->IsLocked() && this->m_scriptContext->GetThreadContext()->GetFunctionBodyLock()->IsLocked())); // etw rundown
 #endif
         return counters.Get(fieldEnum);
     }
     uint32 FunctionBody::SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
     {
-        Assert(!counters.isLockedDown);
+        DebugOnly(bool isCountersLockedDown = counters.isLockedDown);
+        Assert(!isCountersLockedDown || counters.isClosing);
         return counters.Set(fieldEnum, val, this);
     }
     uint32 FunctionBody::IncreaseCountField(FunctionBody::CounterFields fieldEnum)
     {
-        Assert(!counters.isLockedDown);
+        DebugOnly(bool isCountersLockedDown = counters.isLockedDown);
+        Assert(!isCountersLockedDown || counters.isClosing);
         return counters.Increase(fieldEnum, this);
     }
 
@@ -7513,7 +7516,7 @@ namespace Js
             return;
         }
 
-        DebugOnly(this->UnlockCounters());
+        DebugOnly(this->SetIsClosing());
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
@@ -7552,8 +7555,6 @@ namespace Js
 #endif
 
         this->cleanedUp = true;
-
-        DebugOnly(this->LockDownCounters());
     }
 
 
