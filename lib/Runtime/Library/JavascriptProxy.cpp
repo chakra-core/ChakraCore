@@ -1029,7 +1029,7 @@ namespace Js
                             // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
                             Js::PropertyDescriptor desc;
                             BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(proxy, propertyName, scriptContext, &desc);
-                            const JsUtil::CharacterBuffer<WCHAR> propertyString = JsUtil::CharacterBuffer<WCHAR>(propertyName->GetString(), propertyName->GetLength());
+                            const JsUtil::CharacterBuffer<WCHAR> propertyString(propertyName->GetString(), propertyName->GetLength());
                             // if (desc && !visited.has(key)) {
                             if (ret && !visited->Contains(propertyString))
                             {
