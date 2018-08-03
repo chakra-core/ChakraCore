@@ -139,7 +139,7 @@ testAwaitAsLabelInsideAsyncFnc =
 strictModeOnlyInvalidLabels =  {//Maps the reserved word to the error message given when it is used as a label in strict mode
     "implements" : "Syntax error", 
     "interface" : "Syntax error", 
-    "let" : "Expected identifier", 
+    "let" : "Syntax error", 
     "package" : "Syntax error", 
     "private" : "Syntax error", 
     "protected" : "Syntax error", 
@@ -233,14 +233,112 @@ testInvalidLabelSyntaxArrayAccess =
 
     f();`
 
-testInvalidLabelSyntaxFunctionCall = `function f() {
+testInvalidLabelSyntaxFunctionCall = 
+    `function f() {
     // Bad label, verify consistency in deferred parsing
     a():
         var i = 0;
     }
 
     f();`
-
+testRuntimeErrorWithDanglingLetAfterLabel = 
+    `if (true) {
+        L: let // comment
+        {}
+    }`
+testNoSyntaxErrorWithDanglingLetAfterLabel =
+    `if (false) {
+        L: let // comment
+        {}
+    }`
+testRuntimeErrorWithDanglingLetAfterLabel2 = 
+    `if (true) {
+    L: let // ASI
+    var g = {}
+    }`
+testNoSyntaxErrorWithDanglingLetAfterLabel2 = 
+    `if (false) {
+    L: let // ASI
+    var g = {}
+    }`
+testRuntimeErrorWithDanglingLetAfterLabel3=
+    `if (true) {
+    L: let // ASI
+    let a = 3
+    }`
+testNoSyntaxErrorWithDanglingLetAfterLabel3=
+    `if (false) {
+    L: let // ASI
+    let a = 3
+    }`
+testRuntimeErrorWithDanglingLetAfterLabel4=
+    `if (true) {
+    L: let // ASI
+    a = 3
+    }`
+testNoSyntaxErrorWithDanglingLetAfterLabel4=
+    `if (false) {
+    L: let // ASI
+    a = 3
+    }`
+testNoRuntimeErrorWithDanglingVarAfterLabel=
+    `label: var
+    x = 0;`
+testSyntaxErrorWithDanglingConstAfterLabel=
+    `label: const
+    x = 0;`
+testRuntimeErrorWithDanglingYieldAfterLabel=
+    `if (true) {
+        L: yield // ASI
+        console.log("b");
+        1;
+    }` 
+testNoSyntaxErrorWithDanglingYieldAfterLabel=
+    `if (false) {
+        L: yield // ASI
+        console.log("b");
+        1;
+    }` 
+testGeneratorWithDanglingYieldAfterLabel=
+    `function* gen(num)
+    {
+        L: yield // ASI
+        ++num
+    }
+    
+    const iterator = gen(0)
+    if(iterator.next().value === 1)
+        throw("Yield should not return a number");
+    ` 
+testNoSyntaxErrorWithDanglingAwaitAfterLabel=
+    `function fn()
+    {
+        for(i = 0; i < 30; i++);
+    }
+    if(false)
+    {
+        L: await
+        fn()
+    }`
+testRuntimeErrorWithDanglingAwaitAfterLabel=
+    `function fn()
+    {
+        for(i = 0; i < 30; i++);
+    }
+    if(true)
+    {
+        L: await
+        fn()
+    }`
+testNoSyntaxErrorWithDanglingStaticAfterLabel=
+    `function g(){
+        L: static
+        x = 0
+    }`
+testRuntimeErrorWithDanglingStaticAfterLabel=
+    `L: static
+    x = 0`
+    
 function testModuleScript(source, message, shouldFail = false) {
     let testfunc = () => testRunner.LoadModule(source, 'samethread', shouldFail);
 
@@ -331,8 +429,8 @@ var tests = [
             
             for(let invalidLabelInStrict in strictModeOnlyInvalidLabels)
             {
-                assert.throws(() =>eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'", strictModeOnlyInvalidLabels[invalidLabelInStrict])
-                assert.doesNotThrow(() =>eval(invalidLabelInStrict + testIfLabelIsValid), "Expected no syntax error for future reserved keyword '" + invalidLabelInStrict + " in non-strict mode")
+                assert.throws(() => eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'", strictModeOnlyInvalidLabels[invalidLabelInStrict])
+                assert.doesNotThrow(() => eval(invalidLabelInStrict + testIfLabelIsValid), "Expected no syntax error for future reserved keyword '" + invalidLabelInStrict + " in non-strict mode")
             }
         }
     },
@@ -346,6 +444,29 @@ var tests = [
             assert.throws(() => eval(testInvalidLabelSyntaxNonIDContinueCharacterInLabel), SyntaxError, "Expected syntax error from using malformed label", "Expected identifier") 
             assert.throws(() => eval(testInvalidLabelSyntaxArrayAccess), SyntaxError, "Expected syntax error from using malformed label", "Expected ';'") 
             assert.throws(() => eval(testInvalidLabelSyntaxFunctionCall), SyntaxError, "Expected syntax error from using malformed label", "Expected ';'") 
+        }
+    },
+    {
+        name : "Label tests, edge cases",
+        body : function ()
+        {
+            assert.throws(() => eval(testRuntimeErrorWithDanglingLetAfterLabel), ReferenceError, "Expected runtime error from using let as identifier", "'let' is not defined") 
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingLetAfterLabel), "Expected no syntax error from using let as identifier after label") 
+            assert.throws(() => eval(testRuntimeErrorWithDanglingLetAfterLabel2), ReferenceError, "Expected runtime error from using let as identifier", "'let' is not defined") 
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingLetAfterLabel2), "Expected no syntax error from using let as identifier after label") 
+            assert.throws(() => eval(testRuntimeErrorWithDanglingLetAfterLabel3), ReferenceError, "Expected runtime error from using let as identifier", "'let' is not defined") 
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingLetAfterLabel3), "Expected no syntax error from using let as identifier after label") 
+            assert.throws(() => eval(testRuntimeErrorWithDanglingLetAfterLabel4), ReferenceError, "Expected runtime error from using let as identifier", "'let' is not defined") 
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingLetAfterLabel4), "Expected no syntax error from using let as identifier after label") 
+            assert.doesNotThrow(() => eval(testNoRuntimeErrorWithDanglingVarAfterLabel), "Expected no syntax error from using var after label") 
+            assert.throws(() => eval(testSyntaxErrorWithDanglingConstAfterLabel), SyntaxError, "Expected syntax error from using const after label", "Labels not allowed before lexical declaration") 
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingYieldAfterLabel), "Expected no syntax error from using yield after label") 
+            assert.throws(() => eval(testRuntimeErrorWithDanglingYieldAfterLabel), ReferenceError, "Expected runtime error for undefined reference to yield", "'yield' is not defined") 
+            assert.doesNotThrow(() => eval(testGeneratorWithDanglingYieldAfterLabel), "Expected no error from using yield after label. Also expect the yield to not be bound to the expression.")
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingAwaitAfterLabel), "Expected no error from using await after label. Also expect the yield to not be bound to the expression.")
+            assert.throws(() => eval(testRuntimeErrorWithDanglingAwaitAfterLabel), ReferenceError, "Expected reference error from stranded await being used after label", "'await' is not defined")
+            assert.throws(() => eval(testRuntimeErrorWithDanglingStaticAfterLabel), ReferenceError, "Expected reference error from stranded static being used after label", "'static' is not defined")
+            assert.doesNotThrow(() => eval(testNoSyntaxErrorWithDanglingStaticAfterLabel), "Expected no issue parsing since static is viewed as an identifier")
         }
     }
 ];
