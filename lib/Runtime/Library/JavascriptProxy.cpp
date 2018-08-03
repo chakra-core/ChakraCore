@@ -987,7 +987,7 @@ namespace Js
 
         struct ProxyOwnkeysEnumerator : public JavascriptEnumerator
         {
-            typedef JsUtil::BaseHashSet<const char16*, Recycler> VisitedNamesHashSet;
+            typedef JsUtil::BaseHashSet<JsUtil::CharacterBuffer<WCHAR>, Recycler> VisitedNamesHashSet;
             Field(VisitedNamesHashSet*) visited;
             Field(JavascriptArray*) trapResult;
             Field(JavascriptProxy*) proxy;
@@ -1029,10 +1029,11 @@ namespace Js
                             // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
                             Js::PropertyDescriptor desc;
                             BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(proxy, propertyName, scriptContext, &desc);
+                            const JsUtil::CharacterBuffer<WCHAR> propertyString(propertyName->GetString(), propertyName->GetLength());
                             // if (desc && !visited.has(key)) {
-                            if (ret && !visited->Contains(propertyName->GetSz()))
+                            if (ret && !visited->Contains(propertyString))
                             {
-                                visited->Add(propertyName->GetSz());
+                                visited->Add(propertyString);
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
