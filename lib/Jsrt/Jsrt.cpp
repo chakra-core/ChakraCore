@@ -2727,6 +2727,46 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
     END_JSRT_NO_EXCEPTION
 }
 
+CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
+{
+    VALIDATE_JSREF(source);
+
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        if (Js::JavascriptProxy::Is(source))
+        {
+            source = Js::JavascriptProxy::UnsafeFromVar(source)->GetTarget();
+        }
+        JsrtExternalObject* externalSource = Js::JavascriptOperators::TryFromVar<JsrtExternalObject>(source);
+        if (externalSource)
+        {
+            JsrtExternalType* externalType = externalSource->GetExternalType();
+            JsrtExternalObject* target = JsrtExternalObject::Create(
+                externalSource->GetSlotData(),
+                externalType->GetJsTraceCallback(),
+                externalType->GetJsFinalizeCallback(),
+                externalSource->GetPrototype(),
+                scriptContext);
+            bool success = target->TryCopy(externalSource, true);
+            AssertOrFailFast(success);
+            *newObject = target;
+            return JsNoError;
+        }
+
+        Js::DynamicObject* objSource = Js::JavascriptOperators::TryFromVar<Js::DynamicObject>(source);
+        if (objSource)
+        {
+            if (!objSource->ShareType())
+            {
+                AssertOrFailFast(UNREACHED); // TODO
+                return JsErrorInvalidArgument;
+            }
+            *newObject = objSource->Copy(true);
+            return JsNoError;
+        }
+        return JsErrorInvalidArgument;
+    });
+}
+
 CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
     if(result != nullptr)

@@ -813,7 +813,7 @@ namespace Js
         return reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + this->GetOffsetOfInlineSlots());
     }
 
-    bool DynamicObject::IsCompatibleForCopy(DynamicObject* from) const
+    bool DynamicObject::IsCompatibleForCopy(DynamicObject* from, bool ignoreSideEffects) const
     {
         if (this->GetTypeHandler()->GetInlineSlotCapacity() != from->GetTypeHandler()->GetInlineSlotCapacity())
         {
@@ -849,7 +849,7 @@ namespace Js
             }
             return false;
         }
-        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
+        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors() && !ignoreSideEffects)
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -865,7 +865,7 @@ namespace Js
             }
             return false;
         }
-        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable())
+        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable() && !ignoreSideEffects)
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -873,7 +873,7 @@ namespace Js
             }
             return false;
         }
-        if (from->IsExternal())
+        if (from->IsExternal() && !ignoreSideEffects)
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -893,14 +893,14 @@ namespace Js
         return true;
     }
 
-    bool DynamicObject::TryCopy(DynamicObject* from)
+    bool DynamicObject::TryCopy(DynamicObject* from, bool ignoreSideEffects)
     {
         if (PHASE_OFF1(ObjectCopyPhase))
         {
             return false;
         }
         // Validate that objects are compatible
-        if (!this->IsCompatibleForCopy(from))
+        if (!this->IsCompatibleForCopy(from, ignoreSideEffects))
         {
             return false;
         }
@@ -997,6 +997,20 @@ namespace Js
     }
 
     DynamicObject *
+    DynamicObject::Copy(bool deepCopy)
+    {
+        size_t inlineSlotsSize = this->GetTypeHandler()->GetInlineSlotsSize();
+        if (inlineSlotsSize)
+        {
+            return RecyclerNewPlusZ(GetRecycler(), inlineSlotsSize, DynamicObject, this, deepCopy);
+        }
+        else
+        {
+            return RecyclerNew(GetRecycler(), DynamicObject, this, deepCopy);
+        }
+    }
+
+    DynamicObject *
     DynamicObject::BoxStackInstance(DynamicObject * instance, bool deepCopy)
     {
         Assert(ThreadContext::IsOnStack(instance));
@@ -1008,15 +1022,7 @@ namespace Js
             return boxedInstance;
         }
 
-        size_t inlineSlotsSize = instance->GetTypeHandler()->GetInlineSlotsSize();
-        if (inlineSlotsSize)
-        {
-            boxedInstance = RecyclerNewPlusZ(instance->GetRecycler(), inlineSlotsSize, DynamicObject, instance, deepCopy);
-        }
-        else
-        {
-            boxedInstance = RecyclerNew(instance->GetRecycler(), DynamicObject, instance, deepCopy);
-        }
+        boxedInstance = instance->Copy(deepCopy);
 
         *boxedInstanceRef = boxedInstance;
         return boxedInstance;

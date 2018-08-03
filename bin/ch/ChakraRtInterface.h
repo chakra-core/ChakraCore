@@ -40,6 +40,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtSetExternalDataPtr)(JsValueRef object, void *data);
+    typedef JsErrorCode(WINAPI *JsrtCloneObjectPtr)(JsValueRef object, JsValueRef *newObject);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayBufferPtr)(unsigned int byteLength, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateSharedArrayBufferWithSharedContentPtr)(JsSharedArrayBufferContentHandle sharedContent, JsValueRef *result);
@@ -145,6 +146,7 @@ struct JsAPIHooks
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtSetExternalDataPtr pfJsrtSetExternalData;
+    JsrtCloneObjectPtr pfJsrtCloneObject;
     JsrtCreateArrayPtr pfJsrtCreateArray;
     JsrtCreateArrayBufferPtr pfJsrtCreateArrayBuffer;
     JsrtCreateSharedArrayBufferWithSharedContentPtr pfJsrtCreateSharedArrayBufferWithSharedContent;
@@ -355,6 +357,7 @@ public:
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return HOOK_JS_API(DoubleToNumber(doubleValue, value)); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return HOOK_JS_API(GetExternalData(object, data)); }
     static JsErrorCode WINAPI JsSetExternalData(JsValueRef object, void *data)  { return HOOK_JS_API(SetExternalData(object, data)); }
+    static JsErrorCode WINAPI JsCloneObject(JsValueRef object, JsValueRef *data) { return HOOK_JS_API(CloneObject(object, data)); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return HOOK_JS_API(CreateArray(length, result)); }
     static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return HOOK_JS_API(CreateArrayBuffer(byteLength, result)); }
     static JsErrorCode WINAPI JsCreateSharedArrayBufferWithSharedContent(JsSharedArrayBufferContentHandle sharedContent, JsValueRef *result) { return HOOK_JS_API(CreateSharedArrayBufferWithSharedContent(sharedContent, result)); }

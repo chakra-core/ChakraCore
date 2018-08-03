@@ -170,7 +170,7 @@ namespace Js
 #endif
 
     private:
-        bool IsCompatibleForCopy(DynamicObject* from) const;
+        bool IsCompatibleForCopy(DynamicObject* from, bool ignoreSideEffects) const;
 
         bool IsObjectHeaderInlinedTypeHandlerUnchecked() const;
     public:
@@ -226,7 +226,7 @@ namespace Js
         void InvalidateHasOnlyWritableDataPropertiesInPrototypeChainCacheIfPrototype();
         void ResetObject(DynamicType* type, BOOL keepProperties);
 
-        bool TryCopy(DynamicObject* from);
+        bool TryCopy(DynamicObject* from, bool ignoreSideEffects = false);
 
         virtual void SetIsPrototype();
 
@@ -324,6 +324,8 @@ namespace Js
         RecyclerWeakReference<DynamicObject>* CreateWeakReferenceToSelf();
 
         void SetObjectArray(ArrayObject* objectArray);
+
+        DynamicObject * Copy(bool deepCopy);
     protected:
         BOOL GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext, EnumeratorCache * enumeratorCache);
 

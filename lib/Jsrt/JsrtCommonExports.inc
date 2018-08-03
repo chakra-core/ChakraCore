@@ -135,4 +135,5 @@
     JsTraceExternalReference
     JsAllocRawData
     JsAllocRawDataZeroed
+    JsCloneObject
 #endif

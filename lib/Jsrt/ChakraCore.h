@@ -1026,6 +1026,21 @@ JsCreateTracedExternalObjectWithPrototype(
     _Out_ JsValueRef *object);
 
 /// <summary>
+///     Clones an object
+/// </summary>
+/// <param name="source">The original object.</param>
+/// <param name="clonedObject">
+///     Pointer to the cloned object.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCloneObject(
+    _In_ JsValueRef source,
+    _Out_ JsValueRef* clonedObject);
+
+/// <summary>
 ///     Gets an object's property.
 /// </summary>
 /// <remarks>
