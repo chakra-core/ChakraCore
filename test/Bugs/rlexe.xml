@@ -530,4 +530,11 @@
       <compile-flags>-force:deferparse -parserstatecache -useparserstatecache</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>SuperAccessInGlobalLambda.js</files>
+      <baseline>SuperAccessInGlobalLambda.baseline</baseline>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

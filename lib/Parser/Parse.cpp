@@ -12414,7 +12414,7 @@ IdentPtr Parser::ParseSuper(bool fAllowCall)
     {
         // Any super access is good within a class constructor
     }
-    else if ((this->m_grfscr & fscrEval) == fscrEval || currentNonLambdaFunc->superRestrictionState == SuperRestrictionState::PropertyAllowed)
+    else if ((this->m_grfscr & fscrEval) == fscrEval || (currentNonLambdaFunc != nullptr && currentNonLambdaFunc->superRestrictionState == SuperRestrictionState::PropertyAllowed))
     {
         // Currently for eval cases during compile time we use propertyallowed and throw during runtime for error cases
         if (m_token.tk == tkLParen)
