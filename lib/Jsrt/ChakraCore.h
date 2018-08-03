@@ -1026,6 +1026,33 @@ JsCreateTracedExternalObjectWithPrototype(
     _Out_ JsValueRef *object);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object);
+
+
+/// <summary>
 ///     Clones an object
 /// </summary>
 /// <param name="source">The original object.</param>

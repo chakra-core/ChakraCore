@@ -47,12 +47,12 @@ protected:
     DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JsrtExternalObject);
 
 public:
-    JsrtExternalObject(JsrtExternalType * type, void *data);
+    JsrtExternalObject(JsrtExternalType * type, void *data, uint inlineSlotSize);
 
     static bool Is(Js::Var value);
     static JsrtExternalObject * FromVar(Js::Var value);
     static JsrtExternalObject * UnsafeFromVar(Js::Var value);
-    static JsrtExternalObject * Create(void *data, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext);
+    static JsrtExternalObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 
@@ -66,9 +66,21 @@ public:
 
     void * GetSlotData() const;
     void SetSlotData(void * data);
+    int GetInlineSlotSize() const;
+    void* GetInlineSlots() const;
 
 private:
-    Field(void *) slot;
+    enum class SlotType {
+        Inline,
+        External
+    };
+
+    Field(SlotType) slotType;
+    union
+    {
+        Field(void *) slot;
+        Field(uint) inlineSlotSize;
+    } u;
 
 #if ENABLE_TTD
 public:

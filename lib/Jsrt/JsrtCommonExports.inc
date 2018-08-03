@@ -124,6 +124,7 @@
     JsGetDataViewInfo
     JsCreateExternalObjectWithPrototype
     JsCreateTracedExternalObjectWithPrototype
+    JsCreateTracedExternalObjectWithPrototypeAndSlots
     JsObjectGetProperty
     JsObjectHasProperty
     JsObjectSetProperty

@@ -223,7 +223,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
         prototypeObject = Js::RecyclableObject::FromVar(prototype);
     }
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, nullptr, prototypeObject, ctx);
+    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, nullptr, prototypeObject, ctx);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1303,7 +1303,9 @@ CHAKRA_API JsCreateObject(_Out_ JsValueRef *object)
     });
 }
 
-CHAKRA_API JsCreateTracedExternalObjectWithPrototype(_In_opt_ void *data,
+CHAKRA_API JsCreateTracedExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
     _In_opt_ JsValueRef prototype,
@@ -1320,13 +1322,25 @@ CHAKRA_API JsCreateTracedExternalObjectWithPrototype(_In_opt_ void *data,
             VALIDATE_INCOMING_OBJECT_OR_NULL(prototype, scriptContext);
             prototypeObject = Js::RecyclableObject::FromVar(prototype);
         }
-
-        *object = JsrtExternalObject::Create(data, traceCallback, finalizeCallback, prototypeObject, scriptContext);
+        if (inlineSlotSize > UINT32_MAX)
+        {
+            return JsErrorInvalidArgument;
+        }
+        *object = JsrtExternalObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, prototypeObject, scriptContext);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
         return JsNoError;
     });
+}
+
+CHAKRA_API JsCreateTracedExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object)
+{
+    return JsCreateTracedExternalObjectWithPrototypeAndSlots(data, 0, traceCallback, finalizeCallback, prototype, object);
 }
 
 CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
@@ -2731,7 +2745,7 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
 {
     VALIDATE_JSREF(source);
 
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         if (Js::JavascriptProxy::Is(source))
         {
             source = Js::JavascriptProxy::UnsafeFromVar(source)->GetTarget();
@@ -2742,6 +2756,7 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
             JsrtExternalType* externalType = externalSource->GetExternalType();
             JsrtExternalObject* target = JsrtExternalObject::Create(
                 externalSource->GetSlotData(),
+                externalSource->GetInlineSlotSize(),
                 externalType->GetJsTraceCallback(),
                 externalType->GetJsFinalizeCallback(),
                 externalSource->GetPrototype(),

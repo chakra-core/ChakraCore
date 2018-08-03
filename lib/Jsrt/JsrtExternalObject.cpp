@@ -16,20 +16,33 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCall
         Js::PathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
         true,
         true)
-        , jsTraceCallback(traceCallback)
-        , jsFinalizeCallback(finalizeCallback)
+    , jsTraceCallback(traceCallback)
+    , jsFinalizeCallback(finalizeCallback)
 {
     this->flags |= TypeFlagMask_JsrtExternal;
 }
 
-JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data) :
-    slot(data),
+JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data, uint inlineSlotSize) :
     Js::DynamicObject(type, false/* initSlots*/)
 {
+    if (inlineSlotSize != 0)
+    {
+        this->slotType = SlotType::Inline;
+        this->u.inlineSlotSize = inlineSlotSize;
+        if (data)
+        {
+            memcpy_s(this->GetInlineSlots(), inlineSlotSize, data, inlineSlotSize);
+        }
+    }
+    else
+    {
+        this->slotType = SlotType::External;
+        this->u.slot = data;
+    }
 }
 
 /* static */
-JsrtExternalObject* JsrtExternalObject::Create(void *data, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
+JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
 {
     if (prototype == nullptr)
     {
@@ -49,15 +62,15 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, JsTraceCallback trace
     JsrtExternalObject * externalObject;
     if (traceCallback != nullptr)
     {
-        externalObject = RecyclerNewTracked(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+        externalObject = RecyclerNewTrackedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
     }
     else if (finalizeCallback != nullptr) 
     {
-        externalObject = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+        externalObject = RecyclerNewFinalizedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
     }
     else
     {
-        externalObject = RecyclerNew(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+        externalObject = RecyclerNewPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
     }
 
     return externalObject;
@@ -91,7 +104,7 @@ void JsrtExternalObject::Mark(Recycler * recycler)
     JsTraceCallback traceCallback = this->GetExternalType()->GetJsTraceCallback();
     Assert(nullptr != traceCallback);
     JsrtCallbackState scope(nullptr);
-    traceCallback(this->slot);
+    traceCallback(this->GetSlotData());
 }
 
 void JsrtExternalObject::Finalize(bool isShutdown)
@@ -101,7 +114,7 @@ void JsrtExternalObject::Finalize(bool isShutdown)
     if (nullptr != finalizeCallback)
     {
         JsrtCallbackState scope(nullptr);
-        finalizeCallback(this->slot);
+        finalizeCallback(this->GetSlotData());
     }
 }
 
@@ -111,12 +124,29 @@ void JsrtExternalObject::Dispose(bool isShutdown)
 
 void * JsrtExternalObject::GetSlotData() const
 {
-    return this->slot;
+    return this->slotType == SlotType::External
+        ? this->u.slot
+        : GetInlineSlots();
 }
 
 void JsrtExternalObject::SetSlotData(void * data)
 {
-    this->slot = data;
+    this->slotType = SlotType::External;
+    this->u.slot = data;
+}
+
+int JsrtExternalObject::GetInlineSlotSize() const
+{
+    return this->slotType == SlotType::External
+        ? 0
+        : this->u.inlineSlotSize;
+}
+
+void* JsrtExternalObject::GetInlineSlots() const
+{
+    return this->slotType == SlotType::External
+        ? nullptr
+        : (void*)((uintptr_t)this + sizeof(JsrtExternalObject));
 }
 
 Js::DynamicType* JsrtExternalObject::DuplicateType()
