@@ -302,7 +302,8 @@ RT_ERROR_MSG(JSERROR_SetPrototypeOf, 5616, "Failed to set prototype", "Failed to
 RT_ERROR_MSG(JSERR_ObjectIsNotInitialized, 5617, "%s: Object internal state is not initialized", "Object internal state is not initialized", kjstTypeError, 0)
 
 RT_ERROR_MSG(JSERR_GeneratorAlreadyExecuting, 5618, "%s: Cannot execute generator function because it is currently executing", "", kjstTypeError, 0)
-// 5619-5626 Unused
+RT_ERROR_MSG(JSERR_LengthIsTooBig, 5619, "Length property would exceed maximum value in output from '%s'", "", kjstTypeError, 0)
+// 5620-5626 Unused
 RT_ERROR_MSG(JSERR_NeedConstructor, 5627, "'%s' is not a constructor", "Constructor expected", kjstTypeError, 0)
 
 RT_ERROR_MSG(VBSERR_CantDisplayDate, 32812, "", "The specified date is not available in the current locale's calendar", kjstRangeError, 0)

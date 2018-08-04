@@ -70,6 +70,8 @@
           "entries": "function <large string>",
           "indexOf": "function <large string>",
           "filter": "function <large string>",
+          "flat": "function <large string>",
+          "flatMap": "function <large string>",
           "length": "number 0"
         },
         "length": "number 8",
