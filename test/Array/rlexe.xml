@@ -10,8 +10,6 @@
     <default>
       <files>array_flat.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-      <!-- Lite builds don't enable JsBuiltIns hence the array flat methods won't work on them - Intl flag identifies these builds-->
-      <tags>Intl</tags>
     </default>
   </test>
   <test>
