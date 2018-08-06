@@ -13893,7 +13893,7 @@ void Parser::ProcessCapturedNames(ParseNodeFnc* pnodeFnc)
     }
 }
 
-void Parser::ReleaseTemporaryGuestArena()
+void Parser::ReleaseTemporaryGuestArena(bool isShutdown)
 {
     // In case of modules the Parser lives longer than the temporary Guest Arena. We may have already released the arena explicitly.
     if (!m_tempGuestArenaReleased)
@@ -13903,7 +13903,7 @@ void Parser::ReleaseTemporaryGuestArena()
 
         if (this->m_scriptContext != nullptr)
         {
-            this->m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena);
+            this->m_scriptContext->ReleaseTemporaryGuestAllocator(m_tempGuestArena, isShutdown);
             m_tempGuestArena.Unroot();
         }
 

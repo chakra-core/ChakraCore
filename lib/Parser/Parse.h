@@ -218,7 +218,7 @@ public:
     ~Parser(void);
 
     Js::ScriptContext* GetScriptContext() const { return m_scriptContext; }
-    void ReleaseTemporaryGuestArena();
+    void ReleaseTemporaryGuestArena(bool isShutdown = false);
     bool IsCreatingStateCache();
 
 #if ENABLE_BACKGROUND_PARSING

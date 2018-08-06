@@ -1285,7 +1285,7 @@ public:
     void ReleaseTemporaryAllocator(Js::TempArenaAllocatorObject * tempAllocator);
 
     Js::TempGuestArenaAllocatorObject * GetTemporaryGuestAllocator(LPCWSTR name);
-    void ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject * tempAllocator);
+    void ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject * tempAllocator, bool isShutdown = false);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
     // Should be called from script context, at the time when construction for scriptcontext is just done.

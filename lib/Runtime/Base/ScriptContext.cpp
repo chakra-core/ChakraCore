@@ -1258,11 +1258,11 @@ namespace Js
         return this->threadContext->GetTemporaryGuestAllocator(name);
     }
 
-    void ScriptContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject* tempGuestAllocator)
+    void ScriptContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject* tempGuestAllocator, bool isShutdown)
     {
         AssertMsg(tempGuestAllocator != nullptr, "tempAllocator should not be null");
 
-        this->threadContext->ReleaseTemporaryGuestAllocator(tempGuestAllocator);
+        this->threadContext->ReleaseTemporaryGuestAllocator(tempGuestAllocator, isShutdown);
     }
 
     void ScriptContext::InitializeCache()

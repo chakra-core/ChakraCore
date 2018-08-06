@@ -60,9 +60,10 @@ namespace Js
     {
         this->allocator.Reset();
 
-        if (isGuestArena)
+        // In case of modules we release the parser resources in SourceTextModuleRecord::Finalize. As the order of finalizers is not guaranteed
+        // the externalGuestArenaRef could already have been cleared in TempArenaAllocatorWrapper::Dispose above.
+        if (isGuestArena && externalGuestArenaRef != nullptr)
         {
-            Assert(externalGuestArenaRef != nullptr);
             this->recycler->UnregisterExternalGuestArena(externalGuestArenaRef);
             externalGuestArenaRef = nullptr;
         }

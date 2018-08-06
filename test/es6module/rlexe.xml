@@ -175,4 +175,20 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2 -force:rejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS18524896.js</files>
+      <baseline>bug_OS18524896.baseline</baseline>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_ch</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_OS18524896.js</files>
+      <baseline>bug_OS18524896_ch.baseline</baseline>
+      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>
