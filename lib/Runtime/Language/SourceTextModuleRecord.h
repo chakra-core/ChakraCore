@@ -110,6 +110,7 @@ namespace Js
         Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
         static Var ResolveOrRejectDynamicImportPromise(bool isResolve, Var value, ScriptContext *scriptContext, SourceTextModuleRecord *mr = nullptr);
         Var PostProcessDynamicModuleImport();
+        void ReleaseParserResources(bool isShutdown = false);
 
     private:
         const static uint InvalidModuleIndex = 0xffffffff;
@@ -159,7 +160,6 @@ namespace Js
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
-        void ReleaseParserResources();
         void ImportModuleListsFromParser();
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
         void NotifyParentsAsNeeded();

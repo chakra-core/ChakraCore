@@ -2363,9 +2363,9 @@ ThreadContext::GetTemporaryGuestAllocator(LPCWSTR name)
 }
 
 void
-ThreadContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject * tempGuestAllocator)
+ThreadContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject * tempGuestAllocator, bool isShutdown)
 {
-    if (temporaryGuestArenaAllocatorCount < MaxTemporaryArenaAllocators)
+    if ((temporaryGuestArenaAllocatorCount < MaxTemporaryArenaAllocators) && !isShutdown)
     {
         tempGuestAllocator->AdviseNotInUse();
         recyclableData->temporaryGuestArenaAllocators[temporaryGuestArenaAllocatorCount] = tempGuestAllocator;
@@ -2373,7 +2373,7 @@ ThreadContext::ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject 
         return;
     }
 
-    tempGuestAllocator->Dispose(false);
+    tempGuestAllocator->Dispose(isShutdown);
 }
 
 void

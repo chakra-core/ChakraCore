@@ -1,0 +1,3 @@
+ReferenceError: '_jsFunFuzzPrint' is not defined
+	at Anonymous function() (funfuzz_moduleScript2:1:1)
+	at module (funfuzz_moduleScript2:1:1)

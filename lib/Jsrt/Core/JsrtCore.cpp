@@ -36,6 +36,11 @@ JsInitializeModuleRecord(
     }
     else
     {
+        if (childModuleRecord != nullptr)
+        {
+            childModuleRecord->ReleaseParserResources();
+        }
+
         *moduleRecord = JS_INVALID_REFERENCE;
     }
     return errorCode;
@@ -97,6 +102,7 @@ JsParseModuleSource(
         hr = moduleRecord->ParseSource(sourceText, sourceLength, &si, exceptionValueRef, sourceFlag == JsParseModuleSourceFlags_DataIsUTF8 ? true : false);
         if (FAILED(hr))
         {
+            moduleRecord->ReleaseParserResources();
             return JsErrorScriptCompile;
         }
         return JsNoError;
@@ -133,6 +139,12 @@ JsModuleEvaluation(
         }
         return JsNoError;
     });
+
+    if (errorCode != JsNoError)
+    {
+        moduleRecord->ReleaseParserResources();
+    }
+
     return errorCode;
 }
 
@@ -178,6 +190,12 @@ JsSetModuleHostInfo(
         };
         return JsNoError;
     });
+
+    if (errorCode != JsNoError)
+    {
+        moduleRecord->ReleaseParserResources();
+    }
+
     return errorCode;
 }
 
@@ -225,6 +243,12 @@ JsGetModuleHostInfo(
         };
         return JsNoError;
     });
+
+    if (errorCode != JsNoError)
+    {
+        moduleRecord->ReleaseParserResources();
+    }
+
     return errorCode;
 }
 

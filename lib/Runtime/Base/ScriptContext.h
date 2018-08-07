@@ -1372,7 +1372,7 @@ private:
         Js::TempArenaAllocatorObject* GetTemporaryAllocator(LPCWSTR name);
         void ReleaseTemporaryAllocator(Js::TempArenaAllocatorObject* tempAllocator);
         Js::TempGuestArenaAllocatorObject* GetTemporaryGuestAllocator(LPCWSTR name);
-        void ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject* tempAllocator);
+        void ReleaseTemporaryGuestAllocator(Js::TempGuestArenaAllocatorObject* tempAllocator, bool isShutdown = false);
 
         bool EnsureInterpreterArena(ArenaAllocator **);
         void ReleaseInterpreterArena();

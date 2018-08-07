@@ -80,6 +80,10 @@ namespace Js
             AdeleteUnlessNull(scriptContext->GeneralAllocator(), parser);
             AdeleteUnlessNull(scriptContext->GeneralAllocator(), childrenModuleSet);
         }
+        else
+        {
+            this->ReleaseParserResources(isShutdown);
+        }
     }
 
     HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8)
@@ -254,11 +258,11 @@ namespace Js
         SetLocalExportRecordList(moduleParseNode->localExportEntries);
     }
 
-    void SourceTextModuleRecord::ReleaseParserResources()
+    void SourceTextModuleRecord::ReleaseParserResources(bool isShutdown)
     {
         if (this->parser != nullptr)
         {
-            this->parser->ReleaseTemporaryGuestArena();
+            this->parser->ReleaseTemporaryGuestArena(isShutdown);
         }
     }
 
