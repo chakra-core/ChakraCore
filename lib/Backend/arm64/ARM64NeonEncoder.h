@@ -88,7 +88,7 @@ protected:
         )
     {
         UNREFERENCED_PARAMETER(Reg);
-        NT_ASSERT(Reg >= NEONREG_FIRST && Reg <= NEONREG_LAST);
+        Assert(Reg >= NEONREG_FIRST && Reg <= NEONREG_LAST);
     }
 
     static
@@ -98,7 +98,7 @@ protected:
         )
     {
         UNREFERENCED_PARAMETER(Size);
-        NT_ASSERT(Size == 4 || Size == 8 || Size == 16);
+        Assert(Size == 4 || Size == 8 || Size == 16);
     }
 
     ULONG m_Encoded;
@@ -133,27 +133,27 @@ NeonSize(
     switch (ElementSizeInBytes)
     {
     case 1:
-        NT_ASSERT(NumElements == 1 || NumElements == 8 || NumElements == 16);
+        Assert(NumElements == 1 || NumElements == 8 || NumElements == 16);
         return (NumElements == 1) ? SIZE_1B : (NumElements == 8) ? SIZE_8B : SIZE_16B;
 
     case 2:
-        NT_ASSERT(NumElements == 1 || NumElements == 4 || NumElements == 8);
+        Assert(NumElements == 1 || NumElements == 4 || NumElements == 8);
         return (NumElements == 1) ? SIZE_1H : (NumElements == 4) ? SIZE_4H : SIZE_8H;
 
     case 4:
-        NT_ASSERT(NumElements == 1 || NumElements == 2 || NumElements == 4);
+        Assert(NumElements == 1 || NumElements == 2 || NumElements == 4);
         return (NumElements == 1) ? SIZE_1S : (NumElements == 2) ? SIZE_2S : SIZE_4S;
 
     case 8:
-        NT_ASSERT(NumElements == 1 || NumElements == 2);
+        Assert(NumElements == 1 || NumElements == 2);
         return (NumElements == 1) ? SIZE_1D : SIZE_2D;
 
     case 16:
-        NT_ASSERT(NumElements == 1);
+        Assert(NumElements == 1);
         return SIZE_1Q;
 
     default:
-        NT_ASSERT(!"Invalid element size passed to NeonSize.");
+        Assert(!"Invalid element size passed to NeonSize.");
         return SIZE_1B;
     }
 }
@@ -257,10 +257,10 @@ EmitNeonBinaryCommon(
 {
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | ((SrcSize & 3) << 22) | (Src.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | ((SrcSize & 3) << 22) | (Src.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -274,7 +274,7 @@ EmitNeonAbs(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e20b800, 0x5e20b800);
 }
 
@@ -287,7 +287,7 @@ EmitNeonAddp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(SrcSize == SIZE_1D);
+    Assert(SrcSize == SIZE_1D);
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0, 0x5e31b800);
 }
 
@@ -300,7 +300,7 @@ EmitNeonAddv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e31b800);
 }
 
@@ -313,7 +313,7 @@ EmitNeonCls(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e204800);
 }
 
@@ -326,7 +326,7 @@ EmitNeonClz(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e204800);
 }
 
@@ -339,7 +339,7 @@ EmitNeonCmeq0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e209800, 0x5e209800);
 }
 
@@ -352,7 +352,7 @@ EmitNeonCmge0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e208800, 0x7e208800);
 }
 
@@ -365,7 +365,7 @@ EmitNeonCmgt0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e208800, 0x5e208800);
 }
 
@@ -378,7 +378,7 @@ EmitNeonCmle0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e209800, 0x7e209800);
 }
 
@@ -391,7 +391,7 @@ EmitNeonCmlt0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e20a800, 0x5e20a800);
 }
 
@@ -404,7 +404,7 @@ EmitNeonCnt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e205800);
 }
 
@@ -417,7 +417,7 @@ EmitNeonNeg(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e20b800, 0x7e20b800);
 }
 
@@ -430,7 +430,7 @@ EmitNeonNot(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e205800);
 }
 
@@ -443,7 +443,7 @@ EmitNeonRbit(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e605800);
 }
 
@@ -456,7 +456,7 @@ EmitNeonRev16(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e201800);
 }
 
@@ -469,7 +469,7 @@ EmitNeonRev32(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e200800);
 }
 
@@ -482,7 +482,7 @@ EmitNeonRev64(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e200800);
 }
 
@@ -495,7 +495,7 @@ EmitNeonSadalp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e206800);
 }
 
@@ -508,7 +508,7 @@ EmitNeonSaddlp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e202800);
 }
 
@@ -521,7 +521,7 @@ EmitNeonSaddlv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e303800);
 }
 
@@ -534,7 +534,7 @@ EmitNeonShll(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize & ~4), 0x2e213800);
 }
 
@@ -547,7 +547,7 @@ EmitNeonShll2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize | 4), 0x2e213800);
 }
 
@@ -560,7 +560,7 @@ EmitNeonSmaxv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e30a800);
 }
 
@@ -573,7 +573,7 @@ EmitNeonSminv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e31a800);
 }
 
@@ -586,7 +586,7 @@ EmitNeonSqabs(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e207800, 0x5e207800);
 }
 
@@ -599,7 +599,7 @@ EmitNeonSqneg(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e207800, 0x7e207800);
 }
 
@@ -612,7 +612,7 @@ EmitNeonSqxtn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) & ~4), 0x0e214800, 0x5e214800);
 }
 
@@ -625,7 +625,7 @@ EmitNeonSqxtn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) | 4), 0x0e214800, 0x5e214800);
 }
 
@@ -638,7 +638,7 @@ EmitNeonSqxtun(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) & ~4), 0x2e212800, 0x7e212800);
 }
 
@@ -651,7 +651,7 @@ EmitNeonSqxtun2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) | 4), 0x2e212800, 0x7e212800);
 }
 
@@ -664,7 +664,7 @@ EmitNeonSuqadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e203800, 0x5e203800);
 }
 
@@ -677,7 +677,7 @@ EmitNeonUadalp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e206800);
 }
 
@@ -690,7 +690,7 @@ EmitNeonUaddlp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e202800);
 }
 
@@ -703,7 +703,7 @@ EmitNeonUaddlv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e303800);
 }
 
@@ -716,7 +716,7 @@ EmitNeonUmaxv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e30a800);
 }
 
@@ -729,7 +729,7 @@ EmitNeonUminv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_4S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e31a800);
 }
 
@@ -742,7 +742,7 @@ EmitNeonUqxtn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) & ~4), 0x2e214800, 0x7e214800);
 }
 
@@ -755,7 +755,7 @@ EmitNeonUqxtn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) | 4), 0x2e214800, 0x7e214800);
 }
 
@@ -768,7 +768,7 @@ EmitNeonUrecpe(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea1c800);
 }
 
@@ -781,7 +781,7 @@ EmitNeonUrsqrte(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea1c800);
 }
 
@@ -794,7 +794,7 @@ EmitNeonUsqadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e203800, 0x7e203800);
 }
 
@@ -807,7 +807,7 @@ EmitNeonXtn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) & ~4), 0x0e212800);
 }
 
@@ -820,7 +820,7 @@ EmitNeonXtn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize - 1) | 4), 0x0e212800);
 }
 
@@ -841,10 +841,10 @@ EmitNeonFloatBinaryCommon(
 {
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | ((SrcSize & 1) << 22) | (Src.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | ((SrcSize & 1) << 22) | (Src.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -858,7 +858,7 @@ EmitNeonFabs(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea0f800, 0x1e20c000);
 }
 
@@ -871,7 +871,7 @@ EmitNeonFaddp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x7e30d800);
 }
 
@@ -884,7 +884,7 @@ EmitNeonFcmeq0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea0d800, 0x5ea0d800);
 }
 
@@ -897,7 +897,7 @@ EmitNeonFcmge0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea0c800, 0x7ea0c800);
 }
 
@@ -910,7 +910,7 @@ EmitNeonFcmgt0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea0c800, 0x5ea0c800);
 }
 
@@ -923,7 +923,7 @@ EmitNeonFcmle0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea0d800, 0x7ea0d800);
 }
 
@@ -936,7 +936,7 @@ EmitNeonFcmlt0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea0e800, 0x5ea0e800);
 }
 
@@ -949,7 +949,7 @@ EmitNeonFcvtas(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e21c800, 0x5e21c800);
 }
 
@@ -962,7 +962,7 @@ EmitNeonFcvtau(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e21c800, 0x7e21c800);
 }
 
@@ -976,9 +976,9 @@ EmitNeonFcvt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D));
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_1H | VALID_1S | VALID_1D));
-    NT_ASSERT(SrcSize != DestSize);
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DestSize, VALID_1H | VALID_1S | VALID_1D));
+    Assert(SrcSize != DestSize);
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0, 0x1ea34000 ^ ((SrcSize & 2) << 22) ^ ((DestSize & 3) << 15));
 }
 
@@ -991,7 +991,7 @@ EmitNeonFcvtl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize + 1) & ~4), 0x0e217800);
 }
 
@@ -1004,7 +1004,7 @@ EmitNeonFcvtl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE((SrcSize + 1) | 4), 0x0e217800);
 }
 
@@ -1017,7 +1017,7 @@ EmitNeonFcvtms(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e21b800, 0x5e21b800);
 }
 
@@ -1030,7 +1030,7 @@ EmitNeonFcvtmu(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e21b800, 0x7e21b800);
 }
 
@@ -1043,7 +1043,7 @@ EmitNeonFcvtn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize & ~4), 0x0e216800);
 }
 
@@ -1056,7 +1056,7 @@ EmitNeonFcvtn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize | 4), 0x4e216800);
 }
 
@@ -1069,7 +1069,7 @@ EmitNeonFcvtns(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e21a800, 0x5e21a800);
 }
 
@@ -1082,7 +1082,7 @@ EmitNeonFcvtnu(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e21a800, 0x7e21a800);
 }
 
@@ -1095,7 +1095,7 @@ EmitNeonFcvtps(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea1a800, 0x5ea1a800);
 }
 
@@ -1108,7 +1108,7 @@ EmitNeonFcvtpu(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea1a800, 0x7ea1a800);
 }
 
@@ -1121,7 +1121,7 @@ EmitNeonFcvtxn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize & ~4), 0x2e216800, 0x7e216800);
 }
 
@@ -1134,7 +1134,7 @@ EmitNeonFcvtxn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, NEON_SIZE(SrcSize | 4), 0x2e216800, 0x7e216800);
 }
 
@@ -1147,7 +1147,7 @@ EmitNeonFcvtzs(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea1b800, 0x5ea1b800);
 }
 
@@ -1160,7 +1160,7 @@ EmitNeonFcvtzu(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea1b800, 0x7ea1b800);
 }
 
@@ -1173,7 +1173,7 @@ EmitNeonFmaxnmp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x7e30c800);
 }
 
@@ -1186,7 +1186,7 @@ EmitNeonFmaxnmv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e30c800);
 }
 
@@ -1199,7 +1199,7 @@ EmitNeonFmaxp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x7e30f800);
 }
 
@@ -1212,7 +1212,7 @@ EmitNeonFmaxv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e30f800);
 }
 
@@ -1225,7 +1225,7 @@ EmitNeonFminnmp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x7eb0c800);
 }
 
@@ -1238,7 +1238,7 @@ EmitNeonFminnmv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2eb0c800);
 }
 
@@ -1251,7 +1251,7 @@ EmitNeonFminp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_2S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x7eb0f800);
 }
 
@@ -1264,7 +1264,7 @@ EmitNeonFminv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_4S));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2eb0f800);
 }
 
@@ -1277,7 +1277,7 @@ EmitNeonFmov(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0, 0x1e204000);
 }
 
@@ -1290,7 +1290,7 @@ EmitNeonFmovImmediate(
     NEON_SIZE DestSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DestSize, VALID_1S | VALID_1D));
     return Emitter.EmitFourBytes(0x1e201000 | ((DestSize & 1) << 22) | (ULONG(Immediate) << 13) | Dest.RawRegister());
 }
 
@@ -1303,7 +1303,7 @@ EmitNeonFneg(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea0f800, 0x1e214000);
 }
 
@@ -1316,7 +1316,7 @@ EmitNeonFrecpe(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea1d800, 0x5ea1d800);
 }
 
@@ -1329,7 +1329,7 @@ EmitNeonFrecpx(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0, 0x5ea1f800);
 }
 
@@ -1342,7 +1342,7 @@ EmitNeonFrinta(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e218800, 0x1e264000);
 }
 
@@ -1355,7 +1355,7 @@ EmitNeonFrinti(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea19800, 0x1e27c000);
 }
 
@@ -1368,7 +1368,7 @@ EmitNeonFrintm(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e219800, 0x1e254000);
 }
 
@@ -1381,7 +1381,7 @@ EmitNeonFrintn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e218800, 0x1e244000);
 }
 
@@ -1394,7 +1394,7 @@ EmitNeonFrintp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea18800, 0x1e24c000);
 }
 
@@ -1407,7 +1407,7 @@ EmitNeonFrintx(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e219800, 0x1e274000);
 }
 
@@ -1420,7 +1420,7 @@ EmitNeonFrintz(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0ea19800, 0x1e25c000);
 }
 
@@ -1433,7 +1433,7 @@ EmitNeonFrsqrte(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea1d800, 0x7ea1d800);
 }
 
@@ -1446,7 +1446,7 @@ EmitNeonFsqrt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2ea1f800, 0x1e21c000);
 }
 
@@ -1459,7 +1459,7 @@ EmitNeonScvtf(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x0e21d800, 0x5e21d800);
 }
 
@@ -1472,7 +1472,7 @@ EmitNeonUcvtf(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatBinaryCommon(Emitter, Dest, Src, SrcSize, 0x2e21d800, 0x7e21d800);
 }
 
@@ -1494,10 +1494,10 @@ EmitNeonTrinaryCommon(
 {
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | ((SrcSize & 3) << 22) | (Src2.RawRegister() << 16) | (Src1.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | ((SrcSize & 3) << 22) | (Src2.RawRegister() << 16) | (Src1.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -1512,7 +1512,7 @@ EmitNeonAdd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e208400, 0x5e208400);
 }
 
@@ -1526,7 +1526,7 @@ EmitNeonAddhn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e204000);
 }
 
@@ -1540,7 +1540,7 @@ EmitNeonAddhn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e204000);
 }
 
@@ -1554,7 +1554,7 @@ EmitNeonAddp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20bc00);
 }
 
@@ -1568,7 +1568,7 @@ EmitNeonAnd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e201c00);
 }
 
@@ -1582,7 +1582,7 @@ EmitNeonBicRegister(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e601c00);
 }
 
@@ -1596,7 +1596,7 @@ EmitNeonBif(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ee01c00);
 }
 
@@ -1610,7 +1610,7 @@ EmitNeonBit(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea01c00);
 }
 
@@ -1624,7 +1624,7 @@ EmitNeonBsl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e601c00);
 }
 
@@ -1638,7 +1638,7 @@ EmitNeonCmeq(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e208c00, 0x7e208c00);
 }
 
@@ -1652,7 +1652,7 @@ EmitNeonCmge(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e203c00, 0x5e203c00);
 }
 
@@ -1666,7 +1666,7 @@ EmitNeonCmgt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e203400, 0x5e203400);
 }
 
@@ -1680,7 +1680,7 @@ EmitNeonCmhi(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e203400, 0x7e203400);
 }
 
@@ -1694,7 +1694,7 @@ EmitNeonCmhs(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e203c00, 0x7e203c00);
 }
 
@@ -1708,7 +1708,7 @@ EmitNeonCmtst(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e208c00, 0x5e208c00);
 }
 
@@ -1722,7 +1722,7 @@ EmitNeonEor(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e201c00);
 }
 
@@ -1736,7 +1736,7 @@ EmitNeonMla(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e209400);
 }
 
@@ -1750,7 +1750,7 @@ EmitNeonMls(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e209400);
 }
 
@@ -1763,7 +1763,7 @@ EmitNeonMov(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src, Src, SrcSize, 0x0ea01c00);
 }
 
@@ -1777,7 +1777,7 @@ EmitNeonMul(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e209c00);
 }
 
@@ -1791,7 +1791,7 @@ EmitNeonOrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ee01c00);
 }
 
@@ -1805,7 +1805,7 @@ EmitNeonOrrRegister(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea01c00);
 }
 
@@ -1819,7 +1819,7 @@ EmitNeonPmul(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e209c00);
 }
 
@@ -1833,7 +1833,7 @@ EmitNeonPmull(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_1D | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_1D | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e20e000, 0x0e20e000);
 }
 
@@ -1847,7 +1847,7 @@ EmitNeonPmull2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e20e000, 0x0e20e000);
 }
 
@@ -1861,7 +1861,7 @@ EmitNeonRaddhn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE((SrcSize - 1) & ~4), 0x2e204000);
 }
 
@@ -1875,7 +1875,7 @@ EmitNeonRaddhn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE((SrcSize - 1) | 4), 0x2e204000);
 }
 
@@ -1889,7 +1889,7 @@ EmitNeonRsubhn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE((SrcSize - 1) & ~4), 0x2e206000);
 }
 
@@ -1903,7 +1903,7 @@ EmitNeonRsubhn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE((SrcSize - 1) | 4), 0x2e206000);
 }
 
@@ -1917,7 +1917,7 @@ EmitNeonSaba(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e207c00);
 }
 
@@ -1931,7 +1931,7 @@ EmitNeonSabal(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e205000);
 }
 
@@ -1945,7 +1945,7 @@ EmitNeonSabal2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e205000);
 }
 
@@ -1959,7 +1959,7 @@ EmitNeonSabd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e207400);
 }
 
@@ -1973,7 +1973,7 @@ EmitNeonSabdl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e207000);
 }
 
@@ -1987,7 +1987,7 @@ EmitNeonSabdl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e207000);
 }
 
@@ -2001,7 +2001,7 @@ EmitNeonSaddl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e200000);
 }
 
@@ -2015,7 +2015,7 @@ EmitNeonSaddl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e200000);
 }
 
@@ -2029,7 +2029,7 @@ EmitNeonSaddw(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e201000);
 }
 
@@ -2043,7 +2043,7 @@ EmitNeonSaddw2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e201000);
 }
 
@@ -2057,7 +2057,7 @@ EmitNeonShadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e200400);
 }
 
@@ -2071,7 +2071,7 @@ EmitNeonShsub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e202400);
 }
 
@@ -2085,7 +2085,7 @@ EmitNeonSmax(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e206400);
 }
 
@@ -2099,7 +2099,7 @@ EmitNeonSmaxp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20a400);
 }
 
@@ -2113,7 +2113,7 @@ EmitNeonSmin(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e206c00);
 }
 
@@ -2127,7 +2127,7 @@ EmitNeonSminp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20ac00);
 }
 
@@ -2141,7 +2141,7 @@ EmitNeonSmlal(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e208000);
 }
 
@@ -2155,7 +2155,7 @@ EmitNeonSmlal2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e208000);
 }
 
@@ -2169,7 +2169,7 @@ EmitNeonSmlsl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e20a000);
 }
 
@@ -2183,7 +2183,7 @@ EmitNeonSmlsl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e20a000);
 }
 
@@ -2197,7 +2197,7 @@ EmitNeonSmull(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e20c000);
 }
 
@@ -2211,7 +2211,7 @@ EmitNeonSmull2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e20c000);
 }
 
@@ -2225,7 +2225,7 @@ EmitNeonSqadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e200c00, 0x5e200c00);
 }
 
@@ -2239,7 +2239,7 @@ EmitNeonSqdmlal(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e209000, 0x5e209000);
 }
 
@@ -2253,7 +2253,7 @@ EmitNeonSqdmlal2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e209000);
 }
 
@@ -2267,7 +2267,7 @@ EmitNeonSqdmlsl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e20b000, 0x5e20b00);
 }
 
@@ -2281,7 +2281,7 @@ EmitNeonSqdmlsl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e20b000);
 }
 
@@ -2295,7 +2295,7 @@ EmitNeonSqdmulh(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20b400, 0x5e20b400);
 }
 
@@ -2309,7 +2309,7 @@ EmitNeonSqdmull(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e20d000, 0x5e20d000);
 }
 
@@ -2323,7 +2323,7 @@ EmitNeonSqdmull2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e20d000);
 }
 
@@ -2337,7 +2337,7 @@ EmitNeonSqrdmulh(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20b400, 0x7e20b400);
 }
 
@@ -2351,7 +2351,7 @@ EmitNeonSqrshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e205c00, 0x5e205c00);
 }
 
@@ -2365,7 +2365,7 @@ EmitNeonSqshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e204c00, 0x5e204c00);
 }
 
@@ -2379,7 +2379,7 @@ EmitNeonSqsub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e202c00, 0x5e202c00);
 }
 
@@ -2393,7 +2393,7 @@ EmitNeonSrhadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e201400);
 }
 
@@ -2407,7 +2407,7 @@ EmitNeonSrshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e205400, 0x5e205400);
 }
 
@@ -2421,7 +2421,7 @@ EmitNeonSshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e204400, 0x5e204400);
 }
 
@@ -2435,7 +2435,7 @@ EmitNeonSsubl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e202000);
 }
 
@@ -2449,7 +2449,7 @@ EmitNeonSsubl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e202000);
 }
 
@@ -2463,7 +2463,7 @@ EmitNeonSsubw(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e203000);
 }
 
@@ -2477,7 +2477,7 @@ EmitNeonSsubw2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e203000);
 }
 
@@ -2491,7 +2491,7 @@ EmitNeonSub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e208400, 0x7e208400);
 }
 
@@ -2505,7 +2505,7 @@ EmitNeonSubhn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x0e206000);
 }
 
@@ -2519,7 +2519,7 @@ EmitNeonSubhn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x0e206000);
 }
 
@@ -2533,7 +2533,7 @@ EmitNeonTrn1(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e002800);
 }
 
@@ -2547,7 +2547,7 @@ EmitNeonTrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e006800);
 }
 
@@ -2561,7 +2561,7 @@ EmitNeonUaba(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e207c00);
 }
 
@@ -2575,7 +2575,7 @@ EmitNeonUabal(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e205000);
 }
 
@@ -2589,7 +2589,7 @@ EmitNeonUabal2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e205000);
 }
 
@@ -2603,7 +2603,7 @@ EmitNeonUabd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e207400);
 }
 
@@ -2617,7 +2617,7 @@ EmitNeonUabdl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e207000);
 }
 
@@ -2631,7 +2631,7 @@ EmitNeonUabdl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e207000);
 }
 
@@ -2645,7 +2645,7 @@ EmitNeonUaddl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e200000);
 }
 
@@ -2659,7 +2659,7 @@ EmitNeonUaddl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e200000);
 }
 
@@ -2673,7 +2673,7 @@ EmitNeonUaddw(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e201000);
 }
 
@@ -2687,7 +2687,7 @@ EmitNeonUaddw2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e201000);
 }
 
@@ -2701,7 +2701,7 @@ EmitNeonUhadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e200400);
 }
 
@@ -2715,7 +2715,7 @@ EmitNeonUhsub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e202400);
 }
 
@@ -2729,7 +2729,7 @@ EmitNeonUmax(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e206400);
 }
 
@@ -2743,7 +2743,7 @@ EmitNeonUmaxp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20a400);
 }
 
@@ -2757,7 +2757,7 @@ EmitNeonUmin(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e206c00);
 }
 
@@ -2771,7 +2771,7 @@ EmitNeonUminp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20ac00);
 }
 
@@ -2785,7 +2785,7 @@ EmitNeonUmlal(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e208000);
 }
 
@@ -2799,7 +2799,7 @@ EmitNeonUmlal2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e208000);
 }
 
@@ -2813,7 +2813,7 @@ EmitNeonUmlsl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e20a000);
 }
 
@@ -2827,7 +2827,7 @@ EmitNeonUmlsl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e20a000);
 }
 
@@ -2841,7 +2841,7 @@ EmitNeonUmull(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e20c000);
 }
 
@@ -2855,7 +2855,7 @@ EmitNeonUmull2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e20c000);
 }
 
@@ -2869,7 +2869,7 @@ EmitNeonUqadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e200c00, 0x7e200c00);
 }
 
@@ -2883,7 +2883,7 @@ EmitNeonUqrshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e205c00, 0x7e205c00);
 }
 
@@ -2897,7 +2897,7 @@ EmitNeonUqshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e204c00, 0x7e204c00);
 }
 
@@ -2911,7 +2911,7 @@ EmitNeonUqsub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e202c00, 0x7e202c00);
 }
 
@@ -2925,7 +2925,7 @@ EmitNeonUrhadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e201400);
 }
 
@@ -2939,7 +2939,7 @@ EmitNeonUrshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e205400, 0x7e205400);
 }
 
@@ -2953,7 +2953,7 @@ EmitNeonUshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e204400, 0x7e204400);
 }
 
@@ -2967,7 +2967,7 @@ EmitNeonUsubl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e202000);
 }
 
@@ -2981,7 +2981,7 @@ EmitNeonUsubl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e202000);
 }
 
@@ -2995,7 +2995,7 @@ EmitNeonUsubw(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize & ~4), 0x2e203000);
 }
 
@@ -3009,7 +3009,7 @@ EmitNeonUsubw2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, NEON_SIZE(SrcSize | 4), 0x2e203000);
 }
 
@@ -3023,7 +3023,7 @@ EmitNeonUzp1(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e001800);
 }
 
@@ -3037,7 +3037,7 @@ EmitNeonUzp2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e005800);
 }
 
@@ -3051,7 +3051,7 @@ EmitNeonZip1(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e003800);
 }
 
@@ -3065,7 +3065,7 @@ EmitNeonZip2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e007800);
 }
 
@@ -3087,10 +3087,10 @@ EmitNeonFloatTrinaryCommon(
 {
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | ((SrcSize & 1) << 22) | (Src2.RawRegister() << 16) | (Src1.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | ((SrcSize & 1) << 22) | (Src2.RawRegister() << 16) | (Src1.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -3105,7 +3105,7 @@ EmitNeonFabd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea0d400, 0x7ea0d400);
 }
 
@@ -3119,7 +3119,7 @@ EmitNeonFacge(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20ec00, 0x7e20ec00);
 }
 
@@ -3133,7 +3133,7 @@ EmitNeonFacgt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea0ec00, 0x7ea0ec00);
 }
 
@@ -3147,7 +3147,7 @@ EmitNeonFadd(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20d400, 0x1e202800);
 }
 
@@ -3161,7 +3161,7 @@ EmitNeonFaddp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20d400);
 }
 
@@ -3179,7 +3179,7 @@ EmitNeonFcmeq(
     // NaNs produce 0s (false)
     //
 
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20e400, 0x5e20e400);
 }
 
@@ -3193,7 +3193,7 @@ EmitNeonFcmge(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20e400, 0x7e20e400);
 }
 
@@ -3207,7 +3207,7 @@ EmitNeonFcmgt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea0e400, 0x7ea0e400);
 }
 
@@ -3220,7 +3220,7 @@ EmitNeonFcmp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatTrinaryCommon(Emitter, NEONREG_D0, Src1, Src2, SrcSize, 0, 0x1e202000);
 }
 
@@ -3232,7 +3232,7 @@ EmitNeonFcmp0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatTrinaryCommon(Emitter, NEONREG_D0, Src1, NEONREG_D0, SrcSize, 0, 0x1e202008);
 }
 
@@ -3245,7 +3245,7 @@ EmitNeonFcmpe(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatTrinaryCommon(Emitter, NEONREG_D0, Src1, Src2, SrcSize, 0, 0x1e202010);
 }
 
@@ -3257,7 +3257,7 @@ EmitNeonFcmpe0(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatTrinaryCommon(Emitter, NEONREG_D0, Src1, NEONREG_D0, SrcSize, 0, 0x1e204018);
 }
 
@@ -3271,7 +3271,7 @@ EmitNeonFdiv(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20fc00, 0x1e201800);
 }
 
@@ -3285,7 +3285,7 @@ EmitNeonFmax(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20f400, 0x1e204800);
 }
 
@@ -3299,7 +3299,7 @@ EmitNeonFmaxnm(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20c400, 0x1e206800);
 }
 
@@ -3313,7 +3313,7 @@ EmitNeonFmaxnmp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20c400);
 }
 
@@ -3327,7 +3327,7 @@ EmitNeonFmaxp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20f400);
 }
 
@@ -3341,7 +3341,7 @@ EmitNeonFmin(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea0f400, 0x1e205800);
 }
 
@@ -3355,7 +3355,7 @@ EmitNeonFminnm(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea0c400, 0x1e207800);
 }
 
@@ -3369,7 +3369,7 @@ EmitNeonFminnmp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea0c400);
 }
 
@@ -3383,7 +3383,7 @@ EmitNeonFminp(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2ea0f400);
 }
 
@@ -3397,7 +3397,7 @@ EmitNeonFmla(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20cc00);
 }
 
@@ -3411,7 +3411,7 @@ EmitNeonFmls(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea0cc00);
 }
 
@@ -3425,7 +3425,7 @@ EmitNeonFmul(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x2e20dc00, 0x1e200800);
 }
 
@@ -3439,7 +3439,7 @@ EmitNeonFmulx(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20dc00, 0x5e20dc00);
 }
 
@@ -3453,7 +3453,7 @@ EmitNeonFnmul(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0, 0x1e208800);
 }
 
@@ -3467,7 +3467,7 @@ EmitNeonFrecps(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0e20fc00, 0x5e20fc00);
 }
 
@@ -3481,7 +3481,7 @@ EmitNeonFrsqrts(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea0fc00, 0x5ea0fc00);
 }
 
@@ -3495,7 +3495,7 @@ EmitNeonFsub(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D | VALID_24S | VALID_2D));
     return EmitNeonFloatTrinaryCommon(Emitter, Dest, Src1, Src2, SrcSize, 0x0ea0d400, 0x1e203800);
 }
 
@@ -3516,15 +3516,15 @@ EmitNeonShiftLeftImmediateCommon(
     )
 {
     ULONG Size = SrcSize & 3;
-    NT_ASSERT(Immediate < (8U << Size));
+    Assert(Immediate < (8U << Size));
 
     ULONG EffShift = Immediate + (8 << Size);
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | (EffShift << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | (EffShift << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -3542,15 +3542,15 @@ EmitNeonShiftRightImmediateCommon(
     )
 {
     ULONG Size = SrcSize & 3;
-    NT_ASSERT(Immediate <= (8U << Size));
+    Assert(Immediate <= (8U << Size));
 
     ULONG EffShift = (16 << Size) - Immediate;
 
     if (NeonSizeIsScalar(SrcSize)) {
-        NT_ASSERT(ScalarOpcode != 0);
+        Assert(ScalarOpcode != 0);
         return Emitter.EmitFourBytes(ScalarOpcode | (EffShift << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
     } else {
-        NT_ASSERT(VectorOpcode != 0);
+        Assert(VectorOpcode != 0);
         return Emitter.EmitFourBytes(VectorOpcode | (((SrcSize >> 2) & 1) << 30) | (EffShift << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
     }
 }
@@ -3565,7 +3565,7 @@ EmitNeonRshrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x0f008c00);
 }
 
@@ -3579,7 +3579,7 @@ EmitNeonRshrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x0f008c00);
 }
 
@@ -3593,7 +3593,7 @@ EmitNeonShl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f005400, 0x5f005400);
 }
 
@@ -3607,7 +3607,7 @@ EmitNeonShrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x0f008400);
 }
 
@@ -3621,7 +3621,7 @@ EmitNeonShrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x0f008400);
 }
 
@@ -3635,7 +3635,7 @@ EmitNeonSli(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f005400, 0x7f005400);
 }
 
@@ -3649,7 +3649,7 @@ EmitNeonSqrshrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x0f009c00, 0x5f009c00);
 }
 
@@ -3663,7 +3663,7 @@ EmitNeonSqrshrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x0f009c00);
 }
 
@@ -3677,7 +3677,7 @@ EmitNeonSqrshrun(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x2f008c00, 0x7f008c00);
 }
 
@@ -3691,7 +3691,7 @@ EmitNeonSqrshrun2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x2f008c00);
 }
 
@@ -3705,7 +3705,7 @@ EmitNeonSqshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f007400, 0x5f007400);
 }
 
@@ -3719,7 +3719,7 @@ EmitNeonSqshlu(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f006400, 0x7f006400);
 }
 
@@ -3733,7 +3733,7 @@ EmitNeonSqshrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x0f009400, 0x5f009400);
 }
 
@@ -3747,7 +3747,7 @@ EmitNeonSqshrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x0f009400);
 }
 
@@ -3761,7 +3761,7 @@ EmitNeonSri(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f004400, 0x7f004400);
 }
 
@@ -3775,7 +3775,7 @@ EmitNeonSrshr(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f002400, 0x5f002400);
 }
 
@@ -3789,7 +3789,7 @@ EmitNeonSrsra(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f003400, 0x5f003400);
 }
 
@@ -3803,7 +3803,7 @@ EmitNeonSshll(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE(SrcSize & ~4), 0x0f00a400);
 }
 
@@ -3817,7 +3817,7 @@ EmitNeonSshll2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE(SrcSize | 4), 0x0f00a400);
 }
 
@@ -3831,7 +3831,7 @@ EmitNeonSshr(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f000400, 0x5f000400);
 }
 
@@ -3845,7 +3845,7 @@ EmitNeonSsra(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x0f001400, 0x5f001400);
 }
 
@@ -3858,7 +3858,7 @@ EmitNeonSxtl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, 0, NEON_SIZE(SrcSize & ~4), 0x0f00a400);
 }
 
@@ -3871,7 +3871,7 @@ EmitNeonSxtl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, 0, NEON_SIZE(SrcSize | 4), 0x0f00a400);
 }
 
@@ -3885,7 +3885,7 @@ EmitNeonUqrshrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x2f009c00, 0x7f009c00);
 }
 
@@ -3899,7 +3899,7 @@ EmitNeonUqrshrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x2f009c00);
 }
 
@@ -3913,7 +3913,7 @@ EmitNeonUqshl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f007400, 0x7f007400);
 }
 
@@ -3927,7 +3927,7 @@ EmitNeonUqshrn(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1H | VALID_1S | VALID_1D | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) & ~4), 0x2f009400, 0x7f009400);
 }
 
@@ -3941,7 +3941,7 @@ EmitNeonUqshrn2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE((SrcSize - 1) | 4), 0x2f009400);
 }
 
@@ -3955,7 +3955,7 @@ EmitNeonUrshr(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f002400, 0x7f002400);
 }
 
@@ -3969,7 +3969,7 @@ EmitNeonUrsra(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f003400, 0x7f003400);
 }
 
@@ -3983,7 +3983,7 @@ EmitNeonUshll(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE(SrcSize & ~4), 0x2f00a400);
 }
 
@@ -3997,7 +3997,7 @@ EmitNeonUshll2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, Immediate, NEON_SIZE(SrcSize | 4), 0x2f00a400);
 }
 
@@ -4011,7 +4011,7 @@ EmitNeonUshr(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f000400, 0x7f000400);
 }
 
@@ -4025,7 +4025,7 @@ EmitNeonUsra(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftRightImmediateCommon(Emitter, Dest, Src, Immediate, SrcSize, 0x2f001400, 0x7f001400);
 }
 
@@ -4038,7 +4038,7 @@ EmitNeonUxtl(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, 0, NEON_SIZE(SrcSize & ~4), 0x2f00a400);
 }
 
@@ -4051,7 +4051,7 @@ EmitNeonUxtl2(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_16B | VALID_8H | VALID_4S | VALID_2D));
     return EmitNeonShiftLeftImmediateCommon(Emitter, Dest, Src, 0, NEON_SIZE(SrcSize | 4), 0x2f00a400);
 }
 
@@ -4081,7 +4081,7 @@ EmitNeonFcvtmsGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e300000);
 }
 
@@ -4094,7 +4094,7 @@ EmitNeonFcvtmsGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e300000);
 }
 
@@ -4107,7 +4107,7 @@ EmitNeonFcvtmuGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e310000);
 }
 
@@ -4120,7 +4120,7 @@ EmitNeonFcvtmuGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e310000);
 }
 
@@ -4133,7 +4133,7 @@ EmitNeonFcvtnsGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e200000);
 }
 
@@ -4146,7 +4146,7 @@ EmitNeonFcvtnsGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e200000);
 }
 
@@ -4159,7 +4159,7 @@ EmitNeonFcvtnuGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e210000);
 }
 
@@ -4172,7 +4172,7 @@ EmitNeonFcvtnuGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e210000);
 }
 
@@ -4185,7 +4185,7 @@ EmitNeonFcvtpsGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e280000);
 }
 
@@ -4198,7 +4198,7 @@ EmitNeonFcvtpsGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e280000);
 }
 
@@ -4211,7 +4211,7 @@ EmitNeonFcvtpuGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e290000);
 }
 
@@ -4224,7 +4224,7 @@ EmitNeonFcvtpuGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e290000);
 }
 
@@ -4237,7 +4237,7 @@ EmitNeonFcvtzsGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e380000);
 }
 
@@ -4250,7 +4250,7 @@ EmitNeonFcvtzsGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e380000);
 }
 
@@ -4263,7 +4263,7 @@ EmitNeonFcvtzuGen(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x1e390000);
 }
 
@@ -4276,7 +4276,7 @@ EmitNeonFcvtzuGen64(
     NEON_SIZE SrcSize
 )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SrcSize, 0x9e390000);
 }
 
@@ -4290,7 +4290,7 @@ EmitNeonFmovToGeneral(
     )
 {
     UNREFERENCED_PARAMETER(SrcSize);
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1S, 0x1e260000);
 }
 
@@ -4308,7 +4308,7 @@ EmitNeonFmovToGeneral64(
     )
 {
     UNREFERENCED_PARAMETER(SrcSize);
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1D | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1D | VALID_2D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1D, 0x9e260000);
 }
 
@@ -4326,7 +4326,7 @@ EmitNeonFmovToGeneralHigh64(
     )
 {
     UNREFERENCED_PARAMETER(SrcSize);
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_2D));  // TODO: Should this be VALID_1D?
+    Assert(NeonSizeIsValid(SrcSize, VALID_2D));  // TODO: Should this be VALID_1D?
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1S /* SIZE_1D */, 0x9eae0000);
 }
 
@@ -4357,7 +4357,7 @@ EmitNeonFmovFromGeneral(
     )
 {
     UNREFERENCED_PARAMETER(DestSize);
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_1S));
+    Assert(NeonSizeIsValid(DestSize, VALID_1S));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1S, 0x1e270000);
 }
 
@@ -4375,7 +4375,7 @@ EmitNeonFmovFromGeneral64(
     )
 {
     UNREFERENCED_PARAMETER(DestSize);
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_1D | VALID_2D));
+    Assert(NeonSizeIsValid(DestSize, VALID_1D | VALID_2D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1D, 0x9e270000);
 }
 
@@ -4393,7 +4393,7 @@ EmitNeonFmovFromGeneralHigh64(
     )
 {
     UNREFERENCED_PARAMETER(DestSize);
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_2D));
+    Assert(NeonSizeIsValid(DestSize, VALID_2D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, SIZE_1S /* SIZE_1D */, 0x9eaf0000);
 }
 
@@ -4406,7 +4406,7 @@ EmitNeonScvtf(
     NEON_SIZE DstSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, DstSize, 0x1e220000);
 }
 
@@ -4419,7 +4419,7 @@ EmitNeonScvtf64(
     NEON_SIZE DstSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, DstSize, 0x9e220000);
 }
 
@@ -4432,7 +4432,7 @@ EmitNeonUcvtf(
     NEON_SIZE DstSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, DstSize, 0x1e230000);
 }
 
@@ -4445,7 +4445,7 @@ EmitNeonUcvtf64(
     NEON_SIZE DstSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DstSize, VALID_1S | VALID_1D));
     return EmitNeonConvertScalarCommon(Emitter, Dest, Src, DstSize, 0x9e230000);
 }
 
@@ -4465,7 +4465,7 @@ EmitNeonMovElementCommon(
     )
 {
     ULONG Size = SrcSize & 3;
-    NT_ASSERT((SrcIndex << Size) < 16);
+    Assert((SrcIndex << Size) < 16);
 
     SrcIndex = ((SrcIndex << 1) | 1) << Size;
 
@@ -4482,7 +4482,7 @@ EmitNeonDupElement(
     NEON_SIZE DestSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonMovElementCommon(Emitter, Dest, Src, SrcIndex, DestSize, 0x0e000400 | (((DestSize >> 2) & 1) << 30));
 }
 
@@ -4495,7 +4495,7 @@ EmitNeonDup(
     NEON_SIZE DestSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
     return EmitNeonMovElementCommon(Emitter, Dest, NeonRegisterParam(NEONREG_D0 + Src.RawRegister()), 0, DestSize, 0x0e000c00 | (((DestSize >> 2) & 1) << 30));
 }
 
@@ -4509,7 +4509,7 @@ EmitNeonIns(
     NEON_SIZE DestSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(DestSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D));
     return EmitNeonMovElementCommon(Emitter, Dest, NeonRegisterParam(NEONREG_D0 + Src.RawRegister()), DestIndex, DestSize, 0x4e001c00);
 }
 
@@ -4523,7 +4523,7 @@ EmitNeonSmov(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H));
     return EmitNeonMovElementCommon(Emitter, NeonRegisterParam(NEONREG_D0 + Dest.RawRegister()), Src, SrcIndex, SrcSize, 0x0e002c00);
 }
 
@@ -4537,7 +4537,7 @@ EmitNeonSmov64(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S));
     return EmitNeonMovElementCommon(Emitter, NeonRegisterParam(NEONREG_D0 + Dest.RawRegister()), Src, SrcIndex, SrcSize, 0x4e002c00);
 }
 
@@ -4551,7 +4551,7 @@ EmitNeonUmov(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S));
     return EmitNeonMovElementCommon(Emitter, NeonRegisterParam(NEONREG_D0 + Dest.RawRegister()), Src, SrcIndex, SrcSize, 0x0e003c00);
 }
 
@@ -4565,7 +4565,7 @@ EmitNeonUmov64(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1B | VALID_1H | VALID_1S | VALID_1D));
     return EmitNeonMovElementCommon(Emitter, NeonRegisterParam(NEONREG_D0 + Dest.RawRegister()), Src, SrcIndex, SrcSize, 0x4e003c00);
 }
 
@@ -4584,11 +4584,11 @@ EmitNeonInsElement(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D));
 
     ULONG Size = SrcSize & 3;
-    NT_ASSERT((DestIndex << Size) < 16);
-    NT_ASSERT((SrcIndex << Size) < 16);
+    Assert((DestIndex << Size) < 16);
+    Assert((SrcIndex << Size) < 16);
 
     DestIndex = ((DestIndex << 1) | 1) << Size;
     SrcIndex <<= Size;
@@ -4611,7 +4611,7 @@ EmitNeonFcsel(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
+    Assert(NeonSizeIsValid(SrcSize, VALID_1S | VALID_1D));
     return Emitter.EmitFourBytes(0x1e200c00 | ((SrcSize & 1) << 22) | (Src2.RawRegister() << 16) | ((Condition & 15) << 12) | (Src1.RawRegister() << 5) | Dest.RawRegister());
 }
 
@@ -4703,7 +4703,7 @@ ComputeNeonImmediate(
         Op = 1;
     }
 
-    NT_ASSERT(EncImmediate < 256);
+    Assert(EncImmediate < 256);
     return (Op << 29) | (((EncImmediate >> 5) & 7) << 16) | (Cmode << 12) | ((EncImmediate & 0x1f) << 5);
 }
 
@@ -4716,7 +4716,7 @@ EmitNeonMovi(
     NEON_SIZE DestSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D | VALID_1D));
+    Assert(NeonSizeIsValid(DestSize, VALID_816B | VALID_48H | VALID_24S | VALID_2D | VALID_1D));
 
     ULONG EncImmediate = ComputeNeonImmediate(Immediate, DestSize);
     if (EncImmediate != 1) {
@@ -4728,7 +4728,7 @@ EmitNeonMovi(
         return Emitter.EmitFourBytes(0x2f000400 | (((DestSize >> 2) & 1) << 30) | EncImmediate | Dest.RawRegister());
     }
 
-    NT_ASSERT(false);
+    Assert(false);
     return 0;
 }
 
@@ -4753,7 +4753,7 @@ EmitNeonTbl(
 
     } else {
 
-        NT_ASSERT(Size == SIZE_16B);
+        Assert(Size == SIZE_16B);
 
         return Emitter.EmitFourBytes(0x4e000000 | (Indices.RawRegister() << 16) | (Src.RawRegister() << 5) | Dest.RawRegister());
     }
@@ -4774,8 +4774,8 @@ EmitNeonExt(
     NEON_SIZE SrcSize
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcSize, VALID_816B));
-    NT_ASSERT(((SrcSize == SIZE_8B) && (Immediate < 8)) ||
+    Assert(NeonSizeIsValid(SrcSize, VALID_816B));
+    Assert(((SrcSize == SIZE_8B) && (Immediate < 8)) ||
               ((SrcSize == SIZE_16B) && (Immediate < 16)));
 
     return Emitter.EmitFourBytes(0x2e000000 | (((SrcSize >> 2) & 1) << 30) | (Src2.RawRegister() << 16) | (Immediate << 11) | (Src1.RawRegister() << 5) | Dest.RawRegister());
@@ -4797,7 +4797,7 @@ EmitNeonLdrStrOffsetCommon(
     ULONG OpcodeUnscaled
     )
 {
-    NT_ASSERT(NeonSizeIsScalar(SrcDestSize));
+    Assert(NeonSizeIsScalar(SrcDestSize));
 
     ULONG SizeBits = ((SrcDestSize & 3) << 30) | ((SrcDestSize >> 2) << 23);
 
@@ -4857,7 +4857,7 @@ EmitNeonLdpStpOffsetCommon(
     ULONG Opcode
     )
 {
-    NT_ASSERT(NeonSizeIsValid(SrcDestSize, VALID_1S | VALID_1D | VALID_1Q));
+    Assert(NeonSizeIsValid(SrcDestSize, VALID_1S | VALID_1D | VALID_1Q));
 
     ULONG Opc = (SrcDestSize - 2);
 
@@ -4917,7 +4917,7 @@ EmitNeonLd1St1Common(
         QSSize |= 1;
     }
 
-    NT_ASSERT(QSSize < 16);
+    Assert(QSSize < 16);
     ULONG Op = (SrcDestSize == SIZE_1B) ? 0 : (SrcDestSize == SIZE_1H) ? 2 : 4;
 
     return Emitter.EmitFourBytes(Opcode | ((QSSize >> 3) << 30) | (Op << 13) | ((QSSize & 7) << 10) | (Addr.RawRegister() << 5) | SrcDest.RawRegister());
@@ -4965,7 +4965,7 @@ EmitNeonAesD(
 
     UNREFERENCED_PARAMETER(SrcSize);
 
-    NT_ASSERT(SrcSize == SIZE_16B);
+    Assert(SrcSize == SIZE_16B);
 
     return Emitter.EmitFourBytes(0x4e285800 | (Src.RawRegister() << 5) | Dest.RawRegister());
 }
@@ -4982,7 +4982,7 @@ EmitNeonAesE(
 
     UNREFERENCED_PARAMETER(SrcSize);
 
-    NT_ASSERT(SrcSize == SIZE_16B);
+    Assert(SrcSize == SIZE_16B);
 
     return Emitter.EmitFourBytes(0x4e284800 | (Src.RawRegister() << 5) | Dest.RawRegister());
 }
@@ -4999,7 +4999,7 @@ EmitNeonAesImc(
 
     UNREFERENCED_PARAMETER(SrcSize);
 
-    NT_ASSERT(SrcSize == SIZE_16B);
+    Assert(SrcSize == SIZE_16B);
 
     return Emitter.EmitFourBytes(0x4e287800 | (Src.RawRegister() << 5) | Dest.RawRegister());
 }
@@ -5016,7 +5016,7 @@ EmitNeonAesMc(
 
     UNREFERENCED_PARAMETER(SrcSize);
 
-    NT_ASSERT(SrcSize == SIZE_16B);
+    Assert(SrcSize == SIZE_16B);
 
     return Emitter.EmitFourBytes(0x4e286800 | (Src.RawRegister() << 5) | Dest.RawRegister());
 }
