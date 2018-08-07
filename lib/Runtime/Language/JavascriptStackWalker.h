@@ -217,7 +217,7 @@ namespace Js
         void SetCurrentFunction(JavascriptFunction *  function);
         CallInfo GetCallInfo(bool includeInlinedFrames = true) const;
         CallInfo GetCallInfoFromPhysicalFrame() const;
-        bool GetThis(Var *pThis, int moduleId) const;
+        void GetThis(Var *pThis, int moduleId) const;
         Js::Var * GetJavascriptArgs(bool boxArgsAndDeepCopy) const;
         void **GetCurrentArgv() const;
 
@@ -244,8 +244,8 @@ namespace Js
         // noinline, we want to use own stack frame.
         static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, ScriptContext* scriptContext);
         static _NOINLINE BOOL GetCaller(_Out_opt_ JavascriptFunction** ppFunc, uint32* byteCodeOffset, ScriptContext* scriptContext);
-        static _NOINLINE bool GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
-        static _NOINLINE bool GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
+        static _NOINLINE void GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext);
+        static _NOINLINE void GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext);
 
         static bool IsDisplayCaller(JavascriptFunction* func);
         bool GetDisplayCaller(_Out_opt_ JavascriptFunction ** ppFunc);
