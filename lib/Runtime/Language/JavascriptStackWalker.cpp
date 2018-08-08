@@ -187,7 +187,7 @@ namespace Js
         return FALSE;
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pVarThis, int moduleId) const
+    void JavascriptStackWalker::GetThis(Var* pVarThis, int moduleId) const
     {
 #if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
@@ -195,13 +195,12 @@ namespace Js
             if (inlinedFrameWalker.GetArgc() == 0)
             {
                 *pVarThis = JavascriptOperators::OP_GetThis(this->scriptContext->GetLibrary()->GetUndefined(), moduleId, scriptContext);
-                return false;
             }
-
-            *pVarThis = inlinedFrameWalker.GetThisObject();
-            Assert(*pVarThis);
-
-            return true;
+            else
+            {
+                *pVarThis = inlinedFrameWalker.GetThisObject();
+                Assert(*pVarThis);
+            }
         }
         else
 #endif
@@ -210,11 +209,16 @@ namespace Js
             if (callInfo.Count == 0)
             {
                 *pVarThis = JavascriptOperators::OP_GetThis(scriptContext->GetLibrary()->GetUndefined(), moduleId, scriptContext);
-                return false;
             }
+            else
+            {
+                *pVarThis = this->GetThisFromFrame();
+            }
+        }
 
-            *pVarThis = this->GetThisFromFrame();
-            return (*pVarThis) != nullptr;
+        if (*pVarThis == nullptr)
+        {
+            *pVarThis = this->scriptContext->GetLibrary()->GetNull();
         }
     }
 
@@ -1188,14 +1192,17 @@ namespace Js
         return FALSE;
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext)
+    void JavascriptStackWalker::GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext)
     {
         JavascriptStackWalker walker(scriptContext);
         JavascriptFunction* caller;
-        return walker.GetCaller(&caller) && walker.GetThis(pThis, moduleId);
+        if (walker.GetCaller(&caller))
+        {
+            walker.GetThis(pThis, moduleId);
+        }
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext)
+    void JavascriptStackWalker::GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext)
     {
         JavascriptStackWalker walker(scriptContext);
         JavascriptFunction* caller;
@@ -1204,10 +1211,9 @@ namespace Js
             if (caller == func)
             {
                 walker.GetThis(pThis, moduleId);
-                return true;
+                return;
             }
         }
-        return false;
     }
 
     // Try to see whether there is a top-most javascript frame, and if there is return true if it's native.
