@@ -3213,6 +3213,8 @@ namespace Js
         void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparseHelper();
+        void UpdateEntryPointsOnDebugReparse();
+
         void AddDeferParseAttribute();
         void RemoveDeferParseAttribute();
 #if DBG

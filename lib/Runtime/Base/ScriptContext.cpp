@@ -4021,7 +4021,6 @@ namespace Js
         // Wrapped function are not allocated with the EnumClass bit
         Assert(pFunction->GetFunctionInfo() != &JavascriptExternalFunction::EntryInfo::WrappedFunctionThunk);
 
-        JavascriptMethod entryPoint = pFunction->GetEntryPoint();
         FunctionInfo * info = pFunction->GetFunctionInfo();
         FunctionProxy * proxy = info->GetFunctionProxy();
 
@@ -4093,26 +4092,13 @@ namespace Js
         }
 #endif
 
-        ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
-
 #ifdef ASMJS_PLAT
+        ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
         scriptContext->TransitionEnvironmentForDebugger(scriptFunction);
 #endif
-
-        JavascriptMethod newEntryPoint;
-        if (CrossSite::IsThunk(entryPoint))
-        {
-            // Can't change from cross-site to non-cross-site, but still need to update the e.p.info on ScriptFunctionType.
-            newEntryPoint = entryPoint;
-        }
-        else
-        {
-            newEntryPoint = pBody->GetDirectEntryPoint(pBody->GetDefaultFunctionEntryPointInfo());
-        }
-
-        scriptFunction->ChangeEntryPoint(pBody->GetDefaultFunctionEntryPointInfo(), newEntryPoint);
     }
-#endif
+
+#endif // ENABLE_SCRIPT_DEBUGGING
 
 #if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     void ScriptContext::RecyclerEnumClassEnumeratorCallback(void *address, size_t size)

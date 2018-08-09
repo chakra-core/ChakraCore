@@ -210,48 +210,15 @@ using namespace Js;
 
     void ScriptFunction::ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint)
     {
-        Assert(entryPoint != nullptr);
         Assert(this->GetTypeId() == TypeIds_Function);
 #if ENABLE_NATIVE_CODEGEN
         Assert(!IsCrossSiteObject() || entryPoint != (Js::JavascriptMethod)checkCodeGenThunk);
 #endif
 
         Assert((entryPointInfo != nullptr && this->GetFunctionProxy() != nullptr));
-        if (this->GetEntryPoint() == entryPoint && this->GetScriptFunctionType()->GetEntryPointInfo() == entryPointInfo)
-        {
-            return;
-        }
 
         bool isAsmJS = HasFunctionBody() && this->GetFunctionBody()->GetIsAsmjsMode();
-
-        // ASMJS:- for asmjs we don't need to update the entry point here as it updates the types entry point
-        if (!isAsmJS)
-        {
-            // We can't go from cross-site to non-cross-site. Update only in the non-cross site case
-            if (!CrossSite::IsThunk(this->GetEntryPoint()))
-            {
-                this->SetEntryPoint(entryPoint);
-            }
-        }
-        // instead update the address in the function entrypoint info
-        else
-        {
-            entryPointInfo->jsMethod = entryPoint;
-        }
-
-        ProxyEntryPointInfo* oldEntryPointInfo = this->GetScriptFunctionType()->GetEntryPointInfo();
-        if (oldEntryPointInfo
-            && oldEntryPointInfo != entryPointInfo
-            && oldEntryPointInfo->SupportsExpiration())
-        {
-            // The old entry point could be executing so we need root it to make sure
-            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-
-            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-        }
-
-        this->GetScriptFunctionType()->SetEntryPointInfo(entryPointInfo);
+        this->GetScriptFunctionType()->ChangeEntryPoint(entryPointInfo, entryPoint, isAsmJS);
     }
 
     FunctionProxy * ScriptFunction::GetFunctionProxy() const
