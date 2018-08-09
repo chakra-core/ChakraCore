@@ -238,8 +238,10 @@ namespace Js
                         {
                             pFuncBody->ReinitializeExecutionModeAndLimits();
                         }
+                        pFuncBody->UpdateEntryPointsOnDebugReparse();
                     });
                 }
+
                 return false;
             }
 
@@ -330,6 +332,7 @@ namespace Js
                     {
                         pFuncBody->ReinitializeExecutionModeAndLimits();
                     }
+                    pFuncBody->UpdateEntryPointsOnDebugReparse();
                 });
             }
 

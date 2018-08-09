@@ -2438,17 +2438,10 @@ namespace Js
 
                     if (isDebugOrAsmJsReparse)
                     {
-                        grfscr &= ~fscrWillDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
-                    }
-
-                    if (isDebugOrAsmJsReparse)
-                    {
-                        grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
-                    }
-
-                    if (isDebugOrAsmJsReparse)
-                    {
-                        grfscr &= ~fscrCreateParserState; // Disable parser state cache if we're debugging or reparsing asm.js
+                        // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
+                        // Disable asm.js when debugging or if linking failed
+                        // Disable parser state cache if we're debugging or reparsing asm.js
+                        grfscr = fscrNoAsmJs | (grfscr & ~(fscrWillDeferFncParse | fscrCreateParserState));
                     }
 
                     BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
@@ -3553,6 +3546,23 @@ namespace Js
 #else
         return false;
 #endif
+    }
+
+    void FunctionBody::UpdateEntryPointsOnDebugReparse()
+    {
+        // Update all function types associated with this function body. Note that we can't rely on updating
+        // types pointed to by function objects, because the type may evolve to one that is not currently referenced.
+
+        ProxyEntryPointInfo * entryPointInfo = this->GetDefaultFunctionEntryPointInfo();
+        JavascriptMethod newEntryPoint = this->GetDirectEntryPoint(entryPointInfo);
+        bool isAsmJS = this->GetIsAsmjsMode();
+
+        auto updateOneType = [&](ScriptFunctionType* functionType) {
+            // Note that the ScriptFunctionType method will handle cross-site thunks correctly.
+            functionType->ChangeEntryPoint(entryPointInfo, newEntryPoint, isAsmJS);
+        };
+
+        this->MapFunctionObjectTypes(updateOneType);
     }
 
     void FunctionProxy::Finalize(bool isShutdown)
@@ -5227,10 +5237,6 @@ namespace Js
             }
 
             this->SetOriginalEntryPoint(DefaultDeferredParsingThunk);
-
-            // Abandon the shared type so a new function will get a new one
-            this->deferredPrototypeType = nullptr;
-            this->undeferredFunctionType = nullptr;
             this->SetAttributes((FunctionInfo::Attributes) (this->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
         }
 
