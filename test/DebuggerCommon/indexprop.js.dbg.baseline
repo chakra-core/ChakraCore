@@ -51,9 +51,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -70,6 +68,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "length": "number 0"
         },
         "length": "number 8",
@@ -139,6 +139,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "[200]": "string 200"
     },
     "locals": {},

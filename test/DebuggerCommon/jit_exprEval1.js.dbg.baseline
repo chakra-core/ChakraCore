@@ -9,6 +9,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -64,6 +65,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -135,6 +137,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -190,6 +193,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -266,6 +270,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -306,6 +311,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",

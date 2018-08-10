@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {
@@ -20,6 +21,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {

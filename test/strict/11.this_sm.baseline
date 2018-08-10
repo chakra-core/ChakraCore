@@ -14,9 +14,9 @@ this         : null
 typeof(this) : object
 this         : null
 typeof(this) : object
-this         : [object Object]
+this         : [object global]
 typeof(this) : object
-this         : [object Object]
+this         : [object global]
 typeof(this) : object
 this         : 10
 typeof(this) : number

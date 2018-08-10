@@ -1,10 +1,11 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -16,18 +17,19 @@
       "z": "number 1"
     },
     "globals": {
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -45,10 +47,10 @@
       "z": "number 2"
     },
     "globals": {
+      "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 3"
+      "Run": "function <large string>"
     }
   }
 ]

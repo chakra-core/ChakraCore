@@ -5,7 +5,9 @@
     }
   },
   {
-    "this": {},
+    "this": {
+      "Symbol.toStringTag": "string global"
+    },
     "locals": {
       "a": "number 100",
       "b": "number 200"

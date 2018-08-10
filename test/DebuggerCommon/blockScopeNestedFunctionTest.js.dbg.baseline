@@ -21,6 +21,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -51,6 +52,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -81,6 +83,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -107,6 +110,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -133,6 +137,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {

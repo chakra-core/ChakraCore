@@ -1,10 +1,11 @@
 [
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "scopes0": {
       "arguments": "Object {...}",
@@ -15,10 +16,10 @@
       "c1": "undefined undefined"
     },
     "globals": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     }
   },
   {
@@ -50,10 +51,11 @@
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
       "ex1": {
@@ -73,10 +75,10 @@
       "c1": "Array [1]"
     },
     "globals": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     }
   },
   {
@@ -91,12 +93,15 @@
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
+      "obj": "undefined undefined",
+      "c": "undefined undefined",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -112,18 +117,17 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "obj": "undefined undefined",
-      "c": "undefined undefined"
+      }
     },
     "globals": {}
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
       "ex2": {
@@ -133,6 +137,8 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "obj": "undefined undefined",
+      "c": "undefined undefined",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -148,20 +154,25 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "obj": "undefined undefined",
-      "c": "undefined undefined"
+      }
     },
     "globals": {}
   },
   {
     "this": {
-      "foo": "function <large string>",
-      "bar": "function <large string>",
+      "Symbol.toStringTag": "string global",
       "obj": "Object {...}",
-      "c": "number 10"
+      "c": "number 10",
+      "foo": "function <large string>",
+      "bar": "function <large string>"
     },
     "locals": {
+      "obj": {
+        "#__proto__": "Object {...}",
+        "x": "number 10",
+        "y": "Array [11,22]"
+      },
+      "c": "number 10",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -177,13 +188,7 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "obj": {
-        "#__proto__": "Object {...}",
-        "x": "number 10",
-        "y": "Array [11,22]"
-      },
-      "c": "number 10"
+      }
     },
     "globals": {}
   },

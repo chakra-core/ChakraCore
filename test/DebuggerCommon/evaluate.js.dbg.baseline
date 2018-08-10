@@ -107,6 +107,7 @@
   {
     "evaluate": {
       "  this  ": {
+        "Symbol.toStringTag": "string global",
         "not_used": "number 0"
       }
     }
@@ -159,6 +160,7 @@
   {
     "evaluate": {
       "  this  ": {
+        "Symbol.toStringTag": "string global",
         "not_used": "number 0"
       }
     }

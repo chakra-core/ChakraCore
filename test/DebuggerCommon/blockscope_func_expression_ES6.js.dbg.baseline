@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "bar": "undefined undefined"
     },
@@ -12,6 +13,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "bar": "function <large string>"
     },

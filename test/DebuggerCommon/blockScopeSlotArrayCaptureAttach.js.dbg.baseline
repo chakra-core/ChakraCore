@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -51,6 +52,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
