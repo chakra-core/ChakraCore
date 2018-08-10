@@ -9952,6 +9952,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -9971,6 +9972,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10000,6 +10002,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10026,6 +10029,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10060,6 +10064,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10079,6 +10084,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10102,6 +10108,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10121,6 +10128,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10148,6 +10156,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10168,6 +10177,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10205,6 +10215,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10224,6 +10235,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10260,6 +10272,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10297,6 +10310,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "locals": {
@@ -10350,6 +10364,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10374,6 +10389,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10399,6 +10415,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10431,6 +10448,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10455,6 +10473,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {
@@ -10487,6 +10506,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "glob": "Object {...}"
     },
     "arguments": {

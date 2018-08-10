@@ -17,6 +17,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -53,6 +54,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -102,6 +104,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -138,6 +141,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },

@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -36,6 +37,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -71,6 +73,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "locals": {
@@ -110,6 +113,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -145,6 +149,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -180,6 +185,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "locals": {

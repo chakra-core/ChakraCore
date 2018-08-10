@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "c": "function <large string>"
     },
     "arguments": {
@@ -21,6 +22,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "c": "function <large string>"
     },
     "locals": {

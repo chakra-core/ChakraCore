@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -73,9 +74,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -88,6 +87,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -114,9 +115,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -129,6 +128,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -156,9 +157,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -171,6 +170,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -221,6 +222,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -293,9 +295,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -308,6 +308,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -334,9 +336,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -349,6 +349,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -377,9 +379,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -392,6 +392,8 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
           "Symbol.unscopables": "Object {...}",
           "fill": "function <large string>",
           "copyWithin": "function <large string>",
@@ -464,6 +466,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -489,6 +492,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -515,6 +519,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -542,6 +547,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"

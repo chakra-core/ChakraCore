@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },
@@ -11,10 +12,10 @@
       "Symbol.iterator": "function <large string>"
     },
     "scopes0": {
-      "f1": "function <large string>",
-      "g": "function <large string>",
       "a": "number 10",
-      "s": "undefined undefined"
+      "s": "undefined undefined",
+      "f1": "function <large string>",
+      "g": "function <large string>"
     },
     "globals": {
       "foo": "function <large string>",
@@ -23,6 +24,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },
@@ -33,6 +35,8 @@
       "Symbol.iterator": "function <large string>"
     },
     "locals": {
+      "a": "number 10",
+      "s": "undefined undefined",
       "f1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -48,9 +52,7 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "a": "number 10",
-      "s": "undefined undefined"
+      }
     },
     "globals": {
       "foo": "function <large string>",
@@ -59,6 +61,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },
@@ -76,6 +79,15 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "a": "number 10",
+      "s": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string ",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 2"
+      },
       "f1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -91,15 +103,6 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 0"
-      },
-      "a": "number 10",
-      "s": {
-        "#__proto__": "function <large string>",
-        "prototype": "Object {...}",
-        "name": "string ",
-        "caller": "object null",
-        "arguments": "object null",
-        "length": "number 2"
       }
     },
     "globals": {

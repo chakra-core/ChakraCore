@@ -1,9 +1,10 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -17,16 +18,17 @@
       "HHH_C": "number 0"
     },
     "globals": {
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -50,16 +52,17 @@
       "GGG_closure": "number 1"
     },
     "globals": {
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -73,9 +76,9 @@
       "FFF_C": "number 0"
     },
     "globals": {
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     }
   },
   {
@@ -118,9 +121,10 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -144,16 +148,17 @@
       "GGG_closure": "number 3"
     },
     "globals": {
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -167,9 +172,9 @@
       "FFF_C": "number 0"
     },
     "globals": {
+      "GGG": "function <large string>",
       "FFF": "function <large string>",
-      "HHH": "function <large string>",
-      "GGG": "function <large string>"
+      "HHH": "function <large string>"
     }
   }
 ]

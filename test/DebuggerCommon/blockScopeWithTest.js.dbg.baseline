@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -26,6 +27,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -49,6 +51,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -71,6 +74,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
