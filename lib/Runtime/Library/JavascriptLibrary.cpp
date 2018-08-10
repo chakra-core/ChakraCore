@@ -1141,6 +1141,8 @@ namespace Js
         AddMember(globalObject, PropertyIds::NaN, nan, PropertyNone);
         AddMember(globalObject, PropertyIds::Infinity, positiveInfinite, PropertyNone);
         AddMember(globalObject, PropertyIds::undefined, undefinedValue, PropertyNone);
+        // Note: for global object, we need to set toStringTag to global like other engines (v8)
+        AddMember(globalObject, PropertyIds::_symbolToStringTag, scriptContext->GetPropertyString(PropertyIds::global) , PropertyNone);
 
         // Note: Any global function added/removed/changed here should also be updated in JavascriptLibrary::ProfilerRegisterBuiltinFunctions
         // so that the new functions show up in the profiler too.

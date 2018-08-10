@@ -486,4 +486,10 @@
       <compile-flags>-args summary -endargs -ES2018ObjectRestSpread -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>toStringWithGlobalObject.js</files>
+      <baseline>toStringWithGlobalObject.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
