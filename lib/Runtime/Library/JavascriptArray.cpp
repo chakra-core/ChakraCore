@@ -596,11 +596,67 @@ using namespace Js;
         return scriptContext->GetLibrary()->GetArrayType();
     }
 
-    JavascriptArray *JavascriptArray::GetArrayForArrayOrObjectWithArray(const Var var)
+    JavascriptArray *JavascriptArray::Jit_GetArrayForArrayOrObjectWithArray(const Var var)
     {
         bool isObjectWithArray;
-        TypeId arrayTypeId;
-        return GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray, &arrayTypeId);
+        return Jit_GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray);
+    }
+
+    JavascriptArray *JavascriptArray::Jit_GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef)
+    {
+        Assert(var);
+        Assert(isObjectWithArrayRef);
+
+        *isObjectWithArrayRef = false;
+
+        if (!RecyclableObject::Is(var))
+        {
+            return nullptr;
+        }
+
+        JavascriptArray *array = nullptr;
+        INT_PTR vtable = VirtualTableInfoBase::GetVirtualTable(var);
+        if (!Jit_TryGetArrayForObjectWithArray(var, isObjectWithArrayRef, &vtable, &array))
+        {
+            return nullptr;
+        }
+
+        if (vtable != VirtualTableInfo<JavascriptArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptArray>>::Address &&
+            vtable != VirtualTableInfo<JavascriptNativeIntArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::Address &&
+            vtable != VirtualTableInfo<JavascriptNativeFloatArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::Address)
+        {
+            return nullptr;
+        }
+
+        if (!array)
+        {
+            array = FromVar(var);
+        }
+        return array;
+    }
+
+    bool JavascriptArray::Jit_TryGetArrayForObjectWithArray(const Var var, bool *const isObjectWithArrayRef, INT_PTR* pVTable, JavascriptArray** pArray)
+    {
+        Assert(isObjectWithArrayRef);
+        Assert(pVTable);
+        Assert(pArray);
+
+        if (*pVTable == VirtualTableInfo<DynamicObject>::Address ||
+            *pVTable == VirtualTableInfo<CrossSiteObject<DynamicObject>>::Address)
+        {
+            ArrayObject* objectArray = DynamicObject::FromVar(var)->GetObjectArray();
+            *pArray = (objectArray && Is(objectArray)) ? FromVar(objectArray) : nullptr;
+            if (!(*pArray))
+            {
+                return false;
+            }
+            *isObjectWithArrayRef = true;
+            *pVTable = VirtualTableInfoBase::GetVirtualTable(*pArray);
+        }
+        return true;
     }
 
     JavascriptArray *JavascriptArray::GetArrayForArrayOrObjectWithArray(
@@ -664,7 +720,7 @@ using namespace Js;
     const SparseArraySegmentBase *JavascriptArray::Jit_GetArrayHeadSegmentForArrayOrObjectWithArray(const Var var)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
         return array ? array->head : nullptr;
         JIT_HELPER_END(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
     }
@@ -701,8 +757,7 @@ using namespace Js;
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayLength);
         bool isObjectWithArray;
-        TypeId arrayTypeId;
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray, &arrayTypeId);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray);
         return array && !isObjectWithArray ? array->GetLength() : 0;
         JIT_HELPER_END(Array_Jit_GetArrayLength);
     }
@@ -717,7 +772,7 @@ using namespace Js;
     DynamicObjectFlags JavascriptArray::Jit_GetArrayFlagsForArrayOrObjectWithArray(const Var var)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
         return array && array->UsesObjectArrayOrFlagsAsFlags() ? array->GetFlags() : DynamicObjectFlags::None;
         JIT_HELPER_END(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
     }

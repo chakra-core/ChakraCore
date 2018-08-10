@@ -14707,6 +14707,8 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
     {
         // Only DynamicObject is allowed (DynamicObject vtable is ensured) because some object types have special handling for
         // index properties - arguments object, string object, external object, etc.
+        // If other object types are also allowed in the future, corresponding changes will have to made to 
+        // JavascriptArray::Jit_TryGetArrayForObjectWithArray as well.
         GenerateObjectTypeTest(baseOpnd, insertBeforeInstr, isNotObjectLabel);
         GenerateObjectHeaderInliningTest(baseOpnd, isNotArrayLabel, insertBeforeInstr);
         arrayOpnd = LoadObjectArray(baseOpnd, insertBeforeInstr);

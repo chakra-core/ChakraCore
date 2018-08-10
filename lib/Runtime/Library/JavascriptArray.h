@@ -439,7 +439,9 @@ namespace Js
         void LinkSegmentsCommon(SparseArraySegmentBase* prev, SparseArraySegmentBase* current);
 
     public:
-        static JavascriptArray *GetArrayForArrayOrObjectWithArray(const Var var);
+        static JavascriptArray *Jit_GetArrayForArrayOrObjectWithArray(const Var var);
+        static JavascriptArray *Jit_GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef);
+        static bool Jit_TryGetArrayForObjectWithArray(const Var var, bool *const isObjectWithArrayRef, INT_PTR* vtable, JavascriptArray ** array);
         static JavascriptArray *GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef, TypeId *const arrayTypeIdRef);
         static const SparseArraySegmentBase *Jit_GetArrayHeadSegmentForArrayOrObjectWithArray(const Var var);
         static uint32 Jit_GetArrayHeadSegmentLength(const SparseArraySegmentBase *const headSegment);
