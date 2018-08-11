@@ -69,6 +69,7 @@
           "source": "string Hello World!",
           "options": "string ",
           "unicode": "boolean false",
+          "dotAll": "boolean false",
           "sticky": "boolean false"
         },
         "a20": {

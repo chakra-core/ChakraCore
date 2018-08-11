@@ -128,6 +128,12 @@
   </test>
   <test>
     <default>
+      <files>dotAll.js</files>
+      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>BolEol.js</files>
       <baseline>BolEol.baseline</baseline>
     </default>

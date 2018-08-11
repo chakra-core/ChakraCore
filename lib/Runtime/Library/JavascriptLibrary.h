@@ -425,6 +425,7 @@ namespace Js
         Field(JavascriptFunction*) regexFlagsGetterFunction;
         Field(JavascriptFunction*) regexGlobalGetterFunction;
         Field(JavascriptFunction*) regexStickyGetterFunction;
+        Field(JavascriptFunction*) regexDotAllGetterFunction;
         Field(JavascriptFunction*) regexUnicodeGetterFunction;
 
         Field(RuntimeFunction*) sharedArrayBufferConstructor;
@@ -452,6 +453,7 @@ namespace Js
         Field(int) regexFlagsGetterSlotIndex;
         Field(int) regexGlobalGetterSlotIndex;
         Field(int) regexStickyGetterSlotIndex;
+        Field(int) regexDotAllGetterSlotIndex;
         Field(int) regexUnicodeGetterSlotIndex;
 
         mutable Field(CharStringCache) charStringCache;
@@ -776,6 +778,7 @@ namespace Js
         JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexDotAllGetterFunction() const { return regexDotAllGetterFunction; }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
 
         int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
@@ -783,6 +786,7 @@ namespace Js
         int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
         int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
+        int GetRegexDotAllGetterSlotIndex() const { return regexDotAllGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
         TypePath* GetRootPath() const { return rootPath; }

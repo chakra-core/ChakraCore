@@ -1090,7 +1090,7 @@
   <test>
     <default>
       <files>regexflags-disabled-features.js</files>
-      <compile-flags>-ES6RegExSticky- -ES6Unicode- -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
+      <compile-flags>-ES2018RegExDotAll- -ES6RegExSticky- -ES6Unicode- -ES6RegExPrototypeProperties -ES6Destructuring -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>

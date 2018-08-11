@@ -5755,9 +5755,10 @@ namespace UnifiedRegex
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));
-        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase"));
-        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode"));
-        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky"));
+        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase "));
+        if ((flags & DotAllRegexFlag) != 0) w->Print(_u("dotAll "));
+        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode "));
+        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky "));
         w->EOL();
         w->PrintEOL(_u("numGroups:    %d"), numGroups);
         w->PrintEOL(_u("numLoops:     %d"), numLoops);

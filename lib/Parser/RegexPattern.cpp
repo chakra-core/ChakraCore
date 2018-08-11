@@ -93,6 +93,11 @@ namespace UnifiedRegex
         return (rep.unified.program->flags & IgnoreCaseRegexFlag) != 0;
     }
 
+    bool RegexPattern::IsDotAll() const
+    {
+        return GetScriptContext()->GetConfig()->IsES2018RegExDotAllEnabled() && (rep.unified.program->flags & DotAllRegexFlag) != 0;
+    }
+
     bool RegexPattern::IsGlobal() const
     {
         return (rep.unified.program->flags & GlobalRegexFlag) != 0;
@@ -195,6 +200,8 @@ namespace UnifiedRegex
             w->Print(_u("g"));
         if (IsMultiline())
             w->Print(_u("m"));
+        if (IsDotAll())
+            w->Print(_u("s"));
         if (IsUnicode())
             w->Print(_u("u"));
         if (IsSticky())

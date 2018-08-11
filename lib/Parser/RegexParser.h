@@ -107,6 +107,7 @@ namespace UnifiedRegex
         SurrogatePairTracker* currentSurrogatePairNode;
         bool unicodeFlagPresent;
         bool caseInsensitiveFlagPresent;
+        bool dotAllFlagPresent;
 
         // The following two variables are used to determine if the the surrogate pair has been encountered
         // First holds the temporary location, second holds the value of the codepoint
