@@ -25,6 +25,7 @@
       }
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": {
           "constructor": "function <large string>",

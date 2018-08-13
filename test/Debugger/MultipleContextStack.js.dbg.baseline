@@ -82,6 +82,7 @@
       "x": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "script1": "Object {...}",
       "script2": "Object {...}",
       "Func2": "function <large string>",

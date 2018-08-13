@@ -16,6 +16,7 @@
       "a": "string Hello"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F1": "function <large string>",
       "F2": "function <large string>"
     }

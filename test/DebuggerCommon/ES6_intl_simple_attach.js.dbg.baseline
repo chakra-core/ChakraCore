@@ -23,6 +23,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "Run": "function <large string>"
     }

@@ -233,6 +233,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

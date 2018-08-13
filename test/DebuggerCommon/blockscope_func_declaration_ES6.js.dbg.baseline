@@ -7,6 +7,7 @@
       "bar": "undefined undefined"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "foo": "undefined undefined",
       "bar": "undefined undefined"
@@ -21,6 +22,7 @@
       "bar": "function <large string>"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "foo": {
         "#__proto__": "function <large string>",

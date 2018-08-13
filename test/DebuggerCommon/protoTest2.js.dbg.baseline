@@ -6,7 +6,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -15,7 +17,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -24,7 +28,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -33,7 +39,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -42,7 +50,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -51,7 +61,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -60,7 +72,9 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
@@ -69,6 +83,8 @@
     "locals": {
       "arguments": "object null"
     },
-    "globals": "undefined undefined"
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   }
 ]

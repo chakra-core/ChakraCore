@@ -29,6 +29,7 @@
       "p": "boolean false"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "Pass": "function <large string>",
       "test": "function <large string>"

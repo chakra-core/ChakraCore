@@ -10,6 +10,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -46,6 +47,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -92,6 +94,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -122,6 +125,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -158,6 +162,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -204,6 +209,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },

@@ -46,6 +46,7 @@
       "x": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
@@ -107,6 +108,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
@@ -143,6 +145,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",

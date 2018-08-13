@@ -78,6 +78,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeBasicLetConstTestFunc": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

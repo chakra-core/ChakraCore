@@ -36,6 +36,7 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "undefined undefined",
       "bar": "function <large string>",
@@ -88,6 +89,7 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "undefined undefined",
       "bar": "function <large string>",
@@ -144,6 +146,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -186,6 +189,7 @@
       "e": "Error <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -237,6 +241,7 @@
       "k": "number 10"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -289,6 +294,7 @@
       "k": "number 10"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -341,6 +347,7 @@
       "k": "number 10"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -389,6 +396,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -437,6 +445,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -485,6 +494,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -534,6 +544,7 @@
       "m1": "number 10"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -574,6 +585,7 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "Symbol.toStringTag": "string global",
       "top": {
         "#__proto__": "Object {...}",
         "f1": "function <large string>"
@@ -773,6 +785,7 @@
       "fa": "number 123"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -837,6 +850,7 @@
       "e1": "number -1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",
@@ -910,6 +924,7 @@
       "foo0": "number 12"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "top": "Object {...}",
       "startTest": "function <large string>",
       "bar": "function <large string>",

@@ -135,14 +135,18 @@
         }
       }
     },
-    "globals": {}
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
       "Symbol.toStringTag": "string global",
       "[200]": "string 200"
     },
-    "locals": {},
+    "locals": {
+      "Symbol.toStringTag": "string global"
+    },
     "globals": {}
   }
 ]

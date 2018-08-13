@@ -17,6 +17,7 @@
       "z": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",
@@ -47,6 +48,7 @@
       "z": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "callcount": "number 3",
       "Call": "function <large string>",
       "bar": "function <large string>",

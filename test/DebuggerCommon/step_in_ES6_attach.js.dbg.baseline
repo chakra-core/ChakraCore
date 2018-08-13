@@ -18,6 +18,7 @@
       "x": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
@@ -48,6 +49,7 @@
       "a": "string bar"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
@@ -78,6 +80,7 @@
       "a": "string foo"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",

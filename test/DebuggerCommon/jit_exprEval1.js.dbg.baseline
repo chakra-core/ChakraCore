@@ -37,6 +37,7 @@
       "x": "number 20"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -96,6 +97,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -165,6 +167,7 @@
       "x": "number 20"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -224,6 +227,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -288,6 +292,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -331,6 +336,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",

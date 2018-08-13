@@ -15,6 +15,7 @@
       "a": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "g": "function <large string>",
       "test": "function <large string>"
     }

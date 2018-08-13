@@ -19,6 +19,7 @@
       "bar4": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
@@ -53,6 +54,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
@@ -87,6 +89,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
@@ -121,6 +124,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   }

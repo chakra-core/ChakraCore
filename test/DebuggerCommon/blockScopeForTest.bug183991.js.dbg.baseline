@@ -6,6 +6,7 @@
     },
     "locals": {
       "y": "string x",
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",
@@ -21,6 +22,7 @@
     },
     "locals": {
       "y": "string y",
+      "Symbol.toStringTag": "string global",
       "a": {
         "#__proto__": "Object {...}",
         "x": "number 2",

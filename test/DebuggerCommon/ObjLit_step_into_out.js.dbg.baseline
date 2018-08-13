@@ -122,6 +122,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "a1": "number 10",
       "foo": "function <large string>",
       "sub_expression_step_into": "function <large string>"

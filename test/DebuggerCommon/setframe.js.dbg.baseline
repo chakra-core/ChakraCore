@@ -18,6 +18,7 @@
       "HHH_C": "number 0"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "GGG": "function <large string>",
       "FFF": "function <large string>",
       "HHH": "function <large string>"
@@ -52,6 +53,7 @@
       "GGG_closure": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "GGG": "function <large string>",
       "FFF": "function <large string>",
       "HHH": "function <large string>"
@@ -76,6 +78,7 @@
       "FFF_C": "number 0"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "GGG": "function <large string>",
       "FFF": "function <large string>",
       "HHH": "function <large string>"
@@ -148,6 +151,7 @@
       "GGG_closure": "number 3"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "GGG": "function <large string>",
       "FFF": "function <large string>",
       "HHH": "function <large string>"
@@ -172,6 +176,7 @@
       "FFF_C": "number 0"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "GGG": "function <large string>",
       "FFF": "function <large string>",
       "HHH": "function <large string>"

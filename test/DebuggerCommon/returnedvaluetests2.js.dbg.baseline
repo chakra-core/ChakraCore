@@ -49,6 +49,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "obj1": "Object {...}",
       "A": "function <large string>",
       "test1": "function <large string>",
@@ -84,6 +85,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "obj1": "Object {...}",
       "A": "function <large string>",
       "test1": "function <large string>",

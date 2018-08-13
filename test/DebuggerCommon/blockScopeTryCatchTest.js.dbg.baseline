@@ -16,6 +16,7 @@
       "ex": "string Exception!"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeTryCatchTestFunc": "function <large string>"
     }
   },
@@ -38,6 +39,7 @@
       "ex": "string Exception!"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeTryCatchTestFunc": "function <large string>"
     }
   }

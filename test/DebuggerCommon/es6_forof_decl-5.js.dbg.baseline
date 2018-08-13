@@ -3,6 +3,7 @@
     "this": "Object {...}",
     "locals": {
       "x": "string <large string>",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     }
   },
@@ -14,6 +15,7 @@
     "locals": {
       "y": "string <large string>",
       "x": "number 0",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -27,6 +29,7 @@
       "z": "number 1",
       "y": "number 0",
       "x": "number 0",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -40,6 +43,7 @@
       "z": "number 1",
       "y": "number 1",
       "x": "number 0",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -53,6 +57,7 @@
       "z": "number 1",
       "y": "number 2",
       "x": "number 0",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -65,6 +70,7 @@
     "locals": {
       "y": "string <large string>",
       "x": "number 1",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -78,6 +84,7 @@
       "z": "number 1",
       "y": "number 0",
       "x": "number 1",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -91,6 +98,7 @@
       "z": "number 1",
       "y": "number 1",
       "x": "number 1",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -104,6 +112,7 @@
       "z": "number 1",
       "y": "number 2",
       "x": "number 1",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -116,6 +125,7 @@
     "locals": {
       "y": "string <large string>",
       "x": "number 2",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -129,6 +139,7 @@
       "z": "number 1",
       "y": "number 0",
       "x": "number 2",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -142,6 +153,7 @@
       "z": "number 1",
       "y": "number 1",
       "x": "number 2",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
@@ -155,6 +167,7 @@
       "z": "number 1",
       "y": "number 2",
       "x": "number 2",
+      "Symbol.toStringTag": "string global",
       "q": "number 1"
     },
     "globals": {}
