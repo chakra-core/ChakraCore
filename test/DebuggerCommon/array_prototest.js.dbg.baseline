@@ -194,6 +194,7 @@
       "dummy": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -438,6 +439,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -485,6 +487,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -512,6 +515,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -540,6 +544,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"
@@ -572,6 +577,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "foo1": "function <large string>",
       "foo2": "function <large string>"

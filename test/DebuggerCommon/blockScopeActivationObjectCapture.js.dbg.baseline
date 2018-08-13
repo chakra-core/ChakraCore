@@ -30,6 +30,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }
@@ -73,6 +74,7 @@
       "verify": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }

@@ -3,6 +3,7 @@
     "this": "Object {...}",
     "{exception}": "number 1",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "globalVar": "undefined undefined",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>"
@@ -12,6 +13,7 @@
     "this": "Object {...}",
     "{exception}": "Error Caught Error",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "globalVar": "undefined undefined",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>"
@@ -44,6 +46,7 @@
       "level1Var": "Object {...}"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "globalVar": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>"
@@ -97,6 +100,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "globalVar": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>"

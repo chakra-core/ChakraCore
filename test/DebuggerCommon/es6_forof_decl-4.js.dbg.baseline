@@ -8,6 +8,7 @@
     },
     "locals": {
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",
@@ -27,6 +28,7 @@
     },
     "locals": {
       "y": "number 2",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "a": {
         "#__proto__": "Array []",

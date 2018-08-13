@@ -18,6 +18,7 @@
       "g": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     }
@@ -55,6 +56,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     }
@@ -106,6 +108,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     }

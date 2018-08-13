@@ -16,6 +16,7 @@
       "c1": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
       "c": "undefined undefined",
       "foo": "function <large string>",
@@ -75,6 +76,7 @@
       "c1": "Array [1]"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
       "c": "undefined undefined",
       "foo": "function <large string>",
@@ -100,6 +102,7 @@
       "bar": "function <large string>"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
       "c": "undefined undefined",
       "foo": {
@@ -137,6 +140,7 @@
         "number": "number -2146823279",
         "stack": "string <large string>"
       },
+      "Symbol.toStringTag": "string global",
       "obj": "undefined undefined",
       "c": "undefined undefined",
       "foo": {
@@ -167,6 +171,7 @@
       "bar": "function <large string>"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "obj": {
         "#__proto__": "Object {...}",
         "x": "number 10",

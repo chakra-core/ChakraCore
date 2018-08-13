@@ -2,18 +2,21 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "f": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
-      "f": "function function f() { }"
+      "f": "function function f() { }",
+      "Symbol.toStringTag": "string global"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "f": "function function f() { }"
     }
   }

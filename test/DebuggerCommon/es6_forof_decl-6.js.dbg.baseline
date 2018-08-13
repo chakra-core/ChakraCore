@@ -2,6 +2,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1"
     }
   },
@@ -13,6 +14,7 @@
     },
     "locals": {
       "z": "number 1",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "y": "number 0"
     },
@@ -26,6 +28,7 @@
     },
     "locals": {
       "z": "number 1",
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "y": "number 1"
     },
