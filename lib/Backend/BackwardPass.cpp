@@ -7461,7 +7461,8 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
         }
     }
 
-    if (isUsed || !this->DoDeadStore())
+    if (isUsed || (!this->DoDeadStore() &&
+        !(instr->m_opcode == Js::OpCode::SlotArrayCheck && this->func->HasTry() && this->func->IsLoopBody())))
     {
         return false;
     }
