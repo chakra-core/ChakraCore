@@ -592,6 +592,8 @@ namespace Js
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
         static BOOL DefineOwnPropertyForArray(JavascriptArray* arr, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
 
+        static BOOL DefineOwnPropertyForTypedArray(TypedArrayBase * typedArray, PropertyId propId, const PropertyDescriptor & descriptor, bool throwOnError, ScriptContext * scriptContext);
+
         static BOOL IsCompatiblePropertyDescriptor(const PropertyDescriptor& descriptor, PropertyDescriptor* currentDescriptor, bool isExtensible, bool throwOnError, ScriptContext* scriptContext);
 
         template <bool needToSetProperty>

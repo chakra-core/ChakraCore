@@ -187,6 +187,9 @@ namespace Js
         // Check if a Var is either a JavascriptArray* or ES5Array*.
         static bool IsAnyArray(const Var aValue);
 
+        // Check if a Var is a typedarray.
+        static bool IsAnyTypedArray(const Var aValue);
+
         bool UsesObjectArrayOrFlagsAsFlags() const
         {
             return !!(arrayFlags & DynamicObjectFlags::ObjectArrayFlagsTag);
