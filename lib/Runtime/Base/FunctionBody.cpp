@@ -2102,33 +2102,6 @@ namespace Js
         this->SetAuxPtr<AuxPointerType::FunctionObjectTypeList>(list);
     }
 
-    template <typename Fn>
-    void FunctionProxy::MapFunctionObjectTypes(Fn func)
-    {
-        FunctionTypeWeakRefList* functionObjectTypeList = this->GetFunctionObjectTypeList();
-        if (functionObjectTypeList != nullptr)
-        {
-            functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
-            {
-                if (typeWeakRef)
-                {
-                    ScriptFunctionType* type = typeWeakRef->Get();
-                    if (type)
-                    {
-                        func(type);
-                    }
-                }
-            });
-        }
-
-        if (this->deferredPrototypeType)
-        {
-            func(this->deferredPrototypeType);
-        }
-        // NOTE: We deliberately do not map the undeferredFunctionType here, since it's in the list
-        // of registered function object types we processed above.
-    }
-
     FunctionProxy::FunctionTypeWeakRefList* FunctionProxy::EnsureFunctionObjectTypeList()
     {
         FunctionTypeWeakRefList* functionObjectTypeList = this->GetFunctionObjectTypeList();

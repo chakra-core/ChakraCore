@@ -3418,10 +3418,6 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Link, callInstr->m_func));
         break;
 
-    case Js::BuiltinFunction::JavascriptString_LocaleCompare:
-        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_LocaleCompare, callInstr->m_func));
-        break;
-
     case Js::BuiltinFunction::JavascriptString_Match:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperString_Match, callInstr->m_func));
         break;

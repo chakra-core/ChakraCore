@@ -69,7 +69,7 @@ namespace Js
         friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators;
         friend class JavascriptLibrary;
-        friend class ModuleNamespace; // for slot setting.       
+        friend class ModuleNamespace; // for slot setting.
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
@@ -152,7 +152,7 @@ namespace Js
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
         void ReplaceType(DynamicType * type);
-        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
+        virtual void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
         DynamicTypeHandler * GetTypeHandler() const;
 
@@ -304,6 +304,7 @@ namespace Js
         virtual BOOL IsCrossSiteObject() const { return FALSE; }
 
         virtual DynamicType* DuplicateType();
+        virtual void PrepareForConversionToNonPathType();
         static bool IsTypeHandlerCompatibleForObjectHeaderInlining(DynamicTypeHandler * oldTypeHandler, DynamicTypeHandler * newTypeHandler);
 
         void ChangeType();
@@ -338,7 +339,7 @@ namespace Js
         void SetArrayCallSiteIndex(ProfileId profileId);
 
         static DynamicObject * BoxStackInstance(DynamicObject * instance, bool deepCopy);
-        
+
     private:
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
@@ -375,8 +376,8 @@ namespace Js
     public:
         virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
         {
-            // This virtual function hinders linker to do ICF vtable of this class with other classes. 
-            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should 
+            // This virtual function hinders linker to do ICF vtable of this class with other classes.
+            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should
             // override this function and return a unique value.
             return VTableValue::VtableDynamicObject;
         }

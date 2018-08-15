@@ -237,7 +237,7 @@ namespace Js
         void ClearCachedInternalFrameInfo();
         void SetCachedInternalFrameInfo(InternalFrameType frameType, JavascriptFunction* function, bool hasInlinedFramesOnStack, bool prevIntFrameIsFromBailout);
         InternalFrameInfo GetCachedInternalFrameInfo() const { return this->lastInternalFrameInfo; }
-        void WalkAndClearInlineeFrameCallInfoOnException(void *tryCatchFrameAddr);
+        void WalkAndClearInlineeFrameCallInfoOnException(void *tryHandlerAddrOfReturnAddr);
 #endif
         bool IsCurrentPhysicalFrameForLoopBody() const;
 

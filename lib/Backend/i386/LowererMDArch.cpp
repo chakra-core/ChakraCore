@@ -4178,3 +4178,50 @@ LowererMDArch::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * tar
     // return the last instruction inserted
     return retInstr;
 }
+
+IR::BranchInstr*
+LowererMDArch::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
+{
+    Assert(compareSrc->IsFloat64() && missingItemOpnd->IsUInt32());
+
+    IR::Opnd * compareSrcUint32Opnd = IR::RegOpnd::New(TyUint32, m_func);
+
+    // Missing item NaN have a different bit pattern from k_Nan, but is a NaN nonetheless. Given that, it is sufficient
+    // to compare just the top 32 bits
+    //
+    // IF sse4.1 available
+    // mov xmm0, compareSrc
+    // pextrd ecx, xmm0, 1       <-- ecx will containg xmm0[63:32] after this
+    // cmp missingItemOpnd, ecx
+    // jcc target 
+    //
+    // ELSE
+    // mov xmm0, compareSrc
+    // shufps xmm0, xmm0, (3 << 6 | 2 << 4 | 1 << 2 | 1) <-- xmm0[31:0] will contain compareSrc[63:32] after this
+    // movd ecx, xmm0
+    // cmp missingItemOpnd, ecx
+    // jcc $target
+
+    IR::RegOpnd* tmpDoubleRegOpnd = IR::RegOpnd::New(TyFloat64, m_func);
+
+    if (AutoSystemInfo::Data.SSE4_1Available())
+    {
+        if (compareSrc->IsIndirOpnd())
+        {
+            Lowerer::InsertMove(tmpDoubleRegOpnd, compareSrc, insertBeforeInstr);
+        }
+        else
+        {
+            tmpDoubleRegOpnd = compareSrc->AsRegOpnd();
+        }
+        Lowerer::InsertAndLegalize(IR::Instr::New(Js::OpCode::PEXTRD, compareSrcUint32Opnd, tmpDoubleRegOpnd, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func), insertBeforeInstr);
+    }
+    else
+    {
+        Lowerer::InsertMove(tmpDoubleRegOpnd, compareSrc, insertBeforeInstr);
+        Lowerer::InsertAndLegalize(IR::Instr::New(Js::OpCode::SHUFPS, tmpDoubleRegOpnd, tmpDoubleRegOpnd, IR::IntConstOpnd::New(3 << 6 | 2 << 4 | 1 << 2 | 1, TyInt8, m_func, true), m_func), insertBeforeInstr);
+        Lowerer::InsertAndLegalize(IR::Instr::New(Js::OpCode::MOVD, compareSrcUint32Opnd, tmpDoubleRegOpnd, m_func), insertBeforeInstr);
+    }
+
+    return this->lowererMD->m_lowerer->InsertCompareBranch(missingItemOpnd, compareSrcUint32Opnd, opcode, target, insertBeforeInstr);
+}

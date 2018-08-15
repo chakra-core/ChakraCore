@@ -526,6 +526,11 @@ namespace Js
         return RecyclerNew(GetRecycler(), DynamicType, this->GetDynamicType());
     }
 
+    void DynamicObject::PrepareForConversionToNonPathType()
+    {
+        // Nothing to do in base class
+    }
+
     /*
     *   DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining
     *   -   Checks if the TypeHandlers are compatible for transition from oldTypeHandler to newTypeHandler

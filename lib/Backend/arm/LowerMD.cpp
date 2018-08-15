@@ -7699,6 +7699,30 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
     m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
 }
 
+IR::BranchInstr*
+LowererMD::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
+{
+    Assert(compareSrc->IsFloat64() && missingItemOpnd->IsUInt32());
+
+    IR::Opnd * compareSrcUint32Opnd = IR::RegOpnd::New(TyUint32, m_func);
+    IR::RegOpnd* tmpDoubleRegOpnd = IR::RegOpnd::New(TyFloat64, m_func);
+
+    if (compareSrc->IsIndirOpnd())
+    {
+        Lowerer::InsertMove(tmpDoubleRegOpnd, compareSrc, insertBeforeInstr);
+    }
+    else
+    {
+        tmpDoubleRegOpnd = compareSrc->AsRegOpnd();
+    }
+
+    IR::Instr * movInstr = IR::Instr::New(Js::OpCode::VMOVF64R32U, compareSrcUint32Opnd, tmpDoubleRegOpnd, m_func);
+    insertBeforeInstr->InsertBefore(movInstr);
+    Legalize(movInstr);
+
+    return m_lowerer->InsertCompareBranch(missingItemOpnd, compareSrcUint32Opnd, opcode, target, insertBeforeInstr);
+}
+
 #if DBG
 //
 // Helps in debugging of fast paths.

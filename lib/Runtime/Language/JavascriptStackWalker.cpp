@@ -632,7 +632,7 @@ namespace Js
         return nullptr;
     }
 #if ENABLE_NATIVE_CODEGEN
-    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException(void *tryCatchFrameAddr)
+    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException(void *tryHandlerAddrOfReturnAddr)
     {
         // Walk the stack and when we find the first native frame, we clear the inlinee's callinfo for this frame
         // It is sufficient we stop at the first native frame which had the enclosing try-catch
@@ -649,10 +649,10 @@ namespace Js
                         inlinedFrame->callInfo.Clear();
                     }
                 }
-                if (this->currentFrame.GetFrame() == tryCatchFrameAddr)
-                {
-                    break;
-                }
+            }
+            if (this->currentFrame.GetAddressOfReturnAddress() == tryHandlerAddrOfReturnAddr)
+            {
+                break;
             }
         }
     }

@@ -680,6 +680,7 @@ typedef struct FunctionJITTimeDataIDL
     CHAKRA_PTR functionInfoAddr;
     CHAKRA_PTR callsCountAddress;
     CHAKRA_PTR weakFuncRef;
+    CHAKRA_PTR entryPointInfoAddr;
 } FunctionJITTimeDataIDL;
 
 #if !FLOATVAR

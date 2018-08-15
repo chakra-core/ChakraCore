@@ -7055,6 +7055,25 @@ LowererMD::InsertObjectPoison(IR::Opnd* poisonedOpnd, IR::BranchInstr* branchIns
     }
 }
 
+IR::BranchInstr*
+LowererMD::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
+{
+    Assert(compareSrc->IsFloat64() && missingItemOpnd->IsUint64());
+
+    IR::Opnd * compareSrcUint64Opnd = IR::RegOpnd::New(TyUint64, m_func);
+    if (compareSrc->IsRegOpnd())
+    {
+        IR::Instr * movDoubleToUint64Instr = IR::Instr::New(Js::OpCode::FMOV_GEN, compareSrcUint64Opnd, compareSrc, insertBeforeInstr->m_func);
+        insertBeforeInstr->InsertBefore(movDoubleToUint64Instr);
+    }
+    else if (compareSrc->IsIndirOpnd())
+    {
+        compareSrcUint64Opnd = compareSrc->UseWithNewType(TyUint64, m_func);
+    }
+
+    return m_lowerer->InsertCompareBranch(compareSrcUint64Opnd, missingItemOpnd, opcode, target, insertBeforeInstr);
+}
+
 #if DBG
 //
 // Helps in debugging of fast paths.

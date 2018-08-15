@@ -209,6 +209,8 @@ public:
     void SetType(BailoutRecordType type) { this->type = type; }
     bool IsShared() const { return type == Shared || type == SharedForLoopTop; }
     bool IsForLoopTop() const { return type == SharedForLoopTop; }
+
+    Js::FunctionEntryPointInfo *GetFunctionEntryPointInfo() const;
 protected:
     struct BailOutReturnValue
     {
@@ -237,7 +239,7 @@ protected:
 
     static void UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  function, BailOutRecord const * bailOutRecord);
 
-    static void ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, 
+    static void ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind,
                                         uint32 actualBailOutOffset, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress);
     static void ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind);
     static void CheckPreemptiveRejit(Js::FunctionBody* executeFunction, IR::BailOutKind bailOutKind, BailOutRecord* bailoutRecord, uint8& callsOrIterationsCount, int loopNumber);
@@ -416,6 +418,7 @@ struct GlobalBailOutRecordDataTable
     // The offset to 'registerSaveSpace' is hard-coded in LinearScanMD::SaveAllRegisters, so let this be the first member variable
     Js::Var *registerSaveSpace;
     GlobalBailOutRecordDataRow *globalBailOutRecordDataRows;
+    Js::EntryPointInfo *entryPointInfo;
     uint32 length;
     uint32 size;
     int32  firstActualStackOffset;

@@ -85,11 +85,15 @@ namespace Js
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
         static ScriptFunction * OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj);
 
+        static void CopyEntryPointInfoToThreadContextIfNecessary(ProxyEntryPointInfo* oldEntryPointInfo, ProxyEntryPointInfo* newEntryPointInfo);
+
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
         {
             Assert(this->GetFunctionProxy()->IsDeferred() == FALSE);
-            return (FunctionEntryPointInfo*) this->GetEntryPointInfo();
+            ProxyEntryPointInfo* result = this->GetEntryPointInfo();
+            Assert(result->IsFunctionEntryPointInfo());
+            return (FunctionEntryPointInfo*)result;
         }
 
         FunctionProxy * GetFunctionProxy() const;
@@ -111,6 +115,8 @@ namespace Js
         JavascriptMethod UpdateUndeferredBody(FunctionBody* newFunctionInfo);
 
         virtual ScriptFunctionType * DuplicateType() override;
+        virtual void PrepareForConversionToNonPathType() override;
+        virtual void ReplaceTypeWithPredecessorType(DynamicType * previousType) override;
 
         virtual Var GetSourceString() const;
         virtual JavascriptString * EnsureSourceString();

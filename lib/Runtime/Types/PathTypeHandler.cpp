@@ -145,7 +145,7 @@ namespace Js
         }
     }
 
-    PathTypeMultiSuccessorInfo::PathTypeMultiSuccessorInfo(Recycler * recycler, const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef) 
+    PathTypeMultiSuccessorInfo::PathTypeMultiSuccessorInfo(Recycler * recycler, const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef)
     {
         this->propertySuccessors = RecyclerNew(recycler, PropertySuccessorsMap, recycler, 3);
         this->propertySuccessors->Item(key, typeWeakRef);
@@ -250,7 +250,7 @@ namespace Js
     {
 #if DBG
         DynamicType * successorType = typeWeakRef->Get();
-        AssertMsg(!successorType || !successorType->GetTypeHandler()->IsPathTypeHandler() || 
+        AssertMsg(!successorType || !successorType->GetTypeHandler()->IsPathTypeHandler() ||
                   PathTypeHandlerBase::FromTypeHandler(successorType->GetTypeHandler())->GetPredecessorType() == type, "We're using a successor that has a different predecessor?");
 #endif
         if (this->successorInfo == nullptr)
@@ -388,7 +388,17 @@ namespace Js
 #endif
                 // This can happen if object header inlining is deoptimized, and we haven't built a full path from the root.
                 // For now, just punt this case.
-                return TryConvertToSimpleDictionaryType(instance, GetPathLength())->SetAttributes(instance, propertyId, ObjectSlotAttributesToPropertyAttributes(propertyAttributes));
+
+                if (setAllAttributes)
+                {
+                    // We could be trying to convert an accessor to a data property, or something similar, so do the type handler conversion here and let the caller handle setting the attributes.
+                    TryConvertToSimpleDictionaryType(instance, GetPathLength());
+                    return false;
+                }
+                else
+                {
+                    return TryConvertToSimpleDictionaryType(instance, GetPathLength())->SetAttributes(instance, propertyId, ObjectSlotAttributesToPropertyAttributes(propertyAttributes));
+                }
             }
             predTypeHandler = PathTypeHandlerBase::FromTypeHandler(currentType->GetTypeHandler());
         }
@@ -456,7 +466,7 @@ namespace Js
 
         if(typePath->GetIsUsedFixedFieldAt(slotIndex, objectSlotCount))
         {
-            // We are adding a new value where some other instance already has an existing value.  If this is a fixed 
+            // We are adding a new value where some other instance already has an existing value.  If this is a fixed
             // field we must clear the bit. If the value was hard coded in the JIT-ed code, we must invalidate the guards.
 
             // Invalidate any JIT-ed code that hard coded this method. No need to invalidate store field
@@ -472,16 +482,16 @@ namespace Js
         Assert(HasSingletonInstanceOnlyIfNeeded(/*typePath*/));
         if(objectSlotCount == typePath->GetMaxInitializedLength())
         {
-            // We have now reached the most advanced instance along this path.  If this instance is not the singleton instance, 
-            // then the former singleton instance (if any) is no longer a singleton.  This instance could be the singleton 
+            // We have now reached the most advanced instance along this path.  If this instance is not the singleton instance,
+            // then the former singleton instance (if any) is no longer a singleton.  This instance could be the singleton
             // instance, if we just happen to set (overwrite) its last property.
 
             // This is perhaps the most fragile point of fixed fields on path types.  If we cleared the singleton instance
             // while some fields remained fixed, the instance would be collectible, and yet some code would expect to see
-            // values and call methods on it.  Clearly, a recipe for disaster.  We rely on the fact that we always add 
-            // properties to (pre-initialized) type handlers in the order they appear on the type path.  By the time 
-            // we reach the singleton instance, all fixed fields will have been invalidated.  Otherwise, some fields 
-            // could remain fixed (or even uninitialized) and we would have to spin off a loop here to invalidate any 
+            // values and call methods on it.  Clearly, a recipe for disaster.  We rely on the fact that we always add
+            // properties to (pre-initialized) type handlers in the order they appear on the type path.  By the time
+            // we reach the singleton instance, all fixed fields will have been invalidated.  Otherwise, some fields
+            // could remain fixed (or even uninitialized) and we would have to spin off a loop here to invalidate any
             // remaining fixed fields - a rather unfortunate overhead.
             typePath->ClearSingletonInstance();
         }
@@ -752,16 +762,25 @@ namespace Js
             // In CacheOperators::CachePropertyWrite we ensure that we never cache property adds for types that aren't shared.
             Assert(!instance->GetDynamicType()->GetIsShared() || GetIsShared());
 
+            bool setAttrDone;
             if (setAttributes)
             {
-                this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, true);
+                setAttrDone = this->SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), attr, true);
+                if (!setAttrDone)
+                {
+                    return instance->GetTypeHandler()->SetPropertyWithAttributes(instance, propertyId, value, attr, info, flags, possibleSideEffects);
+                }
             }
             else if (isInit)
             {
                 ObjectSlotAttributes * attributes = this->GetAttributeArray();
                 if (attributes && (attributes[index] & ObjectSlotAttr_Accessor))
                 {
-                    this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
+                    setAttrDone = this->SetAttributesHelper(instance, propertyId, index, attributes, (ObjectSlotAttributes)(attributes[index] & ~ObjectSlotAttr_Accessor), true);
+                    if (!setAttrDone)
+                    {
+                        return instance->GetTypeHandler()->InitProperty(instance, propertyId, value, flags, info);
+                    }
                     // We're changing an accessor into a data property at object init time. Don't cache this transition from setter to non-setter,
                     // as it behaves differently from a normal set property.
                     PropertyValueInfo::SetNoCache(info, instance);
@@ -1073,7 +1092,7 @@ namespace Js
     BOOL PathTypeHandlerBase::SetAccessorsHelper(DynamicObject* instance, PropertyId propertyId, ObjectSlotAttributes * attributes, PathTypeSetterSlotIndex * setters, Var getter, Var setter, PropertyOperationFlags flags)
     {
         if (instance->GetType()->IsExternal() || instance->GetScriptContext()->IsScriptContextInDebugMode() || PHASE_OFF1(ShareAccessorTypesPhase))
-        {         
+        {
 #ifdef PROFILE_TYPES
             instance->GetScriptContext()->convertPathToDictionaryAccessorsCount++;
 #endif
@@ -1120,7 +1139,7 @@ namespace Js
             {
                 getter = CanonicalizeAccessor(getter, library);
                 setter = CanonicalizeAccessor(setter, library);
-  
+
                 if (!setters || setters[propertyIndex] == NoSetterSlot)
                 {
                     // We'll add 1 property to the type, so check the limit.
@@ -1307,7 +1326,7 @@ namespace Js
             Assert(CanConvertToSimpleDictionaryType());
 
             // Convert to new shared type with shared simple dictionary type handler and call operation on it.
-            SimpleDictionaryTypeHandlerWithNonExtensibleSupport * newTypeHandler = 
+            SimpleDictionaryTypeHandlerWithNonExtensibleSupport * newTypeHandler =
                 ConvertToSimpleDictionaryType<SimpleDictionaryTypeHandlerWithNonExtensibleSupport>(instance, this->GetPathLength(), true);
 
             Assert(newTypeHandler->GetMayBecomeShared() && !newTypeHandler->GetIsShared());
@@ -1367,6 +1386,8 @@ namespace Js
         Assert(instance);
         ScriptContext* scriptContext = instance->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
+
+        instance->PrepareForConversionToNonPathType();
 
         PathTypeHandlerBase * oldTypeHandler;
 
@@ -1547,6 +1568,8 @@ namespace Js
         Assert(instance);
         ScriptContext* scriptContext = instance->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
+
+        instance->PrepareForConversionToNonPathType();
 
         // Ideally 'this' and oldTypeHandler->GetTypeHandler() should be same
         // But we can have calls from external DOM objects, which requests us to replace the type of the
@@ -2036,13 +2059,13 @@ namespace Js
                     }
                 }
             }
-            else 
+            else
             {
                 if (key.GetAttributes() != ObjectSlotAttr_Default && oldAttributes == nullptr)
                 {
                     newAttributes = this->UpdateAttributes(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
                 }
-            
+
                 if ((key.GetAttributes() == ObjectSlotAttr_Setter) && oldSetters == nullptr)
                 {
                     newSetters = this->UpdateSetterSlots(recycler, nullptr, oldPathSize, newTypePath->GetPathSize());
@@ -2590,7 +2613,7 @@ namespace Js
         }
         clonedTypeHandler->SetMayBecomeShared();
         clonedTypeHandler->CopyPropertyTypes(PropertyTypesWritableDataOnly | PropertyTypesWritableDataOnlyDetection | PropertyTypesHasSpecialProperties, this->GetPropertyTypes());
-        
+
         return clonedTypeHandler;
     }
 
@@ -2690,7 +2713,7 @@ namespace Js
                 Js::PropertyId propertyId = GetPropertyId(scriptContext, propertyIndex);
                 ObjectSlotAttributes attr = attributes ? attributes[propertyIndex] : ObjectSlotAttr_Default;
                 cachedDynamicType = newTypeHandler->PromoteType<false>(cachedDynamicType, PathTypeSuccessorKey(propertyId, attr), true, scriptContext, instance, &propertyIndex);
-                newTypeHandler = PathTypeHandlerBase::FromTypeHandler(cachedDynamicType->GetTypeHandler());             
+                newTypeHandler = PathTypeHandlerBase::FromTypeHandler(cachedDynamicType->GetTypeHandler());
                 if (attr == ObjectSlotAttr_Setter)
                 {
                     newTypeHandler->SetSetterSlot(newTypeHandler->GetTypePath()->LookupInline(propertyId, newTypeHandler->GetPathLength()), (PathTypeSetterSlotIndex)(newTypeHandler->GetPathLength() - 1));
@@ -3354,7 +3377,7 @@ namespace Js
     {
         uint32 plength = this->GetPathLength();
         ObjectSlotAttributes * attributes = this->GetAttributeArray();
-        
+
         for(uint32 index = 0; index < plength; ++index)
         {
             ObjectSlotAttributes attr = attributes ? attributes[index] : ObjectSlotAttr_Default;
@@ -3493,7 +3516,7 @@ namespace Js
             return true;
         }
 
-        ObjectSlotAttributes attr = 
+        ObjectSlotAttributes attr =
             (ObjectSlotAttributes)(value ? (attributes[propertyIndex] | ObjectSlotAttr_Configurable) : (attributes[propertyIndex] & ~ObjectSlotAttr_Configurable));
         return SetAttributesHelper(instance, propertyId, propertyIndex, attributes, attr);
     }
@@ -3520,7 +3543,7 @@ namespace Js
             return true;
         }
 
-        ObjectSlotAttributes attr = 
+        ObjectSlotAttributes attr =
             (ObjectSlotAttributes)(value ? (attributes[propertyIndex] | ObjectSlotAttr_Enumerable) : (attributes[propertyIndex] & ~ObjectSlotAttr_Enumerable));
         return SetAttributesHelper(instance, propertyId, propertyIndex, attributes, attr);
     }
@@ -3547,7 +3570,7 @@ namespace Js
             return true;
         }
 
-        ObjectSlotAttributes attr = 
+        ObjectSlotAttributes attr =
             (ObjectSlotAttributes)(value ? (attributes[propertyIndex] | ObjectSlotAttr_Writable) : (attributes[propertyIndex] & ~ObjectSlotAttr_Writable));
         return SetAttributesHelper(instance, propertyId, propertyIndex, attributes, attr);
     }
@@ -3652,7 +3675,7 @@ namespace Js
         {
             // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
             // Accessors must be cached differently than normal properties, so if we want to cache this we must
-            // do so here rather than in the caller. However, caching here would require passing originalInstance and 
+            // do so here rather than in the caller. However, caching here would require passing originalInstance and
             // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
             // very little improvement. For now, just block caching this case.
             PropertyValueInfo::SetNoCache(info, instance);

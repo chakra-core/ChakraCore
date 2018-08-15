@@ -296,7 +296,6 @@ namespace Js
 
     public:
         virtual void Finalize(bool isShutdown) override;
-        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
 #if ENABLE_NATIVE_CODEGEN
         NativeEntryPointData * EnsureNativeEntryPointData();
@@ -623,6 +622,8 @@ namespace Js
         Field(ExecutionMode) jitMode;
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context);
+
+        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
         bool ExecutedSinceCallCountCollection() const;
         void CollectCallCounts();
@@ -1063,8 +1064,33 @@ namespace Js
         FunctionTypeWeakRefList* GetFunctionObjectTypeList() const;
         void SetFunctionObjectTypeList(FunctionTypeWeakRefList* list);
         void RegisterFunctionObjectType(ScriptFunctionType* functionType);
+
         template <typename Fn>
-        void MapFunctionObjectTypes(Fn func);
+        void MapFunctionObjectTypes(Fn func)
+        {
+            FunctionTypeWeakRefList* functionObjectTypeList = this->GetFunctionObjectTypeList();
+            if (functionObjectTypeList != nullptr)
+            {
+                functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
+                {
+                    if (typeWeakRef)
+                    {
+                        ScriptFunctionType* type = typeWeakRef->Get();
+                        if (type)
+                        {
+                            func(type);
+                        }
+                    }
+                });
+            }
+
+            if (this->deferredPrototypeType)
+            {
+                func(this->deferredPrototypeType);
+            }
+            // NOTE: We deliberately do not map the undeferredFunctionType here, since it's in the list
+            // of registered function object types we processed above.
+        }
 
         static uint GetOffsetOfDeferredPrototypeType() { return static_cast<uint>(offsetof(Js::FunctionProxy, deferredPrototypeType)); }
         static Js::ScriptFunctionType * EnsureFunctionProxyDeferredPrototypeType(FunctionProxy * proxy)

@@ -667,7 +667,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
-    void * tryCatchFrameAddr;
+    void * tryHandlerAddrOfReturnAddr;
     enum RedeferralState
     {
         InitialRedeferralState,
@@ -1268,8 +1268,8 @@ public:
     uint EnterScriptStart(Js::ScriptEntryExitRecord *, bool doCleanup);
     void EnterScriptEnd(Js::ScriptEntryExitRecord *, bool doCleanup);
 
-    void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
-    void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
+    void * GetTryHandlerAddrOfReturnAddr() { return this->tryHandlerAddrOfReturnAddr; }
+    void SetTryHandlerAddrOfReturnAddr(void * addrOfReturnAddr) { this->tryHandlerAddrOfReturnAddr = addrOfReturnAddr; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);
@@ -1464,6 +1464,18 @@ public:
                 recyclableData->oldEntryPointInfo = oldEntryPointInfo;
             }
         }
+    }
+
+    bool IsOldEntryPointInfo(Js::ProxyEntryPointInfo* entryPointInfo)
+    {
+        Js::FunctionEntryPointInfo* current = this->recyclableData->oldEntryPointInfo;
+        while (current != nullptr)
+        {
+            if (current == entryPointInfo)
+                return true;
+            current = current->nextEntryPoint;
+        }
+        return false;
     }
 
     static bool IsOnStack(void const *ptr);
