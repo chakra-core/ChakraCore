@@ -1590,6 +1590,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     m_tkPrevious = m_ptoken->tk;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
     m_ichLimTokPrevious = IchLimTok();
+    size_t saveMultiUnits = this->m_cMultiUnits;
 
     if (p >= last)
     {
@@ -1618,8 +1619,6 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
             goto LDone;
         }
     }
-
-    size_t saveMultiUnits = this->m_cMultiUnits;
 
     for (;;)
     {
