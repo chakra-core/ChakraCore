@@ -9043,6 +9043,64 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return DefineOwnPropertyDescriptor(arr, propId, descriptor, throwOnError, scriptContext);
     }
 
+    // ES2017: 9.4.5.3 https://tc39.github.io/ecma262/#sec-integer-indexed-exotic-objects-defineownproperty-p-desc
+    BOOL JavascriptOperators::DefineOwnPropertyForTypedArray(TypedArrayBase* typedArray, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext)
+    {
+        // 1. Assert: IsPropertyKey(P) is true.
+        // 2. Assert: Assert: O is an Object that has a [[ViewedArrayBuffer]] internal slot.
+
+        const PropertyRecord* propertyRecord = scriptContext->GetPropertyName(propId);
+        // 3. If Type(P) is String, then
+        // a. Let numericIndex be ! CanonicalNumericIndexString(P).
+        // b. If numericIndex is not undefined, then
+        // i. if IsInteger(numbericIndex), return false
+        // ii. if numbericIndex = -0, return false
+        // iii. If numericIndex < 0, return false.
+
+        if (propertyRecord->IsNumeric()) {
+            uint32 uint32Index = propertyRecord->GetNumericValue();
+            // iv. Let length be O.[[ArrayLength]].
+            uint32 length = typedArray->GetLength();
+            // v. If numericIndex >= length, return false.
+            if (uint32Index >= length)
+            {
+                return Reject(throwOnError, scriptContext, JSERR_InvalidTypedArrayIndex, propId);
+            }
+            // vi. If IsAccessorDescriptor(Desc) is true, return false.
+            // vii. If Desc has a[[Configurable]] field and if Desc.[[Configurable]] is true, return false.
+            // viii. If Desc has an[[Enumerable]] field and if Desc.[[Enumerable]] is false, return false.
+            // ix. If Desc has a[[Writable]] field and if Desc.[[Writable]] is false, return false.
+            if (descriptor.IsAccessorDescriptor()
+                || (descriptor.ConfigurableSpecified() && descriptor.IsConfigurable())
+                || (descriptor.EnumerableSpecified() && !descriptor.IsEnumerable())
+                || (descriptor.WritableSpecified() && !descriptor.IsWritable()))
+            {
+                return Reject(throwOnError, scriptContext, JSERR_DefineProperty_NotConfigurable, propId);
+            }            // x. If Desc has a[[Value]] field, then
+            // 1. Let value be Desc.[[Value]].
+            // 2. Return ? IntegerIndexedElementSet(O, numericIndex, value).
+            if (descriptor.ValueSpecified())
+            {
+                Js::Var value = descriptor.GetValue();
+                return typedArray->DirectSetItem(uint32Index, value);
+            }
+            // xi. Return true.
+            return true;
+        }
+        if (!propertyRecord->IsSymbol())
+        {
+            PropertyString *propertyString = scriptContext->GetPropertyString(propId);
+            double result;
+            if (JavascriptConversion::CanonicalNumericIndexString(propertyString, &result, scriptContext))
+            {
+                return Reject(throwOnError, scriptContext, JSERR_InvalidTypedArrayIndex, propId);
+            }
+        }
+        // 4. Return ! OrdinaryDefineOwnProperty(O, P, Desc). 
+        return DefineOwnPropertyDescriptor(typedArray, propId, descriptor, throwOnError, scriptContext);
+    }
+
+
     BOOL JavascriptOperators::SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor)
     {
         if (descriptor.ValueSpecified())

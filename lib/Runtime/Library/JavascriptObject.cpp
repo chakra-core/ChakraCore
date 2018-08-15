@@ -2128,11 +2128,19 @@ BOOL JavascriptObject::DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId
     // so there is no benefit in using ES5 DefineOwnPropertyDescriptor for it, use old implementation.
     if (TypeIds_HostDispatch != obj->GetTypeId())
     {
+        // for Array Exotic Objects
         if (DynamicObject::IsAnyArray(obj))
         {
             returnValue = JavascriptOperators::DefineOwnPropertyForArray(
                 JavascriptArray::FromAnyArray(obj), propId, descriptor, throwOnError, scriptContext);
         }
+        // for Integer Indexed Exotic Objects
+        else if (DynamicObject::IsAnyTypedArray(obj))
+        {
+            returnValue = JavascriptOperators::DefineOwnPropertyForTypedArray(
+                TypedArrayBase::FromVar(obj), propId, descriptor, throwOnError, scriptContext);
+        }
+        // TODO: implement DefineOwnProperty for other object built-in exotic types.
         else
         {
             returnValue = JavascriptOperators::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);

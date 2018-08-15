@@ -209,6 +209,12 @@ namespace Js
         return HasObjectArray() && GetObjectArrayOrFlagsAsArray()->GetLength() > 0;
     }
 
+    // Check if a Var is either a JavascriptArray* or ES5Array*.
+    bool DynamicObject::IsAnyTypedArray(const Var aValue)
+    {
+        return TypedArrayBase::Is(JavascriptOperators::GetTypeId(aValue));
+    }
+
     // Check if a typeId is of any array type (JavascriptArray or ES5Array).
     bool DynamicObject::IsAnyArrayTypeId(TypeId typeId)
     {

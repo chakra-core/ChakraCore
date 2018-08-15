@@ -114,6 +114,12 @@
   </test>
   <test>
     <default>
+      <files>reflect_defineProperty.js</files>
+      <tags>typedarray</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>objectproperty.js</files>
       <baseline>objectproperty_es6.baseline</baseline>
       <tags>typedarray</tags>
