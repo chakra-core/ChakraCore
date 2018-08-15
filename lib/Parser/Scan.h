@@ -500,7 +500,6 @@ public:
     // character of the token would have if the entire file was converted to Unicode (UTF16-LE).
     charcount_t IchLimTok(void) const
     {
-
         Assert(m_currentCharacter - m_pchBase >= 0);
         Assert(m_currentCharacter - m_pchBase <= LONG_MAX);
         Assert(static_cast<charcount_t>(m_currentCharacter - m_pchBase) >= this->m_cMultiUnits);
@@ -788,7 +787,7 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt);
+    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt, size_t savedMultiUnits);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
     uint32 UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last);
