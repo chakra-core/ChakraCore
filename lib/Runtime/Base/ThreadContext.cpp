@@ -124,7 +124,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryExitRecord(nullptr),
     leafInterpreterFrame(nullptr),
     threadServiceWrapper(nullptr),
-    tryCatchFrameAddr(nullptr),
+    tryHandlerAddrOfReturnAddr(nullptr),
     temporaryArenaAllocatorCount(0),
     temporaryGuestArenaAllocatorCount(0),
     crefSContextForDiag(0),
@@ -721,7 +721,7 @@ bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemet
 
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const
 {
-    return this->tc->IsThreadBound(); 
+    return this->tc->IsThreadBound();
 }
 
 
@@ -2641,11 +2641,16 @@ ThreadContext::DoExpirableCollectModeStackWalk()
             if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
             {
                 Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
-                Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
-                entryPointInfo->SetIsObjectUsed();
+
                 scriptFunction->GetFunctionBody()->MapEntryPoints([](int index, Js::FunctionEntryPointInfo* entryPoint){
                     entryPoint->SetIsObjectUsed();
                 });
+
+                // Make sure we marked the current one when iterating all entry points
+                Js::ProxyEntryPointInfo* entryPointInfo = scriptFunction->GetEntryPointInfo();
+                Assert(entryPointInfo == nullptr
+                    || !entryPointInfo->IsFunctionEntryPointInfo()
+                    || ((Js::FunctionEntryPointInfo*)entryPointInfo)->IsObjectUsed());
             }
         }
     }

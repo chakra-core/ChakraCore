@@ -60,16 +60,7 @@ namespace Js
         }
 
         ProxyEntryPointInfo* oldEntryPointInfo = this->GetEntryPointInfo();
-        if (oldEntryPointInfo
-            && oldEntryPointInfo != entryPointInfo
-            && oldEntryPointInfo->SupportsExpiration())
-        {
-            // The old entry point could be executing so we need root it to make sure
-            // it isn't prematurely collected. The rooting is done by queuing it up on the threadContext
-            ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-
-            threadContext->QueueFreeOldEntryPointInfoIfInScript((FunctionEntryPointInfo*)oldEntryPointInfo);
-        }
+        ScriptFunction::CopyEntryPointInfoToThreadContextIfNecessary(oldEntryPointInfo, entryPointInfo);
 
         this->SetEntryPointInfo(entryPointInfo);
     }

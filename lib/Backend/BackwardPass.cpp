@@ -2245,6 +2245,11 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
     IR::PropertySymOpnd *propertySymOpnd =
         (instr->GetDst() && instr->GetDst()->IsSymOpnd()) ? instr->GetDst()->AsPropertySymOpnd() : instr->GetSrc1()->AsPropertySymOpnd();
 
+    if (propertySymOpnd->TypeCheckRequired())
+    {
+        return;
+    }
+
     bool isTypeCheckProtected = false;
     IR::BailOutKind bailOutKind;
     if (GlobOpt::NeedsTypeCheckBailOut(instr, propertySymOpnd, propertySymOpnd == instr->GetDst(), &isTypeCheckProtected, &bailOutKind))
@@ -4902,8 +4907,8 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
     }
 
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
-    if(!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || !instr->GetSrc1()->IsInt32()) &&
+    if (!baseValueType.IsNotNativeArray() &&
+        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
         !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
         !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {

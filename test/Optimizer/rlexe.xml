@@ -1558,6 +1558,12 @@
   </test>
   <test>
     <default>
+      <files>bcebug.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit- -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>rembug.js</files>
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1  -loopinterpretcount:1 -oopjit- -bgjit-</compile-flags>
     </default>

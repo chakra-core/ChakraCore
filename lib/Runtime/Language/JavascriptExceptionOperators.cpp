@@ -69,16 +69,16 @@ namespace Js
         m_threadContext->SetIsUserCode(m_previousCatchHandlerToUserCodeStatus);
     }
 
-    JavascriptExceptionOperators::TryCatchFrameAddrStack::TryCatchFrameAddrStack(ScriptContext* scriptContext, void *frameAddr)
+    JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack::TryHandlerAddrOfReturnAddrStack(ScriptContext* scriptContext, void *addrOfReturnAddr)
     {
         m_threadContext = scriptContext->GetThreadContext();
-        m_prevTryCatchFrameAddr = m_threadContext->GetTryCatchFrameAddr();
-        scriptContext->GetThreadContext()->SetTryCatchFrameAddr(frameAddr);
+        m_prevTryHandlerAddrOfReturnAddr = m_threadContext->GetTryHandlerAddrOfReturnAddr();
+        scriptContext->GetThreadContext()->SetTryHandlerAddrOfReturnAddr(addrOfReturnAddr);
     }
 
-    JavascriptExceptionOperators::TryCatchFrameAddrStack::~TryCatchFrameAddrStack()
+    JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack::~TryHandlerAddrOfReturnAddrStack()
     {
-        m_threadContext->SetTryCatchFrameAddr(m_prevTryCatchFrameAddr);
+        m_threadContext->SetTryHandlerAddrOfReturnAddr(m_prevTryHandlerAddrOfReturnAddr);
     }
 
     JavascriptExceptionOperators::HasBailedOutPtrStack::HasBailedOutPtrStack(ScriptContext* scriptContext, bool *hasBailedOutPtr)
@@ -125,13 +125,14 @@ namespace Js
     {
         void *continuation = nullptr;
         JavascriptExceptionObject *exception = nullptr;
-        void *tryCatchFrameAddr = nullptr;
+        void *tryHandlerAddrOfReturnAddr = nullptr;
 
         Js::JavascriptExceptionOperators::HasBailedOutPtrStack hasBailedOutPtrStack(scriptContext, (bool*)((char*)frame + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + spillSize + argsSize);
         {
-            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, frame);
+            void * addrOfReturnAddr = (void*)((char*)frame + sizeof(char*));
+            Js::JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack tryHandlerAddrOfReturnAddrStack(scriptContext, addrOfReturnAddr);
             try
             {
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -140,8 +141,7 @@ namespace Js
             catch (const Js::JavascriptException& err)
             {
                 exception = err.GetAndClear();
-                tryCatchFrameAddr = scriptContext->GetThreadContext()->GetTryCatchFrameAddr();
-                Assert(frame == tryCatchFrameAddr);
+                tryHandlerAddrOfReturnAddr = scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr();
             }
         }
         if (exception)
@@ -157,7 +157,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
-                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryCatchFrameAddr);
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
 #endif
 
@@ -212,11 +212,11 @@ namespace Js
         if (exception)
         {
 #if ENABLE_NATIVE_CODEGEN
-            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
                 {
-                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
                 }
             }
             else
@@ -295,13 +295,13 @@ namespace Js
     {
         void *continuation = nullptr;
         JavascriptExceptionObject *exception = nullptr;
-        void * tryCatchFrameAddr = nullptr;
+        void * tryHandlerAddrOfReturnAddr = nullptr;
         Js::JavascriptExceptionOperators::HasBailedOutPtrStack hasBailedOutPtrStack(scriptContext, (bool*)((char*)localsPtr + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout + argsSize);
         {
-            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
-
+            void * addrOfReturnAddr = (void*)((char*)framePtr + sizeof(char*));
+            Js::JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack tryHandlerAddrOfReturnAddrStack(scriptContext, addrOfReturnAddr);
             try
             {
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -314,8 +314,7 @@ namespace Js
             catch (const Js::JavascriptException& err)
             {
                 exception = err.GetAndClear();
-                tryCatchFrameAddr = scriptContext->GetThreadContext()->GetTryCatchFrameAddr();
-                Assert(framePtr == tryCatchFrameAddr);
+                tryHandlerAddrOfReturnAddr = scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr();
             }
         }
 
@@ -332,7 +331,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
-                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryCatchFrameAddr);
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
 #endif
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -387,11 +386,11 @@ namespace Js
         if (exception)
         {
 #if ENABLE_NATIVE_CODEGEN
-            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
                 {
-                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
                 }
             }
             else
@@ -486,14 +485,14 @@ namespace Js
     {
         void* continuationAddr = NULL;
         Js::JavascriptExceptionObject* pExceptionObject = NULL;
-        void *tryCatchFrameAddr = nullptr;
+        void *tryHandlerAddrOfReturnAddr = nullptr;
 
         Js::JavascriptExceptionOperators::HasBailedOutPtrStack hasBailedOutPtrStack(scriptContext, (bool*)((char*)framePtr + hasBailedOutOffset));
 
         PROBE_STACK(scriptContext, Constants::MinStackJitEHBailout);
         {
-            Js::JavascriptExceptionOperators::TryCatchFrameAddrStack tryCatchFrameAddrStack(scriptContext, framePtr);
-
+            void * addrOfReturnAddr = (void*)((char*)framePtr + sizeof(char*));
+            Js::JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack tryHandlerAddrOfReturnAddrStack(scriptContext, addrOfReturnAddr);
             try
             {
                 Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
@@ -557,8 +556,7 @@ namespace Js
             catch (const Js::JavascriptException& err)
             {
                 pExceptionObject = err.GetAndClear();
-                tryCatchFrameAddr = scriptContext->GetThreadContext()->GetTryCatchFrameAddr();
-                Assert(framePtr == tryCatchFrameAddr);
+                tryHandlerAddrOfReturnAddr = scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr();
             }
         }
 
@@ -576,7 +574,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
             {
-                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryCatchFrameAddr);
+                WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
 #endif
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
@@ -722,11 +720,11 @@ namespace Js
         if (pExceptionObject)
         {
 #if ENABLE_NATIVE_CODEGEN
-            if (scriptContext->GetThreadContext()->GetTryCatchFrameAddr() != nullptr)
+            if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 if (pExceptionObject->GetExceptionContext() && pExceptionObject->GetExceptionContext()->ThrowingFunction())
                 {
-                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryCatchFrameAddr());
+                    WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
                 }
             }
             else
@@ -1053,14 +1051,14 @@ namespace Js
     }
 #if ENABLE_NATIVE_CODEGEN
     // TODO: Add code address of throwing function on exception context, and use that for returnAddress instead of passing nullptr which starts stackwalk from the top
-    void JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress, PVOID tryCatchFrameAddr)
+    void JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(ScriptContext *scriptContext, PVOID returnAddress, PVOID tryHandlerAddrOfReturnAddr)
     {
-        Assert(tryCatchFrameAddr != nullptr);
+        Assert(tryHandlerAddrOfReturnAddr != nullptr);
         JavascriptStackWalker walker(scriptContext, /*useEERContext*/ true, returnAddress);
 
         // We have to walk the inlinee frames and clear callinfo count on them on an exception
         // At this point inlinedFrameWalker is closed, so we should build it again by calling InlinedFrameWalker::FromPhysicalFrame
-        walker.WalkAndClearInlineeFrameCallInfoOnException(tryCatchFrameAddr);
+        walker.WalkAndClearInlineeFrameCallInfoOnException(tryHandlerAddrOfReturnAddr);
     }
 #endif
     void

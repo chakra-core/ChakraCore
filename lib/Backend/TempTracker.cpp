@@ -79,9 +79,19 @@ TempTrackerBase::~TempTrackerBase()
 void
 TempTrackerBase::MergeData(TempTrackerBase * fromData, bool deleteData)
 {
-    nonTempSyms.Or(&fromData->nonTempSyms);
-    tempTransferredSyms.Or(&fromData->tempTransferredSyms);
-    MergeDependencies(tempTransferDependencies, fromData->tempTransferDependencies, deleteData);
+    this->nonTempSyms.Or(&fromData->nonTempSyms);
+    this->tempTransferredSyms.Or(&fromData->tempTransferredSyms);
+    this->MergeDependencies(this->tempTransferDependencies, fromData->tempTransferDependencies, deleteData);
+    if (this->tempTransferDependencies)
+    {
+        FOREACH_HASHTABLE_ENTRY(BVSparse<JitArenaAllocator> *, bucket, this->tempTransferDependencies)
+        {
+            if (bucket.element->Test(&this->nonTempSyms))
+            {
+                this->nonTempSyms.Set(bucket.value);
+            }
+        } NEXT_HASHTABLE_ENTRY;
+    }
 }
 
 void

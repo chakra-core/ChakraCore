@@ -194,6 +194,8 @@ InstructionType EncoderMD::CanonicalizeInstr(IR::Instr* instr)
         case Js::OpCode::VSQRT:
         case Js::OpCode::VMOV:
         case Js::OpCode::VMOVARMVFP:
+        case Js::OpCode::VMOVF64R32L:
+        case Js::OpCode::VMOVF64R32U:
         case Js::OpCode::VCVTF64F32:
         case Js::OpCode::VCVTF32F64:
         case Js::OpCode::VCVTF64S32:

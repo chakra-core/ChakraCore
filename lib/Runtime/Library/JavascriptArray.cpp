@@ -27,8 +27,10 @@ using namespace Js;
         { 5, 0, 0 },    // allocate space for 5 elements for array of length 4,5
         { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
     };
+
+    const Var JavascriptArray::MissingItem = (Var)FloatMissingItemPattern;
 #if defined(TARGET_64)
-    const Var JavascriptArray::MissingItem = (Var)0x8000000280000002;
+    const Var JavascriptArray::IntMissingItemVar = (Var)(((uint64)IntMissingItemPattern << 32) | (uint32)IntMissingItemPattern);
     uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
     {
         // See comments above on how to read this
@@ -44,7 +46,7 @@ using namespace Js;
         {8, 0, 0},
     };
 #else
-    const Var JavascriptArray::MissingItem = (Var)0x80000002;
+    const Var JavascriptArray::IntMissingItemVar = (Var)IntMissingItemPattern;
     uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
     {
         // See comments above on how to read this
@@ -60,8 +62,7 @@ using namespace Js;
     };
 #endif
 
-    const int32 JavascriptNativeIntArray::MissingItem = 0x80000002;
-    static const uint64 FloatMissingItemPattern = 0x8000000280000002ull;
+    const int32 JavascriptNativeIntArray::MissingItem = IntMissingItemPattern;
     const double JavascriptNativeFloatArray::MissingItem = *(double*)&FloatMissingItemPattern;
 
     // Allocate enough space for 4 inline property slots and 16 inline element slots
@@ -12769,7 +12770,7 @@ Case0:
                 return TypeIds_NativeIntArray;
             }
         }
-        if (JavascriptNumber::Is_NoTaggedIntCheck(value))
+        else if (JavascriptNumber::Is_NoTaggedIntCheck(value))
         {
             bool isInt32;
             int32 i;

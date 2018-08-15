@@ -128,7 +128,7 @@ namespace Js
         }
         else
         {
-            // Otherwise, assert that there is either 
+            // Otherwise, assert that there is either
             // - no object array to deep copy
             // - an object array, but no deep copy needed
             // - data in the objectArray member, but it is inline slot data
@@ -524,6 +524,11 @@ namespace Js
     DynamicType* DynamicObject::DuplicateType()
     {
         return RecyclerNew(GetRecycler(), DynamicType, this->GetDynamicType());
+    }
+
+    void DynamicObject::PrepareForConversionToNonPathType()
+    {
+        // Nothing to do in base class
     }
 
     /*

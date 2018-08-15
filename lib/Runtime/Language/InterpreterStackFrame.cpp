@@ -6492,6 +6492,8 @@ skipThunk:
             this->OrFlags(InterpreterStackFrameFlags_WithinTryBlock);
 
             Js::JavascriptExceptionOperators::AutoCatchHandlerExists autoCatchHandlerExists(scriptContext);
+            void * addrOfReturnAddr = _AddressOfReturnAddress();
+            Js::JavascriptExceptionOperators::TryHandlerAddrOfReturnAddrStack tryHandlerAddrOfReturnAddrStack(scriptContext, addrOfReturnAddr);
 
 #ifdef ENABLE_SCRIPT_DEBUGGING
             if (this->IsInDebugMode())

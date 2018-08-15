@@ -28,7 +28,6 @@ LIBRARY_FUNCTION(JavascriptString,        FromCodePoint,      1,    BIF_None    
 LIBRARY_FUNCTION(JavascriptString,        IndexOf,            3,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptString::EntryInfo::IndexOf)
 LIBRARY_FUNCTION(JavascriptString,        LastIndexOf,        3,    BIF_UseSrc0 | BIF_VariableArgsNumber              , JavascriptString::EntryInfo::LastIndexOf)
 LIBRARY_FUNCTION(JavascriptString,        Link,               2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::Link)
-LIBRARY_FUNCTION(JavascriptString,        LocaleCompare,      2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::LocaleCompare)
 LIBRARY_FUNCTION(JavascriptString,        Match,              2,    BIF_UseSrc0 | BIF_IgnoreDst                       , JavascriptString::EntryInfo::Match)
 LIBRARY_FUNCTION(JavascriptString,        Replace,            3,    BIF_UseSrc0 | BIF_IgnoreDst                       , JavascriptString::EntryInfo::Replace)
 LIBRARY_FUNCTION(JavascriptString,        Search,             2,    BIF_UseSrc0                                       , JavascriptString::EntryInfo::Search)

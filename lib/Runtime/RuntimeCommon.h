@@ -180,6 +180,8 @@ namespace Js
 #if FLOATVAR
     const uint64 FloatTag_Value       = 0xFFFCull << 48;
 #endif
+    const uint64 FloatMissingItemPattern = 0xFFF80002FFF80002;
+    const int32 IntMissingItemPattern = 0xFFF80002;
     template <bool IsPrototypeTemplate> class NullTypeHandler;
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported> class SimpleDictionaryTypeHandlerBase;

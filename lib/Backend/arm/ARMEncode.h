@@ -1203,6 +1203,20 @@ static const FormTable Forms_VMOVARMVFP[] =
     FT (NOMORE,   0x0,   0),
 };
 
+static const FormTable Forms_VMOVF64R32L[] =
+{
+    FT(2dr______, 0x0b10ee00, Steps_FLT_FMSR_d0r),
+    FT(2rd______, 0x0b10ee10, Steps_FLT_FMRS_rd0),
+    FT(NOMORE,   0x0,   0),
+};
+
+static const FormTable Forms_VMOVF64R32U[] =
+{
+    FT(2dr______, 0x0b10ee20, Steps_FLT_FMSR_d1r),
+    FT(2rd______, 0x0b10ee30, Steps_FLT_FMRS_rd1),
+    FT(NOMORE,   0x0,   0),
+};
+
 static const FormTable Forms_VCVTF64F32 [] =
 {
     FT (2dd______, 0x0ac0eeb7, Steps_FCVTDS_ds),

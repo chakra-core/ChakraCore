@@ -2848,7 +2848,7 @@ NativeCodeGenerator::GatherCodeGenData(
                 inlineCache->TryGetFixedMethodFromCache(functionBody, ldFldInlineCacheIndex, &fixedFunctionObject);
             }
 
-            if (fixedFunctionObject && !fixedFunctionObject->GetFunctionInfo()->IsDeferred() && fixedFunctionObject->GetFunctionBody() != inlineeFunctionBody)
+            if (fixedFunctionObject && fixedFunctionObject->GetFunctionInfo() != inlineeFunctionBody->GetFunctionInfo())
             {
                 fixedFunctionObject = nullptr;
             }

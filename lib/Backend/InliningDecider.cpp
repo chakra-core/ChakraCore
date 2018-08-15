@@ -491,7 +491,6 @@ bool InliningDecider::GetBuiltInInfoCommon(
     case Js::JavascriptBuiltInFunction::JavascriptArray_Splice:
 
     case Js::JavascriptBuiltInFunction::JavascriptString_Link:
-    case Js::JavascriptBuiltInFunction::JavascriptString_LocaleCompare:
         goto CallDirectCommon;
 
     case Js::JavascriptBuiltInFunction::JavascriptArray_Join:

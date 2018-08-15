@@ -506,6 +506,13 @@ uint32 BailOutRecord::GetArgumentsObjectOffset()
     return argumentsObjectOffset;
 }
 
+Js::FunctionEntryPointInfo *BailOutRecord::GetFunctionEntryPointInfo() const
+{
+    Js::EntryPointInfo* result = this->globalBailOutRecordTable->entryPointInfo;
+    AssertOrFailFast(result->IsFunctionEntryPointInfo());
+    return (Js::FunctionEntryPointInfo*)result;
+}
+
 Js::Var BailOutRecord::EnsureArguments(Js::InterpreterStackFrame * newInstance, Js::JavascriptCallStackLayout * layout, Js::ScriptContext* scriptContext, Js::Var* pArgumentsObject) const
 {
     Assert(globalBailOutRecordTable->hasStackArgOpt);
@@ -1706,7 +1713,27 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     BailOutRecord * bailOutRecordNotConst = (BailOutRecord *)(void *)bailOutRecord;
     bailOutRecordNotConst->bailOutCount++;
 
-    Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
+    Js::FunctionEntryPointInfo *entryPointInfo = bailOutRecord->GetFunctionEntryPointInfo();
+
+#if DBG
+    // BailOutRecord is not recycler-allocated, so make sure something the recycler can see was keeping the entry point info alive.
+    // We expect the entry point to be kept alive as follows:
+    // 1. The function's current type might still have the same entry point info as when we entered the function (easy case)
+    // 2. The function might have moved to a successor path type, which still keeps the previous type and its entry point info alive
+    // 3. The entry point info might be held by the ThreadContext (QueueFreeOldEntryPointInfoIfInScript):
+    //   a. If the entry point info was replaced on the type that used to hold it (ScriptFunction::ChangeEntryPoint)
+    //   b. If the function's last-added property was deleted and it moved to a previous type (ScriptFunction::ReplaceTypeWithPredecessorType)
+    //   c. If the function's path type got replaced with a dictionary, then all previous entry point infos in that path are queued on the ThreadContext (ScriptFunction::PrepareForConversionToNonPathType)
+    bool foundEntryPoint = false;
+    executeFunction->MapEntryPointsUntil([&](int index, Js::FunctionEntryPointInfo* info)
+    {
+        foundEntryPoint = info == entryPointInfo;
+        return foundEntryPoint;
+    });
+    foundEntryPoint = foundEntryPoint || function->GetScriptContext()->GetThreadContext()->IsOldEntryPointInfo(entryPointInfo);
+    Assert(foundEntryPoint);
+#endif
+
     uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
     RejitReason rejitReason = RejitReason::None;
     bool reThunk = false;
@@ -2235,7 +2262,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         if (bailOutRecord->IsForLoopTop() && IR::IsTypeCheckBailOutKind(bailOutRecord->bailOutKind))
         {
             // Disable FieldPRE if we're triggering a type check rejit due to a bailout at the loop top.
-            // Most likely this was caused by a CheckFixedFld that was hoisted from a branch block where 
+            // Most likely this was caused by a CheckFixedFld that was hoisted from a branch block where
             // only certain types flowed, to the loop top, where more types (different or non-equivalent)
             // were flowing in.
             profileInfo->DisableFieldPRE();

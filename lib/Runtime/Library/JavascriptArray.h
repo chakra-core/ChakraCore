@@ -140,6 +140,7 @@ namespace Js
 #endif
         static uint allocationBuckets[AllocationBucketsCount][AllocationBucketsInfoSize];
         static const Var MissingItem;
+        static const Var IntMissingItemVar;
         template<typename T> static T GetMissingItem();
 
         SparseArraySegmentBase * GetHead() const { return head; }
