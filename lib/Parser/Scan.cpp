@@ -587,7 +587,7 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
 }
 
 template <typename EncodingPolicy>
-typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt)
+typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt, size_t saveMultiUnits)
 {
     EncodedCharPtr last = m_pchLast;
     EncodedCharPtr pchT = nullptr;
@@ -686,6 +686,7 @@ LIdCheck:
     }
     if (this->charClassifier->IsIdStart(outChar))
     {
+        this->RestoreMultiUnits(saveMultiUnits);
         Error(ERRIdAfterLit);
     }
 
@@ -695,12 +696,14 @@ LIdCheck:
         startingLocation++; // TryReadEscape expects us to point to the 'u', and since it is by reference we need to do it beforehand.
         if (TryReadEscape(startingLocation, m_pchLast, &outChar))
         {
+            this->RestoreMultiUnits(saveMultiUnits);
             Error(ERRIdAfterLit);
         }
     }
 
     if (Js::NumberUtilities::IsDigit(*startingLocation))
     {
+        this->RestoreMultiUnits(saveMultiUnits);
         Error(ERRbadNumber);
     }
 
@@ -1616,6 +1619,8 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
         }
     }
 
+    size_t saveMultiUnits = this->m_cMultiUnits;
+
     for (;;)
     {
 LLoop:
@@ -1720,9 +1725,10 @@ LEof:
                 p = m_pchMinTok;
                 this->RestoreMultiUnits(m_cMinTokMultiUnits);
                 bool likelyInt = true;
-                pchT = FScanNumber(p, &dbl, likelyInt);
+                pchT = FScanNumber(p, &dbl, likelyInt, saveMultiUnits);
                 if (p == pchT)
                 {
+                    this->RestoreMultiUnits(saveMultiUnits);
                     Assert(this->PeekFirst(p, last) != '.');
                     Error(ERRbadNumber);
                 }
