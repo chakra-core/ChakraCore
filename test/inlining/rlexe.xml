@@ -134,6 +134,7 @@
       <files>NoProf.js</files>
     </default>
   </test>
+<!-- Random stack overflow with forced inlining
   <test>
     <default>
       <files>bug515849.js</files>
@@ -142,6 +143,7 @@
       <tags>exclude_arm64</tags>
     </default>
   </test>
+-->
   <test>
     <default>
       <files>inlineBuiltIns.js</files>
