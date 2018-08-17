@@ -10510,22 +10510,9 @@ LRestart:
             {
                 this->GetScanner()->Scan();
                 // Check if label is found within the current label id list.
-                for (LabelId* pLabelId = pLabelIdList; pLabelId; pLabelId = pLabelId->next) 
+                auto checkLabelList = [&](LabelId* list, OpCode checkOp)
                 {
-                    if (pid == pLabelId->pid)
-                    {
-                        if (fnop == fnopContinue &&
-                            !(ParseNode::Grfnop(m_pstmtCur->op) & fnop)) 
-                        {
-                            Error(ERRbadContinue);
-                        }
-                        goto LNeedTerminator;
-                    }
-                }
-                for (pstmt = m_pstmtCur; pstmt; pstmt = pstmt->pstmtOuter)
-                {
-                    LabelId* pLabelId;
-                    for (pLabelId = pstmt->pLabelId; pLabelId; pLabelId = pLabelId->next)
+                    for (LabelId* pLabelId = list; pLabelId; pLabelId = pLabelId->next)
                     {
                         if (pid == pLabelId->pid)
                         {
@@ -10533,13 +10520,21 @@ LRestart:
                             // break out of any statement, but we can only
                             // continue loops.
                             if (fnop == fnopContinue &&
-                                !(ParseNode::Grfnop(pstmt->op) & fnop))
+                                !(ParseNode::Grfnop(checkOp) & fnop))
                             {
                                 Error(ERRbadContinue);
                             }
-                            goto LNeedTerminator;
+                            return true;
                         }
                     }
+                    return false;
+                };
+
+                if (checkLabelList(pLabelIdList, m_pstmtCur->op)) goto LNeedTerminator;
+
+                for (pstmt = m_pstmtCur; pstmt; pstmt = pstmt->pstmtOuter)
+                {
+                    if (checkLabelList(pstmt->pLabelId, pstmt->op)) goto LNeedTerminator;
                 }
             }
             Error(ERRnoLabel);
