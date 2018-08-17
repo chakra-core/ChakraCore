@@ -10509,25 +10509,32 @@ LRestart:
             else
             {
                 this->GetScanner()->Scan();
-                for (pstmt = m_pstmtCur; pstmt; pstmt = pstmt->pstmtOuter)
+                // Check if label is found within the current label id list.
+                auto checkLabelList = [&](LabelId* list, StmtNest* checkStmtOp)
                 {
-                    LabelId* pLabelId;
-                    for (pLabelId = pstmt->pLabelId; pLabelId; pLabelId = pLabelId->next)
+                    for (LabelId* pLabelId = list; pLabelId; pLabelId = pLabelId->next)
                     {
-
                         if (pid == pLabelId->pid)
                         {
                             // Found the label. Make sure we can use it. We can
                             // break out of any statement, but we can only
                             // continue loops.
                             if (fnop == fnopContinue &&
-                                !(ParseNode::Grfnop(pstmt->op) & fnop))
+                                !(ParseNode::Grfnop(checkStmtOp->op) & fnop))
                             {
                                 Error(ERRbadContinue);
                             }
-                            goto LNeedTerminator;
+                            return true;
                         }
                     }
+                    return false;
+                };
+
+                if (checkLabelList(pLabelIdList, m_pstmtCur)) goto LNeedTerminator;
+
+                for (pstmt = m_pstmtCur; pstmt; pstmt = pstmt->pstmtOuter)
+                {
+                    if (checkLabelList(pstmt->pLabelId, pstmt)) goto LNeedTerminator;
                 }
             }
             Error(ERRnoLabel);
