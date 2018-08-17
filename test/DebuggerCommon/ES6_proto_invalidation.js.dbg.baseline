@@ -343,20 +343,10 @@
               "length": "number 1",
               "name": "string unshift"
             },
-            "indexOf": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf"
-            },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string every"
-            },
-            "filter": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string filter"
             },
             "forEach": {
               "#__proto__": "function <large string>",
@@ -417,6 +407,26 @@
               "#__proto__": "function <large string>",
               "name": "string entries",
               "length": "number 0"
+            },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "name": "string indexOf",
+              "length": "number 1"
+            },
+            "filter": {
+              "#__proto__": "function <large string>",
+              "name": "string filter",
+              "length": "number 1"
+            },
+            "flat": {
+              "#__proto__": "function <large string>",
+              "name": "string flat",
+              "length": "number 0"
+            },
+            "flatMap": {
+              "#__proto__": "function <large string>",
+              "name": "string flatMap",
+              "length": "number 1"
             },
             "Symbol.unscopables": {
               "find": "boolean true",
@@ -560,20 +570,10 @@
               "length": "number 1",
               "name": "string unshift"
             },
-            "indexOf": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf"
-            },
             "every": {
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string every"
-            },
-            "filter": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string filter"
             },
             "forEach": {
               "#__proto__": "function <large string>",
@@ -634,6 +634,26 @@
               "#__proto__": "function <large string>",
               "name": "string entries",
               "length": "number 0"
+            },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "name": "string indexOf",
+              "length": "number 1"
+            },
+            "filter": {
+              "#__proto__": "function <large string>",
+              "name": "string filter",
+              "length": "number 1"
+            },
+            "flat": {
+              "#__proto__": "function <large string>",
+              "name": "string flat",
+              "length": "number 0"
+            },
+            "flatMap": {
+              "#__proto__": "function <large string>",
+              "name": "string flatMap",
+              "length": "number 1"
             },
             "Symbol.unscopables": {
               "find": "boolean true",

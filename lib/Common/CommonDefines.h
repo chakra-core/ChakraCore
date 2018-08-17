@@ -132,8 +132,9 @@
 // Language features
 #if !defined(CHAKRACORE_LITE) && (defined(_WIN32) || defined(INTL_ICU))
 #define ENABLE_INTL_OBJECT                          // Intl support
-#define ENABLE_JS_BUILTINS                          // Built In functions support
 #endif
+
+#define ENABLE_JS_BUILTINS                          // Built In functions support
 
 #if defined(_WIN32) && !defined(HAS_ICU)
 #define INTL_WINGLOB 1
