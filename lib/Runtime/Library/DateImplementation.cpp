@@ -1266,13 +1266,23 @@ Error:
                 goto LError;
             }
 
-            for (lwT = ch - '0'; !FBig(*pch) && isdigit(*pch); pch++)
+            for (lwT = ch - '0'; ; pch++)
             {
+                // for time zone offset HH:mm, we already got HH so skip ':' and grab mm
+                if (((ss == ssAddOffset) || (ss == ssSubOffset)) && (*pch == ':')) 
+                {
+                    continue;
+                }
+                if (FBig(*pch) || !isdigit(*pch))
+                {
+                    break;
+                }
                 // to avoid overflow
                 if (pch - pchBase > 6)
                 {
                     goto LError;
                 }
+                // convert string to number, e.g. 07:30 -> 730
                 lwT = lwT * 10 + *pch - '0';
             }
 
@@ -1292,6 +1302,7 @@ Error:
 
                     if (lwNil != lwOffset)
                         goto LError;
+                    // convert into minutes, e.g. 730 -> 7*60+30
                     lwOffset = lwT < 24 ? lwT * 60 :
                         (lwT % 100) + (lwT / 100) * 60;
                     if (ssSubOffset == ss)

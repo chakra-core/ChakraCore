@@ -674,7 +674,7 @@ public:
         }
 
         // If we share inline caches we should never have more than one entry in the list.
-        Assert(Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
+        Assert(!Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
 
         InlineCacheUnit cacheIdUnit;
 
