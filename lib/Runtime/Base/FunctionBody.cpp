@@ -1462,6 +1462,8 @@ namespace Js
         CopyDeferParseField(deferredPrototypeType);
         CopyDeferParseField(undeferredFunctionType);
 #undef CopyDeferParseField
+
+        other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
     }
 
     void ParseableFunctionInfo::Copy(ParseableFunctionInfo * other)
@@ -1495,8 +1497,6 @@ namespace Js
         other->SetCachedSourceStringWeakRef(this->GetCachedSourceStringWeakRef());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
-
-        other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
 
         PropertyId * propertyIds = this->GetPropertyIdsForScopeSlotArray();
         if (propertyIds != nullptr)
