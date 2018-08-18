@@ -26,7 +26,7 @@ var func5 = (a = 123) => (function v6() {
 })()
 func5();
 
-function func6(a = v => { console.log('pass'); }, b = v => { return a; }) {
+function func6(a = v => { console.log(pass); }, b = v => { return a; }) {
     function c() {
         return b();
     }
@@ -84,3 +84,13 @@ function func18(a = class A { meth() { return fail } static meth2() { return fai
     return c();
 }
 console.log(func18());
+
+function func19() {
+  return (function(a = { b() {} }){ return pass; })();
+}
+console.log(func19());
+
+function func20() {
+  return (function(a = { b() {} }, c = function() { return pass; }){ return c(); })();
+}
+console.log(func20());
