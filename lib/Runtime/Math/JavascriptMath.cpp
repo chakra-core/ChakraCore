@@ -14,7 +14,7 @@ using namespace Js;
             }
 
             double value = Negate_Helper(aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(value, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(value, scriptContext);
             JIT_HELPER_END(Op_Negate_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Negate_Full, Op_Negate)
@@ -77,7 +77,7 @@ using namespace Js;
             }
 
             double inc = Increment_Helper(aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(inc, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(inc, scriptContext);
             JIT_HELPER_END(Op_Increment_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Increment_Full, Op_Increment)
@@ -104,7 +104,7 @@ using namespace Js;
             }
 
             double dec = Decrement_Helper(aRight,scriptContext);
-            return JavascriptNumber::ToVarNoCheck(dec, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(dec, scriptContext);
             JIT_HELPER_END(Op_Decrement_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Decrement_Full, Op_Decrement)
@@ -792,7 +792,7 @@ StringCommon:
         {
             JIT_HELPER_REENTRANT_HEADER(Op_Subtract_Full);
             double difference = Subtract_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(difference, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(difference, scriptContext);
             JIT_HELPER_END(Op_Subtract_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Subtract_Full, Op_Subtract)
@@ -825,7 +825,7 @@ StringCommon:
             JIT_HELPER_REENTRANT_HEADER(Op_Exponentiation_Full);
             double x = JavascriptConversion::ToNumber(aLeft, scriptContext);
             double y = JavascriptConversion::ToNumber(aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(Math::Pow(x, y), scriptContext);
+            return JavascriptNumber::ToVarIntCheck(Math::Pow(x, y), scriptContext);
             JIT_HELPER_END(Op_Exponentiation_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Exponentiation_Full, Op_Exponentiation)
@@ -874,7 +874,7 @@ StringCommon:
                 return TaggedInt::Multiply(aLeft, aRight, scriptContext);
             }
             double product = Multiply_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(product, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(product, scriptContext);
             JIT_HELPER_END(Op_Multiply_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Multiply_Full, Op_Multiply)
@@ -939,7 +939,7 @@ StringCommon:
             }
 
             double remainder = Modulus_Helper(aLeft, aRight, scriptContext);
-            return JavascriptNumber::ToVarNoCheck(remainder, scriptContext);
+            return JavascriptNumber::ToVarIntCheck(remainder, scriptContext);
             JIT_HELPER_END(Op_Modulus_Full);
         }
         JIT_HELPER_TEMPLATE(Op_Modulus_Full, Op_Modulus)

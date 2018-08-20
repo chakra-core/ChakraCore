@@ -36,9 +36,13 @@ namespace Js
 
     Var JavascriptNumber::ToVarInPlace(int64 value, ScriptContext* scriptContext, JavascriptNumber *result)
     {
-        return InPlaceNew((double)value, scriptContext, result);
-    }
+        if (!TaggedInt::IsOverflow(value))
+        {
+            return TaggedInt::ToVarUnchecked(static_cast<int>(value));
+        }
 
+        return InPlaceNew(static_cast<double>(value), scriptContext, result);
+    }
 
     Var JavascriptNumber::ToVarMaybeInPlace(double value, ScriptContext* scriptContext, JavascriptNumber *result)
     {
