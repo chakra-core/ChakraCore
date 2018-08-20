@@ -24,7 +24,6 @@ namespace Js
         count(0),
         boundArgs(nullptr)
     {
-
         DebugOnly(VerifyEntryPoint());
         AssertMsg(args.Info.Count > 0, "wrong number of args in BoundFunction");
 
@@ -44,21 +43,19 @@ namespace Js
             }
             type->SetPrototype(proto);
         }
+
+        int len = 0;
         // If targetFunction is proxy, need to make sure that traps are called in right order as per 19.2.3.2 in RC#4 dated April 3rd 2015.
-        // Here although we won't use value of length, this is just to make sure that we call traps involved with HasOwnProperty(Target, "length") and Get(Target, "length")
-        if (JavascriptProxy::Is(targetFunction))
+        // additionally need to get the correct length value for the boundFunctions' length property
+        if (JavascriptOperators::HasOwnProperty(targetFunction, PropertyIds::length, scriptContext, nullptr) == TRUE)
         {
-            if (JavascriptOperators::HasOwnProperty(targetFunction, PropertyIds::length, scriptContext, nullptr) == TRUE)
+            Var varLength;
+            if (targetFunction->GetProperty(targetFunction, PropertyIds::length, &varLength, nullptr, scriptContext))
             {
-                int len = 0;
-                Var varLength;
-                if (targetFunction->GetProperty(targetFunction, PropertyIds::length, &varLength, nullptr, scriptContext))
-                {
-                    len = JavascriptConversion::ToInt32(varLength, scriptContext);
-                }
+                len = JavascriptConversion::ToInt32(varLength, scriptContext);
             }
-            GetTypeHandler()->EnsureObjectReady(this);
         }
+        GetTypeHandler()->EnsureObjectReady(this);
 
         if (args.Info.Count > 1)
         {
@@ -84,27 +81,12 @@ namespace Js
             // If no "this" is passed, "undefined" is used
             boundThis = scriptContext->GetLibrary()->GetUndefined();
         }
-    }
 
-    BoundFunction::BoundFunction(RecyclableObject* targetFunction, Var boundThis, Var* args, uint argsCount, DynamicType * type)
-        : JavascriptFunction(type, &functionInfo),
-        count(argsCount),
-        boundArgs(nullptr)
-    {
-        DebugOnly(VerifyEntryPoint());
-
-        this->targetFunction = targetFunction;
-        this->boundThis = boundThis;
-
-        if (argsCount != 0)
-        {
-            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Field(Var), argsCount);
-
-            for (uint i = 0; i < argsCount; i++)
-            {
-                this->boundArgs[i] = args[i];
-            }
-        }
+        // Reduce length number of bound args
+        len = len - this->count;
+        len = max(len, 0);
+            
+        SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(len), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
     }
 
     BoundFunction* BoundFunction::New(ScriptContext* scriptContext, ArgumentReader args)
@@ -307,106 +289,9 @@ namespace Js
         return false;
     }
 
-    PropertyQueryFlags BoundFunction::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            return PropertyQueryFlags::Property_Found;
-        }
-
-        return JavascriptFunction::HasPropertyQuery(propertyId, info);
-    }
-
-    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        BOOL result;
-        if (GetPropertyBuiltIns(originalInstance, propertyId, value, info, requestContext, &result))
-        {
-            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
-        }
-
-        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        BOOL result;
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext, &result))
-        {
-            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
-        }
-
-        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
-    }
-
-    bool BoundFunction::GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            // Get the "length" property of the underlying target function
-            int len = 0;
-            Var varLength;
-            if (targetFunction->GetProperty(targetFunction, PropertyIds::length, &varLength, nullptr, requestContext))
-            {
-                len = JavascriptConversion::ToInt32(varLength, requestContext);
-            }
-
-            // Reduce by number of bound args
-            len = len - this->count;
-            len = max(len, 0);
-
-            *value = JavascriptNumber::ToVar(len, requestContext);
-            *result = true;
-            return true;
-        }
-
-        return false;
-    }
-
     PropertyQueryFlags BoundFunction::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         return BoundFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    BOOL BoundFunction::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
-    {
-        BOOL result;
-        if (SetPropertyBuiltIns(propertyId, value, flags, info, &result))
-        {
-            return result;
-        }
-
-        return JavascriptFunction::SetProperty(propertyId, value, flags, info);
-    }
-
-    BOOL BoundFunction::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
-    {
-        BOOL result;
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && SetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, flags, info, &result))
-        {
-            return result;
-        }
-
-        return JavascriptFunction::SetProperty(propertyNameString, value, flags, info);
-    }
-
-    bool BoundFunction::SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, BOOL* result)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
-
-            *result = false;
-            return true;
-        }
-
-        return false;
     }
 
     _Check_return_ _Success_(return) BOOL BoundFunction::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
@@ -427,56 +312,6 @@ namespace Js
     BOOL BoundFunction::InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         return SetProperty(propertyId, value, PropertyOperation_None, info);
-    }
-
-    BOOL BoundFunction::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            return false;
-        }
-
-        return JavascriptFunction::DeleteProperty(propertyId, flags);
-    }
-
-    BOOL BoundFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
-    {
-        if (BuiltInPropertyRecords::length.Equals(propertyNameString))
-        {
-            return false;
-        }
-
-        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
-    }
-
-    BOOL BoundFunction::IsWritable(PropertyId propertyId)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            return false;
-        }
-
-        return JavascriptFunction::IsWritable(propertyId);
-    }
-
-    BOOL BoundFunction::IsConfigurable(PropertyId propertyId)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            return false;
-        }
-
-        return JavascriptFunction::IsConfigurable(propertyId);
-    }
-
-    BOOL BoundFunction::IsEnumerable(PropertyId propertyId)
-    {
-        if (propertyId == PropertyIds::length)
-        {
-            return false;
-        }
-
-        return JavascriptFunction::IsEnumerable(propertyId);
     }
 
     BOOL BoundFunction::HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache)

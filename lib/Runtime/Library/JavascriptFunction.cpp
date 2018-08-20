@@ -2504,12 +2504,6 @@ LABEL1:
                 return PropertyQueryFlags::Property_Found;
             }
             break;
-        case PropertyIds::length:
-            if (this->IsScriptFunction())
-            {
-                return PropertyQueryFlags::Property_Found;
-            }
-            break;
         }
         return DynamicObject::HasPropertyQuery(propertyId, info);
     }
@@ -2607,12 +2601,6 @@ LABEL1:
                     return false;
                 }
                 break;
-            case PropertyIds::length:
-                if (this->IsScriptFunction() || this->IsBoundFunction())
-                {
-                    return true;
-                }
-                break;
             }
         }
         return DynamicObject::IsConfigurable(propertyId);
@@ -2627,12 +2615,6 @@ LABEL1:
             case PropertyIds::caller:
             case PropertyIds::arguments:
                 if (this->HasRestrictedProperties())
-                {
-                    return false;
-                }
-                break;
-            case PropertyIds::length:
-                if (this->IsScriptFunction())
                 {
                     return false;
                 }
@@ -2655,12 +2637,6 @@ LABEL1:
                     return false;
                 }
                 break;
-            case PropertyIds::length:
-                if (this->IsScriptFunction())
-                {
-                    return false;
-                }
-                break;
             }
         }
         return DynamicObject::IsWritable(propertyId);
@@ -2676,18 +2652,6 @@ LABEL1:
             return true;
         }
 
-        if (index == length)
-        {
-            if (this->IsScriptFunction() || this->IsBoundFunction())
-            {
-                if (DynamicObject::GetPropertyIndex(PropertyIds::length) == Constants::NoSlot)
-                {
-                    //Only for user defined functions length is a special property.
-                    *propertyName = requestContext->GetPropertyString(PropertyIds::length);
-                    return true;
-                }
-            }
-        }
         return false;
     }
 
@@ -2978,17 +2942,6 @@ LABEL1:
             return true;
         }
 
-        if (propertyId == PropertyIds::length)
-        {
-            FunctionProxy *proxy = this->GetFunctionProxy();
-            if (proxy)
-            {
-                *value = TaggedInt::ToVarUnchecked(proxy->EnsureDeserialized()->GetReportedInParamsCount() - 1);
-                *result = true;
-                return true;
-            }
-        }
-
         return false;
     }
 
@@ -3010,14 +2963,6 @@ LABEL1:
                 isReadOnly = true;
             }
             break;
-
-        case PropertyIds::length:
-            if (this->IsScriptFunction())
-            {
-                isReadOnly = true;
-            }
-            break;
-
         }
 
         if (isReadOnly)
@@ -3079,13 +3024,6 @@ LABEL1:
                 return false;
             }
             break;
-        case PropertyIds::length:
-            if (this->IsScriptFunction())
-            {
-                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), this->GetScriptContext()->GetPropertyName(propertyId)->GetBuffer());
-                return false;
-            }
-            break;
         }
 
         BOOL result = DynamicObject::DeleteProperty(propertyId, flags);
@@ -3108,14 +3046,6 @@ LABEL1:
         if (BuiltInPropertyRecords::caller.Equals(propertyNameString) || BuiltInPropertyRecords::arguments.Equals(propertyNameString))
         {
             if (this->HasRestrictedProperties())
-            {
-                JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
-                return false;
-            }
-        }
-        else if (BuiltInPropertyRecords::length.Equals(propertyNameString))
-        {
-            if (this->IsScriptFunction())
             {
                 JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString());
                 return false;

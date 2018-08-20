@@ -44,6 +44,19 @@ namespace Js
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithPrototypeLengthAndNameTypeDescriptors[3] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
+    };
+
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithPrototypeAndLengthTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
+    };
+
     SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[1] =
     {
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyNone)
@@ -57,6 +70,8 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithConfigurableLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
+    SimpleTypeHandler<3> JavascriptLibrary::SharedFunctionWithPrototypeLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeLengthAndNameTypeDescriptors));
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeAndLengthTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeAndLengthTypeDescriptors));
     SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors), PropertyTypesHasSpecialProperties);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
@@ -542,12 +557,14 @@ namespace Js
             PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         variantDateType = StaticType::New(scriptContext, TypeIds_VariantDate, nullValue, nullptr);
 
-        anonymousFunctionTypeHandler = NullTypeHandler<false>::GetDefaultInstance();
-        anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandlerV11;
-
         //  Initialize function types
 
+        anonymousFunctionTypeHandler = &SharedFunctionWithConfigurableLengthTypeHandler;
+        anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeAndLengthTypeHandler;
+
         functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
+        functionTypeHandlerWithLength = &SharedFunctionWithLengthAndNameTypeHandler;
+        functionWithPrototypeAndLengthTypeHandler = &SharedFunctionWithPrototypeLengthAndNameTypeHandler;
         functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
 
@@ -724,7 +741,7 @@ namespace Js
         JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptArray>();
     }
 
-    template<bool addPrototype>
+    template<bool addPrototype, bool addName, bool useLengthType>
     bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptFunction * function = JavascriptFunction::FromVar(instance);
@@ -739,12 +756,25 @@ namespace Js
 
         if (!addPrototype)
         {
-            Assert(!useAnonymous);
-            typeHandler->ConvertFunction(function, javascriptLibrary->functionTypeHandler);
+            if (!useAnonymous && addName)
+            {
+                typeHandler->ConvertFunction(function, useLengthType ? javascriptLibrary->functionTypeHandlerWithLength : javascriptLibrary->functionTypeHandler);
+            }
+            else
+            {
+                typeHandler->ConvertFunction(function, javascriptLibrary->anonymousFunctionTypeHandler);
+            }
         }
         else
         {
-            typeHandler->ConvertFunction(function, useAnonymous ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+            if (useAnonymous)
+            {
+                typeHandler->ConvertFunction(function, javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler);
+            }
+            else
+            {
+                typeHandler->ConvertFunction(function, useLengthType ? javascriptLibrary->functionWithPrototypeAndLengthTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+            }    
             DynamicObject *protoObject = javascriptLibrary->CreateConstructorPrototypeObject(function);
             if (scriptFunction && scriptFunction->GetFunctionInfo()->IsClassConstructor())
             {
@@ -756,14 +786,28 @@ namespace Js
             }
         }
 
-        if(scriptFunction && (useAnonymous || scriptFunction->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction()))
+        if (scriptFunction)
         {
-            return true;
+            ParseableFunctionInfo * funcInfo = scriptFunction->GetFunctionProxy()->EnsureDeserialized();
+
+            if (useLengthType)
+            {
+                function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(funcInfo->GetReportedInParamsCount() - 1), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
+            }
+
+            if (useAnonymous || funcInfo->GetIsStaticNameFunction())
+            {
+                return true;
+            }
         }
-        JavascriptString * functionName = nullptr;
-        if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
+
+        if (addName)
         {
-            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+            JavascriptString * functionName = nullptr;
+            if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
+            {
+                function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+            }
         }
 
         return true;
@@ -830,7 +874,7 @@ namespace Js
     template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable, bool isPrototypeAvailable>
@@ -868,12 +912,17 @@ namespace Js
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
     {
-        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false>();
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(ScriptContext* scriptContext)
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext)
@@ -883,12 +932,17 @@ namespace Js
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
     {
-        return anonymousFunctionTypeHandler;
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandler()
     {
-        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false>();
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ false>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerNoPrototype()
+    {
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction)
@@ -899,13 +953,13 @@ namespace Js
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
                 this->GetDeferredAnonymousFunctionTypeHandler() :
-                this->GetDeferredFunctionTypeHandler();
+                this->GetDeferredFunctionTypeHandlerNoPrototype();
         }
         else
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
                 JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
-                JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(scriptContext);
+                JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         }
         return scriptFunctionTypeHandler;
     }
