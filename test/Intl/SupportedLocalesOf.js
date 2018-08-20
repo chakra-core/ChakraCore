@@ -24,7 +24,12 @@ const tests = [
             const fakeLocales = { get length() { throw new Error("User-provided locale object throws"); } };
 
             function test(ctor) {
-                assert.throws(() => new ctor.supportedLocalesOf(), TypeError, "", `Function 'Intl.${ctor.name}.supportedLocalesOf' is not a constructor`);
+                if (WScript.Platform.INTL_LIBRARY === "icu") {
+                    assert.throws(() => new ctor.supportedLocalesOf(), TypeError, "", "Function is not a constructor");
+                    assert.throws(() => Reflect.construct(function() {}, [], ctor.supportedLocalesOf), TypeError, "", "'newTarget' is not a constructor");
+                } else {
+                    assert.throws(() => new ctor.supportedLocalesOf(), TypeError, "", `Function 'Intl.${ctor.name}.supportedLocalesOf' is not a constructor`);
+                }
                 assert.throws(() => ctor.supportedLocalesOf(["en-US"], { localeMatcher: "incorrect" }), RangeError, "", rangeErrorMessage);
                 assert.throws(() => ctor.supportedLocalesOf(null), TypeError, "", "Object expected");
                 assert.throws(() => ctor.supportedLocalesOf(fakeLocales), Error, "", "User-provided locale object throws");
