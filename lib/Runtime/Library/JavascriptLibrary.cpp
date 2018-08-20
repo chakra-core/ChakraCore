@@ -937,7 +937,7 @@ namespace Js
         return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler()
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
     }
@@ -957,9 +957,14 @@ namespace Js
         return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionWithLengthTypeHandler()
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandler()
@@ -967,7 +972,7 @@ namespace Js
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ false>();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerNoPrototype()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler()
     {
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
     }
@@ -979,13 +984,13 @@ namespace Js
         if (noPrototypeProperty)
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                this->GetDeferredAnonymousFunctionTypeHandler() :
-                this->GetDeferredFunctionTypeHandlerNoPrototype();
+                this->GetDeferredAnonymousFunctionWithLengthTypeHandler() :
+                this->GetDeferredFunctionWithLengthTypeHandler();
         }
         else
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
+                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler() :
                 JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         }
         return scriptFunctionTypeHandler;
