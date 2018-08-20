@@ -10544,7 +10544,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             return aRight;
         }
 
-        return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToNumber_Full(aRight, scriptContext), scriptContext);
+        return JavascriptNumber::ToVarIntCheck(JavascriptConversion::ToNumber_Full(aRight, scriptContext), scriptContext);
         JIT_HELPER_END(Op_ConvNumber_Full);
     }
 
