@@ -59,7 +59,7 @@ WASM_EXTRACTLANE_OPCODE(I8ExtractLaneS, __prefix | 0x0b, I_M128, Simd128_Extract
 WASM_EXTRACTLANE_OPCODE(I8ExtractLaneU, __prefix | 0x0c, I_M128, Simd128_ExtractLane_U8, true, "i16x8.extract_lane_u")
 WASM_EXTRACTLANE_OPCODE(I4ExtractLane, __prefix | 0x0d, I_M128, Simd128_ExtractLane_I4, true, "i32x4.extract_lane")
 WASM_EXTRACTLANE_OPCODE(I2ExtractLane, __prefix | 0x0e, L_M128, Simd128_ExtractLane_I2, true, "i64x2.extract_lane")
-WASM_EXTRACTLANE_OPCODE(F4ExtractLane, __prefix | 0x0f, I_M128, Simd128_ExtractLane_F4, true, "f32x4.extract_lane")
+WASM_EXTRACTLANE_OPCODE(F4ExtractLane, __prefix | 0x0f, F_M128, Simd128_ExtractLane_F4, true, "f32x4.extract_lane")
 WASM_BINARY_OPCODE(F2ExtractLane, __prefix | 0x10, D_M128_I, Simd128_ExtractLane_D2, true, "f64x2.extract_lane")
 WASM_REPLACELANE_OPCODE(I16ReplaceLane, __prefix | 0x11, M128_I, Simd128_ReplaceLane_I16, true, "i8x16.replace_lane")
 WASM_REPLACELANE_OPCODE(I8ReplaceLane, __prefix | 0x12, M128_I, Simd128_ReplaceLane_I8, true, "i16x8.replace_lane")
