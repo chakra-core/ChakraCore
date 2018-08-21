@@ -3124,10 +3124,9 @@ IRBuilder::BuildElementScopedC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCode::ScopedDeleteFld:
     case Js::OpCode::ScopedDeleteFldStrict:
     {
-        // Implicit root object as default instance
-        IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
+        Assert(this->m_func->GetScriptContextInfo()->GetAddr() == this->m_func->GetTopFunc()->GetScriptContextInfo()->GetAddr());
         regOpnd = this->BuildDstOpnd(regSlot);
-        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, instance2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
         break;
     }
 
@@ -4363,13 +4362,12 @@ stCommon:
     case Js::OpCode::ScopedLdFldForTypeOf:
     {
         Assert(!isProfiled);
+        Assert(this->m_func->GetScriptContextInfo()->GetAddr() == this->m_func->GetTopFunc()->GetScriptContextInfo()->GetAddr());
 
         fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
-        // Implicit root object as default instance
-        IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
         regOpnd = this->BuildDstOpnd(regSlot);
-        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, instance2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
         break;
     }
 

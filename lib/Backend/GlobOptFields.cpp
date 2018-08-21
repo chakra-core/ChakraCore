@@ -578,7 +578,9 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
         || instr->m_opcode == Js::OpCode::LdMethodFromFlags
         || instr->m_opcode == Js::OpCode::ScopedLdMethodFld
         || instr->m_opcode == Js::OpCode::CheckFixedFld
-        || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType);
+        || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType
+        || instr->m_opcode == Js::OpCode::ScopedLdFld
+        || instr->m_opcode == Js::OpCode::ScopedLdFldForTypeOf);
 
     Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr->GetSrc1()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
