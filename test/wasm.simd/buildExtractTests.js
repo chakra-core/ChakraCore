@@ -116,7 +116,7 @@ function RunFloat32x4Tests() {
     exports = new WebAssembly.Instance(mod, ffi).exports;
 
     check(1.0, "exports.func_f32x4_0");
-    check(2147483648, "exports.func_f32x4_1");
+    check(3.4028234663852886e+38, "exports.func_f32x4_1");
     check(2147483648, "exports.func_f32x4_2");
     check(-2147483648, "exports.func_f32x4_3");
 }
@@ -127,7 +127,7 @@ RunInt16x8UnsignedTests();
 RunInt16x8SignedTests();
 RunInt8x16UnsignedTests();
 RunInt8x16SignedTests();
-// FIXME broken extract_lane: RunFloat32x4Tests();
+RunFloat32x4Tests();
     
 if(passed) {
   print("Passed");
