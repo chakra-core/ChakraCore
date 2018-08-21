@@ -566,8 +566,6 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
     // Consider: Hoisting LdRootFld may have complication with exception if the field doesn't exist.
     // We need to have another opcode for the hoisted version to avoid the exception and bailout.
 
-    // Consider: Theoretically, we can copy prop/field hoist ScopedLdFld/ScopedStFld
-    // but Instr::TransferSrcValue blocks that now, and copy prop into that instruction is not supported yet.
     Assert(instr->m_opcode == Js::OpCode::LdSlot || instr->m_opcode == Js::OpCode::LdSlotArr
         || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::LdFldForCallApplyTarget
         || instr->m_opcode == Js::OpCode::LdLen_A
@@ -578,7 +576,9 @@ GlobOpt::AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr)
         || instr->m_opcode == Js::OpCode::LdMethodFromFlags
         || instr->m_opcode == Js::OpCode::ScopedLdMethodFld
         || instr->m_opcode == Js::OpCode::CheckFixedFld
-        || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType);
+        || instr->m_opcode == Js::OpCode::CheckPropertyGuardAndLoadType
+        || instr->m_opcode == Js::OpCode::ScopedLdFld
+        || instr->m_opcode == Js::OpCode::ScopedLdFldForTypeOf);
 
     Assert(instr->m_opcode == Js::OpCode::CheckFixedFld || instr->GetDst()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());
     Assert(instr->GetSrc1()->GetType() == TyVar || instr->m_func->GetJITFunctionBody()->IsAsmJsMode());

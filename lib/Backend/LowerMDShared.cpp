@@ -4101,11 +4101,6 @@ LowererMD::GenerateFastScopedLdFld(IR::Instr * instrLdScopedFld)
 
     opndBase = propertySymOpnd->CreatePropertyOwnerOpnd(m_func);
 
-    IR::Opnd *srcBase =    instrLdScopedFld->GetSrc2();
-    AssertMsg(srcBase->IsRegOpnd(), "Expected reg opnd as src2");
-    //opndBase = srcBase;
-
-    //IR::IndirOpnd * indirOpnd = src->AsIndirOpnd();
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
     AssertMsg(opndBase->m_sym->m_isSingleDef, "We assume this isn't redefined");

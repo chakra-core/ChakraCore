@@ -6888,8 +6888,8 @@ Lowerer::LowerScopedLdFld(IR::Instr * ldFldInstr, IR::JnHelperMethod helperMetho
         LoadScriptContext(ldFldInstr);
     }
 
-    src = ldFldInstr->UnlinkSrc2();
-    AssertMsg(src->IsRegOpnd(), "Expected reg opnd as src2");
+    intptr_t rootObject = m_func->GetJITFunctionBody()->GetRootObject();
+    src = IR::AddrOpnd::New(rootObject, IR::AddrOpndKindDynamicVar, this->m_func, true);
     instrPrev = m_lowererMD.LoadHelperArgument(ldFldInstr, src);
 
     src = ldFldInstr->UnlinkSrc1();
