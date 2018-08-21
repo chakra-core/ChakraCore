@@ -3289,6 +3289,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         case Js::OpCode::BrOnHasProperty:
         case Js::OpCode::LdMethodFldPolyInlineMiss:
         case Js::OpCode::StSlotChkUndecl:
+        case Js::OpCode::ScopedLdInst:
             return nullptr;
         };
 
@@ -3718,6 +3719,8 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
         case Js::OpCode::LdRootMethodFld:
         case Js::OpCode::LdMethodFromFlags:
         case Js::OpCode::ScopedLdMethodFld:
+        case Js::OpCode::ScopedLdFld:
+        case Js::OpCode::ScopedLdFldForTypeOf:
             instr->m_opcode = Js::OpCode::Ld_A;
         case Js::OpCode::Ld_A:
             {
@@ -3956,6 +3959,8 @@ GlobOpt::CopyPropReplaceOpnd(IR::Instr * instr, IR::Opnd * opnd, StackSym * copy
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
     case Js::OpCode::ScopedLdMethodFld:
+    case Js::OpCode::ScopedLdFld:
+    case Js::OpCode::ScopedLdFldForTypeOf:
         instr->m_opcode = Js::OpCode::Ld_A;
         break;
 
@@ -4682,13 +4687,16 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::LdFld:
     case Js::OpCode::LdFldForTypeOf:
     case Js::OpCode::LdFldForCallApplyTarget:
-    // Do not transfer value type on ldFldForTypeOf to prevent copy-prop to LdRootFld in case the field doesn't exist since LdRootFldForTypeOf does not throw
+    // Do not transfer value type on LdRootFldForTypeOf to prevent copy-prop to LdRootFld in case the field doesn't exist since LdRootFldForTypeOf does not throw.
+    // Same goes for ScopedLdFldForTypeOf as we'll end up loading the property from the root object if the property is not in the scope chain.
     //case Js::OpCode::LdRootFldForTypeOf:
+    //case Js::OpCode::ScopedLdFldForTypeOf:
     case Js::OpCode::LdRootFld:
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
     case Js::OpCode::ScopedLdMethodFld:
     case Js::OpCode::LdMethodFromFlags:
+    case Js::OpCode::ScopedLdFld:
         if (instr->IsProfiledInstr())
         {
             ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);

@@ -3305,7 +3305,6 @@ bool Instr::TransfersSrcValue()
     // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
     // Don't create value for instruction without dst as well. The value doesn't go anywhere.
 
-    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
     // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
 
     return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();
