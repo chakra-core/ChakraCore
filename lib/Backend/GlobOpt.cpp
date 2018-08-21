@@ -4687,15 +4687,16 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::LdFld:
     case Js::OpCode::LdFldForTypeOf:
     case Js::OpCode::LdFldForCallApplyTarget:
-    // Do not transfer value type on LdRootFldForTypeOf to prevent copy-prop to LdRootFld in case the field doesn't exist since LdRootFldForTypeOf does not throw
+    // Do not transfer value type on LdRootFldForTypeOf to prevent copy-prop to LdRootFld in case the field doesn't exist since LdRootFldForTypeOf does not throw.
+    // Same goes for ScopedLdFldForTypeOf as we'll end up loading the property from the root object if the property is not in the scope chain.
     //case Js::OpCode::LdRootFldForTypeOf:
+    //case Js::OpCode::ScopedLdFldForTypeOf:
     case Js::OpCode::LdRootFld:
     case Js::OpCode::LdMethodFld:
     case Js::OpCode::LdRootMethodFld:
     case Js::OpCode::ScopedLdMethodFld:
     case Js::OpCode::LdMethodFromFlags:
     case Js::OpCode::ScopedLdFld:
-    case Js::OpCode::ScopedLdFldForTypeOf:
         if (instr->IsProfiledInstr())
         {
             ValueType profiledValueType(instr->AsProfiledInstr()->u.FldInfo().valueType);
