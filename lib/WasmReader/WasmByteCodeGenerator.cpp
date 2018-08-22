@@ -1571,6 +1571,7 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
 
     m_writer->AsmReg4(op, resultReg, simdArg.location, indexInfo.location, valueArg.location);
     ReleaseLocation(&indexInfo);
+    ReleaseLocation(&valueArg);
     return result;
 }
 
