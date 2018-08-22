@@ -135,6 +135,12 @@ private:
     { \
     Output::Flush(); \
     }
+#define INLINE_CALLBACKS_TRACE(...) \
+    if (PHASE_TESTTRACE(Js::InlineCallbacksPhase, this->topFunc) || PHASE_TRACE(Js::InlineCallbacksPhase, this->topFunc)) \
+    { \
+    Output::Print(__VA_ARGS__); \
+    Output::Flush(); \
+    }
 #else
 #define INLINE_VERBOSE_TRACE(...)
 #define POLYMORPHIC_INLINE_TESTTRACE(...)
@@ -143,4 +149,6 @@ private:
 #define INLINE_FLUSH()
 #define INLINE_TESTTRACE(...)
 #define INLINE_TESTTRACE_VERBOSE(...)
+#define INLINE_TRACE_AND_TESTTRACE(...)
+#define INLINE_CALLBACKS_TRACE(...)
 #endif

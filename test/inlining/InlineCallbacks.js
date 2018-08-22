@@ -43,3 +43,19 @@ Dispatch3(function(){}, function(){});
 DispatchFooBar();
 DispatchFooBar();
 DispatchFooBar();
+
+function DispatchCall(callback, thisArg) { callback.call(thisArg); }
+function DispatchFooCall() { DispatchCall(Foo, {}); }
+DispatchCall(function(){});
+DispatchCall(function(){}, []);
+DispatchFooCall();
+DispatchFooCall();
+DispatchFooCall();
+
+function DispatchApply(callback, thisArg) { callback.apply(thisArg); }
+function DispatchBarApply() { DispatchApply(Bar, {}); }
+DispatchApply(function(){});
+DispatchApply(function(){}, []);
+DispatchBarApply();
+DispatchBarApply();
+DispatchBarApply();
