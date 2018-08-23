@@ -381,6 +381,15 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
 Error:
     if (errorCode != JsNoError)
     {
+        // check and clear exception if any
+        bool hasException;
+        if (ChakraRTInterface::JsHasException(&hasException) == JsNoError && hasException)
+        {
+            JsValueRef unusedException = JS_INVALID_REFERENCE;
+            ChakraRTInterface::JsGetAndClearException(&unusedException);
+            unusedException;
+        }
+
         JsValueRef errorObject;
         JsValueRef errorMessageString;
 
