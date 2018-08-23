@@ -8998,6 +8998,7 @@ Case0:
         return scriptContext->GetLibrary()->GetFalse();
     }
 
+    // There is a Javascript built-in for forEach
     Var JavascriptArray::EntryForEach(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
