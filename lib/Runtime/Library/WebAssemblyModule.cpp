@@ -497,11 +497,11 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
         case Wasm::Local::F32: node.op = Wasm::wbPrintF32; break;
         case Wasm::Local::F64: node.op = Wasm::wbPrintF64; break;
 #ifdef ENABLE_WASM_SIMD
-        // todo:: Add support to print m128 argument values
-        case Wasm::WasmTypes::M128: continue;
+        // todo:: Add support to print v128 argument values
+        case Wasm::WasmTypes::V128: continue;
 #endif
         default:
-            Wasm::WasmTypes::CompileAssertCasesNoFailFast<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+            Wasm::WasmTypes::CompileAssertCasesNoFailFast<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
             throw Wasm::WasmCompilationException(_u("Unknown param type"));
         }
         customReader->AddNode(node);
@@ -542,11 +542,11 @@ WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, 
         case Wasm::WasmTypes::F32: node.op = Wasm::wbPrintF32; break;
         case Wasm::WasmTypes::F64: node.op = Wasm::wbPrintF64; break;
 #ifdef ENABLE_WASM_SIMD
-        // todo:: Add support to print m128 return values
-        case Wasm::WasmTypes::M128: goto SkipReturnPrint;
+        // todo:: Add support to print v128 return values
+        case Wasm::WasmTypes::V128: goto SkipReturnPrint;
 #endif
         default:
-            Wasm::WasmTypes::CompileAssertCasesNoFailFast<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+            Wasm::WasmTypes::CompileAssertCasesNoFailFast<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
             throw Wasm::WasmCompilationException(_u("Unknown return type"));
         }
         customReader->AddNode(node);

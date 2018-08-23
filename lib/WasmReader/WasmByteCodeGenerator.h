@@ -242,7 +242,7 @@ namespace Wasm
         EmitInfo EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, bool isStore);
         EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
-        EmitInfo EmitM128BitSelect();
+        EmitInfo EmitV128BitSelect();
         EmitInfo EmitV8X16Shuffle();
         EmitInfo EmitExtractLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);

@@ -204,12 +204,12 @@ Js::AsmJsRetType WasmToAsmJs::GetAsmJsReturnType(WasmTypes::WasmType wasmType)
     case WasmTypes::F64: return Js::AsmJsRetType::Double;
     case WasmTypes::Void: return Js::AsmJsRetType::Void;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         return Js::AsmJsRetType::Float32x4;
 #endif
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown return type %u"), wasmType);
     }
 }
@@ -225,12 +225,12 @@ Js::AsmJsVarType WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::F32: return Js::AsmJsVarType::Float;
     case WasmTypes::F64: return Js::AsmJsVarType::Double;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         return Js::AsmJsVarType::Float32x4;
 #endif
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
 }
@@ -631,7 +631,7 @@ void WasmBytecodeGenerator::EnregisterLocals()
                 m_writer->AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, m_locals[i].location, 0);
                 break;
 #ifdef ENABLE_WASM_SIMD
-            case WasmTypes::M128:
+            case WasmTypes::V128:
             {
                 Simd::EnsureSimdIsEnabled();
                 m_writer->WasmSimdConst(Js::OpCodeAsmJs::Simd128_LdC, m_locals[i].location, 0, 0, 0, 0);
@@ -730,9 +730,9 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitConst(WasmTypes::I64, GetReader()->m_currentNode.cnst);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case wbM128Const:
+    case wbV128Const:
         Simd::EnsureSimdIsEnabled();
-        info = EmitConst(WasmTypes::M128, GetReader()->m_currentNode.cnst);
+        info = EmitConst(WasmTypes::V128, GetReader()->m_currentNode.cnst);
         break;
 #endif
     case wbBlock:
@@ -792,9 +792,9 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitInfo(WasmTypes::Any);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case wbM128Bitselect:
+    case wbV128Bitselect:
         Simd::EnsureSimdIsEnabled();
-        info = EmitM128BitSelect();
+        info = EmitV128BitSelect();
         break;
     case wbV8X16Shuffle:
         Simd::EnsureSimdIsEnabled();
@@ -999,7 +999,7 @@ void WasmBytecodeGenerator::EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst)
         m_writer->AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, dst.location, cnst.i64);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
     {
         Simd::EnsureSimdIsEnabled();
         m_writer->WasmSimdConst(Js::OpCodeAsmJs::Simd128_LdC, dst.location, cnst.v128[0], cnst.v128[1], cnst.v128[2], cnst.v128[3]);
@@ -1007,7 +1007,7 @@ void WasmBytecodeGenerator::EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst)
     }
 #endif
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown type %u"), dst.type);
     }
 }
@@ -1216,7 +1216,7 @@ PolymorphicEmitInfo WasmBytecodeGenerator::EmitCall()
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
 #ifdef ENABLE_WASM_SIMD
-        case WasmTypes::M128:
+        case WasmTypes::V128:
             Simd::EnsureSimdIsEnabled();
             argOp = isImportCall ? Js::OpCodeAsmJs::Simd128_ArgOut_F4 : Js::OpCodeAsmJs::Simd128_I_ArgOut_F4;
             break;
@@ -1231,7 +1231,7 @@ PolymorphicEmitInfo WasmBytecodeGenerator::EmitCall()
             }
             // Fall through
         default:
-            WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+            WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
 
@@ -1322,11 +1322,11 @@ PolymorphicEmitInfo WasmBytecodeGenerator::EmitCall()
                 convertOp = Js::OpCodeAsmJs::Conv_VTL;
                 break;
 #ifdef ENABLE_WASM_SIMD
-            case WasmTypes::M128:
-                throw WasmCompilationException(_u("Return type: m128 not supported in import calls"));
+            case WasmTypes::V128:
+                throw WasmCompilationException(_u("Return type: v128 not supported in import calls"));
 #endif
             default:
-                WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+                WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
                 throw WasmCompilationException(_u("Unknown call return type %u"), singleResType);
             }
             Js::RegSlot location = GetRegisterSpace(singleResType)->AcquireTmpRegister();
@@ -1562,8 +1562,8 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
     const WasmTypes::WasmType valueType = signature[1];
     EmitInfo valueArg = PopEvalStack(valueType, _u("lane argument type mismatch"));
 
-    EmitInfo simdArg = PopEvalStack(WasmTypes::M128, _u("simd argument type mismatch"));
-    Assert(resultType == WasmTypes::M128);
+    EmitInfo simdArg = PopEvalStack(WasmTypes::V128, _u("simd argument type mismatch"));
+    Assert(resultType == WasmTypes::V128);
 
     EmitInfo indexInfo = EmitLaneIndex(op);
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
@@ -1575,31 +1575,31 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
     return result;
 }
 
-EmitInfo WasmBytecodeGenerator::EmitM128BitSelect()
+EmitInfo WasmBytecodeGenerator::EmitV128BitSelect()
 {
-    EmitInfo mask = PopEvalStack(WasmTypes::M128);
-    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
-    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo mask = PopEvalStack(WasmTypes::V128);
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::V128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::V128);
 
     ReleaseLocation(&mask);
     ReleaseLocation(&arg2Info);
     ReleaseLocation(&arg1Info);
 
-    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
-    EmitInfo resultInfo(resultReg, WasmTypes::M128);
+    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::V128)->AcquireTmpRegister();
+    EmitInfo resultInfo(resultReg, WasmTypes::V128);
     m_writer->AsmReg4(Js::OpCodeAsmJs::Simd128_BitSelect_I4, resultReg, arg1Info.location, arg2Info.location, mask.location);
     return resultInfo;
 }
 
 EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
 {
-    EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
-    EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+    EmitInfo arg2Info = PopEvalStack(WasmTypes::V128);
+    EmitInfo arg1Info = PopEvalStack(WasmTypes::V128);
 
     // FIXME Release arg2Info and arg1Info
 
-    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
-    EmitInfo resultInfo(resultReg, WasmTypes::M128);
+    Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::V128)->AcquireTmpRegister();
+    EmitInfo resultInfo(resultReg, WasmTypes::V128);
 
     uint8* indices = GetReader()->m_currentNode.shuffle.indices;
     for (uint i = 0; i < Simd::MAX_LANES; i++)
@@ -1619,8 +1619,7 @@ EmitInfo WasmBytecodeGenerator::EmitExtractLaneExpr(Js::OpCodeAsmJs op, const Wa
     WasmTypes::WasmType resultType = signature[0];
     WasmTypes::WasmType simdArgType = signature[1];
 
-    EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type M128"));
-    ReleaseLocation(&simdArgInfo);
+    EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type V128"));
 
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, resultType);
@@ -1836,7 +1835,7 @@ Js::OpCodeAsmJs WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
     case WasmTypes::I64:
         return Js::OpCodeAsmJs::Ld_Long;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         return Js::OpCodeAsmJs::Simd128_Ld_F4;
 #endif
@@ -1848,7 +1847,7 @@ Js::OpCodeAsmJs WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
             return Js::OpCodeAsmJs::Ld_Int;
         }
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
     }
 }
@@ -1871,7 +1870,7 @@ Js::OpCodeAsmJs WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
         retOp = Js::OpCodeAsmJs::Return_Long;
         break;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         retOp = Js::OpCodeAsmJs::Simd128_Return_F4;
         break;
@@ -1884,7 +1883,7 @@ Js::OpCodeAsmJs WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
             return Js::OpCodeAsmJs::Return_Int;
         }
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown return type %u"), type);
     }
     return retOp;
@@ -2065,12 +2064,12 @@ WasmRegisterSpace* WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType t
     case WasmTypes::F32:    return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT32);
     case WasmTypes::F64:    return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::FLOAT64);
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         return mTypedRegisterAllocator.GetRegisterSpace(WAsmJs::SIMD);
 #endif
     default:
-        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCasesNoFailFast<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         throw WasmCompilationException(_u("Unknown type %u"), type);
     }
 }

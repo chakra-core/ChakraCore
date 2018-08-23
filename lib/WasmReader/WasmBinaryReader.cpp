@@ -420,8 +420,8 @@ WasmOp WasmBinaryReader::ReadExpr()
         ConstNode<WasmTypes::F64>();
         break;
 #ifdef ENABLE_WASM_SIMD
-    case wbM128Const:
-        ConstNode<WasmTypes::M128>();
+    case wbV128Const:
+        ConstNode<WasmTypes::V128>();
         break;
 #endif
     case wbSetLocal:
@@ -683,7 +683,7 @@ void WasmBinaryReader::ConstNode()
         m_funcState.count += sizeof(double);
         break;
 #ifdef ENABLE_WASM_SIMD
-    case WasmTypes::M128:
+    case WasmTypes::V128:
         Simd::EnsureSimdIsEnabled();
         for (uint i = 0; i < Simd::VEC_WIDTH; i++) 
         {
@@ -693,7 +693,7 @@ void WasmBinaryReader::ConstNode()
         break;
 #endif
     default:
-        WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
     }
 }
 
@@ -1079,10 +1079,10 @@ void WasmBinaryReader::ReadGlobalSection()
         case WasmTypes::F32: break; // Handled
         case WasmTypes::F64: break; // Handled
 #ifdef ENABLE_WASM_SIMD
-        case WasmTypes::M128: ThrowDecodingError(_u("m128 globals not supported"));
+        case WasmTypes::V128: ThrowDecodingError(_u("v128 globals not supported"));
 #endif
         default:
-            WasmTypes::CompileAssertCases<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+            WasmTypes::CompileAssertCases<WasmTypes::I32, WasmTypes::I64, WasmTypes::F32, WasmTypes::F64, WASM_V128_CHECK_TYPE>();
         }
         
         bool isMutable = ReadMutableValue();

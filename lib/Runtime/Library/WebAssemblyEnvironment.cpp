@@ -161,10 +161,10 @@ Wasm::WasmConstLitNode WebAssemblyEnvironment::GetGlobalValue(Wasm::WasmGlobal* 
     case Wasm::WasmTypes::F32: cnst.f32 = GetGlobalInternal<float>(offset); break;
     case Wasm::WasmTypes::F64: cnst.f64 = GetGlobalInternal<double>(offset); break;
 #ifdef ENABLE_WASM_SIMD
-    case Wasm::WasmTypes::M128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
+    case Wasm::WasmTypes::V128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
 #endif
     default:
-        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
     }
     return cnst;
 }
@@ -181,10 +181,10 @@ void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::Wasm
     case Wasm::WasmTypes::F32: SetGlobalInternal<float>(offset, cnst.f32); break;
     case Wasm::WasmTypes::F64: SetGlobalInternal<double>(offset, cnst.f64); break;
 #ifdef ENABLE_WASM_SIMD
-    case Wasm::WasmTypes::M128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
+    case Wasm::WasmTypes::V128: AssertOrFailFastMsg(UNREACHED, "Wasm.Simd globals not supported");
 #endif
     default:
-        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_M128_CHECK_TYPE>();
+        Wasm::WasmTypes::CompileAssertCases<Wasm::WasmTypes::I32, Wasm::WasmTypes::I64, Wasm::WasmTypes::F32, Wasm::WasmTypes::F64, WASM_V128_CHECK_TYPE>();
     }
 }
 
