@@ -205,8 +205,6 @@ namespace Wasm
     private:
         void GenerateFunction();
 
-        template <size_t lanes> 
-        EmitInfo EmitSimdBuildExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         void EmitExpr(WasmOp op);
         PolymorphicEmitInfo EmitBlock();
         void EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse = nullptr);

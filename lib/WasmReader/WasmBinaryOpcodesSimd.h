@@ -15,10 +15,6 @@
 #define WASM_REPLACELANE_OPCODE(opname, opcode, sig, asmjsop, imp, wat) WASM_LANE_OPCODE(opname, opcode, sig, imp, wat)
 #endif
 
-#ifndef WASM_SIMD_BUILD_OPCODE
-#define WASM_SIMD_BUILD_OPCODE(opname, opcode, sig, asmjop, lanes, imp, wat) WASM_OPCODE(opname, opcode, sig, imp, wat)
-#endif
-
 #ifndef WASM_SIMD_MEMREAD_OPCODE
 #define WASM_SIMD_MEMREAD_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, imp, wat) WASM_MEM_OPCODE(opname, opcode, sig, imp, wat)
 #endif

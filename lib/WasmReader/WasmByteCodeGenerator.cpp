@@ -645,43 +645,6 @@ void WasmBytecodeGenerator::EnregisterLocals()
     }
 }
 
-template <size_t lanes>
-EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature)
-{
-    const WasmTypes::WasmType resultType = signature[0];
-    const WasmTypes::WasmType type = signature[1];
-
-    Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
-
-    EmitInfo args[lanes];
-    for (uint i = 0; i < lanes; i++)
-    {
-        args[i] = PopEvalStack(type);
-    }
-
-    switch (lanes)
-    {
-        case 4:
-            m_writer->AsmReg5(op, resultReg, args[3].location, args[2].location, args[1].location, args[0].location);
-            break;
-        case 8:
-            m_writer->AsmReg9(op, resultReg, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
-            break;
-        case 16:
-            m_writer->AsmReg17(op, resultReg, args[15].location, args[14].location, args[13].location, args[12].location, args[11].location, args[10].location, args[9].location, args[8].location, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
-            break;
-        default:
-            Assert(UNREACHED);
-    }
-
-    for (uint i = 0; i < lanes; i++)
-    {
-        ReleaseLocation(&args[i]);
-    }
-
-    return EmitInfo(resultReg, resultType);
-}
-
 void WasmBytecodeGenerator::EmitExpr(WasmOp op)
 {
     DebugPrintOp(op);
@@ -850,11 +813,6 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 2);\
         info = EmitUnaryExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
-        break;
-#define WASM_SIMD_BUILD_OPCODE(opname, opcode, sig, asmjop, lanes, ...) \
-    case wb##opname: \
-        Assert(WasmOpCodeSignatures::n##sig == 2);\
-        info = EmitSimdBuildExpr<lanes>(Js::OpCodeAsmJs::##asmjop, WasmOpCodeSignatures::sig); \
         break;
 #define WASM_EMPTY__OPCODE(opname, opcode, asmjsop, imp, wat) \
     case wb##opname: \
