@@ -28,7 +28,7 @@ class JsrtExternalType sealed : public Js::DynamicType
 {
 public:
     JsrtExternalType(JsrtExternalType *type) : Js::DynamicType(type), jsTraceCallback(type->jsTraceCallback), jsFinalizeCallback(type->jsFinalizeCallback) {}
-    JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback);
+    JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype);
 
     //Js::PropertyId GetNameId() const { return ((Js::PropertyRecord *)typeDescription.className)->GetPropertyId(); }
     JsTraceCallback GetJsTraceCallback() const { return this->jsTraceCallback; }

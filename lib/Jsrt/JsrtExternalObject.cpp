@@ -7,11 +7,11 @@
 #include "JsrtExternalObject.h"
 #include "Types/PathTypeHandler.h"
 
-JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback)
+JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype)
     : Js::DynamicType(
         scriptContext,
         Js::TypeIds_Object,
-        scriptContext->GetLibrary()->GetObjectPrototype(),
+        prototype,
         nullptr,
         Js::PathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, 0, 0, true, true),
         true,
