@@ -320,7 +320,8 @@ void GlobOpt::ArraySrcOpt::CheckVirtualArrayBounds()
                 {
                     Assert(instr->m_opcode == Js::OpCode::InlineArrayPush ||
                         instr->m_opcode == Js::OpCode::InlineArrayPop ||
-                        instr->m_opcode == Js::OpCode::LdLen_A);
+                        instr->m_opcode == Js::OpCode::LdLen_A ||
+                        instr->m_opcode == Js::OpCode::IsIn);
                 }
 
                 eliminatedLowerBoundCheck = true;
@@ -1987,6 +1988,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
         if (eliminatedLowerBoundCheck && eliminatedUpperBoundCheck)
         {
             TRACE_TESTTRACE_PHASE_INSTR(Js::Phase::BoundCheckEliminationPhase, instr, _u("Eliminating IsIn\n"));
+
+            globOpt->CaptureByteCodeSymUses(instr);
 
             instr->m_opcode = Js::OpCode::Ld_A;
 
