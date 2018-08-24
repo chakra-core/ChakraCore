@@ -5463,7 +5463,14 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 m_reparsingLambdaParams = true;
             }
 
+            uint savedStubCount = m_currDeferredStubCount;
+            DeferredFunctionStub* savedStub = m_currDeferredStub;
+            ShiftCurrDeferredStubToChildFunction(pnodeFnc, pnodeFncParent);
+
             this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags, isTopLevelDeferredFunc);
+
+            m_currDeferredStub = savedStub;
+            m_currDeferredStubCount = savedStubCount;
 
             m_reparsingLambdaParams = fLambdaParamsSave;
         }
@@ -5637,13 +5644,10 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
                 }
                 uint savedStubCount = m_currDeferredStubCount;
                 DeferredFunctionStub* savedStub = m_currDeferredStub;
-                if (pnodeFnc->IsNested() && pnodeFncSave != nullptr && m_currDeferredStub != nullptr && pnodeFncSave->ichMin != pnodeFnc->ichMin)
-                {
-                    DeferredFunctionStub* childStub = m_currDeferredStub + (pnodeFncSave->nestedCount - 1);
-                    m_currDeferredStubCount = childStub->nestedCount;
-                    m_currDeferredStub = childStub->deferredStubs;
-                }
+                ShiftCurrDeferredStubToChildFunction(pnodeFnc, pnodeFncSave);
+
                 this->FinishFncDecl(pnodeFnc, pNameHint, fLambda, skipFormals, fAllowIn);
+
                 m_currDeferredStub = savedStub;
                 m_currDeferredStubCount = savedStubCount;
             }
@@ -14019,6 +14023,23 @@ bool Parser::IsCreatingStateCache()
     return (((this->m_grfscr & fscrCreateParserState) == fscrCreateParserState)
         && this->m_functionBody == nullptr
         && CONFIG_FLAG(ParserStateCache));
+}
+
+void Parser::ShiftCurrDeferredStubToChildFunction(ParseNodeFnc* pnodeFnc, ParseNodeFnc* pnodeFncParent)
+{
+    // Goal here is to shift the current deferred stub to point to the stubs for pnodeFnc
+    // so we may continue parsing pnodeFnc using the correct set of stubs instead of the
+    // stubs for pnodeFncParent.
+    // This function assumes we are in the middle of parsing pnodeFnc which is a child
+    // nested in pnodeFncParent.
+    if (pnodeFnc->IsNested() && pnodeFncParent != nullptr && m_currDeferredStub != nullptr && pnodeFncParent->ichMin != pnodeFnc->ichMin)
+    {
+        AssertOrFailFast(pnodeFncParent->nestedCount > 0);
+
+        DeferredFunctionStub* childStub = m_currDeferredStub + (pnodeFncParent->nestedCount - 1);
+        m_currDeferredStubCount = childStub->nestedCount;
+        m_currDeferredStub = childStub->deferredStubs;
+    }
 }
 
 uint Parser::BuildDeferredStubTreeHelper(ParseNodeBlock* pnodeBlock, DeferredFunctionStub* deferredStubs, uint currentStubIndex, uint deferredStubCount, Recycler *recycler)
