@@ -4447,6 +4447,7 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
 
     // FunctionBody check is the primary bailout instruction, create it first
     IR::BailOutInstr* primaryBailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
+    primaryBailOutInstr->SetByteCodeOffset(insertBeforeInstr);
 
     // 1. Bailout if function object is not an object.
     IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject,
