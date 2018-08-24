@@ -257,6 +257,10 @@ namespace Js
                 commonNativeInterfaceId = Js::PropertyIds::builtInJavascriptArrayEntryFilter;
                 break;
 
+            case PropertyIds::forEach:
+                commonNativeInterfaceId = Js::PropertyIds::builtInJavascriptArrayEntryForEach;
+                break;
+
             default:
                 return;
         }
