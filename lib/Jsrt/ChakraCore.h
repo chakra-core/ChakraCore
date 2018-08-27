@@ -136,7 +136,7 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 ///     User implemented callback to fetch imported modules dynamically in scripts.
 /// </summary>
 /// <remarks>
-///     The callback is invoked on the current runtime execution thread, therefore execution is blocked untill
+///     The callback is invoked on the current runtime execution thread, therefore execution is blocked until
 ///     the callback completes. Notify the host to fetch the dependent module. This is used for the dynamic
 ///     import() syntax.
 ///

@@ -217,7 +217,7 @@ typedef unsigned short uint16_t;
         /// </summary>
         JsErrorInvalidContext,
         /// <summary>
-        ///     Module evaluation is called in wrong context.
+        ///     The Module HostInfoKind provided was invalid.
         /// </summary>
         JsInvalidModuleHostInfoKind,
         /// <summary>
@@ -237,6 +237,7 @@ typedef unsigned short uint16_t;
         ///     Module was not yet evaluated when JsGetModuleNamespace was called.
         /// </summary>
         JsErrorModuleNotEvaluated,
+
         /// <summary>
         ///     Category of errors that relates to errors occurring within the engine itself.
         /// </summary>
@@ -922,7 +923,7 @@ typedef unsigned short uint16_t;
     /// <remarks>
     ///     Removes a reference to a <c>JsRef</c> handle that was created by <c>JsAddRef</c>.
     /// </remarks>
-    /// <param name="ref">The object to add a reference to.</param>
+    /// <param name="ref">The object to remove the reference from.</param>
     /// <param name="count">The object's new reference count (can pass in null).</param>
     /// <returns>
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -1051,7 +1052,7 @@ typedef unsigned short uint16_t;
             _Out_ JsRuntimeHandle *runtime);
 
     /// <summary>
-    ///     Tells the runtime to do any idle processing it need to do.
+    ///     Tells the runtime to do any idle processing it needs to do.
     /// </summary>
     /// <remarks>
     ///     <para>
