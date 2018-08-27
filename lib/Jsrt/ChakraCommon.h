@@ -314,6 +314,18 @@ typedef unsigned short uint16_t;
         ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
+        /// <summary>
+        ///     Serializer/Deserializer does not support current data
+        /// </summary>
+        JsSerializerNotSupported,
+        /// <summary>
+        ///     Current object is not transferable during serialization
+        /// </summary>
+        JsTransferableNotSupported,
+        /// <summary>
+        ///     Current object is already detached when serialized
+        /// </summary>
+        JsTransferableAlreadyDetached,
     } JsErrorCode;
 
     /// <summary>

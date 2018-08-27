@@ -55,6 +55,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtReleasePtr)(JsRef ref, unsigned int* count);
     typedef JsErrorCode (WINAPI *JsrtAddRefPtr)(JsRef ref, unsigned int* count);
     typedef JsErrorCode (WINAPI *JsrtGetValueType)(JsValueRef value, JsValueType *type);
+    typedef JsErrorCode(WINAPI *JsrtGetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef *value);
     typedef JsErrorCode (WINAPI *JsrtSetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef value);
     typedef JsErrorCode (WINAPI *JsrtSetPromiseContinuationCallbackPtr)(JsPromiseContinuationCallback callback, void *callbackState);
     typedef JsErrorCode (WINAPI *JsrtSetHostPromiseRejectionTrackerPtr)(JsHostPromiseRejectionTrackerCallback callback, void *callbackState);
@@ -109,6 +110,9 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime);
     typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, int64_t* rootEventTime);
 
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle);
+    typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(SerializerBlob *blob, DeserializerHandleBase **deserializerHandle);
+
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetObjectBeforeCollectCallbackPtr pfJsrtSetObjectBeforeCollectCallback;
@@ -161,6 +165,7 @@ struct JsAPIHooks
     JsrtReleasePtr pfJsrtRelease;
     JsrtAddRefPtr pfJsrtAddRef;
     JsrtGetValueType pfJsrtGetValueType;
+    JsrtGetIndexedPropertyPtr pfJsrtGetIndexedProperty;
     JsrtSetIndexedPropertyPtr pfJsrtSetIndexedProperty;
     JsrtSetPromiseContinuationCallbackPtr pfJsrtSetPromiseContinuationCallback;
     JsrtSetHostPromiseRejectionTrackerPtr pfJsrtSetHostPromiseRejectionTracker;
@@ -211,6 +216,9 @@ struct JsAPIHooks
     JsrtTTDGetSnapTimeTopLevelEventMovePtr pfJsrtTTDGetSnapTimeTopLevelEventMove;
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
+
+    JsrtVarSerializerPtr pfJsrtVarSerializer;
+    JsrtVarDeserializerPtr pfJsrtVarDeserializer;
 };
 
 #ifdef _WIN32
@@ -372,6 +380,7 @@ public:
     static JsErrorCode WINAPI JsRelease(JsRef ref, unsigned int* count) { return HOOK_JS_API(Release(ref, count)); }
     static JsErrorCode WINAPI JsAddRef(JsRef ref, unsigned int* count) { return HOOK_JS_API(AddRef(ref, count)); }
     static JsErrorCode WINAPI JsGetValueType(JsValueRef value, JsValueType *type) { return HOOK_JS_API(GetValueType(value, type)); }
+    static JsErrorCode WINAPI JsGetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef *value) { return HOOK_JS_API(GetIndexedProperty(object, index, value)); }
     static JsErrorCode WINAPI JsSetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef value) { return HOOK_JS_API(SetIndexedProperty(object, index, value)); }
     static JsErrorCode WINAPI JsSetPromiseContinuationCallback(JsPromiseContinuationCallback callback, void *callbackState) { return HOOK_JS_API(SetPromiseContinuationCallback(callback, callbackState)); }
     static JsErrorCode WINAPI JsSetHostPromiseRejectionTracker(JsHostPromiseRejectionTrackerCallback callback, void *callbackState) { return HOOK_JS_API(SetHostPromiseRejectionTracker(callback, callbackState)); }
@@ -433,6 +442,9 @@ public:
 
     static JsErrorCode WINAPI JsSerializeParserState(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes) { return HOOK_JS_API(SerializeParserState(script, buffer, parseAttributes)); }
     static JsErrorCode WINAPI JsRunScriptWithParserState(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef * result) { return HOOK_JS_API(RunScriptWithParserState(script, sourceContext, sourceUrl, parseAttributes, parserState, result)); }
+
+    static JsErrorCode WINAPI JsVarSerializer(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle) { return HOOK_JS_API(VarSerializer(delegate, serializerHandle)); }
+    static JsErrorCode WINAPI JsVarDeserializer(SerializerBlob *blob, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(blob, deserializerHandle)); }
 };
 
 class AutoRestoreContext

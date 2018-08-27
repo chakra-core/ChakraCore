@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Runtime.h"
 #include "JsrtContext.h"
+#include "SCACorePch.h"
 #include "JsrtContextCore.h"
 
 JsrtContext *JsrtContext::New(JsrtRuntime * runtime)
@@ -158,3 +159,129 @@ HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecord
     return E_INVALIDARG;
 }
 
+ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
+{
+    HeapDelete(m_serializerCore);
+}
+
+byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
+{
+    if (m_delegate)
+    {
+        m_data = m_delegate->ReallocateBufferMemory(oldBuffer, newSize, allocatedSize);
+        m_length = newSize;
+    }
+    else
+    {
+        void* data = realloc((void*)oldBuffer, newSize);
+        if (allocatedSize)
+        {
+            *allocatedSize = newSize;
+        }
+        m_data = (byte*)data;
+        m_length = newSize;
+    }
+
+    if (m_data == nullptr)
+    {
+        // free(m_data);
+        OutOfMemory_unrecoverable_error();
+    }
+    return m_data;
+}
+
+void ChakraCoreStreamWriter::SetSerializer(Js::SCACore::Serializer *s)
+{
+    m_serializerCore = s;
+}
+
+void ChakraCoreStreamWriter::WriteRawBytes(const void* source, size_t length)
+{
+    Assert(m_serializerCore);
+    m_serializerCore->WriteRawBytes(source, length);
+}
+
+bool ChakraCoreStreamWriter::WriteValue(JsValueRef root)
+{
+    Assert(m_serializerCore);
+    return m_serializerCore->WriteValue((Js::Var)root);
+}
+
+bool ChakraCoreStreamWriter::ReleaseData(byte** data, size_t *dataLength)
+{
+    if (m_data)
+    {
+        Assert(m_serializerCore);
+        return m_serializerCore->Release(data, dataLength);
+    }
+    return false;
+}
+
+bool ChakraCoreStreamWriter::DetachArrayBuffer()
+{
+    Assert(m_serializerCore);
+    return m_serializerCore->DetachArrayBuffer();
+}
+
+JsErrorCode ChakraCoreStreamWriter::SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount)
+{
+    Assert(m_serializerCore);
+    HRESULT hr = m_serializerCore->SetTransferableVars((Js::Var *)transferableVars, transferableVarsCount);
+    if (hr == S_OK)
+    {
+        return JsNoError;
+    }
+    else if (hr == E_SCA_TRANSFERABLE_UNSUPPORTED)
+    {
+        return JsTransferableNotSupported;
+    }
+    else if (hr == E_SCA_TRANSFERABLE_NEUTERED)
+    {
+        return JsTransferableAlreadyDetached;
+    }
+    return JsSerializerNotSupported;
+}
+
+void *ChakraCoreStreamWriter::GetTransferableHolder()
+{
+    Assert(m_serializerCore);
+    return m_serializerCore->GetTransferableHolder();
+}
+
+void ChakraCoreStreamWriter::FreeSelf()
+{
+    HeapDelete(this);
+}
+
+ChakraHostDeserializerHandle::~ChakraHostDeserializerHandle()
+{
+    HeapDelete(m_deserializer);
+}
+
+void ChakraHostDeserializerHandle::SetDeserializer(Js::SCACore::Deserializer *deserializer)
+{
+    m_deserializer = deserializer;
+}
+
+bool ChakraHostDeserializerHandle::ReadRawBytes(size_t length, void **data)
+{
+    Assert(m_deserializer);
+    return m_deserializer->ReadRawBytes(length, data);
+}
+
+bool ChakraHostDeserializerHandle::ReadBytes(size_t length, void **data)
+{
+	Assert(m_deserializer);
+	return m_deserializer->ReadBytes(length, data);
+}
+
+JsValueRef ChakraHostDeserializerHandle::ReadValue()
+{
+    Assert(m_deserializer);
+    return m_deserializer->ReadValue();
+}
+
+void ChakraHostDeserializerHandle::FreeSelf()
+{
+    HeapDelete(this);
+}

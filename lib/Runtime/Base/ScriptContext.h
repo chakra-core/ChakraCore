@@ -177,6 +177,8 @@ public:
     virtual HRESULT FetchImportedModuleFromScript(DWORD_PTR dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
 
+    virtual HRESULT ThrowIfFailed(HRESULT hr) = 0;
+
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
 
     virtual bool SetCrossSiteForFunctionType(Js::JavascriptFunction * function) = 0;
@@ -189,6 +191,13 @@ public:
 private:
     Js::ScriptContext* scriptContext;
 };
+
+class HostStream
+{
+public:
+    virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+};
+
 
 #if ENABLE_TTD
 typedef void (CALLBACK *JsTTDOnScriptLoadCallback)(FinalizableObject* hostContext, Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify);

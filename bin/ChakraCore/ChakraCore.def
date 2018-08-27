@@ -70,3 +70,5 @@ JsSerializeParserState
 JsRunScriptWithParserState
 JsGetPromiseState
 JsGetPromiseResult
+JsVarSerializer
+JsVarDeserializer

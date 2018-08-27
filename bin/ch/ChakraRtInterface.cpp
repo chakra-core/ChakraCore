@@ -120,6 +120,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtRelease = (JsAPIHooks::JsrtReleasePtr)GetChakraCoreSymbol(library, "JsRelease");
     m_jsApiHooks.pfJsrtAddRef = (JsAPIHooks::JsrtAddRefPtr)GetChakraCoreSymbol(library, "JsAddRef");
     m_jsApiHooks.pfJsrtGetValueType = (JsAPIHooks::JsrtGetValueType)GetChakraCoreSymbol(library, "JsGetValueType");
+    m_jsApiHooks.pfJsrtGetIndexedProperty = (JsAPIHooks::JsrtGetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsGetIndexedProperty");
     m_jsApiHooks.pfJsrtSetIndexedProperty = (JsAPIHooks::JsrtSetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsSetIndexedProperty");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetChakraCoreSymbol(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtSetHostPromiseRejectionTracker = (JsAPIHooks::JsrtSetHostPromiseRejectionTrackerPtr)GetChakraCoreSymbol(library, "JsSetHostPromiseRejectionTracker");
@@ -175,6 +176,9 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtTTDGetSnapTimeTopLevelEventMove = (JsAPIHooks::JsrtTTDGetSnapTimeTopLevelEventMovePtr)GetChakraCoreSymbol(library, "JsTTDGetSnapTimeTopLevelEventMove");
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetChakraCoreSymbol(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
+    m_jsApiHooks.pfJsrtVarSerializer = (JsAPIHooks::JsrtVarSerializerPtr)GetChakraCoreSymbol(library, "JsVarSerializer");
+    m_jsApiHooks.pfJsrtVarDeserializer = (JsAPIHooks::JsrtVarDeserializerPtr)GetChakraCoreSymbol(library, "JsVarDeserializer");
+
 #endif
 
     return true;
