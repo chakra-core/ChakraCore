@@ -322,7 +322,7 @@ private:
     void                InsertDoneLoopBodyLoopCounter(uint32 lastOffset);
 
     IR::RegOpnd *       InsertConvPrimStr(IR::RegOpnd * srcOpnd, uint offset, bool forcePreOpBailOutIfNeeded);
-    IR::Opnd *          IRBuilder::GetEnvironmentOperand(uint32 offset);
+    IR::Opnd *          GetEnvironmentOperand(uint32 offset);
     bool                DoLoadInstructionArrayProfileInfo();
     bool                AllowNativeArrayProfileInfo();
 
