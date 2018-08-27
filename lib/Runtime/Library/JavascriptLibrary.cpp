@@ -703,8 +703,19 @@ namespace Js
         bool isAnonymousFunction = function->IsAnonymousFunction();
 
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
-        typeHandler->ConvertFunction(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+        typeHandler->ConvertFunction(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeAndLengthTypeHandler);
         function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
+
+        Var varLength;
+        GeneratorVirtualScriptFunction* scriptFunction = function->GetGeneratorVirtualScriptFunction();
+        if (!scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, nullptr, scriptFunction->GetScriptContext()))
+        {
+            // TODO - remove this if or convert it to a FailFast if this assert never triggers
+            // Nothing in the ChakraCore CI will reach this code
+            AssertMsg(false, "Initializing Generator function without a length property - why isn't there a length?.");
+            varLength = TaggedInt::ToVarUnchecked(0);
+        }
+        function->SetPropertyWithAttributes(PropertyIds::length, varLength, PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
 
         if (!isAnonymousFunction)
         {
@@ -720,15 +731,31 @@ namespace Js
     bool JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Async function instances do not have a prototype property as they are not constructable
-        typeHandler->Convert(function, mode, 1);
+        JavascriptAsyncFunction* asyncFunction = JavascriptAsyncFunction::FromVar(function);
 
-        if (!JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction())
+        if (!asyncFunction->IsAnonymousFunction())
         {
+            typeHandler->Convert(function, mode, 2);
             JavascriptString * functionName = nullptr;
             DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);
             Assert(status);
             function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
+        else
+        {
+            typeHandler->Convert(function, mode, 1);
+        }
+
+        Var varLength;
+        GeneratorVirtualScriptFunction* scriptFunction = asyncFunction->GetGeneratorVirtualScriptFunction();
+        if (!scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, nullptr, scriptFunction->GetScriptContext()))
+        {
+            // TODO - remove this if or convert it to a FailFast if this assert never triggers
+            // Nothing in the ChakraCore CI will reach this code
+            AssertMsg(false, "Initializing Async function without a length property - why isn't there a length?.");
+            varLength = TaggedInt::ToVarUnchecked(0);
+        }
+        function->SetPropertyWithAttributes(PropertyIds::length, varLength, PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
 
         return true;
     }
@@ -880,14 +907,14 @@ namespace Js
     template<bool isNameAvailable, bool isPrototypeAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeGeneratorFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeGeneratorFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, /*isLengthAvailable*/ true>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase()
     {
         // Async functions do not have the prototype property
-        return DeferredTypeHandler<InitializeAsyncFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, /* isPrototypeAvailable */ false>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeAsyncFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, /* isPrototypeAvailable */ false, /*isLengthAvailable*/ true>>::GetDefaultInstance();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler()
@@ -910,7 +937,7 @@ namespace Js
         return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler()
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
     }
@@ -930,9 +957,14 @@ namespace Js
         return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionWithLengthTypeHandler()
     {
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandler()
@@ -940,7 +972,7 @@ namespace Js
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ false>();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerNoPrototype()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler()
     {
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
     }
@@ -952,13 +984,13 @@ namespace Js
         if (noPrototypeProperty)
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                this->GetDeferredAnonymousFunctionTypeHandler() :
-                this->GetDeferredFunctionTypeHandlerNoPrototype();
+                this->GetDeferredAnonymousFunctionWithLengthTypeHandler() :
+                this->GetDeferredFunctionWithLengthTypeHandler();
         }
         else
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
+                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler() :
                 JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         }
         return scriptFunctionTypeHandler;

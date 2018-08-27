@@ -70,12 +70,25 @@ const tests = [
             function normalFunction (a, b) { }
             const anonymousFunction = function (a, b, c) { }
             const lambda = (a, b, c, d) => { }
+            const anonGen = function* (a, b) {}
+            function* genFunc () {}
+            async function asyncFunc (a) {}
+            const anonAsync = async function () { }
+
             lengthDefaultState(normalFunction, 2, "function");
             lengthDefaultState(anonymousFunction, 3, "Anonymous function");
             lengthDefaultState(lambda, 4, "Lambda function");
+            lengthDefaultState(anonGen, 2, "Anonymous generator");
+            lengthDefaultState(genFunc, 0, "Generator function");
+            lengthDefaultState(anonAsync, 0, "Anonymous async function");
+            lengthDefaultState(asyncFunc, 1, "Async function");
             deleteLength(normalFunction, "function");
             deleteLength(anonymousFunction, "Anonymous function");
             deleteLength(lambda, "Lambda function");
+            deleteLength(anonGen, "Anonymous generator");
+            deleteLength(genFunc, "Generator function");
+            deleteLength(anonAsync, "Anonymous async function");
+            deleteLength(asyncFunc, "Async function");
         }
     },
     {
@@ -85,9 +98,17 @@ const tests = [
             function normalFunction (a, b) { }
             const anonymousFunction = function (a, b, c) { }
             const lambda = (a, b, c, d) => { }
+            const anonGen = function* (a, b) {}
+            function* genFunc () {}
+            async function asyncFunc (a) {}
+            const anonAsync = async function () { }
             reDefineLength(normalFunction, "function");
             reDefineLength(anonymousFunction, "Anonymous function");
             reDefineLength(lambda, "Lambda function");
+            reDefineLength(anonGen, "Lambda function");
+            reDefineLength(genFunc, "Lambda function");
+            reDefineLength(asyncFunc, "Lambda function");
+            reDefineLength(anonAsync, "Lambda function");
         }
     },
     {
@@ -97,16 +118,24 @@ const tests = [
             function normalFunction (a, b) { }
             const anonymousFunction = function (a, b, c) { }
             const lambda = (a, b, c, d) => { }
+            function* genFunc (a, b, c, d, e) {}
+            async function asyncFunc (a, b) {}
             const boundNormal = normalFunction.bind({}, 1);
             const boundAnon = anonymousFunction.bind({}, 1, 1, 1, 1);
             const boundLambda = lambda.bind({}, 1, 1);
+            const boundGen = genFunc.bind({}, 1, 1, 1, 1);
+            const boundAsync = asyncFunc.bind({}, 1);
 
             lengthDefaultState(boundNormal, 1, "Bound Function");
             lengthDefaultState(boundAnon, 0, "Anonymous Bound Function");
             lengthDefaultState(boundLambda, 2, "Bound Lambda Function");
+            lengthDefaultState(boundGen, 1, "Bound Generator Function");
+            lengthDefaultState(boundAsync, 1, "Bound Async Function");
             deleteLength(boundNormal, "Bound Function");
             deleteLength(boundAnon, "Anonymous Bound Function");
             deleteLength(boundLambda, "Bound Lambda Function");
+            deleteLength(boundGen, 1, "Bound Generator Function");
+            deleteLength(boundAsync, 1, "Bound Async Function");
         }
     },
     {
