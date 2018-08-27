@@ -48,48 +48,67 @@ using namespace PlatformAgnostic::ICUHelpers;
 
 #endif // INTL_ICU
 
-// NOTE(jahorto): Keep these enums in sync with those by the same name in Intl.js
-// These enums are used by both WinGlob- and ICU-backed Intl
-enum class NumberFormatStyle
-{
-    Decimal, // Intl.NumberFormat(locale, { style: "decimal" }); // aka in our code as "number"
-    Percent, // Intl.NumberFormat(locale, { style: "percent" });
-    Currency, // Intl.NumberFormat(locale, { style: "currency", ... });
+// The following macros allow the key-value pairs to be C++ enums as well as JS objects
+// in Intl.js. When adding a new macro, follow the same format as the _VALUES macros below,
+// and add your new _VALUES macro to PROJECTED_ENUMS along with the name of the enum.
+// NOTE: make sure the last VALUE macro has the highest integer value, since the C++ enum's ::Max
+// value is added to the end of the C++ enum definition as an increment of the previous value.
+// The ::Max value is used in a defensive assert, and we want to make sure its always 1 greater
+// than the highest valid value.
 
-    Max,
-    Default = Decimal,
+#define NUMBERFORMATSTYLE_VALUES(VALUE) \
+VALUE(Default, default_, 0) \
+VALUE(Decimal, decimal, 0) \
+VALUE(Percent, percent, 1) \
+VALUE(Currency, currency, 2)
+
+#define NUMBERFORMATCURRENCYDISPLAY_VALUES(VALUE) \
+VALUE(Default, default_, 0) \
+VALUE(Symbol, symbol, 0) \
+VALUE(Code, code, 1) \
+VALUE(Name, name, 2)
+
+#define COLLATORSENSITIVITY_VALUES(VALUE) \
+VALUE(Default, default_, 3) \
+VALUE(Base, base, 0) \
+VALUE(Accent, accent, 1) \
+VALUE(Case, case_, 2) \
+VALUE(Variant, variant, 3)
+
+#define COLLATORCASEFIRST_VALUES(VALUE) \
+VALUE(Default, default_, 2) \
+VALUE(Upper, upper, 0) \
+VALUE(Lower, lower, 1) \
+VALUE(False, false_, 2)
+
+// LocaleDataKind intentionally has no Default value
+#define LOCALEDATAKIND_VALUES(VALUE) \
+VALUE(Collation, co, 0) \
+VALUE(CaseFirst, kf, 1) \
+VALUE(Numeric, kn, 2) \
+VALUE(Calendar, ca, 3) \
+VALUE(NumberingSystem, nu, 4) \
+VALUE(HourCycle, hc, 5)
+
+#define ENUM_VALUE(enumName, propId, value) enumName = value,
+#define PROJECTED_ENUM(ClassName, VALUES) \
+enum class ClassName \
+{ \
+    VALUES(ENUM_VALUE) \
+    Max \
 };
 
-enum class NumberFormatCurrencyDisplay
-{
-    Symbol, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "symbol" }); // e.g. "$" or "US$" depeding on locale
-    Code, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "code" }); // e.g. "USD"
-    Name, // Intl.NumberFormat(locale, { style: "currency", currencyDisplay: "name" }); // e.g. "US dollar"
+#define PROJECTED_ENUMS(PROJECT) \
+PROJECT(LocaleDataKind, LOCALEDATAKIND_VALUES) \
+PROJECT(CollatorCaseFirst, COLLATORCASEFIRST_VALUES) \
+PROJECT(CollatorSensitivity, COLLATORSENSITIVITY_VALUES) \
+PROJECT(NumberFormatCurrencyDisplay, NUMBERFORMATCURRENCYDISPLAY_VALUES) \
+PROJECT(NumberFormatStyle, NUMBERFORMATSTYLE_VALUES)
 
-    Max,
-    Default = Symbol,
-};
+PROJECTED_ENUMS(PROJECTED_ENUM)
 
-enum class CollatorSensitivity
-{
-    Base,
-    Accent,
-    Case,
-    Variant,
-
-    Max,
-    Default = Variant,
-};
-
-enum class CollatorCaseFirst
-{
-    Upper,
-    Lower,
-    False,
-
-    Max,
-    Default = False,
-};
+#undef PROJECTED_ENUM
+#undef ENUM_VALUE
 
 #pragma warning(push)
 #pragma warning(disable:4309) // truncation of constant value
@@ -546,6 +565,22 @@ namespace Js
     library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::##id, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_##func, 1);
 #include "IntlExtensionObjectBuiltIns.h"
 #undef INTL_ENTRY
+
+        library->AddMember(intlNativeInterfaces, PropertyIds::FallbackSymbol, library->CreateSymbol(BuiltInPropertyRecords::_intlFallbackSymbol));
+
+        DynamicObject * enumObj = nullptr;
+
+// Projects the exact layout of our C++ enums into Intl.js so that we dont have to remember to keep them in sync
+#define ENUM_VALUE(enumName, unicodeKey, value) library->AddMember(enumObj, PropertyIds::##unicodeKey, JavascriptNumber::ToVar(value, scriptContext));
+#define PROJECTED_ENUM(ClassName, VALUES) \
+    enumObj = library->CreateObject(); \
+    VALUES(ENUM_VALUE) \
+    library->AddMember(intlNativeInterfaces, PropertyIds::##ClassName, enumObj); \
+
+PROJECTED_ENUMS(PROJECTED_ENUM)
+
+#undef PROJECTED_ENUM
+#undef ENUM_VALUE
 
 #if INTL_WINGLOB
         library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetTrue());
@@ -1047,15 +1082,8 @@ DEFINE_ISXLOCALEAVAILABLE(DTF, udat)
 DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
 
 #ifdef INTL_ICU
-    enum class LocaleDataKind
-    {
-        Collation,
-        CaseFirst,
-        Numeric,
-        Calendar,
-        NumberingSystem,
-        HourCycle
-    };
+
+
 #endif
 
     Var IntlEngineInterfaceExtensionObject::EntryIntl_GetLocaleData(RecyclableObject* function, CallInfo callInfo, ...)
