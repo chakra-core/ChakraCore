@@ -518,6 +518,11 @@ ENTRY(tagPublicLibraryCode)
 ENTRY(winglob)
 ENTRY(platform)
 ENTRY(formatToParts)
+ENTRY(FallbackSymbol)
+
+// This symbol is not part of the regular Symbol API and is only used in rare circumstances in Intl.js for backwards compatibility
+// with the Intl v1 spec. It is visible to the user only using Object.getOwnPropertySymbols(Intl.NumberFormat.call(new Intl.NumberFormat())).
+ENTRY_SYMBOL(_intlFallbackSymbol, _u("Intl.FallbackSymbol"))
 
 ENTRY(NumberFormat)
 ENTRY(__currency)

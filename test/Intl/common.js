@@ -83,5 +83,41 @@ testRunner.runTests([
             test((options) => assert.areEqual("", new Intl.DateTimeFormat("en-US", options).format()), "year", "numeric", true);
             test((options) => assert.areEqual("", new Intl.DateTimeFormat("en-US", options).format()), "minute", "numeric", true);
         }
+    },
+    {
+        name: "Intl.FallbackSymbol behavior",
+        body() {
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                return;
+            }
+
+            function testFallbackSymbol(Ctor, shouldHaveFallbackSymbol) {
+                const objNew = new Ctor();
+                const objCall = Ctor.call(objNew);
+                const symbols = Object.getOwnPropertySymbols(objCall);
+                assert.isTrue(objCall instanceof Ctor, `The given object should be an instance of ${Ctor.name}`);
+                assert.areEqual(0, Object.getOwnPropertyNames(objCall).length, "Incorrect number of OwnPropertyNames");
+                if (shouldHaveFallbackSymbol) {
+                    assert.areEqual(1, symbols.length, "Incorrect number of OwnPropertySymbols");
+                    const fallbackSymbol = symbols[0];
+                    assert.areEqual("Symbol(Intl.FallbackSymbol)", fallbackSymbol.toString(), "Unexpected symbol description");
+                    assert.areEqual("object", typeof objCall[fallbackSymbol], "objCall[fallbackSymbol] should be an object");
+                    assert.isTrue(objCall[fallbackSymbol] instanceof Ctor, `objCall[fallbackSymbol] should be an instance of ${Ctor.name}`);
+
+                    assert.throws(() => Ctor.call(objNew), TypeError, "Should not be able to legacy-construct an already-legacy-constructed Intl object (using original non-legacy new object)", "Cannot modify non-writable property 'Intl.FallbackSymbol'");
+                    assert.throws(() => Ctor.call(objCall), TypeError, "Should not be able to legacy-construct an already-legacy-constructed Intl object (using legacy .call() object", "Cannot modify non-writable property 'Intl.FallbackSymbol'");
+
+                    assert.areEqual(objNew, objCall, "Object created with .call should return `this`");
+                } else {
+                    assert.areEqual(0, symbols.length, "Incorrect number of OwnPropertySymbols");
+                }
+            }
+
+            // only NumberFormat and DateTimeFormat should have Intl.FallbackSymbol behavior. PluralRules has no legacy construction behavior.
+            testFallbackSymbol(Intl.Collator, false);
+            testFallbackSymbol(Intl.NumberFormat, true);
+            testFallbackSymbol(Intl.DateTimeFormat, true);
+            assert.throws(() => Intl.PluralRules.call(new Intl.PluralRules()), TypeError, "Intl.PluralRules requires `new`");
+        }
     }
 ], { verbose: false });

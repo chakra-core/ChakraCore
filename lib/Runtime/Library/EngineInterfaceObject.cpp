@@ -317,30 +317,43 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count >= 2 && JavascriptFunction::Is(args.Values[1]))
+        AssertOrFailFast((callInfo.Count == 3 || callInfo.Count == 4) && JavascriptFunction::Is(args[1]) && JavascriptString::Is(args[2]));
+
+        JavascriptFunction *func = JavascriptFunction::UnsafeFromVar(args[1]);
+        JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
+
+        func->GetFunctionProxy()->SetIsPublicLibraryCode();
+
+        // use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
+        const char16 *methodNameBuf = methodName->GetSz();
+        charcount_t methodNameLength = methodName->GetLength();
+        const char16 *shortName = wcsrchr(methodNameBuf, _u('.'));
+        charcount_t shortNameOffset = 0;
+        if (shortName != nullptr)
         {
-            JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[1]);
-            func->GetFunctionProxy()->SetIsPublicLibraryCode();
-
-            if (callInfo.Count >= 3 && JavascriptString::Is(args.Values[2]))
-            {
-                JavascriptString* customFunctionName = JavascriptString::FromVar(args.Values[2]);
-                // tagPublicFunction("Intl.Collator", Collator); in Intl.js calls TagPublicLibraryCode the expected name is Collator so we need to calculate the offset
-                const char16 * shortName = wcsrchr(customFunctionName->GetString(), _u('.'));
-                uint shortNameOffset = 0;
-                if (shortName != nullptr)
-                {
-                    // JavascriptString length is bounded by uint max
-                    shortName++;
-                    shortNameOffset = static_cast<uint>(shortName - customFunctionName->GetString());
-                }
-                func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(customFunctionName->GetString(), customFunctionName->GetLength(), shortNameOffset);
-            }
-
-            return func;
+            shortName++;
+            shortNameOffset = static_cast<charcount_t>(shortName - methodNameBuf);
         }
 
-        return scriptContext->GetLibrary()->GetUndefined();
+        func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
+
+        bool creatingConstructor = true;
+        if (callInfo.Count == 4)
+        {
+            AssertOrFailFast(JavascriptBoolean::Is(args[3]));
+            creatingConstructor = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
+        }
+
+        if (!creatingConstructor)
+        {
+            FunctionInfo *info = func->GetFunctionInfo();
+            info->SetAttributes((FunctionInfo::Attributes) (info->GetAttributes() | FunctionInfo::Attributes::ErrorOnNew));
+
+            AssertOrFailFast(func->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler());
+            DynamicTypeHandler::SetInstanceTypeHandler(func, scriptContext->GetLibrary()->GetDeferredFunctionWithLengthTypeHandler());
+        }
+
+        return func;
     }
 
     /*

@@ -330,7 +330,7 @@ namespace Js
     typedef FinalizableICUObject<UPluralRules *, uplrules_close> FinalizableUPluralRules;
 
     template<typename TExecutor>
-    static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(returnLength) char16 **ret, _Out_ int *returnLength, _In_ bool allowZeroLengthStrings = false, _In_ int firstTryLength = 8)
+    static void EnsureBuffer(_In_ TExecutor executor, _In_ Recycler *recycler, _Outptr_result_buffer_(*returnLength) char16 **ret, _Out_ int *returnLength, _In_ bool allowZeroLengthStrings = false, _In_ int firstTryLength = 8)
     {
         UErrorCode status = U_ZERO_ERROR;
         *ret = RecyclerNewArrayLeaf(recycler, char16, firstTryLength);
@@ -546,6 +546,8 @@ namespace Js
     library->AddFunctionToLibraryObject(intlNativeInterfaces, Js::PropertyIds::##id, &IntlEngineInterfaceExtensionObject::EntryInfo::Intl_##func, 1);
 #include "IntlExtensionObjectBuiltIns.h"
 #undef INTL_ENTRY
+
+        library->AddMember(intlNativeInterfaces, PropertyIds::FallbackSymbol, library->CreateSymbol(BuiltInPropertyRecords::_intlFallbackSymbol));
 
 #if INTL_WINGLOB
         library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetTrue());
@@ -2653,14 +2655,15 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             // To accomplish this, we can set the switchover date between julian/gregorian
             // to the ECMAScript beginning of time, which is -8.64e15 according to ecma262 #sec-time-values-and-time-range
             UCalendar *cal = const_cast<UCalendar *>(udat_getCalendar(*dtf));
-            ucal_setGregorianChange(cal, -8.64e15, &status);
-
-            // status can be U_UNSUPPORTED_ERROR if the calendar isn't gregorian, which
-            // there does not seem to be a way to check for ahead of time in the C API
-            AssertOrFailFastMsg(U_SUCCESS(status) || status == U_UNSUPPORTED_ERROR, ICU_ERRORMESSAGE(status));
-
-            // If we passed the previous check, we should reset the status to U_ZERO_ERROR (in case it was U_UNSUPPORTED_ERROR)
-            status = U_ZERO_ERROR;
+            const char *calType = ucal_getType(cal, &status);
+            ICU_ASSERT(status, calType != nullptr);
+            if (strcmp(calType, "gregorian") == 0)
+            {
+                double beginningOfTime = -8.64e15;
+                ucal_setGregorianChange(cal, beginningOfTime, &status);
+                double actualGregorianChange = ucal_getGregorianChange(cal, &status);
+                ICU_ASSERT(status, beginningOfTime == actualGregorianChange);
+            }
 
             INTL_TRACE("Caching new UDateFormat (0x%x) with langtag=%s, pattern=%s, timezone=%s", dtf, langtag->GetSz(), pattern->GetSz(), timeZone->GetSz());
 
@@ -2945,7 +2948,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
     }
 
 #ifdef INTL_ICU
-    static FinalizableUPluralRules *GetOrCreatePluralRulesCache(DynamicObject *stateObject, ScriptContext *scriptContext)
+    static FinalizableUPluralRules *GetOrCreateCachedUPluralRules(DynamicObject *stateObject, ScriptContext *scriptContext)
     {
         Var cachedUPluralRules = nullptr;
         FinalizableUPluralRules *pr = nullptr;
@@ -2977,7 +2980,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
             pr = FinalizableUPluralRules::New(scriptContext->GetRecycler(), uplrules_openForType(localeID, prType, &status));
             ICU_ASSERT(status, true);
 
-            INTL_TRACE("Caching UPluralRules object (0x%x) with langtag %s and type %s", langtag->GetSz(), type->GetSz());
+            INTL_TRACE("Caching UPluralRules object (0x%x) with langtag %s and type %s", pr, langtag->GetSz(), type->GetSz());
 
             stateObject->SetInternalProperty(InternalPropertyIds::CachedUPluralRules, pr, PropertyOperationFlags::PropertyOperation_None, nullptr);
         }
@@ -3001,7 +3004,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         // This array is only used in resolved options, so the majority of the functionality can remain (namely, select() still works)
 #if defined(ICU_VERSION) && ICU_VERSION >= 61
         DynamicObject *state = DynamicObject::UnsafeFromVar(args[1]);
-        FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
+        FinalizableUPluralRules *pr = GetOrCreateCachedUPluralRules(state, scriptContext);
 
         UErrorCode status = U_ZERO_ERROR;
         ScopedUEnumeration keywords(uplrules_getKeywords(*pr, &status));
@@ -3044,29 +3047,44 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PluralRules_Prototype_select);
         INTL_TRACE("Calling PluralRules.prototype.select(%f)", n);
 
-        FinalizableUPluralRules *pr = GetOrCreatePluralRulesCache(state, scriptContext);
+        UErrorCode status = U_ZERO_ERROR;
+
+        FinalizableUPluralRules *pr = GetOrCreateCachedUPluralRules(state, scriptContext);
 
         // ICU has an internal API, uplrules_selectWithFormat, that is equivalent to uplrules_select but will respect digit options of the passed UNumberFormat.
         // Since its an internal API, we can't use it -- however, we can work around it by creating a UNumberFormat with provided digit options,
         // formatting the requested number to a string, and then converting the string back to a double which we can pass to uplrules_select.
         // This workaround was suggested during the May 2018 ECMA-402 discussion.
-        // TODO(jahorto): investigate caching this UNumberFormat on the state as well. This is currently not possible because we are using InternalProperyIds::HiddenObject
-        // for all ICU object caching, but once we move to better names for the cache property IDs, we can cache both the UNumberFormat as well as the UPluralRules.
-        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
-        LangtagToLocaleID(AssertStringProperty(state, PropertyIds::locale), localeID);
-        UErrorCode status = U_ZERO_ERROR;
-        FinalizableUNumberFormat *fmt = FinalizableUNumberFormat::New(scriptContext->GetRecycler(), unum_open(UNUM_DECIMAL, nullptr, 0, localeID, nullptr, &status));
+        // The below is similar to GetOrCreateCachedUPluralRules, but since creating a UNumberFormat for Intl.NumberFormat is much more involved and no one else
+        // uses this functionality, it makes more sense to me to just put the logic inline.
+        Var cachedUNumberFormat = nullptr;
+        FinalizableUNumberFormat *nf = nullptr;
+        if (state->GetInternalProperty(state, InternalPropertyIds::CachedUNumberFormat, &cachedUNumberFormat, nullptr, scriptContext))
+        {
+            nf = reinterpret_cast<FinalizableUNumberFormat *>(cachedUNumberFormat);
+            INTL_TRACE("Using previously cached UNumberFormat (0x%x)", nf);
+        }
+        else
+        {
+            char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+            LangtagToLocaleID(AssertStringProperty(state, PropertyIds::locale), localeID);
+            nf = FinalizableUNumberFormat::New(scriptContext->GetRecycler(), unum_open(UNUM_DECIMAL, nullptr, 0, localeID, nullptr, &status));
 
-        SetUNumberFormatDigitOptions(*fmt, state);
+            SetUNumberFormatDigitOptions(*nf, state);
+
+            INTL_TRACE("Caching UNumberFormat object (0x%x) with localeID %S", nf, localeID);
+
+            state->SetInternalProperty(InternalPropertyIds::CachedUNumberFormat, nf, PropertyOperationFlags::PropertyOperation_None, nullptr);
+        }
 
         char16 *formattedN = nullptr;
         int formattedNLength = 0;
         EnsureBuffer([&](UChar *buf, int bufLen, UErrorCode *status)
         {
-            return unum_formatDouble(*fmt, n, buf, bufLen, nullptr, status);
+            return unum_formatDouble(*nf, n, buf, bufLen, nullptr, status);
         }, scriptContext->GetRecycler(), &formattedN, &formattedNLength);
 
-        double nWithOptions = unum_parseDouble(*fmt, reinterpret_cast<UChar *>(formattedN), formattedNLength, nullptr, &status);
+        double nWithOptions = unum_parseDouble(*nf, reinterpret_cast<UChar *>(formattedN), formattedNLength, nullptr, &status);
         double roundtripDiff = n - nWithOptions;
         ICU_ASSERT(status, roundtripDiff <= 1.0 && roundtripDiff >= -1.0);
 
