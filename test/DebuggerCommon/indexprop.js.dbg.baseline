@@ -112,6 +112,7 @@
           "source": "string regex",
           "options": "string ",
           "unicode": "boolean false",
+          "dotAll": "boolean false",
           "sticky": "boolean false",
           "[106]": "string 106"
         },

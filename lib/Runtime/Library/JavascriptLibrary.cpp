@@ -3779,7 +3779,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(regexPrototype, mode, 24);
+        typeHandler->Convert(regexPrototype, mode, 26);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
         JavascriptFunction * func;
@@ -3832,8 +3832,17 @@ namespace Js
             {
                 library->regexUnicodeGetterFunction =
                     library->AddGetterToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
-                library->regexUnicodeGetterSlotIndex = 19;
+                library->regexUnicodeGetterSlotIndex = scriptConfig->IsES6RegExStickyEnabled() ? 19 : 17;
                 Assert(regexPrototype->GetSlot(library->regexUnicodeGetterSlotIndex) == library->regexUnicodeGetterFunction);
+            }
+
+            if (scriptConfig->IsES2018RegExDotAllEnabled())
+            {
+                library->regexDotAllGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::dotAll, &JavascriptRegExp::EntryInfo::GetterDotAll);
+                library->regexDotAllGetterSlotIndex = 21 -
+                    (scriptConfig->IsES6UnicodeExtensionsEnabled() ? 0 : 2) - (scriptConfig->IsES6RegExStickyEnabled() ? 0 : 2);
+                Assert(regexPrototype->GetSlot(library->regexDotAllGetterSlotIndex) == library->regexDotAllGetterFunction);
             }
         }
 

@@ -41,6 +41,15 @@ namespace Js
                     return false;
                 flags = (UnifiedRegex::RegexFlags)(flags | UnifiedRegex::MultilineRegexFlag);
                 break;
+            case 's':
+                if (scriptContext->GetConfig()->IsES2018RegExDotAllEnabled())
+                {
+                    if ((flags & UnifiedRegex::DotAllRegexFlag) != 0)
+                        return false;
+                    flags = (UnifiedRegex::RegexFlags)(flags | UnifiedRegex::DotAllRegexFlag);
+                    break;
+                }
+                return false;
             case 'u':
                 if (scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
                 {
@@ -115,7 +124,7 @@ namespace Js
         // generate a trivial options string right here on the stack and delegate to the string parsing
         // based implementation.
         //
-        const CharCount OPT_BUF_SIZE = 6;
+        const CharCount OPT_BUF_SIZE = 7;
         char16 opts[OPT_BUF_SIZE];
 
         CharCount i = 0;
@@ -130,6 +139,11 @@ namespace Js
         if (flags & UnifiedRegex::MultilineRegexFlag)
         {
             opts[i++] = _u('m');
+        }
+        if (flags & UnifiedRegex::DotAllRegexFlag)
+        {
+            Assert(scriptContext->GetConfig()->IsES2018RegExDotAllEnabled());
+            opts[i++] = _u('s');
         }
         if (flags & UnifiedRegex::UnicodeRegexFlag)
         {
