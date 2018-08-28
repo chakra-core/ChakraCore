@@ -158,6 +158,7 @@ PHASE(All)
                     PHASE(DepolymorphizeInlinees)
                     PHASE(ReuseAuxSlotPtr)
                     PHASE(PolyEquivTypeGuard)
+                    PHASE(DeadStoreTypeChecksOnStores)
                     #if DBG
                         PHASE(SimulatePolyCacheWithOneTypeForFunction)
                     #endif
