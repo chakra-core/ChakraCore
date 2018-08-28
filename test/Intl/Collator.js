@@ -188,5 +188,27 @@ testRunner.runTests([
                 assert.areEqual(0, coll.compare("" + test, test), `${test} did not compare equal to itself using Collator.prototype.compare`);
             });
         }
+    },
+    {
+        name: "Usage option should be respected",
+        body() {
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                return;
+            }
+
+            function test(locale, usage, expectedLocale, expectedUsage, expectedCollation, expectedArray) {
+                const input = ["AE", "A", "B", "Ä"];
+                const collator = new Intl.Collator(locale, { usage });
+                assert.areEqual(expectedLocale, collator.resolvedOptions().locale);
+                assert.areEqual(expectedUsage, collator.resolvedOptions().usage);
+                assert.areEqual(expectedCollation, collator.resolvedOptions().collation);
+                assert.areEqual(expectedArray, input.sort(collator.compare).join(","));
+            }
+
+            test("de", "sort", "de", "sort", "default", "A,Ä,AE,B");
+            test("de", "search", "de", "search", "default", "A,AE,Ä,B");
+            test("de-u-co-phonebk", "sort", "de-u-co-phonebk", "sort", "phonebk", "A,AE,Ä,B");
+            test("de-u-co-phonebk", "search", "de", "search", "default", "A,AE,Ä,B");
+        }
     }
 ], { verbose: !WScript.Arguments.includes("summary") });
