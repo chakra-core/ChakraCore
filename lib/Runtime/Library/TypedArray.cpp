@@ -1114,6 +1114,15 @@ namespace Js
         return SetItem(index, value);
     }
 
+    BOOL TypedArrayBase::IsObjectArrayFrozen()
+    {
+        if (GetLength() > 0)
+        {
+            return false; // the backing buffer is always modifiable
+        }
+        return IsSealed();
+    }
+
     BOOL TypedArrayBase::Is(Var aValue)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aValue);

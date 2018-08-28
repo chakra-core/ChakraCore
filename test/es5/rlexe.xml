@@ -105,13 +105,11 @@
   <test>
     <default>
       <files>seal.js</files>
-      <baseline>seal.baseline</baseline>
     </default>
   </test>
   <test>
     <default>
       <files>freeze.js</files>
-      <baseline>freeze.baseline</baseline>
     </default>
   </test>
   <test>
