@@ -1461,3 +1461,15 @@ CommonNumber:
         return NumberUtilities::TryToInt64(length);
     }
 
+    JavascriptBigInt *JavascriptConversion::ToBigInt(Var aValue, ScriptContext* scriptContext)
+    {
+        Assert(scriptContext->GetThreadContext()->IsScriptActive());
+        switch (JavascriptOperators::GetTypeId(aValue))
+        {
+        case TypeIds_BigInt:
+            break;
+        default:
+            AssertOrFailFastMsg(false, "do not support conversion of other types in ToBigInt");
+        }
+        return UnsafeVarTo<JavascriptBigInt>(aValue);
+    }

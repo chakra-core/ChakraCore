@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<regress-exe>
+  <test>
+    <default>
+      <files>comparison.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>global_object.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+</regress-exe>

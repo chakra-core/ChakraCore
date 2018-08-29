@@ -241,6 +241,14 @@ namespace Js
             DeferredTypeHandler<InitializeNumberPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
         numberPrototype = RecyclerNew(recycler, JavascriptNumberObject, TaggedInt::ToVarUnchecked(0), tempDynamicType);
 
+        bigintPrototype = nullptr;
+        if (scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_BigIntObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeBigIntPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            bigintPrototype = RecyclerNew(recycler, JavascriptBigIntObject, nullptr, tempDynamicType);
+        }
+
         tempDynamicType = DynamicType::New(scriptContext, TypeIds_StringObject, objectPrototype, nullptr,
             DeferredTypeHandler<InitializeStringPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
         stringPrototype = RecyclerNew(recycler, JavascriptStringObject, nullptr, tempDynamicType);
@@ -514,6 +522,12 @@ namespace Js
         proxyType   = nullptr;
         promiseType = nullptr;
         moduleNamespaceType = nullptr;
+
+        if (config->IsESBigIntEnabled())
+        {
+            bigintTypeStatic = StaticType::New(scriptContext, TypeIds_BigInt, bigintPrototype, nullptr);
+            bigintTypeDynamic = DynamicType::New(scriptContext, TypeIds_BigIntObject, bigintPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+        }
 
         // Initialize boolean types
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
@@ -1352,6 +1366,15 @@ namespace Js
         numberConstructor = CreateBuiltinConstructor(&JavascriptNumber::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeNumberConstructor>::GetDefaultInstance());
         AddFunction(globalObject, PropertyIds::Number, numberConstructor);
+
+        bigIntConstructor = nullptr;
+        if (scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            bigIntConstructor = CreateBuiltinConstructor(&JavascriptBigInt::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeBigIntConstructor>::GetDefaultInstance());
+            AddFunction(globalObject, PropertyIds::BigInt, bigIntConstructor);
+        }
+
         stringConstructor = CreateBuiltinConstructor(&JavascriptString::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeStringConstructor>::GetDefaultInstance());
         AddFunction(globalObject, PropertyIds::String, stringConstructor);
@@ -3566,6 +3589,25 @@ namespace Js
         return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
     }
 
+    bool JavascriptLibrary::InitializeBigIntConstructor(DynamicObject* bigIntConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        const int numberOfProperties = 3;
+        typeHandler->Convert(bigIntConstructor, mode, numberOfProperties);
+
+        // TODO(BigInt): Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBigInt
+        // so that the update is in sync with profiler
+        ScriptContext* scriptContext = bigIntConstructor->GetScriptContext();
+        JavascriptLibrary* library = bigIntConstructor->GetLibrary();
+        library->AddMember(bigIntConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(bigIntConstructor, PropertyIds::prototype, library->bigintPrototype, PropertyNone);
+        library->AddMember(bigIntConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::BigInt), PropertyConfigurable);
+
+        bigIntConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
+    }
+
+
     bool JavascriptLibrary::InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(numberConstructor, mode, 17);
@@ -3608,6 +3650,20 @@ namespace Js
         }
 
         numberConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
+    }
+
+    bool JavascriptLibrary::InitializeBigIntPrototype(DynamicObject* bigIntPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        const int numberOfProperties = 1;
+        typeHandler->Convert(bigIntPrototype, mode, numberOfProperties);
+        // TODO(BigInt): Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBigInt
+        // so that the update is in sync with profiler
+        JavascriptLibrary* library = bigIntPrototype->GetLibrary();
+        library->AddMember(bigIntPrototype, PropertyIds::constructor, library->bigIntConstructor);
+
+        bigIntPrototype->SetHasNoEnumerableProperties(true);
 
         return true;
     }
@@ -6913,6 +6969,20 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(valueOf, JavascriptBoolean::EntryValueOf);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptBoolean::EntryToString);
 
+        return hr;
+    }
+
+    HRESULT JavascriptLibrary::ProfilerRegisterBigInt()
+    {
+        if (!scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            return E_FAIL;
+        }
+        HRESULT hr = S_OK;
+        REG_GLOBAL_CONSTRUCTOR(BigInt);
+
+        //DEFINE_OBJECT_NAME(BigInt);
+        
         return hr;
     }
 

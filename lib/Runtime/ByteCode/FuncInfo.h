@@ -145,6 +145,8 @@ public:
     PidRegisterMap stringToRegister; // maps string constant to register
     typedef JsUtil::BaseDictionary<double,Js::RegSlot, ArenaAllocator, PrimeSizePolicy> DoubleRegisterMap;
     DoubleRegisterMap doubleConstantToRegister; // maps double constant to register
+    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator> BigIntRegisterMap;
+    BigIntRegisterMap bigintToRegister; // maps bigint constant to register
 
     typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator, PowerOf2SizePolicy> StringTemplateCallsiteRegisterMap;
     StringTemplateCallsiteRegisterMap stringTemplateCallsiteRegisterMap; // maps string template callsite constant to register

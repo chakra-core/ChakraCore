@@ -587,12 +587,12 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
 }
 
 template <typename EncodingPolicy>
-typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt, size_t savedMultiUnits)
+typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, LikelyNumberType& likelyType, size_t savedMultiUnits)
 {
     EncodedCharPtr last = m_pchLast;
     EncodedCharPtr pchT = nullptr;
     bool baseSpecified = false;
-    likelyInt = true;
+    likelyType = LikelyNumberType::Int;
     // Reset
     m_OctOrLeadingZeroOnLastTKNumber = false;
 
@@ -617,7 +617,8 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
         case '.':
         case 'e':
         case 'E':
-            likelyInt = false;
+        case 'n':
+            likelyType = LikelyNumberType::Double;
             // Floating point
             goto LFloat;
 
@@ -668,8 +669,12 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
     else
     {
 LFloat:
-        *pdbl = Js::NumberUtilities::StrToDbl(p, &pchT, likelyInt);
+        *pdbl = Js::NumberUtilities::StrToDbl(p, &pchT, likelyType, m_scriptContext->GetConfig()->IsESBigIntEnabled());
         Assert(pchT == p || !Js::NumberUtilities::IsNan(*pdbl));
+        if (likelyType == LikelyNumberType::BigInt)
+        {
+            Assert(*pdbl == 0);
+        }
         // fall through to LIdCheck
     }
 
@@ -1723,8 +1728,8 @@ LEof:
                 Assert(chType == _C_DIG || chType == _C_DOT);
                 p = m_pchMinTok;
                 this->RestoreMultiUnits(m_cMinTokMultiUnits);
-                bool likelyInt = true;
-                pchT = FScanNumber(p, &dbl, likelyInt, savedMultiUnits);
+                LikelyNumberType likelyType = LikelyNumberType::Int;
+                pchT = FScanNumber(p, &dbl, likelyType, savedMultiUnits);
                 if (p == pchT)
                 {
                     this->RestoreMultiUnits(savedMultiUnits);
@@ -1732,11 +1737,19 @@ LEof:
                     Error(ERRbadNumber);
                 }
                 Assert(!Js::NumberUtilities::IsNan(dbl));
-
+                if (likelyType == LikelyNumberType::BigInt)
+                {
+                    Assert(m_scriptContext->GetConfig()->IsESBigIntEnabled());
+                    AssertOrFailFast(pchT - p < UINT_MAX);
+                    token = tkBigIntCon;
+                    m_ptoken->SetBigInt(this->GetHashTbl()->PidHashNameLen(p, pchT, (uint32) (pchT - p)));
+                    p = pchT;
+                    break;
+                }
                 p = pchT;
 
                 int32 value;
-                if (likelyInt && Js::NumberUtilities::FDblIsInt32(dbl, &value))
+                if ((likelyType == LikelyNumberType::Int) && Js::NumberUtilities::FDblIsInt32(dbl, &value))
                 {
                     m_ptoken->SetLong(value);
                     token = tkIntCon;
@@ -1744,7 +1757,7 @@ LEof:
                 else
                 {
                     token = tkFltCon;
-                    m_ptoken->SetDouble(dbl, likelyInt);
+                    m_ptoken->SetDouble(dbl, likelyType == LikelyNumberType::Int);
                 }
 
                 break;

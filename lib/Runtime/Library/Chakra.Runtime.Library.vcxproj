@@ -148,6 +148,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)LazyJSONString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DetachedStateBase.h" />
@@ -157,6 +159,8 @@
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="AtomicsOperations.h" />
+    <ClInclude Include="JavascriptBigInt.h" />
+    <ClInclude Include="JavascriptBigIntObject.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />

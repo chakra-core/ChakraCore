@@ -84,6 +84,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptStringEnumerator.cpp
     JavascriptStringIterator.cpp
     JavascriptStringObject.cpp
+    JavascriptBigInt.cpp
+    JavascriptBigIntObject.cpp
     JavascriptSymbol.cpp
     JavascriptSymbolObject.cpp
     JavascriptTypedNumber.cpp

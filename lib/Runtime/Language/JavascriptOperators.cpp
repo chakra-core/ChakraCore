@@ -641,6 +641,13 @@ using namespace Js;
         TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
         TypeId rightType = JavascriptOperators::GetTypeId(aRight);
 
+        if ((leftType == TypeIds_BigInt) || (rightType == TypeIds_BigInt))
+        {
+            // TODO: support comparison with types other than BigInt
+            AssertOrFailFastMsg(leftType == rightType, "do not support comparison with types other than BigInt");
+            return JavascriptBigInt::LessThan(aLeft, aRight);
+        }
+
         switch (leftType)
         {
         case TypeIds_Integer:
@@ -729,6 +736,7 @@ using namespace Js;
                 dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);
             }
             break;
+
         case TypeIds_String:
             switch (rightType)
             {

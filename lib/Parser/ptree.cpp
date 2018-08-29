@@ -42,6 +42,12 @@ ParseNodeInt * ParseNode::AsParseNodeInt()
     return reinterpret_cast<ParseNodeInt *>(this);
 }
 
+ParseNodeBigInt * ParseNode::AsParseNodeBigInt()
+{
+    Assert(this->nop == knopBigInt);
+    return reinterpret_cast<ParseNodeBigInt *>(this);
+}
+
 ParseNodeFloat * ParseNode::AsParseNodeFloat()
 {
     Assert(this->nop == knopFlt);
@@ -355,6 +361,12 @@ ParseNodeStr::ParseNodeStr(charcount_t ichMin, charcount_t ichLim, IdentPtr name
     : ParseNode(knopStr, ichMin, ichLim), pid(name)
 {
 }
+
+ParseNodeBigInt::ParseNodeBigInt(charcount_t ichMin, charcount_t ichLim, IdentPtr name)
+    : ParseNode(knopBigInt, ichMin, ichLim), pid(name)
+{
+}
+
 
 ParseNodeName::ParseNodeName(charcount_t ichMin, charcount_t ichLim, IdentPtr name)
     : ParseNode(knopName, ichMin, ichLim), pid(name)

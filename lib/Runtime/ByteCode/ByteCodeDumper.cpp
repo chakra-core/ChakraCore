@@ -191,6 +191,13 @@ namespace Js
 #endif
                     Output::Print(_u("%G"), JavascriptNumber::GetValue(varConst));
                     break;
+                case Js::TypeIds_BigInt:
+#if ENABLE_NATIVE_CODEGEN
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::BigIntLiteral));
+#else
+                    Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
+#endif
+                    break;
                 case Js::TypeIds_String:
 #if ENABLE_NATIVE_CODEGEN
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::LdStr));

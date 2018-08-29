@@ -1995,6 +1995,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
 
     this->RecordAllIntConstants(funcInfo);
     this->RecordAllStrConstants(funcInfo);
+    this->RecordAllBigIntConstants(funcInfo);
     this->RecordAllStringTemplateCallsiteConstants(funcInfo);
 
     funcInfo->doubleConstantToRegister.Map([byteCodeFunction](double d, Js::RegSlot location)
@@ -5712,6 +5713,16 @@ void ByteCodeGenerator::RecordAllStrConstants(FuncInfo * funcInfo)
     funcInfo->stringToRegister.Map([byteCodeFunction](IdentPtr pid, Js::RegSlot location)
     {
         byteCodeFunction->RecordStrConstant(byteCodeFunction->MapRegSlot(location), pid->Psz(), pid->Cch(), pid->IsUsedInLdElem());
+    });
+}
+
+void ByteCodeGenerator::RecordAllBigIntConstants(FuncInfo * funcInfo)
+{
+    Js::FunctionBody *byteCodeFunction = this->TopFuncInfo()->GetParsedFunctionBody();
+    funcInfo->bigintToRegister.Map([byteCodeFunction](ParseNode* pnode, Js::RegSlot location)
+    {
+        IdentPtr pid = pnode->AsParseNodeBigInt()->pid;
+        byteCodeFunction->RecordBigIntConstant(byteCodeFunction->MapRegSlot(location), pid->Psz(), pid->Cch(), pnode->AsParseNodeBigInt()->isNegative);
     });
 }
 
@@ -10337,6 +10348,9 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         // TODO: protocol for combining string constants
         break;
         // PTNODE(knopRegExp     , "reg expr"    ,None    ,Pid  ,fnopLeaf|fnopConst)
+    case knopBigInt:
+        // PTNODE(knopBigInt        , "bigint const"    ,None    ,Pid  ,fnopLeaf|fnopConst)
+        break;
     case knopRegExp:
         funcInfo->GetParsedFunctionBody()->SetLiteralRegex(pnode->AsParseNodeRegExp()->regexPatternIndex, pnode->AsParseNodeRegExp()->regexPattern);
         byteCodeGenerator->Writer()->Reg1Unsigned1(Js::OpCode::NewRegEx, funcInfo->AcquireLoc(pnode), pnode->AsParseNodeRegExp()->regexPatternIndex);

@@ -102,6 +102,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -226,6 +228,10 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="..\LibraryFunction.h" />
+    <ClInclude Include="IntlExtensionObjectBuiltIns.h" />
+    <ClInclude Include="StringCacheList.h" />
+    <ClInclude Include="JavascriptBigInt.h" />
+    <ClInclude Include="JavascriptBigIntObject.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
