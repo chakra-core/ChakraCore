@@ -1056,24 +1056,6 @@ bool PropertySymOpnd::HasFinalType() const
     return this->finalType != nullptr;
 }
 
-bool PropertySymOpnd::NeedsAuxSlotPtrSymLoad() const
-{
-    // Consider: reload based on guarded prop ops' use of aux slots
-    return this->GetAuxSlotPtrSym() != nullptr;
-}
-
-void PropertySymOpnd::GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert)
-{
-    StackSym * auxSlotPtrSym = GetAuxSlotPtrSym();
-    Assert(auxSlotPtrSym);
-    Func * func = instrInsert->m_func;
-
-    IR::Opnd *opndIndir = IR::IndirOpnd::New(this->CreatePropertyOwnerOpnd(func), Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, func);
-    IR::RegOpnd *regOpnd = IR::RegOpnd::New(auxSlotPtrSym, TyMachReg, func);
-    regOpnd->SetIsJITOptimizedReg(true);
-    Lowerer::InsertMove(regOpnd, opndIndir, instrInsert);
-}
-
 PropertySymOpnd *
 PropertySymOpnd::CloneDefInternalSub(Func *func)
 {

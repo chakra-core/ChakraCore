@@ -459,6 +459,8 @@ private:
 
     BVSparse<JitArenaAllocator> *   changedSymsAfterIncBailoutCandidate;
 
+    BVSparse<JitArenaAllocator> *   auxSlotPtrSyms;
+
     JitArenaAllocator *             alloc;
     JitArenaAllocator *             tempAlloc;
 
@@ -933,6 +935,8 @@ private:
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
+    StackSym *              EnsureAuxSlotPtrSym(IR::PropertySymOpnd *opnd);
+    void                    KillAuxSlotPtrSyms(IR::PropertySymOpnd *opnd, BasicBlock *block, bool isObjTypeSpecialized);
     void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
     bool                    HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
     template<class Fn>

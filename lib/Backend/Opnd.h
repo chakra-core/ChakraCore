@@ -636,6 +636,8 @@ public:
             // Note that even usesFixedValue cannot live on ObjTypeSpecFldInfo, because we may share a cache between
             // e.g. Object.prototype and new Object(), and only the latter actually uses the fixed value, even though both have it.
             bool usesFixedValue: 1;
+            bool auxSlotPtrSymAvailable:1;
+            bool producesAuxSlotPtr:1;
 
             union
             {
@@ -964,6 +966,28 @@ public:
         this->typeDead = value;
     }
 
+    bool IsAuxSlotPtrSymAvailable() const
+    {
+        return this->auxSlotPtrSymAvailable;
+    }
+
+    void SetAuxSlotPtrSymAvailable(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->auxSlotPtrSymAvailable = value;
+    }
+
+    bool ProducesAuxSlotPtr() const
+    {
+        return this->producesAuxSlotPtr;
+    }
+
+    void SetProducesAuxSlotPtr(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->producesAuxSlotPtr = value;
+    }
+
     void SetTypeDeadIfTypeCheckSeqCandidate(bool value)
     {
         if (IsTypeCheckSeqCandidate())
@@ -1167,9 +1191,6 @@ public:
     {
         this->finalType = JITTypeHolder(nullptr);
     }
-
-    bool NeedsAuxSlotPtrSymLoad() const;
-    void GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert);
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
     {

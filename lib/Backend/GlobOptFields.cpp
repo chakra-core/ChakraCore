@@ -787,6 +787,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
         if (!isObjTypeSpecialized || opnd->ChangesObjectLayout())
         {
             this->KillObjectHeaderInlinedTypeSyms(block, isObjTypeSpecialized, opndId);
+            this->KillAuxSlotPtrSyms(opnd, block, isObjTypeSpecialized);
         }
         else if (!isObjTypeChecked && this->HasLiveObjectHeaderInlinedTypeSym(block, true, opndId))
         {
@@ -795,6 +796,37 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
     }
 
     return isObjTypeSpecialized;
+}
+
+StackSym *
+GlobOpt::EnsureAuxSlotPtrSym(IR::PropertySymOpnd *opnd)
+{
+    StackSym *auxSlotPtrSym = opnd->EnsureAuxSlotPtrSym(this->func);
+    this->auxSlotPtrSyms->Set(auxSlotPtrSym->m_id);
+    return auxSlotPtrSym;
+}
+
+void
+GlobOpt::KillAuxSlotPtrSyms(IR::PropertySymOpnd *opnd, BasicBlock *block, bool isObjTypeSpecialized)
+{
+    StackSym *auxSlotPtrSym = nullptr;
+    if (isObjTypeSpecialized)
+    {
+        // Kill all aux slot syms other than this one
+        auxSlotPtrSym = opnd->GetAuxSlotPtrSym();
+        if (auxSlotPtrSym)
+        {
+            Assert(this->auxSlotPtrSyms && this->auxSlotPtrSyms->Test(auxSlotPtrSym->m_id));
+            this->auxSlotPtrSyms->Clear(auxSlotPtrSym->m_id);
+        }
+    }
+
+    block->globOptData.liveFields->Minus(this->auxSlotPtrSyms);
+
+    if (auxSlotPtrSym)
+    {
+        this->auxSlotPtrSyms->Set(auxSlotPtrSym->m_id);
+    }
 }
 
 void
@@ -1386,6 +1418,43 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
         *changesTypeValueOut = isSpecialized && (emitsTypeCheck || addsProperty);
     }
 
+    if (makeChanges)
+    {
+        // Track liveness of aux slot ptr syms.
+        if (!PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func) && isSpecialized)
+        {
+            if (opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto())
+            {
+                // Optimized ld/st that loads/uses an aux slot ptr.
+                // Aux slot sym is live forward.
+                StackSym *auxSlotPtrSym = this->EnsureAuxSlotPtrSym(opnd);
+                if (!this->IsLoopPrePass() && opnd->IsTypeChecked())
+                {
+                    if (block->globOptData.liveFields->TestAndSet(auxSlotPtrSym->m_id))
+                    {
+                        // Aux slot sym is available here. Tell lowerer to use it.
+                        opnd->SetAuxSlotPtrSymAvailable(true);
+                    }
+                }
+                else
+                {
+                    block->globOptData.liveFields->Set(auxSlotPtrSym->m_id);
+                }
+            }
+            else if (!opnd->IsTypeChecked())
+            {
+                // Type sym is not available here (i.e., object shape is not known) and we're not loading the aux slots.
+                // May get here with aux slot sym still in live set if type sym is not in the value table.
+                // Clear the aux slot sym out of the live set.
+                StackSym *auxSlotPtrSym = opnd->GetAuxSlotPtrSym();
+                if (auxSlotPtrSym)
+                {
+                    block->globOptData.liveFields->Clear(auxSlotPtrSym->m_id);
+                }
+            }
+        }
+    }
+
     return isSpecialized;
 }
 
@@ -1699,6 +1768,11 @@ GlobOpt::KillObjectType(StackSym* objectSym, BVSparse<JitArenaAllocator>* liveFi
     }
 
     liveFields->Clear(objectSym->GetObjectTypeSym()->m_id);
+    StackSym *auxSlotPtrSym = objectSym->GetAuxSlotPtrSym();
+    if (auxSlotPtrSym)
+    {
+        liveFields->Clear(auxSlotPtrSym->m_id);
+    }
 }
 
 void
@@ -1707,6 +1781,7 @@ GlobOpt::KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields)
     if (this->objectTypeSyms && liveFields)
     {
         liveFields->Minus(this->objectTypeSyms);
+        liveFields->Minus(this->auxSlotPtrSyms);
     }
 }
 
