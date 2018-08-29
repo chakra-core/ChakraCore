@@ -912,6 +912,10 @@ HRESULT ExecuteTest(const char* fileName)
         {
             CreateParserStateAndRunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, fullPath);
         }
+        else if (HostConfigFlags::flags.ExecuteWithBgParse)
+        {
+            // Run multiple scripts with BGParse
+        }
         else
         {
             IfFailGo(RunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, nullptr, fullPath, nullptr));

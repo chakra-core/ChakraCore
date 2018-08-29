@@ -4749,6 +4749,50 @@ CHAKRA_API JsTTDDiagSetAutoTraceStatus(_In_ bool status)
 #endif
 }
 
+CHAKRA_API
+JsQueueBackgroundParse(JsScriptContents* contents, DWORD* dwBgParseCookie)
+{
+    HRESULT hr;
+    if (Js::Configuration::Global.flags.BgParse && !CONFIG_FLAG(ForceDiagnosticsMode)
+        // For now, only UTF8 buffers are supported for BGParse
+        && contents->encodingType == JsScriptEncodingType::Utf8
+        && contents->containerType == JsScriptContainerType::HeapAllocatedBuffer
+        // SourceContext not needed for BGParse
+        && contents->sourceContext == 0)
+    {
+        hr = BGParseManager::GetBGParseManager()->QueueBackgroundParse((LPUTF8)contents->container, contents->contentLengthInBytes, (char16*)contents->fullPath, dwBgParseCookie);
+    }
+    else
+    {
+        hr = E_NOTIMPL;
+    }
+
+    JsErrorCode res;
+    if (hr != S_OK)
+    {
+        res = JsErrorFatal;
+    }
+    else
+    {
+        res = JsNoError;
+    }
+
+    return res;
+}
+
+CHAKRA_API
+JsDiscardBackgroundParse(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer)
+{
+    (*callerOwnsBuffer) = BGParseManager::GetBGParseManager()->DiscardParseResults(dwBgParseCookie, buffer);
+    return JsNoError;
+}
+
+CHAKRA_API
+JsExecuteBackgroundParse(DWORD dwBgParseCookie, JsContextRef context, DWORD_PTR dwSourceContext, DWORD dwFlags, VARIANT* pvarResult, EXCEPINFO* pexcepinfo)
+{
+    return JsNoError;
+}
+
 #ifdef _CHAKRACOREBUILD
 
 template <class SrcChar, class DstChar>

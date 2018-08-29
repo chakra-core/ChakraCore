@@ -625,6 +625,27 @@ typedef unsigned short uint16_t;
         JsDataView = 12,
     } JsValueType;
 
+    typedef enum _JsScriptEncodingType
+    {
+        Utf8,
+        Utf16
+    } JsScriptEncodingType;
+
+    typedef enum _JsScriptContainerType
+    {
+        HeapAllocatedBuffer
+    } JsScriptContainerType;
+
+    typedef struct _JsScriptContents
+    {
+        LPVOID container;
+        JsScriptEncodingType encodingType;
+        JsScriptContainerType containerType;
+        DWORD_PTR sourceContext;
+        size_t contentLengthInBytes;
+        LPCWSTR fullPath;
+    } JsScriptContents;
+
     /// <summary>
     ///     User implemented callback routine for memory allocation events
     /// </summary>
@@ -2412,6 +2433,16 @@ typedef unsigned short uint16_t;
         JsSetPromiseContinuationCallback(
             _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
+
+    CHAKRA_API
+        JsQueueBackgroundParse(JsScriptContents* contents, DWORD* dwBgParseCookie);
+
+    CHAKRA_API
+        JsDiscardBackgroundParse(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer);
+
+    CHAKRA_API
+        JsExecuteBackgroundParse(DWORD dwBgParseCookie, JsContextRef context, DWORD_PTR dwSourceContext, DWORD dwFlags, VARIANT* pvarResult, EXCEPINFO* pexcepinfo);
+
 
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
