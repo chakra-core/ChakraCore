@@ -2288,6 +2288,15 @@ namespace Js
             return false;
         }
 
+        if (DynamicObject::IsAnyTypedArray(instance))
+        {
+            auto typedArray = static_cast<TypedArrayBase*>(instance);
+            if (!typedArray->IsObjectArrayFrozen())
+            {
+                return false;
+            }
+        }
+
         // Since we've determined that the object was frozen, set the flag to avoid further checks into all properties
         // (once frozen there is no way to go back to un-frozen).
         this->SetFlags(IsSealedOnceFlag | IsFrozenOnceFlag);
