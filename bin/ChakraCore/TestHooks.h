@@ -31,6 +31,14 @@ struct TestHooks
     SetEnableCheckMemoryLeakOutputPtr pfSetEnableCheckMemoryLeakOutput;
     LogicalStringCompareImpl pfLogicalCompareStringImpl;
 
+    // Javasscript Bigint hooks
+    typedef digit_t(TESTHOOK_CALL *AddDigit)(digit_t a, digit_t b, digit_t* carry);
+    typedef digit_t(TESTHOOK_CALL *SubDigit)(digit_t a, digit_t b, digit_t* borrow);
+    typedef digit_t(TESTHOOK_CALL *MulDigit)(digit_t a, digit_t b, digit_t* high);
+    AddDigit pfAddDigit;
+    SubDigit pfSubDigit;
+    MulDigit pfMulDigit;
+
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAG_String(name) \
     bool (TESTHOOK_CALL *pfIsEnabled##name##Flag)(); \

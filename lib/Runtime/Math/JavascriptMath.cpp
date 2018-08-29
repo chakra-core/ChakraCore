@@ -62,6 +62,10 @@ using namespace Js;
             {
                 return TaggedInt::Increment(aRight, scriptContext);
             }
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Increment(aRight);
+            }
 
             double inc = Increment_Helper(aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(inc, scriptContext, result);
@@ -74,6 +78,10 @@ using namespace Js;
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Increment(aRight, scriptContext);
+            }
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Increment(aRight);
             }
 
             double inc = Increment_Helper(aRight, scriptContext);
@@ -89,6 +97,10 @@ using namespace Js;
             {
                 return TaggedInt::Decrement(aRight, scriptContext);
             }
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Decrement(aRight);
+            }
 
             double dec = Decrement_Helper(aRight,scriptContext);
             return JavascriptNumber::InPlaceNew(dec, scriptContext, result);
@@ -101,6 +113,10 @@ using namespace Js;
             if (TaggedInt::Is(aRight))
             {
                 return TaggedInt::Decrement(aRight, scriptContext);
+            }
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Decrement(aRight);
             }
 
             double dec = Decrement_Helper(aRight,scriptContext);

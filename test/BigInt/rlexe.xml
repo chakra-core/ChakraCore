@@ -12,4 +12,22 @@
       <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>increment.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>decrement.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>assign_by_value.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
 </regress-exe>

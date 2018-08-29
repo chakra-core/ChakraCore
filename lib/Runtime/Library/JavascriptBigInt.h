@@ -4,26 +4,24 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+
 namespace Js
 {
     class JavascriptBigInt sealed : public RecyclableObject
     {
-
     private:
-        Field(uint32*) m_digits;         // digits
-        Field(uint32) m_length;          // length
+        Field(digit_t*) m_digits;         // digits
+        Field(digit_t) m_length;          // length
+        Field(digit_t) m_maxLength;          // max length without resize
         Field(bool) m_isNegative;
 
-        // TODO: BigInt should be arbitrary-precision, need to resize space and add tagged BigInt
-        static const uint32 MaxStringLength = 100; // Max String length
-        static const uint32 MaxDigitLength = 20;  // Max Digit length 
-        Field(uint32) m_reservedDigitsInit[MaxDigitLength]; // pre-defined space to store array
+        static const digit_t InitDigitLength = 2;  // Max Digit length 
 
         DEFINE_VTABLE_CTOR(JavascriptBigInt, RecyclableObject);
 
     public:
         JavascriptBigInt(StaticType * type)
-            : RecyclableObject(type), m_length(0), m_digits(nullptr), m_isNegative(false)
+            : RecyclableObject(type), m_length(0), m_digits(nullptr), m_isNegative(false), m_maxLength(InitDigitLength)
         {
             Assert(type->GetTypeId() == TypeIds_BigInt);
         }
@@ -38,10 +36,13 @@ namespace Js
 
         static bool LessThan(Var aLeft, Var aRight);
         static bool Equals(Var aLeft, Var aRight);
+        static Var Increment(Var aRight);
+        static Var Decrement(Var aRight);
 
         inline BOOL isNegative() { return m_isNegative; }
 
         static JavascriptBigInt * Create(const char16 * content, charcount_t cchUseLength, bool isNegative, ScriptContext * scriptContext);
+        virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
         class EntryInfo
         {
@@ -55,15 +56,27 @@ namespace Js
 
         virtual BOOL Equals(Var other, BOOL* value, ScriptContext * requestContext) override;
 
+        static digit_t AddDigit(digit_t a, digit_t b, digit_t * carry);
+        static digit_t SubDigit(digit_t a, digit_t b, digit_t * borrow);
+        static digit_t MulDigit(digit_t a, digit_t b, digit_t * high);
+
     private:
         template <typename EncodedChar>
         void InitFromCharDigits(const EncodedChar *prgch, uint32 cch, bool isNegative); // init from char of digits
 
-        bool MulThenAdd(uint32 luMul, uint32 luAdd);
+        bool MulThenAdd(digit_t luMul, digit_t luAdd);
+        static bool IsZero(JavascriptBigInt * pbi);
+        static void AbsoluteIncrement(JavascriptBigInt * pbi);
+        static void AbsoluteDecrement(JavascriptBigInt * pbi);
+        static void Increment(JavascriptBigInt * aValue);
+        static void Decrement(JavascriptBigInt * pbi);
         int Compare(JavascriptBigInt * pbi);
         static BOOL Equals(JavascriptBigInt* left, Var right, BOOL* value, ScriptContext * requestContext);
-    };
+        bool Resize(digit_t length);
 
+        static JavascriptBigInt * New(JavascriptBigInt * pbi, ScriptContext * scriptContext);
+    };
+    
     template <> inline bool VarIsImpl<JavascriptBigInt>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_BigInt;
