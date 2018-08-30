@@ -17,6 +17,7 @@ namespace Js
         static PropertyId const specialPropertyIdsWithoutDotAll[];
         static PropertyId const specialPropertyIdsWithoutDotAllOrUnicode[];
         static const uint defaultSpecialPropertyIdsCount = 6;
+        Field(bool) readOnlyLastIndex = false;
 
         Field(UnifiedRegex::RegexPattern*) pattern;
 
@@ -50,6 +51,7 @@ namespace Js
         bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, BOOL* result);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* result);
+        BOOL SetWritable(PropertyId propertyId, BOOL value);
         inline PropertyId const * GetSpecialPropertyIdsInlined() const;
 
         Var GetOptions();
