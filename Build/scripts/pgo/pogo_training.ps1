@@ -31,7 +31,7 @@ param (
     [string]$pogoArgs = "",
 
     [string]$vcinstallroot = ${Env:ProgramFiles(x86)},
-    [string]$vcbinpath = "Microsoft Visual Studio 14.0\VC\bin",
+    [string]$vcbinpath = "Microsoft Visual Studio\2017\Enterprise\VC\Tools\MSVC\14.15.26726\bin\Hostx64\",
     [string]$dllname = "pgort140.dll",
     [string]$dllCheckName = "pgort*.dll"
 )
@@ -47,7 +47,7 @@ $pgoOutDllCheck = Join-Path $binpath $dllCheckName
 $pgoOutDll = Join-Path $binpath $dllname
 if (-not (Test-Path $pgoOutDllCheck)) {
     if ($arch -eq "x64") {
-        $dllname = Join-Path "amd64" $dllname
+        $dllname = Join-Path "x64" $dllname
     } elseif ($arch -eq "arm") {
         $dllname = Join-Path "arm" $dllname
     }
