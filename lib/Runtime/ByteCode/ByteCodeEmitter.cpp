@@ -9259,12 +9259,16 @@ void ByteCodeGenerator::EmitInvertedLoop(ParseNodeLoop* outerLoop, ParseNodeFor*
     this->m_writer.Br(afterInvertedLoop);
     this->m_writer.MarkLabel(invertedLoopLabel);
 
-    // Emit a zero trip test for the original outer-loop
-    Js::ByteCodeLabel zeroTrip = this->m_writer.DefineLabel();
-    ParseNode* testNode = this->GetParser()->CopyPnode(outerLoop->AsParseNodeFor()->pnodeCond);
-    EmitBooleanExpression(testNode, zeroTrip, afterInvertedLoop, this, funcInfo, true, false);
-    this->m_writer.MarkLabel(zeroTrip);
-    funcInfo->ReleaseLoc(testNode);
+    // Emit a zero trip test for the original outer-loop if the outer-loop
+    // has a condition
+    if (outerLoop->AsParseNodeFor()->pnodeCond)
+    {
+        Js::ByteCodeLabel zeroTrip = this->m_writer.DefineLabel();
+        ParseNode* testNode = this->GetParser()->CopyPnode(outerLoop->AsParseNodeFor()->pnodeCond);
+        EmitBooleanExpression(testNode, zeroTrip, afterInvertedLoop, this, funcInfo, true, false);
+        this->m_writer.MarkLabel(zeroTrip);
+        funcInfo->ReleaseLoc(testNode);
+    }
 
     // emit inverted
     Emit(invertedLoop->pnodeInit, this, funcInfo, false);
