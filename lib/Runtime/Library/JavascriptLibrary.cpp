@@ -3651,6 +3651,18 @@ namespace Js
             propertyCount++;
         }
 
+        if (scriptContext->GetConfig()->IsES7ValuesEntriesEnabled())
+        {
+            propertyCount += 2;
+        }
+
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            propertyCount++;
+        }
+#endif
+
         typeHandler->Convert(objectConstructor, mode, propertyCount);
 
         library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
@@ -3706,6 +3718,13 @@ namespace Js
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Entries.GetOriginalEntryPoint(),
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::entries, &JavascriptObject::EntryInfo::Entries, 1));
         }
+
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            library->EnsureBuiltInEngineIsReady();
+        }
+#endif
 
         objectConstructor->SetHasNoEnumerableProperties(true);
 
