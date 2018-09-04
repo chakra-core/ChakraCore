@@ -222,4 +222,54 @@ namespace BigIntTest
         {
         }
     }
+
+    TEST_CASE("Init_From_Char_Of_Digits", "[BigIntTest]")
+    {
+        BigInt biDec;
+        char *charDigit;
+        bool result;
+        int charDigitLength;
+
+        SECTION("2**32-1 should have length = 1")
+        {
+            charDigit = "4294967295";
+            charDigitLength = 10;
+            result = biDec.FInitFromDigits(charDigit, charDigitLength, &charDigitLength);
+            REQUIRE(result);
+            int length = biDec.Clu();
+            CHECK(length == 1);
+            uint32 digit = biDec.Lu(0);
+            CHECK(digit == 4294967295);
+        }
+
+        SECTION("2**32+2 should have length = 2")
+        {
+            charDigit = "4294967298";
+            charDigitLength = 10;
+            result = biDec.FInitFromDigits(charDigit, charDigitLength, &charDigitLength);
+            REQUIRE(result);
+            int length = biDec.Clu();
+            CHECK(length == 2);
+            uint32 digit = biDec.Lu(0);
+            CHECK(digit == 2);
+            digit = biDec.Lu(1);
+            CHECK(digit == 1);
+        }
+        
+        SECTION("2**64 should have length = 3")
+        {
+            charDigit = "18446744073709551616";
+            charDigitLength = 20;
+            result = biDec.FInitFromDigits(charDigit, charDigitLength, &charDigitLength);
+            REQUIRE(result);
+            int length = biDec.Clu();
+            CHECK(length == 3);
+            uint32 digit = biDec.Lu(0);
+            CHECK(digit == 0);
+            digit = biDec.Lu(1);
+            CHECK(digit == 0);
+            digit = biDec.Lu(2);
+            CHECK(digit == 1);
+        }
+    }
 }
