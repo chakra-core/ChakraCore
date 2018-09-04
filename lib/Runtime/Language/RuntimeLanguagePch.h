@@ -34,6 +34,7 @@
 
 #include "Types/TypePropertyCache.h"
 #include "Library/JavascriptVariantDate.h"
+#include "Library/CustomExternalWrapperObject.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptSymbolObject.h"
 #include "Library/JavascriptGenerator.h"

@@ -1051,7 +1051,6 @@ JsCreateTracedExternalObjectWithPrototype(
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object);
 
-/// <summary>
 ///     Creates a new object (with prototype) that stores some data.
 /// </summary>
 /// <remarks>
@@ -1077,8 +1076,105 @@ JsCreateTracedExternalObjectWithPrototypeAndSlots(
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object);
 
+/// <summary>
+///     Creates a new object that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="setterGetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateCustomExternalObject(
+    _In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _Out_ JsValueRef * object);
+
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateCustomExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="setterGetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedCustomExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
+
+/// <summary>
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="setterGetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
+
 ///     Clones an object
 /// </summary>
 /// <param name="source">The original object.</param>

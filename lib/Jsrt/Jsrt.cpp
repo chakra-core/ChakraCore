@@ -1356,6 +1356,70 @@ CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallba
     return JsCreateExternalObjectWithPrototype(data, finalizeCallback, JS_INVALID_REFERENCE, object);
 }
 
+CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject, prototype);
+
+        PARAM_NOT_NULL(object);
+
+        Js::RecyclableObject * prototypeObject = nullptr;
+        if (prototype != JS_INVALID_REFERENCE)
+        {
+            VALIDATE_INCOMING_OBJECT_OR_NULL(prototype, scriptContext);
+            prototypeObject = Js::RecyclableObject::FromVar(prototype);
+        }
+        if (inlineSlotSize > UINT32_MAX)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        void * interceptor = nullptr;
+        *object = Js::CustomExternalWrapperObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, &interceptor, prototypeObject, scriptContext);
+        Assert(interceptor);
+        *setterGetterInterceptor = interceptor;
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object)
+{
+    return JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(data, 0, traceCallback, finalizeCallback, setterGetterInterceptor, prototype, object);
+}
+
+CHAKRA_API JsCreateCustomExternalObjectWithPrototype(_In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object)
+{
+    return JsCreateTracedCustomExternalObjectWithPrototype(data, nullptr, finalizeCallback, setterGetterInterceptor, prototype, object);
+}
+
+CHAKRA_API JsCreateCustomExternalObject(_In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ void ** setterGetterInterceptor,
+    _Out_ JsValueRef * object)
+{
+    return JsCreateCustomExternalObjectWithPrototype(data, finalizeCallback, setterGetterInterceptor, JS_INVALID_REFERENCE, object);
+}
+
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
@@ -2755,7 +2819,7 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
         {
             object = Js::JavascriptProxy::FromVar(object)->GetTarget();
         }
-        *value = JsrtExternalObject::Is(object);
+        *value = (JsrtExternalObject::Is(object) || Js::CustomExternalWrapperObject::Is(object));
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -2774,6 +2838,10 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
         if (JsrtExternalObject::Is(object))
         {
             *data = JsrtExternalObject::FromVar(object)->GetSlotData();
+        }
+        else if (Js::CustomExternalWrapperObject::Is(object))
+        {
+            *data = Js::CustomExternalWrapperObject::FromVar(object)->GetSlotData();
         }
         else
         {
@@ -2797,6 +2865,10 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
         if (JsrtExternalObject::Is(object))
         {
             JsrtExternalObject::FromVar(object)->SetSlotData(data);
+        }
+        else if (Js::CustomExternalWrapperObject::Is(object))
+        {
+            Js::CustomExternalWrapperObject::FromVar(object)->SetSlotData(data);
         }
         else
         {
@@ -2932,6 +3004,35 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
             AssertOrFailFast(success);
             *newObject = target;
             return JsNoError;
+        }
+        else
+        {
+            Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(source);
+            if (externalWrapper != nullptr) {
+                Js::CustomExternalWrapperType * externalType = externalWrapper->GetExternalType();
+                Js::JsSetterGetterInterceptor * originalInterceptors = externalType->GetJsSetterGetterInterceptor();
+                void * newInterceptors = originalInterceptors;
+                Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
+                    externalWrapper->GetSlotData(),
+                    externalWrapper->GetInlineSlotSize(),
+                    externalType->GetJsTraceCallback(),
+                    externalType->GetJsFinalizeCallback(),
+                    &newInterceptors,
+                    externalWrapper->GetPrototype(),
+                    scriptContext);
+                bool success = target->TryCopy(externalWrapper, true);
+
+                //TODO:akatti: We will always used a cached type, so the following code can be removed.
+                // If we are using type from the cache we don't need to copy the interceptors over.
+                if (newInterceptors != originalInterceptors)
+                {
+                    newInterceptors = new (newInterceptors) Js::JsSetterGetterInterceptor(originalInterceptors);
+                }
+
+                AssertOrFailFast(success);
+                *newObject = target;
+                return JsNoError;
+            }
         }
 
         Js::DynamicObject* objSource = Js::JavascriptOperators::TryFromVar<Js::DynamicObject>(source);
