@@ -11,17 +11,18 @@ namespace Js
     ***************************************************************************/
     class BigInt
     {
+        // Non-negative BigInt is stored as an array of 'digit' where each digit is unit32
     private:
         // Make this big enough that we rarely have to call malloc.
-        enum { kcluMaxInit = 30 };
+        enum { kcluMaxInit = 30 };// initilize 30 digits
 
-        int32 m_cluMax;
-        int32 m_clu;
-        uint32 *m_prglu;
-        uint32 m_rgluInit[kcluMaxInit];
+        int32 m_cluMax; // current maximum length (or number of digits) it can contains
+        int32 m_clu; // current length (or number of digits)
+        uint32 *m_prglu; // pointer to array of digits
+        uint32 m_rgluInit[kcluMaxInit]; // pre-defined space to store array
 
         inline BigInt & operator= (BigInt &bi);
-        bool FResize(int32 clu);
+        bool FResize(int32 clu);// allocate more space if length go over maximum
 
 #if DBG
         #define AssertBi(pbi) Assert(pbi); (pbi)->AssertValid(true);
@@ -36,10 +37,10 @@ namespace Js
         BigInt(void);
         ~BigInt(void);
 
-        bool FInitFromRglu(uint32 *prglu, int32 clu);
-        bool FInitFromBigint(BigInt *pbiSrc);
+        bool FInitFromRglu(uint32 *prglu, int32 clu); // init from array and length
+        bool FInitFromBigint(BigInt *pbiSrc); 
         template <typename EncodedChar>
-        bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec);
+        bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec); 
         bool FMulAdd(uint32 luMul, uint32 luAdd);
         bool FMulPow5(int32 c5);
         bool FShiftLeft(int32 cbit);
@@ -50,8 +51,8 @@ namespace Js
         void Subtract(BigInt *pbi);
         int DivRem(BigInt *pbi);
 
-        int32 Clu(void);
-        uint32 Lu(int32 ilu);
+        int32 Clu(void); // return current length
+        uint32 Lu(int32 ilu); // return digit at position ilu start from 0
         double GetDbl(void);
     };
 }
