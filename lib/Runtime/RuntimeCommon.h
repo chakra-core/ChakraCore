@@ -84,6 +84,7 @@ namespace Js
         ObjectSlotAttr_Int =          0x20,
         ObjectSlotAttr_Double =       0x40,
         ObjectSlotAttr_Default =      (ObjectSlotAttr_Writable|ObjectSlotAttr_Enumerable|ObjectSlotAttr_Configurable),
+        ObjectSlotAttr_DeletedDefault = (ObjectSlotAttr_Deleted|ObjectSlotAttr_Writable|ObjectSlotAttr_Configurable),
         ObjectSlotAttr_PropertyAttributesMask = (ObjectSlotAttr_Default|ObjectSlotAttr_Deleted),
         ObjectSlotAttr_All =          0xFF,
         ObjectSlotAttr_Setter =       ObjectSlotAttr_All ^ ObjectSlotAttr_Deleted,   // an impossible value indicating "setter"

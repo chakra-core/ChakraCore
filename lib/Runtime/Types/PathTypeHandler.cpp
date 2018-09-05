@@ -123,7 +123,7 @@ namespace Js
     PathTypeSingleSuccessorInfo::PathTypeSingleSuccessorInfo(const PathTypeSuccessorKey key, RecyclerWeakReference<DynamicType> * typeWeakRef)
         : successorKey(key), successorTypeWeakRef(typeWeakRef)
     {
-        Assert(key.HasInfo());
+        Assert(key.HasInfo() || (key.GetAttributes() & ObjectSlotAttr_Deleted));
         Assert(typeWeakRef != nullptr);
         this->kind = PathTypeSuccessorKindSingle;
     }
@@ -331,7 +331,8 @@ namespace Js
             for (; index < GetPathLength(); ++index)
             {
                 ObjectSlotAttributes attr = objectAttrs ? objectAttrs[index] : ObjectSlotAttr_Default;
-                if( !(attr & ObjectSlotAttr_Deleted) && attr != ObjectSlotAttr_Setter && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attr & ObjectSlotAttr_Enumerable)))
+                if(!(attr & ObjectSlotAttr_Deleted) && attr != ObjectSlotAttr_Setter && 
+                   (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attr & ObjectSlotAttr_Enumerable)))
                 {
                     const PropertyRecord* propertyRecord = GetTypePath()->GetPropertyId(index);
 
@@ -369,25 +370,41 @@ namespace Js
         // Need to enumerate a different type than the current one. This is because type snapshot enumerate is enabled and the
         // object's type changed since enumeration began, so need to enumerate properties of the initial type.
         DynamicTypeHandler *const typeHandlerToEnumerate = typeToEnumerate->GetTypeHandler();
-
-        if (!typeHandlerToEnumerate->IsPathTypeHandler())
+        for(
+            ;
+            typeHandlerToEnumerate->FindNextProperty(
+                scriptContext,
+                index,
+                propertyStringName,
+                propertyId,
+                attributes,
+                typeToEnumerate,
+                typeToEnumerate,
+                flags,
+                instance,
+                info);
+            ++index)
         {
-            return typeHandlerToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
-        }
-
-        PathTypeHandlerBase* pathTypeToEnumerate = (PathTypeHandlerBase*)typeHandlerToEnumerate;
-
-        BOOL found = pathTypeToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, typeToEnumerate, typeToEnumerate, flags, instance, info);
-
-        // We got a property from previous type, but this property may have been deleted
-        if (found == TRUE && this->GetPropertyIndex(*propertyId) == Js::Constants::NoSlot)
-        {
-            PropertyValueInfo::SetNoCache(info, instance);
-            return FALSE;
+            PropertyIndex tmpIndex = this->GetPropertyIndex(*propertyId);
+            if (tmpIndex != Constants::NoSlot)
+            {
+                ObjectSlotAttributes attr = objectAttrs ? objectAttrs[tmpIndex] : ObjectSlotAttr_Default;
+                if (!(attr & ObjectSlotAttr_Deleted) && attr != ObjectSlotAttr_Setter &&
+                    (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attr & ObjectSlotAttr_Enumerable)))
+                {
+                    if (attributes)
+                    {
+                        *attributes = ObjectSlotAttributesToPropertyAttributes(attr);
+                    }
+            
+                    PropertyValueInfo::SetNoCache(info, instance);
+                    return TRUE;
+                }
+            }
         }
         PropertyValueInfo::SetNoCache(info, instance);
 
-        return found;
+        return FALSE;
     }
 
     BOOL PathTypeHandlerBase::SetAttributesHelper(DynamicObject* instance, PropertyId propertyId, PropertyIndex propertyIndex, ObjectSlotAttributes * instanceAttributes, ObjectSlotAttributes propertyAttributes, bool setAllAttributes)
@@ -445,13 +462,13 @@ namespace Js
         PropertyIndex pathLength = GetPathLength();
         PropertyIndex currentSlotIndex = propertyIndex;
         ObjectSlotAttributes currentAttributes = propertyAttributes;
+        PropertyId currentPropertyId = (currentAttributes & ObjectSlotAttr_Deleted) ? Constants::NoProperty : propertyId;
         PathTypeHandlerBase *currentTypeHandler = predTypeHandler;
         ScriptContext *scriptContext = instance->GetScriptContext();
         while (true)
         {
-            const PropertyRecord *currentPropertyRecord = GetTypePath()->GetPropertyIdUnchecked(currentSlotIndex);
             PropertyIndex index;
-            currentType = currentTypeHandler->PromoteType<false>(currentType, PathTypeSuccessorKey(currentPropertyRecord->GetPropertyId(), currentAttributes), false, scriptContext, instance, &index);
+            currentType = currentTypeHandler->PromoteType<false>(currentType, PathTypeSuccessorKey(currentPropertyId, currentAttributes), false, scriptContext, instance, &index);
             currentTypeHandler = PathTypeHandlerBase::FromTypeHandler(currentType->GetTypeHandler());
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
@@ -461,9 +478,9 @@ namespace Js
 #endif
             if (currentAttributes == ObjectSlotAttr_Setter)
             {
-                PropertyIndex getterIndex = currentTypeHandler->GetPropertyIndex(currentPropertyRecord->GetPropertyId());
-                Assert(getterIndex != Constants::NoSlot);
-                if (currentTypeHandler->GetAttributes(getterIndex) & ObjectSlotAttr_Accessor)
+                Assert(currentPropertyId != Constants::NoProperty);
+                PropertyIndex getterIndex = currentTypeHandler->GetPropertyIndex(currentPropertyId);
+                if (getterIndex != Constants::NoSlot && currentTypeHandler->GetAttributes(getterIndex) & ObjectSlotAttr_Accessor)
                 {
                     currentTypeHandler->SetSetterSlot(getterIndex, (PathTypeSetterSlotIndex)currentSlotIndex);
                 }
@@ -474,6 +491,15 @@ namespace Js
                 break;
             }
             currentAttributes = instanceAttributes ? instanceAttributes[currentSlotIndex] : ObjectSlotAttr_Default;
+            Assert(GetTypePath()->GetPropertyIdUnchecked(currentSlotIndex) || (currentAttributes & ObjectSlotAttr_Deleted));
+            if (currentAttributes & ObjectSlotAttr_Deleted)
+            {
+                currentPropertyId = Constants::NoProperty;
+            }
+            else
+            {
+                currentPropertyId = GetTypePath()->GetPropertyIdUnchecked(currentSlotIndex)->GetPropertyId();
+            }
         }
 
         Assert(currentType != instance->GetType());
@@ -969,16 +995,21 @@ namespace Js
             return TRUE;
         }
 
-        ObjectSlotAttributes attr = this->GetAttributes(index);
-        if (attr & ObjectSlotAttr_Deleted)
+        ObjectSlotAttributes *attributes = this->GetAttributeArray();
+        ObjectSlotAttributes attr = ObjectSlotAttr_Default;
+        if (attributes)
         {
-            return TRUE;
-        }
-        if (!(attr & ObjectSlotAttr_Configurable))
-        {
-            JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
-                flags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
-            return FALSE;
+            attr = attributes[index];
+            if (attr & ObjectSlotAttr_Deleted)
+            {
+                return TRUE;
+            }
+            if (!(attr & ObjectSlotAttr_Configurable))
+            {
+                JavascriptError::ThrowCantDeleteIfStrictModeOrNonconfigurable(
+                    flags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                return FALSE;
+            }
         }
 
         uint16 pathLength = GetPathLength();
@@ -990,14 +1021,37 @@ namespace Js
             return TRUE;
         }
 
+        if (PHASE_OFF1(ShareTypesWithDeletedPhase) || PHASE_OFF1(ShareTypesWithAttributesPhase))
+        {
 #ifdef PROFILE_TYPES
-        instance->GetScriptContext()->convertPathToDictionaryDeletedCount++;
+            instance->GetScriptContext()->convertPathToDictionaryDeletedCount++;
 #endif
-        BOOL deleteResult = TryConvertToSimpleDictionaryType(instance, pathLength)->DeleteProperty(instance, propertyId, flags);
+            return TryConvertToSimpleDictionaryType(instance, pathLength)->DeleteProperty(instance, propertyId, flags);
+        }
 
-        AssertMsg(deleteResult, "PathType delete property can return false, this should be handled in DeleteLastProperty as well.");
+        Var undef = scriptContext->GetLibrary()->GetUndefined();
+        SetSlotUnchecked(instance, index, undef);
+        if (attr & ObjectSlotAttr_Accessor)
+        {
+            PathTypeSetterSlotIndex setter = PathTypeHandlerWithAttr::FromPathTypeHandler(this)->PathTypeHandlerWithAttr::GetSetterSlotIndex(index);
+            Assert(setter < this->GetPathLength());
+            SetSlotUnchecked(instance, setter, undef);
+        }
 
-        return deleteResult;
+        BOOL result = SetAttributesHelper(instance, propertyId, index, attributes, ObjectSlotAttr_DeletedDefault, true);
+        if (!result)
+        {
+            return instance->GetTypeHandler()->DeleteProperty(instance, propertyId, flags);
+        }
+
+#if ENABLE_FIXED_FIELDS
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        PathTypeHandlerBase *newTypeHandler = PathTypeHandlerBase::FromTypeHandler(instance->GetTypeHandler());
+        newTypeHandler->InvalidateFixedFieldAt(propertyId, index, scriptContext);
+#endif
+#endif
+
+        return TRUE;
     }
 
     BOOL PathTypeHandlerBase::IsEnumerable(DynamicObject* instance, PropertyId propertyId)
@@ -1501,6 +1555,11 @@ namespace Js
         for (PropertyIndex i = 0; i < oldTypeHandler->GetPathLength(); i++)
         {
             ObjectSlotAttributes attr = attributes ? attributes[i] : ObjectSlotAttr_Default;
+            if (attr & ObjectSlotAttr_Deleted)
+            {
+                ::Math::PostInc(newTypeHandler->nextPropertyIndex);
+                continue;
+            }
             const PropertyRecord * propertyRecord = typePath->GetPropertyId(i);
             if (attr == ObjectSlotAttr_Setter)
             {
@@ -1508,8 +1567,7 @@ namespace Js
                 // the setter to get the next free slot.
                 DictionaryPropertyDescriptor<PropertyIndex> *descriptor;
                 bool result = newTypeHandler->propertyMap->TryGetReference(propertyRecord, &descriptor);
-                Assert(result);
-                if (!(attributes[descriptor->GetDataPropertyIndex<false>()] & ObjectSlotAttr_Accessor))
+                if (!result || !(attributes[descriptor->GetDataPropertyIndex<false>()] & ObjectSlotAttr_Accessor))
                 {
                     // Setter without a getter; this is a stale entry, so ignore it
                     // Just consume the slot so no descriptor refers to it.
@@ -1755,6 +1813,12 @@ namespace Js
         ObjectSlotAttributes * attributes = this->GetAttributeArray();
         for (PropertyIndex i = 0; i < oldTypeHandler->GetPathLength(); i++)
         {
+            ObjectSlotAttributes attr = attributes ? attributes[i] : ObjectSlotAttr_Default;
+            if (attr & ObjectSlotAttr_Deleted)
+            {
+                ::Math::PostInc(newTypeHandler->nextPropertyIndex);
+                continue;
+            }
 #if ENABLE_FIXED_FIELDS
             if (PathTypeHandlerBase::FixPropsOnPathTypes())
             {
@@ -2021,7 +2085,7 @@ namespace Js
             {
                 // We need to branch the type path.
 
-                if (oldSetters)
+                if (oldAttributes)
                 {
                     newTypePath = GetTypePath()->Branch<true>(recycler, GetPathLength(), GetIsOrMayBecomeShared() && !IsolatePrototypes(), oldAttributes);
                 }
@@ -2112,7 +2176,8 @@ namespace Js
             }
 
             bool isSetterProperty = key.GetAttributes() == ObjectSlotAttr_Setter;
-            if (isSetterProperty)
+            bool isDeadSlot = isSetterProperty || (key.GetAttributes() & ObjectSlotAttr_Deleted);
+            if (isDeadSlot)
             {
                 // Not actually adding a property ID to the type path map here.
                 index = (PropertyIndex)newTypePath->AddInternal<false>(propertyRecord);
@@ -2214,7 +2279,7 @@ namespace Js
             nextPath = (PathTypeHandlerBase *)nextType->GetTypeHandler();
             Assert(nextPath->GetIsInlineSlotCapacityLocked() == this->GetIsInlineSlotCapacityLocked());
 
-            index = nextPath->GetPropertyIndex(propertyRecord);
+            index = this->GetPathLength();
 
 #if ENABLE_FIXED_FIELDS
             Assert((FixPropsOnPathTypes() && nextPath->GetMayBecomeShared()) || (nextPath->GetIsShared() && nextType->GetIsShared()));
@@ -2222,7 +2287,11 @@ namespace Js
             {
                 if (!nextPath->GetIsShared())
                 {
-                    nextPath->AddBlankFieldAt(propertyRecord->GetPropertyId(), index, scriptContext);
+                    if (!(key.GetAttributes() & ObjectSlotAttr_Deleted) && key.GetAttributes() != ObjectSlotAttr_Setter)
+                    {
+                        Assert(index == nextPath->GetPropertyIndex(propertyRecord));
+                        nextPath->AddBlankFieldAt(propertyRecord->GetPropertyId(), index, scriptContext);
+                    }
                     nextPath->DoShareTypeHandlerInternal<true>(scriptContext);
                 }
                 nextType->ShareType();
@@ -3442,7 +3511,12 @@ namespace Js
             TTD::NSSnapType::SnapEntryDataKindTag tag;
             if (attr == ObjectSlotAttr_Setter)
             {
-                attr = attributes[GetTypePath()->LookupInline(propertyId, GetPathLength())];
+                PropertyIndex getterIndex = GetTypePath()->LookupInline(propertyId, GetPathLength());
+                if (getterIndex == Constants::NoSlot)
+                {
+                    continue;
+                }
+                attr = attributes[index];
                 tag = TTD::NSSnapType::SnapEntryDataKindTag::Setter;
             }
             else if (attr & ObjectSlotAttr_Accessor)
@@ -3707,6 +3781,30 @@ namespace Js
     {
         // Enumerate only unique properties, i.e., don't count setters
         return GetPropertyCount() - setterCount;
+    }
+
+    PropertyId PathTypeHandlerWithAttr::GetPropertyId(ScriptContext* scriptContext, PropertyIndex index)
+    {
+        if (index < GetPathLength() && !(attributes[index] & ObjectSlotAttr_Deleted))
+        {
+            return GetTypePath()->GetPropertyId(index)->GetPropertyId();
+        }
+        else
+        {
+            return Constants::NoProperty;
+        }
+    }
+
+    PropertyId PathTypeHandlerWithAttr::GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index)
+    {
+        if (index < GetPathLength() && !(attributes[index] & ObjectSlotAttr_Deleted))
+        {
+            return GetTypePath()->GetPropertyId(index)->GetPropertyId();
+        }
+        else
+        {
+            return Constants::NoProperty;
+        }
     }
 
     BOOL PathTypeHandlerWithAttr::HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info)

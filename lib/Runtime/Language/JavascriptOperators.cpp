@@ -1699,6 +1699,10 @@ CommonNumber:
     template <bool unscopables>
     BOOL JavascriptOperators::GetProperty_Internal(Var instance, RecyclableObject* propertyObject, const bool isRoot, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info)
     {
+#if ENABLE_FIXED_FIELDS && DBG
+        DynamicTypeHandler *dynamicTypeHandler = nullptr;
+#endif
+
         if (TaggedNumber::Is(instance))
         {
             PropertyValueInfo::ClearCacheInfo(info);
@@ -1721,6 +1725,9 @@ CommonNumber:
             }
             else
             {
+#if ENABLE_FIXED_FIELDS && DBG
+                dynamicTypeHandler = VarIs<DynamicObject>(object) ? VarTo<DynamicObject>(object)->GetTypeHandler() : nullptr;
+#endif
                 PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyId, value, info, requestContext);
                 if (result != PropertyQueryFlags::Property_NotFound)
                 {
@@ -1740,10 +1747,10 @@ CommonNumber:
         if (foundProperty)
         {
 #if ENABLE_FIXED_FIELDS && DBG
-            if (DynamicObject::IsBaseDynamicObject(object))
+            // Note: It's valid to check this for the original type handler but not for a new type handler that may have been installed
+            // by a getter that, for instance, deleted and re-added the property.
+            if (dynamicTypeHandler)
             {
-                DynamicObject* dynamicObject = (DynamicObject*)object;
-                DynamicTypeHandler* dynamicTypeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
                 Var property;
                 if (dynamicTypeHandler->CheckFixedProperty(requestContext->GetPropertyName(propertyId), &property, requestContext))
                 {
@@ -8846,23 +8853,18 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         // ES5 8.12.9.9.c: Convert the property named P of object O from an accessor property to a data property.
                         // Preserve the existing values of the converted property's [[Configurable]] and [[Enumerable]] attributes
                         // and set the rest of the property's attributes to their default values.
-                        // Note: avoid using SetProperty/SetPropertyWithAttributes here because they has undesired side-effects:
-                        //       it calls previous setter and in some cases of attribute values throws.
-                        //       To walk around, call DeleteProperty and then AddProperty.
                         PropertyAttributes preserveFromObject = currentDescriptor->GetAttributes() & (PropertyConfigurable | PropertyEnumerable);
 
                         tempDescriptor.SetAttributes(preserveFromObject, PropertyConfigurable | PropertyEnumerable);
                         tempDescriptor.MergeFrom(descriptor);   // Update only fields specified in 'descriptor'.
                         Var descriptorValue = descriptor.ValueSpecified() ? descriptor.GetValue() : defaultDataValue;
 
-                        // Note: HostDispath'es implementation of DeleteProperty currently throws E_NOTIMPL.
-                        obj->DeleteProperty(propId, PropertyOperation_None);
-                        BOOL tempResult = obj->SetPropertyWithAttributes(propId, descriptorValue, tempDescriptor.GetAttributes(), NULL, PropertyOperation_Force);
-                        Assert(tempResult);
+                        BOOL result = VarTo<DynamicObject>(obj)->ConvertAccessorToData(propId, descriptorValue, tempDescriptor.GetAttributes());
 
                         // At this time we already set value and attributes to desired values,
                         // thus we can skip step ES5 8.12.9.12 and simply return true.
-                        return TRUE;
+                        Assert(result);
+                        return result;
                     }
                 }
             }

@@ -383,6 +383,19 @@ namespace Js
         this->type = predecessorType;
     }
 
+    BOOL DynamicObject::ConvertAccessorToData(PropertyId propId, Var value, PropertyAttributes attributes)
+    {
+        uint32 indexVal;
+        if (GetScriptContext()->IsNumericPropertyId(propId, &indexVal))
+        {
+            DeleteItem(indexVal, PropertyOperation_None);
+        }
+        GetTypeHandler()->InitProperty(this, propId, value, PropertyOperation_Force, nullptr);
+        BOOL result = SetPropertyWithAttributes(propId, value, attributes, NULL, PropertyOperation_Force);
+        Assert(result);
+        return result;
+    }
+
     DWORD DynamicObject::GetOffsetOfAuxSlots()
     {
         return offsetof(DynamicObject, auxSlots);

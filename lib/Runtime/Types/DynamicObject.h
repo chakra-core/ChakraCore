@@ -317,6 +317,8 @@ namespace Js
 
         void ChangeTypeIf(const Type* oldType);
 
+        BOOL ConvertAccessorToData(PropertyId propId, Var value, PropertyAttributes attributes);
+
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
             DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, PropertyValueInfo * info);
 

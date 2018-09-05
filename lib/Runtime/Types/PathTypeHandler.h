@@ -506,6 +506,9 @@ namespace Js
         virtual BOOL SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
 
+        virtual PropertyId GetPropertyId(ScriptContext* scriptContext, PropertyIndex index) override;
+        virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) override;
+
         virtual int GetPropertyCountForEnum() override;
         virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl, _Inout_opt_ PropertyValueInfo* info) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
