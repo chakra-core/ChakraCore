@@ -45,5 +45,5 @@ AutoSystemInfo AutoSystemInfo::Data;
 void AutoSystemInfo::Initialize(void){}
 #endif
 
-#include "..\..\lib\Common\DataStructures\BigInt.h"
-#include "..\..\lib\Common\DataStructures\BigInt.cpp"
+#include "..\..\lib\Common\DataStructures\BigUInt.h"
+#include "..\..\lib\Common\DataStructures\BigUInt.cpp"

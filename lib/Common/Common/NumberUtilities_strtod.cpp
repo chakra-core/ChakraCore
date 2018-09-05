@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonCommonPch.h"
-#include "DataStructures/BigInt.h"
+#include "DataStructures/BigUInt.h"
 
 namespace Js
 {
@@ -719,7 +719,7 @@ and re-compare.
 template <typename EncodedChar>
 static double AdjustDbl(double dbl, const EncodedChar *prgch, int32 cch, int32 lwExp)
 {
-    Js::BigInt biDec, biDbl;
+    Js::BigUInt biDec, biDbl;
     int32 c2Dec, c2Dbl;
     int32 c5Dec, c5Dbl;
     int wAddHi, wT;
@@ -1272,9 +1272,9 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
     int wExp10, wExp2, w1, w2;
     int c2Num, c2Den, c5Num, c5Den;
     double dblT;
-    Js::BigInt biNum, biDen, biHi, biLo;
-    Js::BigInt *pbiLo;
-    Js::BigInt biT;
+    Js::BigUInt biNum, biDen, biHi, biLo;
+    Js::BigUInt *pbiLo;
+    Js::BigUInt biT;
     uint32 rglu[2];
 
     // Caller should take care of 0, negative and non-finite values.

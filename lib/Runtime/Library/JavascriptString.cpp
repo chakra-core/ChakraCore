@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#include "DataStructures/BigInt.h"
+#include "DataStructures/BigUInt.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
 
@@ -2962,7 +2962,7 @@ case_2:
             return JavascriptNumber::ToVar(value, this->GetScriptContext());
         }
 
-        BigInt bi;
+        BigUInt bi;
         for ( ; pch < pchEnd ; pch++)
         {
             char16 ch = *pch;

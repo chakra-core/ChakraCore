@@ -9,19 +9,19 @@
 #pragma warning(disable:26451) // Arithmetic overflow
 #pragma warning(disable:26495) // Uninitialized member variable
 #include "catch.hpp"
-#include "BigIntTest.h"
+#include "BigUIntTest.h"
 
 #pragma warning(disable:4100) // unreferenced formal parameter
 #pragma warning(disable:6387) // suppressing preFAST which raises warning for passing null to the JsRT APIs
 #pragma warning(disable:6262) // CATCH is using stack variables to report errors, suppressing the preFAST warning.
 
-namespace BigIntTest
+namespace BigUIntTest
 {
-    TEST_CASE("Init_Compare", "[BigIntTest]")
+    TEST_CASE("Init_Compare", "[BigUIntTest]")
     {
         uint32 digits[1];
         int32 length = 1;
-        Js::BigInt bi1, bi2;
+        Js::BigUInt bi1, bi2;
         BOOL f;
         int result;
 
@@ -64,11 +64,11 @@ namespace BigIntTest
         }
     }
 
-    TEST_CASE("Addition", "[BigIntTest]")
+    TEST_CASE("Addition", "[BigUIntTest]")
     {
         uint32 digits[1], digit1s[2];
         int32 length = 1;
-        Js::BigInt bi1, bi2, bi3;
+        Js::BigUInt bi1, bi2, bi3;
         BOOL f;
         int result;
 
@@ -126,11 +126,11 @@ namespace BigIntTest
         }
     }
 
-    TEST_CASE("Addition_Subtraction_Large_Number", "[BigIntTest]")
+    TEST_CASE("Addition_Subtraction_Large_Number", "[BigUIntTest]")
     {
         const int l1 = 50, l2 = 1;
         uint32 digit1s[l1], digit2s[l2];
-        Js::BigInt bi1, bi2;
+        Js::BigUInt bi1, bi2;
         BOOL f;
 
         SECTION("Check 0xf...0xf + 0x1 = 0x1_0x0...0x0")
@@ -158,11 +158,11 @@ namespace BigIntTest
         }
     }
 
-    TEST_CASE("Subtraction", "[BigIntTest]")
+    TEST_CASE("Subtraction", "[BigUIntTest]")
     {
         uint32 digits[1], digit1s[2];
         int32 length = 1;
-        Js::BigInt bi1, bi2, bi3;
+        Js::BigUInt bi1, bi2, bi3;
         BOOL f;
         int result;
 
@@ -223,9 +223,9 @@ namespace BigIntTest
         }
     }
 
-    TEST_CASE("Init_From_Char_Of_Digits", "[BigIntTest]")
+    TEST_CASE("Init_From_Char_Of_Digits", "[BigUIntTest]")
     {
-        BigInt biDec;
+        BigUInt biDec;
         char *charDigit;
         bool result;
         int charDigitLength;
