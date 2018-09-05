@@ -7722,8 +7722,9 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 			IR::Opnd *dst = instr->GetDst();
 			if (!src->IsEqual(dst))
 			{
+				Assert(src->IsRegOpnd() && dst->IsRegOpnd());
 				// Force source to be the same as destination to break false dependency on the register
-				Lowerer::InsertMove(dst, src, instr, true /* generateWriteBarrier */);
+				Lowerer::InsertMove(dst, src, instr, false /* generateWriteBarrier */);
 				instr->ReplaceSrc1(dst);
 			}
 
