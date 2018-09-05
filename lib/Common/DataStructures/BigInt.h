@@ -40,7 +40,7 @@ namespace Js
         bool FInitFromRglu(uint32 *prglu, int32 clu); // init from array and length
         bool FInitFromBigint(BigInt *pbiSrc); 
         template <typename EncodedChar>
-        bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec); 
+        bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec); // init from char of digits
         bool FMulAdd(uint32 luMul, uint32 luAdd);
         bool FMulPow5(int32 c5);
         bool FShiftLeft(int32 cbit);
