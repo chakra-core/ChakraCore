@@ -183,6 +183,9 @@ namespace UnifiedRegex
                 case _u('\x2029'):
                     w->PrintEscapedChar(c);
                     break;
+                case _u('-'):
+                    w->Print(_u("-"));
+                    break;
                 case _u('\\'):
                     Assert(i + 1 < str.GetLength()); // cannot end in a '\'
                     w->Print(_u("\\%lc"), str.GetBuffer()[++i]);
