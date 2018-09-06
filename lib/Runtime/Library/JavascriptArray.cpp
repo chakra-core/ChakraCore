@@ -3424,16 +3424,12 @@ using namespace Js;
             {
                 if (TaggedInt::Is(aItem))
                 {
-                    pDestArray->DirectSetItemAt(idxDest, TaggedInt::ToInt32(aItem));
+                    int32 int32Value = TaggedInt::ToInt32(aItem);
+                    Assert(!SparseArraySegment<int32>::IsMissingItem(&int32Value));
+                    pDestArray->DirectSetItemAt(idxDest, int32Value);
                 }
                 else
                 {
-#if DBG
-                    int32 int32Value;
-                    Assert(
-                        JavascriptNumber::TryGetInt32Value(JavascriptNumber::GetValue(aItem), &int32Value) &&
-                        !SparseArraySegment<int32>::IsMissingItem(&int32Value));
-#endif
                     pDestArray->DirectSetItemAt(idxDest, static_cast<int32>(JavascriptNumber::GetValue(aItem)));
                 }
                 ++idxDest;
