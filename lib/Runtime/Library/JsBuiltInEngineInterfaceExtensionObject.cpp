@@ -224,13 +224,34 @@ namespace Js
         }
     }
 
-    DynamicObject* JsBuiltInEngineInterfaceExtensionObject::GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext)
+    DynamicObject* JsBuiltInEngineInterfaceExtensionObject::GetPrototypeFromName(Js::PropertyIds propertyId, bool staticMethod, ScriptContext* scriptContext)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        if (staticMethod)
+        {
+            switch (propertyId) {
+            case PropertyIds::Array:
+                return library->arrayConstructor;
+
+            case PropertyIds::Object:
+                return library->objectConstructor;
+
+            case PropertyIds::String:
+                return library->stringConstructor;
+
+            default:
+                AssertOrFailFastMsg(false, "Unable to find a constructor that match with this className.");
+                return nullptr;
+            }
+        }
 
         switch (propertyId) {
         case PropertyIds::Array:
             return library->arrayPrototype;
+
+        case PropertyIds::Object:
+            return library->objectPrototype;
 
         case PropertyIds::String:
             return library->stringPrototype;
@@ -239,7 +260,7 @@ namespace Js
             return library->GetChakraLib();
 
         default:
-            AssertMsg(false, "Unable to find a prototype that match with this className.");
+            AssertOrFailFastMsg(false, "Unable to find a prototype that match with this className.");
             return nullptr;
         }
     }
@@ -301,7 +322,7 @@ namespace Js
         func->GetFunctionProxy()->SetIsPublicLibraryCode();
         func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
 
-        DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, scriptContext);
+        DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, false, scriptContext);
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
 
         // Link the function to __chakraLibrary.
@@ -339,6 +360,7 @@ namespace Js
         Var argumentsCountProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::argumentsCount, scriptContext);
         Var forceInlineProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::forceInline, scriptContext);
         Var aliasProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::alias, scriptContext);
+        Var staticMethodProperty = JavascriptOperators::OP_GetProperty(funcInfo, Js::PropertyIds::staticMethod, scriptContext);
 
         Assert(JavascriptString::Is(classNameProperty));
         Assert(JavascriptString::Is(methodNameProperty));
@@ -348,6 +370,7 @@ namespace Js
         JavascriptString* methodName = JavascriptString::FromVar(methodNameProperty);
         int argumentsCount = TaggedInt::ToInt32(argumentsCountProperty);
 
+        BOOL staticMethod = JavascriptConversion::ToBoolean(staticMethodProperty, scriptContext);
         BOOL forceInline = JavascriptConversion::ToBoolean(forceInlineProperty, scriptContext);
 
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
@@ -356,7 +379,7 @@ namespace Js
         func->GetFunctionProxy()->SetIsPublicLibraryCode();
         func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
 
-        DynamicObject* prototype = GetPrototypeFromName(JavascriptOperators::GetPropertyId(className, scriptContext), scriptContext);
+        DynamicObject* prototype = GetPrototypeFromName(JavascriptOperators::GetPropertyId(className, scriptContext), staticMethod, scriptContext);
         PropertyIds functionIdentifier = methodName->BufferEquals(_u("Symbol.iterator"), 15)? PropertyIds::_symbolIterator :
             JavascriptOperators::GetPropertyId(methodName, scriptContext);
 

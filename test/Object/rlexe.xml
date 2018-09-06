@@ -26,6 +26,12 @@
   </test>
   <test>
     <default>
+      <files>fromEntries.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>isEnumerable.js</files>
       <baseline>isEnumerable.baseline</baseline>
     </default>
