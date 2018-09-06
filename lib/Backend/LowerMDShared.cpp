@@ -7711,12 +7711,25 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
     switch (instr->m_opcode)
     {
     case Js::OpCode::InlineMathSqrt:
-        // Sqrt maps directly to the SSE2 instruction.
-        // src and dst should already be XMM registers, all we need is just change the opcode.
-        Assert(helperMethod == (IR::JnHelperMethod)0);
-        Assert(instr->GetSrc2() == nullptr);
-        instr->m_opcode = instr->GetSrc1()->IsFloat64() ? Js::OpCode::SQRTSD : Js::OpCode::SQRTSS;
-        break;
+        {
+            // Sqrt maps directly to the SSE2 instruction.
+            // src and dst should already be XMM registers, all we need is just change the opcode.
+            Assert(helperMethod == (IR::JnHelperMethod)0);
+            Assert(instr->GetSrc2() == nullptr);
+            instr->m_opcode = instr->GetSrc1()->IsFloat64() ? Js::OpCode::SQRTSD : Js::OpCode::SQRTSS;
+
+            IR::Opnd *src = instr->GetSrc1();
+            IR::Opnd *dst = instr->GetDst();
+            if (!src->IsEqual(dst))
+            {
+                Assert(src->IsRegOpnd() && dst->IsRegOpnd());
+                // Force source to be the same as destination to break false dependency on the register
+                Lowerer::InsertMove(dst, src, instr, false /* generateWriteBarrier */);
+                instr->ReplaceSrc1(dst);
+            }
+
+            break;
+        }
 
     case Js::OpCode::InlineMathAbs:
         Assert(helperMethod == (IR::JnHelperMethod)0);
