@@ -1013,28 +1013,17 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstrInLoop->m_opcode));
 
-    IR::Instr * ldInstr = InsertPropertySymPreloadWithoutDstInLandingPad(ldInstrInLoop, loop, propertySym);
+    IR::Instr * ldInstr = InsertPropertySymPreloadInLandingPad(ldInstrInLoop, loop, propertySym);
     if (!ldInstr)
     {
         return false;
     }
 
     Assert(ldInstr->GetDst() == nullptr);
-    if (ldInstrInLoop->GetDst())
-    {
-        Assert(ldInstrInLoop->GetDst()->IsRegOpnd());
-        if (ldInstrInLoop->GetDst()->AsRegOpnd()->m_sym != symStore)
-        {
-            ldInstr->SetDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->globOpt->func));
-            loop->fieldPRESymStores->Set(symStore->m_id);
-        }
-        else
-        {
-            ldInstr->SetDst(ldInstrInLoop->GetDst()->Copy(ldInstrInLoop->m_func));
-        }
-        landingPad->globOptData.liveVarSyms->Set(ldInstr->GetDst()->AsRegOpnd()->m_sym->m_id);
-    }
-
+    ldInstr->SetDst(IR::RegOpnd::New(symStore->AsStackSym(), TyVar, this->globOpt->func));
+    loop->fieldPRESymStores->Set(symStore->m_id);
+    landingPad->globOptData.liveVarSyms->Set(symStore->m_id);
+    
     Value * objPtrValue = landingPad->globOptData.FindValue(objPtrSym);
 
     objPtrCopyPropSym = objPtrCopyPropSym ? objPtrCopyPropSym : objPtrValue ? landingPad->globOptData.GetCopyPropSym(objPtrSym, objPtrValue) : nullptr;
@@ -3310,7 +3299,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 // Can this be done in one call?
                 if (!this->prePassInstrMap->ContainsKey(sym->m_id))
                 {
-                    this->prePassInstrMap->AddNew(sym->m_id, instr);
+                    this->prePassInstrMap->AddNew(sym->m_id, instr->CopyWithoutDst());
                 }
             }
         }
@@ -17235,7 +17224,7 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
                 // #1 is done next. #2 and #3 are done as part of preloading T1.y
 
                 // Insert T1 = o.x
-                if (!InsertPropertySymPreloadInLandingPad(symDefInstr, loop, propSym))
+                if (!InsertPropertySymPreloadInLandingPad(symDefInstr->Copy(), loop, propSym))
                 {
                     return false;
                 }
@@ -17248,7 +17237,7 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
                 if (loop->landingPad->globOptData.IsLive(*objPtrCopyPropSym))
                 {
                     // insert T1 = o.x
-                    if (!InsertPropertySymPreloadInLandingPad(symDefInstr, loop, propSym))
+                    if (!InsertPropertySymPreloadInLandingPad(symDefInstr->Copy(), loop, propSym))
                     {
                         return false;
                     }
@@ -17337,25 +17326,6 @@ GlobOpt::PRE::InsertInstrInLandingPad(IR::Instr * instr, Loop * loop)
 IR::Instr *
 GlobOpt::PRE::InsertPropertySymPreloadInLandingPad(IR::Instr * ldInstr, Loop * loop, PropertySym * propertySym)
 {
-    IR::Instr * instr = InsertPropertySymPreloadWithoutDstInLandingPad(ldInstr, loop, propertySym);
-    if (!instr)
-    {
-        return nullptr;
-    }
-
-    if (ldInstr->GetDst())
-    {
-        instr->SetDst(ldInstr->GetDst()->Copy(ldInstr->m_func));
-        instr->GetDst()->SetIsJITOptimizedReg(true);
-        loop->landingPad->globOptData.liveVarSyms->Set(instr->GetDst()->GetStackSym()->m_id);
-    }
-
-    return instr;
-}
-
-IR::Instr *
-GlobOpt::PRE::InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * ldInstr, Loop * loop, PropertySym * propertySym)
-{
     IR::SymOpnd *ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
 
     if (ldSrc->m_sym != propertySym)
@@ -17369,8 +17339,6 @@ GlobOpt::PRE::InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * ldInstr
         }
     }
 
-    ldInstr = ldInstr->CopyWithoutDst();
-
     // Consider: Shouldn't be necessary once we have copy-prop in prepass...
     ldInstr->GetSrc1()->AsSymOpnd()->m_sym = propertySym;
     ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
@@ -17382,6 +17350,11 @@ GlobOpt::PRE::InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * ldInstr
 
         newPropSymOpnd = propSymOpnd->AsPropertySymOpnd()->CopyWithoutFlowSensitiveInfo(this->globOpt->func);
         ldInstr->ReplaceSrc1(newPropSymOpnd);
+    }
+
+    if (ldInstr->GetDst())
+    {
+        loop->landingPad->globOptData.liveVarSyms->Set(ldInstr->GetDst()->GetStackSym()->m_id);
     }
 
     InsertInstrInLandingPad(ldInstr, loop);
