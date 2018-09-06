@@ -1499,13 +1499,11 @@ using namespace Js;
 
             bool isTaggedInt = TaggedInt::Is(item);
             bool isTaggedIntMissingValue = false;
-#ifdef TARGET_64
             if (isTaggedInt)
             {
                 int32 iValue = TaggedInt::ToInt32(item);
                 isTaggedIntMissingValue = Js::SparseArraySegment<int32>::IsMissingItem(&iValue);
             }
-#endif
             if (isTaggedInt && !isTaggedIntMissingValue)
             {
                 // This is taggedInt case and we verified that item is not missing value in AMD64.
