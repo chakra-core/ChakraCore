@@ -9,7 +9,7 @@ namespace Js
     /***************************************************************************
         Big non-negative integer class.
     ***************************************************************************/
-    class BigInt
+    class BigUInt
     {
         // Non-negative BigInt is stored as an array of 'digit' where each digit is unit32
     private:
@@ -21,7 +21,7 @@ namespace Js
         uint32 *m_prglu; // pointer to array of digits
         uint32 m_rgluInit[kcluMaxInit]; // pre-defined space to store array
 
-        inline BigInt & operator= (BigInt &bi);
+        inline BigUInt & operator= (BigUInt &bi);
         bool FResize(int32 clu);// allocate more space if length go over maximum
 
 #if DBG
@@ -34,11 +34,11 @@ namespace Js
 #endif //!DBG
 
     public:
-        BigInt(void);
-        ~BigInt(void);
+        BigUInt(void);
+        ~BigUInt(void);
 
         bool FInitFromRglu(uint32 *prglu, int32 clu); // init from array and length
-        bool FInitFromBigint(BigInt *pbiSrc); 
+        bool FInitFromBigint(BigUInt *pbiSrc); 
         template <typename EncodedChar>
         bool FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDec); // init from char of digits
         bool FMulAdd(uint32 luMul, uint32 luAdd);
@@ -46,10 +46,10 @@ namespace Js
         bool FShiftLeft(int32 cbit);
         void ShiftLusRight(int32 clu);
         void ShiftRight(int32 cbit);
-        int Compare(BigInt *pbi);
-        bool FAdd(BigInt *pbi);
-        void Subtract(BigInt *pbi);
-        int DivRem(BigInt *pbi);
+        int Compare(BigUInt *pbi);
+        bool FAdd(BigUInt *pbi);
+        void Subtract(BigUInt *pbi);
+        int DivRem(BigUInt *pbi);
 
         int32 Clu(void); // return current length
         uint32 Lu(int32 ilu); // return digit at position ilu start from 0

@@ -3,20 +3,20 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonDataStructuresPch.h"
-#include "DataStructures/BigInt.h"
+#include "DataStructures/BigUInt.h"
 #include "Common/NumberUtilitiesBase.h"
 #include "Common/NumberUtilities.h"
 
 namespace Js
 {
-    BigInt & BigInt::operator= (BigInt &bi)
+    BigUInt & BigUInt::operator= (BigUInt &bi)
     {
         AssertMsg(false, "can't assign BigInts");
         return *this;
     }
 
 #if DBG
-    void BigInt::AssertValid(bool fCheckVal)
+    void BigUInt::AssertValid(bool fCheckVal)
     {
         Assert(m_cluMax >= kcluMaxInit);
         Assert(m_prglu != 0);
@@ -26,7 +26,7 @@ namespace Js
     }
 #endif
 
-    BigInt::BigInt(void)
+    BigUInt::BigUInt(void)
     {
         m_cluMax = kcluMaxInit;
         m_clu = 0;
@@ -34,25 +34,25 @@ namespace Js
         AssertBi(this);
     }
 
-    BigInt::~BigInt(void)
+    BigUInt::~BigUInt(void)
     {
         if (m_prglu != m_rgluInit)
             free(m_prglu);
     }
 
-    int32 BigInt::Clu(void)
+    int32 BigUInt::Clu(void)
     {
         return m_clu;
     }
 
-    uint32 BigInt::Lu(int32 ilu)
+    uint32 BigUInt::Lu(int32 ilu)
     {
         AssertBi(this);
         Assert(ilu < m_clu);
         return m_prglu[ilu];
     }
 
-    bool BigInt::FResize(int32 clu)
+    bool BigUInt::FResize(int32 clu)
     {
         AssertBiNoVal(this);
 
@@ -79,7 +79,7 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FInitFromRglu(uint32 *prglu, int32 clu)
+    bool BigUInt::FInitFromRglu(uint32 *prglu, int32 clu)
     {
         AssertBi(this);
         Assert(clu >= 0);
@@ -95,7 +95,7 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FInitFromBigint(BigInt *pbiSrc)
+    bool BigUInt::FInitFromBigint(BigUInt *pbiSrc)
     {
         AssertBi(this);
         AssertBi(pbiSrc);
@@ -105,7 +105,7 @@ namespace Js
     }
 
     template <typename EncodedChar>
-    bool BigInt::FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDig)
+    bool BigUInt::FInitFromDigits(const EncodedChar *prgch, int32 cch, int32 *pcchDig)
     {
         AssertBi(this);
         Assert(cch >= 0);
@@ -147,7 +147,7 @@ namespace Js
         return true;
     }
 
-    bool BigInt::FMulAdd(uint32 luMul, uint32 luAdd)
+    bool BigUInt::FMulAdd(uint32 luMul, uint32 luAdd)
     {
         AssertBi(this);
         Assert(luMul != 0);
@@ -174,7 +174,7 @@ LDone:
         return true;
     }
 
-    bool BigInt::FMulPow5(int32 c5)
+    bool BigUInt::FMulPow5(int32 c5)
     {
         AssertBi(this);
         Assert(c5 >= 0);
@@ -203,7 +203,7 @@ LDone:
         return true;
     }
 
-    bool BigInt::FShiftLeft(int32 cbit)
+    bool BigUInt::FShiftLeft(int32 cbit)
     {
         AssertBi(this);
         Assert(cbit >= 0);
@@ -258,7 +258,7 @@ LDone:
         return true;
     }
 
-    void BigInt::ShiftLusRight(int32 clu)
+    void BigUInt::ShiftLusRight(int32 clu)
     {
         AssertBi(this);
         Assert(clu >= 0);
@@ -278,7 +278,7 @@ LDone:
         AssertBi(this);
     }
 
-    void BigInt::ShiftRight(int32 cbit)
+    void BigUInt::ShiftRight(int32 cbit)
     {
         AssertBi(this);
         Assert(cbit >= 0);
@@ -312,7 +312,7 @@ LDone:
         AssertBi(this);
     }
 
-    int BigInt::Compare(BigInt *pbi)
+    int BigUInt::Compare(BigUInt *pbi)
     {
         AssertBi(this);
         AssertBi(pbi);
@@ -338,7 +338,7 @@ LDone:
         return (m_prglu[ilu] > pbi->m_prglu[ilu]) ? 1 : -1;
     }
 
-    bool BigInt::FAdd(BigInt *pbi)
+    bool BigUInt::FAdd(BigUInt *pbi)
     {
         AssertBi(this);
         AssertBi(pbi);
@@ -391,7 +391,7 @@ LDone:
         return true;
     }
 
-    void BigInt::Subtract(BigInt *pbi)
+    void BigUInt::Subtract(BigUInt *pbi)
     {
         AssertBi(this);
         AssertBi(pbi);
@@ -443,7 +443,7 @@ LNegative:
         AssertBi(this);
     }
 
-    int BigInt::DivRem(BigInt *pbi)
+    int BigUInt::DivRem(BigUInt *pbi)
     {
         AssertBi(this);
         AssertBi(pbi);
@@ -510,7 +510,7 @@ LNegative:
         return wQuo;
     }
 
-    double BigInt::GetDbl(void)
+    double BigUInt::GetDbl(void)
     {
         double dbl;
         uint32 luHi, luLo;
@@ -591,6 +591,6 @@ LNegative:
         return dbl;
     }
 
-    template bool BigInt::FInitFromDigits<char16>(const char16 *prgch, int32 cch, int32 *pcchDig);
-    template bool BigInt::FInitFromDigits<utf8char_t>(const utf8char_t *prgch, int32 cch, int32 *pcchDig);
+    template bool BigUInt::FInitFromDigits<char16>(const char16 *prgch, int32 cch, int32 *pcchDig);
+    template bool BigUInt::FInitFromDigits<utf8char_t>(const utf8char_t *prgch, int32 cch, int32 *pcchDig);
 }
