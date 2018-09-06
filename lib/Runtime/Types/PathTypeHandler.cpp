@@ -58,6 +58,42 @@ namespace Js
         return static_cast<hash_t>((propertyId << ObjectSlotAttr_BitSize) | static_cast<ObjectSlotAttr_TSize>(attributes));
     }
 
+    bool PathTypeSuccessorInfo::GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const
+    {
+        if (IsSingleSuccessor())
+        {
+            return static_cast<const PathTypeSingleSuccessorInfo*>(this)->GetSuccessor(successorKey, typeWeakRef);
+        }
+        else
+        {
+            return static_cast<const PathTypeMultiSuccessorInfo*>(this)->GetSuccessor(successorKey, typeWeakRef);
+        }
+    }
+
+    void PathTypeSuccessorInfo::SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext)
+    {
+        if (IsSingleSuccessor())
+        {
+            static_cast<PathTypeSingleSuccessorInfo*>(this)->SetSuccessor(type, successorKey, typeWeakRef, scriptContext);
+        }
+        else
+        {
+            static_cast<PathTypeMultiSuccessorInfo*>(this)->SetSuccessor(type, successorKey, typeWeakRef, scriptContext);
+        }
+    }
+
+    void PathTypeSuccessorInfo::ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef)
+    {
+        if (IsSingleSuccessor())
+        {
+            static_cast<PathTypeSingleSuccessorInfo*>(this)->ReplaceSuccessor(type, successorKey, typeWeakRef);
+        }
+        else
+        {
+            static_cast<PathTypeMultiSuccessorInfo*>(this)->ReplaceSuccessor(type, successorKey, typeWeakRef);
+        }
+    }
+
     template<class Fn>
     void PathTypeSuccessorInfo::MapSuccessors(Fn fn)
     {

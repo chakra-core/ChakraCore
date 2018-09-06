@@ -37,9 +37,9 @@ namespace Js
     public:
         bool IsSingleSuccessor() const { return kind == PathTypeSuccessorKindSingle; }
         bool IsMultiSuccessor() const { return !IsSingleSuccessor(); }
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const = 0;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) = 0;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) = 0;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapSuccessors(Fn fn);
         template<class Fn> void MapSuccessorsUntil(Fn fn);
@@ -60,9 +60,9 @@ namespace Js
 
         PathTypeSingleSuccessorInfo(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapSingleSuccessor(Fn fn);
 
@@ -78,9 +78,9 @@ namespace Js
 
         PathTypeMultiSuccessorInfo(Recycler * recycler, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapMultiSuccessors(Fn fn);
         template<class Fn> void MapMultiSuccessorsUntil(Fn fn);
