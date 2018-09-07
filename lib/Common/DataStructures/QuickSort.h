@@ -244,10 +244,23 @@ namespace JsUtil
             const size_t pivot = (nmemb - 1) * size;
             // make last element the median(pivot)
             CCQ_SWAP(base + pivot, base + ((nmemb / 2) * size), size);
+
             // standard qsort pt. below
-            for (size_t i = 0; i < pivot; i+= size)
+            size_t i = 0;
+            for (; i < nmemb / 2 * size; i+= size)
             {
+                // During the first half, count equal values as below the pivot
                 if (comparer(context, base + i, base + pivot) <= 0)
+                {
+                    CCQ_SWAP(base + i, base + (pos * size), size);
+                    pos++;
+                }
+            }
+
+            for (; i < pivot; i+= size)
+            {
+                // During the second half, count equal values as above the pivot
+                if (comparer(context, base + i, base + pivot) < 0)
                 {
                     CCQ_SWAP(base + i, base + (pos * size), size);
                     pos++;
@@ -256,11 +269,6 @@ namespace JsUtil
 
             // issue the last change
             CCQ_SWAP(base + (pos * size), base + pivot, size);
-
-            if (pos >= nmemb - 1)
-            {
-                return; // looks like it was either all sorted OR nothing to sort
-            }
 
             Sort(base, pos++, size, comparer, context);
             Sort(base + (pos * size), nmemb - pos, size, comparer, context);

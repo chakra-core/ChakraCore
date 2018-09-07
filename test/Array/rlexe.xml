@@ -786,4 +786,16 @@
       <files>FilterWithTypedArray.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_gh5667.js</files>
+      <tags>exclude_windows</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>test_qsortr_random.js</files>
+      <tags>exclude_windows</tags>
+    </default>
+  </test>
 </regress-exe>
