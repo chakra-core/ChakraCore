@@ -151,6 +151,16 @@ bool GlobOpt::ArraySrcOpt::CheckOpCode()
                 return false;
             }
 
+            if (instr->GetSrc1()->IsAddrOpnd())
+            {
+                const Js::Var val = instr->GetSrc1()->AsAddrOpnd()->m_address;
+                if (Js::TaggedInt::Is(val))
+                {
+                    originalIndexOpnd = instr->UnlinkSrc1();
+                    instr->SetSrc1(IR::IntConstOpnd::New(Js::TaggedInt::ToInt32(val), TyInt32, instr->m_func));
+                }
+            }
+
             if (!instr->GetSrc1()->IsRegOpnd() && !instr->GetSrc1()->IsIntConstOpnd())
             {
                 return false;
@@ -199,7 +209,7 @@ void GlobOpt::ArraySrcOpt::TypeSpecIndex()
         {
             // If the optimization is unable to eliminate the bounds checks, we need to restore the original var sym.
             Assert(originalIndexOpnd == nullptr);
-            originalIndexOpnd = instr->GetSrc1()->Copy(func)->AsRegOpnd();
+            originalIndexOpnd = instr->GetSrc1()->Copy(func);
             globOpt->ToTypeSpecIndex(instr, instr->GetSrc1()->AsRegOpnd(), nullptr);
         }
     }
