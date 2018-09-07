@@ -1486,7 +1486,7 @@ var tests = [
             if (WScript.Platform.OS == "win32") { // Windows
                 assert.areEqual([9,8,7,2,10,5,4,3,1,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             } else { // xplat
-                assert.areEqual([2,9,8,7,10,4,1,3,5,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
+                assert.areEqual([2,9,10,8,7,5,4,3,6,1], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             }
 
             assert.throws(function() { sort.call(); }, TypeError, "Calling %TypedArrayPrototype%.sort with no this throws TypeError", "'this' is not a typed array object");
