@@ -46,10 +46,14 @@ Done bareq
 Done barnt
 
 false
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 4 in func barntbool
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 5 in func barntbool
 false
 Done barntbool
 
 true
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func barfalse
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 2 from Block 3 to Block 4 in func barfalse
 Done barfalse
 
 5
@@ -58,6 +62,7 @@ TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from B
 Done iterator
 
 5
+TRACE PathDependentBranchFolding: Can prove retarget of branch in Block 1 from Block 3 to Block 5 in func iterator2
 5
 Done iterator2
 
