@@ -95,6 +95,8 @@ private:
         const bool isInlined, const bool doneFixedMethodFld, IR::Instr** createObjInstrOut, IR::Instr** callCtorInstrOut) const;
     IR::Instr * InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth, bool triedUsingFixedMethods = false);
     IR::Instr * InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, IR::PropertySymOpnd* methodValueOpnd, bool* pIsInlined, uint recursiveInlineDepth);
+
+    IR::RegOpnd * GetCallbackFunctionOpnd(IR::Instr * callInstr);
     IR::Instr * TryGetCallbackDefInstr(StackSym * callbackSym);
     IR::Instr * TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr);
     IR::Instr * TryGetCallbackDefInstrForCallApplyTarget(IR::Instr * callApplyLdInstr);
