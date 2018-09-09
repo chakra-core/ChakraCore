@@ -37,6 +37,8 @@ INTL_ENTRY(getLocaleData, GetLocaleData)
 INTL_ENTRY(localeCompare, LocaleCompare)
 INTL_ENTRY(pluralRulesSelect, PluralRulesSelect)
 INTL_ENTRY(pluralRulesKeywords, PluralRulesKeywords)
+INTL_ENTRY(minimizeLocale, MinimizeLocale)
+INTL_ENTRY(maximizeLocale, MaximizeLocale)
 
 INTL_ENTRY(registerBuiltInFunction, RegisterBuiltInFunction)
 INTL_ENTRY(getHiddenObject, GetHiddenObject)

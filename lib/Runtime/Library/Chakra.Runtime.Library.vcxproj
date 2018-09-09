@@ -157,6 +157,7 @@
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
     <ClInclude Include="AtomicsOperations.h" />
+    <ClInclude Include="EngineInterfaceObjectBuiltIns.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="CustomExternalIterator.h" />
     <ClInclude Include="JsBuiltInEngineInterfaceExtensionObject.h" />

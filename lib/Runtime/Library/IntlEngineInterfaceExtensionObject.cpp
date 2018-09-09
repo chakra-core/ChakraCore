@@ -944,8 +944,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
             // of caution and say it is invalid.
             // We also check for parsedLength < langtag->GetLength() because there are cases when status == U_ZERO_ERROR
             // but the langtag was not valid, such as "en-tesTER-TESter" (OSS-Fuzz #6657).
-            // NOTE: make sure we check for `undefined` at the platform.normalizeLanguageTag callsite.
-            return scriptContext->GetLibrary()->GetUndefined();
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_LocaleNotWellFormed, langtag);
         }
 
         // forLangTagResultLength can be 0 if langtag is "und".
@@ -3153,6 +3152,76 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
         return JavascriptString::NewWithBuffer(selected, static_cast<charcount_t>(selectedLength), scriptContext);
 #else
         AssertOrFailFastMsg(false, "Intl-WinGlob should not be using PluralRulesSelect");
+        return nullptr;
+#endif
+    }
+
+#ifdef INTL_ICU
+    template <bool minimize>
+    static JavascriptString *MinMaxImpl(JavascriptString *langtag, ScriptContext *scriptContext)
+    {
+        UErrorCode status = U_ZERO_ERROR;
+        char localeID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        LangtagToLocaleID(langtag, localeID);
+
+        char minmaxLocaleID[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int32_t minmaxLocaleIDLength = 0;
+        if (minimize)
+        {
+            minmaxLocaleIDLength = uloc_minimizeSubtags(localeID, minmaxLocaleID, ULOC_FULLNAME_CAPACITY, &status);
+            INTL_TRACE("Minimizing localeID %S to %S", localeID, minmaxLocaleID);
+        }
+        else
+        {
+            minmaxLocaleIDLength = uloc_addLikelySubtags(localeID, minmaxLocaleID, ULOC_FULLNAME_CAPACITY, &status);
+            INTL_TRACE("Maximizing localeID %S to %S", localeID, minmaxLocaleID);
+        }
+        ICU_ASSERT(status, minmaxLocaleIDLength < ULOC_FULLNAME_CAPACITY);
+
+        char minmaxLangtag[ULOC_FULLNAME_CAPACITY] = { 0 };
+        int minmaxLangtagLength = uloc_toLanguageTag(minmaxLocaleID, minmaxLangtag, ULOC_FULLNAME_CAPACITY, true, &status);
+        ICU_ASSERT(status, minmaxLangtagLength > 0);
+
+        // allocate maximizedLangtagLength + 1 to leave room for null terminator
+        char16 *minmaxLangtag16 = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, minmaxLangtagLength + 1);
+        charcount_t minmaxLangtag16Length = 0;
+        HRESULT hr = utf8::NarrowStringToWideNoAlloc(
+            minmaxLangtag,
+            minmaxLangtagLength,
+            minmaxLangtag16,
+            minmaxLangtagLength + 1,
+            &minmaxLangtag16Length
+        );
+        AssertOrFailFast(hr == S_OK && ((int)minmaxLangtag16Length) == minmaxLangtagLength);
+
+        return JavascriptString::NewWithBuffer(minmaxLangtag16, minmaxLangtagLength, scriptContext);
+    }
+#endif
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_MinimizeLocale(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        return MinMaxImpl<true>(JavascriptString::UnsafeFromVar(args.Values[1]), scriptContext);
+#else
+        AssertOrFailFastMsg(false, "Intl-WinGlob should not be using MinimizeLocale");
+        return nullptr;
+#endif
+    }
+
+    Var IntlEngineInterfaceExtensionObject::EntryIntl_MaximizeLocale(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#ifdef INTL_ICU
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+
+        INTL_CHECK_ARGS(args.Info.Count == 2 && JavascriptString::Is(args.Values[1]));
+
+        return MinMaxImpl<false>(JavascriptString::UnsafeFromVar(args.Values[1]), scriptContext);
+#else
+        AssertOrFailFastMsg(false, "Intl-WinGlob should not be using MaximizeLocale");
         return nullptr;
 #endif
     }

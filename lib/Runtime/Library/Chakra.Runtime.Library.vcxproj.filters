@@ -226,6 +226,9 @@
     <ClInclude Include="JsBuiltIn\JsBuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="PropertyRecordUsageCache.h" />
     <ClInclude Include="..\LibraryFunction.h" />
+    <ClInclude Include="IntlExtensionObjectBuiltIns.h" />
+    <ClInclude Include="StringCacheList.h" />
+    <ClInclude Include="EngineInterfaceObjectBuiltIns.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
