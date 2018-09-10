@@ -267,7 +267,7 @@ namespace Js
                 displayName = JavascriptString::FromVar(value);
             }
         }
-        return LiteralString::Concat(LiteralString::NewCopySz(_u("bound "), this->GetScriptContext()), displayName);
+        return JavascriptString::Concat(GetLibrary()->GetBoundFunctionPrefixString(), displayName);
     }
 
     RecyclableObject* BoundFunction::GetBoundThis()

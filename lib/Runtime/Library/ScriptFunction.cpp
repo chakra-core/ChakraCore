@@ -391,7 +391,7 @@ using namespace Js;
                 wmemcpy_s(buffer, decodedCount, builder.DangerousGetWritableBuffer(), decodedCount);
                 buffer[decodedCount] = 0;
 
-                cachedSourceString = LiteralString::New(scriptContext->GetLibrary()->GetStringTypeStatic(), buffer, static_cast<charcount_t>(decodedCount), recycler);
+                cachedSourceString = JavascriptString::NewWithBuffer(buffer, static_cast<charcount_t>(decodedCount), scriptContext);
             }
             else
             {
