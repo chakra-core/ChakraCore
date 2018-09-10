@@ -318,9 +318,7 @@ namespace Js
         JavascriptString* methodName = JavascriptString::FromVar(args.Values[1]);
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
 
-        // Set the function's display name, as the function we pass in argument are anonym.
-        func->GetFunctionProxy()->SetIsPublicLibraryCode();
-        func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
+        func->GetFunctionProxy()->EnsureDeserialized();
 
         DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, false, scriptContext);
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
