@@ -60,6 +60,7 @@ using namespace Js;
         pattern(instance->GetPattern()),
         splitPattern(instance->GetSplitPattern()),
         lastIndexVar(instance->lastIndexVar),
+        readOnlyLastIndex(instance->readOnlyLastIndex),
         lastIndexOrFlag(instance->lastIndexOrFlag)
     {
         // For boxing stack instance
@@ -1302,6 +1303,12 @@ using namespace Js;
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
+            if (readOnlyLastIndex)
+            {
+                JavascriptError::ThrowCantAssignIfStrictMode(flags, this->GetScriptContext());
+                *result = false;
+                return true;
+            }
             this->lastIndexVar = value;
             lastIndexOrFlag = NotCachedValue;
             *result = true;
@@ -1554,7 +1561,7 @@ using namespace Js;
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
-            return true;
+            return !this->readOnlyLastIndex;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
@@ -1573,6 +1580,17 @@ using namespace Js;
 
 #undef IS_WRITABLE
     }
+
+    BOOL JavascriptRegExp::SetWritable(PropertyId propertyId, BOOL value)
+    {
+        if (propertyId == PropertyIds::lastIndex && !this->readOnlyLastIndex)
+        {
+            this->readOnlyLastIndex = !value;
+            return TRUE;
+        }
+        return __super::SetWritable(propertyId, value);
+    }
+
     BOOL JavascriptRegExp::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialPropertyCount();
