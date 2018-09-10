@@ -16537,8 +16537,9 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                         IR::BailOutConventionalNativeArrayAccessOnly |
                         IR::BailOutOnMissingValue |
                         (bailOutKind & IR::BailOutOnArrayAccessHelperCall ? IR::BailOutInvalid : IR::BailOutConvertedNativeArray)
-                        )
-                    ));
+                    )
+                )
+            );
 
             if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
             {
@@ -16975,7 +16976,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
 
             IR::Opnd * tmpDst = nullptr;
             IR::Opnd * dst = instr->GetDst();
-            //Pop might not have a dst, if not don't worry about returning the last element. But we still have to
+            // Pop might not have a dst, if not don't worry about returning the last element. But we still have to
             // worry about gaps, because these force us to access the prototype chain, which may have side-effects.
             if (dst || !baseValueType.HasNoMissingValues())
             {
@@ -16987,6 +16988,77 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 {
                     tmpDst = IR::RegOpnd::New(TyVar, this->m_func);
                     dst = tmpDst;
+                }
+
+                {
+                    // Use a mask to prevent arbitrary speculative reads
+                    if (!headSegmentLengthOpnd)
+                    {
+                        headSegmentLengthOpnd =
+                            IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
+                        autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
+                    }
+                    IR::RegOpnd* localMaskOpnd = nullptr;
+#if TARGET_64
+                    IR::Opnd* lengthOpnd = nullptr;
+                    AnalysisAssert(headSegmentLengthOpnd != nullptr);
+                    lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
+                    {
+                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
+                        instr->InsertBefore(instrMov);
+                        LowererMD::Legalize(instrMov);
+                    }
+
+                    if (lengthOpnd->GetSize() != MachPtr)
+                    {
+                        lengthOpnd = lengthOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                    }
+
+                    //  MOV r1, [opnd + offset(type)]
+                    IR::RegOpnd* indexValueRegOpnd = IR::RegOpnd::New(indexValueOpnd->GetType(), m_func);
+
+                    {
+                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
+                        instr->InsertBefore(instrMov);
+                        LowererMD::Legalize(instrMov);
+                    }
+
+                    if (indexValueRegOpnd->GetSize() != MachPtr)
+                    {
+                        indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                    }
+
+                    localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+                    InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
+                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
+#else
+                    localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
+                    InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, instr);
+                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
+#endif
+
+                    // for pop we always do the masking before the load in cases where we load a value
+                    IR::RegOpnd* loadAddr = IR::RegOpnd::New(TyMachPtr, m_func);
+
+#if _M_ARM32_OR_ARM64
+                    if (indirOpnd->GetIndexOpnd() != nullptr && indirOpnd->GetScale() > 0)
+                    {
+                        // We don't support encoding for LEA with scale on ARM/ARM64, so do the scale calculation as a separate instruction
+                        IR::RegOpnd* fullIndexOpnd = IR::RegOpnd::New(indirOpnd->GetIndexOpnd()->GetType(), m_func);
+                        InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), instr);
+                        IR::IndirOpnd* newIndir = IR::IndirOpnd::New(indirOpnd->GetBaseOpnd(), fullIndexOpnd, indirType, m_func);
+                        if (indirOpnd->GetOffset() != 0)
+                        {
+                            newIndir->SetOffset(indirOpnd->GetOffset());
+                        }
+                        indirOpnd = newIndir;
+                    }
+#endif
+                    IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
+
+                    InsertLea(loadAddr, indirOpnd, instr);
+                    InsertAnd(loadAddr, loadAddr, localMaskOpnd, instr);
+                    indirOpnd = IR::IndirOpnd::New(loadAddr, 0, indirType, m_func);
                 }
 
                 //  MOV dst, [head + offset]
