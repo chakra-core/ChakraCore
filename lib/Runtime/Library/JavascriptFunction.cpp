@@ -1155,6 +1155,18 @@ using namespace Js;
     template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, bool useLargeArgCount);
 
 #if _M_IX86
+    extern "C" Var BreakSpeculation(Var passthrough)
+    {
+        Var result = nullptr;
+        __asm
+        {
+            mov ecx, passthrough;
+            cmp ecx, ecx;
+            cmove eax, ecx;
+            mov result, eax;
+        }
+        return result;
+    }
 #ifdef ASMJS_PLAT
     template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, Var * argv, uint argsSize, byte* reg)
     {
@@ -1348,6 +1360,11 @@ dbl_align:
     extern "C"
     {
         extern Var arm_CallFunction(JavascriptFunction* function, CallInfo info, uint argCount, Var* values, JavascriptMethod entryPoint);
+    }
+
+    extern "C" Var BreakSpeculation(Var passthrough)
+    {
+        return passthrough;
     }
 
     template <bool doStackProbe>
