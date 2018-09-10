@@ -2653,9 +2653,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     bool isFloatSrc = src1->IsFloat();
     bool isInt64Src = src1->IsInt64();
     Assert(!isFloatSrc || src2->IsFloat());
-    Assert(!isFloatSrc || isIntDst);
     Assert(!isInt64Src || src2->IsInt64());
-    Assert(!isInt64Src || isIntDst);
     Assert(!isFloatSrc || AutoSystemInfo::Data.SSE2Available());
     IR::Opnd *opnd;
     IR::Instr *newInstr;
@@ -2684,8 +2682,10 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         done = instr;
     }
 
+    bool isNegOpt = instr->m_opcode == Js::OpCode::CmNeq_A || instr->m_opcode == Js::OpCode::CmSrNeq_A;
     if (isIntDst)
     {
+        // Fast path for float src when destination is type specialized to int
         // reg = MOV 0 will get peeped to XOR reg, reg which sets the flags.
         // Put the MOV before the CMP, but use a tmp if dst == src1/src2
         if (dst->IsEqual(src1) || dst->IsEqual(src2))
@@ -2693,7 +2693,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
             tmp = IR::RegOpnd::New(dst->GetType(), this->m_func);
         }
         // dst = MOV 0
-        if (isFloatSrc && instr->m_opcode == Js::OpCode::CmNeq_A)
+        if (isFloatSrc && isNegOpt)
         {
             opnd = IR::IntConstOpnd::New(1, TyInt32, this->m_func);
         }
@@ -2702,6 +2702,20 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
             opnd = IR::IntConstOpnd::New(0, TyInt32, this->m_func);
         }
         m_lowerer->InsertMove(tmp, opnd, done);
+    }
+    else if (isFloatSrc)
+    {
+        // Fast path for float src when destination is not type specialized to int
+        // Assign default value for destination in case either src is NaN
+        if (isNegOpt)
+        {
+            opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue);
+        }
+        else
+        {
+            opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
+        }
+        Lowerer::InsertMove(tmp, opnd, done);
     }
 
     Js::OpCode cmpOp;
@@ -2744,11 +2758,13 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     {
     case Js::OpCode::CmEq_I4:
     case Js::OpCode::CmEq_A:
+    case Js::OpCode::CmSrEq_A:
         useCC = isIntDst ? Js::OpCode::SETE : Js::OpCode::CMOVE;
         break;
 
     case Js::OpCode::CmNeq_I4:
     case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmSrNeq_A:
         useCC = isIntDst ? Js::OpCode::SETNE : Js::OpCode::CMOVNE;
         break;
 

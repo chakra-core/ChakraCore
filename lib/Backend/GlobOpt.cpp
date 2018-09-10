@@ -10473,6 +10473,7 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
     bool skipSrc1 = false;
     bool skipSrc2 = false;
     bool skipDst = false;
+    bool convertDstToBool = false;
 
     if (!this->DoFloatTypeSpec())
     {
@@ -10544,6 +10545,19 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
             skipDst = true;
             break;
 
+        case Js::OpCode::CmEq_A:
+        case Js::OpCode::CmSrEq_A:
+        case Js::OpCode::CmNeq_A:
+        case Js::OpCode::CmSrNeq_A:
+        case Js::OpCode::CmLe_A:
+        case Js::OpCode::CmLt_A:
+        case Js::OpCode::CmGe_A:
+        case Js::OpCode::CmGt_A:
+        {
+            convertDstToBool = true;
+            break;
+        }
+        
         default:
             return false;
         }
@@ -10589,13 +10603,19 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
     if (!skipDst)
     {
         dst = instr->GetDst();
-
         if (dst)
         {
-            *pDstVal = CreateDstUntransferredValue(ValueType::Float, instr, src1Val, src2Val);
-
-            AssertMsg(dst->IsRegOpnd(), "What else?");
-            this->ToFloat64Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+            if (convertDstToBool)
+            {
+                *pDstVal = CreateDstUntransferredValue(ValueType::Boolean, instr, src1Val, src2Val);
+                ToVarRegOpnd(dst->AsRegOpnd(), currentBlock);
+            }
+            else
+            {
+                *pDstVal = CreateDstUntransferredValue(ValueType::Float, instr, src1Val, src2Val);
+                AssertMsg(dst->IsRegOpnd(), "What else?");
+                this->ToFloat64Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+            }
         }
     }
 
