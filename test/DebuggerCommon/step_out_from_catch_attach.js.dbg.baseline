@@ -15,7 +15,7 @@
     "locals": {
       "x": "number 1",
       "e": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "number": "number 0",
         "description": "string ",
         "stack": "string <large string>"

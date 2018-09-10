@@ -41,7 +41,7 @@
         "length": "number 0"
       },
       "c": {
-        "#__proto__": "Date Invalid Date"
+        "#__proto__": "Object {...}"
       }
     },
     "globals": {

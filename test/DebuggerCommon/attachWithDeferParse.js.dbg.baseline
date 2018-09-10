@@ -41,18 +41,18 @@
       "f1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string f1",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string g",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       }
     },
     "globals": {
@@ -75,7 +75,7 @@
     },
     "locals": {
       "t": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -85,26 +85,26 @@
       "s": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 2",
         "name": "string ",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 2"
+        "arguments": "object null"
       },
       "f1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string f1",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "g": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string g",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       }
     },
     "globals": {
