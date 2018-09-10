@@ -1129,7 +1129,8 @@ ARM64StackLayout::ARM64StackLayout(Func* func)
         // the worst case assumption (homing all NUM_INT_ARG_REGS).
         this->m_hasCalls = func->GetHasCalls() ||
             func->HasAnyStackNestedFunc() || 
-            !LowererMD::IsSmallStack(this->TotalStackSize() + NUM_INT_ARG_REGS * MachRegInt);
+            !LowererMD::IsSmallStack(this->TotalStackSize() + NUM_INT_ARG_REGS * MachRegInt) ||
+            Lowerer::IsArgSaveRequired(func);
 
         // Home the params. This is done to enable on-the-fly creation of the arguments object,
         // Dyno bailout code, etc. For non-global functions, that means homing all the param registers
