@@ -285,6 +285,10 @@ CommonNumber:
             // For all other types, convert the key into a string and use that as the property name
             JavascriptString * propName = JavascriptConversion::ToString(key, scriptContext);
             propName->GetPropertyRecord(propertyRecord);
+            if (PropertyString::Is(propName))
+            {
+                propertyString = PropertyString::UnsafeFromVar(propName);
+            }
         }
 
         if (propString)
