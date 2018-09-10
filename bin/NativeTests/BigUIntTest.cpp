@@ -226,7 +226,7 @@ namespace BigUIntTest
     TEST_CASE("Init_From_Char_Of_Digits", "[BigUIntTest]")
     {
         BigUInt biDec;
-        char *charDigit;
+        const char *charDigit;
         bool result;
         int charDigitLength;
 
