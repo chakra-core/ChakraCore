@@ -306,6 +306,14 @@
   </test>
   <test>
     <default>
+      <files>InlineCallbackCallBailout.js</files>
+      <compile-flags>-testtrace:InlineCallbacks -testtrace:Bailout</compile-flags>
+      <baseline>InlineCallbackCallBailout.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>recursiveCallbacks.js</files>
     </default>
   </test>

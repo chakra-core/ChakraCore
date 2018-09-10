@@ -1010,6 +1010,13 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
     return instrNext;
 }
 
+IR::RegOpnd * Inline::GetCallbackFunctionOpnd(IR::Instr * callInstr)
+{
+    IR::Instr * callApplyLdInstr = callInstr->GetSrc1()->GetStackSym()->GetInstrDef();
+    IR::Instr * targetDefInstr = callApplyLdInstr->GetSrc1()->AsPropertySymOpnd()->GetObjectSym()->GetInstrDef();
+    return targetDefInstr->GetDst()->AsRegOpnd();
+}
+
 IR::Instr * Inline::TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr)
 {
     // Try to find a function argument that could be inlined.
@@ -2891,7 +2898,12 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
     bool originalCallTargetOpndIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
     bool safeThis = false;
-    if (!targetIsCallback && !TryGetFixedMethodsForBuiltInAndTarget(callInstr, inlinerData, inlineeData, applyFuncInfo, applyLdInstr, applyTargetLdInstr, safeThis, /*isApplyTarget*/ true))
+
+    if (targetIsCallback)
+    {
+        callInstr->ReplaceSrc1(GetCallbackFunctionOpnd(callInstr));
+    }
+    else if (!TryGetFixedMethodsForBuiltInAndTarget(callInstr, inlinerData, inlineeData, applyFuncInfo, applyLdInstr, applyTargetLdInstr, safeThis, /*isApplyTarget*/ true))
     {
         return false;
     }
@@ -3216,7 +3228,12 @@ Inline::InlineCallTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inline
     StackSym* originalCallTargetStackSym = callInstr->GetSrc1()->GetStackSym();
     bool originalCallTargetOpndIsJITOpt = callInstr->GetSrc1()->GetIsJITOptimizedReg();
     bool safeThis = false;
-    if (!targetIsCallback && !TryGetFixedMethodsForBuiltInAndTarget(callInstr, inlinerData, inlineeData, callFuncInfo, callLdInstr, callTargetLdInstr, safeThis, /*isApplyTarget*/ false))
+
+    if (targetIsCallback)
+    {
+        callInstr->ReplaceSrc1(GetCallbackFunctionOpnd(callInstr));
+    }
+    else if (!TryGetFixedMethodsForBuiltInAndTarget(callInstr, inlinerData, inlineeData, callFuncInfo, callLdInstr, callTargetLdInstr, safeThis, /*isApplyTarget*/ false))
     {
         return false;
     }
@@ -4433,17 +4450,7 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
     IR::BailOutKind bailOutKind = IR::BailOutOnInlineFunction;
 
-    IR::RegOpnd * funcOpnd;
-    if (isCallbackCallApplyTarget)
-    {
-        IR::Instr * callApplyLdInstr = callInstr->GetSrc1()->GetStackSym()->GetInstrDef();
-        IR::Instr * targetDefInstr = callApplyLdInstr->GetSrc1()->AsPropertySymOpnd()->GetObjectSym()->GetInstrDef();
-        funcOpnd = targetDefInstr->GetDst()->AsRegOpnd();
-    }
-    else
-    {
-        funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
-    }
+    IR::RegOpnd * funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
 
     // FunctionBody check is the primary bailout instruction, create it first
     IR::BailOutInstr* primaryBailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
