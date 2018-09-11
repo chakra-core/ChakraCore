@@ -257,6 +257,7 @@ RT_ERROR_MSG(JSERR_MissingCurrencyCode, 5123, "", "Currency code was not specifi
 RT_ERROR_MSG(JSERR_InvalidDate, 5124, "", "Invalid Date", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_IntlNotAvailable, 5125, "", "Intl is not available.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_IntlNotImplemented, 5126, "", "Intl operation '%s' is not implemented.", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidPrivateOrGrandfatheredTag, 5127, "", "The arguments provided to Intl.Locale form an invalid privateuse or grandfathered language tag", kjstRangeError, 0)
 
 RT_ERROR_MSG(JSERR_ArgumentOutOfRange, 5130, "%s: argument out of range", "argument out of range", kjstRangeError, 0)
 RT_ERROR_MSG(JSERR_ErrorOnNew, 5131, "", "Function is not a constructor", kjstTypeError, 0)

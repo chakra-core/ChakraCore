@@ -5,16 +5,16 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-const constructors = [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat];
-
-if (WScript.Platform.INTL_LIBRARY === "icu") {
-    constructors.push(Intl.PluralRules);
-}
-
 testRunner.runTests([
     {
         name: "OSS-Fuzz #6657: stress uloc_forLanguageTag status code and parsed length on duplicate variant subtags",
         body() {
+            const constructors = [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat];
+
+            if (WScript.Platform.INTL_LIBRARY === "icu") {
+                constructors.push(Intl.PluralRules, Intl.Locale);
+            }
+
             function test(Ctor, locale) {
                 assert.throws(() => new Ctor(locale), RangeError, `new Intl.${Ctor.name}("${locale}") should throw`);
             }
@@ -119,5 +119,24 @@ testRunner.runTests([
             testFallbackSymbol(Intl.DateTimeFormat, true);
             assert.throws(() => Intl.PluralRules.call(new Intl.PluralRules()), TypeError, "Intl.PluralRules requires `new`");
         }
-    }
+    },
+    {
+        name: "Intl.Locale as the language tag argument",
+        body() {
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                return;
+            }
+
+            const locale = new Intl.Locale("de");
+            // At the time of writing, the draft spec does not allow Intl.Locale instances to be provided outside of an array
+            // for the language tag argument. See https://github.com/tc39/proposal-intl-locale/issues/60
+            assert.areEqual(0, Intl.getCanonicalLocales(locale).length);
+            assert.areEqual("de", Intl.getCanonicalLocales([locale])[0]);
+            assert.areEqual("de", Intl.getCanonicalLocales(["en", locale, "zh"])[1]);
+            for (const Ctor of [Intl.Collator, Intl.NumberFormat, Intl.DateTimeFormat, Intl.PluralRules]) {
+                assert.areEqual(new Ctor().resolvedOptions().locale, new Ctor(locale).resolvedOptions().locale, `${Ctor.name} should fall back to the default locale when an Intl.Locale instance is not passed in an array`);
+                assert.areEqual("de", new Ctor([locale]).resolvedOptions().locale, `${Ctor.name} did not accept an Intl.Locale instance in an array as the language tag argument properly`);
+            }
+        }
+    },
 ], { verbose: false });
