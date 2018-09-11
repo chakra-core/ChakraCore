@@ -546,7 +546,7 @@ else
 fi
 
 # check clang version (min required 3.7)
-VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]\.[0-9]*" --o)
+VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]*\.[0-9]*" --o)
 VERSION=${VERSION/./}
 
 if [[ $VERSION -lt 37 ]]; then
