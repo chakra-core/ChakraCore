@@ -194,7 +194,7 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     //      ii. Let nextp be the result of calling the [[GetInheritance]] internal method of p with no arguments.
     //      iii.    ReturnIfAbrupt(nextp).
     //      iv. Let  p be nextp.
-        if (IsPrototypeOfStopAtProxy(object, newPrototype, scriptContext)) // Reject cycle
+    if (IsPrototypeOfStopAtProxy(object, newPrototype, scriptContext)) // Reject cycle
     {
         if (shouldThrow)
         {
@@ -228,6 +228,11 @@ BOOL JavascriptObject::ChangePrototype(RecyclableObject* object, RecyclableObjec
     if (isInvalidationOfInlineCacheNeeded)
     {
         bool allProtoCachesInvalidated = false;
+
+        JavascriptOperators::MapObjectAndPrototypes<true>(newPrototype, [&](RecyclableObject* obj)
+        {
+            obj->ClearProtoCachesWereInvalidated();
+        });
 
         // Notify old prototypes that they are being removed from a prototype chain. This triggers invalidating protocache, etc.
         JavascriptOperators::MapObjectAndPrototypesUntil<true>(object->GetPrototype(), [&](RecyclableObject* obj)->bool
