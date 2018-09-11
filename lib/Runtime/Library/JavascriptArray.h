@@ -439,7 +439,9 @@ namespace Js
         void LinkSegmentsCommon(SparseArraySegmentBase* prev, SparseArraySegmentBase* current);
 
     public:
-        static JavascriptArray *GetArrayForArrayOrObjectWithArray(const Var var);
+        static JavascriptArray *Jit_GetArrayForArrayOrObjectWithArray(const Var var);
+        static JavascriptArray *Jit_GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef);
+        static bool Jit_TryGetArrayForObjectWithArray(const Var var, bool *const isObjectWithArrayRef, INT_PTR* vtable, JavascriptArray ** array);
         static JavascriptArray *GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef, TypeId *const arrayTypeIdRef);
         static const SparseArraySegmentBase *Jit_GetArrayHeadSegmentForArrayOrObjectWithArray(const Var var);
         static uint32 Jit_GetArrayHeadSegmentLength(const SparseArraySegmentBase *const headSegment);
@@ -904,7 +906,7 @@ namespace Js
         static JavascriptArray * BoxStackInstance(JavascriptArray * instance, bool deepCopy);
         static ArrayObject * DeepCopyInstance(ArrayObject * instance);
     protected:
-        template <typename T> void InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy);
+        template <typename T> void InitBoxedInlineSegments(T * instance, bool deepCopy);
 
         template <typename T> static T * BoxStackInstance(T * instance, bool deepCopy);
         template <typename T> static T * DeepCopyInstance(T * instance);

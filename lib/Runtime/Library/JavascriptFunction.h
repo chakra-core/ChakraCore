@@ -34,6 +34,8 @@ namespace Js
    extern "C" Var amd64_CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, CallInfo callInfo, uint argc, Var *argv);
 #endif
 
+    extern "C" Var BreakSpeculation(Var passthroughObject);
+
     class JavascriptFunction : public DynamicObject
     {
     private:

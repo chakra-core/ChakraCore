@@ -596,11 +596,67 @@ using namespace Js;
         return scriptContext->GetLibrary()->GetArrayType();
     }
 
-    JavascriptArray *JavascriptArray::GetArrayForArrayOrObjectWithArray(const Var var)
+    JavascriptArray *JavascriptArray::Jit_GetArrayForArrayOrObjectWithArray(const Var var)
     {
         bool isObjectWithArray;
-        TypeId arrayTypeId;
-        return GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray, &arrayTypeId);
+        return Jit_GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray);
+    }
+
+    JavascriptArray *JavascriptArray::Jit_GetArrayForArrayOrObjectWithArray(const Var var, bool *const isObjectWithArrayRef)
+    {
+        Assert(var);
+        Assert(isObjectWithArrayRef);
+
+        *isObjectWithArrayRef = false;
+
+        if (!RecyclableObject::Is(var))
+        {
+            return nullptr;
+        }
+
+        JavascriptArray *array = nullptr;
+        INT_PTR vtable = VirtualTableInfoBase::GetVirtualTable(var);
+        if (!Jit_TryGetArrayForObjectWithArray(var, isObjectWithArrayRef, &vtable, &array))
+        {
+            return nullptr;
+        }
+
+        if (vtable != VirtualTableInfo<JavascriptArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptArray>>::Address &&
+            vtable != VirtualTableInfo<JavascriptNativeIntArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::Address &&
+            vtable != VirtualTableInfo<JavascriptNativeFloatArray>::Address &&
+            vtable != VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::Address)
+        {
+            return nullptr;
+        }
+
+        if (!array)
+        {
+            array = FromVar(var);
+        }
+        return array;
+    }
+
+    bool JavascriptArray::Jit_TryGetArrayForObjectWithArray(const Var var, bool *const isObjectWithArrayRef, INT_PTR* pVTable, JavascriptArray** pArray)
+    {
+        Assert(isObjectWithArrayRef);
+        Assert(pVTable);
+        Assert(pArray);
+
+        if (*pVTable == VirtualTableInfo<DynamicObject>::Address ||
+            *pVTable == VirtualTableInfo<CrossSiteObject<DynamicObject>>::Address)
+        {
+            ArrayObject* objectArray = DynamicObject::FromVar(var)->GetObjectArray();
+            *pArray = (objectArray && Is(objectArray)) ? FromVar(objectArray) : nullptr;
+            if (!(*pArray))
+            {
+                return false;
+            }
+            *isObjectWithArrayRef = true;
+            *pVTable = VirtualTableInfoBase::GetVirtualTable(*pArray);
+        }
+        return true;
     }
 
     JavascriptArray *JavascriptArray::GetArrayForArrayOrObjectWithArray(
@@ -664,7 +720,7 @@ using namespace Js;
     const SparseArraySegmentBase *JavascriptArray::Jit_GetArrayHeadSegmentForArrayOrObjectWithArray(const Var var)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
         return array ? array->head : nullptr;
         JIT_HELPER_END(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
     }
@@ -701,8 +757,7 @@ using namespace Js;
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayLength);
         bool isObjectWithArray;
-        TypeId arrayTypeId;
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray, &arrayTypeId);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var, &isObjectWithArray);
         return array && !isObjectWithArray ? array->GetLength() : 0;
         JIT_HELPER_END(Array_Jit_GetArrayLength);
     }
@@ -717,7 +772,7 @@ using namespace Js;
     DynamicObjectFlags JavascriptArray::Jit_GetArrayFlagsForArrayOrObjectWithArray(const Var var)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
-        JavascriptArray *const array = GetArrayForArrayOrObjectWithArray(var);
+        JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
         return array && array->UsesObjectArrayOrFlagsAsFlags() ? array->GetFlags() : DynamicObjectFlags::None;
         JIT_HELPER_END(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
     }
@@ -11814,24 +11869,42 @@ Case0:
 #endif
 
     template <typename T>
-    void JavascriptArray::InitBoxedInlineSegments(SparseArraySegment<T> * dst, SparseArraySegment<T> * src, bool deepCopy)
+    void JavascriptArray::InitBoxedInlineSegments(T * instance, bool deepCopy)
     {
         // Don't copy the segment map, we will build it again
         SetFlags(GetFlags() & ~DynamicObjectFlags::HasSegmentMap);
 
-        SetHeadAndLastUsedSegment(dst);
+        SparseArraySegment<typename T::TElement>* src = SparseArraySegment<typename T::TElement>::From(instance->head);
+        SparseArraySegment<typename T::TElement>* dst;
 
-        // Copy head segment data
-        dst->left = src->left;
-        dst->length = src->length;
-        dst->size = src->size;
+        if (IsInlineSegment(src, instance))
+        {
+            Assert(src->size <= SparseArraySegmentBase::INLINE_CHUNK_SIZE);
+
+            // Copy head segment data between inlined head segments
+            dst = DetermineInlineHeadSegmentPointer<T, 0, true>(static_cast<T*>(this));
+            dst->left = src->left;
+            dst->length = src->length;
+            dst->size = src->size;
+        }
+        else
+        {
+            // Otherwise, ensure that the new head segment is allocated now in the recycler so that the data can be copied.
+            // Note: src->next is provided to control whether a leaf segment is allocated just as it is with instance. If
+            //  src->next is non-null, the appropriate update to dst->next will continue below.
+            dst = SparseArraySegment<typename T::TElement>::AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
+        }
+
+        SetHeadAndLastUsedSegment(dst);
         dst->CheckLengthvsSize();
+
+        Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
 
         CopyArray(dst->elements, dst->size, src->elements, src->size);
 
         if (!deepCopy)
         {
-            // Without a deep copy, point to the existing next segment
+            // Without a deep copy, point to the existing next segment from the original instance
             dst->next = src->next;
         }
         else
@@ -11845,10 +11918,10 @@ Case0:
                 {
                     // Allocate a new segment in the destination and copy from src
                     // note: PointerValue is to strip SWB wrapping before static_cast
-                    src = static_cast<SparseArraySegment<T>*>(PointerValue(src->next));
+                    src = static_cast<SparseArraySegment<typename T::TElement>*>(PointerValue(src->next));
 
                     dst->next = dst->AllocateSegment(GetRecycler(), src->left, src->length, src->size, src->next);
-                    dst = static_cast<SparseArraySegment<T>*>(PointerValue(dst->next));
+                    dst = static_cast<SparseArraySegment<typename T::TElement>*>(PointerValue(dst->next));
 
                     CopyArray(dst->elements, dst->size, src->elements, src->size);
                 }
@@ -11861,6 +11934,12 @@ Case0:
             } while (dst != nullptr);
             failFastError.Completed();
         }
+
+        // Assert either
+        // - there is only the head segment
+        // - the new head segment points to a new next segment
+        // - the new head segment points to the existing next segment because this is not a deepCopy
+        Assert(this->head->next == nullptr || this->head->next != src->next || !deepCopy);
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead, bool deepCopy)
@@ -11868,7 +11947,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head), false);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {
@@ -11880,13 +11959,19 @@ Case0:
     }
 
     // Allocate a new Array with its own segments and copy the data in instance
-    // into the new Array
+    // into the new Array. If the instance being deepCopy'd has an inline head
+    // segment, then make sure the new instance also has allocation for an inline
+    // head segment.
     template <typename T>
     T * JavascriptArray::DeepCopyInstance(T * instance)
     {
-        return RecyclerNewPlusZ(instance->GetRecycler(),
-            instance->GetTypeHandler()->GetInlineSlotsSize() + sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement),
-            T, instance, true /*boxHead*/, true /*deepCopy*/);
+        size_t allocSize = instance->GetTypeHandler()->GetInlineSlotsSize();
+        if (IsInlineSegment(instance->head, instance))
+        {
+            allocSize += sizeof(Js::SparseArraySegmentBase) + instance->head->size * sizeof(typename T::TElement);
+        }
+
+        return RecyclerNewPlusZ(instance->GetRecycler(), allocSize, T, instance, true /*boxHead*/, true /*deepCopy*/);
     }
 
     ArrayObject* JavascriptArray::DeepCopyInstance(ArrayObject* arrayObject)
@@ -12051,7 +12136,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head), deepCopy);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {
@@ -12097,7 +12182,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineSegments(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head), deepCopy);
+            InitBoxedInlineSegments(instance, deepCopy);
         }
         else
         {
