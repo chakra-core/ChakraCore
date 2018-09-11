@@ -5,6 +5,7 @@
 #include "JsrtPch.h"
 #include "JsrtInternal.h"
 #include "jsrtHelper.h"
+#include "SCACorePch.h"
 #include "JsrtContextCore.h"
 #include "ChakraCore.h"
 
@@ -244,3 +245,41 @@ CHAKRA_API JsGetModuleNamespace(_In_ JsModuleRecord requestModule, _Outptr_resul
     *moduleNamespace = static_cast<JsValueRef>(moduleRecord->GetNamespace());
     return JsNoError;
 }
+
+CHAKRA_API
+JsVarSerializer(
+    _In_ SerializerCallbackBase *delegate,
+    _Out_ SerializerHandleBase **serializerHandle)
+{
+    PARAM_NOT_NULL(delegate);
+    PARAM_NOT_NULL(serializerHandle);
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, delegate);
+        writer->SetSerializer(HeapNew(Js::SCACore::Serializer, scriptContext, writer));
+        *serializerHandle = (SerializerHandleBase *)writer;
+        return JsNoError;
+    });
+
+    return errorCode;
+
+}
+
+CHAKRA_API
+JsVarDeserializer(
+    _In_ SerializerBlob *dataBlob,
+    _Out_ DeserializerHandleBase **deserializerHandle)
+{
+    PARAM_NOT_NULL(dataBlob);
+    PARAM_NOT_NULL(deserializerHandle);
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle);
+        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, dataBlob->data, dataBlob->dataLength, dataBlob->transferableHolder, scriptContext));
+        *deserializerHandle = (DeserializerHandleBase *)reader;
+        return JsNoError;
+    });
+
+    return errorCode;
+}
+

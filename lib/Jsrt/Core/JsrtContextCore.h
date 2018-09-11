@@ -7,6 +7,15 @@
 #include "JsrtRuntime.h"
 class ChakraCoreHostScriptContext;
 
+namespace Js
+{
+    namespace SCACore
+    {
+        class Serializer;
+        class Deserializer;
+    }
+}
+
 class JsrtContextCore sealed : public JsrtContext
 {
 public:
@@ -22,6 +31,56 @@ private:
     Js::ScriptContext* EnsureScriptContext();
 
     FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
+};
+
+class ChakraCoreStreamWriter : public HostStream, public SerializerHandleBase
+{
+    SerializerCallbackBase *m_delegate;
+    Js::SCACore::Serializer *m_serializerCore;
+    byte* m_data;
+    size_t m_length;
+
+public:
+    ChakraCoreStreamWriter(SerializerCallbackBase *delegate)
+        : m_delegate(delegate),
+        m_data(nullptr),
+        m_length(0),
+        m_serializerCore(nullptr)
+    {
+    }
+
+    ~ChakraCoreStreamWriter();
+
+    void SetSerializer(Js::SCACore::Serializer *s);
+
+    void WriteRawBytes(const void* source, size_t length) override;
+    bool WriteValue(JsValueRef root) override;
+    bool ReleaseData(byte** data, size_t *dataLength) override;
+    bool DetachArrayBuffer() override;
+    JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) override;
+    void *GetTransferableHolder() override;
+    void FreeSelf() override;
+
+    byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
+};
+
+class ChakraHostDeserializerHandle : public DeserializerHandleBase
+{
+    Js::SCACore::Deserializer *m_deserializer;
+
+public:
+    ChakraHostDeserializerHandle()
+        : m_deserializer(nullptr)
+    { }
+
+    ~ChakraHostDeserializerHandle();
+
+    void SetDeserializer(Js::SCACore::Deserializer *deserializer);
+    bool ReadRawBytes(size_t length, void **data) override;
+	virtual bool ReadBytes(size_t length, void **data) override;
+	JsValueRef ReadValue() override ;
+    void FreeSelf() override;
+
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext
@@ -161,6 +220,13 @@ public:
         return nullptr;
     }
 
+    HRESULT ThrowIfFailed(HRESULT hr) override
+    {
+        hr;
+        // No support yet
+        return S_OK;
+    }
+
     HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
         return E_NOTIMPL;
@@ -195,3 +261,6 @@ private:
     FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
 };
+
+
+

@@ -1463,5 +1463,57 @@ CHAKRA_API
         _In_ size_t sizeInBytes,
         _Out_ JsRef * buffer
     );
+	
+struct SerializerBlob
+{
+    void *transferableHolder;
+    void *data;
+	size_t dataLength;
+};
+
+class SerializerCallbackBase
+{
+public:
+    virtual byte *ReallocateBufferMemory(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+    virtual void FreeBufferMemory(byte *buffer) = 0;
+    virtual void ThrowDataCloneError(void *message) = 0;
+    virtual bool WriteHostObject(void* data) = 0;
+    virtual unsigned int GetSharedArrayBufferId(void * shared_array_buffer) = 0;
+    virtual unsigned int GetWasmModuleTransferId(void * wasmModule) = 0;
+};
+
+class SerializerHandleBase
+{
+public:
+    virtual void WriteRawBytes(const void* source, size_t length) = 0;
+    virtual bool WriteValue(JsValueRef root) = 0;
+    virtual bool ReleaseData(byte** data, size_t *dataLength) = 0;
+    virtual bool DetachArrayBuffer() = 0;
+    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
+    virtual void *GetTransferableHolder() = 0;
+    virtual void FreeSelf() = 0;
+};
+
+class DeserializerHandleBase
+{
+public:
+    virtual bool ReadRawBytes(size_t length, void **data) = 0;
+	virtual bool ReadBytes(size_t length, void **data) = 0;
+	virtual JsValueRef ReadValue() = 0;
+    virtual void FreeSelf() = 0;
+};
+
+CHAKRA_API
+    JsVarSerializer(
+        _In_ SerializerCallbackBase *delegate,
+        _Out_ SerializerHandleBase **serializerHandle);
+
+CHAKRA_API
+    JsVarDeserializer(
+        _In_ SerializerBlob *dataBlob,
+        _Out_ DeserializerHandleBase **deserializerHandle);
+
+
+
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

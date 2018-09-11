@@ -87,6 +87,7 @@ endif()
 
 add_subdirectory (Common)
 add_subdirectory (Parser)
+add_subdirectory (SCACore)
 add_subdirectory (Runtime)
 add_subdirectory (Jsrt)
 if (CC_TARGETS_AMD64)
