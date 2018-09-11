@@ -747,6 +747,7 @@ case_2:
         Var value;
         if (pThis->GetItemAt(idxPosition, &value))
         {
+            value = BreakSpeculation(value);
             return value;
         }
         else
@@ -795,7 +796,7 @@ case_2:
             return scriptContext->GetLibrary()->GetNaN();
         }
 
-        return TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition));
+        return BreakSpeculation(TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition)));
     }
 
     Var JavascriptString::EntryCodePointAt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1849,6 +1850,9 @@ case_2:
         {
             idxEnd = idxStart;
         }
+
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
+
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
 
@@ -1968,6 +1972,8 @@ case_2:
             return pThis;
         }
 
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
+
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
 
@@ -2023,6 +2029,8 @@ case_2:
             //return the string if we need to substr entire span
             return pThis;
         }
+
+        pThis = (JavascriptString*)BreakSpeculation(pThis);
 
         Assert(0 <= idxStart && idxStart <= idxEnd && idxEnd <= len);
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);

@@ -1108,6 +1108,11 @@ LowererMD::LowerEntryInstr(IR::EntryInstr * entryInstr)
         unwindInfo->SetHasCalls(true);
     }
 
+    if (Lowerer::IsArgSaveRequired(this->m_func))
+    {
+        unwindInfo->SetHasCalls(true);
+    }
+
     bool hasCalls = unwindInfo->GetHasCalls();
 
     // Home the params. This is done to enable on-the-fly creation of the arguments object,
