@@ -71,6 +71,7 @@ namespace Js
     {
         static const uint AssignCacheSize = 16;
         static const uint StringifyCacheSize = 16;
+        static const uint CreateKeysCacheSize = 16;
 
         Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
@@ -91,6 +92,7 @@ namespace Js
         Field(ScriptContextPolymorphicInlineCache*) toJSONCache;
         Field(EnumeratorCache*) assignCache;
         Field(EnumeratorCache*) stringifyCache;
+        Field(EnumeratorCache*) createKeysCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
@@ -1125,6 +1127,7 @@ namespace Js
         }
 
         EnumeratorCache* GetObjectAssignCache(Type* type);
+        EnumeratorCache* GetCreateKeysCache(Type* type);
         EnumeratorCache* GetStringifyCache(Type* type);
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }

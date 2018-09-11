@@ -6428,6 +6428,11 @@ namespace Js
         return GetEnumeratorCache<Cache::AssignCacheSize>(type, &this->cache.assignCache);
     }
 
+    EnumeratorCache* JavascriptLibrary::GetCreateKeysCache(Type* type)
+    {
+        return GetEnumeratorCache<Cache::CreateKeysCacheSize>(type, &this->cache.createKeysCache);
+    }
+
     EnumeratorCache* JavascriptLibrary::GetStringifyCache(Type* type)
     {
         return GetEnumeratorCache<Cache::StringifyCacheSize>(type, &this->cache.stringifyCache);

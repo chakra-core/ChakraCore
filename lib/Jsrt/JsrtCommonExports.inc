@@ -114,6 +114,7 @@
     JsParseSerialized
     JsRunSerialized
     JsCreatePropertyId
+    JsCreatePropertyString
     JsCopyPropertyId
     JsCreatePromise
     JsCreateWeakReference
@@ -137,4 +138,8 @@
     JsAllocRawData
     JsAllocRawDataZeroed
     JsCloneObject
+    JsHasPrivateProperty
+    JsSetPrivateProperty
+    JsGetPrivateProperty
+    JsDeletePrivateProperty
 #endif

@@ -2741,6 +2741,108 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
     END_JSRT_NO_EXCEPTION
 }
 
+#ifdef _CHAKRACOREBUILD
+
+CHAKRA_API JsHasPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ bool *hasProperty)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(key, scriptContext);
+        PARAM_NOT_NULL(hasProperty);
+        *hasProperty = false;
+
+        Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(object);
+        if (!dynObj->HasObjectArray())
+        {
+            return JsNoError;
+        }
+        *hasProperty = Js::JavascriptOperators::OP_HasItem(dynObj->GetObjectArray(), key, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsGetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *value)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetIndex, key, object);
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(key, scriptContext);
+        PARAM_NOT_NULL(value);
+        *value = nullptr;
+        Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(object);
+
+        if (!dynObj->HasObjectArray())
+        {
+            *value = scriptContext->GetLibrary()->GetUndefined();
+            PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
+            return JsNoError;
+        }
+        *value = (JsValueRef)Js::JavascriptOperators::OP_GetElementI(dynObj->GetObjectArray(), key, scriptContext);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsSetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_ JsValueRef value)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTSetIndex, object, key, value);
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(key, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+        
+        Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(object);
+
+        if (!dynObj->HasObjectArray())
+        {
+            Js::ArrayObject* objArray = scriptContext->GetLibrary()->CreateArray();
+            dynObj->SetObjectArray(objArray);
+        }
+        Js::JavascriptOperators::OP_SetElementI(dynObj->GetObjectArray(), key, value, scriptContext);
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsDeletePrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_REFERENCE(key, scriptContext);
+
+        Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(object);
+        if (!dynObj->HasObjectArray())
+        {
+            *result = scriptContext->GetLibrary()->GetFalse();
+            return JsNoError;
+        }
+        *result = Js::JavascriptOperators::OP_DeleteElementI(dynObj->GetObjectArray(), key, scriptContext);
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
 {
     VALIDATE_JSREF(source);
@@ -2781,6 +2883,7 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
         return JsErrorInvalidArgument;
     });
 }
+#endif
 
 CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef *args, _In_ ushort cargs, _Out_opt_ JsValueRef *result)
 {
@@ -5081,6 +5184,28 @@ CHAKRA_API JsCreatePropertyId(
 
     return JsGetPropertyIdFromNameInternal(wname, wname.Length(), propertyId);
 }
+
+#ifdef _CHAKRACOREBUILD
+CHAKRA_API JsCreatePropertyString(
+    _In_z_ const char *name,
+    _In_ size_t length,
+    _Out_ JsValueRef *propertyString)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        Js::PropertyRecord* propertyRecord;
+        JsErrorCode errorCode = JsCreatePropertyId(name, length, (JsPropertyIdRef *)&propertyRecord);
+
+        if (errorCode != JsNoError)
+        {
+            return errorCode;
+        }
+
+        *propertyString = scriptContext->GetPropertyString(propertyRecord);
+        return JsNoError;
+    });
+}
+#endif
 
 CHAKRA_API JsCopyPropertyId(
     _In_ JsPropertyIdRef propertyId,

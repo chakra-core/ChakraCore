@@ -594,6 +594,32 @@ CHAKRA_API
         _Out_ JsPropertyIdRef *propertyId);
 
 /// <summary>
+///     Creates the property ID associated with the name.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Property IDs are specific to a context and cannot be used across contexts.
+///     </para>
+///     <para>
+///         Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="name">
+///     The name of the property ID to get or create. The name may consist of only digits.
+///     The string is expected to be ASCII / utf8 encoded.
+/// </param>
+/// <param name="length">length of the name in bytes</param>
+/// <param name="propertyString">The property string in this runtime for the given name.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreatePropertyString(
+    _In_z_ const char *name,
+    _In_ size_t length,
+    _Out_ JsValueRef* propertyString);
+
+/// <summary>
 ///     Copies the name associated with the property ID into a buffer.
 /// </summary>
 /// <remarks>
@@ -1066,6 +1092,78 @@ CHAKRA_API
 JsCloneObject(
     _In_ JsValueRef source,
     _Out_ JsValueRef* clonedObject);
+
+/// <summary>
+///     Determines whether an object has a private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that may contain the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="hasProperty">Whether the object (or a prototype) has the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsHasPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ bool *hasProperty);
+
+/// <summary>
+///     Gets an object's private property
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="value">The value of the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *value);
+
+/// <summary>
+///     Puts an object's private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="value">The new value of the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsSetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_ JsValueRef value);
+
+/// <summary>
+///     Deletes an object's private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="result">Whether the property was deleted.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsDeletePrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *result);
 
 /// <summary>
 ///     Gets an object's property.
