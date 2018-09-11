@@ -130,7 +130,7 @@
     },
     "locals": {
       "e": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -139,10 +139,10 @@
       "j1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string ",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       }
     },
     "globals": {
@@ -230,7 +230,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -282,7 +282,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -335,7 +335,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -388,7 +388,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -437,7 +437,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -486,7 +486,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -535,7 +535,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -579,7 +579,7 @@
     },
     "locals": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -593,98 +593,98 @@
       "startTest": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string ",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "bar": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string bar",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "bar2": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string bar2",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo1": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo1",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo10": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo10",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo11": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo11",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo2": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo2",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo3": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo3",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo5": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo5",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo6": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo6",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       },
       "foo7": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
+        "length": "number 0",
         "name": "string foo7",
         "caller": "object null",
-        "arguments": "object null",
-        "length": "number 0"
+        "arguments": "object null"
       }
     },
     "globals": {}
@@ -706,7 +706,7 @@
   {
     "evaluate": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",
@@ -717,7 +717,7 @@
   {
     "evaluate": {
       "ex": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "message": "string <large string>",
         "description": "string <large string>",
         "number": "number -2146823279",

@@ -54,7 +54,7 @@
           "name": "string set"
         },
         "size": {
-          "#__proto__": "Error ",
+          "#__proto__": "Object {...}",
           "message": "string Map.prototype.size: 'this' is not a Map object",
           "description": "string Map.prototype.size: 'this' is not a Map object",
           "number": "number -2146823172",
@@ -104,8 +104,8 @@
           "#__proto__": "Object {...}",
           "constructor": "function function bar() {\r\n\t}"
         },
-        "name": "string bar",
-        "length": "number 0"
+        "length": "number 0",
+        "name": "string bar"
       }
     }
   }
