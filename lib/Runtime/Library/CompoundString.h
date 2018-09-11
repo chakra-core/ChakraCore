@@ -1243,7 +1243,7 @@ namespace Js
             return;
         }
 
-        JavascriptString *const js = LiteralString::NewCopyBuffer(s, appendCharLength, toString->GetScriptContext());
+        JavascriptString *const js = JavascriptString::NewCopyBuffer(s, appendCharLength, toString->GetScriptContext());
         if(TryAppendGeneric(js, appendCharLength, toString))
             return;
         toString->AppendSlow(js);

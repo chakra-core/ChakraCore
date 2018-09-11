@@ -3185,19 +3185,20 @@ LABEL1:
         ParseableFunctionInfo * func = this->GetFunctionProxy()->EnsureDeserialized();
         if (func->GetDisplayName() == Js::Constants::FunctionCode)
         {
-            return LiteralString::NewCopyBuffer(Js::Constants::Anonymous, Js::Constants::AnonymousLength, scriptContext);
+            // TODO(jahorto): multiple places use pointer equality on the Constants:: string buffers. Consider moving these to StringCacheList.h and use backing buffer pointer equality if need be.
+            return JavascriptString::NewWithBuffer(Constants::Anonymous, Constants::AnonymousLength, scriptContext);
         }
         else if (func->GetIsAccessor())
         {
             const char16* accessorName = func->GetDisplayName();
             if (accessorName[0] == _u('g'))
             {
-                return LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
+                return JavascriptString::Concat(scriptContext->GetLibrary()->GetGetterFunctionPrefixString(), JavascriptString::NewCopyBuffer(name, length, scriptContext));
             }
             AssertMsg(accessorName[0] == _u('s'), "should be a set");
-            return LiteralString::Concat(LiteralString::NewCopySz(_u("set "), scriptContext), LiteralString::NewCopyBuffer(name, length, scriptContext));
+            return JavascriptString::Concat(scriptContext->GetLibrary()->GetSetterFunctionPrefixString(), JavascriptString::NewCopyBuffer(name, length, scriptContext));
         }
-        return LiteralString::NewCopyBuffer(name, length, scriptContext);
+        return JavascriptString::NewCopyBuffer(name, length, scriptContext);
     }
 
     bool JavascriptFunction::GetFunctionName(JavascriptString** name) const
@@ -3246,7 +3247,14 @@ LABEL1:
         if (proxy)
         {
             ParseableFunctionInfo * func = proxy->EnsureDeserialized();
-            return LiteralString::NewCopySz(func->GetDisplayName(), scriptContext);
+            if (func->GetDisplayNameIsRecyclerAllocated())
+            {
+                return JavascriptString::NewWithSz(func->GetDisplayName(), scriptContext);
+            }
+            else
+            {
+                return JavascriptString::NewCopySz(func->GetDisplayName(), scriptContext);
+            }
         }
         JavascriptString* sourceStringName = nullptr;
         if (GetSourceStringName(&sourceStringName))
