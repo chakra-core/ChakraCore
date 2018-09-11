@@ -912,6 +912,7 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
                 Assert(hoistInfo.Loop()->bailOutInfo);
                 globOpt->EnsureBailTarget(hoistInfo.Loop());
 
+                bool needsMagnitudeAdjustment = false;
                 if (hoistInfo.LoopCount())
                 {
                     // Generate the loop count and loop count based bound that will be used for the bound check
@@ -919,23 +920,29 @@ void GlobOpt::ArraySrcOpt::DoLowerBoundCheck()
                     {
                         globOpt->GenerateLoopCount(hoistInfo.Loop(), hoistInfo.LoopCount());
                     }
+                    needsMagnitudeAdjustment = (hoistInfo.MaxMagnitudeChange() > 0)
+                        ? (hoistInfo.IndexOffset() < hoistInfo.MaxMagnitudeChange())
+                        : (hoistInfo.IndexOffset() > hoistInfo.MaxMagnitudeChange());
+
                     globOpt->GenerateSecondaryInductionVariableBound(
                         hoistInfo.Loop(),
                         indexVarSym->GetInt32EquivSym(nullptr),
                         hoistInfo.LoopCount(),
                         hoistInfo.MaxMagnitudeChange(),
+                        needsMagnitudeAdjustment,
                         hoistInfo.IndexSym());
                 }
 
                 IR::Opnd* lowerBound = IR::IntConstOpnd::New(0, TyInt32, instr->m_func, true);
                 IR::Opnd* upperBound = IR::RegOpnd::New(indexIntSym, TyInt32, instr->m_func);
+                int offset = needsMagnitudeAdjustment ? (hoistInfo.IndexOffset() - hoistInfo.Offset()) : hoistInfo.Offset();
                 upperBound->SetIsJITOptimizedReg(true);
 
                 // 0 <= indexSym + offset (src1 <= src2 + dst)
                 IR::Instr *const boundCheck = globOpt->CreateBoundsCheckInstr(
                     lowerBound,
                     upperBound,
-                    hoistInfo.Offset(),
+                    offset,
                     hoistInfo.IsLoopCountBasedBound()
                     ? IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck
                     : IR::BailOutOnFailedHoistedBoundCheck,
@@ -1158,6 +1165,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
             Assert(hoistInfo.Loop()->bailOutInfo);
             globOpt->EnsureBailTarget(hoistInfo.Loop());
 
+                bool needsMagnitudeAdjustment = false;
             if (hoistInfo.LoopCount())
             {
                 // Generate the loop count and loop count based bound that will be used for the bound check
@@ -1165,11 +1173,15 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
                 {
                     globOpt->GenerateLoopCount(hoistInfo.Loop(), hoistInfo.LoopCount());
                 }
+                    needsMagnitudeAdjustment = (hoistInfo.MaxMagnitudeChange() > 0)
+                        ? (hoistInfo.IndexOffset() < hoistInfo.MaxMagnitudeChange())
+                        : (hoistInfo.IndexOffset() > hoistInfo.MaxMagnitudeChange());
                 globOpt->GenerateSecondaryInductionVariableBound(
                     hoistInfo.Loop(),
                     indexVarSym->GetInt32EquivSym(nullptr),
                     hoistInfo.LoopCount(),
                     hoistInfo.MaxMagnitudeChange(),
+                        needsMagnitudeAdjustment,
                     hoistInfo.IndexSym());
             }
 
@@ -1184,11 +1196,13 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
             IR::Opnd* upperBound = IR::RegOpnd::New(headSegmentLengthSym, headSegmentLengthSym->GetType(), instr->m_func);
             upperBound->SetIsJITOptimizedReg(true);
 
+                int offset = needsMagnitudeAdjustment ? (hoistInfo.IndexOffset() + hoistInfo.Offset()) : hoistInfo.Offset();
+
             // indexSym <= headSegmentLength + offset (src1 <= src2 + dst)
             IR::Instr *const boundCheck = globOpt->CreateBoundsCheckInstr(
                 lowerBound,
                 upperBound,
-                hoistInfo.Offset(),
+                    offset,
                 hoistInfo.IsLoopCountBasedBound()
                 ? IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck
                 : IR::BailOutOnFailedHoistedBoundCheck,
@@ -1207,7 +1221,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
                     landingPad->GetBlockNum(),
                     hoistInfo.IndexSym()->m_id,
                     headSegmentLengthSym->m_id,
-                    hoistInfo.Offset());
+                        offset);
             }
             else
             {
@@ -1219,7 +1233,7 @@ void GlobOpt::ArraySrcOpt::DoUpperBoundCheck()
                     landingPad->GetBlockNum(),
                     hoistInfo.IndexConstantBounds().LowerBound(),
                     headSegmentLengthSym->m_id,
-                    hoistInfo.Offset());
+                        offset);
             }
 
             TESTTRACE_PHASE_INSTR(

@@ -14520,13 +14520,23 @@ GlobOpt::OptHoistUpdateValueType(
                 // Replace above will free srcOpnd, so reassign it
                 *srcOpndPtr = srcOpnd = reinterpret_cast<IR::Opnd *>(strOpnd);
 
-                if (loop->bailOutInfo->bailOutInstr)
+                if (IsImplicitCallBailOutCurrentlyNeeded(convPrimStrInstr, opndValueInLandingPad, nullptr, landingPad, landingPad->globOptData.liveFields->IsEmpty(), true, true))
                 {
+                    EnsureBailTarget(loop);
                     loop->bailOutInfo->bailOutInstr->InsertBefore(convPrimStrInstr);
+                    convPrimStrInstr = convPrimStrInstr->ConvertToBailOutInstr(convPrimStrInstr, IR::BailOutOnImplicitCallsPreOp, loop->bailOutInfo->bailOutOffset);
+                    convPrimStrInstr->ReplaceBailOutInfo(loop->bailOutInfo);
                 }
                 else
                 {
-                    landingPad->InsertAfter(convPrimStrInstr);
+                    if (loop->bailOutInfo->bailOutInstr)
+                    {
+                        loop->bailOutInfo->bailOutInstr->InsertBefore(convPrimStrInstr);
+                    }
+                    else
+                    {
+                        landingPad->InsertAfter(convPrimStrInstr);
+                    }
                 }
 
                 // If we came here opndSym can't be PropertySym

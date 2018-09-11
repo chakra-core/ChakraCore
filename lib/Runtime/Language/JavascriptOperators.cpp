@@ -3809,6 +3809,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetElementI(Var instance, Var index, ScriptContext* scriptContext)
     {
+        instance = BreakSpeculation(instance);
         if (TaggedInt::Is(index))
         {
             return GetElementIIntIndex(instance, index, scriptContext);

@@ -2599,8 +2599,9 @@ namespace Js
         Assert(IsObjectHeaderInlinedTypeHandler());
 
         // Clone the type Path here to evolve separately
+        Recycler * recycler = library->GetRecycler();
         uint16 pathLength = GetPathLength();
-        TypePath * clonedPath = TypePath::New(library->GetRecycler(), pathLength);
+        TypePath * clonedPath = TypePath::New(recycler, pathLength);
 
         ObjectSlotAttributes *attributes = this->GetAttributeArray();
         for (PropertyIndex i = 0; i < pathLength; i++)
@@ -2633,12 +2634,29 @@ namespace Js
         }
         else
         {
+            uint8 newTypePathSize = clonedPath->GetPathSize();
+
+            ObjectSlotAttributes * newAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, newTypePathSize);
+            memcpy(newAttributes, attributes, sizeof(ObjectSlotAttributes) * newTypePathSize);
+
+            PathTypeSetterSlotIndex * setters = GetSetterSlots();
+            PathTypeSetterSlotIndex * newSetters;
+            if (setters == nullptr)
+            {
+                newSetters = nullptr;
+            }
+            else
+            {
+                newSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, newTypePathSize);
+                memcpy(newSetters, setters, sizeof(PathTypeSetterSlotIndex) * newTypePathSize);
+            }
+
             clonedTypeHandler =
                 PathTypeHandlerWithAttr::New(
                     library->GetScriptContext(),
                     clonedPath,
-                    attributes,
-                    GetSetterSlots(),
+                    newAttributes,
+                    newSetters,
                     GetSetterCount(),
                     GetPathLength(),
                     static_cast<PropertyIndex>(GetSlotCapacity()),

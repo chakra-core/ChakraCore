@@ -3895,6 +3895,16 @@ Lowerer::GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCal
             uint32 allocCount = count == 0 ? Js::SparseArraySegmentBase::SMALL_CHUNK_SIZE : count;
             arrayAllocSize = Js::JavascriptArray::DetermineAllocationSize<ArrayType, 0>(allocCount, nullptr, &alignedHeadSegmentSize);
         }
+
+        // Note that it is possible for the returned alignedHeadSegmentSize to be greater than INLINE_CHUNK_SIZE because
+        // of rounding the *entire* object, including the head segment, to the nearest aligned size. In that case, ensure
+        // that this size is still not larger than INLINE_CHUNK_SIZE size because the head segment is still inlined. This
+        // keeps consistency with the definition of HasInlineHeadSegment and maintained in the assert below.
+        uint inlineChunkSize = Js::SparseArraySegmentBase::INLINE_CHUNK_SIZE;
+        alignedHeadSegmentSize = min(alignedHeadSegmentSize, inlineChunkSize);
+
+        Assert(ArrayType::HasInlineHeadSegment(alignedHeadSegmentSize));
+
         leaHeadInstr = IR::Instr::New(Js::OpCode::LEA, headOpnd,
             IR::IndirOpnd::New(dstOpnd, sizeof(ArrayType), TyMachPtr, func), func);
         isHeadSegmentZeroed = true;
@@ -9305,6 +9315,61 @@ void Lowerer::LowerLdLen(IR::Instr *const instr, const bool isHelper)
     LowerLdFld(instr, IR::HelperOp_GetProperty, IR::HelperOp_GetProperty, false, nullptr, isHelper);
 }
 
+IR::Instr* InsertMaskableMove(bool isStore, bool generateWriteBarrier, IR::Opnd* dst, IR::Opnd* src1, IR::Opnd* src2, IR::Opnd* indexOpnd, IR::Instr* insertBeforeInstr, Lowerer* lowerer)
+{
+    Assert(insertBeforeInstr->m_func->GetJITFunctionBody()->IsAsmJsMode());
+
+    // Mask with the bounds check operand to avoid speculation issues
+    const bool usesFastArray = insertBeforeInstr->m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer();
+    IR::RegOpnd* mask = nullptr;
+    bool shouldMaskResult = false;
+    if (!usesFastArray)
+    {
+        bool shouldMask = isStore ? CONFIG_FLAG_RELEASE(PoisonTypedArrayStore) : CONFIG_FLAG_RELEASE(PoisonTypedArrayLoad);
+        if (shouldMask && indexOpnd != nullptr)
+        {
+            // indices in asmjs fit in 32 bits, but we need a mask
+            IR::RegOpnd* temp = IR::RegOpnd::New(indexOpnd->GetType(), insertBeforeInstr->m_func);
+            lowerer->InsertMove(temp, indexOpnd, insertBeforeInstr, false);
+            lowerer->InsertAdd(false, temp, temp, IR::IntConstOpnd::New((uint32)src1->GetSize() - 1, temp->GetType(), insertBeforeInstr->m_func, true), insertBeforeInstr);
+
+            // For native ints and vars, we do the masking after the load; we don't do this for
+            // floats and doubles because the conversion to and from fp regs is slow.
+            shouldMaskResult = (!isStore) && IRType_IsNativeIntOrVar(src1->GetType()) && TySize[dst->GetType()] <= TySize[TyMachReg];
+
+            // When we do post-load masking, we AND the mask with dst, so they need to have the
+            // same type, as otherwise we'll hit asserts later on. When we do pre-load masking,
+            // we AND the mask with the index component of the indir opnd for the move from the
+            // array, so we need to align with that type instead.
+            mask = IR::RegOpnd::New((shouldMaskResult ? dst : indexOpnd)->GetType(), insertBeforeInstr->m_func);
+
+            if (temp->GetSize() != mask->GetSize())
+            {
+                Assert(mask->GetSize() == MachPtr);
+                Assert(src2->GetType() == TyUint32);
+                temp = temp->UseWithNewType(TyMachPtr, insertBeforeInstr->m_func)->AsRegOpnd();
+                src2 = src2->UseWithNewType(TyMachPtr, insertBeforeInstr->m_func)->AsRegOpnd();
+            }
+
+            lowerer->InsertSub(false, mask, temp, src2, insertBeforeInstr);
+            lowerer->InsertShift(Js::OpCode::Shr_A, false, mask, mask, IR::IntConstOpnd::New(TySize[mask->GetType()] * 8 - 1, TyInt8, insertBeforeInstr->m_func), insertBeforeInstr);
+
+            // If we're not masking the result, we're masking the index
+            if (!shouldMaskResult)
+            {
+                lowerer->InsertAnd(indexOpnd, indexOpnd, mask, insertBeforeInstr);
+            }
+        }
+    }
+    IR::Instr* ret = lowerer->InsertMove(dst, src1, insertBeforeInstr, generateWriteBarrier);
+    if(!usesFastArray && shouldMaskResult)
+    {
+        // Mask the result if we didn't use the mask earlier to mask the index
+        lowerer->InsertAnd(dst, dst, mask, insertBeforeInstr);
+    }
+    return ret;
+}
+
 IR::Instr *
 Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 {
@@ -9373,7 +9438,8 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
         }
         done = instr;
     }
-    InsertMove(dst, src1, done);
+
+    InsertMaskableMove(false, true, dst, src1, src2, indexOpnd, done, this);
 
     instr->Remove();
     return instrPrev;
@@ -9421,7 +9487,8 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
     Assert(!dst->IsFloat64() || src1->IsFloat64());
 
     IR::Instr * done = LowerWasmArrayBoundsCheck(instr, src1);
-    IR::Instr* newMove = InsertMove(dst, src1, done);
+
+    IR::Instr* newMove = InsertMaskableMove(false, true, dst, src1, instr->GetSrc2(), src1->AsIndirOpnd()->GetIndexOpnd(), done, this);
 
     if (m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer())
     {
@@ -9699,7 +9766,7 @@ Lowerer::LowerStArrViewElem(IR::Instr * instr)
         }
     }
     // wasm memory buffer is not recycler allocated, so we shouldn't generate write barrier 
-    InsertMove(dst, src1, done, false);
+    InsertMaskableMove(true, false, dst, src1, src2, indexOpnd, done, this);
 
     instr->Remove();
     return instrPrev;
@@ -14738,6 +14805,8 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
     {
         // Only DynamicObject is allowed (DynamicObject vtable is ensured) because some object types have special handling for
         // index properties - arguments object, string object, external object, etc.
+        // If other object types are also allowed in the future, corresponding changes will have to made to 
+        // JavascriptArray::Jit_TryGetArrayForObjectWithArray as well.
         GenerateObjectTypeTest(baseOpnd, insertBeforeInstr, isNotObjectLabel);
         GenerateObjectHeaderInliningTest(baseOpnd, isNotArrayLabel, insertBeforeInstr);
         arrayOpnd = LoadObjectArray(baseOpnd, insertBeforeInstr);
@@ -16566,8 +16635,9 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                         IR::BailOutConventionalNativeArrayAccessOnly |
                         IR::BailOutOnMissingValue |
                         (bailOutKind & IR::BailOutOnArrayAccessHelperCall ? IR::BailOutInvalid : IR::BailOutConvertedNativeArray)
-                        )
-                    ));
+                    )
+                )
+            );
 
             if (bailOutKind & IR::BailOutOnArrayAccessHelperCall)
             {
@@ -17004,7 +17074,7 @@ Lowerer::GenerateFastElemIIntIndexCommon(
 
             IR::Opnd * tmpDst = nullptr;
             IR::Opnd * dst = instr->GetDst();
-            //Pop might not have a dst, if not don't worry about returning the last element. But we still have to
+            // Pop might not have a dst, if not don't worry about returning the last element. But we still have to
             // worry about gaps, because these force us to access the prototype chain, which may have side-effects.
             if (dst || !baseValueType.HasNoMissingValues())
             {
@@ -17016,6 +17086,77 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 {
                     tmpDst = IR::RegOpnd::New(TyVar, this->m_func);
                     dst = tmpDst;
+                }
+
+                {
+                    // Use a mask to prevent arbitrary speculative reads
+                    if (!headSegmentLengthOpnd)
+                    {
+                        headSegmentLengthOpnd =
+                            IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
+                        autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
+                    }
+                    IR::RegOpnd* localMaskOpnd = nullptr;
+#if TARGET_64
+                    IR::Opnd* lengthOpnd = nullptr;
+                    AnalysisAssert(headSegmentLengthOpnd != nullptr);
+                    lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
+                    {
+                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
+                        instr->InsertBefore(instrMov);
+                        LowererMD::Legalize(instrMov);
+                    }
+
+                    if (lengthOpnd->GetSize() != MachPtr)
+                    {
+                        lengthOpnd = lengthOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                    }
+
+                    //  MOV r1, [opnd + offset(type)]
+                    IR::RegOpnd* indexValueRegOpnd = IR::RegOpnd::New(indexValueOpnd->GetType(), m_func);
+
+                    {
+                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
+                        instr->InsertBefore(instrMov);
+                        LowererMD::Legalize(instrMov);
+                    }
+
+                    if (indexValueRegOpnd->GetSize() != MachPtr)
+                    {
+                        indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                    }
+
+                    localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+                    InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
+                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
+#else
+                    localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
+                    InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, instr);
+                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
+#endif
+
+                    // for pop we always do the masking before the load in cases where we load a value
+                    IR::RegOpnd* loadAddr = IR::RegOpnd::New(TyMachPtr, m_func);
+
+#if _M_ARM32_OR_ARM64
+                    if (indirOpnd->GetIndexOpnd() != nullptr && indirOpnd->GetScale() > 0)
+                    {
+                        // We don't support encoding for LEA with scale on ARM/ARM64, so do the scale calculation as a separate instruction
+                        IR::RegOpnd* fullIndexOpnd = IR::RegOpnd::New(indirOpnd->GetIndexOpnd()->GetType(), m_func);
+                        InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), instr);
+                        IR::IndirOpnd* newIndir = IR::IndirOpnd::New(indirOpnd->GetBaseOpnd(), fullIndexOpnd, indirType, m_func);
+                        if (indirOpnd->GetOffset() != 0)
+                        {
+                            newIndir->SetOffset(indirOpnd->GetOffset());
+                        }
+                        indirOpnd = newIndir;
+                    }
+#endif
+                    IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
+
+                    InsertLea(loadAddr, indirOpnd, instr);
+                    InsertAnd(loadAddr, loadAddr, localMaskOpnd, instr);
+                    indirOpnd = IR::IndirOpnd::New(loadAddr, 0, indirType, m_func);
                 }
 
                 //  MOV dst, [head + offset]
