@@ -267,20 +267,18 @@ namespace Js
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-    Var EngineInterfaceObject::Entry_TagPublicLibraryCode(RecyclableObject *function, CallInfo callInfo, ...)
+    /* static */
+    template <bool isConstructor>
+    ScriptFunction *EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName)
     {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        ScriptContext *scriptContext = scriptFunction->GetScriptContext();
+        scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
 
-        AssertOrFailFast((callInfo.Count == 3 || callInfo.Count == 4) && JavascriptFunction::Is(args[1]) && JavascriptString::Is(args[2]));
-
-        JavascriptFunction *func = JavascriptFunction::UnsafeFromVar(args[1]);
-        JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
-
-        func->GetFunctionProxy()->SetIsPublicLibraryCode();
-
-        // use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
-        const char16 *methodNameBuf = methodName->GetSz();
-        charcount_t methodNameLength = methodName->GetLength();
+        // Use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
+        // Callers can pass in a string like "get compare" or "Intl.Collator.prototype.resolvedOptions" -- only for the
+        // latter do we extract a shortName.
+        const char16 *methodNameBuf = displayName->GetSz();
+        charcount_t methodNameLength = displayName->GetLength();
         const char16 *shortName = wcsrchr(methodNameBuf, _u('.'));
         charcount_t shortNameOffset = 0;
         if (shortName != nullptr)
@@ -289,25 +287,79 @@ namespace Js
             shortNameOffset = static_cast<charcount_t>(shortName - methodNameBuf);
         }
 
-        func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
+        scriptFunction->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
 
-        bool creatingConstructor = true;
-        if (callInfo.Count == 4)
+        if (!isConstructor)
         {
-            AssertOrFailFast(JavascriptBoolean::Is(args[3]));
-            creatingConstructor = JavascriptBoolean::UnsafeFromVar(args[3])->GetValue();
-        }
-
-        if (!creatingConstructor)
-        {
-            FunctionInfo *info = func->GetFunctionInfo();
+            // set the ErrorOnNew attribute to disallow construction. JsBuiltIn/Intl functions are usually regular ScriptFunctions
+            // (not lambdas or class methods), so they are usually constructable by default.
+            FunctionInfo *info = scriptFunction->GetFunctionInfo();
+            AssertMsg((info->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why are we trying to disable construction of a function that already isn't constructable?");
             info->SetAttributes((FunctionInfo::Attributes) (info->GetAttributes() | FunctionInfo::Attributes::ErrorOnNew));
 
-            AssertOrFailFast(func->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler());
-            DynamicTypeHandler::SetInstanceTypeHandler(func, scriptContext->GetLibrary()->GetDeferredFunctionWithLengthTypeHandler());
+            // Assert that the type handler is deferred to ensure that we aren't overwriting previous modifications.
+            // Script functions start with deferred type handlers, which undefer as soon as any property is modified.
+            // Since the function that is passed in should be an inline function expression, its type should still be deferred by the time it gets here.
+            AssertOrFailFast(scriptFunction->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler());
+
+            // give the function a type handler with name and length but without prototype
+            DynamicTypeHandler::SetInstanceTypeHandler(scriptFunction, scriptContext->GetLibrary()->GetDeferredFunctionWithLengthTypeHandler());
+        }
+        else
+        {
+            AssertMsg((scriptFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why is the function not constructable by default?");
         }
 
-        return func;
+        Var existingName = nullptr;
+        if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
+        {
+            JavascriptString *existingNameString = JavascriptString::FromVar(existingName);
+            if (existingNameString->GetLength() == 0)
+            {
+                // Only overwrite the name of the function object if it was anonymous coming in
+                // If the input function was named, it is likely intentional
+                existingName = nullptr;
+            }
+        }
+
+        if (existingName == nullptr || JavascriptOperators::IsUndefined(existingName))
+        {
+            // It is convenient to set the name here rather than in script, since it is often duplicated.
+            JavascriptString *funcName = displayName;
+            if (shortName)
+            {
+                funcName = JavascriptString::NewCopyBuffer(shortName, methodNameLength - shortNameOffset, scriptContext);
+            }
+
+            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, funcName, PropertyConfigurable, nullptr);
+        }
+
+        return scriptFunction;
+    }
+
+    Var EngineInterfaceObject::Entry_TagPublicLibraryCode(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#pragma warning(push)
+#pragma warning(disable: 4189) // 'scriptContext': local variable is initialized but not referenced
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+#pragma warning(pop)
+
+        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && ScriptFunction::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
+
+        ScriptFunction *func = ScriptFunction::UnsafeFromVar(args[1]);
+        JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
+
+        if (args.Info.Count == 4)
+        {
+            AssertOrFailFast(JavascriptBoolean::Is(args.Values[3]));
+            if (!JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue())
+            {
+                return CreateLibraryCodeScriptFunction<false>(func, methodName);
+            }
+        }
+
+        // isConstructor = true is the default (when no 3rd arg is provided)
+        return CreateLibraryCodeScriptFunction<true>(func, methodName);
     }
 
     /*

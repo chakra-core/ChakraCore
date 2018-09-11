@@ -88,6 +88,9 @@ namespace Js
 
         static bool __cdecl InitializeCommonNativeInterfaces(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
+        template <bool isConstructor>
+        static ScriptFunction *CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName);
+
         class EntryInfo
         {
         public:
