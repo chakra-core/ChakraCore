@@ -107,7 +107,6 @@ namespace Js
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_SetPrototype));
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetArrayLength));
     NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_RegexMatch));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::CallInstanceFunction(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_CallInstanceFunction));
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
@@ -426,8 +425,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        Assert(args.Info.Count <= 5);
-        if (callInfo.Count < 3 || args.Info.Count > 5 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
@@ -437,19 +435,16 @@ namespace Js
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
         //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
-        Var newVars[3];
-        Js::Arguments newArgs(callInfo, newVars);
-
-        for (uint i = 0; i<args.Info.Count - 2; ++i)
+        for (uint i = 0; i < args.Info.Count - 2; ++i)
         {
-            newArgs.Values[i] = args.Values[i + 2];
+            args.Values[i] = args.Values[i + 2];
         }
 
-        newArgs.Info.Count = args.Info.Count - 2;
+        args.Info.Count -= 2;
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
-            return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
+            return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
         }
         END_SAFE_REENTRANT_CALL
     }

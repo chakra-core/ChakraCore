@@ -117,7 +117,7 @@
     "arguments": "Object {...}",
     "functionCallsReturn": {
       "[Anonymous function returned]": "function <large string>",
-      "[forEach returned]": "undefined undefined"
+      "[every returned]": "boolean true"
     },
     "locals": {
       "d": "Date <large string>"

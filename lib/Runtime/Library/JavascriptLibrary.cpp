@@ -4741,6 +4741,9 @@ namespace Js
         JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
         typeHandler->Convert(chakraLibraryObject, mode, 8);
 
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
+        JavascriptFunction * func = nullptr;
+
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::GetLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength, 1);
@@ -4749,6 +4752,8 @@ namespace Js
         library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arraySpeciesCreate, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate, 2);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arrayCreateDataPropertyOrThrow, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow, 3);
+        func = library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
+        builtinFuncs[BuiltinFunction::EngineInterfaceObject_CallInstanceFunction] = func;
 
         return true;
     }

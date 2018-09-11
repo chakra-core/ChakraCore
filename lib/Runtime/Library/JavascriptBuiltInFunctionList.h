@@ -505,4 +505,6 @@ BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Notify, EntryNotify, FunctionInfo::ErrorOnNew)
 BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
+BUILTIN(EngineInterfaceObject, CallInstanceFunction, Entry_CallInstanceFunction, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
+
 #undef BUILTIN_TEMPLATE
