@@ -268,11 +268,9 @@ namespace Js
     }
 
     /* static */
-    template <bool isConstructor>
-    ScriptFunction *EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName)
+    ScriptFunction *EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName, bool isConstructor, bool isJsBuiltIn, bool isPublic)
     {
         ScriptContext *scriptContext = scriptFunction->GetScriptContext();
-        scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
 
         // Use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
         // Callers can pass in a string like "get compare" or "Intl.Collator.prototype.resolvedOptions" -- only for the
@@ -310,6 +308,7 @@ namespace Js
             AssertMsg((scriptFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why is the function not constructable by default?");
         }
 
+        // handle the name property AFTER handling isConstructor, because this can initialize the function's deferred type
         Var existingName = nullptr;
         if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
         {
@@ -334,6 +333,24 @@ namespace Js
             scriptFunction->SetPropertyWithAttributes(PropertyIds::name, funcName, PropertyConfigurable, nullptr);
         }
 
+        if (isJsBuiltIn)
+        {
+            scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+
+            // This makes it so that the given scriptFunction can't reference/close over any outside variables,
+            // which is desirable for JsBuiltIns (though currently not for Intl)
+            scriptFunction->SetEnvironment(const_cast<FrameDisplay *>(&StrictNullFrameDisplay));
+
+            // TODO(jahorto): investigate force-inlining Intl code
+            AssertOrFailFast(scriptFunction->HasFunctionBody());
+            scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
+        }
+
+        if (isPublic)
+        {
+            scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
+        }
+
         return scriptFunction;
     }
 
@@ -349,17 +366,15 @@ namespace Js
         ScriptFunction *func = ScriptFunction::UnsafeFromVar(args[1]);
         JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
 
+        bool isConstructor = true;
         if (args.Info.Count == 4)
         {
             AssertOrFailFast(JavascriptBoolean::Is(args.Values[3]));
-            if (!JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue())
-            {
-                return CreateLibraryCodeScriptFunction<false>(func, methodName);
-            }
+            isConstructor = JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue();
         }
 
         // isConstructor = true is the default (when no 3rd arg is provided)
-        return CreateLibraryCodeScriptFunction<true>(func, methodName);
+        return CreateLibraryCodeScriptFunction(func, methodName, isConstructor, false /* isJsBuiltIn */, true /* isPublic */);
     }
 
     /*

@@ -310,29 +310,16 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptString::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
-        // retrieves arguments
-        JavascriptString* methodName = JavascriptString::FromVar(args.Values[1]);
-        JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
+        JavascriptString* methodName = JavascriptString::UnsafeFromVar(args.Values[1]);
+        ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction::UnsafeFromVar(args.Values[2]), methodName, false /* isConstructor */, true /* isJsBuiltIn */, false /* isPublic */);
 
-        func->GetFunctionProxy()->EnsureDeserialized();
-
-        DynamicObject* chakraLibraryObject = GetPrototypeFromName(PropertyIds::__chakraLibrary, false, scriptContext);
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
 
-        // Link the function to __chakraLibrary.
-        ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
-
-        Assert(scriptFunction->HasFunctionBody());
-        scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
-
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
-
-        library->AddMember(chakraLibraryObject, functionIdentifier, scriptFunction);
+        library->AddMember(library->GetChakraLib(), functionIdentifier, func);
 
         //Don't need to return anything
         return library->GetUndefined();
@@ -342,7 +329,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        AssertOrFailFast(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2]));
+        AssertOrFailFast(args.Info.Count >= 3 && JavascriptObject::Is(args.Values[1]) && ScriptFunction::Is(args.Values[2]));
 
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
@@ -370,36 +357,20 @@ namespace Js
 
         BOOL staticMethod = JavascriptConversion::ToBoolean(staticMethodProperty, scriptContext);
         BOOL forceInline = JavascriptConversion::ToBoolean(forceInlineProperty, scriptContext);
+        Assert(forceInline);
 
-        JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
-
-        // Set the function's display name, as the function we pass in argument are anonym.
-        func->GetFunctionProxy()->SetIsPublicLibraryCode();
-        func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
+        ScriptFunction *func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction::UnsafeFromVar(args.Values[2]), methodName, false /* isConstructor */, true /* isJsBuiltIn */, true /* isPublic */);
 
         DynamicObject* prototype = GetPrototypeFromName(JavascriptOperators::GetPropertyId(className, scriptContext), staticMethod, scriptContext);
-        PropertyIds functionIdentifier = methodName->BufferEquals(_u("Symbol.iterator"), 15)? PropertyIds::_symbolIterator :
-            JavascriptOperators::GetPropertyId(methodName, scriptContext);
+        PropertyIds functionIdentifier = methodName->BufferEquals(_u("Symbol.iterator"), 15)
+            ? PropertyIds::_symbolIterator
+            : JavascriptOperators::GetPropertyId(methodName, scriptContext);
 
-        // Link the function to the prototype.
-        ScriptFunction* scriptFunction = library->CreateScriptFunction(func->GetFunctionProxy());
-        scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+        func->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
 
-        if (forceInline)
-        {
-            Assert(scriptFunction->HasFunctionBody());
-            scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
-        }
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
+        library->AddMember(prototype, functionIdentifier, func);
 
-        scriptFunction->SetConfigurable(PropertyIds::prototype, true);
-        scriptFunction->DeleteProperty(PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
-
-        scriptFunction->SetPropertyWithAttributes(PropertyIds::name, methodName, PropertyConfigurable, nullptr);
-
-        library->AddMember(prototype, functionIdentifier, scriptFunction);
-
-        RecordCommonNativeInterfaceBuiltIns(functionIdentifier, scriptContext, scriptFunction);
+        RecordCommonNativeInterfaceBuiltIns(functionIdentifier, scriptContext, func);
 
         if (!JavascriptOperators::IsUndefinedOrNull(aliasProperty))
         {
@@ -407,12 +378,12 @@ namespace Js
             // Cannot do a string to property id search here, Symbol.* have different hashing mechanism, so resort to this str compare
             PropertyIds aliasFunctionIdentifier = alias->BufferEquals(_u("Symbol.iterator"), 15) ? PropertyIds::_symbolIterator :
                 JavascriptOperators::GetPropertyId(alias, scriptContext);
-            library->AddMember(prototype, aliasFunctionIdentifier, scriptFunction);
+            library->AddMember(prototype, aliasFunctionIdentifier, func);
         }
 
         if (prototype == library->arrayPrototype)
         {
-            RecordDefaultIteratorFunctions(functionIdentifier, scriptContext, scriptFunction);
+            RecordDefaultIteratorFunctions(functionIdentifier, scriptContext, func);
         }
 
         //Don't need to return anything
