@@ -244,7 +244,9 @@ namespace Js
             static FunctionInfo ToUpperCase;
             static FunctionInfo Trim;
             static FunctionInfo TrimLeft;
+            static FunctionInfo TrimStart;
             static FunctionInfo TrimRight;
+            static FunctionInfo TrimEnd;
             static FunctionInfo Repeat;
             static FunctionInfo StartsWith;
             static FunctionInfo EndsWith;

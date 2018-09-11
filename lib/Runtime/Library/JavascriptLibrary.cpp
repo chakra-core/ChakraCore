@@ -3405,8 +3405,14 @@ namespace Js
         case PropertyIds::trimLeft:
             return BuiltinFunction::JavascriptString_TrimLeft;
 
+		case PropertyIds::trimStart:
+			return BuiltinFunction::JavascriptString_TrimStart;
+
         case PropertyIds::trimRight:
             return BuiltinFunction::JavascriptString_TrimRight;
+
+        case PropertyIds::trimEnd:
+            return BuiltinFunction::JavascriptString_TrimEnd;
 
         case PropertyIds::padStart:
             return BuiltinFunction::JavascriptString_PadStart;
@@ -3994,8 +4000,14 @@ namespace Js
             /* No inlining                String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
             /* No inlining                String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
             builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
+			//builtinFuncs[BuiltinFunction::JavascriptString_TrimStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimStart, &JavascriptString::EntryInfo::TrimStart, 0);
+            library->AddMember(stringPrototype, PropertyIds::trimStart, builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft], PropertyBuiltInMethodDefaults);
             builtinFuncs[BuiltinFunction::JavascriptString_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
+            library->AddMember(stringPrototype, PropertyIds::trimEnd, builtinFuncs[BuiltinFunction::JavascriptString_TrimRight], PropertyBuiltInMethodDefaults);
         }
+
+  
+        
 
         library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
 
