@@ -2707,6 +2707,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     {
         // Fast path for float src when destination is not type specialized to int
         // Assign default value for destination in case either src is NaN
+        Assert(dst->IsVar());
         if (isNegOpt)
         {
             opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue);
