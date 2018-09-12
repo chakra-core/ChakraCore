@@ -553,6 +553,9 @@ bool InliningDecider::GetBuiltInInfoCommon(
     case Js::JavascriptBuiltInFunction::JavascriptFunction_Call:
         *inlineCandidateOpCode = Js::OpCode::InlineFunctionCall;
         break;
+    case Js::JavascriptBuiltInFunction::EngineInterfaceObject_CallInstanceFunction:
+        *inlineCandidateOpCode = Js::OpCode::InlineCallInstanceFunction;
+        break;
 
     // The following are not currently inlined, but are tracked for their return type
     // TODO: Add more built-ins that return objects. May consider tracking all built-ins.

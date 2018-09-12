@@ -62,7 +62,7 @@ private:
 #endif
     IR::Instr * InlineGetterSetterFunction(IR::Instr *accessorInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const uint inlineCacheIndex, bool isGetter, bool *pIsInlined, uint recursiveInlineDepth);
     IR::Instr * InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIsJITOpt, StackSym* originalCallTargetStackSym, const FunctionJITTimeInfo *funcInfo, Func *inlinee, IR::Instr *instrNext,
-                                IR::RegOpnd * returnValueOpnd, IR::Instr *inlineBailoutChecksBeforeInstr, const StackSym *symCallerThis, uint recursiveInlineDepth, bool safeThis = false, bool isApplyTarget = false, bool isCallbackCallApplyTarget = false);
+                                IR::RegOpnd * returnValueOpnd, IR::Instr *inlineBailoutChecksBeforeInstr, const StackSym *symCallerThis, uint recursiveInlineDepth, bool safeThis = false, bool isApplyTarget = false);
     IR::Instr * SimulateCallForGetterSetter(IR::Instr *accessorInstr, IR::Instr* insertInstr, IR::PropertySymOpnd* methodOpnd, bool isGetter);
 
     IR::Instr * InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo * applyData, const FunctionJITTimeInfo * inlinerData, const StackSym *symThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth, uint argsCount);
@@ -73,11 +73,12 @@ private:
                                     const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth, bool isArrayOpndArgumentsObject, uint argsCount);
     void        GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount);
     _Success_(return != false) bool        TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_nullonfailure_ IR::Instr ** callApplyLdInstr, _Outptr_result_nullonfailure_ IR::Instr ** callApplyTargetLdInstr);
-    IR::Instr * InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeData, const FunctionJITTimeInfo * inlinerData, const StackSym *symThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth);
+    IR::Instr * InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeData, const FunctionJITTimeInfo * inlinerData, const StackSym *symThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth, bool isCallInstanceFunction);
     bool        InlineCallTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inlinerData, const FunctionJITTimeInfo** pInlineeData, const FunctionJITTimeInfo *callFuncInfo,
-                                    const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth);
+                                    const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth, bool isCallInstanceFunction);
 
-    bool        TryGetCallApplyInlineeData(const FunctionJITTimeInfo* inlinerData, IR::Instr * callApplyLdInstr, IR::Instr * callApplyTargetLdInstr, const FunctionJITTimeInfo ** inlineeData, Js::InlineCacheIndex * inlineCacheIndex, IR::Instr ** callbackDefInstr);
+    bool        TryGetCallApplyInlineeData(const FunctionJITTimeInfo* inlinerData, IR::Instr * callInstr, IR::Instr * callApplyLdInstr, IR::Instr * callApplyTargetLdInstr, const FunctionJITTimeInfo ** inlineeData, Js::InlineCacheIndex * inlineCacheIndex, 
+                                    IR::Instr ** callbackDefInstr, bool isCallInstanceFunction);
 
     bool        InlConstFoldArg(IR::Instr *instr, __in_ecount_opt(callerArgOutCount) IR::Instr *callerArgOuts[], Js::ArgSlot callerArgOutCount);
     bool        InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_opt(callerArgOutCount) IR::Instr *callerArgOuts[], Js::ArgSlot callerArgOutCount);
@@ -100,6 +101,7 @@ private:
     IR::Instr * TryGetCallbackDefInstr(StackSym * callbackSym);
     IR::Instr * TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr);
     IR::Instr * TryGetCallbackDefInstrForCallApplyTarget(IR::Instr * callApplyLdInstr);
+    IR::Instr * TryGetCallbackDefInstrForCallInstanceFunction(IR::Instr * callInstr);
 
     IR::Instr * InlineSpread(IR::Instr *spreadCall);
 
@@ -108,7 +110,7 @@ private:
     void        SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot actualCount, IR::Opnd *functionObject);
     void        FixupExtraActualParams(IR::Instr * instr, IR::Instr *argOuts[], IR::Instr *argOutsExtra[], uint index, uint actualCount, Js::ProfileId callSiteId);
     void        RemoveExtraFixupArgouts(IR::Instr* instr, uint argoutRemoveCount, Js::ProfileId callSiteId);
-    IR::Instr*  PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, IR::Instr *insertBeforeInstr, bool isCallbackCallApplyTarget = false);
+    IR::Instr*  PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, IR::Instr *insertBeforeInstr);
     IR::ByteCodeUsesInstr*  EmitFixedMethodOrFunctionObjectChecksForBuiltIns(IR::Instr *callInstr, IR::Instr * funcObjCheckInsertInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined);
     Js::ArgSlot MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *argOuts[], Js::ArgSlot formalCount, Func *inlinee, Js::ProfileId callSiteId, bool *stackArgsArgOutExpanded, IR::Instr *argOutsExtra[] = nullptr, Js::ArgSlot maxParamCount = Js::InlineeCallInfo::MaxInlineeArgoutCount);
     uint32      CountActuals(IR::Instr *callIntr);

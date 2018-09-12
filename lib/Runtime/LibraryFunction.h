@@ -71,6 +71,7 @@ LIBRARY_FUNCTION(JavascriptArray,         Splice,             15,   BIF_UseSrc0 
 LIBRARY_FUNCTION(JavascriptArray,         Unshift,            15,   BIF_UseSrc0 | BIF_VariableArgsNumber | BIF_IgnoreDst  , JavascriptArray::EntryInfo::Unshift)
 LIBRARY_FUNCTION(JavascriptFunction,      Apply,              3,    BIF_UseSrc0 | BIF_IgnoreDst | BIF_VariableArgsNumber  , JavascriptFunction::EntryInfo::Apply)
 LIBRARY_FUNCTION(JavascriptFunction,      Call,               15,   BIF_UseSrc0 | BIF_IgnoreDst | BIF_VariableArgsNumber  , JavascriptFunction::EntryInfo::Call)
+LIBRARY_FUNCTION(EngineInterfaceObject, CallInstanceFunction, 15,   BIF_UseSrc0 | BIF_IgnoreDst | BIF_VariableArgsNumber  , EngineInterfaceObject::EntryInfo::CallInstanceFunction)
 LIBRARY_FUNCTION(GlobalObject,  ParseInt,           1,    BIF_IgnoreDst                                         , GlobalObject::EntryInfo::ParseInt)
 LIBRARY_FUNCTION(JavascriptRegExp,        Exec,               2,    BIF_UseSrc0 | BIF_IgnoreDst                           , JavascriptRegExp::EntryInfo::Exec)
 LIBRARY_FUNCTION(JavascriptRegExp,        SymbolSearch,       2,    BIF_UseSrc0                                           , JavascriptRegExp::EntryInfo::SymbolSearch)

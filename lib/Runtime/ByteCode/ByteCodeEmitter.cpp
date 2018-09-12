@@ -5128,7 +5128,8 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
                 opcode = Js::OpCode::LdUndef;
                 break;
             case Js::PropertyIds::__chakraLibrary:
-                if (CONFIG_FLAG(LdChakraLib)) {
+                if (CONFIG_FLAG(LdChakraLib) || CONFIG_FLAG(TestChakraLib))
+                {
                     opcode = Js::OpCode::LdChakraLib;
                 }
                 break;

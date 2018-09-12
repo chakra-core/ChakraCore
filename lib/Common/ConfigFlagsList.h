@@ -586,6 +586,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_JitRepro                (false)
 #define DEFAULT_CONFIG_LdChakraLib             (false)
+#define DEFAULT_CONFIG_TestChakraLib           (false)
 #define DEFAULT_CONFIG_EntryPointInfoRpcData   (false)
 
 // ES6 DEFAULT BEHAVIOR
@@ -1078,6 +1079,7 @@ FLAGNR(Boolean, JitRepro              , "Add Function.invokeJit to execute codeg
 FLAGNR(Boolean, EntryPointInfoRpcData , "Keep encoded rpc buffer for jitted function on EntryPointInfo until cleanup", DEFAULT_CONFIG_EntryPointInfoRpcData)
 
 FLAGNR(Boolean, LdChakraLib           , "Access to the Chakra internal library with the __chakraLibrary keyword", DEFAULT_CONFIG_LdChakraLib)
+FLAGNR(Boolean, TestChakraLib         , "Access to the Chakra internal library with the __chakraLibrary keyword without global access restriction", DEFAULT_CONFIG_TestChakraLib)
 // ES6 (BLUE+1) features/flags
 
 // Master ES6 flag to enable STABLE ES6 features/flags

@@ -314,6 +314,14 @@
   </test>
   <test>
     <default>
+      <files>InlineCallInstanceFunction.js</files>
+      <compile-flags>-TestChakraLib -testtrace:bailout -testtrace:inlineCallbacks</compile-flags>
+      <baseline>InlineCallInstanceFunction.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>recursiveCallbacks.js</files>
     </default>
   </test>

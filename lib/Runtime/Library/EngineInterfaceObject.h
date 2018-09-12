@@ -97,7 +97,7 @@ namespace Js
             static NoProfileFunctionInfo SetPrototype;
             static NoProfileFunctionInfo GetArrayLength;
             static NoProfileFunctionInfo RegexMatch;
-            static NoProfileFunctionInfo CallInstanceFunction;
+            static FunctionInfo CallInstanceFunction;
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \

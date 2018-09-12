@@ -765,6 +765,7 @@ MACRO_BACKEND_ONLY(     InlineArrayPop,      Empty,          OpSideEffect|OpInli
 MACRO_BACKEND_ONLY(     InlineArrayPush,     Empty,          OpSideEffect|OpInlinableBuiltIn|OpHasImplicitCall)
 MACRO_BACKEND_ONLY(     InlineFunctionApply, Empty,          OpSideEffect|OpInlinableBuiltIn)
 MACRO_BACKEND_ONLY(     InlineFunctionCall,  Empty,          OpSideEffect|OpInlinableBuiltIn)
+MACRO_BACKEND_ONLY(     InlineCallInstanceFunction,  Empty,  OpSideEffect|OpInlinableBuiltIn)
 MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInlinableBuiltIn)
 
 MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
