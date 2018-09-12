@@ -270,6 +270,16 @@ namespace Js
     /* static */
     ScriptFunction *EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName, bool isConstructor, bool isJsBuiltIn, bool isPublic)
     {
+        if (scriptFunction->GetFunctionProxy()->IsPublicLibraryCode())
+        {
+            // this can happen when we re-initialize Intl for a different mode -- for instance, if we have the following JS:
+            // print((1).toLocaleString())
+            // print(new Intl.NumberFormat().format(1))
+            // Intl will first get initialized for Number, and then will get re-initialized for all of Intl. This will cause
+            // Number.prototype.toLocaleString to be registered twice, which breaks some of our assertions below.
+            return scriptFunction;
+        }
+
         ScriptContext *scriptContext = scriptFunction->GetScriptContext();
 
         if (!isConstructor)
