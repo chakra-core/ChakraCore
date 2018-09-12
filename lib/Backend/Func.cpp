@@ -58,6 +58,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
     m_inlineeFrameStartSym(nullptr),
+    inlineeStart(nullptr),
     m_regsUsed(0),
     m_fg(nullptr),
     m_labelCount(0),
@@ -92,6 +93,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasArgLenAndConstOpt(false),
     hasImplicitParamLoad(false),
     hasThrow(false),
     hasNonSimpleParams(false),
@@ -333,6 +335,8 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
                 break;
             case RejitReason::DisableStackArgOpt:
                 outputData->disableStackArgOpt = TRUE;
+                break;
+            case RejitReason::DisableStackArgLenAndConstOpt:
                 break;
             case RejitReason::DisableSwitchOptExpectingInteger:
             case RejitReason::DisableSwitchOptExpectingString:

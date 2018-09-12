@@ -1360,12 +1360,13 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
         Js::ArgSlot actualCount = MapActuals(currentCallInstr, argOuts, Js::InlineeCallInfo::MaxInlineeArgoutCount, inlinee, (Js::ProfileId)callInstr->AsProfiledInstr()->u.profileId, &stackArgsArgOutExpanded);
         Assert(actualCount > 0);
         MapFormals(inlinee, argOuts, funcBody->GetInParamsCount(), actualCount, returnValueOpnd, currentCallInstr->GetSrc1(), symCallerThis, stackArgsArgOutExpanded, fixedFunctionSafeThis, argOuts);
+        inlinee->SetInlineeStart(currentCallInstr);
         currentCallInstr->m_func = inlinee;
 
         // Put the meta arguments that the stack walker expects to find on the stack.
         // As all the argouts are shared among the inlinees, do this only once.
         SetupInlineeFrame(inlinee, currentCallInstr, actualCount, currentCallInstr->GetSrc1());
-
+        
         IR::Instr* inlineeEndInstr = IR::Instr::New(Js::OpCode::InlineeEnd, inlinee);
         inlineeEndInstr->SetByteCodeOffset(inlinee->m_tailInstr->GetPrevRealInstr());
         inlineeEndInstr->SetSrc1(IR::IntConstOpnd::New(actualCount + Js::Constants::InlineeMetaArgCount, TyInt32, inlinee));
@@ -3967,6 +3968,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
     callInstr->m_opcode = Js::OpCode::InlineeStart;
 
     // Set it to belong to the inlinee, so that we can use the actual count when lowering InlineeStart
+    inlinee->SetInlineeStart(callInstr);
     callInstr->m_func = inlinee;
     callInstr->SetDst(IR::RegOpnd::New(returnValueOpnd ? returnValueOpnd->GetType() : TyVar, inlinee));
     // Put the meta arguments that the stack walker expects to find on the stack.

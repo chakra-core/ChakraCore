@@ -517,6 +517,17 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
         m_inlineeFrameStartSym = sym;
     }
 
+    void SetInlineeStart(IR::Instr *inlineeStartInstr)
+    {
+        Assert(inlineeStart == nullptr);
+        inlineeStart = inlineeStartInstr;
+    }
+
+    IR::Instr* GetInlineeStart()
+    {
+        return inlineeStart;
+    }
+
     IR::SymOpnd *GetInlineeArgCountSlotOpnd()
     {
         return GetInlineeOpndAtOffset(Js::Constants::InlineeMetaArgIndex_Argc * MachPtr);
@@ -721,6 +732,7 @@ public:
     bool                hasBailout: 1;
     bool                hasBailoutInEHRegion : 1;
     bool                hasStackArgs: 1;
+    bool                hasArgLenAndConstOpt : 1;
     bool                hasImplicitParamLoad : 1; // True if there is a load of CallInfo, FunctionObject
     bool                hasThrow : 1;
     bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
@@ -1030,6 +1042,7 @@ private:
     Func * const        topFunc;
     Func * const        parentFunc;
     StackSym *          m_inlineeFrameStartSym;
+    IR::Instr *         inlineeStart;
     uint                maxInlineeArgOutSize;
     const bool          m_isBackgroundJIT;
     bool                hasInstrNumber;
