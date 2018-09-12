@@ -8,37 +8,43 @@ namespace Js
 {
     namespace SCACore
     {
+        HRESULT ValidateTransferableVars(Var *vars, size_t count)
+        {
+            for (size_t i = 0; i < count; i++)
+            {
+                Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(vars[i]);
+                if (typeId != TypeIds_ArrayBuffer)
+                {
+
+                    AssertMsg(false, "These should have been filtered out by the host.");
+                    return E_SCA_TRANSFERABLE_UNSUPPORTED;
+                }
+
+                if (Js::JavascriptOperators::IsObjectDetached(vars[i]))
+                {
+                    return E_SCA_TRANSFERABLE_NEUTERED;
+                }
+            }
+            return S_OK;
+        }
+
+
         HRESULT Serializer::SetTransferableVars(Var *vars, size_t count)
         {
-            if (m_transferableHolder != nullptr)
+            if (m_transferableVars != nullptr)
             {
                 Assert(false);
                 return E_FAIL;
             }
             else if (count > 0)
             {
-                for (uint i = 0; i < count; i++)
+                HRESULT hr = ValidateTransferableVars(vars, count);
+                if (hr != S_OK)
                 {
-                    Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(vars[i]);
-                    if (typeId != TypeIds_ArrayBuffer)
-                    {
-
-                        AssertMsg(false, "These should have been filtered out by the host.");
-                        return E_SCA_TRANSFERABLE_UNSUPPORTED;
-                    }
-
-                    if (Js::JavascriptOperators::IsObjectDetached(vars[i]))
-                    {
-                        return E_SCA_TRANSFERABLE_NEUTERED;
-                    }
+                    return hr;
                 }
-
-                m_transferableHolder = HeapNewNoThrow(TransferablesHolder, vars, count);
-                if (m_transferableHolder == nullptr)
-                {
-                    return E_OUTOFMEMORY;
-                }
-                m_transferableHolder->AddRef();
+                m_transferableVars = vars;
+                m_cTransferableVars = count;
             }
             return S_OK;
         }
@@ -48,44 +54,27 @@ namespace Js
             ScriptContext *scriptContext = m_streamWriter.GetScriptContext();
             BEGIN_JS_RUNTIME_CALL(scriptContext)
             {
-                Var *transferableVars = m_transferableHolder ? m_transferableHolder->GetVars() : nullptr;
-                size_t transferableCount = m_transferableHolder ? m_transferableHolder->GetTranferableCount() : 0;
-                auto sharedContentList = m_transferableHolder ? m_transferableHolder->GetSharedContentsList() : nullptr;
-
-                Js::SCASerializationEngine::Serialize(rootObject, &m_streamWriter, transferableVars, transferableCount, sharedContentList);
+                Js::SCASerializationEngine::Serialize(rootObject, &m_streamWriter, m_transferableVars, m_cTransferableVars, nullptr /*TBD*/);
             }
             END_JS_RUNTIME_CALL(scriptContext)
-            return true;
-        }
-
-        void *Serializer::GetTransferableHolder()
-        {
-            return m_transferableHolder;
+                return true;
         }
 
         bool Serializer::DetachArrayBuffer()
         {
-            if (m_transferableHolder)
-            {
-                ScriptContext *scriptContext = m_streamWriter.GetScriptContext();
-                BEGIN_JS_RUNTIME_CALL(scriptContext)
-                {
-                    m_transferableHolder->DetachAll();
-                }
-                END_JS_RUNTIME_CALL(scriptContext)
-            }
+            Assert(false);
             return true;
         }
 
         void Serializer::WriteRawBytes(const void* source, size_t length)
         {
-			ScriptContext *scriptContext = m_streamWriter.GetScriptContext();
-			BEGIN_JS_RUNTIME_CALL(scriptContext)
-			{
-				m_streamWriter.Write(source, length);
-			}
-			END_JS_RUNTIME_CALL(scriptContext)
-		}
+            ScriptContext *scriptContext = m_streamWriter.GetScriptContext();
+            BEGIN_JS_RUNTIME_CALL(scriptContext)
+            {
+                m_streamWriter.Write(source, length);
+            }
+            END_JS_RUNTIME_CALL(scriptContext)
+        }
 
         bool Serializer::Release(byte** data, size_t *dataLength)
         {
@@ -100,11 +89,11 @@ namespace Js
             return true;
         }
 
-		bool Deserializer::ReadBytes(size_t length, void **data)
-		{
-			m_streamReader.Read(*data, length);
-			return true;
-		}
+        bool Deserializer::ReadBytes(size_t length, void **data)
+        {
+            m_streamReader.Read(*data, length);
+            return true;
+        }
 
         Var Deserializer::ReadValue()
         {
@@ -112,16 +101,32 @@ namespace Js
             ScriptContext *scriptContext = m_streamReader.GetScriptContext();
             BEGIN_JS_RUNTIME_CALL(scriptContext)
             {
-                returnedValue = Js::SCADeserializationEngine::Deserialize(&m_streamReader, m_transferableHolder);
-                if (m_transferableHolder)
-                {
-                    ULONG ref = m_transferableHolder->Release();
-                    Assert(ref == 0);
-                }
+                returnedValue = Js::SCADeserializationEngine::Deserialize(&m_streamReader, m_transferableVars, m_cTransferableVars);
             }
             END_JS_RUNTIME_CALL(scriptContext)
-            return returnedValue;
+                return returnedValue;
         }
+
+        HRESULT Deserializer::SetTransferableVars(Var *vars, size_t count)
+        {
+            if (m_transferableVars != nullptr)
+            {
+                Assert(false);
+                return E_FAIL;
+            }
+            else if (count > 0)
+            {
+                HRESULT hr = ValidateTransferableVars(vars, count);
+                if (hr != S_OK)
+                {
+                    return hr;
+                }
+                m_transferableVars = vars;
+                m_cTransferableVars = count;
+            }
+            return S_OK;
+        }
+
     }
 
 }

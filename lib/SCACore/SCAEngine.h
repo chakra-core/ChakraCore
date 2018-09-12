@@ -5,7 +5,6 @@
 #pragma once
 namespace Js
 {
-    class TransferablesHolder;
     enum class SCADeepCloneType
     {
         None,
@@ -28,14 +27,12 @@ namespace Js
 
         Cloner* m_cloner;
         ClonedObjectDictionary* m_clonedObjects;
-        TransferablesHolder* m_transferableObjects;
         Var* m_transferableVars;
         size_t m_cTransferableVars;
 
     private:
-        SCAEngine(Cloner* cloner, TransferablesHolder* transferableObjects, Var* m_transferableVars, size_t cTransferableVars)
+        SCAEngine(Cloner* cloner, Var* m_transferableVars, size_t cTransferableVars)
             : m_cloner(cloner),
-            m_transferableObjects(transferableObjects),
             m_transferableVars(m_transferableVars),
             m_cTransferableVars(cTransferableVars)
         {
@@ -128,12 +125,17 @@ namespace Js
 
         Dst ClaimTransferable(size_t index, JavascriptLibrary* library)
         {
-            return m_transferableObjects->ClaimTransferable(index, library);
+            AssertMsg(index < this->m_cTransferableVars, "Index out of range.");
+            ArrayBuffer *ab = ArrayBuffer::FromVar(m_transferableVars[index]);
+
+            // TODO reuse the same ArrayBuffer instead of creating a new ArrayBuffer.
+            // Current ArrayBuffer's from m_transferableVars are JsrtExternalArrayBuffer.
+            return library->CreateArrayBuffer((byte*)ab->GetBuffer(), ab->GetByteLength());
         }
 
-        static Dst Clone(Src root, Cloner* cloner, TransferablesHolder* transferableObjects, Var* transferableVars, size_t cTransferableVars)
+        static Dst Clone(Src root, Cloner* cloner, Var* transferableVars, size_t cTransferableVars)
         {
-            SCAEngine<Src, Dst, Cloner> engine(cloner, transferableObjects, transferableVars, cTransferableVars);
+            SCAEngine<Src, Dst, Cloner> engine(cloner, transferableVars, cTransferableVars);
             Dst dst;
             engine.Clone(root, &dst);
             return dst;
@@ -221,91 +223,4 @@ namespace Js
         }
     };
 
-    class TransferablesHolder
-    {
-        ULONG refCount;
-        DetachedStateBase **detachedStates;
-        Var* transferableVars;
-        size_t transferableCount;
-        JsUtil::List<Js::SharedContents*, HeapAllocator> sharedContentsList;
-
-    public:
-        TransferablesHolder(Var* vars, size_t transferableCount)
-            : refCount(0),
-            detachedStates(nullptr),
-            transferableVars(vars),
-            transferableCount(transferableCount),
-            sharedContentsList(&HeapAllocator::Instance)
-        {
-        }
-
-        Var *GetVars() { return transferableVars; }
-        size_t GetTranferableCount() { return transferableCount; }
-
-        ULONG AddRef() 
-        {
-            return (ULONG)InterlockedIncrement(&refCount);
-        }
-
-        ULONG Release()
-        {
-            ULONG refs = InterlockedDecrement(&refCount);
-
-            if (0 == refs)
-            {
-                if (detachedStates != nullptr)
-                {
-                    for (size_t i = 0; i < transferableCount; i++)
-                    {
-                        if (detachedStates[i] != nullptr) // Allow multiple claims
-                        {
-                            detachedStates[i]->CleanUp();
-                            detachedStates[i] = nullptr;
-                        }
-                    }
-
-                    HeapDeleteArray(transferableCount, detachedStates);
-                }
-
-                transferableCount = 0;
-
-                sharedContentsList.Map([](int, Js::SharedContents* contents)
-                {
-                    contents->Release();
-                });
-
-                HeapDelete(this);
-            }
-
-            return refs;
-        }
-
-        void DetachAll()
-        {
-            AutoArrayAndItemsPtr<DetachedStateBase*> detachedStatesToSet(HeapNewArrayZ(DetachedStateBase*, transferableCount), transferableCount);
-
-            for (size_t i = 0; i < transferableCount; i++)
-            {
-                detachedStatesToSet[i] = JavascriptOperators::DetachVarAndGetState(transferableVars[i]);
-            }
-
-            this->detachedStates = detachedStatesToSet.Detach();
-        }
-
-        Var ClaimTransferable(size_t index, JavascriptLibrary* library)
-        {
-            AssertMsg(index < this->transferableCount, "Index out of range.");
-            AssertMsg(this->detachedStates[index] != nullptr, "Should not be claiming at an index that is nullptr.");
-            AssertMsg(!this->detachedStates[index]->HasBeenClaimed(), "Transferable already been claimed, can't re-claim it.");
-
-            Var toReturn = JavascriptOperators::NewVarFromDetachedState(this->detachedStates[index], library);
-            this->detachedStates[index]->MarkAsClaimed();
-            return toReturn;
-        }
-
-        JsUtil::List<Js::SharedContents*, HeapAllocator>* GetSharedContentsList()
-        {
-            return &sharedContentsList;
-        }
-    };
 }

@@ -72,3 +72,6 @@ JsGetPromiseState
 JsGetPromiseResult
 JsVarSerializer
 JsVarDeserializer
+JsGetArrayBufferExtraInfo
+JsSetArrayBufferExtraInfo
+JsDetachArrayBuffer

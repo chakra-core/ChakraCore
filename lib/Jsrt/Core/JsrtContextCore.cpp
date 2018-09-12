@@ -242,12 +242,6 @@ JsErrorCode ChakraCoreStreamWriter::SetTransferableVars(JsValueRef *transferable
     return JsSerializerNotSupported;
 }
 
-void *ChakraCoreStreamWriter::GetTransferableHolder()
-{
-    Assert(m_serializerCore);
-    return m_serializerCore->GetTransferableHolder();
-}
-
 void ChakraCoreStreamWriter::FreeSelf()
 {
     HeapDelete(this);
@@ -280,6 +274,26 @@ JsValueRef ChakraHostDeserializerHandle::ReadValue()
     Assert(m_deserializer);
     return m_deserializer->ReadValue();
 }
+
+JsErrorCode ChakraHostDeserializerHandle::SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount)
+{
+    Assert(m_deserializer);
+    HRESULT hr = m_deserializer->SetTransferableVars((Js::Var *)transferableVars, transferableVarsCount);
+    if (hr == S_OK)
+    {
+        return JsNoError;
+    }
+    else if (hr == E_SCA_TRANSFERABLE_UNSUPPORTED)
+    {
+        return JsTransferableNotSupported;
+    }
+    else if (hr == E_SCA_TRANSFERABLE_NEUTERED)
+    {
+        return JsTransferableAlreadyDetached;
+    }
+    return JsSerializerNotSupported;
+}
+
 
 void ChakraHostDeserializerHandle::FreeSelf()
 {

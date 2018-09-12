@@ -58,7 +58,6 @@ public:
     bool ReleaseData(byte** data, size_t *dataLength) override;
     bool DetachArrayBuffer() override;
     JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) override;
-    void *GetTransferableHolder() override;
     void FreeSelf() override;
 
     byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
@@ -67,20 +66,21 @@ public:
 class ChakraHostDeserializerHandle : public DeserializerHandleBase
 {
     Js::SCACore::Deserializer *m_deserializer;
+    DeserializerCallbackBase *m_delegate;
 
 public:
-    ChakraHostDeserializerHandle()
-        : m_deserializer(nullptr)
+    ChakraHostDeserializerHandle(DeserializerCallbackBase *delegate)
+        : m_delegate(delegate), m_deserializer(nullptr)
     { }
 
     ~ChakraHostDeserializerHandle();
 
     void SetDeserializer(Js::SCACore::Deserializer *deserializer);
     bool ReadRawBytes(size_t length, void **data) override;
-	virtual bool ReadBytes(size_t length, void **data) override;
-	JsValueRef ReadValue() override ;
+    virtual bool ReadBytes(size_t length, void **data) override;
+    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
+    JsValueRef ReadValue() override;
     void FreeSelf() override;
-
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext

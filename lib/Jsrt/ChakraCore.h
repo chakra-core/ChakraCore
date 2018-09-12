@@ -1464,13 +1464,6 @@ CHAKRA_API
         _Out_ JsRef * buffer
     );
 	
-struct SerializerBlob
-{
-    void *transferableHolder;
-    void *data;
-	size_t dataLength;
-};
-
 class SerializerCallbackBase
 {
 public:
@@ -1490,8 +1483,15 @@ public:
     virtual bool ReleaseData(byte** data, size_t *dataLength) = 0;
     virtual bool DetachArrayBuffer() = 0;
     virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
-    virtual void *GetTransferableHolder() = 0;
     virtual void FreeSelf() = 0;
+};
+
+class DeserializerCallbackBase
+{
+public:
+	virtual JsValueRef ReadHostObject(void* data) = 0;
+	virtual JsValueRef GetSharedArrayBufferFromId(uint32_t id) = 0;
+	virtual JsValueRef GetWasmModuleFromId(uint32_t transfer_id) = 0;
 };
 
 class DeserializerHandleBase
@@ -1500,7 +1500,8 @@ public:
     virtual bool ReadRawBytes(size_t length, void **data) = 0;
 	virtual bool ReadBytes(size_t length, void **data) = 0;
 	virtual JsValueRef ReadValue() = 0;
-    virtual void FreeSelf() = 0;
+	virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
+	virtual void FreeSelf() = 0;
 };
 
 CHAKRA_API
@@ -1510,9 +1511,24 @@ CHAKRA_API
 
 CHAKRA_API
     JsVarDeserializer(
-        _In_ SerializerBlob *dataBlob,
+		_In_ void *data,
+		_In_ size_t size,
+		_In_ DeserializerCallbackBase *delegate,
         _Out_ DeserializerHandleBase **deserializerHandle);
 
+CHAKRA_API
+	JsGetArrayBufferExtraInfo(
+		_In_ JsValueRef arrayBuffer,
+		_Out_ char *extraInfo);
+
+CHAKRA_API
+	JsSetArrayBufferExtraInfo(
+		_In_ JsValueRef arrayBuffer,
+		_In_ char extraInfo);
+
+CHAKRA_API
+	JsDetachArrayBuffer(
+		_In_ JsValueRef arrayBuffer);
 
 
 #endif // _CHAKRACOREBUILD
