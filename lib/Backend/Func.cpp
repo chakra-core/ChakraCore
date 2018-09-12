@@ -303,8 +303,10 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT)
 {
     bool rejit;
+    int rejitCounter = 0;
     do
     {
+        Assert(rejitCounter < 25);
         Func func(alloc, workItem, threadContextInfo,
             scriptContextInfo, outputData, epInfo, runtimeInfo,
             polymorphicInlineCacheInfo, codeGenAllocators, 
@@ -364,6 +366,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             }
 
             rejit = true;
+            rejitCounter++;
         }
         // Either the entry point has a reference to the number now, or we failed to code gen and we
         // don't need to numbers, we can flush the completed page now.
