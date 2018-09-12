@@ -12,4 +12,9 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>common-functionality.js</files>
+    </default>
+  </test>
 </regress-exe>
