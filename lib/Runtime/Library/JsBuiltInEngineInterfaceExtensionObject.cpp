@@ -259,7 +259,15 @@ namespace Js
         JavascriptLibrary * library = scriptContext->GetLibrary();
 
         JavascriptString* methodName = JavascriptString::UnsafeFromVar(args.Values[1]);
-        ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction::UnsafeFromVar(args.Values[2]), methodName, false /* isConstructor */, true /* isJsBuiltIn */, false /* isPublic */);
+
+        // chakra library functions, since they aren't public, can be constructors (__chakraLibrary.ArrayIterator is one)
+        ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
+            ScriptFunction::UnsafeFromVar(args.Values[2]),
+            methodName,
+            true /* isConstructor */,
+            true /* isJsBuiltIn */,
+            false /* isPublic */
+        );
 
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
 

@@ -272,21 +272,6 @@ namespace Js
     {
         ScriptContext *scriptContext = scriptFunction->GetScriptContext();
 
-        // Use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
-        // Callers can pass in a string like "get compare" or "Intl.Collator.prototype.resolvedOptions" -- only for the
-        // latter do we extract a shortName.
-        const char16 *methodNameBuf = displayName->GetSz();
-        charcount_t methodNameLength = displayName->GetLength();
-        const char16 *shortName = wcsrchr(methodNameBuf, _u('.'));
-        charcount_t shortNameOffset = 0;
-        if (shortName != nullptr)
-        {
-            shortName++;
-            shortNameOffset = static_cast<charcount_t>(shortName - methodNameBuf);
-        }
-
-        scriptFunction->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
-
         if (!isConstructor)
         {
             // set the ErrorOnNew attribute to disallow construction. JsBuiltIn/Intl functions are usually regular ScriptFunctions
@@ -308,29 +293,49 @@ namespace Js
             AssertMsg((scriptFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why is the function not constructable by default?");
         }
 
-        // handle the name property AFTER handling isConstructor, because this can initialize the function's deferred type
-        Var existingName = nullptr;
-        if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
+        if (isPublic)
         {
-            JavascriptString *existingNameString = JavascriptString::FromVar(existingName);
-            if (existingNameString->GetLength() == 0)
+            // Use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
+            // Callers can pass in a string like "get compare" or "Intl.Collator.prototype.resolvedOptions" -- only for the
+            // latter do we extract a shortName.
+            const char16 *methodNameBuf = displayName->GetSz();
+            charcount_t methodNameLength = displayName->GetLength();
+            const char16 *shortName = wcsrchr(methodNameBuf, _u('.'));
+            charcount_t shortNameOffset = 0;
+            if (shortName != nullptr)
             {
-                // Only overwrite the name of the function object if it was anonymous coming in
-                // If the input function was named, it is likely intentional
-                existingName = nullptr;
-            }
-        }
-
-        if (existingName == nullptr || JavascriptOperators::IsUndefined(existingName))
-        {
-            // It is convenient to set the name here rather than in script, since it is often duplicated.
-            JavascriptString *funcName = displayName;
-            if (shortName)
-            {
-                funcName = JavascriptString::NewCopyBuffer(shortName, methodNameLength - shortNameOffset, scriptContext);
+                shortName++;
+                shortNameOffset = static_cast<charcount_t>(shortName - methodNameBuf);
             }
 
-            scriptFunction->SetPropertyWithAttributes(PropertyIds::name, funcName, PropertyConfigurable, nullptr);
+            scriptFunction->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
+
+            // handle the name property AFTER handling isConstructor, because this can initialize the function's deferred type
+            Var existingName = nullptr;
+            if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
+            {
+                JavascriptString *existingNameString = JavascriptString::FromVar(existingName);
+                if (existingNameString->GetLength() == 0)
+                {
+                    // Only overwrite the name of the function object if it was anonymous coming in
+                    // If the input function was named, it is likely intentional
+                    existingName = nullptr;
+                }
+            }
+
+            if (existingName == nullptr || JavascriptOperators::IsUndefined(existingName))
+            {
+                // It is convenient to set the name here rather than in script, since it is often duplicated.
+                JavascriptString *funcName = displayName;
+                if (shortName)
+                {
+                    funcName = JavascriptString::NewCopyBuffer(shortName, methodNameLength - shortNameOffset, scriptContext);
+                }
+
+                scriptFunction->SetPropertyWithAttributes(PropertyIds::name, funcName, PropertyConfigurable, nullptr);
+            }
+
+            scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
         }
 
         if (isJsBuiltIn)
@@ -342,13 +347,9 @@ namespace Js
             scriptFunction->SetEnvironment(const_cast<FrameDisplay *>(&StrictNullFrameDisplay));
 
             // TODO(jahorto): investigate force-inlining Intl code
+            scriptFunction->GetFunctionProxy()->EnsureDeserialized();
             AssertOrFailFast(scriptFunction->HasFunctionBody());
             scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
-        }
-
-        if (isPublic)
-        {
-            scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
         }
 
         return scriptFunction;
