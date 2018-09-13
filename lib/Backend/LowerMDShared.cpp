@@ -2683,9 +2683,10 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     }
 
     bool isNegOpt = instr->m_opcode == Js::OpCode::CmNeq_A || instr->m_opcode == Js::OpCode::CmSrNeq_A;
+    bool initDstToFalse = true;
     if (isIntDst)
     {
-        // Fast path for float src when destination is type specialized to int
+        // Fast path for int src with destination type specialized to int
         // reg = MOV 0 will get peeped to XOR reg, reg which sets the flags.
         // Put the MOV before the CMP, but use a tmp if dst == src1/src2
         if (dst->IsEqual(src1) || dst->IsEqual(src2))
@@ -2705,7 +2706,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
     }
     else if (isFloatSrc)
     {
-        // Fast path for float src when destination is not type specialized to int
+        // Fast path for float src when destination is a var
         // Assign default value for destination in case either src is NaN
         Assert(dst->IsVar());
         if (isNegOpt)
@@ -2715,6 +2716,7 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         else
         {
             opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
+            initDstToFalse = false;
         }
         Lowerer::InsertMove(tmp, opnd, done);
     }
@@ -2748,7 +2750,9 @@ void LowererMD::GenerateFastCmXx(IR::Instr *instr)
         done->InsertBefore(newInstr);
     }
 
-    if (!isIntDst)
+    // For all cases where the operator is a comparison, we do not want to emit False value
+    // since it has already been generated in the if block before.
+    if (!isIntDst && initDstToFalse)
     {
         opnd = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
         Lowerer::InsertMove(tmp, opnd, done);
