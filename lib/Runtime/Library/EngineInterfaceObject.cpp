@@ -101,35 +101,10 @@ namespace Js
         }
     }
 
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetErrorMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetErrorMessage));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::LogDebugMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_LogDebugMessage));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::TagPublicLibraryCode(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_TagPublicLibraryCode));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_SetPrototype));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetArrayLength));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_RegexMatch));
-
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_##global##_##method##(FORCE_NO_WRITE_BARRIER_TAG(global##::##method##)); \
-
-#define GlobalBuiltInConstructor(global)
-
-#define BuiltInRaiseException(exceptionType, exceptionID) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID)); \
-
-#define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException3(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID##_3)
-
+// initialize EngineInterfaceObject::EntryInfo
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::nativeMethod(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_##nativeMethod));
+#define BuiltInRaiseException(exceptionType, exceptionID) NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID));
 #include "EngineInterfaceObjectBuiltIns.h"
-
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltInConstructor
-#undef GlobalBuiltIn
-#endif
 
     EngineInterfaceObject * EngineInterfaceObject::New(Recycler * recycler, DynamicType * type)
     {
@@ -205,48 +180,28 @@ namespace Js
 
     bool EngineInterfaceObject::InitializeCommonNativeInterfaces(DynamicObject* commonNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(commonNativeInterfaces, mode, 38);
+        // start with 1 for CallInstanceFunction
+        int initSlotCapacity = 1;
+
+#define GlobalMathBuiltIn(mathMethod) initSlotCapacity++;
+#define GlobalBuiltIn(global, method) initSlotCapacity++;
+#define GlobalBuiltInConstructor(global) initSlotCapacity++;
+#define BuiltInRaiseException(exceptionType, exceptionID) initSlotCapacity++;
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) initSlotCapacity++;
+#include "EngineInterfaceObjectBuiltIns.h"
+
+        typeHandler->Convert(commonNativeInterfaces, mode, initSlotCapacity);
 
         JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
 
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method) \
-    library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtIn##global##method, &EngineInterfaceObject::EntryInfo::BuiltIn_##global##_##method##, 1); \
-
-#define GlobalBuiltInConstructor(global) SetPropertyOn(commonNativeInterfaces, Js::PropertyIds::##global##, library->Get##global##Constructor());
-
-#define BuiltInRaiseException(exceptionType, exceptionID) \
-    library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::raise##exceptionID, &EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID, 1); \
-
-#define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException3(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID##_3)
-
+#define GlobalMathBuiltIn(mathMethod) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtInMath##mathMethod, &Math::EntryInfo::mathMethod, 1);
+#define GlobalBuiltIn(global, method) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtIn##global##Entry##method, &global::EntryInfo::method, 1);
+#define GlobalBuiltInConstructor(global) SetPropertyOn(commonNativeInterfaces, PropertyIds::##global##, library->Get##global##Constructor());
+#define BuiltInRaiseException(exceptionType, exceptionID) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::raise##exceptionID, &EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID, 1);
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::propId, &EngineInterfaceObject::EntryInfo::nativeMethod, 1);
 #include "EngineInterfaceObjectBuiltIns.h"
 
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltIn
-#undef GlobalBuiltInConstructor
-#endif
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectCreate, &JavascriptObject::EntryInfo::Create, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectPreventExtensions, &JavascriptObject::EntryInfo::PreventExtensions, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectGetOwnPropertyDescriptor, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptor, 1);
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInGlobalObjectEval, &GlobalObject::EntryInfo::Eval, 2);
-
-        library->AddMember(commonNativeInterfaces, PropertyIds::Object_prototype, library->GetObjectPrototype());
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::getErrorMessage, &EngineInterfaceObject::EntryInfo::GetErrorMessage, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::logDebugMessage, &EngineInterfaceObject::EntryInfo::LogDebugMessage, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::tagPublicLibraryCode, &EngineInterfaceObject::EntryInfo::TagPublicLibraryCode, 1);
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInSetPrototype, &EngineInterfaceObject::EntryInfo::SetPrototype, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInGetArrayLength, &EngineInterfaceObject::EntryInfo::GetArrayLength, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInRegexMatch, &EngineInterfaceObject::EntryInfo::RegexMatch, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
 
         commonNativeInterfaces->SetHasNoEnumerableProperties(true);
 
@@ -449,10 +404,6 @@ namespace Js
         END_SAFE_REENTRANT_CALL
     }
 
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method)
-#define GlobalBuiltInConstructor(global)
-
 #define BuiltInRaiseException(exceptionType, exceptionID) \
     Var EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...) \
     { \
@@ -501,14 +452,6 @@ namespace Js
     }
 
 #include "EngineInterfaceObjectBuiltIns.h"
-
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltIn
-#undef GlobalBuiltInConstructor
-#endif
 
 }
 #endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION
