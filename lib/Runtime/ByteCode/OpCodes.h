@@ -773,6 +773,7 @@ MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTe
 MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
 MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     AdjustObjTypeReloadAuxSlotPtr,       Empty,          OpSideEffect)
 
                                                                                                             // Edge inline built-ins
 #ifdef ENABLE_DOM_FAST_PATH

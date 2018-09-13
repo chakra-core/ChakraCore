@@ -87,6 +87,7 @@ GlobOpt::GlobOpt(Func * func)
     updateInductionVariableValueNumber(false),
     isPerformingLoopBackEdgeCompensation(false),
     currentRegion(nullptr),
+    auxSlotPtrSyms(nullptr),
     changedSymsAfterIncBailoutCandidate(nullptr),
     doTypeSpec(
         !IsTypeSpecPhaseOff(func)),
@@ -350,6 +351,8 @@ GlobOpt::ForwardPass()
     // changedSymsAfterIncBailoutCandidate helps track building incremental bailout in ForwardPass
     this->changedSymsAfterIncBailoutCandidate = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
 
+    this->auxSlotPtrSyms = JitAnew(alloc, BVSparse<JitArenaAllocator>, alloc);
+
 #if DBG
     this->byteCodeUsesBeforeOpt = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
     if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::FieldCopyPropPhase) && this->DoFunctionFieldCopyProp())
@@ -431,6 +434,7 @@ GlobOpt::ForwardPass()
 
     // this->alloc will be freed right after return, no need to free it here
     this->changedSymsAfterIncBailoutCandidate = nullptr;
+    this->auxSlotPtrSyms = nullptr;
 
     END_CODEGEN_PHASE(this->func, Js::ForwardPhase);
 }
