@@ -4733,7 +4733,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         }
         else
         {
-            this->EmitPatchableRootProperty(GetStFldOpCode(funcInfo, true, isLetDecl, isConstDecl, false), rhsLocation, propertyId, false, true, funcInfo);
+            this->EmitPatchableRootProperty(GetStFldOpCode(funcInfo, true, isLetDecl, isConstDecl, false, forceStrictModeForClassComputedPropertyName), rhsLocation, propertyId, false, true, funcInfo);
         }
     }
     else if (sym->GetIsFuncExpr())
@@ -5320,7 +5320,7 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
         if (this->flags & (fscrEval | fscrImplicitThis))
         {
             this->m_writer.ScopedProperty(Js::OpCode::ScopedDeleteFld, lhsLocation,
-                funcInfo->FindOrAddReferencedPropertyId(propertyId));
+                funcInfo->FindOrAddReferencedPropertyId(propertyId), forceStrictModeForClassComputedPropertyName);
         }
         else
         {
@@ -6931,7 +6931,7 @@ void EmitAssignment(
         {
             uint cacheId = funcInfo->FindOrAddInlineCacheId(lhs->AsParseNodeBin()->pnode1->location, propertyId, false, true);
             byteCodeGenerator->Writer()->PatchableProperty(
-                ByteCodeGenerator::GetStFldOpCode(funcInfo, false, false, false, false), rhsLocation, lhs->AsParseNodeBin()->pnode1->location, cacheId);
+                ByteCodeGenerator::GetStFldOpCode(funcInfo, false, false, false, false, byteCodeGenerator->forceStrictModeForClassComputedPropertyName), rhsLocation, lhs->AsParseNodeBin()->pnode1->location, cacheId);
         }
 
         break;
@@ -8347,7 +8347,19 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
         // Transparently pass the name expr
         // The Emit will replace this with a temp register if necessary to preserve the value.
         nameNode->location = nameNode->AsParseNodeUni()->pnode1->location;
+
+        // Save the previous value of the flag to be restored later.
+        bool prevFlag = byteCodeGenerator->forceStrictModeForClassComputedPropertyName;
+
+        // Strict mode must be enforced on the evaluation of computed property names inside  
+        // classes, thus enable the flag if the computed property name is a class member.
+        byteCodeGenerator->forceStrictModeForClassComputedPropertyName = isClassMember || prevFlag;
+
         EmitBinaryOpnds(nameNode, exprNode, byteCodeGenerator, funcInfo);
+
+        // Restore the flag's previous value.
+        byteCodeGenerator->forceStrictModeForClassComputedPropertyName = prevFlag;
+
         if (isFncDecl && !exprNode->AsParseNodeFnc()->IsClassConstructor())
         {
             EmitComputedFunctionNameVar(nameNode, exprNode->AsParseNodeFnc(), byteCodeGenerator);
@@ -8374,7 +8386,18 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
             (isClassMember ? Js::OpCode::InitClassMemberSetComputedName : Js::OpCode::InitSetElemI) :
             (isClassMember ? Js::OpCode::InitClassMemberComputedName : Js::OpCode::InitComputedProperty);
 
-        byteCodeGenerator->Writer()->Element(setOp, exprNode->location, objectLocation, nameNode->location, true);
+        // Save the previous value of the flag to be restored later.
+        bool prevFlag = byteCodeGenerator->forceStrictModeForClassComputedPropertyName;
+        byteCodeGenerator->forceStrictModeForClassComputedPropertyName = isClassMember || prevFlag;
+
+        // Strict mode must be enforced on the evaluation of computed property names inside  
+        // classes, thus enable the flag if the computed property name is a class member.
+        byteCodeGenerator->Writer()->Element(setOp, exprNode->location, objectLocation, nameNode->location, true,
+            byteCodeGenerator->forceStrictModeForClassComputedPropertyName);
+        
+        // Restore the flag's previous value.
+        byteCodeGenerator->forceStrictModeForClassComputedPropertyName = prevFlag;
+
 
         funcInfo->ReleaseLoc(exprNode);
         funcInfo->ReleaseLoc(nameNode);
@@ -10634,7 +10657,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
                 Js::PropertyId propertyId = pexpr->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode();
                 funcInfo->AcquireLoc(pnode);
                 byteCodeGenerator->Writer()->Property(Js::OpCode::DeleteFld, pnode->location, pexpr->AsParseNodeBin()->pnode1->location,
-                    funcInfo->FindOrAddReferencedPropertyId(propertyId));
+                    funcInfo->FindOrAddReferencedPropertyId(propertyId), byteCodeGenerator->forceStrictModeForClassComputedPropertyName);
             }
 
             break;

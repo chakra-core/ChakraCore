@@ -1923,9 +1923,9 @@ Scope * ByteCodeGenerator::FindScopeForSym(Scope *symScope, Scope *scope, Js::Pr
 }
 
 /* static */
-Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit)
+Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit, bool forceStrictModeForClassComputedPropertyName)
 {
-    return GetStFldOpCode(funcInfo->GetIsStrictMode(), isRoot, isLetDecl, isConstDecl, isClassMemberInit);
+    return GetStFldOpCode(funcInfo->GetIsStrictMode() || forceStrictModeForClassComputedPropertyName, isRoot, isLetDecl, isConstDecl, isClassMemberInit);
 }
 
 /* static */
