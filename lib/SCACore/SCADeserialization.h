@@ -160,6 +160,6 @@ namespace Js
         typedef DeserializationCloner<StreamReader> StreamDeserializationCloner;
 
     public:
-        static Var Deserialize(StreamReader* reader, TransferablesHolder* transferrableHolder);
+        static Var Deserialize(StreamReader* reader, Var* transferableVars, size_t cTransferableVars);
     };
 }

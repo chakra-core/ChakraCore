@@ -267,19 +267,77 @@ JsVarSerializer(
 
 CHAKRA_API
 JsVarDeserializer(
-    _In_ SerializerBlob *dataBlob,
+    _In_ void *data,
+    _In_ size_t size,
+    _In_ DeserializerCallbackBase *delegate,
     _Out_ DeserializerHandleBase **deserializerHandle)
 {
-    PARAM_NOT_NULL(dataBlob);
+    PARAM_NOT_NULL(data);
+    PARAM_NOT_NULL(delegate);
     PARAM_NOT_NULL(deserializerHandle);
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle);
-        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, dataBlob->data, dataBlob->dataLength, dataBlob->transferableHolder, scriptContext));
+        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle, delegate);
+        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, data, size, scriptContext));
         *deserializerHandle = (DeserializerHandleBase *)reader;
         return JsNoError;
     });
 
     return errorCode;
+}
+
+CHAKRA_API
+JsGetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _Out_ char *extraInfo)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    PARAM_NOT_NULL(extraInfo);
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        *extraInfo = Js::ArrayBuffer::FromVar(arrayBuffer)->GetExtraInfoBits();
+    }
+    END_JSRT_NO_EXCEPTION
+
+}
+
+CHAKRA_API
+JsSetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _In_ char extraInfo)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        Js::ArrayBuffer::FromVar(arrayBuffer)->SetExtraInfoBits(extraInfo);
+    }
+    END_JSRT_NO_EXCEPTION
+}
+
+CHAKRA_API
+JsDetachArrayBuffer(
+    _In_ JsValueRef arrayBuffer)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        Js::ArrayBuffer::FromVar(arrayBuffer)->Detach();
+        return JsNoError;
+    });
 }
 

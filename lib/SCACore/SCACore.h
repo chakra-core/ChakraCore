@@ -12,10 +12,8 @@ namespace Js
         {
         public:
             Serializer(ScriptContext *scriptContext, HostStream *stream)
-                : m_streamWriter(scriptContext, stream),
-                m_transferableHolder(nullptr)
+                : m_streamWriter(scriptContext, stream)
             {
-
             }
 
             HRESULT SetTransferableVars(Var *vars, size_t count);
@@ -23,31 +21,33 @@ namespace Js
             void WriteRawBytes(const void* source, size_t length);
             bool WriteValue(Var rootObject);
             bool DetachArrayBuffer();
-            void *GetTransferableHolder();
 
             bool Release(byte** data, size_t *dataLength);
 
         private:
             StreamWriter m_streamWriter;
-            TransferablesHolder* m_transferableHolder;
+            Var* m_transferableVars = nullptr;
+            size_t m_cTransferableVars = 0;
         };
 
         class Deserializer
         {
         public:
-            Deserializer(void *data, size_t length, void *holder, ScriptContext *scriptContext)
-                : m_streamReader(scriptContext, (byte*)data, length),
-                m_transferableHolder((TransferablesHolder*)holder)
+            Deserializer(void *data, size_t length, ScriptContext *scriptContext)
+                : m_streamReader(scriptContext, (byte*)data, length)
             {
             }
 
+            HRESULT SetTransferableVars(Var *vars, size_t count);
+
             bool ReadRawBytes(size_t length, void **data);
-			bool ReadBytes(size_t length, void **data);
-			Var ReadValue();
+            bool ReadBytes(size_t length, void **data);
+            Var ReadValue();
 
         private:
             StreamReader m_streamReader;
-            TransferablesHolder* m_transferableHolder;
+            Var* m_transferableVars = nullptr;
+            size_t m_cTransferableVars = 0;
         };
     }
 

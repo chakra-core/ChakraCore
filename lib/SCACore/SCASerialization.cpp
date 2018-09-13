@@ -669,6 +669,6 @@ namespace Js
         writer->Write(static_cast<uint32>(SCA_FORMAT_VERSION));
 
         StreamSerializationCloner cloner(scriptContext, writer, sharedContentsList);
-        SCAEngine<Var, scaposition_t, StreamSerializationCloner>::Clone(root, &cloner, nullptr, transferableVars, cTransferableVars);
+        SCAEngine<Var, scaposition_t, StreamSerializationCloner>::Clone(root, &cloner, transferableVars, cTransferableVars);
     }
 }

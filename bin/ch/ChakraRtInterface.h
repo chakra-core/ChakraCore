@@ -111,7 +111,8 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, int64_t* rootEventTime);
 
     typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle);
-    typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(SerializerBlob *blob, DeserializerHandleBase **deserializerHandle);
+    typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle);
+	typedef JsErrorCode(WINAPI *JsrtDetachArrayBufferPtr)(JsValueRef buffer);
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
@@ -219,6 +220,7 @@ struct JsAPIHooks
 
     JsrtVarSerializerPtr pfJsrtVarSerializer;
     JsrtVarDeserializerPtr pfJsrtVarDeserializer;
+	JsrtDetachArrayBufferPtr pfJsrtDetachArrayBuffer;
 };
 
 #ifdef _WIN32
@@ -444,7 +446,9 @@ public:
     static JsErrorCode WINAPI JsRunScriptWithParserState(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef * result) { return HOOK_JS_API(RunScriptWithParserState(script, sourceContext, sourceUrl, parseAttributes, parserState, result)); }
 
     static JsErrorCode WINAPI JsVarSerializer(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle) { return HOOK_JS_API(VarSerializer(delegate, serializerHandle)); }
-    static JsErrorCode WINAPI JsVarDeserializer(SerializerBlob *blob, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(blob, deserializerHandle)); }
+    static JsErrorCode WINAPI JsVarDeserializer(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(data, dataLength, delegate, deserializerHandle)); }
+	static JsErrorCode WINAPI JsDetachArrayBuffer(JsValueRef buffer) { return HOOK_JS_API(DetachArrayBuffer(buffer)); }
+
 };
 
 class AutoRestoreContext

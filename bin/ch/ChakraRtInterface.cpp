@@ -178,6 +178,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
     m_jsApiHooks.pfJsrtVarSerializer = (JsAPIHooks::JsrtVarSerializerPtr)GetChakraCoreSymbol(library, "JsVarSerializer");
     m_jsApiHooks.pfJsrtVarDeserializer = (JsAPIHooks::JsrtVarDeserializerPtr)GetChakraCoreSymbol(library, "JsVarDeserializer");
+	m_jsApiHooks.pfJsrtDetachArrayBuffer = (JsAPIHooks::JsrtDetachArrayBufferPtr)GetChakraCoreSymbol(library, "JsDetachArrayBuffer");
 
 #endif
 
