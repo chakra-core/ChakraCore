@@ -133,6 +133,7 @@
     JsObjectHasOwnProperty
     JsObjectGetOwnPropertyDescriptor
     JsObjectDefineProperty
+    JsObjectDefinePropertyFull
     JsSetRuntimeBeforeSweepCallback
     JsTraceExternalReference
     JsAllocRawData

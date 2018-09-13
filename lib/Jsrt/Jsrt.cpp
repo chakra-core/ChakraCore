@@ -1895,6 +1895,71 @@ CHAKRA_API JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
 }
 
 #ifdef _CHAKRACOREBUILD
+
+CHAKRA_API
+JsObjectDefinePropertyFull(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_opt_ JsValueRef value,
+    _In_opt_ JsValueRef getter,
+    _In_opt_ JsValueRef setter,
+    _In_ bool writable,
+    _In_ bool enumerable,
+    _In_ bool configurable,
+    _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(key, scriptContext);
+        PARAM_NOT_NULL(result);
+        *result = false;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::RecyclableObject::FromVar(key), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Js::PropertyDescriptor propertyDescriptor;
+        if (value)
+        {
+            propertyDescriptor.SetValue(value);
+        }
+        if (getter)
+        {
+            propertyDescriptor.SetGetter(getter);
+        }
+        if (setter)
+        {
+            propertyDescriptor.SetSetter(setter);
+        }
+        if (writable)
+        {
+            propertyDescriptor.SetWritable(writable);
+        }
+        if (enumerable)
+        {
+            propertyDescriptor.SetEnumerable(enumerable);
+        }
+        if (configurable)
+        {
+            propertyDescriptor.SetConfigurable(configurable);
+        }
+
+        *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
+            Js::RecyclableObject::FromVar(object), propertyRecord->GetPropertyId(),
+            propertyDescriptor, true, scriptContext) != 0;
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsObjectDefineProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId,
     _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
 {

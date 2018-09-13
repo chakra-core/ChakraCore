@@ -1242,6 +1242,31 @@ CHAKRA_API
         _Out_ bool *result);
 
 /// <summary>
+///     Defines a new object's own property from a property descriptor.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that has the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="propertyDescriptor">The property descriptor.</param>
+/// <param name="result">Whether the property was defined.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsObjectDefinePropertyFull(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_opt_ JsValueRef value,
+    _In_opt_ JsValueRef getter,
+    _In_opt_ JsValueRef setter,
+    _In_ bool writable,
+    _In_ bool enumerable,
+    _In_ bool configurable,
+    _Out_ bool *result);
+
+/// <summary>
 ///     Deletes an object's property.
 /// </summary>
 /// <remarks>
