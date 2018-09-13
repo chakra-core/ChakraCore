@@ -3405,8 +3405,8 @@ namespace Js
         case PropertyIds::trimLeft:
             return BuiltinFunction::JavascriptString_TrimLeft;
 
-		case PropertyIds::trimStart:
-			return BuiltinFunction::JavascriptString_TrimStart;
+        case PropertyIds::trimStart:
+            return BuiltinFunction::JavascriptString_TrimStart;
 
         case PropertyIds::trimRight:
             return BuiltinFunction::JavascriptString_TrimRight;
@@ -3999,15 +3999,11 @@ namespace Js
             /* No inlining                String_StartsWith    */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::startsWith,         &JavascriptString::EntryInfo::StartsWith,           1);
             /* No inlining                String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
             /* No inlining                String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
-            builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
-			//builtinFuncs[BuiltinFunction::JavascriptString_TrimStart] = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimStart, &JavascriptString::EntryInfo::TrimStart, 0);
-            library->AddMember(stringPrototype, PropertyIds::trimStart, builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft], PropertyBuiltInMethodDefaults);
-            builtinFuncs[BuiltinFunction::JavascriptString_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
-            library->AddMember(stringPrototype, PropertyIds::trimEnd, builtinFuncs[BuiltinFunction::JavascriptString_TrimRight], PropertyBuiltInMethodDefaults);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimStart]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimStart,           &JavascriptString::EntryInfo::TrimStart,             0);
+            library->AddMember(stringPrototype, PropertyIds::trimLeft, builtinFuncs[BuiltinFunction::JavascriptString_TrimStart], PropertyBuiltInMethodDefaults);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimEnd]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimEnd,          &JavascriptString::EntryInfo::TrimEnd,            0);
+            library->AddMember(stringPrototype, PropertyIds::trimRight, builtinFuncs[BuiltinFunction::JavascriptString_TrimEnd], PropertyBuiltInMethodDefaults);
         }
-
-  
-        
 
         library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
 
@@ -7472,8 +7468,8 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(startsWith, JavascriptString::EntryStartsWith);
             REG_OBJECTS_LIB_FUNC(endsWith, JavascriptString::EntryEndsWith);
             REG_OBJECTS_LIB_FUNC(includes, JavascriptString::EntryIncludes);
-            REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimLeft);
-            REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimRight);
+            REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimStart);
+            REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimEnd);
 
         }
 
