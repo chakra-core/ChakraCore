@@ -1,3 +1,8 @@
+//-------------------------------------------------------------------------------------------------------
+// Copyright (C) Microsoft. All rights reserved.
+// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+//-------------------------------------------------------------------------------------------------------
+
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 // This tests the fast path for cmxx where either src is type specialized to float
