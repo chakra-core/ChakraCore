@@ -60,10 +60,11 @@ public:
     JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) override;
     void FreeSelf() override;
 
+    bool WriteHostObject(void* data) override;
     byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
 };
 
-class ChakraHostDeserializerHandle : public DeserializerHandleBase
+class ChakraHostDeserializerHandle : public HostReadStream, public DeserializerHandleBase
 {
     Js::SCACore::Deserializer *m_deserializer;
     DeserializerCallbackBase *m_delegate;
@@ -81,6 +82,9 @@ public:
     virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
     JsValueRef ReadValue() override;
     void FreeSelf() override;
+
+    virtual Js::Var ReadHostObject() override;
+
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext

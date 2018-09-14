@@ -278,7 +278,7 @@ JsVarDeserializer(
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle, delegate);
-        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, data, size, scriptContext));
+        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, data, size, scriptContext, reader));
         *deserializerHandle = (DeserializerHandleBase *)reader;
         return JsNoError;
     });
