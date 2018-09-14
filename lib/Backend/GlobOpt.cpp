@@ -883,7 +883,7 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
         // instruction itself should disable arguments object optimization.
         if(block->globOptData.argObjSyms && block->globOptData.IsArgumentsSymID(id))
         {
-            CannotAllocateArgumentsObjectOnStack(insertBeforeInstr->m_func);
+            CannotAllocateArgumentsObjectOnStack(nullptr);
         }
 
         if (block->globOptData.liveVarSyms->Test(id))
@@ -13087,10 +13087,10 @@ GlobOpt::OptArraySrc(IR::Instr ** const instrRef, Value ** src1Val, Value ** src
 void
 GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
 {
-    if (instr->m_func->IsStackArgsEnabled() && instr->IsInlined())
+    if (instr->usesStackArgumentsObject && instr->IsInlined())
     {
         IR::Opnd* src1 = instr->GetSrc1();
-        auto replaceInstr = [&](IR::Instr* instr, IR::Opnd* newopnd, Value** src1Val)
+        auto replaceInstr = [&](IR::Opnd* newopnd)
         {
             this->CaptureByteCodeSymUses(instr);
             instr->m_opcode = Js::OpCode::Ld_A;
@@ -13102,22 +13102,20 @@ GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
             *src1Val = this->OptSrc(instr->GetSrc1(), &instr);
             instr->m_func->hasArgLenAndConstOpt = true;
         };
+        Assert(CurrentBlockData()->IsArgumentsOpnd(src1));
         switch(instr->m_opcode)
         {
             case Js::OpCode::LdLen_A:
             {
-                if (CurrentBlockData()->IsArgumentsOpnd(src1))
-                {
-                    IR::AddrOpnd* newopnd = IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked(instr->m_func->actualCount - 1), IR::AddrOpndKindConstantVar, instr->m_func);
-                    replaceInstr(instr, newopnd, src1Val);
-                }
+                IR::AddrOpnd* newopnd = IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked(instr->m_func->actualCount - 1), IR::AddrOpndKindConstantVar, instr->m_func);
+                replaceInstr(newopnd);
                 break;
             }
     
             case Js::OpCode::LdElemI_A:
             {
                 IR::IndirOpnd* indirOpndSrc1 = src1->AsIndirOpnd();
-                if (!indirOpndSrc1->GetIndexOpnd() && CurrentBlockData()->IsArgumentsOpnd(src1))
+                if (!indirOpndSrc1->GetIndexOpnd())
                 {
                     int argIndex = indirOpndSrc1->GetOffset() + 1;
                     IR::Instr* defInstr = nullptr;
@@ -13131,7 +13129,17 @@ GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
                         }
                         return false;
                     });
-                    replaceInstr(instr, defInstr->GetSrc1(), src1Val);
+                    // If we cannot find the right instruction. I.E. When calling arguments[2] and no arguments were passed to the func
+                    if (defInstr == nullptr) 
+                    {
+                        IR::Opnd * undefined = IR::AddrOpnd::New(instr->m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+                        undefined->SetValueType(ValueType::Undefined);
+                        replaceInstr(undefined);
+                    }
+                    else
+                    {
+                        replaceInstr(defInstr->GetSrc1());
+                    }
                 }
                 break;
             }
