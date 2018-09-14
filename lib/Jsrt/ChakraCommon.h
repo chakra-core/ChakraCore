@@ -2441,7 +2441,13 @@ typedef unsigned short uint16_t;
         JsDiscardBackgroundParse(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer);
 
     CHAKRA_API
-        JsExecuteBackgroundParse(DWORD dwBgParseCookie, JsContextRef context, DWORD_PTR dwSourceContext, DWORD dwFlags, VARIANT* pvarResult, EXCEPINFO* pexcepinfo);
+        JsExecuteBackgroundParse(_In_ DWORD dwBgParseCookie,
+            _In_ JsValueRef script,
+            _In_ JsSourceContext sourceContext,
+            _In_ WCHAR *url,
+            _In_ JsParseScriptAttributes parseAttributes,
+            _In_ JsValueRef parserState,
+            _Out_ JsValueRef *result);
 
 
 #ifdef _WIN32

@@ -755,6 +755,49 @@ Error:
     return hr;
 }
 
+// Use the asynchronous BGParse JSRT APIs in a synchronous call
+HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileName)
+{
+    JsValueRef scriptSource;
+    JsErrorCode e = (ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+        (unsigned int)lengthBytes,
+        nullptr, (void*)fileContents, &scriptSource));
+
+    // What's the preferred way of doing this?
+    WCHAR fileNameWide[MAX_PATH] = { 0 };
+    size_t fileNameLength = strlen(fileName);
+    for (int i = 0; i < fileNameLength; i++)
+    {
+        fileNameWide[i] = fileName[i];
+    }   
+
+
+    JsScriptContents scriptContents = { 0 };
+    scriptContents.container = (LPVOID)fileContents;
+    scriptContents.containerType = JsScriptContainerType::HeapAllocatedBuffer;
+    scriptContents.encodingType = JsScriptEncodingType::Utf8;
+    scriptContents.contentLengthInBytes = lengthBytes;
+    scriptContents.fullPath = fileNameWide;
+
+    DWORD cookie = 0;
+    e = ChakraRTInterface::JsQueueBackgroundParse(&scriptContents, &cookie);
+    Assert(e == JsErrorCode::JsNoError);
+
+    JsValueRef bgResult = nullptr;
+    e = ChakraRTInterface::JsExecuteBackgroundParse(
+        cookie,
+        scriptSource,
+        WScriptJsrt::GetNextSourceContext(),
+        (WCHAR*)scriptContents.fullPath,
+        JsParseScriptAttributes::JsParseScriptAttributeNone,
+        nullptr,//_In_ JsValueRef parserState,
+        &bgResult
+    );
+    Assert(e == JsErrorCode::JsNoError);
+
+    return S_OK;
+}
+
 HRESULT ExecuteTest(const char* fileName)
 {
     HRESULT hr = S_OK;
@@ -914,7 +957,7 @@ HRESULT ExecuteTest(const char* fileName)
         }
         else if (HostConfigFlags::flags.ExecuteWithBgParse)
         {
-            // Run multiple scripts with BGParse
+            RunBgParseSync(fileContents, lengthBytes, fileName);
         }
         else
         {
