@@ -269,10 +269,10 @@ namespace Js
         void CallI(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, ProfileId callSiteId, CallFlags callFlags = CallFlags_None);
         void CallIExtended(OpCode op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, CallIExtendedOptions options, const void *buffer, uint byteCount, ProfileId callSiteId, CallFlags callFlags = CallFlags_None);
         void RemoveEntryForRegSlotFromCacheIdMap(RegSlot functionRegister);
-        void Element(OpCode op, RegSlot value, RegSlot instance, RegSlot element, bool instanceAtReturnRegOK = false);
+        void Element(OpCode op, RegSlot value, RegSlot instance, RegSlot element, bool instanceAtReturnRegOK = false, bool forceStrictMode = false);
         void ElementUnsigned1(OpCode op, RegSlot value, RegSlot instance, uint32 element);
-        void Property(OpCode op, RegSlot Value, RegSlot Instance, PropertyIdIndexType propertyIdIndex);
-        void ScopedProperty(OpCode op, RegSlot Value, PropertyIdIndexType propertyIdIndex);
+        void Property(OpCode op, RegSlot Value, RegSlot Instance, PropertyIdIndexType propertyIdIndex, bool forceStrictMode = false);
+        void ScopedProperty(OpCode op, RegSlot Value, PropertyIdIndexType propertyIdIndex, bool forceStrictMode = false);
         void Slot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId);
         void Slot(OpCode op, RegSlot value, RegSlot instance, uint32 slotId, ProfileId profileId);
         void SlotI1(OpCode op, RegSlot value, uint32 slotId1);
