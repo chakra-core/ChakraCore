@@ -425,7 +425,7 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 3 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !JavascriptConversion::IsCallable(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
