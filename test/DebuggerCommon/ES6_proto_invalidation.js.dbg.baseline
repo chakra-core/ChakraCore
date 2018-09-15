@@ -221,25 +221,25 @@
             "length": "number 1",
             "name": "string includes"
           },
-          "trimLeft": {
-            "#__proto__": "function <large string>",
-            "length": "number 0",
-            "name": "string trimLeft"
-          },
           "trimStart": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trimLeft"
+            "name": "string trimStart"
           },
-          "trimRight": {
+          "trimLeft": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trimRight"
+            "name": "string trimStart"
           },
           "trimEnd": {
             "#__proto__": "function <large string>",
             "length": "number 0",
-            "name": "string trimRight"
+            "name": "string trimEnd"
+          },
+          "trimRight": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string trimEnd"
           },
           "Symbol.iterator": {
             "#__proto__": "function <large string>",
