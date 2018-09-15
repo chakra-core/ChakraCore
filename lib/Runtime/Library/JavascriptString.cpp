@@ -2384,7 +2384,7 @@ case_2:
         return TrimLeftRightHelper<true /*trimLeft*/, true /*trimRight*/>(pThis, scriptContext);
     }
 
-    Var JavascriptString::EntryTrimLeft(RecyclableObject* function, CallInfo callInfo, ...)
+    Var JavascriptString::EntryTrimStart(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2405,8 +2405,7 @@ case_2:
         return TrimLeftRightHelper< true /*trimLeft*/, false /*trimRight*/>(pThis, scriptContext);
     }
 
-
-    Var JavascriptString::EntryTrimRight(RecyclableObject* function, CallInfo callInfo, ...)
+    Var JavascriptString::EntryTrimEnd(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
 
