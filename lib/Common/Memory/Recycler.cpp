@@ -246,7 +246,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     , capturePageHeapAllocStack(false)
     , capturePageHeapFreeStack(false)
 #endif
-    , objectBeforeCollectCallbackMap(nullptr)
+    , objectBeforeCollectCallbackList(nullptr)
     , objectBeforeCollectCallbackState(ObjectBeforeCollectCallback_None)
 #if GLOBAL_ENABLE_WRITE_BARRIER
     , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
@@ -8898,14 +8898,14 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
         return; // NOP at shutdown
     }
 
-    if (objectBeforeCollectCallbackMap == nullptr)
+    if (objectBeforeCollectCallbackList == nullptr)
     {
         if (callback == nullptr) return;
-        objectBeforeCollectCallbackMap = HeapNew(ObjectBeforeCollectCallbackMap, &HeapAllocator::Instance);
+        objectBeforeCollectCallbackList = HeapNew(ObjectBeforeCollectCallbackList, &HeapAllocator::Instance);
     }
 
     // only allow 1 callback per object
-    objectBeforeCollectCallbackMap->Item(object, ObjectBeforeCollectCallbackData(callbackWrapper, callback, callbackState, threadContext));
+    objectBeforeCollectCallbackList->Push(ObjectBeforeCollectCallbackData(object, callbackWrapper, callback, callbackState, threadContext));
 
     if (callback != nullptr && this->IsInObjectBeforeCollectCallback()) // revive
     {
@@ -8916,7 +8916,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
 
 bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
 {
-    if (this->objectBeforeCollectCallbackMap == nullptr)
+    if (this->objectBeforeCollectCallbackList == nullptr)
     {
         return false; // no callbacks
     }
@@ -8924,21 +8924,21 @@ bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
 
     Assert(!this->IsInObjectBeforeCollectCallback());
     AutoRestoreValue<ObjectBeforeCollectCallbackState> autoInObjectBeforeCollectCallback(&objectBeforeCollectCallbackState,
-        atShutdown ? ObjectBeforeCollectCallback_Shutdown: ObjectBeforeCollectCallback_Normal);
+        atShutdown ? ObjectBeforeCollectCallback_Shutdown : ObjectBeforeCollectCallback_Normal);
 
     // The callbacks may register/unregister callbacks while we are enumerating the current map. To avoid
     // conflicting usage of the callback map, we swap it out. New registration will go to a new map.
-    AutoAllocatorObjectPtr<ObjectBeforeCollectCallbackMap, HeapAllocator> oldCallbackMap(
-        this->objectBeforeCollectCallbackMap, &HeapAllocator::Instance);
-    this->objectBeforeCollectCallbackMap = nullptr;
+    AutoAllocatorObjectPtr<ObjectBeforeCollectCallbackList, HeapAllocator> oldCallbackList(
+        this->objectBeforeCollectCallbackList, &HeapAllocator::Instance);
+    this->objectBeforeCollectCallbackList = nullptr;
 
     bool hasRemainingCallbacks = false;
-    oldCallbackMap->MapAndRemoveIf([&](const ObjectBeforeCollectCallbackMap::EntryType& entry)
+    FOREACH_SLIST_ENTRY_EDITING(ObjectBeforeCollectCallbackData, data, oldCallbackList, iter)
     {
-        const ObjectBeforeCollectCallbackData& data = entry.Value();
+        bool remove = true;
         if (data.callback != nullptr)
         {
-            void* object = entry.Key();
+            void* object = data.object;
             if (atShutdown || !this->IsObjectMarked(object))
             {
                 if (data.callbackWrapper != nullptr)
@@ -8953,33 +8953,32 @@ bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
             else
             {
                 hasRemainingCallbacks = true;
-                return false; // Do not remove this entry, remaining callback for future
+                remove = false; // Do not remove this entry, remaining callback for future
             }
         }
-
-        return true; // Remove this entry
-    });
+        if (remove)
+        {
+            iter.RemoveCurrent();
+        }
+    } NEXT_SLIST_ENTRY_EDITING;
 
     // Merge back remaining callbacks if any
     if (hasRemainingCallbacks)
     {
-        if (this->objectBeforeCollectCallbackMap == nullptr)
+        if (this->objectBeforeCollectCallbackList == nullptr)
         {
-            this->objectBeforeCollectCallbackMap = oldCallbackMap.Detach();
+            this->objectBeforeCollectCallbackList = oldCallbackList.Detach();
         }
         else
         {
-            if (oldCallbackMap->Count() > this->objectBeforeCollectCallbackMap->Count())
-            {
-                // Swap so that oldCallbackMap is the smaller one
-                ObjectBeforeCollectCallbackMap* tmp = oldCallbackMap.Detach();
-                *&oldCallbackMap = this->objectBeforeCollectCallbackMap;
-                this->objectBeforeCollectCallbackMap = tmp;
-            }
+            // Swap back, since old list is likely larger
+            ObjectBeforeCollectCallbackList* tmp = oldCallbackList.Detach();
+            *&oldCallbackList = this->objectBeforeCollectCallbackList;
+            this->objectBeforeCollectCallbackList = tmp;
 
-            oldCallbackMap->Map([&](void* object, const ObjectBeforeCollectCallbackData& data)
+            oldCallbackList->Map([&](const ObjectBeforeCollectCallbackData& data)
             {
-                this->objectBeforeCollectCallbackMap->Item(object, data);
+                this->objectBeforeCollectCallbackList->Push(data);
             });
         }
     }
@@ -8991,7 +8990,7 @@ void Recycler::ClearObjectBeforeCollectCallbacks()
 {
     // This is called at shutting down. All objects will be gone. Invoke each registered callback if any.
     ProcessObjectBeforeCollectCallbacks(/*atShutdown*/true);
-    Assert(objectBeforeCollectCallbackMap == nullptr);
+    Assert(objectBeforeCollectCallbackList == nullptr);
 }
 
 #ifdef RECYCLER_TEST_SUPPORT

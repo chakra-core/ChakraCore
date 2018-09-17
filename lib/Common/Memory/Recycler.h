@@ -2040,18 +2040,18 @@ public:
 private:
     struct ObjectBeforeCollectCallbackData
     {
+        void* object;
         ObjectBeforeCollectCallback callback;
         void* callbackState;
         void* threadContext;
         ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
-            callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
+        ObjectBeforeCollectCallbackData(void* object, ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
+            object(object), callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
-    typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
-        PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> ObjectBeforeCollectCallbackMap;
-    ObjectBeforeCollectCallbackMap* objectBeforeCollectCallbackMap;
+    typedef SList<ObjectBeforeCollectCallbackData, HeapAllocator> ObjectBeforeCollectCallbackList;
+    ObjectBeforeCollectCallbackList* objectBeforeCollectCallbackList;
 
     enum ObjectBeforeCollectCallbackState
     {
