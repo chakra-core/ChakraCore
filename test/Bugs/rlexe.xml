@@ -530,4 +530,10 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_5585.js</files>
+      <compile-flags>-esdynamicimport -mutehosterrormsg -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

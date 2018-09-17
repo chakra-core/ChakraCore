@@ -193,13 +193,16 @@ void Scanner<EncodingPolicy>::PrepareForBackgroundParse(Js::ScriptContext *scrip
 // This is used to determine a length of BSTR, which can't contain a NUL character.
 //-----------------------------------------------------------------------------
 template <typename EncodingPolicy>
-charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCharPtr last)
+charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCharPtr last, size_t* cb)
 {
+    Assert(cb != nullptr);
+
     charcount_t result = 0;
     EncodedCharPtr p = first;
 
     for (;;)
     {
+        EncodedCharPtr prev = p;
         switch( this->template ReadFull<false>(p, last) )
         {
             case kchNWL: // _C_NWL
@@ -207,6 +210,13 @@ charcount_t Scanner<EncodingPolicy>::LineLength(EncodedCharPtr first, EncodedCha
             case kchLS:
             case kchPS:
             case kchNUL: // _C_NUL
+                // p is now advanced past the line terminator character.
+                // We need to know the number of bytes making up the line, not including the line terminator character.
+                // To avoid subtracting a variable number of bytes because the line terminator characters are different
+                // number of bytes long (plus there may be multiple valid encodings for these characters) just keep
+                // track of the first byte of the line terminator character in prev.
+                Assert(prev >= first);
+                *cb = prev - first;
                 return result;
         }
         result++;
@@ -2313,10 +2323,11 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR*
     typename EncodingPolicy::EncodedCharPtr pStart = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, ichMinLine);
 
     // Determine the length by scanning for the next newline
-    charcount_t cch = LineLength(pStart, m_pchLast);
+    size_t cb = 0;
+    charcount_t cch = LineLength(pStart, m_pchLast, &cb);
     Assert(cch <= LONG_MAX);
 
-    typename EncodingPolicy::EncodedCharPtr pEnd = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine + cch : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, cch);
+    typename EncodingPolicy::EncodedCharPtr pEnd = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine + cb : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, cch);
 
     *pbstrLine = SysAllocStringLen(NULL, cch);
     if (!*pbstrLine)
