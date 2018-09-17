@@ -88,7 +88,7 @@ LSC_ERROR_MSG( 1077, ERRDestructNotInit, "Destructuring declarations cannot have
 LSC_ERROR_MSG(1079, ERRInvalidNewTarget, "Invalid use of the 'new.target' keyword")
 LSC_ERROR_MSG(1080, ERRForInNoInitAllowed, "for-in loop head declarations cannot have an initializer")
 LSC_ERROR_MSG(1081, ERRForOfNoInitAllowed, "for-of loop head declarations cannot have an initializer")
-LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode on functions with non-simple parameter list")
+LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Illegal 'use strict' directive in function with non-simple parameter list")
 
 LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context")
 

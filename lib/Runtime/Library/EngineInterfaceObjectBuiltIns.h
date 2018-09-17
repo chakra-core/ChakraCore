@@ -50,7 +50,7 @@ GlobalBuiltInConstructor(Number)
 GlobalBuiltInConstructor(RegExp)
 GlobalBuiltInConstructor(String)
 GlobalBuiltInConstructor(Date)
-GlobalBuiltInConstructor(Error) // TODO(jahorto): consider deleting (all errors should go through builtInRaise*)
+GlobalBuiltInConstructor(Error) // TODO(jahorto): consider deleting (currently used by WinRT Promises)
 GlobalBuiltInConstructor(Map) // TODO(jahorto): consider deleting (when do we need a Map over an object?)
 GlobalBuiltInConstructor(Symbol)
 
@@ -66,6 +66,8 @@ GlobalBuiltIn(JavascriptObject, GetOwnPropertyNames)
 GlobalBuiltIn(JavascriptObject, HasOwnProperty)
 GlobalBuiltIn(JavascriptObject, Keys)
 GlobalBuiltIn(JavascriptObject, Create)
+GlobalBuiltIn(JavascriptObject, GetOwnPropertyDescriptor)
+GlobalBuiltIn(JavascriptObject, PreventExtensions)
 
 GlobalBuiltIn(JavascriptArray, Push) // TODO(jahorto): consider deleting (trivially implementable in JS)
 GlobalBuiltIn(JavascriptArray, Join)
@@ -90,7 +92,7 @@ GlobalBuiltIn(JavascriptString, IndexOf)
 
 GlobalBuiltIn(GlobalObject, IsFinite) // TODO(jahorto): consider switching to Number.isFinite
 GlobalBuiltIn(GlobalObject, IsNaN) // TODO(jahorto): consider switching to Number.isNaN
-GlobalBuiltIn(GlobalObject, Eval) // TODO(jahorto): consider deleting (should any builtins be using eval()?)
+GlobalBuiltIn(GlobalObject, Eval) // TODO(jahorto): consider deleting (currently used by WinRT Promises)
 
 BuiltInRaiseException(TypeError, NeedObject)
 BuiltInRaiseException2(TypeError, ObjectIsAlreadyInitialized)
