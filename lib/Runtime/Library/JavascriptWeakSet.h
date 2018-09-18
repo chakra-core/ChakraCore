@@ -66,7 +66,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptWeakSet>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptWeakSet>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_WeakSet;
     }

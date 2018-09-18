@@ -96,7 +96,7 @@ namespace Js
         }
     };
 
-    template <> bool VarIs<JavascriptGeneratorFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptGeneratorFunction>(RecyclableObject* obj);
 
     template <> inline bool LegacyVarIs<JavascriptGeneratorFunction>(RecyclableObject* obj)
     {
@@ -138,7 +138,7 @@ namespace Js
         }
     };
 
-    template <> bool VarIs<JavascriptAsyncFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptAsyncFunction>(RecyclableObject* obj);
 
     class GeneratorVirtualScriptFunction : public ScriptFunction
     {

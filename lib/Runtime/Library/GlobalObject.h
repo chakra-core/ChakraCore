@@ -186,7 +186,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<GlobalObject>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<GlobalObject>(RecyclableObject* obj)
     {
         return obj->GetTypeId() == TypeIds_GlobalObject;
     }

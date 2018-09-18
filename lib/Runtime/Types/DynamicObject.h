@@ -387,5 +387,5 @@ namespace Js
 
     };
 
-    template <> bool VarIs<DynamicObject>(RecyclableObject* obj);
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj);
 } // namespace Js

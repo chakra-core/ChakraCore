@@ -59,12 +59,12 @@ namespace Js
     typedef JavascriptTypedNumber<__int64> JavascriptInt64Number;
     typedef JavascriptTypedNumber<unsigned __int64> JavascriptUInt64Number;
 
-    template <> inline bool VarIs<JavascriptInt64Number>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptInt64Number>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int64Number;
     }
 
-    template <> inline bool VarIs<JavascriptUInt64Number>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptUInt64Number>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_UInt64Number;
     }

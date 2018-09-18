@@ -177,7 +177,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptError>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptError>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Error;
     }

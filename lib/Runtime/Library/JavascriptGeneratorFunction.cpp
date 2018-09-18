@@ -57,12 +57,12 @@ using namespace Js;
         return false;
     }
 
-    template <> bool Js::VarIs<JavascriptGeneratorFunction>(RecyclableObject* obj)
+    template <> bool Js::VarIsImpl<JavascriptGeneratorFunction>(RecyclableObject* obj)
     {
         return JavascriptGeneratorFunction::IsBaseGeneratorFunction(obj) || VarIs<JavascriptAsyncFunction>(obj);
     }
 
-    template <> bool Js::VarIs<JavascriptAsyncFunction>(RecyclableObject* obj)
+    template <> bool Js::VarIsImpl<JavascriptAsyncFunction>(RecyclableObject* obj)
     {
         if (VarIs<JavascriptFunction>(obj))
         {

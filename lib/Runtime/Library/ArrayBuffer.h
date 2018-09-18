@@ -99,7 +99,7 @@ namespace Js
         Field(bool) isDetached;
     };
 
-    template <> bool VarIs<ArrayBufferBase>(RecyclableObject* obj);
+    template <> bool VarIsImpl<ArrayBufferBase>(RecyclableObject* obj);
 
     class ArrayBuffer : public ArrayBufferBase
     {
@@ -216,7 +216,7 @@ namespace Js
         Field(uint32) bufferLength;       // Number of bytes allocated
     };
 
-    template <> inline bool VarIs<ArrayBuffer>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ArrayBuffer>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_ArrayBuffer;
     }

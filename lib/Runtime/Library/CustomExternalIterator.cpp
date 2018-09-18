@@ -140,7 +140,7 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_ExternalIterator);
     }
 
-    template <> bool VarIs<CustomExternalIterator>(RecyclableObject* obj)
+    template <> bool VarIsImpl<CustomExternalIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_ExternalIterator;
     }

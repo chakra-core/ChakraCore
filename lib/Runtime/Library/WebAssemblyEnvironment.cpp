@@ -75,7 +75,7 @@ template<typename T>
 void WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
 {
     if (index >= maxCount ||
-        !VarIs<T>(val))
+        !VarIsCorrectType(val))
     {
         Js::Throw::InternalError();
     }

@@ -355,7 +355,7 @@ namespace Js
         static Var CallRegExFunction(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext);
     };
 
-    template <> bool VarIs<JavascriptString>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptString>(RecyclableObject* obj);
 
     template<>
     struct PropertyRecordStringHashComparer<JavascriptString *>

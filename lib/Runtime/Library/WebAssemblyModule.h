@@ -201,7 +201,7 @@ private:
     FieldNoBarrier(ArenaAllocator*) m_alloc;
 };
 
-template <> inline bool VarIs<WebAssemblyModule>(RecyclableObject* obj)
+template <> inline bool VarIsImpl<WebAssemblyModule>(RecyclableObject* obj)
 {
     return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyModule;
 }

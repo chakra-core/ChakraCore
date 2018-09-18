@@ -31,7 +31,7 @@ namespace Js
         static RecyclableObject* CreateThrowErrorObject(CreateErrorFunc createError, ScriptContext* scriptContext, int32 hCode, PCWSTR varName);
     };
 
-    template <> inline bool VarIs<ThrowErrorObject>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ThrowErrorObject>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Undefined;
     }

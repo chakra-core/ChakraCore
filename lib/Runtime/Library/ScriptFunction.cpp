@@ -14,7 +14,7 @@ using namespace Js;
         JavascriptFunction(type, functionInfo)
     {}
 
-    template <> bool Js::VarIs<ScriptFunctionBase>(RecyclableObject* obj)
+    template <> bool Js::VarIsImpl<ScriptFunctionBase>(RecyclableObject* obj)
     {
         if (VarIs<JavascriptFunction>(obj))
         {

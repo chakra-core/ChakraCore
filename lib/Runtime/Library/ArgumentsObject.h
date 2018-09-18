@@ -30,7 +30,7 @@ namespace Js
         virtual BOOL AdvanceWalkerToArgsFrame(JavascriptStackWalker *walker) = 0;
     };
 
-    template <> inline bool VarIs<ArgumentsObject>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ArgumentsObject>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Arguments;
     }
@@ -123,7 +123,7 @@ namespace Js
         void SetFrameObject(ActivationObject * value)
         {
             AssertMsg(frameObject == nullptr, "Setting the frame object again?");
-            Assert(!value || VarIs<ActivationObject>(value));
+            Assert(!value || VarIsCorrectType(value));
             frameObject = value;
         }
 

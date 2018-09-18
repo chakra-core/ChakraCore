@@ -31,7 +31,7 @@ namespace Js
         JavascriptString* GetStringForHeapEnum() { return m_string; }
     };
 
-    template <> inline bool VarIs<JavascriptStringIterator>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptStringIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_StringIterator;
     }

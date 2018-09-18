@@ -648,7 +648,7 @@ namespace Js
         template<typename T, typename P>
         static BOOL TryTemplatedGetItem(RecyclableObject* arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(UnsafeVarTo<T>(arr), index, element, scriptContext, checkHasItem) :
+            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(static_cast<T*>(arr), index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -934,7 +934,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<JavascriptArray>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptArray>(RecyclableObject* obj)
     {
         return DynamicObject::IsAnyArray(obj);
     }
@@ -1014,7 +1014,7 @@ namespace Js
         static void PopWithNoDst(Var nativeArray);
     };
 
-    template <> inline bool VarIs<JavascriptNativeArray>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptNativeArray>(RecyclableObject* obj)
     {
         return JavascriptNativeArray::Is(JavascriptOperators::GetTypeId(obj));
     }
@@ -1123,7 +1123,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<JavascriptNativeIntArray>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptNativeIntArray>(RecyclableObject* obj)
     {
         return JavascriptNativeIntArray::Is(JavascriptOperators::GetTypeId(obj));
     }
@@ -1181,7 +1181,7 @@ namespace Js
 
     };
 
-    template <> inline bool VarIs<JavascriptCopyOnAccessNativeIntArray>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptCopyOnAccessNativeIntArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_CopyOnAccessNativeIntArray;
     }
@@ -1296,7 +1296,7 @@ namespace Js
 
     };
 
-    template <> inline bool VarIs<JavascriptNativeFloatArray>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptNativeFloatArray>(RecyclableObject* obj)
     {
         return JavascriptNativeFloatArray::Is(JavascriptOperators::GetTypeId(obj));
     }

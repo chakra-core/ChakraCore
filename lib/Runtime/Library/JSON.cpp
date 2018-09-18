@@ -125,7 +125,7 @@ namespace JSON
             Js::DynamicObject* remoteObject = Js::VarTo<Js::RecyclableObject>(value)->GetRemoteObject();
             if (remoteObject != nullptr)
             {
-                AssertOrFailFast(Js::VarIs<Js::DynamicObject>(remoteObject));
+                AssertOrFailFast(Js::VarIsCorrectType(remoteObject));
                 value = remoteObject;
             }
             else

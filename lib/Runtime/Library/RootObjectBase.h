@@ -69,7 +69,7 @@ namespace Js
         Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
 
-    template <> inline bool VarIs<RootObjectBase>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<RootObjectBase>(RecyclableObject* obj)
     {
         TypeId id = obj->GetTypeId();
         return id == TypeIds_GlobalObject || id == TypeIds_ModuleRoot;

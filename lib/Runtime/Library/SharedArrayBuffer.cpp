@@ -357,7 +357,7 @@ namespace Js
 
     SharedArrayBuffer * SharedArrayBuffer::GetAsSharedArrayBuffer()
     {
-        AssertOrFailFast(VarIs<SharedArrayBuffer>(this));
+        AssertOrFailFast(VarIsCorrectType(this));
         return this;
     }
 

@@ -584,7 +584,7 @@ using namespace Js;
     CompoundString * CompoundString::JitClone(CompoundString * cs)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_CompoundStringCloneForConcat);
-        Assert(VarIs<CompoundString>(cs));
+        Assert(VarIsCorrectType(cs));
         return cs->Clone(false);
         JIT_HELPER_END(Op_CompoundStringCloneForConcat);
     }
@@ -592,12 +592,12 @@ using namespace Js;
     CompoundString * CompoundString::JitCloneForAppending(CompoundString * cs)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_CompoundStringCloneForAppending);
-        Assert(VarIs<CompoundString>(cs));
+        Assert(VarIsCorrectType(cs));
         return cs->Clone(true);
         JIT_HELPER_END(Op_CompoundStringCloneForAppending);
     }
 
-    template <> bool Js::VarIs<CompoundString>(RecyclableObject * object)
+    template <> bool Js::VarIsImpl<CompoundString>(RecyclableObject * object)
     {
         bool result = VirtualTableInfo<CompoundString>::HasVirtualTable(object);
 #if DBG

@@ -29,7 +29,7 @@ namespace Js
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(Uint64Array)
     INSTANTIATE_BUILT_IN_ENTRYPOINTS(BoolArray)
 
-    template <> bool VarIs<Uint8ClampedArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint8ClampedArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint8ClampedArray &&
                ( VirtualTableInfo<Uint8ClampedArray>::HasVirtualTable(obj) ||
@@ -37,7 +37,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint8Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint8Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint8Array &&
               ( VirtualTableInfo<Uint8Array>::HasVirtualTable(obj) ||
@@ -45,7 +45,7 @@ namespace Js
               );
     }
 
-    template <> bool VarIs<Int8Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int8Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int8Array &&
                ( VirtualTableInfo<Int8Array>::HasVirtualTable(obj) ||
@@ -54,7 +54,7 @@ namespace Js
     }
 
 
-    template <> bool VarIs<Int16Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int16Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int16Array &&
                ( VirtualTableInfo<Int16Array>::HasVirtualTable(obj) ||
@@ -62,7 +62,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint16Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint16Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint16Array &&
               ( VirtualTableInfo<Uint16Array>::HasVirtualTable(obj) ||
@@ -70,7 +70,7 @@ namespace Js
               );
     }
 
-    template <> bool VarIs<Int32Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int32Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int32Array &&
                ( VirtualTableInfo<Int32Array>::HasVirtualTable(obj) ||
@@ -78,7 +78,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint32Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint32Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint32Array &&
                ( VirtualTableInfo<Uint32Array>::HasVirtualTable(obj) ||
@@ -86,7 +86,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Float32Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Float32Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Float32Array &&
                ( VirtualTableInfo<Float32Array>::HasVirtualTable(obj) ||
@@ -94,7 +94,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Float64Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Float64Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Float64Array &&
                ( VirtualTableInfo<Float64Array>::HasVirtualTable(obj) ||
@@ -102,7 +102,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Int64Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int64Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int64Array &&
                ( VirtualTableInfo<Int64Array>::HasVirtualTable(obj) ||
@@ -110,7 +110,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint64Array>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint64Array>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint64Array &&
                ( VirtualTableInfo<Uint64Array>::HasVirtualTable(obj) ||
@@ -118,7 +118,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<BoolArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<BoolArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_BoolArray &&
                ( VirtualTableInfo<BoolArray>::HasVirtualTable(obj) ||
@@ -126,7 +126,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint8ClampedVirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint8ClampedVirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint8ClampedArray &&
                ( VirtualTableInfo<Uint8ClampedVirtualArray>::HasVirtualTable(obj) ||
@@ -134,7 +134,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint8VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint8VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint8Array &&
                ( VirtualTableInfo<Uint8VirtualArray>::HasVirtualTable(obj) ||
@@ -143,7 +143,7 @@ namespace Js
     }
 
 
-    template <> bool VarIs<Int8VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int8VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int8Array &&
                ( VirtualTableInfo<Int8VirtualArray>::HasVirtualTable(obj) ||
@@ -151,7 +151,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Int16VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int16VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int16Array &&
                ( VirtualTableInfo<Int16VirtualArray>::HasVirtualTable(obj) ||
@@ -159,7 +159,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint16VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint16VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint16Array &&
                ( VirtualTableInfo<Uint16VirtualArray>::HasVirtualTable(obj) ||
@@ -167,7 +167,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Int32VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Int32VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Int32Array &&
                ( VirtualTableInfo<Int32VirtualArray>::HasVirtualTable(obj) ||
@@ -175,7 +175,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Uint32VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Uint32VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Uint32Array &&
                ( VirtualTableInfo<Uint32VirtualArray>::HasVirtualTable(obj) ||
@@ -183,7 +183,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Float32VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Float32VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Float32Array &&
                ( VirtualTableInfo<Float32VirtualArray>::HasVirtualTable(obj) ||
@@ -191,7 +191,7 @@ namespace Js
                );
     }
 
-    template <> bool VarIs<Float64VirtualArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<Float64VirtualArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Float64Array &&
                ( VirtualTableInfo<Float64VirtualArray>::HasVirtualTable(obj) ||
@@ -3316,7 +3316,7 @@ namespace Js
         return arr;
     }
 
-    template <> bool VarIs<CharArray>(RecyclableObject* obj)
+    template <> bool VarIsImpl<CharArray>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == Js::TypeIds_CharArray;
     }

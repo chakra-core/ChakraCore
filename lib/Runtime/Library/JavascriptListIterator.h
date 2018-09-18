@@ -30,7 +30,7 @@ namespace Js
 
     };
 
-    template <> inline bool VarIs<JavascriptListIterator>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptListIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_ListIterator;
     }

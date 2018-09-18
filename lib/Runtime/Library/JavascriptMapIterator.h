@@ -39,7 +39,7 @@ namespace Js
         JavascriptMap* GetMapForHeapEnum() { return m_map; }
     };
 
-    template <> inline bool VarIs<JavascriptMapIterator>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptMapIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_MapIterator;
     }

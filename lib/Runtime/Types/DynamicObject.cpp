@@ -154,7 +154,7 @@ namespace Js
         return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_Object);
     }
 
-    template <> bool VarIs<DynamicObject>(RecyclableObject* obj)
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj)
     {
         bool result = DynamicType::Is(obj->GetTypeId());
         Assert(result == obj->DbgIsDynamicObject());

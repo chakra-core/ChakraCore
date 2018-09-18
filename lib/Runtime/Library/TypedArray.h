@@ -214,7 +214,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<TypedArrayBase>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<TypedArrayBase>(RecyclableObject* obj)
     {
         return TypedArrayBase::Is(JavascriptOperators::GetTypeId(obj));
     }
@@ -583,7 +583,7 @@ namespace Js
         }
     };
 
-    template <> bool VarIs<CharArray>(RecyclableObject* obj);
+    template <> bool VarIsImpl<CharArray>(RecyclableObject* obj);
 
     template <typename TypeName, bool clamped, bool virtualAllocated>
     TypedArray<TypeName, clamped, virtualAllocated>::TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :

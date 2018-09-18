@@ -39,7 +39,7 @@ namespace Js
         Var GetIteratorObjectForHeapEnum() { return m_iterableObject; }
     };
 
-    template <> inline bool VarIs<JavascriptArrayIterator>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptArrayIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_ArrayIterator;
     }

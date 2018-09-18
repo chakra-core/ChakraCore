@@ -438,7 +438,7 @@ namespace Js
         }
     };
 
-    template <> bool VarIs<CompoundString>(RecyclableObject * object);
+    template <> bool VarIsImpl<CompoundString>(RecyclableObject * object);
 
     #pragma region CompoundString::Builder definition
     #ifndef CompoundStringJsDiag

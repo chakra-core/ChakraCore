@@ -41,7 +41,7 @@ namespace Js
         Field(Js::Var) m_exports;
     };
 
-    template <> inline bool VarIs<WebAssemblyInstance>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<WebAssemblyInstance>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyInstance;
     }

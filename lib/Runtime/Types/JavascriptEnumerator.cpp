@@ -11,7 +11,7 @@ namespace Js
         Assert(scriptContext != NULL);
     }
 
-    template <> bool VarIs<JavascriptEnumerator>(RecyclableObject* obj)
+    template <> bool VarIsImpl<JavascriptEnumerator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Enumerator;
     }

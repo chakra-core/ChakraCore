@@ -102,7 +102,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<ES5Array>(RecyclableObject* instance)
+    template <> inline bool VarIsImpl<ES5Array>(RecyclableObject* instance)
     {
         return JavascriptOperators::GetTypeId(instance) == TypeIds_ES5Array;
     }

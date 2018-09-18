@@ -96,7 +96,7 @@ using namespace Js;
         return functionInfo->HasBody();
     }
 
-    template <> bool Js::VarIs<JavascriptFunction>(RecyclableObject* obj)
+    template <> bool Js::VarIsImpl<JavascriptFunction>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Function;
     }

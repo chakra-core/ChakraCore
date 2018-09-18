@@ -6,7 +6,7 @@
 
 namespace Js
 {
-    template <> bool VarIs<ArrayBufferBase>(RecyclableObject* obj)
+    template <> bool VarIsImpl<ArrayBufferBase>(RecyclableObject* obj)
     {
         return VarIs<ArrayBuffer>(obj) || VarIs<SharedArrayBuffer>(obj);
     }
@@ -284,7 +284,7 @@ namespace Js
 
     ArrayBuffer * ArrayBuffer::GetAsArrayBuffer()
     {
-        AssertOrFailFast(VarIs<ArrayBuffer>(this));
+        AssertOrFailFast(VarIsCorrectType(this));
         return this;
     }
 

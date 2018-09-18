@@ -43,7 +43,7 @@ namespace Js
 
         TypedArrayBase *typedArrayBase = UnsafeVarTo<TypedArrayBase>(typedArray);
         ArrayBufferBase* arrayBuffer = typedArrayBase->GetArrayBuffer();
-        if (arrayBuffer == nullptr || !VarIs<ArrayBufferBase>(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
+        if (arrayBuffer == nullptr || !VarIsCorrectType(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }

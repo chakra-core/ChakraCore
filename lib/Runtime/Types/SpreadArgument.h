@@ -71,7 +71,7 @@ namespace Js
         virtual Var GetTypeOfString(ScriptContext * requestContext) override { AssertAndFailFast(); return RecyclableObject::GetTypeOfString(requestContext); };
     };
 
-    template <> inline bool VarIs<SpreadArgument>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<SpreadArgument>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_SpreadArgument;
     }

@@ -3384,7 +3384,7 @@ using namespace Js;
             bool spreadable = false;
             JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
 
-            if (!VarIs<JavascriptNativeIntArray>(pDestArray))
+            if (!VarIsCorrectType(pDestArray))
             {
                 JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest,
                                                 spreadable ? ConcatSpreadableState_CheckedAndTrue : ConcatSpreadableState_CheckedAndFalse));
@@ -3395,7 +3395,7 @@ using namespace Js;
             {
                 JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
                 idxDest++;
-                if (!VarIs<JavascriptNativeIntArray>(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (!VarIsCorrectType(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
                     JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
@@ -3468,7 +3468,7 @@ using namespace Js;
             bool spreadable = false;
             JS_REENTRANT(jsReentLock, spreadable = !!JavascriptOperators::IsConcatSpreadable(aItem));
 
-            if (!VarIs<JavascriptNativeFloatArray>(pDestArray))
+            if (!VarIsCorrectType(pDestArray))
             {
                 JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest,
                                             spreadable ? ConcatSpreadableState_CheckedAndTrue : ConcatSpreadableState_CheckedAndFalse));
@@ -3480,7 +3480,7 @@ using namespace Js;
                 JS_REENTRANT(jsReentLock, pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible));
 
                 idxDest = idxDest + 1;
-                if (!VarIs<JavascriptNativeFloatArray>(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (!VarIsCorrectType(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
                 {
                     JS_REENTRANT(jsReentLock, ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest, ConcatSpreadableState_NotChecked));
                     return pDestArray;
@@ -6527,7 +6527,7 @@ Case0:
         }
         else if (typedArrayBase)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
 
             // Source is a TypedArray, we must have created the return object via a call to constructor, but newObj may not be a TypedArray (or an array either)
             TypedArrayBase* newTypedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
@@ -8815,7 +8815,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (uint32 k = 0; k < end; k++)
@@ -8967,7 +8967,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (uint32 k = 0; k < end; k++)
@@ -9646,7 +9646,7 @@ Case0:
         }
         else if (typedArrayBase != nullptr)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
 
             // Source is a TypedArray, we may have tried to call a constructor, but newObj may not be a TypedArray (or an array either)
             TypedArrayBase* newTypedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(newObj);
@@ -9966,7 +9966,7 @@ Case0:
 
             if (typedArrayBase)
             {
-                AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+                AssertAndFailFast(VarIsCorrectType(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
                 for (; k < end && bPresent == false; k++)
@@ -10006,7 +10006,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (; k < end; k++)
@@ -10146,7 +10146,7 @@ Case0:
             bool bPresent = false;
             if (typedArrayBase)
             {
-                AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+                AssertAndFailFast(VarIsCorrectType(typedArrayBase));
                 uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
                 for (; k < end && bPresent == false; k++)
@@ -10184,7 +10184,7 @@ Case0:
 
         if (typedArrayBase)
         {
-            AssertAndFailFast(VarIs<TypedArrayBase>(typedArrayBase));
+            AssertAndFailFast(VarIsCorrectType(typedArrayBase));
             uint32 end = (uint32)min(length, (T)typedArrayBase->GetLength());
 
             for (; k < end; k++)

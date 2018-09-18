@@ -39,5 +39,5 @@ namespace Js {
         virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) = 0;
     };
 
-    template <> bool VarIs<JavascriptEnumerator>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptEnumerator>(RecyclableObject* obj);
 }

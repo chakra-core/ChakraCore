@@ -40,7 +40,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseAsyncSpawnExecutorFunction : public RuntimeFunction
     {
@@ -67,7 +67,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction : public RuntimeFunction
     {
@@ -100,7 +100,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapabilitiesExecutorFunction : public RuntimeFunction
     {
@@ -125,7 +125,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseCapabilitiesExecutorFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseCapabilitiesExecutorFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseResolveThenableTaskFunction : public RuntimeFunction
     {
@@ -157,7 +157,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseResolveThenableTaskFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseResolveThenableTaskFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseReactionTaskFunction : public RuntimeFunction
     {
@@ -186,7 +186,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseReactionTaskFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseReactionTaskFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseThenFinallyFunction : public RuntimeFunction
     {
@@ -209,7 +209,7 @@ namespace Js
         Field(bool) shouldThrow;
     };
 
-    template <> bool VarIs<JavascriptPromiseThenFinallyFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseThenFinallyFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseThunkFinallyFunction : public RuntimeFunction
     {
@@ -230,7 +230,7 @@ namespace Js
         Field(bool) shouldThrow;
     };
 
-    template <> bool VarIs<JavascriptPromiseThunkFinallyFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseThunkFinallyFunction>(RecyclableObject* obj);
 
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
     {
@@ -272,7 +272,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapability : FinalizableObject
     {
@@ -501,7 +501,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptPromise>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptPromise>(RecyclableObject* obj)
     {
         return Js::JavascriptOperators::GetTypeId(obj) == TypeIds_Promise;
     }

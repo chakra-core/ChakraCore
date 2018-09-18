@@ -112,6 +112,6 @@ public:
 
 }; // class LazyJSONString
 
-template <> bool VarIs<LazyJSONString>(RecyclableObject* obj);
+template <> bool VarIsImpl<LazyJSONString>(RecyclableObject* obj);
 
 } // namespace Js

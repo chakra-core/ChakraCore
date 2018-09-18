@@ -152,7 +152,7 @@ namespace Js
         }
     }
 
-    template <> bool VarIs<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
+    template <> bool VarIsImpl<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
     {
         return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
     }
@@ -531,7 +531,7 @@ namespace Js
             scriptContext->GetLibrary()->GetStringTypeStatic());
     }
 
-    template <> bool VarIs<ConcatStringMulti>(RecyclableObject* obj)
+    template <> bool VarIsImpl<ConcatStringMulti>(RecyclableObject* obj)
     {
         return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(obj);
     }

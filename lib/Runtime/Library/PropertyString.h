@@ -70,6 +70,6 @@ public:
     }
 };
 
-template <> bool VarIs<PropertyString>(RecyclableObject * obj);
+template <> bool VarIsImpl<PropertyString>(RecyclableObject * obj);
 
 } // namespace Js

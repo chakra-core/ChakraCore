@@ -52,7 +52,7 @@ namespace Js
         virtual RecyclableObject* ToObject(ScriptContext* requestContext) override;
     };
 
-    template <> inline bool VarIs<JavascriptVariantDate>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptVariantDate>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_VariantDate;
     }

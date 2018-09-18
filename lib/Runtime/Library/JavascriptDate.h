@@ -155,7 +155,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptDate>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptDate>(RecyclableObject* obj)
     {
         // All WinRT Date's are also implicitly Javascript dates
         return IsDateTypeId(JavascriptOperators::GetTypeId(obj));

@@ -219,7 +219,7 @@ namespace Js
         return IsValidCharCount(idx) && idx < GetLength();
     }
 
-    template <> bool VarIs<JavascriptString>(RecyclableObject* obj)
+    template <> bool VarIsImpl<JavascriptString>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_String;
     }

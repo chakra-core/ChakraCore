@@ -111,7 +111,7 @@ namespace Js
         static CriticalSection csSharedArrayBuffer;
     };
 
-    template <> inline bool VarIs<SharedArrayBuffer>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<SharedArrayBuffer>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_SharedArrayBuffer;
     }
@@ -159,7 +159,7 @@ namespace Js
         void ValidateBuffer();
     };
 
-    template <> inline bool VarIs<WebAssemblySharedArrayBuffer>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<WebAssemblySharedArrayBuffer>(RecyclableObject* obj)
     {
         return VarIs<SharedArrayBuffer>(obj) && UnsafeVarTo<SharedArrayBuffer>(obj)->IsWebAssemblyArrayBuffer();
     }

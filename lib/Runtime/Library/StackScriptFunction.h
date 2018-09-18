@@ -97,7 +97,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<StackScriptFunction>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<StackScriptFunction>(RecyclableObject* obj)
     {
         bool result = VarIs<ScriptFunction>(obj);
         if (result)

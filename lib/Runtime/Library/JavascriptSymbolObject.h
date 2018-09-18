@@ -42,7 +42,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptSymbolObject>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptSymbolObject>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_SymbolObject;
     }

@@ -109,7 +109,7 @@ namespace Js
 #include "EngineInterfaceObjectBuiltIns.h"
     };
 
-    template <> inline bool VarIs<EngineInterfaceObject>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<EngineInterfaceObject>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_EngineInterfaceObject;
     }

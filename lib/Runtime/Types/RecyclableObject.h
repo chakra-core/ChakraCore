@@ -465,11 +465,25 @@ namespace Js {
 #endif
     };
 
+    // DO specialize this method; DON'T call it directly (use VarIs instead)
     // Return whether the given RecyclableObject is of the template parameter's type.
     // Generally, subclasses of RecyclableObject should only need to provide
-    // a specialization for VarIs(RecyclableObject*), and the other conversion
+    // a specialization for VarIsImpl(RecyclableObject*), and the other conversion
     // functions should take care of themselves.
-    template <typename T> bool VarIs(RecyclableObject* obj);
+    template <typename T> bool VarIsImpl(RecyclableObject* obj);
+
+    template <> inline bool VarIsImpl<RecyclableObject>(RecyclableObject* obj) { return true; }
+
+    // Return whether the given Var is of the template parameter's type.
+    template <typename T, typename U> bool VarIs(U* obj)
+    {
+        // ChakraFull can't include type_traits, but ChakraCore does include it for debug builds
+#if DBG && !defined(NTBUILD)
+        static_assert(!std::is_same<T, U>::value, "Check should be unnecessary - did you prematurely cast?");
+        static_assert(std::is_base_of<U, T>::value, "VarIs/VarTo should only downcast!");
+#endif
+        return VarIsImpl<T>(obj);
+    }
 
     // Return whether the given Var is of the template parameter's type.
     template <typename T> bool VarIs(Var aValue)
@@ -482,36 +496,41 @@ namespace Js {
         bool isRecyclableObject = (((uintptr_t)aValue) & AtomTag) == AtomTag_Object;
 #endif
 
-        return isRecyclableObject && VarIs<T>(reinterpret_cast<RecyclableObject*>(aValue));
+        return isRecyclableObject && VarIsImpl<T>(reinterpret_cast<RecyclableObject*>(aValue));
     }
 
-    template <> inline bool VarIs<RecyclableObject>(RecyclableObject* obj) { return true; }
+    // Validate that the object is actually the type that the type system thinks it is.
+    // This should only be used for extremely defensive assertions; if you find code
+    // relying on this behavior for correctness, then it's cause for concern.
+    template <typename T> bool VarIsCorrectType(T* obj)
+    {
+        return VarIsImpl<T>(obj);
+    }
 
     CompileAssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
 
+    // Cast the input parameter to another type, or crash if the cast is invalid.
     template <typename T, typename U> T* VarTo(U* obj)
     {
-        // ChakraFull can't include type_traits, but ChakraCore does include it for debug builds
-#if DBG && !defined(NTBUILD)
-        static_assert(!std::is_same<T, U>::value, "Check should be unnecessary - did you prematurely cast?");
-        static_assert(std::is_base_of<U, T>::value, "VarTo should only downcast!");
-#endif
         AssertOrFailFast(VarIs<T>(obj));
         return static_cast<T*>(obj);
     }
 
+    // Cast the input parameter to another type, or crash if the cast is invalid.
     template <typename T> T* VarTo(Var aValue)
     {
         AssertOrFailFast(VarIs<T>(aValue));
         return reinterpret_cast<T*>(aValue);
     }
 
+    // Cast the input parameter to another type. In debug builds only, assert that the cast is valid.
     template <typename T> T* UnsafeVarTo(RecyclableObject* obj)
     {
         Assert(VarIs<T>(obj));
         return static_cast<T*>(obj);
     }
 
+    // Cast the input parameter to another type. In debug builds only, assert that the cast is valid.
     template <typename T> T* UnsafeVarTo(Var aValue)
     {
         Assert(VarIs<T>(aValue));
@@ -523,7 +542,7 @@ namespace Js {
     // unit includes this base implementation but not the specialization.
     template <typename T> bool LegacyVarIs(RecyclableObject* obj)
     {
-        return VarIs<T>(obj);
+        return VarIsImpl<T>(obj);
     }
     template <typename T> bool LegacyVarIs(Var aValue)
     {

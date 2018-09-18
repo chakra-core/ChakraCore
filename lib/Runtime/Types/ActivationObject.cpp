@@ -8,7 +8,7 @@
 
 namespace Js
 {
-    template <> bool VarIs<ActivationObject>(RecyclableObject* instance)
+    template <> bool VarIsImpl<ActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<Js::ActivationObject>::HasVirtualTable(instance) ||
             VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance) ||
@@ -170,7 +170,7 @@ namespace Js
     }
 #endif
 
-    template <> bool VarIs<BlockActivationObject>(RecyclableObject* instance)
+    template <> bool VarIsImpl<BlockActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance);
     }
@@ -209,7 +209,7 @@ namespace Js
     }
 #endif
 
-    template <> bool VarIs<PseudoActivationObject>(RecyclableObject* instance)
+    template <> bool VarIsImpl<PseudoActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
     }
@@ -227,7 +227,7 @@ namespace Js
 
 #endif
 
-    template <> bool VarIs<ConsoleScopeActivationObject>(RecyclableObject* instance)
+    template <> bool VarIsImpl<ConsoleScopeActivationObject>(RecyclableObject* instance)
     {
         return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
             || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
@@ -326,7 +326,7 @@ namespace Js
     }
 #endif
 
-    template <> bool VarIs<ActivationObjectEx>(RecyclableObject* instance)
+    template <> bool VarIsImpl<ActivationObjectEx>(RecyclableObject* instance)
     {
         return VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
             VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance);

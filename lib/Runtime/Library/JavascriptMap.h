@@ -115,7 +115,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptMap>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptMap>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Map;
     }

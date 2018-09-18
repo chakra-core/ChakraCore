@@ -63,7 +63,7 @@ namespace Js
         Field(Field(Var)*)         boundArgs;
     };
 
-    template <> inline bool VarIs<BoundFunction>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<BoundFunction>(RecyclableObject* obj)
     {
         return VarIs<JavascriptFunction>(obj) && UnsafeVarTo<JavascriptFunction>(obj)->IsBoundFunction();
     }

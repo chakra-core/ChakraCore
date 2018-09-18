@@ -96,5 +96,5 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<JavascriptGenerator>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptGenerator>(RecyclableObject* obj);
 }

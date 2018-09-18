@@ -108,6 +108,6 @@ namespace Js
         static Var EntryNext(RecyclableObject* function, CallInfo callInfo, ...);
     };
 
-    template <> bool VarIs<CustomExternalIterator>(RecyclableObject* obj);
+    template <> bool VarIsImpl<CustomExternalIterator>(RecyclableObject* obj);
 
 }

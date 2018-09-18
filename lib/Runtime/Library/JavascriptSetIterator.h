@@ -38,7 +38,7 @@ namespace Js
         JavascriptSet* GetSetForHeapEnum() { return m_set; }
     };
 
-    template <> inline bool VarIs<JavascriptSetIterator>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptSetIterator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_SetIterator;
     }

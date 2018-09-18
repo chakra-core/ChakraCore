@@ -37,7 +37,8 @@ using namespace Js;
 
     bool JavascriptConversion::IsCallable(_In_ RecyclableObject* aValue)
     {
-        JavascriptMethod entryPoint = UnsafeVarTo<RecyclableObject>(aValue)->GetEntryPoint();
+        Assert(VarIsCorrectType(aValue));
+        JavascriptMethod entryPoint = aValue->GetEntryPoint();
         return RecyclableObject::DefaultEntryPoint != entryPoint;
     }
 

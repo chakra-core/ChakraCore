@@ -230,7 +230,7 @@ namespace Js
             static int CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
     };
 
-    template <> bool VarIs<JavascriptFunction>(RecyclableObject* obj);
+    template <> bool VarIsImpl<JavascriptFunction>(RecyclableObject* obj);
 
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     class ArrayAccessDecoder

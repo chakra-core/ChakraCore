@@ -57,7 +57,7 @@ namespace Js
         static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName);
     };
 
-    template <> inline bool VarIs<JavascriptBoolean>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptBoolean>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Boolean;
     }

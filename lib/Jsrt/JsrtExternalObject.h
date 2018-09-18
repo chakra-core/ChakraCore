@@ -72,7 +72,7 @@ public:
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalObject, &Js::RecyclableObject::DumpObjectFunction);
 
-template <> inline bool Js::VarIs<JsrtExternalObject>(Js::RecyclableObject* obj)
+template <> inline bool Js::VarIsImpl<JsrtExternalObject>(Js::RecyclableObject* obj)
 {
     return (VirtualTableInfo<JsrtExternalObject>::HasVirtualTable(obj)) ||
         (VirtualTableInfo<Js::CrossSiteObject<JsrtExternalObject>>::HasVirtualTable(obj));

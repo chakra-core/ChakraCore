@@ -205,7 +205,7 @@ LazyJSONString::GetSz()
     return target;
 }
 
-template <> bool VarIs<LazyJSONString>(RecyclableObject* obj)
+template <> bool VarIsImpl<LazyJSONString>(RecyclableObject* obj)
 {
     return VirtualTableInfo<LazyJSONString>::HasVirtualTable(obj);
 }

@@ -236,7 +236,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<JavascriptProxy>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptProxy>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Proxy;
     }

@@ -203,7 +203,7 @@ namespace Js
 
     };
 
-    template <> inline bool VarIs<DataView>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<DataView>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_DataView;
     }

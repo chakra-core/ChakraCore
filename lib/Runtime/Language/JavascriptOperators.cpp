@@ -1064,7 +1064,7 @@ CommonNumber:
     JavascriptArray* JavascriptOperators::GetOwnPropertyNames(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = ToObject(instance, scriptContext);
-        AssertOrFailFast(VarIs<RecyclableObject>(object));
+        AssertOrFailFast(VarIsCorrectType(object));
         JavascriptProxy * proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
@@ -1077,7 +1077,7 @@ CommonNumber:
     JavascriptArray* JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = ToObject(instance, scriptContext);
-        AssertOrFailFast(VarIs<RecyclableObject>(object));
+        AssertOrFailFast(VarIsCorrectType(object));
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertySymbols);
 
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
@@ -1092,7 +1092,7 @@ CommonNumber:
     JavascriptArray* JavascriptOperators::GetOwnPropertyKeys(Var instance, ScriptContext* scriptContext)
     {
         RecyclableObject *object = ToObject(instance, scriptContext);
-        AssertOrFailFast(VarIs<RecyclableObject>(object));
+        AssertOrFailFast(VarIsCorrectType(object));
 
         JavascriptProxy* proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
@@ -7881,7 +7881,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #endif
         value = nullptr;
         BEGIN_TYPEOF_ERROR_HANDLER(scriptContext);
-        AssertOrFailFast(VarIs<RecyclableObject>(object));
+        AssertOrFailFast(VarIsCorrectType(static_cast<RecyclableObject*>(object)));
         if (JavascriptOperators::GetRootProperty(object, propertyId, &value, scriptContext, &info))
         {
             if (scriptContext->IsUndeclBlockVar(value))
@@ -9743,7 +9743,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         RecyclableObject *superBase = thisObjPrototype->GetPrototype();
 
-        if (superBase == nullptr || !VarIs<RecyclableObject>(superBase))
+        if (superBase == nullptr || !VarIsCorrectType(superBase))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }

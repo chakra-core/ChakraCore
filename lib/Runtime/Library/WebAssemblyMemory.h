@@ -60,7 +60,7 @@ namespace Js
 #endif
     };
 
-    template <> inline bool VarIs<WebAssemblyMemory>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<WebAssemblyMemory>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_WebAssemblyMemory;
     }

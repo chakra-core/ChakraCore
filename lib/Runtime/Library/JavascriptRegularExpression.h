@@ -219,7 +219,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<JavascriptRegExp>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<JavascriptRegExp>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_RegEx;
     }

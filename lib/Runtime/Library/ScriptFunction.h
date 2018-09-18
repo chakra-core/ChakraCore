@@ -22,7 +22,7 @@ namespace Js
         virtual bool IsAnonymousFunction() const = 0;
     };
 
-    template <> bool VarIs<ScriptFunctionBase>(RecyclableObject* obj);
+    template <> bool VarIsImpl<ScriptFunctionBase>(RecyclableObject* obj);
 
     template <class BaseClass>
     class FunctionWithComputedName : public BaseClass
@@ -152,7 +152,7 @@ namespace Js
         }
     };
 
-    template <> inline bool VarIs<ScriptFunction>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ScriptFunction>(RecyclableObject* obj)
     {
         return VarIs<JavascriptFunction>(obj) && UnsafeVarTo<JavascriptFunction>(obj)->IsScriptFunction();
     }
@@ -182,7 +182,7 @@ namespace Js
         Field(Field(Var)*) m_moduleEnvironment;
     };
 
-    template <> inline bool VarIs<AsmJsScriptFunction>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<AsmJsScriptFunction>(RecyclableObject* obj)
     {
         return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->IsAsmJsFunction();
     }
@@ -209,7 +209,7 @@ namespace Js
         Field(Wasm::WasmSignature *) m_signature;
     };
 
-    template <> inline bool VarIs<WasmScriptFunction>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<WasmScriptFunction>(RecyclableObject* obj)
     {
         return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->IsWasmFunction();
     }
@@ -217,7 +217,7 @@ namespace Js
     class WasmScriptFunction
     {
     };
-    template <> inline bool VarIs<WasmScriptFunction>(RecyclableObject* obj) { return false; }
+    template <> inline bool VarIsImpl<WasmScriptFunction>(RecyclableObject* obj) { return false; }
 #endif
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
@@ -257,7 +257,7 @@ namespace Js
         virtual void Finalize(bool isShutdown) override;
     };
 
-    template <> inline bool VarIs<ScriptFunctionWithInlineCache>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ScriptFunctionWithInlineCache>(RecyclableObject* obj)
     {
         return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->GetHasInlineCaches();
     }

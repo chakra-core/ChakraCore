@@ -41,7 +41,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<ActivationObject>(RecyclableObject* instance);
+    template <> bool VarIsImpl<ActivationObject>(RecyclableObject* instance);
 
     // A block-ActivationObject is a scope for an ES6 block that should only receive block-scoped inits,
     // including function, let, and const.
@@ -67,7 +67,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<BlockActivationObject>(RecyclableObject* instance);
+    template <> bool VarIsImpl<BlockActivationObject>(RecyclableObject* instance);
 
     // A pseudo-ActivationObject is a scope like a "catch" scope that shouldn't receive var inits.
     class PseudoActivationObject : public ActivationObject
@@ -90,7 +90,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<PseudoActivationObject>(RecyclableObject* instance);
+    template <> bool VarIsImpl<PseudoActivationObject>(RecyclableObject* instance);
 
     class ConsoleScopeActivationObject : public ActivationObject
     {
@@ -113,7 +113,7 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<ConsoleScopeActivationObject>(RecyclableObject* instance);
+    template <> bool VarIsImpl<ConsoleScopeActivationObject>(RecyclableObject* instance);
 
     class ActivationObjectEx : public ActivationObject
     {
@@ -211,5 +211,5 @@ namespace Js
 #endif
     };
 
-    template <> bool VarIs<ActivationObjectEx>(RecyclableObject* instance);
+    template <> bool VarIsImpl<ActivationObjectEx>(RecyclableObject* instance);
 };

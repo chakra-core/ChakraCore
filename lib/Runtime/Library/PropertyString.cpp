@@ -35,7 +35,7 @@ namespace Js
         return &this->propertyRecordUsageCache;
     }
 
-    template <> bool VarIs<PropertyString>(RecyclableObject * obj)
+    template <> bool VarIsImpl<PropertyString>(RecyclableObject * obj)
     {
         return VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj);
     }

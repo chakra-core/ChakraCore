@@ -41,7 +41,7 @@ namespace Js
         return obj;
     }
 
-    template <> bool VarIs<JavascriptGenerator>(RecyclableObject* obj)
+    template <> bool VarIsImpl<JavascriptGenerator>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Generator;
     }

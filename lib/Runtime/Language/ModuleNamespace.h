@@ -97,7 +97,7 @@ namespace Js
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const;
     };
 
-    template <> inline bool VarIs<ModuleNamespace>(RecyclableObject* obj)
+    template <> inline bool VarIsImpl<ModuleNamespace>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace;
     }
