@@ -606,6 +606,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
 #else
         library->AddMember(intlNativeInterfaces, Js::PropertyIds::winglob, library->GetFalse());
 
+#if defined(NTBUILD)
         // when using ICU, we can call ulocdata_getCLDRVersion to ensure that ICU is functioning properly before allowing Intl to continue.
         // ulocdata_getCLDRVersion will cause the data file to be loaded, and if we don't have enough memory to do so, we can throw OutOfMemory here.
         // This is to protect against spurious U_MISSING_RESOURCE_ERRORs and U_FILE_ACCESS_ERRORs coming from early-lifecycle
@@ -628,6 +629,7 @@ PROJECTED_ENUMS(PROJECTED_ENUM)
         }
 
         AssertOrFailFastMsg(U_SUCCESS(status), "ulocdata_getCLDRVersion returned non-OOM failure");
+#endif // defined(NTBUILD)
 #endif // else !INTL_WINGLOB
 
         intlNativeInterfaces->SetHasNoEnumerableProperties(true);
