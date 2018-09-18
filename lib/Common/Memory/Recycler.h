@@ -2050,8 +2050,9 @@ private:
         ObjectBeforeCollectCallbackData(void* object, ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
             object(object), callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
-    typedef SList<ObjectBeforeCollectCallbackData, HeapAllocator> ObjectBeforeCollectCallbackList;
+    typedef SList<ObjectBeforeCollectCallbackData> ObjectBeforeCollectCallbackList;
     ObjectBeforeCollectCallbackList* objectBeforeCollectCallbackList;
+    ArenaAllocator objectBeforeCollectCallbackArena;
 
     enum ObjectBeforeCollectCallbackState
     {

@@ -248,6 +248,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
     , objectBeforeCollectCallbackList(nullptr)
     , objectBeforeCollectCallbackState(ObjectBeforeCollectCallback_None)
+    , objectBeforeCollectCallbackArena(_u("BeforeCollect-List"), pageAllocator, Js::Throw::OutOfMemory)
 #if GLOBAL_ENABLE_WRITE_BARRIER
     , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
 #endif
@@ -8901,7 +8902,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
     if (objectBeforeCollectCallbackList == nullptr)
     {
         if (callback == nullptr) return;
-        objectBeforeCollectCallbackList = HeapNew(ObjectBeforeCollectCallbackList, &HeapAllocator::Instance);
+        objectBeforeCollectCallbackList = HeapNew(ObjectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
     }
 
     // only allow 1 callback per object
@@ -8928,8 +8929,8 @@ bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
 
     // The callbacks may register/unregister callbacks while we are enumerating the current map. To avoid
     // conflicting usage of the callback map, we swap it out. New registration will go to a new map.
-    AutoAllocatorObjectPtr<ObjectBeforeCollectCallbackList, HeapAllocator> oldCallbackList(
-        this->objectBeforeCollectCallbackList, &HeapAllocator::Instance);
+    AutoAllocatorObjectPtr<ObjectBeforeCollectCallbackList, ArenaAllocator> oldCallbackList(
+        this->objectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
     this->objectBeforeCollectCallbackList = nullptr;
 
     bool hasRemainingCallbacks = false;
