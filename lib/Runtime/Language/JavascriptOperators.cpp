@@ -8643,7 +8643,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             {
                 JavascriptOperators::InitProperty(object, PropertyIds::value, descriptor.GetValue());
             }
-            JavascriptOperators::InitProperty(object, PropertyIds::writable, JavascriptBoolean::ToVar(descriptor.IsWritable(),scriptContext));
+            if (descriptor.WritableSpecified())
+            {
+                JavascriptOperators::InitProperty(object, PropertyIds::writable, JavascriptBoolean::ToVar(descriptor.IsWritable(), scriptContext));
+            }
         }
         else if (descriptor.IsAccessorDescriptor())
         {
