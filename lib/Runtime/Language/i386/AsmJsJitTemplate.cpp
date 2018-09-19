@@ -551,7 +551,7 @@ namespace Js
         JavascriptArrayBuffer* arrayBuffer = asmJsFunc->GetAsmJsArrayBuffer();
         int arraySize = 0;
         BYTE* arrayPtr = nullptr;
-        if (VarIs<ArrayBuffer>(arrayBuffer))
+        if (VarIsCorrectType<ArrayBuffer>(arrayBuffer))
         {
             arrayPtr = arrayBuffer->GetBuffer();
             arraySize = arrayBuffer->GetByteLength();
