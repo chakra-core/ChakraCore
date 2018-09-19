@@ -223,7 +223,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
         prototypeObject = Js::RecyclableObject::FromVar(prototype);
     }
 
-    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, nullptr, prototypeObject, ctx);
+    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, nullptr, prototypeObject, ctx, nullptr);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1326,7 +1326,7 @@ CHAKRA_API JsCreateTracedExternalObjectWithPrototypeAndSlots(
         {
             return JsErrorInvalidArgument;
         }
-        *object = JsrtExternalObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, prototypeObject, scriptContext);
+        *object = JsrtExternalObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, prototypeObject, scriptContext, nullptr);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
@@ -2999,7 +2999,8 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
                 externalType->GetJsTraceCallback(),
                 externalType->GetJsFinalizeCallback(),
                 externalSource->GetPrototype(),
-                scriptContext);
+                scriptContext,
+                externalType);
             bool success = target->TryCopy(externalSource, true);
             AssertOrFailFast(success);
             *newObject = target;
@@ -3822,6 +3823,7 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
         }
         bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
+        bool isStrictMode = (parseAttributes & JsParseScriptAttributeStrictMode) == JsParseScriptAttributeStrictMode;
         if (isLibraryCode)
         {
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_LibraryCode);
@@ -3829,6 +3831,10 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
         if (isSourceModule)
         {
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Module);
+        }
+        if (isStrictMode)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_StrictMode);
         }
 
 #if ENABLE_TTD

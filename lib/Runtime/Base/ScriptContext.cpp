@@ -2022,6 +2022,11 @@ namespace Js
             }
         }
 
+        if ((loadScriptFlag & LoadScriptFlag_StrictMode) == LoadScriptFlag_StrictMode)
+        {
+            grfscr |= fscrUseStrictMode;
+        }
+
         if ((loadScriptFlag & LoadScriptFlag_disableAsmJs) == LoadScriptFlag_disableAsmJs)
         {
             grfscr |= fscrNoAsmJs;

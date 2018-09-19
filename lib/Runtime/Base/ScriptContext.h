@@ -124,7 +124,8 @@ enum LoadScriptFlag
     LoadScriptFlag_Utf8Source = 0x40,                   // input buffer is utf8 encoded.
     LoadScriptFlag_LibraryCode = 0x80,                  // for debugger, indicating 'not my code'
     LoadScriptFlag_ExternalArrayBuffer = 0x100,         // for ExternalArrayBuffer
-    LoadScriptFlag_CreateParserState = 0x200            // create the parser state cache while parsing.
+    LoadScriptFlag_CreateParserState = 0x200,           // create the parser state cache while parsing.
+    LoadScriptFlag_StrictMode = 0x400                   // parse using strict mode semantics
 };
 
 #ifdef INLINE_CACHE_STATS

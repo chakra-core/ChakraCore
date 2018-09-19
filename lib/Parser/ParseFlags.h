@@ -51,5 +51,6 @@ enum
     fscrIsModuleCode = 1 << 26, // Current code should be parsed as a module body
 
     fscrDeferredFncIsMethod = 1 << 27,
-    fscrAll = (1 << 28) - 1
+    fscrUseStrictMode = 1 << 28,
+    fscrAll = (1 << 29) - 1
 };

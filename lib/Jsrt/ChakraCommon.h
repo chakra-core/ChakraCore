@@ -562,6 +562,10 @@ typedef unsigned short uint16_t;
         ///     This one needs to be set for Utf16
         /// </summary>
         JsParseScriptAttributeArrayBufferIsUtf16Encoded = 0x2,
+        /// <summary>
+        ///     Script should be parsed in strict mode
+        /// </summary>
+        JsParseScriptAttributeStrictMode = 0x4,
     } JsParseScriptAttributes;
 
     /// <summary>

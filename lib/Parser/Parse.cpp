@@ -370,6 +370,11 @@ HRESULT Parser::ParseSourceInternal(
             this->m_fUseStrictMode = TRUE;
         }
 
+        if ((grfscr & fscrUseStrictMode) != 0)
+        {
+            this->m_fUseStrictMode = TRUE;
+        }
+
         // parse the source
         pnodeBase = Parse(pszSrc, offsetInBytes, encodedCharCount, offsetInChars, isUtf8, grfscr, lineNumber, nextFunctionId, pse);
 

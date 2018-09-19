@@ -42,35 +42,38 @@ JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data, uint
 }
 
 /* static */
-JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
+JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext, JsrtExternalType * type)
 {
     if (prototype == nullptr)
     {
         prototype = scriptContext->GetLibrary()->GetObjectPrototype();
     }
-    Js::DynamicType * dynamicType = scriptContext->GetLibrary()->GetCachedJsrtExternalType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(prototype));
-
-    if (dynamicType == nullptr)
+    if (type == nullptr)
     {
-        dynamicType = RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, traceCallback, finalizeCallback, prototype);
-        scriptContext->GetLibrary()->CacheJsrtExternalType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(prototype), dynamicType);
+        type = scriptContext->GetLibrary()->GetCachedJsrtExternalType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(prototype));
+
+        if (type == nullptr)
+        {
+            type = RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, traceCallback, finalizeCallback, prototype);
+            scriptContext->GetLibrary()->CacheJsrtExternalType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(prototype), type);
+        }
     }
 
-    Assert(dynamicType->IsJsrtExternal());
-    Assert(dynamicType->GetIsShared());
+    Assert(type->IsJsrtExternal());
+    Assert(type->GetIsShared());
 
     JsrtExternalObject * externalObject;
     if (traceCallback != nullptr)
     {
-        externalObject = RecyclerNewTrackedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
+        externalObject = RecyclerNewTrackedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(type), data, inlineSlotSize);
     }
     else if (finalizeCallback != nullptr) 
     {
-        externalObject = RecyclerNewFinalizedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
+        externalObject = RecyclerNewFinalizedPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(type), data, inlineSlotSize);
     }
     else
     {
-        externalObject = RecyclerNewPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data, inlineSlotSize);
+        externalObject = RecyclerNewPlus(scriptContext->GetRecycler(), inlineSlotSize, JsrtExternalObject, static_cast<JsrtExternalType*>(type), data, inlineSlotSize);
     }
 
     return externalObject;
