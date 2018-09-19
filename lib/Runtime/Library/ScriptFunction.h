@@ -214,7 +214,7 @@ namespace Js
         return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->IsWasmFunction();
     }
 #else
-    class WasmScriptFunction
+    class WasmScriptFunction : public AsmJsScriptFunction
     {
     };
     template <> inline bool VarIsImpl<WasmScriptFunction>(RecyclableObject* obj) { return false; }
