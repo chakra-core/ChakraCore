@@ -35,7 +35,7 @@ namespace Js
     HeapArgumentsObject::HeapArgumentsObject(Recycler *recycler, ActivationObject* obj, uint32 formalCount, DynamicType * type)
         : ArgumentsObject(type), frameObject(obj), formalCount(formalCount), numOfArguments(0), callerDeleted(false), deletedArgs(nullptr)
     {
-        Assert(!frameObject || VarIsCorrectType(frameObject));
+        Assert(!frameObject || VarIsCorrectType<ActivationObject>(frameObject));
     }
 
     void HeapArgumentsObject::SetNumberOfArguments(uint32 len)
