@@ -148,6 +148,9 @@ namespace Js
         // Return whether the type is exactly DynamicObject, not some subclass (for more inclusive check use VarIs)
         static bool IsBaseDynamicObject(Var aValue);
 
+        // Returns the object if it is exactly DynamicObject, not some subclass. Otherwise returns null.
+        static DynamicObject* TryVarToBaseDynamicObject(Var aValue);
+
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
         void ReplaceType(DynamicType * type);

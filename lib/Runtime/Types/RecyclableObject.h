@@ -557,6 +557,5 @@ namespace Js {
         return isRecyclableObject && LegacyVarIs<T>(reinterpret_cast<RecyclableObject*>(aValue));
     }
 
-    template <> bool LegacyVarIs<DynamicObject>(RecyclableObject* obj);
     template <> bool LegacyVarIs<JavascriptArray>(RecyclableObject* obj);
 }

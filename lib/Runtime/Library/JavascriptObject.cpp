@@ -1631,8 +1631,8 @@ void JavascriptObject::CopyDataPropertiesHelper(Var source, RecyclableObject* to
             bool copied = false;
             if (tryCopy)
             {
-                DynamicObject* fromObj = JavascriptOperators::TryFromVar<DynamicObject>(from);
-                DynamicObject* toObj = JavascriptOperators::TryFromVar<DynamicObject>(to);
+                DynamicObject* fromObj = DynamicObject::TryVarToBaseDynamicObject(from);
+                DynamicObject* toObj = DynamicObject::TryVarToBaseDynamicObject(to);
                 if (toObj && fromObj && toObj->GetType() == scriptContext->GetLibrary()->GetObjectType())
                 {
                     copied = toObj->TryCopy(fromObj);
@@ -2206,7 +2206,7 @@ void JavascriptObject::Restify(Var source, Var to, void* excludedStatic, void* e
         PropertyId id = propIdsStatic->elements[i];
         excluded.Set(id);
     }
-    // If these two are equal, this means there were no computed properties 
+    // If these two are equal, this means there were no computed properties
     // and the static array was passed in to indicate this
     if (propIdsStatic != propIdsComputed)
     {
