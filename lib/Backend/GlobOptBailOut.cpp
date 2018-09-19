@@ -506,7 +506,6 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         if (this->currentBlock->globOptData.callSequence == nullptr)
         {
             this->currentBlock->globOptData.callSequence = JitAnew(this->alloc, SListBase<IR::Opnd *>);
-            this->currentBlock->globOptData.callSequence = this->currentBlock->globOptData.callSequence;
         }
         this->currentBlock->globOptData.callSequence->Prepend(this->alloc, instr->GetDst());
 
