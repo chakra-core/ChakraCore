@@ -864,7 +864,7 @@ using namespace Js;
             case TypeIds_UInt64Number:
                 {
                     __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
-                    unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
+                    unsigned __int64 rightValue = VarTo<JavascriptUInt64Number>(aRight)->GetValue();
                     return ((unsigned __int64)leftValue == rightValue);
                 }
             case TypeIds_Number:
@@ -885,7 +885,7 @@ using namespace Js;
             case TypeIds_UInt64Number:
                 {
                     unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
-                    unsigned __int64 rightValue = VarTo<JavascriptInt64Number>(aRight)->GetValue();
+                    unsigned __int64 rightValue = VarTo<JavascriptUInt64Number>(aRight)->GetValue();
                     return leftValue == rightValue;
                 }
             case TypeIds_Number:
