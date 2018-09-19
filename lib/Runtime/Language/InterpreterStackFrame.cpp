@@ -1851,7 +1851,7 @@ skipThunk:
         Assert(threadContext->IsScriptActive());
         Assert(threadContext->IsInScript());
 
-        FunctionBody* executeFunction = UnsafeVarTo<JavascriptFunction>(function)->GetFunctionBody();
+        FunctionBody* executeFunction = function->GetFunctionBody();
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (!isAsmJs && executeFunction->IsInDebugMode() != functionScriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
         {

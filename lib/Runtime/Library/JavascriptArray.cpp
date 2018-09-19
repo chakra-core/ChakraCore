@@ -5175,7 +5175,7 @@ Case0:
     *   Pushes Float element in a native Int Array.
     *   We call the generic Push, if the array is not native Float or we have a really big array.
     */
-    Var JavascriptNativeFloatArray::Push(ScriptContext * scriptContext, Var * array, double value)
+    Var JavascriptNativeFloatArray::Push(ScriptContext * scriptContext, Var array, double value)
     {
         JIT_HELPER_REENTRANT_HEADER(Array_NativeFloatPush);
         JIT_HELPER_SAME_ATTRIBUTES(Array_NativeFloatPush, Array_VarPush);

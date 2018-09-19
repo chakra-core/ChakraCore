@@ -524,7 +524,7 @@ namespace Js {
     }
 
     // Cast the input parameter to another type. In debug builds only, assert that the cast is valid.
-    template <typename T> T* UnsafeVarTo(RecyclableObject* obj)
+    template <typename T, typename U> T* UnsafeVarTo(U* obj)
     {
         Assert(VarIs<T>(obj));
         return static_cast<T*>(obj);

@@ -1266,7 +1266,7 @@ namespace Js
         }
         static DynamicType * GetInitialType(ScriptContext * scriptContext);
 
-        static Var Push(ScriptContext * scriptContext, Var * nativeFloatArray, double value);
+        static Var Push(ScriptContext * scriptContext, Var nativeFloatArray, double value);
         static JavascriptNativeFloatArray * BoxStackInstance(JavascriptNativeFloatArray * instance, bool deepCopy);
         static double Pop(ScriptContext * scriptContext, Var nativeFloatArray);
     private:
