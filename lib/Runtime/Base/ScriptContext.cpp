@@ -4173,7 +4173,7 @@ ExitTempAllocator:
 #endif
 
 #ifdef ASMJS_PLAT
-        ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
+        ScriptFunction * scriptFunction = VarTo<ScriptFunction>(pFunction);
         scriptContext->TransitionEnvironmentForDebugger(scriptFunction);
 #endif
     }

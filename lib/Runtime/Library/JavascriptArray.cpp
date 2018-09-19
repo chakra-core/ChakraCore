@@ -595,7 +595,7 @@ using namespace Js;
 
         *isObjectWithArrayRef = false;
 
-        if (!RecyclableObject::Is(var))
+        if (!VarIs<RecyclableObject>(var))
         {
             return nullptr;
         }
@@ -619,7 +619,7 @@ using namespace Js;
 
         if (!array)
         {
-            array = FromVar(var);
+            array = VarTo<JavascriptArray>(var);
         }
         return array;
     }
@@ -633,8 +633,8 @@ using namespace Js;
         if (*pVTable == VirtualTableInfo<DynamicObject>::Address ||
             *pVTable == VirtualTableInfo<CrossSiteObject<DynamicObject>>::Address)
         {
-            ArrayObject* objectArray = DynamicObject::FromVar(var)->GetObjectArray();
-            *pArray = (objectArray && Is(objectArray)) ? FromVar(objectArray) : nullptr;
+            ArrayObject* objectArray = VarTo<DynamicObject>(var)->GetObjectArray();
+            *pArray = (objectArray && VarIs<JavascriptArray>(objectArray)) ? VarTo<JavascriptArray>(objectArray) : nullptr;
             if (!(*pArray))
             {
                 return false;

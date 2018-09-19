@@ -2143,7 +2143,7 @@ BOOL JavascriptObject::DefineOwnPropertyHelper(RecyclableObject* obj, PropertyId
         else if (DynamicObject::IsAnyTypedArray(obj))
         {
             returnValue = JavascriptOperators::DefineOwnPropertyForTypedArray(
-                TypedArrayBase::FromVar(obj), propId, descriptor, throwOnError, scriptContext);
+                VarTo<TypedArrayBase>(obj), propId, descriptor, throwOnError, scriptContext);
         }
         // TODO: implement DefineOwnProperty for other object built-in exotic types.
         else

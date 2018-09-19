@@ -44,7 +44,7 @@ namespace Js
     { \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
         HRESULT hr = (errorObject != nullptr && Js::VarIs<Js::JavascriptError>(errorObject)) \
-                     ? Js::JavascriptError::GetRuntimeError(Js::VarIs<Js::RecyclableObject>(errorObject), nullptr) \
+                     ? Js::JavascriptError::GetRuntimeError(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr) \
                      : S_OK; \
         if (JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr) \
         { \

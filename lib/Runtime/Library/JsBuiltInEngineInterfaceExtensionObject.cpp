@@ -262,7 +262,7 @@ namespace Js
 
         // chakra library functions, since they aren't public, can be constructors (__chakraLibrary.ArrayIterator is one)
         ScriptFunction* func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
-            ScriptFunction::UnsafeFromVar(args.Values[2]),
+            UnsafeVarTo<ScriptFunction>(args.Values[2]),
             methodName,
             true /* isConstructor */,
             true /* isJsBuiltIn */,
@@ -323,7 +323,7 @@ FUNCTIONKIND_VALUES(VALUE)
         }
 
         ScriptFunction *func = EngineInterfaceObject::CreateLibraryCodeScriptFunction(
-            ScriptFunction::UnsafeFromVar(args.Values[2]),
+            UnsafeVarTo<ScriptFunction>(args.Values[2]),
             fullName,
             false /* isConstructor */,
             true /* isJsBuiltIn */,

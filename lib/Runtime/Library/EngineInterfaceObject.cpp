@@ -354,16 +354,16 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 #pragma warning(pop)
 
-        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && ScriptFunction::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
+        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && VarIs<ScriptFunction>(args.Values[1]) && VarIs<JavascriptString>(args.Values[2]));
 
-        ScriptFunction *func = ScriptFunction::UnsafeFromVar(args[1]);
-        JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
+        ScriptFunction *func = UnsafeVarTo<ScriptFunction>(args[1]);
+        JavascriptString *methodName = UnsafeVarTo<JavascriptString>(args[2]);
 
         bool isConstructor = true;
         if (args.Info.Count == 4)
         {
-            AssertOrFailFast(JavascriptBoolean::Is(args.Values[3]));
-            isConstructor = JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue();
+            AssertOrFailFast(VarIs<JavascriptBoolean>(args.Values[3]));
+            isConstructor = UnsafeVarTo<JavascriptBoolean>(args.Values[3])->GetValue();
         }
 
         // isConstructor = true is the default (when no 3rd arg is provided)

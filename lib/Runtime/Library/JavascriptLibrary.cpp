@@ -731,7 +731,7 @@ namespace Js
     bool JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Async function instances do not have a prototype property as they are not constructable
-        JavascriptAsyncFunction* asyncFunction = JavascriptAsyncFunction::FromVar(function);
+        JavascriptAsyncFunction* asyncFunction = VarTo<JavascriptAsyncFunction>(function);
 
         if (!asyncFunction->IsAnonymousFunction())
         {
