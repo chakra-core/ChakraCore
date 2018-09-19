@@ -559,5 +559,4 @@ namespace Js {
 
     template <> bool LegacyVarIs<DynamicObject>(RecyclableObject* obj);
     template <> bool LegacyVarIs<JavascriptArray>(RecyclableObject* obj);
-    template <> bool LegacyVarIs<JavascriptGeneratorFunction>(RecyclableObject* obj);
 }

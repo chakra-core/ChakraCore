@@ -98,11 +98,6 @@ namespace Js
 
     template <> bool VarIsImpl<JavascriptGeneratorFunction>(RecyclableObject* obj);
 
-    template <> inline bool LegacyVarIs<JavascriptGeneratorFunction>(RecyclableObject* obj)
-    {
-        return JavascriptGeneratorFunction::IsBaseGeneratorFunction(obj);
-    }
-
     class JavascriptAsyncFunction : public JavascriptGeneratorFunction
     {
     private:

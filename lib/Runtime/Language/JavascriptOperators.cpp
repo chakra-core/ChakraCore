@@ -7181,7 +7181,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 DynamicType* newType = nullptr;
                 if (nonSimpleParamList)
                 {
-                    bool skipLetAttrForArguments = ((VarIs<JavascriptGeneratorFunction>(funcCallee) || VarIs<JavascriptAsyncFunction>(funcCallee)) ?
+                    bool skipLetAttrForArguments = ((JavascriptGeneratorFunction::IsBaseGeneratorFunction(funcCallee) || VarIs<JavascriptAsyncFunction>(funcCallee)) ?
                         VarTo<JavascriptGeneratorFunction>(funcCallee)->GetGeneratorVirtualScriptFunction()->GetFunctionBody()->HasReferenceableBuiltInArguments()
                         : funcCallee->GetFunctionBody()->HasReferenceableBuiltInArguments());
 
@@ -9101,7 +9101,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 return Reject(throwOnError, scriptContext, JSERR_InvalidTypedArrayIndex, propId);
             }
         }
-        // 4. Return ! OrdinaryDefineOwnProperty(O, P, Desc). 
+        // 4. Return ! OrdinaryDefineOwnProperty(O, P, Desc).
         return DefineOwnPropertyDescriptor(typedArray, propId, descriptor, throwOnError, scriptContext);
     }
 
