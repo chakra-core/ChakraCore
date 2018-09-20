@@ -248,15 +248,10 @@ namespace Js
         static TypeId GetTypeId(_In_ const Var instance);
         static TypeId GetTypeId(_In_ RecyclableObject* instance);
         static TypeId GetTypeIdNoCheck(Var instance);
-        template <typename T>
-        __forceinline static T* TryFromVar(_In_ RecyclableObject* value)
+        template <typename T, typename U>
+        __forceinline static T* TryFromVar(_In_ U* value)
         {
-            return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
-        }
-        template <typename T>
-        __forceinline static T* TryFromVar(_In_ Var value)
-        {
-            return LegacyVarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
+            return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
         static BOOL IsObject(_In_ Var instance);
         static BOOL IsObject(_In_ RecyclableObject* instance);

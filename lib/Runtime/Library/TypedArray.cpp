@@ -1476,7 +1476,7 @@ namespace Js
 
                 if (!newTypedArrayBase)
                 {
-                    newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+                    newArr = JavascriptArray::TryVarToNonES5Array(newObj);
                 }
 
                 for (uint32 k = 0; k < len; k++)
@@ -1522,7 +1522,7 @@ namespace Js
 
             if (!itemsTypedArrayBase)
             {
-                itemsArray = JavascriptOperators::TryFromVar<JavascriptArray>(items);
+                itemsArray = JavascriptArray::TryVarToNonES5Array(items);
             }
 
             newObj = JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
@@ -1537,7 +1537,7 @@ namespace Js
 
             if (!newTypedArrayBase)
             {
-                newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+                newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             }
 
             for (uint32 k = 0; k < len; k++)

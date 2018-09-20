@@ -1642,7 +1642,7 @@ CommonNumber:
         AssertMsg(scope == scriptContext->GetLibrary()->GetNull() || JavascriptArray::IsNonES5Array(scope),
                   "Invalid scope chain pointer passed - should be null or an array");
 
-        JavascriptArray* arrScope = JavascriptOperators::TryFromVar<JavascriptArray>(scope);
+        JavascriptArray* arrScope = JavascriptArray::TryVarToNonES5Array(scope);
         if (arrScope)
         {
             Var instance = arrScope->DirectGetItem(0);

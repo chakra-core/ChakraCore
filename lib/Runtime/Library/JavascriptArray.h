@@ -214,6 +214,9 @@ namespace Js
         static bool IsNonES5Array(Var aValue);
         static bool IsNonES5Array(TypeId typeId);
 
+        // Returns the object if it is a non-ES5 array object. Otherwise returns null.
+        static JavascriptArray* TryVarToNonES5Array(Var aValue);
+
         static bool IsVarArray(Var aValue);
         static bool IsVarArray(TypeId typeId);
 
@@ -645,10 +648,24 @@ namespace Js
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
 
+        // Like normal VarIs, but will return false for <JavascriptArray> if the array has transitioned to ES5Array type.
+        template<typename T> static bool VarIsWithoutES5Array(RecyclableObject* object)
+        {
+            return VarIs<T>(object);
+        }
+        template <> static bool VarIsWithoutES5Array<RecyclableObject>(RecyclableObject* object)
+        {
+            return true;
+        }
+        template <> static bool VarIsWithoutES5Array<JavascriptArray>(RecyclableObject* object)
+        {
+            return IsNonES5Array(object);
+        }
+
         template<typename T, typename P>
         static BOOL TryTemplatedGetItem(RecyclableObject* arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
         {
-            return LegacyVarIs<T>(arr) ? JavascriptArray::TemplatedGetItem(static_cast<T*>(arr), index, element, scriptContext, checkHasItem) :
+            return VarIsWithoutES5Array<T>(arr) ? JavascriptArray::TemplatedGetItem(static_cast<T*>(arr), index, element, scriptContext, checkHasItem) :
                 JavascriptOperators::GetItem(arr, index, element, scriptContext);
         }
 
@@ -661,7 +678,7 @@ namespace Js
                 RecyclableObject* curArr = arr;
                 fn(i, TryTemplatedGetItem<T>(curArr, i, &element, scriptContext) ? element : missingItem);
 
-                if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(curArr))
+                if (hasSideEffect && MayChangeType<T>() && !VarIsWithoutES5Array<T>(curArr))
                 {
                     // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                     // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
@@ -689,7 +706,7 @@ namespace Js
                 {
                     fn(i, element);
 
-                    if (hasSideEffect && MayChangeType<T>() && !LegacyVarIs<T>(curArr))
+                    if (hasSideEffect && MayChangeType<T>() && !VarIsWithoutES5Array<T>(curArr))
                     {
                         // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to
                         // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
@@ -937,11 +954,6 @@ namespace Js
     template <> inline bool VarIsImpl<JavascriptArray>(RecyclableObject* obj)
     {
         return DynamicObject::IsAnyArray(obj);
-    }
-
-    template <> inline bool LegacyVarIs<JavascriptArray>(RecyclableObject* obj)
-    {
-        return JavascriptArray::IsNonES5Array(obj);
     }
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change

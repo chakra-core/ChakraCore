@@ -463,6 +463,11 @@ using namespace Js;
         return typeId >= TypeIds_ArrayFirst && typeId <= TypeIds_ArrayLast;
     }
 
+    JavascriptArray* JavascriptArray::TryVarToNonES5Array(Var aValue)
+    {
+        return JavascriptArray::IsNonES5Array(aValue) ? UnsafeVarTo<JavascriptArray>(aValue) : nullptr;
+    }
+
     bool JavascriptArray::IsVarArray(Var aValue)
     {
         TypeId typeId = JavascriptOperators::GetTypeId(aValue);
@@ -3106,7 +3111,7 @@ using namespace Js;
     void JavascriptArray::CreateDataPropertyOrThrow(RecyclableObject * obj, BigIndex index, Var item, ScriptContext * scriptContext)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
-        JavascriptArray * arr = JavascriptOperators::TryFromVar<JavascriptArray>(obj);
+        JavascriptArray * arr = JavascriptArray::TryVarToNonES5Array(obj);
         if (arr != nullptr)
         {
             arr->GenericDirectSetItemAt(index, item);
@@ -3147,7 +3152,7 @@ using namespace Js;
         Assert(obj != nullptr);
         Assert(length != nullptr);
 
-        *array = JavascriptOperators::TryFromVar<JavascriptArray>(arg);
+        *array = JavascriptArray::TryVarToNonES5Array(arg);
         if (*array && !(*array)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -3207,7 +3212,7 @@ using namespace Js;
         ConcatSpreadableState previousItemSpreadableState /*= ConcatSpreadableState_NotChecked*/, BigIndex *firstPromotedItemLength /* = nullptr */)
     {
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
-        JavascriptArray* pDestArray = JavascriptOperators::TryFromVar<JavascriptArray>(pDestObj);
+        JavascriptArray* pDestArray = JavascriptArray::TryVarToNonES5Array(pDestObj);
         if (pDestArray)
         {
             // ConcatArgs function expects to work on the Var array so we are ensuring it.
@@ -4502,7 +4507,7 @@ using namespace Js;
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, thisArg);
 
-        JavascriptArray * arr = JavascriptOperators::TryFromVar<JavascriptArray>(thisArg);
+        JavascriptArray * arr = JavascriptArray::TryVarToNonES5Array(thisArg);
         JavascriptProxy * proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(thisArg);
         bool isArray = arr && (scriptContext == arr->GetScriptContext());
         bool isProxy = proxy && (scriptContext == proxy->GetScriptContext());
@@ -6404,7 +6409,7 @@ Case0:
         else
         {
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
-            newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+            newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             if (newArr)
             {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -6571,7 +6576,7 @@ Case0:
         }
 
 #ifdef VALIDATE_ARRAY
-        JavascriptArray * jsArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+        JavascriptArray * jsArr = JavascriptArray::TryVarToNonES5Array(newObj);
         if (jsArr)
         {
             jsArr->ValidateArray();
@@ -6607,7 +6612,7 @@ Case0:
             JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(newLen, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
 
 #ifdef VALIDATE_ARRAY
-        JavascriptArray * jsArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+        JavascriptArray * jsArr = JavascriptArray::TryVarToNonES5Array(newObj);
         if (jsArr)
         {
             jsArr->ValidateArray();
@@ -7581,7 +7586,7 @@ Case0:
         {
             pArr = EnsureNonNativeArray(pArr);
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
-            newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+            newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             if (newArr)
             {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -7749,7 +7754,7 @@ Case0:
             }
         }
 
-        pnewArr = JavascriptOperators::TryFromVar<JavascriptArray>(pNewObj);
+        pnewArr = JavascriptArray::TryVarToNonES5Array(pNewObj);
         if (pnewArr)
         {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -8310,7 +8315,7 @@ Case0:
         SETOBJECT_FOR_MUTATION(jsReentLock, arr);
 
         uint32 length = 0;
-        TypedArrayBase * typedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(arr);
+        TypedArrayBase * typedArray = JavascriptOperators::TryFromVar<Js::TypedArrayBase>(static_cast<RecyclableObject*>(arr));
         if (typedArray)
         {
             // For a TypedArray use the actual length of the array.
@@ -9575,7 +9580,7 @@ Case0:
         else
         {
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
-            newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+            newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             if (newArr)
             {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -9820,7 +9825,7 @@ Case0:
         else
         {
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
-            newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+            newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             if (newArr)
             {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -10278,7 +10283,7 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedObject, _u("Array.from"));
         }
 
-        JavascriptArray* itemsArr = JavascriptOperators::TryFromVar<JavascriptArray>(items);
+        JavascriptArray* itemsArr = JavascriptArray::TryVarToNonES5Array(items);
 
         if (itemsArr)
         {
@@ -10334,7 +10339,7 @@ Case0:
                     }))
                 );
 
-                newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+                newArr = JavascriptArray::TryVarToNonES5Array(newObj);
                 if (newArr)
                 {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -10395,7 +10400,7 @@ Case0:
                     }))
                 );
 
-                newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+                newArr = JavascriptArray::TryVarToNonES5Array(newObj);
                 if (newArr)
                 {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -10528,7 +10533,7 @@ Case0:
             )
 
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
-            newArr = JavascriptOperators::TryFromVar<JavascriptArray>(newObj);
+            newArr = JavascriptArray::TryVarToNonES5Array(newObj);
             if (newArr)
             {
 #if ENABLE_COPYONACCESS_ARRAY
@@ -11563,7 +11568,7 @@ Case0:
 
             // An array needs a slow copy if it is a cross-site object or we have missing values that need to be set to undefined.
             auto needArraySlowCopy = [&](Var instance) {
-                JavascriptArray *arr = JavascriptOperators::TryFromVar<JavascriptArray>(instance);
+                JavascriptArray *arr = JavascriptArray::TryVarToNonES5Array(instance);
                 if (arr)
                 {
                     JS_REENTRANT_UNLOCK(jsReentLock, return arr->IsCrossSiteObject() || arr->IsFillFromPrototypes());
@@ -11662,7 +11667,7 @@ Case0:
         // A spread argument can be anything that returns a 'length' property, even if that
         // property is null or undefined.
         spreadArg = CrossSite::MarshalVar(scriptContext, spreadArg);
-        JavascriptArray *arr = JavascriptOperators::TryFromVar<JavascriptArray>(spreadArg);
+        JavascriptArray *arr = JavascriptArray::TryVarToNonES5Array(spreadArg);
         if (arr)
         {
             return arr->GetLength();

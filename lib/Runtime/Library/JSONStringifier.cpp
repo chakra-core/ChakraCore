@@ -134,7 +134,7 @@ JSONStringifier::ReadReplacer(_In_opt_ Var replacer)
 
                 BVSparse<Recycler> propertyListBV(recycler);
                 this->propertyList = RecyclerNew(recycler, PropertyList, recycler);
-                JavascriptArray* propertyArray = JavascriptOperators::TryFromVar<JavascriptArray>(replacer);
+                JavascriptArray* propertyArray = JavascriptArray::TryVarToNonES5Array(replacer);
                 if (propertyArray != nullptr)
                 {
                     uint32 length = propertyArray->GetLength();
@@ -342,7 +342,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
 uint32
 JSONStringifier::ReadArrayLength(_In_ RecyclableObject* value)
 {
-    JavascriptArray* arr = JavascriptOperators::TryFromVar<JavascriptArray>(value);
+    JavascriptArray* arr = JavascriptArray::TryVarToNonES5Array(value);
     if (arr != nullptr)
     {
         return arr->GetLength();
@@ -361,7 +361,7 @@ void
 JSONStringifier::ReadArrayElement(uint32 index, _In_ RecyclableObject* arr, _Out_ JSONProperty* prop, _In_ JSONObjectStack* objectStack)
 {
     Var value = nullptr;
-    JavascriptArray* jsArray = JavascriptOperators::TryFromVar<JavascriptArray>(arr);
+    JavascriptArray* jsArray = JavascriptArray::TryVarToNonES5Array(arr);
     if (jsArray && !jsArray->IsCrossSiteObject())
     {
         value = jsArray->DirectGetItem(index);
