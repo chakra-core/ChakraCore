@@ -58,6 +58,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_bailoutReturnValueSym(nullptr),
     m_hasBailedOutSym(nullptr),
     m_inlineeFrameStartSym(nullptr),
+    inlineeStart(nullptr),
     m_regsUsed(0),
     m_fg(nullptr),
     m_labelCount(0),
@@ -92,6 +93,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     hasInlinee(false),
     thisOrParentInlinerHasArguments(false),
     hasStackArgs(false),
+    hasArgLenAndConstOpt(false),
     hasImplicitParamLoad(false),
     hasThrow(false),
     hasNonSimpleParams(false),
@@ -301,8 +303,10 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT)
 {
     bool rejit;
+    int rejitCounter = 0;
     do
     {
+        Assert(rejitCounter < 25);
         Func func(alloc, workItem, threadContextInfo,
             scriptContextInfo, outputData, epInfo, runtimeInfo,
             polymorphicInlineCacheInfo, codeGenAllocators, 
@@ -334,6 +338,8 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             case RejitReason::DisableStackArgOpt:
                 outputData->disableStackArgOpt = TRUE;
                 break;
+            case RejitReason::DisableStackArgLenAndConstOpt:
+                break;
             case RejitReason::DisableSwitchOptExpectingInteger:
             case RejitReason::DisableSwitchOptExpectingString:
                 outputData->disableSwitchOpt = TRUE;
@@ -360,6 +366,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             }
 
             rejit = true;
+            rejitCounter++;
         }
         // Either the entry point has a reference to the number now, or we failed to code gen and we
         // don't need to numbers, we can flush the completed page now.

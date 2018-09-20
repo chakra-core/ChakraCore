@@ -660,7 +660,7 @@ GlobOptBlockData::MergeBlockData(
     {
         if (!this->argObjSyms->Equal(fromData->argObjSyms))
         {
-            this->globOpt->CannotAllocateArgumentsObjectOnStack();
+            this->globOpt->CannotAllocateArgumentsObjectOnStack(nullptr);
         }
     }
 

@@ -7842,10 +7842,12 @@ BackwardPass::ProcessInlineeEnd(IR::Instr* instr)
     }
     if (this->tag == Js::BackwardPhase)
     {
-        if (!GlobOpt::DoInlineArgsOpt(instr->m_func))
+        // Commenting out to allow for argument length and argument[constant] optimization
+        // Will revisit in phase two
+        /*if (!GlobOpt::DoInlineArgsOpt(instr->m_func))
         {
             return;
-        }
+        }*/
 
         // This adds a use for function sym as part of InlineeStart & all the syms referenced by the args.
         // It ensure they do not get cleared from the copy prop sym map.
