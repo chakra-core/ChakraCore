@@ -63,6 +63,23 @@ var tests = [
             assert.isFalse({} < 0.5);
             assert.isFalse({} <= 0.5);
         }
+    },
+    {
+        name: "bug file from ExprGen",
+        body: function() {
+            function test0() {
+                var func2 = function () {
+                  return f32[1];
+                };
+                var f32 = new Float32Array();
+                var f = 100;
+                for (let i = 0; i < f; i++) {
+                    var id41 = 'caller';
+                    ({ 18: func2() === 'caller' });
+                }
+            }
+            test0();
+        }
     }
 ];
 
