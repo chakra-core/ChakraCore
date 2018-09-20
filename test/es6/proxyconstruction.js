@@ -116,10 +116,17 @@ var tests = [
         }
     },
     {
-        name: "Proxy of Object literal method should be constructable",
+        name: "Proxy of Object literal function should be constructable",
         body() {
-            let testingMethod = {test() {}}
+            let testingMethod = {test:function() {}}
             testConstructProxy(testingMethod.test, false);
+        }
+    },
+    {
+        name: "Proxy of Object literal method should not be constructable",
+        body() {
+            let testingMethod = { test() { } }
+            testConstructProxy(testingMethod.test, true);
         }
     },
     {
