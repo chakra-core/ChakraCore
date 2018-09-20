@@ -848,7 +848,7 @@ void GlobOpt::EndTrackingOfArgObjSymsForInlinee()
             // This means there are arguments object symbols in the current function which are not in the current block.
             // This could happen when one of the blocks has a throw and arguments object aliased in it and other blocks don't see it.
             // Rare case, abort stack arguments optimization in this case.
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(this->currentBlock->globOptData.curFunc);
         }
         else
         {
