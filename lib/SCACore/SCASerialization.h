@@ -173,8 +173,7 @@ namespace Js
         bool TryClonePrimitive(SrcTypeId typeId, Src src, Dst* dst);
         bool TryCloneObject(SrcTypeId typeId, Src src, Dst* dst, SCADeepCloneType* deepClone);
         void CloneProperties(SrcTypeId typeId, Src src, Dst dst);
-        void ClonePropertiesWithSCASerializable(SrcTypeId typeId, Src src, Dst dst);
-        void ClonePropertiesWithoutSCASerializable(SrcTypeId typeId, Src src, Dst dst);
+        void CloneHostObjectProperties(SrcTypeId typeId, Src src, Dst dst);
         void CloneMap(Src src, Dst dst);
         void CloneSet(Src src, Dst dst);
         void CloneObjectReference(Src src, Dst dst);

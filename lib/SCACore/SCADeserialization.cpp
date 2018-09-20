@@ -111,24 +111,12 @@ namespace Js
             return true;
         }
 
-        //if (IsSCAHostObject(typeId))
-        //{
-        //    if (m_pSCAHost)
-        //    {
-        //        HRESULT hr = S_OK;
-        //        BEGIN_LEAVE_SCRIPT(scriptContext)
-        //        {
-        //            hr = m_pSCAHost->CreateObject(m_pSCAContext, typeId, dst);
-        //        }
-        //        END_LEAVE_SCRIPT(scriptContext);
-        //        ThrowIfFailed(hr);
-
-        //        *deepClone = SCADeepCloneType::Object;
-        //        return true;
-        //    }
-        //    //Can't create host object
-        //    ThrowSCAUnsupported();
-        //}
+        if (IsSCAHostObject(typeId))
+        {
+            *dst = m_reader->ReadHostObject();
+            *deepClone = SCADeepCloneType::HostObject;
+            return true;
+        }
 
         switch (typeId)
         {
@@ -312,6 +300,12 @@ namespace Js
     }
 
     template <class Reader>
+    void DeserializationCloner<Reader>::CloneHostObjectProperties(SrcTypeId typeId, Src src, Dst dst)
+    {
+        // We have already created host obect.
+    }
+
+    template <class Reader>
     void DeserializationCloner<Reader>::CloneProperties(SrcTypeId typeId, Src src, Dst dst)
     {
         // ScriptContext* scriptContext = GetScriptContext();
@@ -319,24 +313,6 @@ namespace Js
 
         if (obj->IsExternal()) // Read host object properties
         {
-//            AutoLeaveScriptPtr<SCAPropBag> pPropBag(scriptContext);
-//            SCAPropBag::CreateInstance(scriptContext, &pPropBag);
-//
-//            ReadObjectPropertiesIntoBag(pPropBag);
-//
-//            HRESULT hr = S_OK;
-//            {
-//                AutoLeaveScriptPtr<ISCASerializable> pSCASerializable(scriptContext);
-//                BEGIN_LEAVE_SCRIPT(scriptContext)
-//                {
-//                    IfFailGo(obj->QueryObjectInterface(__uuidof(ISCASerializable), (void**)&pSCASerializable));
-//                    IfFailGo(pSCASerializable->InitializeObject(m_pSCAContext, pPropBag));
-//                }
-//                END_LEAVE_SCRIPT(scriptContext);
-//Error:
-//                ; // Fall through
-//            }
-//            ThrowIfFailed(hr);
             Assert(false);
         }
         else // Read native object properties

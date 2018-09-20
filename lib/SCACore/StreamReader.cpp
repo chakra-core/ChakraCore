@@ -14,6 +14,18 @@ namespace Js
         m_current += cb;
     }
 
+    Var StreamReader::ReadHostObject()
+    {
+        Var object = nullptr;
+        ScriptContext* scriptContext = GetScriptContext();
+        BEGIN_LEAVE_SCRIPT(scriptContext)
+        {
+            object = m_stream->ReadHostObject();
+        }
+        END_LEAVE_SCRIPT(scriptContext);
+        return object;
+    }
+
     //
     // Overload to count for buffer position.
     //

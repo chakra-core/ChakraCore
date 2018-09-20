@@ -196,8 +196,14 @@ class HostStream
 {
 public:
     virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+    virtual bool WriteHostObject(void* data) = 0;
 };
 
+class HostReadStream
+{
+public:
+    virtual Js::Var ReadHostObject() = 0;
+};
 
 #if ENABLE_TTD
 typedef void (CALLBACK *JsTTDOnScriptLoadCallback)(FinalizableObject* hostContext, Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify);

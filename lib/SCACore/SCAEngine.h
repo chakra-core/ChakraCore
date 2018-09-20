@@ -10,7 +10,8 @@ namespace Js
         None,
         Object,
         Map,
-        Set
+        Set,
+        HostObject
     };
 
     //
@@ -78,7 +79,11 @@ namespace Js
                     deepClone = SCADeepCloneType::Object;
                 }
 
-                if (deepClone == SCADeepCloneType::Object)
+                if (deepClone == SCADeepCloneType::HostObject)
+                {
+                    m_cloner->CloneHostObjectProperties(typeId, src, *dst);
+                }
+                else if (deepClone == SCADeepCloneType::Object)
                 {
                     m_cloner->CloneProperties(typeId, src, *dst);
                 }

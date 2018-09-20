@@ -34,6 +34,7 @@ namespace Js
         size_t GetLength() { return m_current; }
 
         void Write(const void* pv, size_t cb);
+        void WriteHostObject(void* data);
 
         //template <typename T>
         //void Write(const T& value)

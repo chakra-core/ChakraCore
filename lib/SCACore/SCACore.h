@@ -33,8 +33,8 @@ namespace Js
         class Deserializer
         {
         public:
-            Deserializer(void *data, size_t length, ScriptContext *scriptContext)
-                : m_streamReader(scriptContext, (byte*)data, length)
+            Deserializer(void *data, size_t length, ScriptContext *scriptContext, HostReadStream *stream)
+                : m_streamReader(scriptContext, (byte*)data, length, stream)
             {
             }
 

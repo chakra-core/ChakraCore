@@ -164,6 +164,12 @@ ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
     HeapDelete(m_serializerCore);
 }
 
+bool ChakraCoreStreamWriter::WriteHostObject(void* data)
+{
+    Assert(m_delegate);
+    return WriteHostObject(data);
+}
+
 byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
 {
     if (m_delegate)
@@ -299,3 +305,10 @@ void ChakraHostDeserializerHandle::FreeSelf()
 {
     HeapDelete(this);
 }
+
+Js::Var ChakraHostDeserializerHandle::ReadHostObject()
+{
+    Assert(m_delegate);
+    return (Js::Var)m_delegate->ReadHostObject();
+}
+

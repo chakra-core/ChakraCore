@@ -255,22 +255,13 @@ namespace Js
                 if (IsTypedArray(typeId))
                 {
                     WriteTypedArray(typeId, src);
-                    break;
                 }
-
-                // TBD
-
-                //Js::ScriptContext* scriptContext = obj->GetScriptContext();
-                //BEGIN_LEAVE_SCRIPT(scriptContext)
-                //{
-                //    if (SUCCEEDED(obj->QueryObjectInterface(__uuidof(ISCASerializable), (void**)&m_pSCASerializable)))
-                //    {
-                //        *deepClone = SCADeepCloneType::Object;
-                //        break;
-                //    }
-                //}
-                //END_LEAVE_SCRIPT(scriptContext);
-                return false; // Not a supported object type
+                else
+                {
+                    // Try Host Object
+                    *deepClone = SCADeepCloneType::HostObject;
+                }
+                break;
             }
         }
 
@@ -279,34 +270,16 @@ namespace Js
     }
 
     template <class Writer>
-    void SerializationCloner<Writer>::ClonePropertiesWithSCASerializable(SrcTypeId srcTypeId, Src src, Dst dst)
+    void SerializationCloner<Writer>::CloneHostObjectProperties(SrcTypeId srcTypeId, Src src, Dst dst)
     {
-        Assert(false);
+        WriteTypeId(SCA_FirstHostObject);
 
-        //AutoCOMPtr<ISCASerializable> pSCASerializable = m_pSCASerializable;
-        //Assert(pSCASerializable != NULL);
-        //m_pSCASerializable = NULL; // Clear temp
-
-        //SCATypeId typeId;
-        //AutoCOMPtr<SCAPropBag> pPropBag;
-        //SCAPropBag::CreateInstance(GetScriptContext(), &pPropBag);
-
-        //ScriptContext* scriptContext = GetScriptContext();
-        //HRESULT hr = S_OK;
-        //BEGIN_LEAVE_SCRIPT(scriptContext)
-        //{
-        //    hr = pSCASerializable->GetObjectData(m_pSCAContext, &typeId, pPropBag);
-        //}
-        //END_LEAVE_SCRIPT(scriptContext);
-        //ThrowIfFailed(hr);
-
-        //SCAPropBag::PropBagEnumerator propBagEnumerator(pPropBag);
-        //WriteTypeId(typeId);
-        //WriteObjectProperties(&propBagEnumerator);
+        // Ask host to fill rest of the properties
+        m_writer->WriteHostObject((void*)src);
     }
 
     template <class Writer>
-    void SerializationCloner<Writer>::ClonePropertiesWithoutSCASerializable(SrcTypeId srcTypeId, Src src, Dst dst)
+    void SerializationCloner<Writer>::CloneProperties(SrcTypeId srcTypeId, Src src, Dst dst)
     {
         RecyclableObject* obj = RecyclableObject::FromVar(src);
         // allocate the JavascriptStaticEnumerator on the heap to avoid blowing the stack
@@ -341,19 +314,6 @@ namespace Js
 
         ObjectPropertyEnumerator propEnumerator(scriptContext, obj, &enumerator);
         WriteObjectProperties(&propEnumerator);
-    }
-
-    template <class Writer>
-    void SerializationCloner<Writer>::CloneProperties(SrcTypeId srcTypeId, Src src, Dst dst)
-    {
-        //if (m_pSCASerializable)
-        //{
-        //    ClonePropertiesWithSCASerializable(srcTypeId, src, dst);
-        //}
-        //else
-        {
-            ClonePropertiesWithoutSCASerializable(srcTypeId, src, dst);
-        }
     }
 
     template <class Writer>
