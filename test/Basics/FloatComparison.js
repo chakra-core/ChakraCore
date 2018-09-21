@@ -65,7 +65,7 @@ var tests = [
         }
     },
     {
-        name: "bug file from ExprGen",
+        name: "No float type specialization when operands are not number",
         body: function() {
             function test0() {
                 var func2 = function () {
