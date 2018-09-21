@@ -10648,6 +10648,11 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
         case Js::OpCode::CmGe_A:
         case Js::OpCode::CmGt_A:
         {
+            if (src1Val->GetValueInfo()->IsNotNumber() || src2Val->GetValueInfo()->IsNotNumber())
+            {
+                return false;
+            }
+
             convertDstToBool = true;
             break;
         }
