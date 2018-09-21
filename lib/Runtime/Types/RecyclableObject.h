@@ -506,6 +506,10 @@ namespace Js {
     {
         return VarIsImpl<T>(obj);
     }
+    template <typename T> bool VarIsCorrectType(WriteBarrierPtr<T> obj)
+    {
+        return VarIsImpl<T>(obj);
+    }
 
     CompileAssertMsg(AtomTag_Object == 0, "Ensure GC objects do not need to be marked");
 

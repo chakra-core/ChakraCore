@@ -649,18 +649,7 @@ namespace Js
         template <typename T> static bool MayChangeType() { return false; }
 
         // Like normal VarIs, but will return false for <JavascriptArray> if the array has transitioned to ES5Array type.
-        template<typename T> static bool VarIsWithoutES5Array(RecyclableObject* object)
-        {
-            return VarIs<T>(object);
-        }
-        template <> static bool VarIsWithoutES5Array<RecyclableObject>(RecyclableObject* object)
-        {
-            return true;
-        }
-        template <> static bool VarIsWithoutES5Array<JavascriptArray>(RecyclableObject* object)
-        {
-            return IsNonES5Array(object);
-        }
+        template<typename T> static bool VarIsWithoutES5Array(RecyclableObject* object);
 
         template<typename T, typename P>
         static BOOL TryTemplatedGetItem(RecyclableObject* arr, P index, Var *element, ScriptContext *scriptContext, bool checkHasItem = true)
@@ -954,6 +943,19 @@ namespace Js
     template <> inline bool VarIsImpl<JavascriptArray>(RecyclableObject* obj)
     {
         return DynamicObject::IsAnyArray(obj);
+    }
+
+    template<typename T> bool JavascriptArray::VarIsWithoutES5Array(RecyclableObject* object)
+    {
+        return VarIs<T>(object);
+    }
+    template <> inline bool JavascriptArray::VarIsWithoutES5Array<RecyclableObject>(RecyclableObject* object)
+    {
+        return true;
+    }
+    template <> inline bool JavascriptArray::VarIsWithoutES5Array<JavascriptArray>(RecyclableObject* object)
+    {
+        return IsNonES5Array(object);
     }
 
     // Ideally we would propagate the throw flag setting of true from the array operations down to the [[Delete]]/[[Put]]/... methods. But that is a big change

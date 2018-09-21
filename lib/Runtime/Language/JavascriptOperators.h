@@ -253,6 +253,11 @@ namespace Js
         {
             return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
         }
+        template <typename T, typename U>
+        __forceinline static T* TryFromVar(WriteBarrierPtr<U> value)
+        {
+            return VarIs<T>(value) ? UnsafeVarTo<T>(value) : nullptr;
+        }
         static BOOL IsObject(_In_ Var instance);
         static BOOL IsObject(_In_ RecyclableObject* instance);
         static BOOL IsExposedType(TypeId typeId);
