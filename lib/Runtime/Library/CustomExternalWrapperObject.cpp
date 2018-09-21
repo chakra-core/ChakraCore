@@ -130,6 +130,32 @@ CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uin
     return externalObject;
 }
 
+CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext)
+{
+    Js::CustomExternalWrapperType * externalType = source->GetExternalType();
+    Js::JsSetterGetterInterceptor * originalInterceptors = externalType->GetJsSetterGetterInterceptor();
+    void * newInterceptors = originalInterceptors;
+    Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
+        source->GetSlotData(),
+        source->GetInlineSlotSize(),
+        externalType->GetJsTraceCallback(),
+        externalType->GetJsFinalizeCallback(),
+        &newInterceptors,
+        source->GetPrototype(),
+        scriptContext);
+    bool success = target->TryCopy(source, true);
+
+    //TODO:akatti: We will always used a cached type, so the following code can be removed.
+    // If we are using type from the cache we don't need to copy the interceptors over.
+    if (newInterceptors != originalInterceptors)
+    {
+        newInterceptors = new (newInterceptors) Js::JsSetterGetterInterceptor(originalInterceptors);
+    }
+
+    AssertOrFailFast(success);
+    return target;
+}
+
 BOOL CustomExternalWrapperObject::IsObjectAlive()
 {
     return !this->GetScriptContext()->IsClosed();
@@ -310,7 +336,7 @@ void CustomExternalWrapperObject::PropertyIdFromInt(uint32 index, Js::PropertyRe
     GetScriptContext()->GetOrAddPropertyRecord((LPCWSTR)buffer + pos, (_countof(buffer) - 1) - pos, propertyRecord);
 }
 
-Js::Var CustomExternalWrapperObject::GetName(Js::ScriptContext* requestContext, Js::PropertyId propertyId)
+Js::Var CustomExternalWrapperObject::GetName(Js::ScriptContext* requestContext, Js::PropertyId propertyId, Var * isPropertyNameNumeric, Var * propertyNameNumericValue)
 {
     const Js::PropertyRecord* propertyRecord = requestContext->GetThreadContext()->GetPropertyName(propertyId);
     Js::Var name;
@@ -322,6 +348,9 @@ Js::Var CustomExternalWrapperObject::GetName(Js::ScriptContext* requestContext, 
     {
         name = requestContext->GetPropertyString(propertyRecord);
     }
+
+    *isPropertyNameNumeric = propertyRecord->IsNumeric() ? requestContext->GetLibrary()->GetTrue() : requestContext->GetLibrary()->GetFalse();
+    *propertyNameNumericValue = propertyRecord->IsNumeric() ? JavascriptNumber::ToVar(propertyRecord->GetNumericValue(), requestContext) : nullptr;
     return name;
 }
 
@@ -352,11 +381,13 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
     }
 
     Js::PropertyId propertyId = getPropertyId();
-    Js::Var propertyName = GetName(requestContext, propertyId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var getGetResult = threadContext->ExecuteImplicitCall(getGetMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
-        return CALL_FUNCTION(threadContext, getGetMethod, Js::CallInfo(Js::CallFlags_Value, 3), targetObj, propertyName, instance);
+        return CALL_FUNCTION(threadContext, getGetMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
     });
 
     Js::TypeId getResultTypeId = Js::JavascriptOperators::GetTypeId(getGetResult);
@@ -400,11 +431,13 @@ BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyIdFunc getPr
     }
 
     Js::PropertyId propertyId = getPropertyId();
-    Js::Var propertyName = GetName(requestContext, propertyId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var getHasResult = threadContext->ExecuteImplicitCall(hasMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
-        return CALL_FUNCTION(threadContext, hasMethod, Js::CallInfo(Js::CallFlags_Value, 2), targetObj, propertyName);
+        return CALL_FUNCTION(threadContext, hasMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
     });
 
     BOOL hasProperty = Js::JavascriptConversion::ToBoolean(getHasResult, requestContext);
@@ -485,13 +518,15 @@ BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId prope
         return TRUE;
     }
 
-    Js::Var propertyName = GetName(requestContext, propertyId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Assert(Js::JavascriptString::Is(propertyName) || Js::JavascriptSymbol::Is(propertyName));
 
     Js::Var getResult = threadContext->ExecuteImplicitCall(gOPDMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
-        return CALL_FUNCTION(threadContext, gOPDMethod, Js::CallInfo(Js::CallFlags_Value, 2), targetObj, propertyName);
+        return CALL_FUNCTION(threadContext, gOPDMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
     });
 
     Js::TypeId getResultTypeId = Js::JavascriptOperators::GetTypeId(getResult);
@@ -550,11 +585,13 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
         descVar = Js::JavascriptOperators::FromPropertyDescriptor(descriptor, requestContext);
     }
 
-    Js::Var propertyName = customObject->GetName(requestContext, propId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = customObject->GetName(requestContext, propId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var definePropertyResult = threadContext->ExecuteImplicitCall(defineOwnPropertyMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
-        return CALL_FUNCTION(threadContext, defineOwnPropertyMethod, Js::CallInfo(Js::CallFlags_Value, 3), targetObj, propertyName, descVar);
+        return CALL_FUNCTION(threadContext, defineOwnPropertyMethod, Js::CallInfo(Js::CallFlags_Value, 5), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue, descVar);
     });
 
     BOOL defineResult = Js::JavascriptConversion::ToBoolean(definePropertyResult, requestContext);
@@ -616,13 +653,15 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
-    Js::Var propertyName = GetName(requestContext, propertyId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     if (nullptr != setMethod)
     {
         Js::Var setPropertyResult = threadContext->ExecuteImplicitCall(setMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
         {
-            return CALL_FUNCTION(threadContext, setMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, newValue, receiver);
+            return CALL_FUNCTION(threadContext, setMethod, Js::CallInfo(Js::CallFlags_Value, 5), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue, newValue);
         });
 
         BOOL setResult = Js::JavascriptConversion::ToBoolean(setPropertyResult, requestContext);
@@ -1020,11 +1059,13 @@ BOOL CustomExternalWrapperObject::DeleteProperty(Js::PropertyId propertyId, Js::
         return __super::DeleteProperty(propertyId, flags);
     }
 
-    Js::Var propertyName = GetName(requestContext, propertyId);
+    Js::Var isPropertyNameNumeric;
+    Js::Var propertyNameNumericValue;
+    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var deletePropertyResult = threadContext->ExecuteImplicitCall(deleteMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
-        return CALL_FUNCTION(threadContext, deleteMethod, Js::CallInfo(Js::CallFlags_Value, 2), targetObj, propertyName);
+        return CALL_FUNCTION(threadContext, deleteMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
     });
 
     BOOL trapResult = Js::JavascriptConversion::ToBoolean(deletePropertyResult, requestContext);
