@@ -75,6 +75,8 @@ REGEX ANNOTATED AST /^token/ {
 REGEX PROGRAM /^token/
 Program {
     source:       ^token
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    1
     numLoops:     0
@@ -235,6 +237,8 @@ REGEX ANNOTATED AST /(\w)?^token/ {
 REGEX PROGRAM /(\w)?^token/
 Program {
     source:       (\w)?^token
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    2
     numLoops:     0
@@ -276,6 +280,8 @@ REGEX ANNOTATED AST /token/ {
 REGEX PROGRAM /token/
 Program {
     source:       token
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    1
     numLoops:     0
@@ -383,6 +389,8 @@ REGEX ANNOTATED AST /^^token/ {
 REGEX PROGRAM /^^token/
 Program {
     source:       ^^token
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    1
     numLoops:     0
@@ -469,6 +477,8 @@ REGEX ANNOTATED AST /token^/ {
 REGEX PROGRAM /token^/
 Program {
     source:       token^
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    1
     numLoops:     0
@@ -577,6 +587,8 @@ REGEX ANNOTATED AST /token^token/ {
 REGEX PROGRAM /token^token/
 Program {
     source:       token^token
+    litbuf:       tokentoken
+    litbufLen:    10
     flags:        
     numGroups:    1
     numLoops:     0
@@ -760,6 +772,8 @@ REGEX ANNOTATED AST /^token|^abc/ {
 REGEX PROGRAM /^token|^abc/
 Program {
     source:       ^token|^abc
+    litbuf:       tokenabc
+    litbufLen:    8
     flags:        
     numGroups:    1
     numLoops:     0
@@ -898,6 +912,8 @@ REGEX ANNOTATED AST /(?!token)^abc/ {
 REGEX PROGRAM /(?!token)^abc/
 Program {
     source:       (?!token)^abc
+    litbuf:       tokenabc
+    litbufLen:    8
     flags:        
     numGroups:    1
     numLoops:     0
@@ -1013,6 +1029,8 @@ REGEX ANNOTATED AST /(?=^abc)/ {
 REGEX PROGRAM /(?=^abc)/
 Program {
     source:       (?=^abc)
+    litbuf:       abc
+    litbufLen:    3
     flags:        
     numGroups:    1
     numLoops:     0
@@ -1127,6 +1145,8 @@ REGEX ANNOTATED AST /(^token)/ {
 REGEX PROGRAM /(^token)/
 Program {
     source:       (^token)
+    litbuf:       token
+    litbufLen:    5
     flags:        
     numGroups:    2
     numLoops:     0
@@ -1266,6 +1286,8 @@ REGEX ANNOTATED AST /(^a)+/ {
 REGEX PROGRAM /(^a)+/
 Program {
     source:       (^a)+
+    litbuf:       <NONE>
+    litbufLen:    0
     flags:        
     numGroups:    2
     numLoops:     1
@@ -1333,6 +1355,8 @@ REGEX ANNOTATED AST /(?=^)/ {
 REGEX PROGRAM /(?=^)/
 Program {
     source:       (?=^)
+    litbuf:       <NONE>
+    litbufLen:    0
     flags:        
     numGroups:    1
     numLoops:     0
@@ -1398,6 +1422,8 @@ REGEX ANNOTATED AST /(^)/ {
 REGEX PROGRAM /(^)/
 Program {
     source:       (^)
+    litbuf:       <NONE>
+    litbufLen:    0
     flags:        
     numGroups:    2
     numLoops:     0
@@ -1488,6 +1514,8 @@ REGEX ANNOTATED AST /(^)+/ {
 REGEX PROGRAM /(^)+/
 Program {
     source:       (^)+
+    litbuf:       <NONE>
+    litbufLen:    0
     flags:        
     numGroups:    2
     numLoops:     1
@@ -1554,6 +1582,8 @@ REGEX ANNOTATED AST /(?!^)/ {
 REGEX PROGRAM /(?!^)/
 Program {
     source:       (?!^)
+    litbuf:       <NONE>
+    litbufLen:    0
     flags:        
     numGroups:    1
     numLoops:     0
@@ -1667,6 +1697,8 @@ REGEX ANNOTATED AST /(?:^abc)+?/ {
 REGEX PROGRAM /(?:^abc)+?/
 Program {
     source:       (?:^abc)+?
+    litbuf:       abc
+    litbufLen:    3
     flags:        
     numGroups:    1
     numLoops:     1
