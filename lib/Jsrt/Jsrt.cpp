@@ -3009,27 +3009,8 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
         {
             Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(source);
             if (externalWrapper != nullptr) {
-                Js::CustomExternalWrapperType * externalType = externalWrapper->GetExternalType();
-                Js::JsSetterGetterInterceptor * originalInterceptors = externalType->GetJsSetterGetterInterceptor();
-                void * newInterceptors = originalInterceptors;
-                Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
-                    externalWrapper->GetSlotData(),
-                    externalWrapper->GetInlineSlotSize(),
-                    externalType->GetJsTraceCallback(),
-                    externalType->GetJsFinalizeCallback(),
-                    &newInterceptors,
-                    externalWrapper->GetPrototype(),
-                    scriptContext);
-                bool success = target->TryCopy(externalWrapper, true);
-
-                //TODO:akatti: We will always used a cached type, so the following code can be removed.
-                // If we are using type from the cache we don't need to copy the interceptors over.
-                if (newInterceptors != originalInterceptors)
-                {
-                    newInterceptors = new (newInterceptors) Js::JsSetterGetterInterceptor(originalInterceptors);
-                }
-
-                AssertOrFailFast(success);
+                Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Clone(externalWrapper, scriptContext);
+                Assert(target);
                 *newObject = target;
                 return JsNoError;
             }

@@ -74,6 +74,7 @@ namespace Js
         static CustomExternalWrapperObject * FromVar(Var value);
         static CustomExternalWrapperObject * UnsafeFromVar(Var value);
         static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, void ** setterGetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
+        static CustomExternalWrapperObject * Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext);
@@ -135,7 +136,7 @@ namespace Js
         } u;
 
         Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext * requestContext);
-        Var GetName(ScriptContext* requestContext, PropertyId propertyId);
+        Var GetName(ScriptContext* requestContext, PropertyId propertyId, Var * isPropertyNameNumeric, Var * propertyNameNumericValue);
 
         BOOL GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor * resultDescriptor, ScriptContext * requestContext);
 
