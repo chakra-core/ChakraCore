@@ -483,6 +483,21 @@ namespace Js
         Field(JsrtExternalTypesCache*) jsrtExternalTypesCache;
         Field(FunctionBody*) fakeGlobalFuncForUndefer;
 
+        struct CustomExternalWrapperCallbacks
+        {
+            CustomExternalWrapperCallbacks() : traceCallback(0), finalizeCallback(0), interceptors(0), prototype(0) {}
+            CustomExternalWrapperCallbacks(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype) : traceCallback(traceCallback), finalizeCallback(finalizeCallback), interceptors(interceptors), prototype(prototype) {}
+            uintptr_t traceCallback;
+            uintptr_t finalizeCallback;
+            uintptr_t interceptors;
+            uintptr_t prototype;
+
+            operator hash_t() const { return (hash_t)(traceCallback ^ finalizeCallback ^ interceptors ^ prototype); }
+        };
+        typedef JsUtil::WeakReferenceDictionary<CustomExternalWrapperCallbacks, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> CustomExternalWrapperTypesCache;
+
+        Field(CustomExternalWrapperTypesCache*) customExternalWrapperTypesCache;
+
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
 
         // Used to store a list of template callsite objects.
@@ -556,6 +571,7 @@ namespace Js
             throwerFunction(nullptr),
             jsrtContextObject(nullptr),
             jsrtExternalTypesCache(nullptr),
+            customExternalWrapperTypesCache(nullptr),
             fakeGlobalFuncForUndefer(nullptr),
             externalLibraryList(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
@@ -916,6 +932,8 @@ namespace Js
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors);
         DynamicType* GetCachedJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype);
         void CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype, DynamicType* dynamicType);
+        DynamicType* GetCachedCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype);
+        void CacheCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype, DynamicType* dynamicType);
         static DynamicTypeHandler * GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext);
         DynamicType * CreateDeferredPrototypeGeneratorFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared = false);

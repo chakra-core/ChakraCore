@@ -98,6 +98,7 @@ namespace Js
     class JavascriptBooleanObject;
     class JavascriptSymbol;
     class JavascriptSymbolObject;
+    class CustomExternalWrapperObject;
     class JavascriptProxy;
     class JavascriptReflect;
     class JavascriptEnumeratorIterator;
@@ -522,6 +523,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 
+#include "Library/CustomExternalWrapperObject.h"
 #include "Library/JavascriptProxy.h"
 
 #if ENABLE_TTD

@@ -4257,6 +4257,28 @@ namespace Js
         jsrtExternalTypesCache->Item(JsrtExternalCallbacks(traceCallback, finalizeCallback, prototype), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
 
+    DynamicType* JavascriptLibrary::GetCachedCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype)
+    {
+        RecyclerWeakReference<DynamicType>* dynamicTypeWeakRef = nullptr;
+        DynamicType* dynamicType = nullptr;
+        if (customExternalWrapperTypesCache == nullptr)
+        {
+            customExternalWrapperTypesCache = RecyclerNew(recycler, CustomExternalWrapperTypesCache, recycler, 3);
+            // Register for periodic cleanup
+            scriptContext->RegisterWeakReferenceDictionary(customExternalWrapperTypesCache);
+        }
+        if (customExternalWrapperTypesCache->TryGetValue(CustomExternalWrapperCallbacks(traceCallback, finalizeCallback, interceptors, prototype), &dynamicTypeWeakRef))
+        {
+            dynamicType = dynamicTypeWeakRef->Get();
+        }
+        return dynamicType;
+    }
+
+    void JavascriptLibrary::CacheCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype, DynamicType* dynamicTypeToCache)
+    {
+        customExternalWrapperTypesCache->Item(CustomExternalWrapperCallbacks(traceCallback, finalizeCallback, interceptors, prototype), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
+    }
+
     void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));

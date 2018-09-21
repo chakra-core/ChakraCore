@@ -40,6 +40,7 @@
 #include "Library/JavascriptVariantDate.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptSymbolObject.h"
+#include "Library/CustomExternalWrapperObject.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptReflect.h"
 #include "Library/JavascriptGenerator.h"

@@ -30,6 +30,10 @@
     JsGetGlobalObject
     JsCreateObject
     JsCreateExternalObject
+    JsCreateCustomExternalObject
+    JsCreateCustomExternalObjectWithPrototype
+    JsCreateTracedCustomExternalObjectWithPrototype
+    JsCreateTracedCustomExternalObjectWithPrototypeAndSlots
     JsConvertValueToObject
     JsGetPrototype
     JsSetPrototype
