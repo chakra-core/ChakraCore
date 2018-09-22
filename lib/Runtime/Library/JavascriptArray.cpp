@@ -9964,7 +9964,7 @@ Case0:
         {
             if (length == 0)
             {
-                JavascriptError::ThrowTypeError(scriptContext, VBSERR_ActionNotSupported);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
             }
 
             bool bPresent = false;
@@ -9999,7 +9999,7 @@ Case0:
 
             if (bPresent == false)
             {
-                JavascriptError::ThrowTypeError(scriptContext, VBSERR_ActionNotSupported);
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
             }
         }
 
