@@ -2090,11 +2090,6 @@ case_2:
             return mainString;
         }
 
-        if (maxLength > JavascriptString::MaxCharLength)
-        {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
-        }
-
         JavascriptString * fillerString = nullptr;
         if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
         {
@@ -2107,6 +2102,11 @@ case_2:
             {
                 return mainString;
             }
+        }
+
+        if (maxLength > JavascriptString::MaxCharLength)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
         }
 
         if (fillerString == nullptr)
