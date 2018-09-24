@@ -1699,6 +1699,7 @@ namespace Js
 
     BOOL JavascriptProxy::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext)
     {
+        // #sec-proxy-object-internal-methods-and-internal-slots-defineownproperty-p-desc
         PROBE_STACK(requestContext, Js::Constants::MinStackDefault);
 
         // Reject implicit call
@@ -1712,10 +1713,11 @@ namespace Js
         JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
 
         //1. Assert: IsPropertyKey(P) is true.
-        //2. Let handler be the value of the[[ProxyHandler]] internal slot of O.
+        //2. Let handler be O.[[ProxyHandler]].
         RecyclableObject *handlerObj = proxy->MarshalHandler(requestContext);
 
         //3. If handler is null, then throw a TypeError exception.
+        //4. Assert: Type(handler) is Object.
         if (handlerObj == nullptr)
         {
             // the proxy has been revoked; TypeError.
@@ -1724,13 +1726,12 @@ namespace Js
             JavascriptError::ThrowTypeError(requestContext, JSERR_ErrorOnRevokedProxy, _u("definePropertyDescriptor"));
         }
 
-        //4. Let target be the value of the[[ProxyTarget]] internal slot of O.
+        //5. Let target be O.[[ProxyTarget]].
         RecyclableObject *targetObj = proxy->MarshalTarget(requestContext);
 
-        //5. Let trap be the result of GetMethod(handler, "defineProperty").
-        //6. ReturnIfAbrupt(trap).
+        //6. Let trap be ? GetMethod(handler, "defineProperty").
         //7. If trap is undefined, then
-        //a.Return the result of calling the[[DefineOwnProperty]] internal method of target with arguments P and Desc.
+        //a. Return ? target.[[DefineOwnProperty]](P, Desc).
         JavascriptFunction* defineOwnPropertyMethod = proxy->GetMethodHelper(PropertyIds::defineProperty, requestContext);
 
         Assert(!requestContext->IsHeapEnumInProgress());
@@ -1740,18 +1741,10 @@ namespace Js
         }
 
         //8. Let descObj be FromPropertyDescriptor(Desc).
-        //9. NOTE If Desc was originally generated from an object using ToPropertyDescriptor, then descObj will be that original object.
-        //10. Let trapResult be the result of calling the[[Call]] internal method of trap with handler as the this value and a new List containing target, P, and descObj.
-        //11. Let booleanTrapResult be ToBoolean(trapResult).
-        //12. ReturnIfAbrupt(booleanTrapResult).
-        //13. If booleanTrapResult is false, then return false.
-        //14. Let targetDesc be the result of calling the[[GetOwnProperty]] internal method of target with argument P.
-        //15. ReturnIfAbrupt(targetDesc).
-        Var descVar = descriptor.GetOriginal();
-        if (descVar == nullptr)
-        {
-            descVar = JavascriptOperators::FromPropertyDescriptor(descriptor, requestContext);
-        }
+        //9. Let booleanTrapResult be ToBoolean(? Call(trap, handler, << target, P, descObj >> )).
+        //10. If booleanTrapResult is false, then return false.
+        //11. Let targetDesc be ? target.[[GetOwnProperty]](P).
+        Var descVar = JavascriptOperators::FromPropertyDescriptor(descriptor, requestContext);
 
         Var propertyName = GetName(requestContext, propId);
 
@@ -1766,18 +1759,17 @@ namespace Js
             return defineResult;
         }
 
-        //16. Let extensibleTarget be the result of IsExtensible(target).
-        //17. ReturnIfAbrupt(extensibleTarget).
-        //18. If Desc has a[[Configurable]] field and if Desc.[[Configurable]] is false, then
+        //12. Let extensibleTarget be ? IsExtensible(target).
+        //13. If Desc has a[[Configurable]] field and if Desc.[[Configurable]] is false, then
         //    a.Let settingConfigFalse be true.
-        //19. Else let settingConfigFalse be false.
-        //20. If targetDesc is undefined, then
+        //14. Else let settingConfigFalse be false.
+        //15. If targetDesc is undefined, then
         //    a.If extensibleTarget is false, then throw a TypeError exception.
         //    b.If settingConfigFalse is true, then throw a TypeError exception.
-        //21. Else targetDesc is not undefined,
+        //16. Else targetDesc is not undefined,
         //    a.If IsCompatiblePropertyDescriptor(extensibleTarget, Desc, targetDesc) is false, then throw a TypeError exception.
         //    b.If settingConfigFalse is true and targetDesc.[[Configurable]] is true, then throw a TypeError exception.
-        //22. Return true.
+        //17. Return true.
         PropertyDescriptor targetDescriptor;
         BOOL hasProperty = JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propId, requestContext, &targetDescriptor);
         BOOL isExtensible = targetObj->IsExtensible();
