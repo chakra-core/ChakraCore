@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+    <script type="module">
+    import; // expected: syntax error, actual: Exception thrown and not caught
+    console.log(test);
+    </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+    <script type="module">
+    import test from "./test"; // expected: syntax error, actual: silent failure
+    console.log(test);
+    </script>
+</body>
+</html>
+
+// test.js
+var a = 0;
+export { a as default };
+import; // line with syntax error
