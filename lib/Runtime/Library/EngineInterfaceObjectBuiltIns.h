@@ -90,6 +90,8 @@ GlobalBuiltIn(JavascriptString, Substring)
 GlobalBuiltIn(JavascriptString, Repeat)
 GlobalBuiltIn(JavascriptString, IndexOf)
 
+GlobalBuiltIn(JavascriptNumber, IsNaN)
+
 GlobalBuiltIn(GlobalObject, IsFinite) // TODO(jahorto): consider switching to Number.isFinite
 GlobalBuiltIn(GlobalObject, IsNaN) // TODO(jahorto): consider switching to Number.isNaN
 GlobalBuiltIn(GlobalObject, Eval) // TODO(jahorto): consider deleting (currently used by WinRT Promises)
