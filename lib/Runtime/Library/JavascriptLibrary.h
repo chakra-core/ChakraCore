@@ -158,35 +158,6 @@ namespace Js
     };
 #endif
 
-    template <typename T>
-    struct StringTemplateCallsiteObjectComparer
-    {
-        static bool Equals(T x, T y)
-        {
-            static_assert(false, "Unexpected type T");
-        }
-        static hash_t GetHashCode(T i)
-        {
-            static_assert(false, "Unexpected type T");
-        }
-    };
-
-    template <>
-    struct StringTemplateCallsiteObjectComparer<ParseNodePtr>
-    {
-        static bool Equals(ParseNodePtr x, RecyclerWeakReference<Js::RecyclableObject>* y);
-        static bool Equals(ParseNodePtr x, ParseNodePtr y);
-        static hash_t GetHashCode(ParseNodePtr i);
-    };
-
-    template <>
-    struct StringTemplateCallsiteObjectComparer<RecyclerWeakReference<Js::RecyclableObject>*>
-    {
-        static bool Equals(RecyclerWeakReference<Js::RecyclableObject>* x, RecyclerWeakReference<Js::RecyclableObject>* y);
-        static bool Equals(RecyclerWeakReference<Js::RecyclableObject>* x, ParseNodePtr y);
-        static hash_t GetHashCode(RecyclerWeakReference<Js::RecyclableObject>* o);
-    };
-
     class JavascriptLibrary : public JavascriptLibraryBase
     {
         friend class EditAndContinue;
@@ -475,13 +446,6 @@ namespace Js
         Field(JsrtExternalTypesCache*) jsrtExternalTypesCache;
         Field(FunctionBody*) fakeGlobalFuncForUndefer;
 
-        typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
-
-        // Used to store a list of template callsite objects.
-        // We use the raw strings in the callsite object (or a string template parse node) to identify unique callsite objects in the list.
-        // See abstract operation GetTemplateObject in ES6 Spec (RC1) 12.2.8.3
-        Field(StringTemplateCallsiteObjectList*) stringTemplateCallsiteObjectList;
-
         Field(ModuleRecordList*) moduleRecordList;
 
         Field(OnlyWritablePropertyProtoChainCache) typesWithOnlyWritablePropertyProtoChain;
@@ -558,7 +522,6 @@ namespace Js
             cacheForCopyOnAccessArraySegments(nullptr),
 #endif
             referencedPropertyRecords(nullptr),
-            stringTemplateCallsiteObjectList(nullptr),
             moduleRecordList(nullptr),
             rootPath(nullptr),
             bindRefChunkBegin(nullptr),
@@ -1061,12 +1024,7 @@ namespace Js
         static bool IsCachedCopyOnAccessArrayCallSite(const JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo);
         template <typename T>
         static void CheckAndConvertCopyOnAccessNativeIntArray(const T instance);
-#endif
-
-        void EnsureStringTemplateCallsiteObjectList();
-        void AddStringTemplateCallsiteObject(RecyclableObject* callsite);
-        RecyclableObject* TryGetStringTemplateCallsiteObject(ParseNodePtr pnode);
-        RecyclableObject* TryGetStringTemplateCallsiteObject(RecyclableObject* callsite);
+#endif    
 
         static void CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext);
 
