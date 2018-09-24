@@ -2677,9 +2677,156 @@ LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
     return false;
 }
 
-bool LowererMD::GenerateFastCmXxI4(IR::Instr *instr)
+void LowererMD::GenerateFastCmXxI4(IR::Instr *instr)
 {
-    return this->GenerateFastCmXxTaggedInt(instr);
+    this->GenerateFastCmXx(instr);
+}
+
+void LowererMD::GenerateFastCmXxR8(IR::Instr *instr)
+{
+    this->GenerateFastCmXx(instr);
+}
+
+void LowererMD::GenerateFastCmXx(IR::Instr *instr)
+{
+    // For float src:
+    // LDIMM dst, trueResult
+    // FCMP src1, src2
+    // - BVS $done (NaN check iff B.cond is BNE)
+    // B.cond $done
+    // LDIMM dst, falseResult
+    // $done
+
+    // For Int src:
+    // LDIMM dst, trueResult
+    // CMP src1, src2
+    // B.cond $done
+    // LDIMM dst, falseResult
+    // $done:
+
+    IR::Opnd * src1 = instr->UnlinkSrc1();
+    IR::Opnd * src2 = instr->UnlinkSrc2();
+    IR::Opnd * dst = instr->UnlinkDst();
+    bool isIntDst = dst->AsRegOpnd()->m_sym->IsInt32();
+    bool isFloatSrc = src1->IsFloat();
+    Assert(!isFloatSrc || src2->IsFloat());
+    Assert(!src1->IsInt64() || src2->IsInt64());
+    Assert(!isFloatSrc || AutoSystemInfo::Data.SSE2Available());
+    Assert(src1->IsRegOpnd());
+    IR::Opnd * opndTrue;
+    IR::Opnd * opndFalse;
+    IR::Instr * newInstr;
+    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+
+    if (dst->IsEqual(src1))
+    {
+        IR::RegOpnd *newSrc1 = IR::RegOpnd::New(src1->GetType(), m_func);
+        Lowerer::InsertMove(newSrc1, src1, instr);
+        src1 = newSrc1;
+    }
+
+    if (dst->IsEqual(src2))
+    {
+        IR::RegOpnd *newSrc2 = IR::RegOpnd::New(src1->GetType(), m_func);
+        Lowerer::InsertMove(newSrc2, src2, instr);
+        src2 = newSrc2;
+    }
+
+    if (isIntDst)
+    {
+        opndTrue = IR::IntConstOpnd::New(1, TyInt32, this->m_func);
+        opndFalse = IR::IntConstOpnd::New(0, TyInt32, this->m_func);
+    }
+    else
+    {
+        opndTrue = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue);
+        opndFalse = this->m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse);
+    }
+
+    Lowerer::InsertMove(dst, opndTrue, instr);
+
+    // CMP src1, src2
+    newInstr = IR::Instr::New(isFloatSrc ? Js::OpCode::FCMP : Js::OpCode::CMP, this->m_func);
+    newInstr->SetSrc1(src1);
+    newInstr->SetSrc2(src2);
+    instr->InsertBefore(newInstr);
+    LowererMD::Legalize(newInstr);
+
+    bool addNaNCheck = false;
+    Js::OpCode opcode = Js::OpCode::InvalidOpCode;
+
+    switch (instr->m_opcode)
+    {
+        case Js::OpCode::CmEq_A:
+        case Js::OpCode::CmSrEq_A:
+        case Js::OpCode::CmEq_I4:
+            opcode = Js::OpCode::BEQ;
+            break;
+
+        case Js::OpCode::CmNeq_A:
+        case Js::OpCode::CmSrNeq_A:
+        case Js::OpCode::CmNeq_I4:
+            opcode = Js::OpCode::BNE;
+            addNaNCheck = isFloatSrc;
+            break;
+
+        case Js::OpCode::CmGt_A:
+        case Js::OpCode::CmGt_I4:
+            opcode = Js::OpCode::BGT;
+            break;
+
+        case Js::OpCode::CmGe_A:
+        case Js::OpCode::CmGe_I4:
+            opcode = Js::OpCode::BGE;
+            break;
+
+        case Js::OpCode::CmLt_A:
+        case Js::OpCode::CmLt_I4:
+            //Can't use BLT  as is set when the operands are unordered (NaN).
+            opcode = isFloatSrc ? Js::OpCode::BCC : Js::OpCode::BLT;
+            break;
+
+        case Js::OpCode::CmLe_A:
+        case Js::OpCode::CmLe_I4:
+            //Can't use BLE as it is set when the operands are unordered (NaN).
+            opcode = isFloatSrc ? Js::OpCode::BLS : Js::OpCode::BLE;
+            break;
+
+        case Js::OpCode::CmUnGt_A:
+        case Js::OpCode::CmUnGt_I4:
+            opcode = Js::OpCode::BHI;
+            break;
+
+        case Js::OpCode::CmUnGe_A:
+        case Js::OpCode::CmUnGe_I4:
+            opcode = Js::OpCode::BCS;
+            break;
+
+        case Js::OpCode::CmUnLt_A:
+        case Js::OpCode::CmUnLt_I4:
+            opcode = Js::OpCode::BCC;
+            break;
+
+        case Js::OpCode::CmUnLe_A:
+        case Js::OpCode::CmUnLe_I4:
+            opcode = Js::OpCode::BLS;
+            break;
+
+        default: Assert(false);
+    }
+
+    if (addNaNCheck)
+    {
+        newInstr = IR::BranchInstr::New(Js::OpCode::BVS, done, m_func);
+        instr->InsertBefore(newInstr);
+    }
+
+    newInstr = IR::BranchInstr::New(opcode, done, m_func);
+    instr->InsertBefore(newInstr);
+
+    Lowerer::InsertMove(dst, opndFalse, instr);
+    instr->InsertBefore(done);
+    instr->Remove();
 }
 
 ///----------------------------------------------------------------------------
@@ -2804,6 +2951,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* 
         Lowerer::InsertMove(newSrc1, src1, instr);
         src1 = newSrc1;
     }
+
     if (dst->IsEqual(src2))
     {
         IR::RegOpnd *newSrc2 = IR::RegOpnd::New(TyMachReg, m_func);
