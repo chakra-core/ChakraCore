@@ -3210,16 +3210,7 @@ public:
         callsite->SetPropertyWithAttributes(Js::PropertyIds::raw, rawArray, PropertyNone, nullptr);
         callsite->Freeze();
 
-        JavascriptLibrary* library = scriptContext->GetLibrary();
-
-        var = library->TryGetStringTemplateCallsiteObject(callsite);
-
-        if (var == nullptr)
-        {
-            library->AddStringTemplateCallsiteObject(callsite);
-            var = callsite;
-        }
-
+        var = callsite;
         LEAVE_PINNED_SCOPE();
 
         return current;

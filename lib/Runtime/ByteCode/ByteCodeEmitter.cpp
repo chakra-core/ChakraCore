@@ -5692,20 +5692,13 @@ void ByteCodeGenerator::RecordAllStringTemplateCallsiteConstants(FuncInfo* funcI
     funcInfo->stringTemplateCallsiteRegisterMap.Map([byteCodeFunction](ParseNodePtr pnode, Js::RegSlot location)
     {
         Js::ScriptContext* scriptContext = byteCodeFunction->GetScriptContext();
-        Js::JavascriptLibrary* library = scriptContext->GetLibrary();
-        Js::RecyclableObject* callsiteObject = library->TryGetStringTemplateCallsiteObject(pnode);
+        
+        Js::RecyclableObject* rawArray = ByteCodeGenerator::BuildArrayFromStringList(pnode->AsParseNodeStrTemplate()->pnodeStringRawLiterals, pnode->AsParseNodeStrTemplate()->countStringLiterals, scriptContext);
+        rawArray->Freeze();
 
-        if (callsiteObject == nullptr)
-        {
-            Js::RecyclableObject* rawArray = ByteCodeGenerator::BuildArrayFromStringList(pnode->AsParseNodeStrTemplate()->pnodeStringRawLiterals, pnode->AsParseNodeStrTemplate()->countStringLiterals, scriptContext);
-            rawArray->Freeze();
-
-            callsiteObject = ByteCodeGenerator::BuildArrayFromStringList(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals, pnode->AsParseNodeStrTemplate()->countStringLiterals, scriptContext);
-            callsiteObject->SetPropertyWithAttributes(Js::PropertyIds::raw, rawArray, PropertyNone, nullptr);
-            callsiteObject->Freeze();
-
-            library->AddStringTemplateCallsiteObject(callsiteObject);
-        }
+        Js::RecyclableObject* callsiteObject = ByteCodeGenerator::BuildArrayFromStringList(pnode->AsParseNodeStrTemplate()->pnodeStringLiterals, pnode->AsParseNodeStrTemplate()->countStringLiterals, scriptContext);
+        callsiteObject->SetPropertyWithAttributes(Js::PropertyIds::raw, rawArray, PropertyNone, nullptr);
+        callsiteObject->Freeze();
 
         byteCodeFunction->RecordConstant(byteCodeFunction->MapRegSlot(location), callsiteObject);
     });
