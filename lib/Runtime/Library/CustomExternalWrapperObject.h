@@ -112,7 +112,8 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, PropertyId propertyId, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck = FALSE);
+        template <class GetPropertyNameFunc>
+        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck = FALSE);
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, JavascriptString * propertyString, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags);
 
         JavascriptArray * PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext * requestContext);
@@ -140,11 +141,11 @@ namespace Js
 
         BOOL GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor * resultDescriptor, ScriptContext * requestContext);
 
-        template <class Fn, class GetPropertyIdFunc>
-        BOOL GetPropertyTrap(Var instance, PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyIdFunc getPropertyId, ScriptContext * requestContext);
+        template <class Fn, class GetPropertyNameFunc>
+        BOOL GetPropertyTrap(Var instance, PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, ScriptContext * requestContext);
 
-        template <class Fn, class GetPropertyIdFunc>
-        BOOL HasPropertyTrap(Fn fn, GetPropertyIdFunc getPropertyId);
+        template <class Fn, class GetPropertyNameFunc>
+        BOOL HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext * scriptContext, RecyclableObject * trapResultArray, uint32 len, JavascriptArray * trapResult,

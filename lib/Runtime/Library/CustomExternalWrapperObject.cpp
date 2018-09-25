@@ -354,8 +354,8 @@ Js::Var CustomExternalWrapperObject::GetName(Js::ScriptContext* requestContext, 
     return name;
 }
 
-template <class Fn, class GetPropertyIdFunc>
-BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyIdFunc getPropertyId, Js::ScriptContext * requestContext)
+template <class Fn, class GetPropertyNameFunc>
+BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, Js::ScriptContext * requestContext)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -380,10 +380,9 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
         return fn(targetObj);
     }
 
-    Js::PropertyId propertyId = getPropertyId();
     Js::Var isPropertyNameNumeric;
     Js::Var propertyNameNumericValue;
-    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
+    Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var getGetResult = threadContext->ExecuteImplicitCall(getGetMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
@@ -400,8 +399,8 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
     return TRUE;
 }
 
-template <class Fn, class GetPropertyIdFunc>
-BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyIdFunc getPropertyId)
+template <class Fn, class GetPropertyNameFunc>
+BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -430,10 +429,9 @@ BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyIdFunc getPr
         return fn(targetObj);
     }
 
-    Js::PropertyId propertyId = getPropertyId();
     Js::Var isPropertyNameNumeric;
     Js::Var propertyNameNumericValue;
-    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
+    Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     Js::Var getHasResult = threadContext->ExecuteImplicitCall(hasMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
@@ -449,10 +447,11 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::HasPropertyQuery(Js::Propert
     auto fn = [&](RecyclableObject* object)->BOOL {
         return Js::JavascriptOperators::HasProperty(object, propertyId);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {
-        return propertyId;
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
     };
-    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyId));
+    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName));
 }
 
 BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId propertyId, Js::PropertyDescriptor* resultDescriptor, Js::ScriptContext* requestContext)
@@ -627,12 +626,17 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
 
 BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags)
 {
-    const Js::PropertyRecord* propertyRecord;
-    requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
-    return SetPropertyTrap(receiver, setPropertyTrapKind, propertyRecord->GetPropertyId(), newValue, requestContext, propertyOperationFlags);
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        const Js::PropertyRecord* propertyRecord;
+        propertyNameString->GetPropertyRecord(&propertyRecord);
+        return GetName(requestContext, propertyRecord->GetPropertyId(), isPropertyNameNumeric, propertyNameNumericValue);
+    };
+    return SetPropertyTrap(receiver, setPropertyTrapKind, getPropertyName, newValue, requestContext, propertyOperationFlags);
 }
 
-BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::PropertyId propertyId, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck)
+template <class GetPropertyNameFunc>
+BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -655,7 +659,7 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
     Js::Var isPropertyNameNumeric;
     Js::Var propertyNameNumericValue;
-    Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
+    Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
     if (nullptr != setMethod)
     {
@@ -679,9 +683,12 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::GetProperty(originalInstance, object, propertyId, value, requestContext, nullptr);
     };
-    auto getPropertyId = [&]()->Js::PropertyId {return propertyId; };
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
+    };
     Js::PropertyDescriptor result;
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -701,13 +708,16 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::GetPropertyWPCache<false /* OutputExistence */>(originalInstance, object, propertyNameString, value, requestContext, info);
     };
-    auto getPropertyId = [&]()->Js::PropertyId {
+
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
         const Js::PropertyRecord* propertyRecord;
-        requestContext->GetOrAddPropertyRecord(propertyNameString, &propertyRecord);
-        return propertyRecord->GetPropertyId();
+        propertyNameString->GetPropertyRecord(&propertyRecord);
+        return GetName(requestContext, propertyRecord->GetPropertyId(), isPropertyNameNumeric, propertyNameNumericValue);
     };
+
     Js::PropertyDescriptor result;
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -727,9 +737,14 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyReferenceQuery(Js
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::GetPropertyReference(originalInstance, object, propertyId, value, requestContext, nullptr);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {return propertyId; };
+
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
+    };
+
     Js::PropertyDescriptor result;
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -743,28 +758,33 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyReferenceQuery(Js
 
 Js::PropertyQueryFlags CustomExternalWrapperObject::HasItemQuery(uint32 index)
 {
-    const Js::PropertyRecord * propertyRecord;
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::HasItem(object, index);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {
-        PropertyIdFromInt(index, &propertyRecord);
-        return propertyRecord->GetPropertyId();
+
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        *isPropertyNameNumeric = requestContext->GetLibrary()->GetTrue();
+        *propertyNameNumericValue = JavascriptNumber::ToVar(index, requestContext);
+        return nullptr;
     };
-    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyId));
+
+    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName));
 }
 
 BOOL CustomExternalWrapperObject::HasOwnItem(uint32 index)
 {
-    const Js::PropertyRecord* propertyRecord;
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::HasOwnItem(object, index);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {
-        PropertyIdFromInt(index, &propertyRecord);
-        return propertyRecord->GetPropertyId();
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        *isPropertyNameNumeric = requestContext->GetLibrary()->GetTrue();
+        *propertyNameNumericValue = JavascriptNumber::ToVar(index, requestContext);
+        return nullptr;
     };
-    return HasPropertyTrap(fn, getPropertyId);
+
+    return HasPropertyTrap(fn, getPropertyName);
 }
 
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext)
@@ -772,17 +792,19 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var origina
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
     originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
 
-    const Js::PropertyRecord* propertyRecord;
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::GetItem(originalInstance, object, index, value, requestContext);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {
-        PropertyIdFromInt(index, &propertyRecord);
-        return propertyRecord->GetPropertyId();
+
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        *isPropertyNameNumeric = requestContext->GetLibrary()->GetTrue();
+        *propertyNameNumericValue = JavascriptNumber::ToVar(index, requestContext);
+        return nullptr;
     };
 
     Js::PropertyDescriptor result;
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingItemResult();
@@ -799,17 +821,19 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemReferenceQuery(Js::Va
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
     originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
 
-    const Js::PropertyRecord* propertyRecord;
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
         return Js::JavascriptOperators::GetItem(originalInstance, object, index, value, requestContext);
     };
-    auto getPropertyId = [&]() -> Js::PropertyId {
-        PropertyIdFromInt(index, &propertyRecord);
-        return propertyRecord->GetPropertyId();
+
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        *isPropertyNameNumeric = requestContext->GetLibrary()->GetTrue();
+        *propertyNameNumericValue = JavascriptNumber::ToVar(index, requestContext);
+        return nullptr;
     };
 
     Js::PropertyDescriptor result;
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyId, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingItemResult();
@@ -824,12 +848,15 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemReferenceQuery(Js::Va
 BOOL CustomExternalWrapperObject::SetItem(uint32 index, Js::Var value, Js::PropertyOperationFlags flags)
 {
     if (!this->VerifyObjectAlive()) return FALSE;
-    //value = Js::CrossSite::MarshalVar(GetScriptContext(), value);
 
-    const PropertyRecord* propertyRecord = nullptr;
-    PropertyIdFromInt(index, &propertyRecord);
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        *isPropertyNameNumeric = requestContext->GetLibrary()->GetTrue();
+        *propertyNameNumericValue = JavascriptNumber::ToVar(index, requestContext);
+        return nullptr;
+    };
 
-    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetItemKind, propertyRecord->GetPropertyId(), value, GetScriptContext(), flags);
+    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetItemKind, getPropertyName, value, GetScriptContext(), flags);
     if (!trapResult)
     {
         return Js::DynamicObject::SetItem(index, value, flags);
@@ -967,7 +994,12 @@ BOOL CustomExternalWrapperObject::SetProperty(Js::PropertyId propertyId, Js::Var
     //value = Js::CrossSite::MarshalVar(GetScriptContext(), value);
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, propertyId, value, GetScriptContext(), flags);
+    auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
+    {
+        return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
+    };
+
+    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, getPropertyName, value, GetScriptContext(), flags);
     if (!trapResult)
     {
         ThreadContext* threadContext = GetScriptContext()->GetThreadContext();

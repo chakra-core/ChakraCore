@@ -1517,10 +1517,10 @@ CHAKRA_API JsPreventExtension(_In_ JsValueRef object)
 }
 
 CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
-    _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty)
+    _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty, _In_opt_ Js::PropertyString * propString)
 {
     *hasOwnProperty = Js::JavascriptOperators::OP_HasOwnProperty(object,
-        propertyRecord->GetPropertyId(), scriptContext) != 0;
+        propertyRecord->GetPropertyId(), scriptContext, propString) != 0;
 
     return JsNoError;
 }
@@ -1528,7 +1528,7 @@ CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValu
 CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId,
     _Out_ bool *hasOwnProperty)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext,
         TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasOwnProperty, (const Js::PropertyRecord *)propertyId, object);
 
@@ -1538,7 +1538,7 @@ CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
         *hasOwnProperty = false;
 
         return JsHasOwnPropertyCommon(scriptContext, object,
-            (const Js::PropertyRecord *)propertyId, hasOwnProperty);
+            (const Js::PropertyRecord *)propertyId, hasOwnProperty, nullptr);
     });
 }
 
@@ -1585,7 +1585,7 @@ CHAKRA_API JsObjectHasOwnProperty(_In_ JsValueRef object, _In_ JsValueRef proper
             return errorValue;
         }
 
-        return JsHasOwnPropertyCommon(scriptContext, object, propertyRecord, hasOwnProperty);
+        return JsHasOwnPropertyCommon(scriptContext, object, propertyRecord, hasOwnProperty, Js::PropertyString::Is(propertyId) ? (Js::PropertyString*)propertyId : nullptr);
     });
 }
 #endif

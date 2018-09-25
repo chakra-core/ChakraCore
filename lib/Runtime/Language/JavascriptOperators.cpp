@@ -1595,12 +1595,12 @@ CommonNumber:
         JIT_HELPER_END(Op_HasProperty);
     }
 
-    BOOL JavascriptOperators::OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext, _In_opt_ PropertyString * propString)
     {
         RecyclableObject* object = TaggedNumber::Is(instance) ?
             scriptContext->GetLibrary()->GetNumberPrototype() :
             RecyclableObject::FromVar(instance);
-        BOOL result = HasOwnProperty(object, propertyId, scriptContext, nullptr);
+        BOOL result = HasOwnProperty(object, propertyId, scriptContext, propString);
         return result;
     }
 
