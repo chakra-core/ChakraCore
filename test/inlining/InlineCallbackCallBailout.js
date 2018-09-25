@@ -22,3 +22,36 @@ function DispatchBailout(arg)
 DispatchBailout([1]);
 DispatchBailout([1]);
 DispatchBailout([1.1]);
+
+// test bail out from having a different callback function
+function foo()
+{
+    WScript.Echo("foo");
+};
+
+function Dispatch(callback)
+{
+    callback.call(undefined);
+}
+
+function CallDispatch(callback)
+{
+    Dispatch(callback);
+}
+
+CallDispatch(foo);
+CallDispatch(foo);
+CallDispatch(foo);
+
+// BailOutOnInlineFunction
+CallDispatch(function() { WScript.Echo("bar"); });
+
+CallDispatch(foo);
+
+// tautological statement makes function.call a non-fixed method. Test CheckFixedFld bailout.
+Function.prototype.call = Function.prototype.call;
+CallDispatch(foo)
+CallDispatch(foo)
+
+// rejit, not inlining callback.call
+CallDispatch(foo)
