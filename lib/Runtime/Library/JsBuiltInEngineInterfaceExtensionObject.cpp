@@ -370,10 +370,8 @@ FUNCTIONKIND_VALUES(VALUE)
         case FunctionKind::Array_reduce:
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
             break;
-        case FunctionKind::Array_flat:
-            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryMap, func);
-            break;
         // FunctionKinds with no entry functions
+        case FunctionKind::Array_flat:
         case FunctionKind::Array_flatMap:
         case FunctionKind::Object_fromEntries:
             break;
