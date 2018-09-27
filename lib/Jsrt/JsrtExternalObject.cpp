@@ -23,7 +23,7 @@ JsrtExternalType::JsrtExternalType(Js::ScriptContext* scriptContext, JsTraceCall
 }
 
 JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data, uint inlineSlotSize) :
-    Js::DynamicObject(type, false/* initSlots*/)
+    Js::DynamicObject(type, true /* initSlots*/)
 {
     if (inlineSlotSize != 0)
     {
@@ -60,7 +60,6 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, 
     }
 
     Assert(type->IsJsrtExternal());
-    Assert(type->GetIsShared());
 
     JsrtExternalObject * externalObject;
     if (traceCallback != nullptr)
