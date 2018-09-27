@@ -32,6 +32,7 @@ namespace Js
         virtual BOOL EnsureProperty(PropertyId propertyId) override;
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override sealed;
         virtual BOOL HasOwnPropertyCheckNoRedecl(PropertyId propertyId) override sealed;
+        void EnsureCanDeclGloFunc(PropertyId propertyId);
 
         // These are special "Root" versions of the property APIs that allow access
         // to global let and const variables, which are stored as properties on the

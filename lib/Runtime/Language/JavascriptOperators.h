@@ -173,6 +173,7 @@ namespace Js
         static BOOL EnsureProperty(Var instance, PropertyId propertyId);
         static void OP_EnsureNoRootProperty(Var instance, PropertyId propertyId);
         static void OP_EnsureNoRootRedeclProperty(Var instance, PropertyId propertyId);
+        static void OP_EnsureCanDeclGloFunc(Var instance, PropertyId propertyId);
         static void OP_ScopedEnsureNoRedeclProperty(FrameDisplay *pDisplay, PropertyId propertyId, Var instanceDefault);
         static JavascriptArray*  GetOwnPropertyNames(Var instance, ScriptContext *scriptContext);
         static JavascriptArray*  GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext);

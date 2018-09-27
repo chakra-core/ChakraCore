@@ -630,6 +630,11 @@ namespace Js
                 Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
                 break;
             }
+            case OpCode::EnsureCanDeclGloFunc:
+            {
+                Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
+                break;
+            }
             case OpCode::LdLocalElemUndef:
             {
                 Output::Print(_u(" %s = undefined"), pPropertyName->GetBuffer());

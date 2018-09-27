@@ -5588,9 +5588,16 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncI
         });
     }
 
-    auto emitRedeclCheck = [this](Symbol * sym, FuncInfo * funcInfo)
+    auto emitRedeclCheck = [this](Symbol * sym, FuncInfo * funcInfo, bool isFncDecl = false)
     {
         Js::PropertyId propertyId = sym->EnsurePosition(this);
+
+        // Global function declarations must pass #sec-candeclareglobalfunction
+        // which is enforced by EnsureCanDeclGloFunc
+        if (isFncDecl)
+        {
+            this->m_writer.ElementRootU(Js::OpCode::EnsureCanDeclGloFunc, funcInfo->FindOrAddReferencedPropertyId(propertyId));
+        }
 
         if (this->flags & fscrEval)
         {
@@ -5615,7 +5622,7 @@ void ByteCodeGenerator::EnsureNoRedeclarations(ParseNodeBlock *pnodeBlock, FuncI
         case knopFncDecl:
             if (pnode->AsParseNodeFnc()->IsDeclaration())
             {
-                emitRedeclCheck(pnode->AsParseNodeFnc()->pnodeName->sym, funcInfo);
+                emitRedeclCheck(pnode->AsParseNodeFnc()->pnodeName->sym, funcInfo, true);
             }
 
             pnode = pnode->AsParseNodeFnc()->pnodeNext;

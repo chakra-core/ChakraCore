@@ -2491,6 +2491,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerElementUndefined(instr, IR::HelperOp_EnsureNoRootRedeclProperty);
             break;
 
+        case Js::OpCode::EnsureCanDeclGloFunc:
+            this->LowerElementUndefined(instr, IR::HelperOp_EnsureCanDeclGloFunc);
+            break;
+
         case Js::OpCode::ScopedEnsureNoRedeclFld:
             this->LowerElementUndefinedScoped(instr, IR::HelperOp_EnsureNoRedeclPropertyScoped);
             break;
