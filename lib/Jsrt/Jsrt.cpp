@@ -3730,26 +3730,40 @@ JsErrorCode GetScriptBufferDetails(
     }
     const bool isUtf8 = !isString && !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
-    *script = isExternalArray ?
-        ((Js::ExternalArrayBuffer*)(scriptVal))->GetBuffer() :
-        (const byte*)((Js::JavascriptString*)(scriptVal))->GetSz();
-    *cb = isExternalArray ?
-        ((Js::ExternalArrayBuffer*)(scriptVal))->GetByteLength() :
-        ((Js::JavascriptString*)(scriptVal))->GetSizeInBytes();
-
-    if (isExternalArray && isUtf8)
+    if (isExternalArray)
     {
-        *scriptFlag = (LoadScriptFlag)(LoadScriptFlag_ExternalArrayBuffer | LoadScriptFlag_Utf8Source);
-    }
-    else if (isUtf8)
-    {
-        *scriptFlag = (LoadScriptFlag)(LoadScriptFlag_Utf8Source);
+        Js::ExternalArrayBuffer* scriptBuffer = (Js::ExternalArrayBuffer*)(scriptVal);
+        *script = scriptBuffer->GetBuffer();
+        *cb = scriptBuffer->GetByteLength();
+        if (isUtf8)
+        {
+            *scriptFlag = (LoadScriptFlag)(LoadScriptFlag_ExternalArrayBuffer | LoadScriptFlag_Utf8Source);
+        }
+        else
+        {
+            *scriptFlag = (LoadScriptFlag)(LoadScriptFlag_ExternalArrayBuffer);
+        }
     }
     else
     {
-        *scriptFlag = LoadScriptFlag_None;
+        Js::JavascriptString* scriptString = (Js::JavascriptString*)(scriptVal);
+        if (Js::Utf8String::Is(scriptString))
+        {
+            Js::Utf8String * utf8String = Js::Utf8String::From(scriptString);
+            *script = (const byte*)utf8String->Utf8Buffer();
+            *cb = utf8String->Utf8Length();
+            *scriptFlag = (LoadScriptFlag)(LoadScriptFlag_Utf8Source);
+        }
+        else
+        {
+            return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+                *script = (const byte*)scriptString->GetSz();
+                *cb = scriptString->GetSizeInBytes();
+                *scriptFlag = LoadScriptFlag_None;
+                return JsNoError;
+            });
+        }
     }
-
     return JsNoError;
 }
 
@@ -4782,9 +4796,17 @@ CHAKRA_API JsCreateString(
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
 
-        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
+        char * recyclerBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char, length);
+        if (recyclerBuffer == nullptr)
+        {
+            Js::JavascriptError::ThrowOutOfMemoryError(scriptContext);
+        }
 
+        memcpy_s(recyclerBuffer, length, content, length);
+
+        Js::JavascriptString *stringValue = RecyclerNew(scriptContext->GetRecycler(), Js::Utf8String, recyclerBuffer, length, scriptContext->GetLibrary()->GetStringTypeStatic());
+
+        // TODO: With TTD enabled we immediately flatten these strings to utf16. Perhaps we should handle this differently.
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
 
         *value = stringValue;
@@ -4935,44 +4957,20 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     VALIDATE_JSREF(scriptVal);
     PARAM_NOT_NULL(sourceUrl);
 
-    bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
-         isString = false;
-    bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
-
     LoadScriptFlag scriptFlag = LoadScriptFlag_None;
     const byte* script;
     size_t cb;
+
+    JsErrorCode error = GetScriptBufferDetails(scriptVal, parseAttributes, &scriptFlag, &cb, &script);
+
+    if (error != JsNoError)
+    {
+        return error;
+    }
+
     const WCHAR *url;
 
-    if (isExternalArray)
-    {
-        script = ((Js::ExternalArrayBuffer*)(scriptVal))->GetBuffer();
-
-        cb = ((Js::ExternalArrayBuffer*)(scriptVal))->GetByteLength();
-
-        scriptFlag = (LoadScriptFlag)(isUtf8 ?
-            LoadScriptFlag_ExternalArrayBuffer | LoadScriptFlag_Utf8Source :
-            LoadScriptFlag_ExternalArrayBuffer);
-    }
-    else
-    {
-        isString = Js::JavascriptString::Is(scriptVal);
-        if (!isString)
-        {
-            return JsErrorInvalidArgument;
-        }
-    }
-
-    JsErrorCode error = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        if (isString)
-        {
-            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(scriptVal);
-            script = (const byte*)jsString->GetSz();
-
-            // JavascriptString is 2 bytes (WCHAR/char16)
-            cb = jsString->GetLength() * sizeof(WCHAR);
-        }
-
+    error = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         if (!Js::JavascriptString::Is(sourceUrl))
         {
             return JsErrorInvalidArgument;
@@ -5166,14 +5164,23 @@ CHAKRA_API JsRunSerialized(
 {
     PARAM_NOT_NULL(bufferVal);
     const WCHAR *url;
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-    if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+        if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+        {
+            url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
+        }
+        else
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        return JsNoError;
+    });
+
+    if (errorCode != JsNoError)
     {
-        url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
-    }
-    else
-    {
-        return JsErrorInvalidArgument;
+        return errorCode;
     }
 
     // JsParseSerialized only accepts ArrayBuffer (incl. ExternalArrayBuffer)
@@ -5690,12 +5697,23 @@ CHAKRA_API JsRunScriptWithParserState(
     const WCHAR *url = nullptr;
     uint sourceIndex = 0;
 
-    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        const byte* bytes;
-        size_t cb;
-        LoadScriptFlag loadScriptFlag;
+    const byte* bytes;
+    size_t cb;
+    LoadScriptFlag loadScriptFlag;
 
-        JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
+    JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
+
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    if (!Js::ExternalArrayBuffer::Is(parserState))
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
         if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
         {
@@ -5704,11 +5722,6 @@ CHAKRA_API JsRunScriptWithParserState(
         else
         {
             return JsErrorInvalidArgument;
-        }
-
-        if (errorCode != JsNoError)
-        {
-            return errorCode;
         }
 
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
@@ -5760,11 +5773,6 @@ CHAKRA_API JsRunScriptWithParserState(
     if (errorCode != JsNoError)
     {
         return errorCode;
-    }
-
-    if (!Js::ExternalArrayBuffer::Is(parserState))
-    {
-        return JsErrorInvalidArgument;
     }
 
     Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(parserState);
