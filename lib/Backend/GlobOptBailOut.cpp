@@ -482,6 +482,16 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
+    if (instr->m_func->hasArgLenAndConstOpt && instr->m_func->unoptableInlineArgCount == 0)
+    {
+        instr->m_func->hasUnoptimizedArgumentsAccess = false;
+        if (DoInlineArgsOpt(instr->m_func))
+        {
+            instr->m_func->m_hasInlineArgsOpt = true;
+            instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+        }
+    }
+
     if (instr->m_func->m_hasInlineArgsOpt)
     {
         RecordInlineeFrameInfo(instr);
@@ -570,6 +580,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
     }
 
     case Js::OpCode::InlineeStart:
+    {
         Assert(instr->m_func->GetParentFunc() == this->currentBlock->globOptData.curFunc);
         Assert(instr->m_func->GetParentFunc());
         this->currentBlock->globOptData.curFunc = instr->m_func;
@@ -577,16 +588,26 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         this->func->UpdateMaxInlineeArgOutSize(this->currentBlock->globOptData.inlinedArgOutSize);
         this->EndTrackCall(instr);
 
-        if (DoInlineArgsOpt(instr->m_func))
+        auto createFrameInfo = [&](Func* inlineeFunc)
         {
-            instr->m_func->m_hasInlineArgsOpt = true;
-            InlineeFrameInfo* frameInfo = InlineeFrameInfo::New(func->m_alloc);
-            instr->m_func->frameInfo = frameInfo;
+            InlineeFrameInfo* frameInfo = InlineeFrameInfo::New(inlineeFunc->m_alloc);
             frameInfo->floatSyms = CurrentBlockData()->liveFloat64Syms->CopyNew(this->alloc);
             frameInfo->intSyms = CurrentBlockData()->liveInt32Syms->MinusNew(CurrentBlockData()->liveLossyInt32Syms, this->alloc);
             frameInfo->varSyms = CurrentBlockData()->liveVarSyms->CopyNew(this->alloc);
+            return frameInfo;
+        };
+
+        if (DoInlineArgsOpt(instr->m_func))
+        {
+            instr->m_func->m_hasInlineArgsOpt = true;
+            instr->m_func->frameInfo = createFrameInfo(func);
+        }
+        else
+        {
+            instr->m_func->cachedInlineeFrameInfo = createFrameInfo(instr->m_func);
         }
         break;
+    }    
 
     case Js::OpCode::EndCallForPolymorphicInlinee:
         // Have this opcode mimic the functions of both InlineeStart and InlineeEnd in the bailout block of a polymorphic call inlined using fixed methods.

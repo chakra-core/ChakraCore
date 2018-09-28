@@ -1588,6 +1588,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         if (CurrentBlockData()->IsArgumentsOpnd(src1))
         {
             instr->usesStackArgumentsObject = true;
+            instr->m_func->unoptableInlineArgCount++;
         }
 
         if (CurrentBlockData()->IsArgumentsOpnd(src1) &&
@@ -1607,6 +1608,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         CurrentBlockData()->ClearArgumentsSym(src1->AsRegOpnd());
+                        instr->m_func->unoptableInlineArgCount--;
                     }
                 }
                 else if (builtinOpnd->IsRegOpnd())
@@ -1614,6 +1616,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (builtinOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         CurrentBlockData()->ClearArgumentsSym(src1->AsRegOpnd());
+                        instr->m_func->unoptableInlineArgCount--;
                     }
                 }
             }
@@ -13208,10 +13211,10 @@ GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
     if (instr->usesStackArgumentsObject && instr->IsInlined())
     {
         IR::Opnd* src1 = instr->GetSrc1();
-        auto replaceInstr = [&](IR::Opnd* newopnd)
+        auto replaceInstr = [&](IR::Opnd* newopnd, Js::OpCode opCode = Js::OpCode::Ld_A)
         {
             this->CaptureByteCodeSymUses(instr);
-            instr->m_opcode = Js::OpCode::Ld_A;
+            instr->m_opcode = opCode;
             instr->ReplaceSrc1(newopnd);
             if (instr->HasBailOutInfo())
             {
@@ -13231,6 +13234,7 @@ GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
             }
     
             case Js::OpCode::LdElemI_A:
+            case Js::OpCode::TypeofElem:
             {
                 IR::IndirOpnd* indirOpndSrc1 = src1->AsIndirOpnd();
                 if (!indirOpndSrc1->GetIndexOpnd())
@@ -13256,8 +13260,17 @@ GlobOpt::OptArgLenAndConst(IR::Instr* instr, Value** src1Val)
                     }
                     else
                     {
-                        replaceInstr(defInstr->GetSrc1());
-                    }
+                        if (instr->m_opcode == Js::OpCode::TypeofElem) {
+                            replaceInstr(defInstr->GetSrc1(), Js::OpCode::Typeof);
+                        }
+                        else {
+                            replaceInstr(defInstr->GetSrc1());
+                        }
+                    }   
+                }
+                else
+                {
+                    instr->m_func->unoptableInlineArgCount++;
                 }
                 break;
             }
