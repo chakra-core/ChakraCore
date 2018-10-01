@@ -30,6 +30,7 @@ CHAKRA_API RunScriptWithParserStateCore(
     _In_ WCHAR *url,
     _In_ JsParseScriptAttributes parseAttributes,
     _In_ JsValueRef parserState,
+    _In_ bool parseOnly,
     _Out_ JsValueRef *result
 );
 
@@ -5370,7 +5371,6 @@ CHAKRA_API JsSerializeParserState(
     return errorCode;
 }
 
-
 static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallbackForRunScriptWithParserState(
     JsSourceContext sourceContext,
     _Out_ JsValueRef *value,
@@ -5388,6 +5388,7 @@ CHAKRA_API RunScriptWithParserStateCore(
     _In_ WCHAR *url,
     _In_ JsParseScriptAttributes parseAttributes,
     _In_ JsValueRef parserState,
+    _In_ bool parseOnly,
     _Out_ JsValueRef *result
 )
 {
@@ -5480,7 +5481,7 @@ CHAKRA_API RunScriptWithParserStateCore(
     return RunSerializedScriptCore(
         dummy, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, arrayBuffer, sourceContext, url, dwBgParseCookie, false, true, result, sourceIndex);
+        buffer, arrayBuffer, sourceContext, url, dwBgParseCookie, parseOnly, true, result, sourceIndex);
 }
 
 CHAKRA_API JsRunScriptWithParserState(
@@ -5495,7 +5496,7 @@ CHAKRA_API JsRunScriptWithParserState(
     if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
     {
         url = const_cast<WCHAR*>(((Js::JavascriptString*)(sourceUrl))->GetSz());
-        return RunScriptWithParserStateCore(0, script, sourceContext, url, parseAttributes, parserState, result);
+        return RunScriptWithParserStateCore(0, script, sourceContext, url, parseAttributes, parserState, false, result);
     }
     else
     {
@@ -5503,6 +5504,25 @@ CHAKRA_API JsRunScriptWithParserState(
     }
 }
 
+CHAKRA_API JsDeserializeParserState(
+    _In_ JsValueRef script,
+    _In_ JsSourceContext sourceContext,
+    _In_ JsValueRef sourceUrl,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _In_ JsValueRef parserState,
+    _Out_ JsValueRef * result)
+{
+    WCHAR *url = nullptr;
+    if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
+    {
+        url = const_cast<WCHAR*>(((Js::JavascriptString*)(sourceUrl))->GetSz());
+        return RunScriptWithParserStateCore(0, script, sourceContext, url, parseAttributes, parserState, true, result);
+    }
+    else
+    {
+        return JsErrorInvalidArgument;
+    }
+}
 
 CHAKRA_API
 JsExecuteBackgroundParse_Experimental(
@@ -5524,6 +5544,7 @@ JsExecuteBackgroundParse_Experimental(
             url,
             parseAttributes,
             parserState,
+            false,
             result
         );
     }
