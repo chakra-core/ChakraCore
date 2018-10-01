@@ -2852,21 +2852,21 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
 ///----------------------------------------------------------------------------
 
 bool
-LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
+LowererMD::GenerateFastCmSrXxConst(IR::Instr *instr)
 {
     //
     // Given:
-    // s1 = CmSrEq_A s2, s3
+    // s1 = CmSrXX_A s2, s3
     // where either s2 or s3 is 'null', 'true' or 'false'
     //
     // Generate:
     //
     //     CMP s2, s3
-    //     JEQ $mov_true
-    //     MOV s1, Library.GetFalse()
+    //     JEQ $mov_res
+    //     MOV s1, eq ? Library.GetFalse() : Library.GetTrue()
     //     JMP $done
-    // $mov_true:
-    //     MOV s1, Library.GetTrue()
+    // $mov_res:
+    //     MOV s1, eq ? Library.GetTrue() : Library.GetFalse()
     // $done:
     //
 

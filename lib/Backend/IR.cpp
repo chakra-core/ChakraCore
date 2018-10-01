@@ -2842,7 +2842,7 @@ Instr::IsByteCodeUsesInstrFor(IR::Instr * instr) const
 IR::LabelInstr *
 Instr::GetOrCreateContinueLabel(const bool isHelper)
 {
-    if(m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
+    if (m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
     {
         return m_next->AsLabelInstr();
     }

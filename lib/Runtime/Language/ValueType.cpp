@@ -485,6 +485,11 @@ bool ValueType::IsPrimitive() const
     return result;
 }
 
+bool ValueType::IsPrimitiveOrObject() const
+{
+    return OneOnOthersOff(Bits::PrimitiveOrObject, Bits::CanBeTaggedValue);
+}
+
 bool ValueType::IsLikelyPrimitive() const
 {
     bool result =
