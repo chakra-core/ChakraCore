@@ -171,7 +171,7 @@ namespace Js
                 // it so happens that this catch was on the stack and caught the exception.
                 // Re-throw!
                 JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }  
+            }
 
             Var exceptionObject = exception->GetThrownObject(scriptContext);
             AssertMsg(exceptionObject, "Caught object is null.");
@@ -1011,18 +1011,18 @@ namespace Js
         Assert(scriptContext != nullptr);
         // TODO: FastDOM Trampolines will throw JS Exceptions but are not isScriptActive
         //AssertMsg(scriptContext->GetThreadContext()->IsScriptActive() ||
-        //          (JavascriptError::Is(object) && (JavascriptError::FromVar(object))->IsExternalError()),
+        //          (VarIs<JavascriptError>(object) && (VarTo<JavascriptError>(object))->IsExternalError()),
         //    "Javascript exception raised when script is not active");
         AssertMsg(scriptContext->GetThreadContext()->IsInScript() ||
-            (JavascriptError::Is(object) && (JavascriptError::FromVar(object))->IsExternalError()),
+            (VarIs<JavascriptError>(object) && (VarTo<JavascriptError>(object))->IsExternalError()),
             "Javascript exception raised without being in CallRootFunction");
 
         JavascriptError *javascriptError = nullptr;
-        if (JavascriptError::Is(object))
+        if (VarIs<JavascriptError>(object))
         {
             // We keep track of the JavascriptExceptionObject that was created when this error
             // was first thrown so that we can always get the correct metadata.
-            javascriptError = JavascriptError::FromVar(object);
+            javascriptError = VarTo<JavascriptError>(object);
             JavascriptExceptionObject *exceptionObject = javascriptError->GetJavascriptExceptionObject();
             if (exceptionObject)
             {
@@ -1115,9 +1115,9 @@ namespace Js
                 // In WER scenario, we should combine the original stack with latest throw stack as the final throw might be coming form
                 // a different stack.
                 uint64 i = 1;
-                if (crawlStackForWER && thrownObject && Js::JavascriptError::Is(thrownObject))
+                if (crawlStackForWER && thrownObject && Js::VarIs<Js::JavascriptError>(thrownObject))
                 {
-                    Js::JavascriptError* errorObject = Js::JavascriptError::FromVar(thrownObject);
+                    Js::JavascriptError* errorObject = Js::VarTo<Js::JavascriptError>(thrownObject);
                     Js::JavascriptExceptionContext::StackTrace *originalStackTrace = NULL;
                     const Js::JavascriptExceptionObject* originalExceptionObject = errorObject->GetJavascriptExceptionObject();
                     if (!resetStack && errorObject->GetInternalProperty(errorObject, InternalPropertyIds::StackTrace, (Js::Var*) &originalStackTrace, NULL, &scriptContext) &&
@@ -1407,14 +1407,14 @@ namespace Js
     //
     bool JavascriptExceptionOperators::IsErrorInstance(Var thrownObject)
     {
-        if (thrownObject && JavascriptError::Is(thrownObject))
+        if (thrownObject && VarIs<JavascriptError>(thrownObject))
         {
-            return !JavascriptError::FromVar(thrownObject)->IsPrototype();
+            return !VarTo<JavascriptError>(thrownObject)->IsPrototype();
         }
 
-        if (thrownObject && RecyclableObject::Is(thrownObject))
+        if (thrownObject && VarIs<RecyclableObject>(thrownObject))
         {
-            RecyclableObject* obj = RecyclableObject::FromVar(thrownObject);
+            RecyclableObject* obj = VarTo<RecyclableObject>(thrownObject);
 
             while (true)
             {
@@ -1424,7 +1424,7 @@ namespace Js
                     break;
                 }
 
-                if (JavascriptError::Is(obj))
+                if (VarIs<JavascriptError>(obj))
                 {
                     return true;
                 }
@@ -1458,7 +1458,7 @@ namespace Js
         // If we still have stack trace to store and obj is a thrown exception object, obj must be an Error instance.
         Assert(!isThrownException || IsErrorInstance(targetObject));
 
-        RecyclableObject* obj = RecyclableObject::FromVar(targetObject);
+        RecyclableObject* obj = VarTo<RecyclableObject>(targetObject);
         if (!resetStack && obj->HasProperty(PropertyIds::stack))
         {
             return; // we don't want to overwrite an existing "stack" property
@@ -1519,19 +1519,19 @@ namespace Js
 
         // If the first argument to the accessor is not a recyclable object, return undefined
         // for compat with other browsers
-        if (!RecyclableObject::Is(args[0]))
+        if (!VarIs<RecyclableObject>(args[0]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *obj = RecyclableObject::FromVar(args[0]);
+        RecyclableObject *obj = VarTo<RecyclableObject>(args[0]);
 
         // If an argument was passed to the accessor, it is being called as a setter.
         // Set the internal StackTraceCache property accordingly.
         if (args.Info.Count > 1)
         {
             obj->SetInternalProperty(InternalPropertyIds::StackTraceCache, args[1], PropertyOperationFlags::PropertyOperation_None, NULL);
-            if (JavascriptError::Is(obj))
+            if (VarIs<JavascriptError>(obj))
             {
                 ((JavascriptError *)obj)->SetStackPropertyRedefined(true);
             }
@@ -1633,7 +1633,7 @@ namespace Js
         if (scriptContext->GetConfig()->IsErrorStackTraceEnabled()
             && IsErrorInstance(thrownObject))
         {
-            HRESULT hr = JavascriptError::GetRuntimeError(RecyclableObject::FromVar(thrownObject), NULL);
+            HRESULT hr = JavascriptError::GetRuntimeError(VarTo<RecyclableObject>(thrownObject), NULL);
             JavascriptFunction* error = scriptContext->GetLibrary()->GetErrorConstructor();
 
             // If we are throwing StackOverflow and Error.stackTraceLimit is a custom getter, we can't make the getter

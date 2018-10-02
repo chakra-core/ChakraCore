@@ -62,9 +62,9 @@ namespace Js
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
         {
-            if (ArrayBufferBase::Is(args[1]))
+            if (VarIs<ArrayBufferBase>(args[1]))
             {
-                arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+                arrayBuffer = VarTo<ArrayBufferBase>(args[1]);
             }
             else
             {
@@ -130,7 +130,7 @@ namespace Js
         //15.   Return O.
         dataView = scriptContext->GetLibrary()->CreateDataView(arrayBuffer, offset, mappedLength);
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), dataView, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), dataView, nullptr, scriptContext) :
             dataView;
     }
 
@@ -139,11 +139,6 @@ namespace Js
           byteOffset(byteoffset)
     {
         buffer = arrayBuffer->GetBuffer() + byteoffset;
-    }
-
-    BOOL DataView::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_DataView;
     }
 
     Var DataView::EntryGetInt8(RecyclableObject* function, CallInfo callInfo, ...)
@@ -155,7 +150,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -164,7 +159,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset"));
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->template GetValue<int8>(args[1], _u("DataView.prototype.GetInt8"), FALSE);
     }
 
@@ -177,7 +172,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -186,7 +181,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset"));
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->GetValue<uint8>(args[1], _u("DataView.prototype.GetUint8"), FALSE);
     }
 
@@ -200,7 +195,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -213,7 +208,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->GetValue<int16>(args[1], _u("DataView.prototype.GetInt16"), isLittleEndian);
     }
 
@@ -227,7 +222,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -240,7 +235,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->template GetValue<uint16>(args[1], _u("DataView.prototype.GetUint16"), isLittleEndian);
     }
 
@@ -254,7 +249,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -267,7 +262,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->GetValue<uint32>(args[1], _u("DataView.prototype.GetUint32"), isLittleEndian);
     }
 
@@ -281,7 +276,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -294,7 +289,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->GetValue<int32>(args[1], _u("DataView.prototype.GetInt32"), isLittleEndian);
     }
 
@@ -308,7 +303,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -321,7 +316,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         return dataView->GetValueWithCheck<float>(args[1], _u("DataView.prototype.GetFloat32"), isLittleEndian);
     }
 
@@ -335,7 +330,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -348,7 +343,7 @@ namespace Js
             isLittleEndian = JavascriptConversion::ToBoolean(args[2], scriptContext);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
        return dataView->GetValueWithCheck<double>(args[1], _u("DataView.prototype.GetFloat64"), isLittleEndian);
     }
 
@@ -361,7 +356,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -369,7 +364,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         int8 value = JavascriptConversion::ToInt8(args[2], scriptContext);
         dataView->SetValue<int8>(args[1], value, _u("DataView.prototype.SetInt8"));
         return scriptContext->GetLibrary()->GetUndefined();
@@ -384,7 +379,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -392,7 +387,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         uint8 value = JavascriptConversion::ToUInt8(args[2], scriptContext);
         dataView->SetValue<uint8>(args[1], value, _u("DataView.prototype.SetUint8"));
         return scriptContext->GetLibrary()->GetUndefined();
@@ -408,7 +403,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -416,7 +411,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         int16 value = JavascriptConversion::ToInt16(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -436,7 +431,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -444,7 +439,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument, _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         uint16 value = JavascriptConversion::ToUInt16(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -464,7 +459,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -472,7 +467,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         int32 value = JavascriptConversion::ToInt32(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -492,7 +487,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -500,7 +495,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         uint32 value = JavascriptConversion::ToUInt32(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -520,7 +515,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView,  _u("offset or value"));
         }
@@ -528,7 +523,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument);
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         float value = JavascriptConversion::ToFloat(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -548,7 +543,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
@@ -556,7 +551,7 @@ namespace Js
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DataView_NeedArgument,  _u("offset or value"));
         }
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         double value = JavascriptConversion::ToNumber(args[2], scriptContext);
         if (args.Info.Count > 3)
         {
@@ -575,12 +570,12 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
@@ -599,12 +594,12 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
@@ -628,12 +623,12 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !DataView::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<DataView>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
 
-        DataView* dataView = DataView::FromVar(args[0]);
+        DataView* dataView = VarTo<DataView>(args[0]);
         ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)

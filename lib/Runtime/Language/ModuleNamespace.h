@@ -30,8 +30,6 @@ namespace Js
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
         void Initialize();
         ListForListIterator* GetSortedExportedNames() { return this->sortedExportedNames; }
-        static bool Is(Var aValue) {  return JavascriptOperators::GetTypeId(aValue) == TypeIds_ModuleNamespace; }
-        static ModuleNamespace* FromVar(Var obj) { AssertOrFailFast(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
@@ -98,4 +96,9 @@ namespace Js
         // Methods used by NamespaceEnumerator;
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const;
     };
+
+    template <> inline bool VarIsImpl<ModuleNamespace>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace;
+    }
 }

@@ -74,10 +74,6 @@ namespace Js
 
         static JavascriptSet* New(ScriptContext* scriptContext);
 
-        static bool Is(Var aValue);
-        static JavascriptSet* FromVar(Var aValue);
-        static JavascriptSet* UnsafeFromVar(Var aValue);
-
         void Add(Var value);
 
         void Clear();
@@ -125,4 +121,9 @@ namespace Js
         static JavascriptSet* CreateForSnapshotRestore(ScriptContext* ctx);
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptSet>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Set;
+    }
 }

@@ -35,7 +35,7 @@ namespace Js
         PropertyIndex propertyIndex = info->GetPropertyIndex();
 
         Assert(propertyIndex == objectWithProperty->GetPropertyIndex(propertyId) ||
-            (RootObjectBase::Is(objectWithProperty) && propertyIndex == RootObjectBase::FromVar(objectWithProperty)->GetRootPropertyIndex(propertyId)));
+            (VarIs<RootObjectBase>(objectWithProperty) && propertyIndex == VarTo<RootObjectBase>(objectWithProperty)->GetRootPropertyIndex(propertyId)));
         Assert(DynamicType::Is(objectWithProperty->GetTypeId()));
 
 #if ENABLE_FIXED_FIELDS
@@ -44,7 +44,7 @@ namespace Js
         Assert(info->IsNoCache() || !info->IsStoreFieldCacheEnabled() || info->GetInstance() != objectWithProperty || !objectWithProperty->IsFixedProperty(propertyId));
 #endif
 
-        DynamicObject * dynamicObjectWithProperty = DynamicObject::FromVar(objectWithProperty);
+        DynamicObject * dynamicObjectWithProperty = VarTo<DynamicObject>(objectWithProperty);
         PropertyIndex slotIndex;
         bool isInlineSlot;
         dynamicObjectWithProperty->GetDynamicType()->GetTypeHandler()->PropertyIndexToInlineOrAuxSlotIndex(propertyIndex, &slotIndex, &isInlineSlot);
@@ -57,8 +57,8 @@ namespace Js
         }
         else if(
             PropertyValueInfo::PrototypeCacheDisabled((PropertyValueInfo*)info) ||
-            !RecyclableObject::Is(startingObject) ||
-            RecyclableObject::UnsafeFromVar(startingObject)->GetScriptContext() != requestContext)
+            !VarIs<RecyclableObject>(startingObject) ||
+            UnsafeVarTo<RecyclableObject>(startingObject)->GetScriptContext() != requestContext)
         {
             // Don't need to cache if the beginning property is number etc.
             return;
@@ -80,7 +80,7 @@ namespace Js
             isProto,
             dynamicObjectWithProperty,
             isRoot,
-            RecyclableObject::FromVar(startingObject)->GetType(),
+            VarTo<RecyclableObject>(startingObject)->GetType(),
             nullptr,
             propertyId,
             slotIndex,
@@ -116,7 +116,7 @@ namespace Js
 
         Assert(DynamicType::Is(info->GetInstance()->GetTypeId()));
 
-        DynamicObject * dynamicInstance = DynamicObject::FromVar(info->GetInstance());
+        DynamicObject * dynamicInstance = VarTo<DynamicObject>(info->GetInstance());
         PropertyIndex slotIndex;
         bool isInlineSlot;
         dynamicInstance->GetDynamicType()->GetTypeHandler()->PropertyIndexToInlineOrAuxSlotIndex(info->GetPropertyIndex(), &slotIndex, &isInlineSlot);
@@ -197,12 +197,12 @@ namespace Js
         }
 
         Assert((!isRoot && propertyIndex == object->GetPropertyIndex(propertyId)) || isSetter ||
-            (isRoot && propertyIndex == RootObjectBase::FromVar(object)->GetRootPropertyIndex(propertyId)));
+            (isRoot && propertyIndex == VarTo<RootObjectBase>(object)->GetRootPropertyIndex(propertyId)));
         Assert(DynamicType::Is(object->GetTypeId()));
         AssertMsg((info->GetFlags() & InlineCacheGetterFlag) == 0, "invalid getter for CachePropertyWrite");
 
         RecyclableObject* instance = info->GetInstance();
-        DynamicObject * dynamicInstance = DynamicObject::FromVar(instance);
+        DynamicObject * dynamicInstance = VarTo<DynamicObject>(instance);
         PropertyIndex slotIndex;
         bool isInlineSlot;
         dynamicInstance->GetDynamicType()->GetTypeHandler()->PropertyIndexToInlineOrAuxSlotIndex(propertyIndex, &slotIndex, &isInlineSlot);
@@ -283,7 +283,7 @@ namespace Js
 
             Cache<false, false, true>(
                 false,
-                DynamicObject::FromVar(object),
+                VarTo<DynamicObject>(object),
                 isRoot,
                 object->GetType(),
                 typeWithoutProperty,

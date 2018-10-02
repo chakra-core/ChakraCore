@@ -42,7 +42,7 @@ bool Js::MutationBreakpoint::HandleSetProperty(Js::ScriptContext *scriptContext,
         && objectContext->HasMutationBreakpoints())
     {
         MutationBreakpoint *bp = nullptr;
-        DynamicObject *dynObj = DynamicObject::FromVar(object);
+        DynamicObject *dynObj = VarTo<DynamicObject>(object);
 
         if (dynObj->GetInternalProperty(object, InternalPropertyIds::MutationBp, reinterpret_cast<Var*>(&bp), nullptr, objectContext)
             && bp)
@@ -83,7 +83,7 @@ void Js::MutationBreakpoint::HandleDeleteProperty(ScriptContext *scriptContext, 
     Assert(instance);
     if (MutationBreakpoint::CanSet(instance))
     {
-        DynamicObject *obj = DynamicObject::FromVar(instance);
+        DynamicObject *obj = VarTo<DynamicObject>(instance);
         if (obj->GetScriptContext()->HasMutationBreakpoints())
         {
             MutationBreakpoint *bp = nullptr;
@@ -107,8 +107,8 @@ void Js::MutationBreakpoint::HandleDeleteProperty(ScriptContext *scriptContext, 
 void Js::MutationBreakpoint::HandleDeleteProperty(ScriptContext *scriptContext, Var instance, Js::JavascriptString *propertyNameString)
 {
     PropertyRecord const *propertyRecord = nullptr;
-    DynamicObject *obj = DynamicObject::FromVar(instance);
-    
+    DynamicObject *obj = VarTo<DynamicObject>(instance);
+
     if (JavascriptOperators::ShouldTryDeleteProperty(obj, propertyNameString, &propertyRecord))
     {
         Assert(propertyRecord);

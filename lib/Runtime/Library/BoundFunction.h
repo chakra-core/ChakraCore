@@ -23,7 +23,6 @@ namespace Js
     public:
         static BoundFunction* New(ScriptContext* scriptContext, ArgumentReader args);
 
-        static bool Is(Var func){ return JavascriptFunction::Is(func) && JavascriptFunction::UnsafeFromVar(func)->IsBoundFunction(); }
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         virtual JavascriptString* GetDisplayNameImpl() const override;
         virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -63,4 +62,9 @@ namespace Js
         Field(uint)                count;
         Field(Field(Var)*)         boundArgs;
     };
+
+    template <> inline bool VarIsImpl<BoundFunction>(RecyclableObject* obj)
+    {
+        return VarIs<JavascriptFunction>(obj) && UnsafeVarTo<JavascriptFunction>(obj)->IsBoundFunction();
+    }
 } // namespace Js

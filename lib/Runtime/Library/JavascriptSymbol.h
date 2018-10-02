@@ -27,9 +27,6 @@ namespace Js
         static uint32 GetOffsetOfLdElemInlineCache() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfLdElemInlineCache(); }
         static uint32 GetOffsetOfStElemInlineCache() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfStElemInlineCache(); }
         static uint32 GetOffsetOfHitRate() { return offsetof(JavascriptSymbol, propertyRecordUsageCache) + PropertyRecordUsageCache::GetOffsetOfHitRate(); }
-        static bool Is(Var aValue);
-        static JavascriptSymbol* FromVar(Var aValue);
-        static JavascriptSymbol* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {
@@ -65,4 +62,9 @@ namespace Js
         static BOOL Equals(JavascriptSymbol* left, Var right, BOOL* value, ScriptContext * requestContext);
         static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName);
     };
+
+    template <> inline bool VarIsImpl<JavascriptSymbol>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Symbol;
+    }
 }

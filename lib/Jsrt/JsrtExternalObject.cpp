@@ -51,29 +51,6 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, JsFinalizeCallback fi
     return externalObject;
 }
 
-bool JsrtExternalObject::Is(Js::Var value)
-{
-    if (Js::TaggedNumber::Is(value))
-    {
-        return false;
-    }
-
-    return (VirtualTableInfo<JsrtExternalObject>::HasVirtualTable(value)) ||
-        (VirtualTableInfo<Js::CrossSiteObject<JsrtExternalObject>>::HasVirtualTable(value));
-}
-
-JsrtExternalObject * JsrtExternalObject::FromVar(Js::Var value)
-{
-    AssertOrFailFast(Is(value));
-    return static_cast<JsrtExternalObject *>(value);
-}
-
-JsrtExternalObject * JsrtExternalObject::UnsafeFromVar(Js::Var value)
-{
-    Assert(Is(value));
-    return static_cast<JsrtExternalObject *>(value);
-}
-
 void JsrtExternalObject::Finalize(bool isShutdown)
 {
     JsFinalizeCallback finalizeCallback = this->GetExternalType()->GetJsFinalizeCallback();

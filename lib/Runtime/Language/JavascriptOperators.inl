@@ -31,7 +31,7 @@ namespace Js
 #endif
         else
         {
-            return JavascriptOperators::GetTypeId(RecyclableObject::UnsafeFromVar(aValue));
+            return JavascriptOperators::GetTypeId(UnsafeVarTo<RecyclableObject>(aValue));
         }
     }
 
@@ -51,7 +51,7 @@ namespace Js
 #endif
         else
         {
-            auto typeId = RecyclableObject::FromVar(aValue)->GetTypeId();
+            auto typeId = VarTo<RecyclableObject>(aValue)->GetTypeId();
             return typeId;
         }
     }

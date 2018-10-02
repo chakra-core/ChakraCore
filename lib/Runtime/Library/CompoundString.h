@@ -338,12 +338,6 @@ namespace Js
         static CompoundString * JitClone(CompoundString * cs);
         static CompoundString * JitCloneForAppending(CompoundString * cs);
     public:
-        static bool Is(RecyclableObject *const object);
-        static bool Is(const Var var);
-        static CompoundString *FromVar(RecyclableObject *const object);
-        static CompoundString *UnsafeFromVar(RecyclableObject *const object);
-        static CompoundString *FromVar(const Var var);
-        static CompoundString *UnsafeFromVar(const Var var);
         static size_t GetOffsetOfOwnsLastBlock() { return offsetof(CompoundString, ownsLastBlock); }
         static size_t GetOffsetOfDirectCharLength() { return offsetof(CompoundString, directCharLength); }
         static size_t GetOffsetOfLastBlockInfo() { return offsetof(CompoundString, lastBlockInfo); }
@@ -443,6 +437,8 @@ namespace Js
             return VTableValue::VtableCompoundString;
         }
     };
+
+    template <> bool VarIsImpl<CompoundString>(RecyclableObject * object);
 
     #pragma region CompoundString::Builder definition
     #ifndef CompoundStringJsDiag

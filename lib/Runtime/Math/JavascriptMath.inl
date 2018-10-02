@@ -169,8 +169,8 @@ namespace Js
 
         inline double JavascriptMath::Add_Helper(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
-            AssertMsg( !JavascriptString::Is(aLeft), "Strings should have been handled already" );
-            AssertMsg( !JavascriptString::Is(aRight), "Strings should have been handled already" );
+            AssertMsg( !VarIs<JavascriptString>(aLeft), "Strings should have been handled already" );
+            AssertMsg( !VarIs<JavascriptString>(aRight), "Strings should have been handled already" );
 
             double dblLeft = JavascriptConversion::ToNumber(aLeft, scriptContext);
             double dblRight = JavascriptConversion::ToNumber(aRight, scriptContext);

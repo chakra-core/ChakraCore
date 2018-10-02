@@ -133,9 +133,6 @@ namespace Js
         virtual BOOL BufferEquals(__in_ecount(otherLength) LPCWSTR otherBuffer, __in charcount_t otherLength);
         char16* GetNormalizedString(PlatformAgnostic::UnicodeText::NormalizationForm, ArenaAllocator*, charcount_t&);
 
-        static bool Is(Var aValue);
-        static JavascriptString* FromVar(Var aValue);
-        static JavascriptString* UnsafeFromVar(Var aValue);
         static bool Equals(JavascriptString* aLeft, JavascriptString* aRight);
         static bool LessThan(Var aLeft, Var aRight);
         static bool IsNegZero(JavascriptString *string);
@@ -357,6 +354,8 @@ namespace Js
         template<int argCount> // The count is excluding 'this'
         static Var CallRegExFunction(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext);
     };
+
+    template <> bool VarIsImpl<JavascriptString>(RecyclableObject* obj);
 
     template<>
     struct PropertyRecordStringHashComparer<JavascriptString *>

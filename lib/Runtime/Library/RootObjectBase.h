@@ -54,11 +54,6 @@ namespace Js
         bool IsLetConstGlobal(PropertyId propertyId);
 #endif
 
-        static bool Is(Var var);
-        static bool Is(RecyclableObject * obj);
-        static RootObjectBase * FromVar(Var var);
-        static RootObjectBase * UnsafeFromVar(Var var);
-
     protected:
         DEFINE_VTABLE_CTOR(RootObjectBase, DynamicObject);
 
@@ -73,6 +68,12 @@ namespace Js
         Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
         Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
+
+    template <> inline bool VarIsImpl<RootObjectBase>(RecyclableObject* obj)
+    {
+        TypeId id = obj->GetTypeId();
+        return id == TypeIds_GlobalObject || id == TypeIds_ModuleRoot;
+    }
 
     template <typename Fn>
     void

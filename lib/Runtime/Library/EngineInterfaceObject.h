@@ -71,9 +71,6 @@ namespace Js
         void SetEngineExtension(EngineInterfaceExtensionKind extensionKind, EngineExtensionObjectBase* extensionObject);
 
         static EngineInterfaceObject* New(Recycler * recycler, DynamicType * type);
-        static bool Is(Var aValue);
-        static EngineInterfaceObject* FromVar(Var aValue);
-        static EngineInterfaceObject* UnsafeFromVar(Var aValue);
 
 #if ENABLE_TTD
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -111,6 +108,11 @@ namespace Js
 #define EngineInterfaceBuiltIn2(propId, nativeMethod) static Var Entry_##nativeMethod(RecyclableObject *function, CallInfo callInfo, ...);
 #include "EngineInterfaceObjectBuiltIns.h"
     };
+
+    template <> inline bool VarIsImpl<EngineInterfaceObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_EngineInterfaceObject;
+    }
 }
 
 #endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

@@ -41,29 +41,6 @@ WebAssemblyInstance::WebAssemblyInstance(WebAssemblyModule * wasmModule, Dynamic
 {
 }
 
-/* static */
-bool
-WebAssemblyInstance::Is(Var value)
-{
-    return JavascriptOperators::GetTypeId(value) == TypeIds_WebAssemblyInstance;
-}
-
-/* static */
-WebAssemblyInstance *
-WebAssemblyInstance::FromVar(Var value)
-{
-    AssertOrFailFast(WebAssemblyInstance::Is(value));
-    return static_cast<WebAssemblyInstance*>(value);
-}
-
-/* static */
-WebAssemblyInstance *
-WebAssemblyInstance::UnsafeFromVar(Var value)
-{
-    Assert(WebAssemblyInstance::Is(value));
-    return static_cast<WebAssemblyInstance*>(value);
-}
-
 // Implements "new WebAssembly.Instance(moduleObject [, importObject])" as described here:
 // https://github.com/WebAssembly/design/blob/master/JS.md#webassemblyinstance-constructor
 Var
@@ -84,11 +61,11 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
         JavascriptError::ThrowTypeError(scriptContext, JSERR_ClassConstructorCannotBeCalledWithoutNew, _u("WebAssembly.Instance"));
     }
 
-    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
+    if (args.Info.Count < 2 || !VarIs<WebAssemblyModule>(args[1]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
-    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+    WebAssemblyModule * module = VarTo<WebAssemblyModule>(args[1]);
 
     Var importObject = scriptContext->GetLibrary()->GetUndefined();
     if (args.Info.Count >= 3)
@@ -109,14 +86,14 @@ WebAssemblyInstance::GetterExports(RecyclableObject* function, CallInfo callInfo
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyInstance::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyInstance>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedInstanceObject);
     }
 
-    WebAssemblyInstance* instance = WebAssemblyInstance::FromVar(args[0]);
+    WebAssemblyInstance* instance = VarTo<WebAssemblyInstance>(args[0]);
     Js::Var exports = instance->m_exports;
-    if (!exports || !DynamicObject::Is(exports))
+    if (!exports || !DynamicObject::IsBaseDynamicObject(exports))
     {
         Assert(UNREACHED);
         exports = scriptContext->GetLibrary()->GetUndefined();
@@ -284,7 +261,7 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
             JavascriptOperators::OP_SetProperty(exportsNamespace, propertyRecord->GetPropertyId(), obj, scriptContext);
         }
     }
-    DynamicObject::FromVar(exportsNamespace)->PreventExtensions();
+    VarTo<DynamicObject>(exportsNamespace)->PreventExtensions();
     return exportsNamespace;
 }
 
@@ -311,7 +288,7 @@ void WebAssemblyInstance::LoadImports(
         {
         case Wasm::ExternalKinds::Function:
         {
-            if (!JavascriptFunction::Is(prop))
+            if (!VarIs<JavascriptFunction>(prop))
             {
                 JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidImport, import->modName, import->importName, _u("Function"));
             }
@@ -319,10 +296,10 @@ void WebAssemblyInstance::LoadImports(
             Assert(wasmModule->GetFunctionIndexType(counter) == Wasm::FunctionIndexTypes::ImportThunk);
 
             env->SetImportedFunction(counter, prop);
-            if (WasmScriptFunction::Is(prop))
+            if (VarIs<WasmScriptFunction>(prop))
             {
                 Assert(env->GetWasmFunction(counter) == nullptr);
-                WasmScriptFunction* func = WasmScriptFunction::FromVar(prop);
+                WasmScriptFunction* func = VarTo<WasmScriptFunction>(prop);
                 if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
                     char16 temp[2048] = { 0 };
@@ -344,11 +321,11 @@ void WebAssemblyInstance::LoadImports(
             Assert(wasmModule->HasMemoryImport());
             if (wasmModule->HasMemoryImport())
             {
-                if (!WebAssemblyMemory::Is(prop))
+                if (!VarIs<WebAssemblyMemory>(prop))
                 {
                     JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidImport, import->modName, import->importName, _u("WebAssembly.Memory"));
                 }
-                WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
+                WebAssemblyMemory * mem = VarTo<WebAssemblyMemory>(prop);
 
                 if (mem->GetInitialLength() < wasmModule->GetMemoryInitSize())
                 {
@@ -375,11 +352,11 @@ void WebAssemblyInstance::LoadImports(
             Assert(wasmModule->HasTableImport());
             if (wasmModule->HasTableImport())
             {
-                if (!WebAssemblyTable::Is(prop))
+                if (!VarIs<WebAssemblyTable>(prop))
                 {
                     JavascriptError::ThrowWebAssemblyLinkErrorVar(ctx, WASMERR_InvalidImport, import->modName, import->importName, _u("WebAssembly.Table"));
                 }
-                WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
+                WebAssemblyTable * table = VarTo<WebAssemblyTable>(prop);
 
                 if (table->GetInitialLength() < wasmModule->GetTableInitSize())
                 {

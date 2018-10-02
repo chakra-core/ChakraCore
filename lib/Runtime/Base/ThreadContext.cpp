@@ -1746,7 +1746,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 {
     AssertCanHandleStackOverflowCall(obj->IsExternal() ||
         (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()));
+        Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()));
     if (!this->IsStackAvailable(size))
     {
         if (this->IsExecutionDisabled())
@@ -1758,7 +1758,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 
         if (obj->IsExternal() ||
             (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()))
+            Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()))
         {
             Js::JavascriptError::ThrowStackOverflowError(scriptContext);
         }

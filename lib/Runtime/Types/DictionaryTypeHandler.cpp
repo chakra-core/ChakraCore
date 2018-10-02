@@ -290,7 +290,7 @@ namespace Js
             {
                 return false;
             }
-            
+
             if (entry->mustBeWritable && (!(descriptor->Attributes & PropertyWritable) || descriptor->IsOrMayBecomeFixed()))
             {
                 return false;
@@ -434,7 +434,7 @@ namespace Js
                 {
                     // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
                     // Accessors must be cached differently than normal properties, so if we want to cache this we must
-                    // do so here rather than in the caller. However, caching here would require passing originalInstance and 
+                    // do so here rather than in the caller. However, caching here would require passing originalInstance and
                     // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
                     // very little improvement. For now, just block caching this case.
                     PropertyValueInfo::SetNoCache(info, instance);
@@ -476,7 +476,7 @@ namespace Js
     BOOL DictionaryTypeHandlerBase<T>::GetRootProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId,
         Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetProperty_Internal<true>(instance, originalInstance, propertyId, value, info, requestContext);
     }
 
@@ -493,7 +493,7 @@ namespace Js
         DictionaryPropertyDescriptor<T>* descriptor, Var* value, PropertyValueInfo* info, PropertyType propertyT, ScriptContext* requestContext)
     {
         bool const isLetConstGlobal = (descriptor->Attributes & PropertyLetConstGlobal) != 0;
-        AssertMsg(!isLetConstGlobal || RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+        AssertMsg(!isLetConstGlobal || VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
         if (allowLetConstGlobal)
         {
             // GetRootProperty: false if not global
@@ -524,7 +524,7 @@ namespace Js
             CacheOperators::CachePropertyReadForGetter(info, originalInstance, propertyT, requestContext);
             PropertyValueInfo::SetNoCache(info, instance); // we already cached getter, so we don't have to do it once more
 
-            RecyclableObject* func = RecyclableObject::UnsafeFromVar(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
+            RecyclableObject* func = UnsafeVarTo<RecyclableObject>(instance->GetSlot(descriptor->GetGetterPropertyIndex()));
             *value = JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             return true;
         }
@@ -613,7 +613,7 @@ namespace Js
     template <typename T>
     DescriptorFlags DictionaryTypeHandlerBase<T>::GetRootSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return GetSetter_Internal<true>(instance, propertyId, setterValue, info, requestContext);
     }
 
@@ -693,7 +693,7 @@ namespace Js
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::SetRootProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return SetProperty_Internal<true>(instance, propertyId, value, flags, info);
     }
     template <typename T>
@@ -756,7 +756,7 @@ namespace Js
                         Assert(value != nullptr);
                         // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                         Assert(!instance->IsExternal());
-                        descriptor->SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value))));
+                        descriptor->SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyId, value)));
                     }
                 }
             }
@@ -781,7 +781,7 @@ namespace Js
         }
         else if (descriptor->GetSetterPropertyIndex() != NoSlots)
         {
-            RecyclableObject* func = RecyclableObject::FromVar(instance->GetSlot(descriptor->GetSetterPropertyIndex()));
+            RecyclableObject* func = VarTo<RecyclableObject>(instance->GetSlot(descriptor->GetSetterPropertyIndex()));
             JavascriptOperators::CallSetter(func, instance, value, NULL);
 
             // Wait for the setter to return before setting up the inline cache info, as the setter may change
@@ -1002,7 +1002,7 @@ namespace Js
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
-        AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
+        AssertMsg(VarIs<RootObjectBase>(instance), "Instance must be a root object!");
         return DeleteProperty_Internal<true>(instance, propertyId, propertyOperationFlags);
     }
 
@@ -1179,7 +1179,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
 
                 return true;
             }
@@ -1209,7 +1209,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return !(descriptor->Attributes & PropertyConst);
             }
             return descriptor->Attributes & PropertyWritable;
@@ -1238,7 +1238,7 @@ namespace Js
         {
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return true;
             }
             return descriptor->Attributes & PropertyConfigurable;
@@ -1272,7 +1272,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1317,7 +1317,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1359,7 +1359,7 @@ namespace Js
 
             if (!descriptor->HasNonLetConstGlobal())
             {
-                AssertMsg(RootObjectBase::Is(instance), "object must be a global object if letconstglobal is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "object must be a global object if letconstglobal is set");
                 return false;
             }
 
@@ -1452,7 +1452,7 @@ namespace Js
 #if DBG
             else
             {
-                AssertMsg(RootObjectBase::Is(instance), "instance needs to be global object when letconst global is set");
+                AssertMsg(VarIs<RootObjectBase>(instance), "instance needs to be global object when letconst global is set");
             }
 #endif
         }
@@ -1895,7 +1895,7 @@ namespace Js
 #if DEBUG
                     Var ctor = JavascriptOperators::GetProperty(instance, PropertyIds::constructor, scriptContext);
 #endif
-                    AssertMsg(RootObjectBase::Is(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
+                    AssertMsg(VarIs<RootObjectBase>(instance) || JavascriptFunction::IsBuiltinProperty(instance, propertyId) ||
                         // ValidateAndApplyPropertyDescriptor says to preserve Configurable and Enumerable flags
 
                         // For InitRootFld, which is equivalent to
@@ -2176,7 +2176,7 @@ namespace Js
                 Assert(value != nullptr);
                 // We don't want fixed properties on external objects.  See DynamicObject::ResetObject for more information.
                 Assert(!instance->IsExternal());
-                newDescriptor.SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() & CheckHeuristicsForFixedDataProps(instance, propertyRecord, value))));
+                newDescriptor.SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() & CheckHeuristicsForFixedDataProps(instance, propertyRecord, value)));
             }
         }
 #endif
@@ -2328,7 +2328,7 @@ namespace Js
     template <typename T>
     DynamicTypeHandler* DictionaryTypeHandlerBase<T>::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ? ConvertToES5ArrayType(instance) : this;
+        return JavascriptArray::IsNonES5Array(instance) ? ConvertToES5ArrayType(instance) : this;
     }
 
     template <typename T>
@@ -2378,7 +2378,7 @@ namespace Js
                             // Because DictionaryTypeHandlers are never shared we should always have a property value if the handler
                             // says it's initialized.
                             Assert(value != nullptr);
-                            descriptor->SetIsFixed((JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyRecord, value))));
+                            descriptor->SetIsFixed(VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : (ShouldFixDataProperties() && CheckHeuristicsForFixedDataProps(instance, propertyRecord, value)));
                         }
                         else if (descriptor->GetIsAccessor())
                         {
@@ -2579,7 +2579,7 @@ namespace Js
                 {
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(dataSlot);
-                    if (value && ((IsFixedMethodProperty(propertyType) && JavascriptFunction::Is(value)) || IsFixedDataProperty(propertyType)))
+                    if (value && ((IsFixedMethodProperty(propertyType) && VarIs<JavascriptFunction>(value)) || IsFixedDataProperty(propertyType)))
                     {
                         *pProperty = value;
                         if (markAsUsed)
@@ -2621,7 +2621,7 @@ namespace Js
                 {
                     Assert(!IsInternalPropertyId(propertyRecord->GetPropertyId()));
                     Var value = localSingletonInstance->GetSlot(accessorSlot);
-                    if (value && IsFixedAccessorProperty(propertyType) && JavascriptFunction::Is(value))
+                    if (value && IsFixedAccessorProperty(propertyType) && VarIs<JavascriptFunction>(value))
                     {
                         *pAccessor = value;
                         if (markAsUsed)

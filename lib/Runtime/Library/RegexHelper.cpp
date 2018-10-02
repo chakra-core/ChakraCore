@@ -811,8 +811,8 @@ namespace Js
                 if (captureIndex < numGroups && (captureIndex != 0))
                 {
                     Var group = getGroup(captureIndex, nonMatchValue);
-                    if (JavascriptString::Is(group))
-                        concatenated.Append(JavascriptString::UnsafeFromVar(group));
+                    if (VarIs<JavascriptString>(group))
+                        concatenated.Append(UnsafeVarTo<JavascriptString>(group));
                     else if (group != nonMatchValue)
                         concatenated.Append(replace, substitutionOffset, offset - substitutionOffset);
                 }
@@ -1629,7 +1629,7 @@ namespace Js
                 Js::Arguments(callInfo, args),
                 scriptContext);
         });
-        RecyclableObject* splitter = RecyclableObject::UnsafeFromVar(regEx);
+        RecyclableObject* splitter = UnsafeVarTo<RecyclableObject>(regEx);
 
         JavascriptArray* arrayResult = scriptContext->GetLibrary()->CreateArray();
 
@@ -2366,7 +2366,7 @@ namespace Js
         // an Object or Null. RegExp algorithms have special conditions for when the result is Null,
         // so we can directly cast to RecyclableObject.
         Assert(!JavascriptOperators::IsNull(result));
-        return RecyclableObject::UnsafeFromVar(result);
+        return UnsafeVarTo<RecyclableObject>(result);
     }
 
     JavascriptString* RegexHelper::GetMatchStrFromResult(RecyclableObject* result, ScriptContext* scriptContext)

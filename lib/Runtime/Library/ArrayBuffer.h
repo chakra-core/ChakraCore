@@ -93,14 +93,13 @@ namespace Js
         virtual BYTE* GetBuffer() const = 0;
         virtual bool IsValidVirtualBufferLength(uint length) const { return false; };
 
-        static bool Is(Var value);
-        static ArrayBufferBase* FromVar(Var value);
-        static ArrayBufferBase* UnsafeFromVar(Var value);
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
         Field(bool) isDetached;
     };
+
+    template <> bool VarIsImpl<ArrayBufferBase>(RecyclableObject* obj);
 
     class ArrayBuffer : public ArrayBufferBase
     {
@@ -163,10 +162,7 @@ namespace Js
         static Var EntryDetach(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
-        static bool Is(Var aValue);
         static ArrayBuffer* NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
-        static ArrayBuffer* FromVar(Var aValue);
-        static ArrayBuffer* UnsafeFromVar(Var aValue);
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -191,7 +187,7 @@ namespace Js
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
         virtual bool IsArrayBuffer() override { return true; }
         virtual bool IsSharedArrayBuffer() override { return false; }
-        virtual ArrayBuffer * GetAsArrayBuffer() override { return ArrayBuffer::FromVar(this); }
+        virtual ArrayBuffer * GetAsArrayBuffer() override;
 
         static uint32 ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero = true);
 
@@ -219,6 +215,11 @@ namespace Js
         FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
         Field(uint32) bufferLength;       // Number of bytes allocated
     };
+
+    template <> inline bool VarIsImpl<ArrayBuffer>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ArrayBuffer;
+    }
 
     class ArrayBufferParent : public ArrayObject
     {

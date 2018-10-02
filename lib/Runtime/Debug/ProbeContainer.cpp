@@ -143,7 +143,7 @@ namespace Js
                             if (func->IsScriptFunction())
                             {
                                 frm = Anew(pDiagArena, DiagNativeStackFrame,
-                                    ScriptFunction::FromVar(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), stackAddress, walker.GetCurrentCodeAddr());
+                                    VarTo<ScriptFunction>(walker.GetCurrentFunction()), walker.GetByteCodeOffset(), stackAddress, walker.GetCurrentCodeAddr());
                             }
                             else
 #else
@@ -298,7 +298,7 @@ namespace Js
                 }
             }
           },
-          [&](bool) 
+          [&](bool)
           {
             DestroyLocation();
           });
@@ -383,7 +383,7 @@ namespace Js
         {
             DestroyLocation();
         });
-        
+
         OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchInlineBreakpoint: end: pHaltState=%p\n"), pHaltState);
     }
 
@@ -405,7 +405,7 @@ namespace Js
         // Will store current offset of the bytecode block.
         int currentOffset = -1;
 
-        TryFinally([&]()       
+        TryFinally([&]()
         {
             InitializeLocation(pHaltState, false);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchExceptionBreakpoint: initialized location: pHaltState=%p, IsInterpreterFrame=%d\n"),
@@ -533,7 +533,7 @@ namespace Js
         // will store Current offset of the bytecode block.
         int currentOffset = -1;
 
-        TryFinally([&]()        
+        TryFinally([&]()
         {
             InitializeLocation(pHaltState);
             OUTPUT_TRACE(Js::DebuggerPhase, _u("ProbeContainer::DispatchMutationBreakpoint: initialized location: pHaltState=%p, pHaltState->IsValid()=%d\n"),
@@ -580,7 +580,7 @@ namespace Js
             return;
         }
 
-        TryFinally([&]()        
+        TryFinally([&]()
         {
             InitializeLocation(pHaltState);
 

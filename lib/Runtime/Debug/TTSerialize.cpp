@@ -1906,7 +1906,7 @@ namespace TTD
                 this->AppendLiteral("null");
                 break;
             case Js::TypeIds_Boolean:
-                this->AppendBool(!!Js::JavascriptBoolean::FromVar(var)->GetValue());
+                this->AppendBool(!!Js::VarTo<Js::JavascriptBoolean>(var)->GetValue());
                 break;
             case Js::TypeIds_Integer:
                 this->AppendInteger(Js::TaggedInt::ToInt64(var));
@@ -1915,30 +1915,30 @@ namespace TTD
                 this->AppendDouble(Js::JavascriptNumber::GetValue(var));
                 break;
             case Js::TypeIds_Int64Number:
-                this->AppendInteger(Js::JavascriptInt64Number::FromVar(var)->GetValue());
+                this->AppendInteger(Js::VarTo<Js::JavascriptInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_UInt64Number:
-                this->AppendUnsignedInteger(Js::JavascriptUInt64Number::FromVar(var)->GetValue());
+                this->AppendUnsignedInteger(Js::VarTo<Js::JavascriptUInt64Number>(var)->GetValue());
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");
                 if(!skipStringContents)
                 {
-                    if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
+                    if(Js::VarTo<Js::JavascriptString>(var)->GetLength() <= 40)
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                     else
                     {
-                        this->AppendText(Js::JavascriptString::FromVar(var)->GetString(), 40);
+                        this->AppendText(Js::VarTo<Js::JavascriptString>(var)->GetString(), 40);
                         this->AppendLiteral("...");
-                        this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                        this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     }
                 }
                 else
                 {
                     this->AppendLiteral("string@length=");
-                    this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    this->AppendInteger(Js::VarTo<Js::JavascriptString>(var)->GetLength());
                     this->AppendLiteral("...");
                 }
                 this->AppendLiteral("'");
@@ -1948,7 +1948,7 @@ namespace TTD
 #if ENABLE_OBJECT_SOURCE_TRACKING
                 if(tid > Js::TypeIds_LastStaticType)
                 {
-                    const Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(var);
+                    const Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(var);
                     if(!IsDiagnosticOriginInformationValid(dynObj->TTDDiagOriginInfo))
                     {
                         this->AppendLiteral("*");

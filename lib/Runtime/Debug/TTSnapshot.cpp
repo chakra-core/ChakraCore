@@ -210,7 +210,7 @@ namespace TTD
             res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snpObject->OptWellKnownToken);
 
             //Well known objects may always be dirty (e.g. we are re-using a context) so we always want to clean them
-            res = NSSnapObjects::ObjectPropertyReset_WellKnown(snpObject, Js::DynamicObject::FromVar(res), inflator);
+            res = NSSnapObjects::ObjectPropertyReset_WellKnown(snpObject, Js::VarTo<Js::DynamicObject>(res), inflator);
             TTDAssert(res != nullptr, "Should always produce a result!!!");
         }
         else
@@ -229,7 +229,7 @@ namespace TTD
         if(Js::DynamicType::Is(snpObject->SnapType->JsTypeId))
         {
             //Always ok to be x-site but if snap was x-site then we must be too
-            Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(res);
+            Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(res);
             if(snpObject->IsCrossSite && !dynObj->IsCrossSiteObject())
             {
                 Js::CrossSite::MarshalCrossSite_TTDInflate(dynObj);
@@ -518,7 +518,7 @@ namespace TTD
             if(snpObj->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
             {
                 Js::RecyclableObject* rObj = inflator->FindReusableObject_WellKnowReuseCheck(snpObj->ObjectPtrId);
-                bool blocking = NSSnapObjects::DoesObjectBlockScriptContextReuse(snpObj, Js::DynamicObject::FromVar(rObj), inflator);
+                bool blocking = NSSnapObjects::DoesObjectBlockScriptContextReuse(snpObj, Js::VarTo<Js::DynamicObject>(rObj), inflator);
 
                 if(blocking)
                 {
@@ -609,7 +609,7 @@ namespace TTD
 
             if(Js::DynamicType::Is(sobj->SnapType->JsTypeId))
             {
-                NSSnapObjects::StdPropertyRestore(sobj, Js::DynamicObject::FromVar(iobj), inflator);
+                NSSnapObjects::StdPropertyRestore(sobj, Js::VarTo<Js::DynamicObject>(iobj), inflator);
             }
         }
 

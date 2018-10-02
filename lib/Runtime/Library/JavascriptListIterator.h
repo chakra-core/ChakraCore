@@ -20,10 +20,6 @@ namespace Js
     public:
         JavascriptListIterator(DynamicType* type, ListForListIterator* list);
 
-        static bool Is(Var aValue);
-        static JavascriptListIterator* FromVar(Var aValue);
-        static JavascriptListIterator* UnsafeFromVar(Var aValue);
-
         class EntryInfo
         {
         public:
@@ -33,5 +29,10 @@ namespace Js
         static Var EntryNext(RecyclableObject* function, CallInfo callInfo, ...);
 
     };
+
+    template <> inline bool VarIsImpl<JavascriptListIterator>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ListIterator;
+    }
 } // namespace Js
 

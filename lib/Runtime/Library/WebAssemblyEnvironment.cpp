@@ -62,11 +62,11 @@ T* WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 m
     Var varFunc = *functionPtr;
     if (varFunc)
     {
-        if (!T::Is(varFunc))
+        if (!VarIs<T>(varFunc))
         {
             Js::Throw::InternalError();
         }
-        return T::FromVar(varFunc);
+        return VarTo<T>(varFunc);
     }
     return nullptr;
 }
@@ -75,7 +75,7 @@ template<typename T>
 void WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
 {
     if (index >= maxCount ||
-        !T::Is(val))
+        !VarIsCorrectType(val))
     {
         Js::Throw::InternalError();
     }

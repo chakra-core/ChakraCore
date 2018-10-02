@@ -27,9 +27,6 @@ namespace Js
     public:
         JavascriptStringObject(DynamicType * type);
         JavascriptStringObject(JavascriptString* value, DynamicType * type);
-        static bool Is(Var aValue);
-        static JavascriptStringObject* FromVar(Var aValue);
-        static JavascriptStringObject* UnsafeFromVar(Var aValue);
 
         void Initialize(JavascriptString* value);
         JavascriptString* Unwrap() { return InternalUnwrap(); }
@@ -72,4 +69,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptStringObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_StringObject;
+    }
 }
