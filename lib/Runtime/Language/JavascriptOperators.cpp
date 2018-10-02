@@ -7572,6 +7572,15 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(Op_EnsureNoRootRedeclProperty);
     }
 
+    void JavascriptOperators::OP_EnsureCanDeclGloFunc(Var instance, PropertyId propertyId)
+    {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_EnsureCanDeclGloFunc);
+        Assert(VarIs<RootObjectBase>(instance));
+        RootObjectBase *obj = VarTo<RootObjectBase>(instance);
+        obj->EnsureCanDeclGloFunc(propertyId);
+        JIT_HELPER_END(Op_EnsureCanDeclGloFunc);
+    }
+
     void JavascriptOperators::OP_ScopedEnsureNoRedeclProperty(FrameDisplay *pDisplay, PropertyId propertyId, Var defaultInstance)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_EnsureNoRedeclPropertyScoped);

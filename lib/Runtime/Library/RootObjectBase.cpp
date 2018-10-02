@@ -133,6 +133,18 @@ namespace Js
         return true;
     }
 
+    void
+    RootObjectBase::EnsureCanDeclGloFunc(PropertyId propertyId)
+    {
+        // #sec-candeclareglobalfunction states that if an exisiting property is
+        // not configurable, not writable, and not enumerable, return false.
+        if (!IsConfigurable(propertyId) && !IsWritable(propertyId) && !IsEnumerable(propertyId))
+        {
+            JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_InvalidGloFuncDecl,
+                GetScriptContext()->GetPropertyName(propertyId)->GetBuffer());
+        }
+    }
+
     BOOL
     RootObjectBase::HasOwnPropertyCheckNoRedecl(PropertyId propertyId)
     {

@@ -6526,6 +6526,12 @@ skipThunk:
         JavascriptOperators::OP_EnsureNoRootRedeclProperty(instance, this->m_functionBody->GetReferencedPropertyId(propertyIdIndex));
     }
 
+    void InterpreterStackFrame::OP_EnsureCanDeclGloFunc(uint propertyIdIndex)
+    {
+        Var instance = this->GetRootObject();
+        JavascriptOperators::OP_EnsureCanDeclGloFunc(instance, this->m_functionBody->GetReferencedPropertyId(propertyIdIndex));
+    }
+
     void InterpreterStackFrame::OP_ScopedEnsureNoRedeclProperty(Var aValue, uint propertyIdIndex, Var aValue2)
     {
         Js::PropertyId propertyId = this->m_functionBody->GetReferencedPropertyId(propertyIdIndex);
