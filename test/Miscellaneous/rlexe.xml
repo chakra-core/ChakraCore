@@ -118,4 +118,10 @@
       <baseline>nullByte-string.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>MayHaveSideEffectOnNodeSO.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
