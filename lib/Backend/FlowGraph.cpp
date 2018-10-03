@@ -3421,7 +3421,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         *       - When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
         */
         Js::OpCode opcode = instr->m_opcode;
-        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
+        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt() &&
             globOpt->CurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
