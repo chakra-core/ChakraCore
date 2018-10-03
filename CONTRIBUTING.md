@@ -12,7 +12,7 @@ If you believe you have found a security issue in ChakraCore, please share it wi
 
 ## Legal
 
-You will need to complete a Contributor License Agreement (CLA) before your pull request can be accepted. This agreement testifies that you are granting us permission to use the source code you are submitting, and that this work is being submitted under appropriate license that we can use it.
+You will need to complete a Contributor License Agreement (CLA) before your pull request can be accepted. This agreement testifies that you are granting us permission to use the source code you are submitting and that this work is being submitted under appropriate license that we can use it.
 
 You can complete the CLA by going through the steps at https://cla.microsoft.com. Once we have received the signed CLA, we'll review the request. You will only need to do this once.
 
@@ -24,7 +24,7 @@ Your pull request should:
 * Pass all unit tests
 * Have a clear commit message
 * Include adequate tests
-  * At least one test should fail in the absence of your non-test code changes. If your PR does not match this criteria, please specify why
+  * At least one test should fail in the absence of your non-test code changes. If your PR does not match these criterias, please specify why
   * Tests should include reasonable permutations of the target fix/change
   * Include baseline changes with your change
 
@@ -66,3 +66,4 @@ You are welcome to work on issues that are not tagged with these labels. However
 Remember, for all issues you choose to work on please communicate on the issue that you are claiming it to avoid duplicated work.
 
 To learn more about our GitHub labels see the [Label Glossary](https://github.com/Microsoft/ChakraCore/wiki/Label-Glossary) on our wiki page.
+
