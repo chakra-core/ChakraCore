@@ -725,7 +725,7 @@ public:
     StackSym *          tempSymDouble;
     StackSym *          tempSymBool;
     uint32              loopCount;
-    uint32              unoptableInlineArgCount;
+    uint32              unoptimizableArgumentsObjReference;
     Js::ProfileId       callSiteIdInParentFunc;
     InlineeFrameInfo*   cachedInlineeFrameInfo;
     bool                m_hasCalls: 1; // This is more accurate compared to m_isLeaf
