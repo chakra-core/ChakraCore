@@ -22,7 +22,7 @@ def machineTypeToOSTagMap = [
     'Windows_NT': 'Windows 8.1',        // 'latest-or-auto' -> Windows Server 2012 R2 ~= Windows 8.1 aka Blue
     'windows.10.amd64.clientrs4.devex.open': 'Windows 10',                          // = Windows 10 RS4 with Dev 15.7
     'Ubuntu16.04': 'Ubuntu',
-    'OSX10.12': 'OSX'
+    'OSX.1011.Amd64.Chakra.Open': 'OSX'
 ]
 
 def defaultMachineTag = 'latest-or-auto'
@@ -161,7 +161,11 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
         true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
         false) // archiveOnlyIfSuccessful=false ~= archiveAlways
 
-    Utilities.setMachineAffinity(newJob, machine, defaultMachineTag)
+    if (platform == "osx") {
+        Utilities.setMachineAffinity(newJob, machine) // OSX machine string contains all info already
+    } else {
+        Utilities.setMachineAffinity(newJob, machine, defaultMachineTag)
+    }
     Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
 
     if (nonDefaultTaskSetup == null) {
@@ -389,7 +393,7 @@ if (isXPlatCompatibleBranch) {
 // ---------------
 
 if (isXPlatCompatibleBranch) {
-    def osString = 'OSX10.12'
+    def osString = 'OSX.1011.Amd64.Chakra.Open'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, null, "")
