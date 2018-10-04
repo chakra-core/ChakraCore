@@ -398,11 +398,11 @@ class TestVariant(object):
 
     # print output from multi-process run, to be sent with result message
     def _print(self, line):
-        self._print_lines.append(str(line))
+        self._print_lines.append(line)
 
     # queue a test result from multi-process runs
     def _log_result(self, test, fail):
-        output = '\n'.join(self._print_lines) # collect buffered _print output
+        output = u'\n'.join(self._print_lines).encode('utf-8') # collect buffered _print output
         self._print_lines = []
         self.msg_queue.put((test.filename, fail, test.elapsed_time, output))
 
