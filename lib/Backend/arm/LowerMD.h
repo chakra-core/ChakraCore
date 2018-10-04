@@ -94,8 +94,9 @@ public:
             void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget);
             bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
             bool            GenerateFastCmSrEqConst(IR::Instr *instr);
-            bool            GenerateFastCmXxI4(IR::Instr *instr);
-            bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return nullptr; }
+            void            GenerateFastCmXxI4(IR::Instr *instr);
+            void            GenerateFastCmXxR8(IR::Instr *instr);
+            void            GenerateFastCmXx(IR::Instr *instr);
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);

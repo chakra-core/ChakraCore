@@ -191,8 +191,8 @@ public:
 
         if (PHASE_OFF1(Js::ObjTypeSpecPhase)) return nullptr; // TODO: (lei)remove this after obj type spec for OOPJIT implemented
 
-        return m_data.fixedFieldInfoArray[0].fieldValue != 0 && Js::JavascriptFunction::Is((Js::Var)m_data.fixedFieldInfoArray[0].fieldValue) ?
-            Js::JavascriptFunction::FromVar((Js::Var)m_data.fixedFieldInfoArray[0].fieldValue) : nullptr;
+        return m_data.fixedFieldInfoArray[0].fieldValue != 0 && Js::VarIs<Js::JavascriptFunction>((Js::Var)m_data.fixedFieldInfoArray[0].fieldValue) ?
+            Js::VarTo<Js::JavascriptFunction>((Js::Var)m_data.fixedFieldInfoArray[0].fieldValue) : nullptr;
     }
 
     Js::TypeId GetTypeId() const;

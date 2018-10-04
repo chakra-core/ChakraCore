@@ -110,13 +110,13 @@ namespace TTD
         Js::DynamicObject* ReuseObjectCheckAndReset(const SnapObject* snpObject, InflateMap* inflator)
         {
             Js::RecyclableObject* robj = inflator->FindReusableObjectIfExists(snpObject->ObjectPtrId);
-            if(robj == nullptr || Js::DynamicObject::FromVar(robj)->GetTypeId() != snpObject->SnapType->JsTypeId || Js::DynamicObject::FromVar(robj)->IsCrossSiteObject() != snpObject->IsCrossSite)
+            if(robj == nullptr || Js::VarTo<Js::DynamicObject>(robj)->GetTypeId() != snpObject->SnapType->JsTypeId || Js::VarTo<Js::DynamicObject>(robj)->IsCrossSiteObject() != snpObject->IsCrossSite)
             {
                 return nullptr;
             }
             TTDAssert(Js::DynamicType::Is(robj->GetTypeId()), "You should only do this for dynamic objects!!!");
 
-            Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(robj);
+            Js::DynamicObject* dynObj = Js::VarTo<Js::DynamicObject>(robj);
             return ObjectPropertyReset_General(snpObject, dynObj, inflator);
         }
 
@@ -276,7 +276,7 @@ namespace TTD
             //Many protos are set at creation, don't mess with them if they are already correct
             if(snpObject->SnapType->PrototypeVar != nullptr)
             {
-                Js::RecyclableObject* protoObj = Js::RecyclableObject::FromVar(inflator->InflateTTDVar(snpObject->SnapType->PrototypeVar));
+                Js::RecyclableObject* protoObj = Js::VarTo<Js::RecyclableObject>(inflator->InflateTTDVar(snpObject->SnapType->PrototypeVar));
                 if(obj->GetType()->GetPrototype() != protoObj)
                 {
                     obj->SetPrototype(protoObj);
@@ -304,7 +304,7 @@ namespace TTD
                     continue;
                 }
 
-                TTDAssert(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
+                TTDAssert(!Js::VarIs<Js::JavascriptProxy>(obj), "I didn't think proxies could have real properties directly on them.");
 
                 Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
 
@@ -708,7 +708,7 @@ namespace TTD
                 Js::Var res = nullptr;
                 ctx->GetThreadContext()->TTDContext->TTDExternalObjectFunctions.pfCreateExternalObject(ctx, nullptr, &res);
 
-                return Js::RecyclableObject::FromVar(res);
+                return Js::VarTo<Js::RecyclableObject>(res);
             }
         }
 
@@ -739,7 +739,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapScriptFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         {
-            Js::ScriptFunction* fobj = Js::ScriptFunction::FromVar(obj);
+            Js::ScriptFunction* fobj = Js::VarTo<Js::ScriptFunction>(obj);
             SnapScriptFunctionInfo* snapFuncInfo = SnapObjectGetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject);
             DoAddtlValueInstantiation_SnapScriptFunctionInfoEx(snapFuncInfo, fobj, inflator);
         }
@@ -748,7 +748,7 @@ namespace TTD
         {
             if(snapFuncInfo->CachedScopeObjId != TTD_INVALID_PTR_ID)
             {
-                func->SetCachedScope(Js::ActivationObjectEx::FromVar(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
+                func->SetCachedScope(Js::VarTo<Js::ActivationObjectEx>(inflator->LookupObject(snapFuncInfo->CachedScopeObjId)));
             }
 
             if(snapFuncInfo->HomeObjId != TTD_INVALID_PTR_ID)
@@ -1801,7 +1801,7 @@ namespace TTD
             SnapTypedArrayInfo* typedArrayInfo = SnapObjectGetAddtlInfoAs<SnapTypedArrayInfo*, SnapObjectType::SnapTypedArrayObject>(snpObject);
 
             Js::JavascriptLibrary* jslib = ctx->GetLibrary();
-            Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(inflator->LookupObject(typedArrayInfo->ArrayBufferAddr));
+            Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(inflator->LookupObject(typedArrayInfo->ArrayBufferAddr));
 
             Js::Var tab = nullptr;
             switch(snpObject->SnapType->JsTypeId)
@@ -1850,7 +1850,7 @@ namespace TTD
                 break;
             }
 
-            return Js::RecyclableObject::FromVar(tab);
+            return Js::VarTo<Js::RecyclableObject>(tab);
         }
 
         void EmitAddtlInfo_SnapTypedArrayInfo(const SnapObject* snpObject, FileWriter* writer)
@@ -2337,7 +2337,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapGeneratorFunctionInfo(const SnapObject *snpObject, Js::RecyclableObject *obj, InflateMap *inflator)
         {
-            Js::JavascriptGeneratorFunction *func = Js::JavascriptGeneratorFunction::FromVar(obj);
+            Js::JavascriptGeneratorFunction *func = Js::VarTo<Js::JavascriptGeneratorFunction>(obj);
             SnapGeneratorFunctionInfo *sfi = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapGeneratorFunction>(snpObject);
 
             if(sfi->scriptFunction != TTD_INVALID_PTR_ID)
@@ -2379,7 +2379,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapAsyncFunction(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         {
-            Js::JavascriptAsyncFunction* func = Js::JavascriptAsyncFunction::FromVar(obj);
+            Js::JavascriptAsyncFunction* func = Js::VarTo<Js::JavascriptAsyncFunction>(obj);
             SnapGeneratorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapGeneratorFunctionInfo *, SnapObjectType::SnapAsyncFunction>(snpObject);
 
             if (info->scriptFunction != TTD_INVALID_PTR_ID)
@@ -2538,7 +2538,7 @@ namespace TTD
 
         void DoAddtlValueInstantiation_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, Js::RecyclableObject* obj, InflateMap* inflator)
         { }
-        
+
         void EmitAddtlInfo_SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
         {
             SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo* info = SnapObjectGetAddtlInfoAs<SnapJavascriptPromiseAsyncSpawnStepArgumentExecutorFunctionInfo*, SnapObjectType::JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(snpObject);

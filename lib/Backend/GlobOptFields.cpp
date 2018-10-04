@@ -400,7 +400,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InlineeEnd:
         Assert(!instr->UsesAllFields());
 
-        // Kill all live 'arguments' and 'caller' fields, as 'inlineeFunction.arguments' and 'inlineeFunction.caller' 
+        // Kill all live 'arguments' and 'caller' fields, as 'inlineeFunction.arguments' and 'inlineeFunction.caller'
         // cannot be copy-propped across different instances of the same inlined function.
         KillLiveFields(argumentsEquivBv, bv);
         KillLiveFields(callerEquivBv, bv);
@@ -493,7 +493,7 @@ GlobOpt::CreateFieldSrcValue(PropertySym * sym, PropertySym * originalSym, IR::O
     }
 
     Assert((*ppOpnd)->AsSymOpnd()->m_sym == sym || this->IsLoopPrePass());
-    
+
     // We don't use the sym store to do copy prop on hoisted fields, but create a value
     // in case it can be copy prop out of the loop.
     return this->NewGenericValue(ValueType::Uninitialized, *ppOpnd);
@@ -1284,8 +1284,8 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             }
         }
         else if (valueInfo->GetJsTypeSet() &&
-                 (opnd->IsMono() ? 
-                      valueInfo->GetJsTypeSet()->Contains(opnd->GetFirstEquivalentType()) : 
+                 (opnd->IsMono() ?
+                      valueInfo->GetJsTypeSet()->Contains(opnd->GetFirstEquivalentType()) :
                       IsSubsetOf(opndTypeSet, valueInfo->GetJsTypeSet())
                  )
             )
@@ -1473,7 +1473,7 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
         instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)) : nullptr;
 
     // TODO: OOP JIT, enable assert
-    //Assert(ctorCache == nullptr || srcVal->GetValueInfo()->IsVarConstant() && Js::JavascriptFunction::Is(srcVal->GetValueInfo()->AsVarConstant()->VarValue()));
+    //Assert(ctorCache == nullptr || srcVal->GetValueInfo()->IsVarConstant() && Js::VarIs<Js::JavascriptFunction>(srcVal->GetValueInfo()->AsVarConstant()->VarValue()));
     Assert(ctorCache == nullptr || !ctorCache->IsTypeFinal() || ctorCache->CtorHasNoExplicitReturnValue());
 
     if (ctorCache != nullptr && !ctorCache->SkipNewScObject() && (isCtorInlined || ctorCache->IsTypeFinal()))

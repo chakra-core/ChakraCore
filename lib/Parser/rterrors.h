@@ -304,7 +304,8 @@ RT_ERROR_MSG(JSERR_ObjectIsNotInitialized, 5617, "%s: Object internal state is n
 RT_ERROR_MSG(JSERR_GeneratorAlreadyExecuting, 5618, "%s: Cannot execute generator function because it is currently executing", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_LengthIsTooBig, 5619, "Length property would exceed maximum value in output from '%s'", "", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_NonObjectFromIterable, 5620, "Iterable provided to %s must not return non-object or null value.", "", kjstTypeError, 0)
-// 5621-5626 Unused
+RT_ERROR_MSG(JSERR_EmptyArrayAndInitValueNotPresent, 5621, "%s: Array contains no elements and initialValue is not provided", "", kjstTypeError, 0)
+// 5622-5626 Unused
 RT_ERROR_MSG(JSERR_NeedConstructor, 5627, "'%s' is not a constructor", "Constructor expected", kjstTypeError, 0)
 
 RT_ERROR_MSG(VBSERR_CantDisplayDate, 32812, "", "The specified date is not available in the current locale's calendar", kjstRangeError, 0)
@@ -370,6 +371,7 @@ RT_ERROR_MSG(JSERR_RegExpTooManyCapturingGroups, 5675, "", "Regular expression c
 RT_ERROR_MSG(JSERR_ProxyHandlerReturnedFalse, 5676, "Proxy %s handler returned false", "Proxy handler returned false", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_UnicodeRegExpRangeContainsCharClass, 5677, "%s", "Character classes not allowed in a RegExp class range.", kjstSyntaxError, 0)
 RT_ERROR_MSG(JSERR_DuplicateKeysFromOwnPropertyKeys, 5678, "%s", "Proxy's ownKeys trap returned duplicate keys", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidGloFuncDecl, 5679, "The global property %s is not configurable, writable, nor enumerable, therefore cannot be declared as a function", "", kjstTypeError, 0)
 
 //Host errors
 RT_ERROR_MSG(JSERR_HostMaybeMissingPromiseContinuationCallback, 5700, "", "Host may not have set any promise continuation callback. Promises may not be executed.", kjstTypeError, 0)

@@ -41,23 +41,9 @@ namespace Js
         return obj;
     }
 
-    bool JavascriptGenerator::Is(Var var)
+    template <> bool VarIsImpl<JavascriptGenerator>(RecyclableObject* obj)
     {
-        return JavascriptOperators::GetTypeId(var) == TypeIds_Generator;
-    }
-
-    JavascriptGenerator* JavascriptGenerator::FromVar(Var var)
-    {
-        AssertOrFailFastMsg(Is(var), "Ensure var is actually a 'JavascriptGenerator'");
-
-        return static_cast<JavascriptGenerator*>(var);
-    }
-
-    JavascriptGenerator* JavascriptGenerator::UnsafeFromVar(Var var)
-    {
-        AssertMsg(Is(var), "Ensure var is actually a 'JavascriptGenerator'");
-
-        return static_cast<JavascriptGenerator*>(var);
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Generator;
     }
 
     void JavascriptGenerator::SetFrame(InterpreterStackFrame* frame, size_t bytes)
@@ -180,12 +166,12 @@ namespace Js
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.next"));
 
-        if (!JavascriptGenerator::Is(args[0]))
+        if (!VarIs<JavascriptGenerator>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.next"), _u("Generator"));
         }
 
-        JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
+        JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
         Var input = args.Info.Count > 1 ? args[1] : library->GetUndefined();
 
         if (generator->IsCompleted())
@@ -207,12 +193,12 @@ namespace Js
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.return"));
 
-        if (!JavascriptGenerator::Is(args[0]))
+        if (!VarIs<JavascriptGenerator>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.return"), _u("Generator"));
         }
 
-        JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
+        JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
         Var input = args.Info.Count > 1 ? args[1] : library->GetUndefined();
 
         if (generator->IsSuspendedStart())
@@ -239,12 +225,12 @@ namespace Js
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Generator.prototype.throw"));
 
-        if (!JavascriptGenerator::Is(args[0]))
+        if (!VarIs<JavascriptGenerator>(args[0]))
         {
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedObjectOfType, _u("Generator.prototype.throw"), _u("Generator"));
         }
 
-        JavascriptGenerator* generator = JavascriptGenerator::FromVar(args[0]);
+        JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
         Var input = args.Info.Count > 1 ? args[1] : library->GetUndefined();
 
         if (generator->IsSuspendedStart())
@@ -312,7 +298,7 @@ namespace Js
 
         // TODO: BUGBUG - figure out how to determine what the prototype was
         gi->generatorPrototype = 0;
-        //if (this->GetPrototype() == this->GetScriptContext()->GetLibrary()->GetNull()) 
+        //if (this->GetPrototype() == this->GetScriptContext()->GetLibrary()->GetNull())
         //{
         //    gi->generatorPrototype = 1;
         //}

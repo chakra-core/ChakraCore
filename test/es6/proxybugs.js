@@ -495,6 +495,21 @@ var tests = [
             });
             assert.throws(()=> { Object.keys(proxy);}, TypeError, "proxy's ownKeys is returning duplicate keys", "Proxy's ownKeys trap returned duplicate keys");
         }
+    },
+    {
+        name : "Proxy with DefineOwnProperty trap should not get descriptor properties twice",
+        body() {
+            const desc = { };
+            let counter = 0;
+            let handler = {
+                defineProperty : function (oTarget, sKey, oDesc) { 
+                    return Reflect.defineProperty(oTarget, sKey, oDesc); 
+                }
+            };
+            Object.defineProperty(desc, "writable", { get: function () { ++counter; return true; }});
+            Object.defineProperty(new Proxy({}, handler), "test", desc);
+            assert.areEqual(1, counter, "Writable property on descriptor should only be checked once");
+        }
     }
 ];
 

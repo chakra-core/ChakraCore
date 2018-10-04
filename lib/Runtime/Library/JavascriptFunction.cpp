@@ -96,27 +96,9 @@ using namespace Js;
         return functionInfo->HasBody();
     }
 
-    bool JavascriptFunction::Is(Var aValue)
+    template <> bool Js::VarIsImpl<JavascriptFunction>(RecyclableObject* obj)
     {
-        if (JavascriptOperators::GetTypeId(aValue) == TypeIds_Function)
-        {
-            return true;
-        }
-        return false;
-    }
-
-    JavascriptFunction* JavascriptFunction::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
-
-        return static_cast<JavascriptFunction *>(aValue);
-    }
-
-    JavascriptFunction* JavascriptFunction::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptFunction'");
-
-        return static_cast<JavascriptFunction *>(aValue);
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Function;
     }
 
     BOOL JavascriptFunction::IsStrictMode() const
@@ -139,8 +121,8 @@ using namespace Js;
     /* static */
     bool JavascriptFunction::IsBuiltinProperty(Var objectWithProperty, PropertyIds propertyId)
     {
-        return ScriptFunctionBase::Is(objectWithProperty)
-            && (propertyId == PropertyIds::length || (JavascriptFunction::FromVar(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
+        return VarIs<ScriptFunctionBase>(objectWithProperty)
+            && (propertyId == PropertyIds::length || (VarTo<JavascriptFunction>(objectWithProperty)->HasRestrictedProperties() && (propertyId == PropertyIds::arguments || propertyId == PropertyIds::caller)));
     }
 #endif
 
@@ -151,7 +133,7 @@ using namespace Js;
     static char16 const closeFormals[] = _u("\n)");
     static char16 const openFuncBody[] = _u(" {");
     static char16 const closeFuncBody[] = _u("\n}");
-    
+
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
         JavascriptLibrary* library = function->GetLibrary();
@@ -320,7 +302,7 @@ using namespace Js;
         }
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pfuncScript, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pfuncScript, nullptr, scriptContext) :
             pfuncScript;
     }
 
@@ -437,7 +419,7 @@ using namespace Js;
 
         Var thisVar = NULL;
         Var argArray = NULL;
-        RecyclableObject* pFunc = RecyclableObject::FromVar(args[0]);
+        RecyclableObject* pFunc = VarTo<RecyclableObject>(args[0]);
 
         if (args.Info.Count == 1)
         {
@@ -483,7 +465,7 @@ using namespace Js;
         }
         else
         {
-            bool isArray = JavascriptArray::Is(argArray);
+            bool isArray = JavascriptArray::IsNonES5Array(argArray);
             TypeId typeId = JavascriptOperators::GetTypeId(argArray);
             bool isNullOrUndefined = typeId <= TypeIds_UndefinedOrNull;
 
@@ -494,7 +476,7 @@ using namespace Js;
 
             int64 len;
             JavascriptArray* arr = NULL;
-            RecyclableObject* dynamicObject = RecyclableObject::FromVar(argArray);
+            RecyclableObject* dynamicObject = VarTo<RecyclableObject>(argArray);
 
             if (isNullOrUndefined)
             {
@@ -505,7 +487,7 @@ using namespace Js;
 #if ENABLE_COPYONACCESS_ARRAY
                 JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(argArray);
 #endif
-                arr = JavascriptArray::FromVar(argArray);
+                arr = VarTo<JavascriptArray>(argArray);
                 len = arr->GetLength();
             }
             else
@@ -644,7 +626,7 @@ using namespace Js;
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.call"));
         }
 
-        RecyclableObject *pFunc = RecyclableObject::FromVar(args[0]);
+        RecyclableObject *pFunc = VarTo<RecyclableObject>(args[0]);
         if (argCount == 1)
         {
             args.Values[0] = scriptContext->GetLibrary()->GetUndefined();
@@ -678,7 +660,7 @@ using namespace Js;
         {
             ScriptContext* requestContext = scriptContext->GetThreadContext()->
               GetPreviousHostScriptContext()->GetScriptContext();
-            func = JavascriptFunction::FromVar(CrossSite::MarshalVar(requestContext,
+            func = VarTo<JavascriptFunction>(CrossSite::MarshalVar(requestContext,
               func, scriptContext));
         }
         return func->CallRootFunction(args, scriptContext, true);
@@ -839,10 +821,10 @@ using namespace Js;
             && !scriptContext->IsInterpreted() && !CONFIG_FLAG(ForceDiagnosticsMode)    // Does not work nicely if we change the default settings.
             && function->GetEntryPoint() != scriptContext->CurrentThunk
             && !CrossSite::IsThunk(function->GetEntryPoint())
-            && JavascriptFunction::Is(function))
+            && VarIs<JavascriptFunction>(function))
         {
 
-            JavascriptFunction *jsFunction = JavascriptFunction::FromVar(function);
+            JavascriptFunction *jsFunction = VarTo<JavascriptFunction>(function);
             if (!jsFunction->IsBoundFunction()
                 && !jsFunction->GetFunctionInfo()->IsDeferred()
                 && (jsFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::DoNotProfile) != FunctionInfo::DoNotProfile
@@ -888,7 +870,7 @@ using namespace Js;
         }
 
         // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
-        RecyclableObject* functionObj = RecyclableObject::UnsafeFromVar(v);
+        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(v);
 
         const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
@@ -941,9 +923,9 @@ using namespace Js;
         CallInfo newCallInfo(newFlags, args.Info.Count);
         Arguments newArgs(newCallInfo, newValues);
 
-        if (JavascriptProxy::Is(v))
+        if (VarIs<JavascriptProxy>(v))
         {
-            JavascriptProxy* proxy = JavascriptProxy::FromVar(v);
+            JavascriptProxy* proxy = VarTo<JavascriptProxy>(v);
             return proxy->ConstructorTrap(newArgs, scriptContext, spreadIndices);
         }
 
@@ -968,8 +950,8 @@ using namespace Js;
             FinishConstructor(
                 functionResult,
                 resultObject,
-                JavascriptFunction::Is(functionObj) && functionObj->GetScriptContext() == scriptContext ?
-                JavascriptFunction::FromVar(functionObj) :
+                VarIs<JavascriptFunction>(functionObj) && functionObj->GetScriptContext() == scriptContext ?
+                VarTo<JavascriptFunction>(functionObj) :
                 nullptr,
                 overridingNewTarget != nullptr);
     }
@@ -1080,9 +1062,9 @@ using namespace Js;
                 // Expand the spread element.
                 Var instance = args[spreadIndex];
 
-                if (SpreadArgument::Is(instance))
+                if (VarIs<SpreadArgument>(instance))
                 {
-                    SpreadArgument* spreadedArgs = SpreadArgument::FromVar(instance);
+                    SpreadArgument* spreadedArgs = VarTo<SpreadArgument>(instance);
                     uint size = spreadedArgs->GetArgumentSpreadCount();
                     if (size > 0)
                     {
@@ -1568,20 +1550,20 @@ dbl_align:
 
         Var arg0 = args[0];
 
-        // callable proxy is considered as having [[Call]] internal method 
+        // callable proxy is considered as having [[Call]] internal method
         // and should behave here like a function.
         // we will defer to the underlying target.
-        while (JavascriptProxy::Is(arg0) && JavascriptConversion::IsCallable(arg0))
+        while (VarIs<JavascriptProxy>(arg0) && JavascriptConversion::IsCallable(arg0))
         {
-            arg0 = JavascriptProxy::FromVar(arg0)->GetTarget();
+            arg0 = VarTo<JavascriptProxy>(arg0)->GetTarget();
         }
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        if (args.Info.Count == 0 || !JavascriptFunction::Is(arg0))
+        if (args.Info.Count == 0 || !VarIs<JavascriptFunction>(arg0))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedFunction, _u("Function.prototype.toString"));
         }
-        JavascriptFunction *pFunc = JavascriptFunction::FromVar(arg0);
+        JavascriptFunction *pFunc = VarTo<JavascriptFunction>(arg0);
 
         // pFunc can be from a different script context if Function.prototype.toString is invoked via .call/.apply.
         // Marshal the resulting string to the current script context (that of the toString)
@@ -1920,7 +1902,7 @@ LABEL1:
             }
 
             Var* addressOfFuncObj = GetAddressOfFuncObj();
-            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !ScriptFunction::Is(*addressOfFuncObj))
+            if (!addressOfFuncObj || *addressOfFuncObj == nullptr || !VarIs<ScriptFunction>(*addressOfFuncObj))
             {
                 return nullptr;
             }
@@ -2307,12 +2289,12 @@ LABEL1:
             return false;
         }
 
-        bool isAsmJs = AsmJsScriptFunction::Is(func);
-        bool isWasmOnly = WasmScriptFunction::Is(func);
+        bool isAsmJs = VarIs<AsmJsScriptFunction>(func);
+        bool isWasmOnly = VarIs<WasmScriptFunction>(func);
         uintptr_t faultingAddr = helper.GetFaultingAddress();
         if (isAsmJs)
         {
-            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
+            AsmJsScriptFunction* asmFunc = VarTo<AsmJsScriptFunction>(func);
             // some extra checks for asm.js because we have slightly more information that we can validate
             if (!asmFunc->GetModuleEnvironment())
             {
@@ -2324,7 +2306,7 @@ LABEL1:
 #ifdef ENABLE_WASM
             if (isWasmOnly)
             {
-                WebAssemblyMemory* mem = WasmScriptFunction::FromVar(func)->GetWebAssemblyMemory();
+                WebAssemblyMemory* mem = VarTo<WasmScriptFunction>(func)->GetWebAssemblyMemory();
                 arrayBuffer = mem->GetBuffer();
                 reservationSize = MAX_WASM__ARRAYBUFFER_LENGTH;
             }
@@ -2473,7 +2455,7 @@ LABEL1:
         {
             Assert(CrossSite::IsThunk(callEntryPoint));
         }
-        else if (ScriptFunction::Is(this))
+        else if (VarIs<ScriptFunction>(this))
         {
         }
         else
@@ -2722,22 +2704,22 @@ LABEL1:
                 funcCaller = nullValue;
             }
 
-            if (ScriptFunction::Is(funcCaller))
+            if (VarIs<ScriptFunction>(funcCaller))
             {
                 // If this is the internal function of a generator function then return the original generator function
-                funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+                funcCaller = VarTo<ScriptFunction>(funcCaller)->GetRealFunctionObject();
 
                 // This function is escaping, so make sure there isn't some nested parent that has a cached scope.
-                if (ScriptFunction::Is(funcCaller))
+                if (VarIs<ScriptFunction>(funcCaller))
                 {
-                    FrameDisplay * pFrameDisplay = Js::ScriptFunction::FromVar(funcCaller)->GetEnvironment();
+                    FrameDisplay * pFrameDisplay = Js::VarTo<Js::ScriptFunction>(funcCaller)->GetEnvironment();
                     uint length = (uint)pFrameDisplay->GetLength();
                     for (uint i = 0; i < length; i++)
                     {
                         Var scope = pFrameDisplay->GetItem(i);
-                        if (scope && !Js::ScopeSlots::Is(scope) && Js::ActivationObjectEx::Is(scope))
+                        if (scope && !Js::ScopeSlots::Is(scope) && Js::VarIs<Js::ActivationObjectEx>(scope))
                         {
-                            Js::ActivationObjectEx::FromVar(scope)->InvalidateCachedScope();
+                            Js::VarTo<Js::ActivationObjectEx>(scope)->InvalidateCachedScope();
                         }
                     }
                 }
@@ -2819,7 +2801,7 @@ LABEL1:
             }
         }
 
-        if (Js::JavascriptFunction::Is(*value) && Js::JavascriptFunction::FromVar(*value)->IsStrictMode())
+        if (Js::VarIs<Js::JavascriptFunction>(*value) && Js::VarTo<Js::JavascriptFunction>(*value)->IsStrictMode())
         {
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
@@ -3168,8 +3150,8 @@ LABEL1:
             }
             else
             {
-                Assert(JavascriptString::Is(sourceString));
-                pString = JavascriptString::FromVar(sourceString);
+                Assert(VarIs<JavascriptString>(sourceString));
+                pString = VarTo<JavascriptString>(sourceString);
             }
         }
 
@@ -3230,7 +3212,7 @@ LABEL1:
             return true;
         }
 
-        Assert(!ScriptFunction::Is(thisFunction));
+        Assert(!VarIs<ScriptFunction>(thisFunction));
         return GetSourceStringName(name);
     }
 
@@ -3248,8 +3230,8 @@ LABEL1:
                 *name = scriptContext->GetPropertyString(propertyIdOfSourceString);
                 return true;
             }
-            Assert(JavascriptString::Is(sourceString));
-            *name = JavascriptString::FromVar(sourceString);
+            Assert(VarIs<JavascriptString>(sourceString));
+            *name = VarTo<JavascriptString>(sourceString);
             return true;
         }
         return false;
@@ -3308,10 +3290,10 @@ LABEL1:
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
 
-        RecyclableObject * constructor = RecyclableObject::FromVar(args[0]);
+        RecyclableObject * constructor = VarTo<RecyclableObject>(args[0]);
         Var instance = args[1];
 
-        Assert(JavascriptProxy::Is(constructor) || JavascriptFunction::Is(constructor));
+        Assert(VarIs<JavascriptProxy>(constructor) || VarIs<JavascriptFunction>(constructor));
         return JavascriptBoolean::ToVar(constructor->HasInstance(instance, scriptContext, NULL), scriptContext);
     }
 
@@ -3346,8 +3328,8 @@ LABEL1:
             if (inlineCache && inlineCache->function == nullptr
                 && scriptContext == function->GetScriptContext())// only register when function has same scriptContext
             {
-                inlineCache->Cache(RecyclableObject::Is(instance) ?
-                    RecyclableObject::UnsafeFromVar(instance)->GetType() : nullptr,
+                inlineCache->Cache(VarIs<RecyclableObject>(instance) ?
+                    UnsafeVarTo<RecyclableObject>(instance)->GetType() : nullptr,
                     function, scriptContext->GetLibrary()->GetFalse(), scriptContext);
             }
             return result;
@@ -3394,7 +3376,7 @@ LABEL1:
         // However, object o's type (even if it is of the same "shape" as before, and even if o is the very same object) will be different,
         // because the object types are permanently bound and unique to the script context from which they were created.
 
-        RecyclableObject* instanceObject = RecyclableObject::FromVar(instance);
+        RecyclableObject* instanceObject = VarTo<RecyclableObject>(instance);
         Var prototype = JavascriptOperators::GetPrototype(instanceObject);
 
         if (!JavascriptOperators::IsObject(funcPrototype))
@@ -3412,7 +3394,7 @@ LABEL1:
                 break;
             }
 
-            prototype = JavascriptOperators::GetPrototype(RecyclableObject::FromVar(prototype));
+            prototype = JavascriptOperators::GetPrototype(VarTo<RecyclableObject>(prototype));
         }
 
         // Now that we know the answer, let's cache it for next time if we have a cache.
@@ -3421,7 +3403,7 @@ LABEL1:
             Assert(function != NULL);
             JavascriptBoolean * boolResult = result ? scriptContext->GetLibrary()->GetTrue() :
                 scriptContext->GetLibrary()->GetFalse();
-            Type * instanceType = RecyclableObject::FromVar(instance)->GetType();
+            Type * instanceType = VarTo<RecyclableObject>(instance)->GetType();
 
             if (!instanceType->HasSpecialPrototype()
                 && scriptContext == function->GetScriptContext()) // only register when function has same scriptContext, otherwise when scriptContext close
@@ -3451,12 +3433,12 @@ LABEL1:
             Js::Throw::FatalInternalError();
         }
 
-        if (args.Info.Count < 2 || !ArrayBufferBase::Is(args[1]))
+        if (args.Info.Count < 2 || !VarIs<ArrayBufferBase>(args[1]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedArrayBufferObject);
         }
 
-        ArrayBufferBase* arrayBuffer = ArrayBufferBase::FromVar(args[1]);
+        ArrayBufferBase* arrayBuffer = VarTo<ArrayBufferBase>(args[1]);
         const byte* buffer = arrayBuffer->GetBuffer();
         uint32 size = arrayBuffer->GetByteLength();
         HRESULT hr = JitFromEncodedWorkItem(scriptContext->GetNativeCodeGenerator(), buffer, size);

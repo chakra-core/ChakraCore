@@ -11,25 +11,6 @@ namespace Js
         return &this->propertyRecordUsageCache;
     }
 
-    bool JavascriptSymbol::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_Symbol;
-    }
-
-    JavascriptSymbol* JavascriptSymbol::FromVar(Js::Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
-
-        return static_cast<JavascriptSymbol *>(aValue);
-    }
-
-    JavascriptSymbol* JavascriptSymbol::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbol'");
-
-        return static_cast<JavascriptSymbol *>(aValue);
-    }
-
     Var JavascriptSymbol::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -73,13 +54,13 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (JavascriptSymbol::Is(args[0]))
+        if (VarIs<JavascriptSymbol>(args[0]))
         {
             return args[0];
         }
-        else if (JavascriptSymbolObject::Is(args[0]))
+        else if (VarIs<JavascriptSymbolObject>(args[0]))
         {
-            JavascriptSymbolObject* obj = JavascriptSymbolObject::FromVar(args[0]);
+            JavascriptSymbolObject* obj = VarTo<JavascriptSymbolObject>(args[0]);
             return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else
@@ -101,13 +82,13 @@ namespace Js
 
         const PropertyRecord* val;
         Var aValue = args[0];
-        if (JavascriptSymbol::Is(aValue))
+        if (VarIs<JavascriptSymbol>(aValue))
         {
-            val = JavascriptSymbol::FromVar(aValue)->GetValue();
+            val = VarTo<JavascriptSymbol>(aValue)->GetValue();
         }
-        else if (JavascriptSymbolObject::Is(aValue))
+        else if (VarIs<JavascriptSymbolObject>(aValue))
         {
-            val = JavascriptSymbolObject::FromVar(aValue)->GetValue();
+            val = VarTo<JavascriptSymbolObject>(aValue)->GetValue();
         }
         else
         {
@@ -170,12 +151,12 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count < 2 || !JavascriptSymbol::Is(args[1]))
+        if (args.Info.Count < 2 || !VarIs<JavascriptSymbol>(args[1]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedSymbol, _u("Symbol.keyFor"));
         }
 
-        JavascriptSymbol* sym = JavascriptSymbol::FromVar(args[1]);
+        JavascriptSymbol* sym = VarTo<JavascriptSymbol>(args[1]);
         const Js::PropertyRecord* symPropertyRecord = sym->GetValue();
         const char16* key = symPropertyRecord->GetBuffer();
         const charcount_t keyLength = symPropertyRecord->GetLength();
@@ -206,13 +187,13 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (JavascriptSymbol::Is(args[0]))
+        if (VarIs<JavascriptSymbol>(args[0]))
         {
             return args[0];
         }
-        else if (JavascriptSymbolObject::Is(args[0]))
+        else if (VarIs<JavascriptSymbolObject>(args[0]))
         {
-            JavascriptSymbolObject* obj = JavascriptSymbolObject::FromVar(args[0]);
+            JavascriptSymbolObject* obj = VarTo<JavascriptSymbolObject>(args[0]);
             return CrossSite::MarshalVar(scriptContext, obj->Unwrap(), obj->GetScriptContext());
         }
         else
@@ -233,7 +214,7 @@ namespace Js
         if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
         {
             Var result;
-            if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
+            if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
             {
                 return result;
             }
@@ -266,12 +247,12 @@ namespace Js
         switch (typeId)
         {
         case TypeIds_Symbol:
-            *value = left == JavascriptSymbol::UnsafeFromVar(right);
-            Assert((left->GetValue() == JavascriptSymbol::UnsafeFromVar(right)->GetValue()) == *value);
+            *value = left == UnsafeVarTo<JavascriptSymbol>(right);
+            Assert((left->GetValue() == UnsafeVarTo<JavascriptSymbol>(right)->GetValue()) == *value);
             break;
         case TypeIds_SymbolObject:
-            *value = left == JavascriptSymbol::UnsafeFromVar(JavascriptSymbolObject::UnsafeFromVar(right)->Unwrap());
-            Assert((left->GetValue() == JavascriptSymbolObject::UnsafeFromVar(right)->GetValue()) == *value);
+            *value = left == UnsafeVarTo<JavascriptSymbol>(UnsafeVarTo<JavascriptSymbolObject>(right)->Unwrap());
+            Assert((left->GetValue() == UnsafeVarTo<JavascriptSymbolObject>(right)->GetValue()) == *value);
             break;
         default:
             *value = FALSE;

@@ -175,7 +175,7 @@ GlobOpt::Optimize()
 
         // Still need to run the dead store phase to calculate the live reg on back edge
         this->BackwardPass(Js::DeadStorePhase);
-        CannotAllocateArgumentsObjectOnStack();
+        CannotAllocateArgumentsObjectOnStack(nullptr);
         return;
     }
 
@@ -887,7 +887,7 @@ GlobOpt::ToTypeSpec(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IRType t
         // instruction itself should disable arguments object optimization.
         if(block->globOptData.argObjSyms && block->globOptData.IsArgumentsSymID(id))
         {
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(nullptr);
         }
 
         if (block->globOptData.liveVarSyms->Test(id))
@@ -1512,7 +1512,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
 
         if (instr->m_func->GetJITFunctionBody()->GetInParamsCount() != 1 && !instr->m_func->IsStackArgsEnabled())
         {
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(instr->m_func);
         }
         else
         {
@@ -1527,7 +1527,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         // In the debug mode, we don't want to optimize away the aliases. Since we may have to show them on the inspection.
         if (((!AreFromSameBytecodeFunc(src1->AsRegOpnd(), dst->AsRegOpnd()) || this->currentBlock->loop) && instr->m_opcode != Js::OpCode::BytecodeArgOutCapture) || this->func->IsJitInDebugMode())
         {
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(instr->m_func);
             return;
         }
         if(!dst->AsRegOpnd()->GetStackSym()->m_nonEscapingArgObjAlias)
@@ -1550,7 +1550,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
     }
 
     SymID id = 0;
-
+    
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
@@ -1561,7 +1561,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         if (indexOpnd && CurrentBlockData()->IsArgumentsSymID(indexOpnd->m_sym->m_id))
         {
             // Pathological test cases such as a[arguments]
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(instr->m_func);
             return;
         }
 
@@ -1588,6 +1588,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         if (CurrentBlockData()->IsArgumentsOpnd(src1))
         {
             instr->usesStackArgumentsObject = true;
+            instr->m_func->unoptimizableArgumentsObjReference++;
         }
 
         if (CurrentBlockData()->IsArgumentsOpnd(src1) &&
@@ -1607,6 +1608,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         CurrentBlockData()->ClearArgumentsSym(src1->AsRegOpnd());
+                        instr->m_func->unoptimizableArgumentsObjReference--;
                     }
                 }
                 else if (builtinOpnd->IsRegOpnd())
@@ -1614,6 +1616,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                     if (builtinOpnd->AsRegOpnd()->m_sym->m_builtInIndex == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         CurrentBlockData()->ClearArgumentsSym(src1->AsRegOpnd());
+                        instr->m_func->unoptimizableArgumentsObjReference--;
                     }
                 }
             }
@@ -1650,7 +1653,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                             WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
-                        CannotAllocateArgumentsObjectOnStack();
+                        CannotAllocateArgumentsObjectOnStack(instr->m_func);
                         return;
                     }
                 }
@@ -1668,7 +1671,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                             WritePerfHint(PerfHints::HeapArgumentsCreated, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
-                        CannotAllocateArgumentsObjectOnStack();
+                        CannotAllocateArgumentsObjectOnStack(instr->m_func);
                         return;
                     }
                 }
@@ -1687,7 +1690,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                             WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
-                        CannotAllocateArgumentsObjectOnStack();
+                        CannotAllocateArgumentsObjectOnStack(instr->m_func);
                         return;
                     }
                 }
@@ -1701,7 +1704,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                             WritePerfHint(PerfHints::HeapArgumentsModification, instr->m_func, instr->GetByteCodeOffset());
                         }
 #endif
-                        CannotAllocateArgumentsObjectOnStack();
+                        CannotAllocateArgumentsObjectOnStack(instr->m_func);
                         return;
                     }
                     CurrentBlockData()->ClearArgumentsSym(dst->AsRegOpnd());
@@ -2404,7 +2407,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     //StackArguments Optimization - We bail out if the index is out of range of actuals.
     if ((instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem) &&
-        instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
+        instr->DoStackArgsOpt() && !this->IsLoopPrePass())
     {
         GenerateBailAtOperation(&instr, IR::BailOnStackArgsOutOfActualsRange);
     }
@@ -2446,6 +2449,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     OptimizeChecks(instr);
     OptArraySrc(&instr, &src1Val, &src2Val);
     OptNewScObject(&instr, src1Val);
+    OptStackArgLenAndConst(instr, &src1Val);
 
     instr = this->OptPeep(instr, src1Val, src2Val);
 
@@ -5175,7 +5179,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IR::IndirOpnd *src = instr->GetSrc1()->AsIndirOpnd();
     const ValueType baseValueType(src->GetBaseOpnd()->GetValueType());
-    if (instr->DoStackArgsOpt(this->func) ||
+    if (instr->DoStackArgsOpt() ||
         !(
             baseValueType.IsLikelyOptimizedTypedArray() ||
             (baseValueType.IsLikelyNativeArray() && instr->IsProfiledInstr()) // Specialized native array lowering for LdElem requires that it is profiled.
@@ -5199,7 +5203,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                     this->func->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
-                    instr->DoStackArgsOpt(this->func) ? _u("instruction uses the arguments object") :
+                    instr->DoStackArgsOpt() ? _u("instruction uses the arguments object") :
                     baseValueType.IsLikelyOptimizedTypedArray() ? _u("index is negative or likely not int") : _u("of array type"));
                 Output::Flush();
             }
@@ -10642,11 +10646,28 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
         case Js::OpCode::CmSrEq_A:
         case Js::OpCode::CmNeq_A:
         case Js::OpCode::CmSrNeq_A:
+        {
+            if (src1Val->GetValueInfo()->IsNotNumber() || src2Val->GetValueInfo()->IsNotNumber())
+            {
+                return false;
+            }
+
+            allowUndefinedOrNullSrc1 = false;
+            allowUndefinedOrNullSrc2 = false;
+            convertDstToBool = true;
+            break;
+        }
+
         case Js::OpCode::CmLe_A:
         case Js::OpCode::CmLt_A:
         case Js::OpCode::CmGe_A:
         case Js::OpCode::CmGt_A:
         {
+            if (src1Val->GetValueInfo()->IsNotNumber() || src2Val->GetValueInfo()->IsNotNumber())
+            {
+                return false;
+            }
+
             convertDstToBool = true;
             break;
         }
@@ -10732,7 +10753,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
 
     IR::RegOpnd *baseOpnd = instr->GetDst()->AsIndirOpnd()->GetBaseOpnd();
     ValueType baseValueType(baseOpnd->GetValueType());
-    if (instr->DoStackArgsOpt(this->func) ||
+    if (instr->DoStackArgsOpt() ||
         (!this->DoTypedArrayTypeSpec() && baseValueType.IsLikelyOptimizedTypedArray()) ||
         (!this->DoNativeArrayTypeSpec() && baseValueType.IsLikelyNativeArray()) ||
         !(baseValueType.IsLikelyOptimizedTypedArray() || baseValueType.IsLikelyNativeArray()))
@@ -10748,7 +10769,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
                 this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
-                instr->DoStackArgsOpt(this->func) ?
+                instr->DoStackArgsOpt() ?
                     _u("instruction uses the arguments object") :
                     _u("typed array type specialization is disabled, or base is not an optimized typed array"));
             Output::Flush();
@@ -13197,6 +13218,90 @@ GlobOpt::OptArraySrc(IR::Instr ** const instrRef, Value ** src1Val, Value ** src
 }
 
 void
+GlobOpt::OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val)
+{
+    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && instr->m_func->IsStackArgsEnabled() && instr->usesStackArgumentsObject && instr->IsInlined())
+    {
+        IR::Opnd* src1 = instr->GetSrc1();
+        auto replaceInstr = [&](IR::Opnd* newopnd, Js::OpCode opcode)
+        {
+            if (PHASE_TESTTRACE(Js::StackArgLenConstOptPhase, instr->m_func))
+            {
+                Output::Print(_u("Inlined function %s have replaced opcode %s with opcode %s for stack arg optimization. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(),
+                            Js::OpCodeUtil::GetOpCodeName(instr->m_opcode), Js::OpCodeUtil::GetOpCodeName(opcode));
+                Output::Flush();
+            }
+            this->CaptureByteCodeSymUses(instr);
+            instr->m_opcode = opcode;
+            instr->ReplaceSrc1(newopnd);
+            if (instr->HasBailOutInfo())
+            {
+                instr->ClearBailOutInfo();
+            }
+            *src1Val = this->OptSrc(instr->GetSrc1(), &instr);
+            instr->m_func->hasArgLenAndConstOpt = true;
+        };
+        Assert(CurrentBlockData()->IsArgumentsOpnd(src1));
+        switch(instr->m_opcode)
+        {
+            case Js::OpCode::LdLen_A:
+            {
+                IR::AddrOpnd* newopnd = IR::AddrOpnd::New(Js::TaggedInt::ToVarUnchecked(instr->m_func->actualCount - 1), IR::AddrOpndKindConstantVar, instr->m_func);
+                replaceInstr(newopnd, Js::OpCode::Ld_A);
+                break;
+            }
+            case Js::OpCode::LdElemI_A:
+            case Js::OpCode::TypeofElem:
+            {
+                IR::IndirOpnd* indirOpndSrc1 = src1->AsIndirOpnd();
+                if (!indirOpndSrc1->GetIndexOpnd())
+                {
+                    int argIndex = indirOpndSrc1->GetOffset() + 1;
+                    IR::Instr* defInstr = nullptr;
+                    IR::Instr* inlineeStart = instr->m_func->GetInlineeStart();
+                    inlineeStart->IterateArgInstrs([&](IR::Instr* argInstr) {
+                        StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
+                        if (argSym->GetArgSlotNum() - 1 == argIndex)
+                        {
+                            defInstr = argInstr;
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    Js::OpCode replacementOpcode;
+                    if (instr->m_opcode == Js::OpCode::TypeofElem)
+                    {
+                        replacementOpcode = Js::OpCode::Typeof;
+                    }
+                    else
+                    {
+                        replacementOpcode = Js::OpCode::Ld_A;
+                    }
+
+                    // If we cannot find the right instruction. I.E. When calling arguments[2] and no arguments were passed to the func
+                    if (defInstr == nullptr) 
+                    {
+                        IR::Opnd * undefined = IR::AddrOpnd::New(instr->m_func->GetScriptContextInfo()->GetUndefinedAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+                        undefined->SetValueType(ValueType::Undefined);
+                        replaceInstr(undefined, replacementOpcode);
+                    }
+                    else
+                    {
+                        replaceInstr(defInstr->GetSrc1(), replacementOpcode);
+                    }   
+                }
+                else
+                {
+                    instr->m_func->unoptimizableArgumentsObjReference++;
+                }
+                break;
+            }
+        }
+    }
+}
+
+void
 GlobOpt::CaptureNoImplicitCallUses(
     IR::Opnd *opnd,
     const bool usesNoMissingValuesInfo,
@@ -15520,7 +15625,7 @@ GlobOpt::DoArrayCheckHoist() const
 bool
 GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr const * const instr) const
 {
-    if(!DoArrayCheckHoist() || (instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func)))
+    if(!DoArrayCheckHoist() || (instr && !IsLoopPrePass() && instr->DoStackArgsOpt()))
     {
         return false;
     }
@@ -15654,7 +15759,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType)
     if(PHASE_OFF(Js::LdLenIntSpecPhase, func) ||
         IsTypeSpecPhaseOff(func) ||
         (func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsLdLenIntSpecDisabled()) ||
-        (instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func)))
+        (instr && !IsLoopPrePass() && instr->DoStackArgsOpt()))
     {
         return false;
     }
@@ -15722,7 +15827,7 @@ GlobOpt::TrackArgumentsObject()
 {
     if (PHASE_OFF(Js::StackArgOptPhase, this->func))
     {
-        this->CannotAllocateArgumentsObjectOnStack();
+        this->CannotAllocateArgumentsObjectOnStack(nullptr);
         return false;
     }
 
@@ -15730,8 +15835,15 @@ GlobOpt::TrackArgumentsObject()
 }
 
 void
-GlobOpt::CannotAllocateArgumentsObjectOnStack()
+GlobOpt::CannotAllocateArgumentsObjectOnStack(Func * curFunc)
 {
+    if (curFunc != nullptr && curFunc->hasArgLenAndConstOpt)
+    {
+        Assert(!curFunc->GetJITOutput()->GetOutputData()->disableStackArgOpt);
+        curFunc->GetJITOutput()->GetOutputData()->disableStackArgOpt = true;
+        throw Js::RejitException(RejitReason::DisableStackArgLenAndConstOpt);
+    }
+
     func->SetHasStackArgs(false);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

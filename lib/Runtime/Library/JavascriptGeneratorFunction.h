@@ -27,9 +27,8 @@ namespace Js
         virtual JavascriptString* GetDisplayNameImpl() const override;
         GeneratorVirtualScriptFunction* GetGeneratorVirtualScriptFunction() { return scriptFunction; }
 
-        static JavascriptGeneratorFunction* FromVar(Var var);
-        static JavascriptGeneratorFunction* UnsafeFromVar(Var var);
-        static bool Is(Var var);
+        // Returns whether this function is exactly a JavascriptGeneratorFunction, not a JavascriptAsyncFunction
+        static bool IsBaseGeneratorFunction(RecyclableObject* obj);
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptGeneratorFunction>::HasVirtualTable(obj)
@@ -97,6 +96,8 @@ namespace Js
         }
     };
 
+    template <> bool VarIsImpl<JavascriptGeneratorFunction>(RecyclableObject* obj);
+
     class JavascriptAsyncFunction : public JavascriptGeneratorFunction
     {
     private:
@@ -114,9 +115,6 @@ namespace Js
         static JavascriptAsyncFunction* New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction);
         static DWORD GetOffsetOfScriptFunction() { return JavascriptGeneratorFunction::GetOffsetOfScriptFunction(); }
 
-        static JavascriptAsyncFunction* FromVar(Var var);
-        static JavascriptAsyncFunction* UnsafeFromVar(Var var);
-        static bool Is(Var var);
         inline static bool Test(JavascriptFunction *obj)
         {
             return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
@@ -135,6 +133,8 @@ namespace Js
         }
     };
 
+    template <> bool VarIsImpl<JavascriptAsyncFunction>(RecyclableObject* obj);
+
     class GeneratorVirtualScriptFunction : public ScriptFunction
     {
     private:
@@ -145,7 +145,7 @@ namespace Js
 
     protected:
         DEFINE_VTABLE_CTOR(GeneratorVirtualScriptFunction, ScriptFunction);
- 
+
     public:
         GeneratorVirtualScriptFunction(FunctionProxy* proxy, ScriptFunctionType* deferredPrototypeType) : ScriptFunction(proxy, deferredPrototypeType) { }
 

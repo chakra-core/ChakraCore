@@ -19,7 +19,7 @@ namespace Js
 {
     Var AtomicsObject::ValidateSharedIntegerTypedArray(Var typedArray, ScriptContext *scriptContext, bool onlyInt32)
     {
-        if (!TypedArrayBase::Is(typedArray))
+        if (!VarIs<TypedArrayBase>(typedArray))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedTypedArrayObject);
         }
@@ -41,9 +41,9 @@ namespace Js
             }
         }
 
-        TypedArrayBase *typedArrayBase = TypedArrayBase::UnsafeFromVar(typedArray);
+        TypedArrayBase *typedArrayBase = UnsafeVarTo<TypedArrayBase>(typedArray);
         ArrayBufferBase* arrayBuffer = typedArrayBase->GetArrayBuffer();
-        if (arrayBuffer == nullptr || !ArrayBufferBase::Is(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
+        if (arrayBuffer == nullptr || !VarIsCorrectType(arrayBuffer) || !arrayBuffer->IsSharedArrayBuffer())
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
@@ -53,7 +53,7 @@ namespace Js
 
     uint32 AtomicsObject::ValidateAtomicAccess(Var typedArray, Var requestIndex, ScriptContext *scriptContext)
     {
-        Assert(TypedArrayBase::Is(typedArray));
+        Assert(VarIs<TypedArrayBase>(typedArray));
 
         int32 accessIndex = -1;
         if (TaggedInt::Is(requestIndex))
@@ -74,7 +74,7 @@ namespace Js
             }
         }
 
-        if (accessIndex < 0 || accessIndex >= (int32)TypedArrayBase::FromVar(typedArray)->GetLength())
+        if (accessIndex < 0 || accessIndex >= (int32)VarTo<TypedArrayBase>(typedArray)->GetLength())
         {
             JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }
@@ -91,7 +91,7 @@ namespace Js
             *accessIndex = i;
         }
 
-        return TypedArrayBase::FromVar(typedArray);
+        return VarTo<TypedArrayBase>(typedArray);
     }
 
     Var AtomicsObject::EntryAdd(RecyclableObject* function, CallInfo callInfo, ...)
@@ -222,7 +222,7 @@ namespace Js
             Assert(sharedArrayBuffer->GetSharedContents()->IsValidAgent(agent));
 #pragma prefast(suppress:__WARNING_CALLER_FAILING_TO_HOLD, "This is a prefast false-positive caused by it being unable to identify that the critical section used here is the same as the one held by the AutoCriticalSection")
             awoken = waiterList->AddAndSuspendWaiter(agent, timeout);
-            if (!awoken) 
+            if (!awoken)
             {
                 waiterList->RemoveWaiter(agent);
             }

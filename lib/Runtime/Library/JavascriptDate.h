@@ -20,11 +20,7 @@ namespace Js
         JavascriptDate(double value, DynamicType * type);
         JavascriptDate(DynamicType * type);
 
-        static bool Is(Var aValue);
-
         double GetTime() { return m_date.GetMilliSeconds(); }
-        static JavascriptDate* FromVar(Var aValue);
-        static JavascriptDate* UnsafeFromVar(Var aValue);
 
         class EntryInfo
         {
@@ -158,5 +154,11 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptDate>(RecyclableObject* obj)
+    {
+        // All WinRT Date's are also implicitly Javascript dates
+        return IsDateTypeId(JavascriptOperators::GetTypeId(obj));
+    }
 
 } // namespace Js

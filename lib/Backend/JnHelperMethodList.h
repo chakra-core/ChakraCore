@@ -66,6 +66,7 @@ HELPERCALLCHK(Op_LdElemUndefDynamic, Js::JavascriptOperators::OP_LoadUndefinedTo
 HELPERCALLCHK(Op_LdElemUndefScoped, Js::JavascriptOperators::OP_LoadUndefinedToElementScoped, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_EnsureNoRootProperty, Js::JavascriptOperators::OP_EnsureNoRootProperty, AttrCanThrow | AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_EnsureNoRootRedeclProperty, Js::JavascriptOperators::OP_EnsureNoRootRedeclProperty, AttrCanThrow | AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_EnsureCanDeclGloFunc, Js::JavascriptOperators::OP_EnsureCanDeclGloFunc, AttrCanThrow | AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_EnsureNoRedeclPropertyScoped, Js::JavascriptOperators::OP_ScopedEnsureNoRedeclProperty, AttrCanThrow | AttrCanNotBeReentrant)
 
 HELPERCALLCHK(Op_ToSpreadedFunctionArgument, Js::JavascriptOperators::OP_LdCustomSpreadIteratorList, AttrCanThrow)

@@ -15,7 +15,7 @@ namespace Js{
             return true;
         }
 
-        if (!JavascriptArrayBuffer::Is(bufferView))
+        if (!VarIs<ArrayBuffer>(bufferView))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : Buffer parameter is not an Array buffer"));
             return false;
@@ -42,12 +42,12 @@ namespace Js{
             return true;
         }
         Assert(foreign);
-        if (!RecyclableObject::Is(foreign))
+        if (!VarIs<RecyclableObject>(foreign))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
             return false;
         }
-        TypeId foreignObjType = RecyclableObject::FromVar(foreign)->GetTypeId();
+        TypeId foreignObjType = VarTo<RecyclableObject>(foreign)->GetTypeId();
         if (StaticType::Is(foreignObjType) || TypeIds_Proxy == foreignObjType)
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : FFI is not an object"));
@@ -69,12 +69,12 @@ namespace Js{
             return true;
         }
         Assert(stdlib);
-        if (!RecyclableObject::Is(stdlib))
+        if (!VarIs<RecyclableObject>(stdlib))
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));
             return false;
         }
-        TypeId stdLibObjType = RecyclableObject::FromVar(stdlib)->GetTypeId();
+        TypeId stdLibObjType = VarTo<RecyclableObject>(stdlib)->GetTypeId();
         if (StaticType::Is(stdLibObjType) || TypeIds_Proxy == stdLibObjType)
         {
             AsmJSCompiler::OutputError(scriptContext, _u("Asm.js Runtime Error : StdLib is not an object"));
@@ -143,14 +143,14 @@ namespace Js{
         {
         case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_byteLength:
             arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::byteLength, scriptContext);
-            if (JavascriptFunction::Is(arrayFuncObj))
+            if (VarIs<JavascriptFunction>(arrayFuncObj))
             {
                 JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
                 if (arrayLibFunc->IsBoundFunction())
                 {
                     BoundFunction* boundFunc = (BoundFunction*)arrayLibFunc;
                     RecyclableObject* thisObj = boundFunc->GetBoundThis();
-                    if (JavascriptFunction::Is(thisObj))
+                    if (VarIs<JavascriptFunction>(thisObj))
                     {
                         JavascriptFunction * thisFunc = (JavascriptFunction*)thisObj;
                         if (thisFunc->GetFunctionInfo()->GetOriginalEntryPoint() != (&ArrayBuffer::EntryInfo::GetterByteLength)->GetOriginalEntryPoint())
@@ -191,8 +191,8 @@ namespace Js{
     bool ASMLink::CheckIsBuiltinFunction(ScriptContext* scriptContext, const Var object, PropertyId propertyId, const FunctionInfo& funcInfo)
     {
         Var mathFuncObj = JavascriptOperators::OP_GetProperty(object, propertyId, scriptContext);
-        return JavascriptFunction::Is(mathFuncObj) &&
-            JavascriptFunction::FromVar(mathFuncObj)->GetFunctionInfo()->GetOriginalEntryPoint() == funcInfo.GetOriginalEntryPoint();
+        return VarIs<JavascriptFunction>(mathFuncObj) &&
+            VarTo<JavascriptFunction>(mathFuncObj)->GetFunctionInfo()->GetOriginalEntryPoint() == funcInfo.GetOriginalEntryPoint();
     }
 
     bool ASMLink::CheckIsBuiltinValue(ScriptContext* scriptContext, const Var object, PropertyId propertyId, double value)

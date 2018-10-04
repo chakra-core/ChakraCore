@@ -24,7 +24,7 @@ namespace TTD
             ctx->InitializeDebugging();
 #else
             //
-            //TODO: x-plat does not like some parts of initiallize debugging so just set the flag we need 
+            //TODO: x-plat does not like some parts of initiallize debugging so just set the flag we need
             //
             ctx->GetDebugContext()->SetDebuggerMode(Js::DebuggerMode::Debugging);
 #endif
@@ -48,7 +48,7 @@ namespace TTD
         : m_threadCtx(threadContext), m_runtimeHandle(runtimeHandle), m_contextCreatedOrDestoyedInReplay(false),
         SnapInterval(snapInterval), SnapHistoryLength(snapHistoryLength),
         m_activeContext(nullptr), m_contextList(&HeapAllocator::Instance), m_ttdContextToExternalRefMap(&HeapAllocator::Instance),
-        m_ttdRootTagToObjectMap(&HeapAllocator::Instance), m_ttdMayBeLongLivedRoot(&HeapAllocator::Instance), 
+        m_ttdRootTagToObjectMap(&HeapAllocator::Instance), m_ttdMayBeLongLivedRoot(&HeapAllocator::Instance),
         m_ttdRecordRootWeakMap(),m_ttdReplayRootPinSet(),
         TTDataIOInfo({ 0 }), TTDExternalObjectFunctions({ 0 })
     {
@@ -274,7 +274,7 @@ namespace TTD
             }
         }
 
-        //Now sync up the root list wrt. long lived roots that we recorded 
+        //Now sync up the root list wrt. long lived roots that we recorded
         JsUtil::BaseHashSet<TTD_LOG_PTR_ID, HeapAllocator> refInfoMap(&HeapAllocator::Instance);
         for(uint32 i = 0; i < liveRootCount; ++i)
         {
@@ -351,7 +351,7 @@ namespace TTD
         for(int32 i = 0; i < this->m_ttdPendingAsyncModList.Count(); ++i)
         {
             const TTDPendingAsyncBufferModification& pi = this->m_ttdPendingAsyncModList.Item(i);
-            const Js::ArrayBuffer* pbuff = Js::ArrayBuffer::FromVar(pi.ArrayBufferVar);
+            const Js::ArrayBuffer* pbuff = Js::VarTo<Js::ArrayBuffer>(pi.ArrayBufferVar);
             const byte* pbuffBegin = pbuff->GetBuffer() + pi.Index;
             const byte* pbuffMax = pbuff->GetBuffer() + pbuff->GetByteLength();
 
@@ -675,7 +675,7 @@ namespace TTD
             return wcscmp(p1->GetBuffer(), p2->GetBuffer()) > 0;
         }
     }
-    
+
     RuntimeContextInfo::RuntimeContextInfo()
         : m_worklist(&HeapAllocator::Instance), m_nullString(),
         m_coreObjToPathMap(&HeapAllocator::Instance, TTD_CORE_OBJECT_COUNT), m_coreBodyToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT), m_coreDbgScopeToPathMap(&HeapAllocator::Instance, TTD_CORE_FUNCTION_BODY_COUNT),
@@ -774,7 +774,7 @@ namespace TTD
 
         this->EnqueueRootPathObject(_u("global"), ctx->GetGlobalObject());
         this->EnqueueRootPathObject(_u("null"), ctx->GetLibrary()->GetNull());
-        this->EnqueueRootPathObject(_u("undeclBlockVar"), Js::RecyclableObject::FromVar(ctx->GetLibrary()->GetUndeclBlockVar()));
+        this->EnqueueRootPathObject(_u("undeclBlockVar"), Js::VarTo<Js::RecyclableObject>(ctx->GetLibrary()->GetUndeclBlockVar()));
 
         this->EnqueueRootPathObject(_u("_defaultAccessor"), ctx->GetLibrary()->GetDefaultAccessorFunction());
 
@@ -833,14 +833,14 @@ namespace TTD
                 {
                     if(getter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(getter))
                     {
-                        TTDAssert(Js::JavascriptFunction::Is(getter), "The getter is not a function?");
+                        TTDAssert(Js::VarIs<Js::JavascriptFunction>(getter), "The getter is not a function?");
                         this->EnqueueNewPathVarAsNeeded(curr, getter, precord, _u(">"));
                     }
 
                     if(setter != nullptr && !Js::JavascriptOperators::IsUndefinedObject(setter))
                     {
-                        TTDAssert(Js::JavascriptFunction::Is(setter), "The setter is not a function?");
-                        this->EnqueueNewPathVarAsNeeded(curr, Js::RecyclableObject::FromVar(setter), precord, _u("<"));
+                        TTDAssert(Js::VarIs<Js::JavascriptFunction>(setter), "The setter is not a function?");
+                        this->EnqueueNewPathVarAsNeeded(curr, Js::VarTo<Js::RecyclableObject>(setter), precord, _u("<"));
                     }
                 }
                 else
@@ -854,9 +854,9 @@ namespace TTD
             }
 
             //shouldn't have any dynamic array valued properties
-            if(Js::DynamicType::Is(curr->GetTypeId())) 
+            if(Js::DynamicType::Is(curr->GetTypeId()))
             {
-                Js::ArrayObject* parray = Js::DynamicObject::FromVar(curr)->GetObjectArray();
+                Js::ArrayObject* parray = Js::VarTo<Js::DynamicObject>(curr)->GetObjectArray();
                 if(parray != nullptr)
                 {
                     this->EnqueueNewPathVarAsNeeded(curr, parray, _u("_object_array_"));
@@ -902,14 +902,14 @@ namespace TTD
             return;
         }
 
-        if(JsSupport::IsVarPrimitiveKind(val) && !Js::GlobalObject::Is(parent))
+        if(JsSupport::IsVarPrimitiveKind(val) && !Js::VarIs<Js::GlobalObject>(parent))
         {
             return; //we keep primitives from global object only -- may need others but this is a simple way to start to get undefined, null, infy, etc.
         }
 
-        Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(val);
+        Js::RecyclableObject* obj = Js::VarTo<Js::RecyclableObject>(val);
         if(!this->m_coreObjToPathMap.ContainsKey(obj))
-        {   
+        {
             const UtilSupport::TTAutoString* ppath = this->m_coreObjToPathMap.Item(parent);
 
             this->m_worklist.Enqueue(obj);

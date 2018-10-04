@@ -77,7 +77,7 @@ JsParseModuleSource(
             size_t moduleUrlLen = 0;
             if (moduleRecord->GetModuleUrl())
             {
-                Js::JavascriptString *moduleUrl = Js::JavascriptString::FromVar(moduleRecord->GetModuleUrl());
+                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetModuleUrl());
                 moduleUrlSz = moduleUrl->GetSz();
                 moduleUrlLen = moduleUrl->GetLength();
             }
@@ -171,7 +171,7 @@ JsSetModuleHostInfo(
             currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
         case JsModuleHostInfo_Url:
-            moduleRecord->SetModuleUrl(hostInfo);    
+            moduleRecord->SetModuleUrl(hostInfo);
             break;
         default:
             return JsInvalidModuleHostInfoKind;

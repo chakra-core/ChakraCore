@@ -15,26 +15,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_MapIterator);
     }
 
-    bool JavascriptMapIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_MapIterator;
-    }
-
-    JavascriptMapIterator* JavascriptMapIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptMapIterator'");
-
-        return static_cast<JavascriptMapIterator *>(aValue);
-    }
-
-    JavascriptMapIterator* JavascriptMapIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptMapIterator'");
-
-        return static_cast<JavascriptMapIterator *>(aValue);
-    }
-
     Var JavascriptMapIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -47,12 +27,12 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptMapIterator::Is(thisObj))
+        if (!VarIs<JavascriptMapIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedMapIterator, _u("Map Iterator.prototype.next"));
         }
 
-        JavascriptMapIterator* iterator = JavascriptMapIterator::FromVar(thisObj);
+        JavascriptMapIterator* iterator = VarTo<JavascriptMapIterator>(thisObj);
         JavascriptMap* map = iterator->m_map;
         auto& mapIterator = iterator->m_mapIterator;
 

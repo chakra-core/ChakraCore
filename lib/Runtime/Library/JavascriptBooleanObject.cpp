@@ -12,25 +12,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_BooleanObject);
     }
 
-    bool JavascriptBooleanObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_BooleanObject;
-    }
-
-    JavascriptBooleanObject* JavascriptBooleanObject::FromVar(Js::Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptBooleanObject'");
-
-        return static_cast<JavascriptBooleanObject *>(aValue);
-    }
-
-    JavascriptBooleanObject* JavascriptBooleanObject::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptBooleanObject'");
-
-        return static_cast<JavascriptBooleanObject *>(aValue);
-    }
-
     BOOL JavascriptBooleanObject::GetValue() const
     {
         if (this->value == nullptr)
@@ -71,7 +52,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptBooleanObject::SetValue_TTD(Js::Var val)
     {
-        TTDAssert(val == nullptr || Js::JavascriptBoolean::Is(val), "Only allowable values!");
+        TTDAssert(val == nullptr || Js::VarIs<Js::JavascriptBoolean>(val), "Only allowable values!");
 
         this->value = static_cast<Js::JavascriptBoolean*>(val);
     }

@@ -6,23 +6,6 @@
 
 namespace Js
 {
-    bool WithScopeObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_WithScopeObject;
-    }
-
-    WithScopeObject* WithScopeObject::FromVar(Var aValue)
-    {
-        AssertOrFailFast(WithScopeObject::Is(aValue));
-        return static_cast<WithScopeObject*>(aValue);
-    }
-
-    WithScopeObject* WithScopeObject::UnsafeFromVar(Var aValue)
-    {
-        Assert(WithScopeObject::Is(aValue));
-        return static_cast<WithScopeObject*>(aValue);
-    }
-
     PropertyQueryFlags WithScopeObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));

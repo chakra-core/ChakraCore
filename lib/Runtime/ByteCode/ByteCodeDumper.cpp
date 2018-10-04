@@ -181,7 +181,7 @@ namespace Js
                     break;
                 case Js::TypeIds_Boolean:
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(
-                        JavascriptBoolean::FromVar(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
+                        VarTo<JavascriptBoolean>(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
                     break;
                 case Js::TypeIds_Number:
 #if ENABLE_NATIVE_CODEGEN
@@ -197,7 +197,7 @@ namespace Js
 #else
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
-                    Output::Print(_u(" (\"%s\")%s"), JavascriptString::FromVar(varConst)->GetSz(), Js::PropertyString::Is(varConst) ? _u(" [prop]") : _u(""));
+                    Output::Print(_u(" (\"%s\")%s"), VarTo<JavascriptString>(varConst)->GetSz(), Js::VarIs<Js::PropertyString>(varConst) ? _u(" [prop]") : _u(""));
                     break;
                 case Js::TypeIds_GlobalObject:
 #if ENABLE_NATIVE_CODEGEN
@@ -626,6 +626,11 @@ namespace Js
             case OpCode::InitUndeclRootConstFld:
             case OpCode::EnsureNoRootFld:
             case OpCode::EnsureNoRootRedeclFld:
+            {
+                Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
+                break;
+            }
+            case OpCode::EnsureCanDeclGloFunc:
             {
                 Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
                 break;

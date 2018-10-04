@@ -118,9 +118,9 @@ namespace Js
             // While the objectArray can be any array type, a DynamicObject that is created on the
             // stack will only have one of these three types (as these are also the only array types
             // that can be allocated on the stack).
-            Assert(Js::JavascriptArray::Is(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeIntArray::Is(instance->GetObjectArrayOrFlagsAsArray())
-                || Js::JavascriptNativeFloatArray::Is(instance->GetObjectArrayOrFlagsAsArray())
+            Assert(Js::JavascriptArray::IsNonES5Array(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeIntArray>(instance->GetObjectArrayOrFlagsAsArray())
+                || Js::VarIs<Js::JavascriptNativeFloatArray>(instance->GetObjectArrayOrFlagsAsArray())
             );
 
             // Since a deep copy was requested for this DynamicObject, deep copy the object array as well
@@ -128,7 +128,7 @@ namespace Js
         }
         else
         {
-            // Otherwise, assert that there is either 
+            // Otherwise, assert that there is either
             // - no object array to deep copy
             // - an object array, but no deep copy needed
             // - data in the objectArray member, but it is inline slot data
@@ -149,25 +149,21 @@ namespace Js
         return NewObject<DynamicObject>(recycler, type);
     }
 
-    bool DynamicObject::Is(Var aValue)
+    bool DynamicObject::IsBaseDynamicObject(Var aValue)
     {
-        return RecyclableObject::Is(aValue) && (RecyclableObject::UnsafeFromVar(aValue)->GetTypeId() == TypeIds_Object);
+        return VarIs<RecyclableObject>(aValue) && (UnsafeVarTo<RecyclableObject>(aValue)->GetTypeId() == TypeIds_Object);
     }
 
-    DynamicObject* DynamicObject::FromVar(Var aValue)
+    DynamicObject* DynamicObject::TryVarToBaseDynamicObject(Var aValue)
     {
-        RecyclableObject* obj = RecyclableObject::FromVar(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        AssertOrFailFast(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
+        return IsBaseDynamicObject(aValue) ? UnsafeVarTo<DynamicObject>(aValue) : nullptr;
     }
 
-    DynamicObject* DynamicObject::UnsafeFromVar(Var aValue)
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj)
     {
-        RecyclableObject* obj = RecyclableObject::UnsafeFromVar(aValue);
-        AssertMsg(obj->DbgIsDynamicObject(), "Ensure instance is actually a DynamicObject");
-        Assert(DynamicType::Is(obj->GetTypeId()));
-        return static_cast<DynamicObject*>(obj);
+        bool result = DynamicType::Is(obj->GetTypeId());
+        Assert(result == obj->DbgIsDynamicObject());
+        return result;
     }
 
     ArrayObject* DynamicObject::EnsureObjectArray()
@@ -218,13 +214,18 @@ namespace Js
     // Check if a typeId is of any array type (JavascriptArray or ES5Array).
     bool DynamicObject::IsAnyArrayTypeId(TypeId typeId)
     {
-        return JavascriptArray::Is(typeId) || typeId == TypeIds_ES5Array;
+        return JavascriptArray::IsNonES5Array(typeId) || typeId == TypeIds_ES5Array;
     }
 
     // Check if a Var is either a JavascriptArray* or ES5Array*.
     bool DynamicObject::IsAnyArray(const Var aValue)
     {
         return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(aValue));
+    }
+
+    bool DynamicObject::IsAnyArray(DynamicObject* obj)
+    {
+        return IsAnyArrayTypeId(JavascriptOperators::GetTypeId(obj));
     }
 
     BOOL DynamicObject::HasObjectArrayItem(uint32 index)
@@ -977,7 +978,7 @@ namespace Js
         {
             return false;
         }
-        if (HasObjectArray() || (JavascriptArray::Is(this) && JavascriptArray::FromVar(this)->GetLength() != 0))
+        if (HasObjectArray() || (JavascriptArray::IsNonES5Array(this) && VarTo<JavascriptArray>(this)->GetLength() != 0))
         {
             return false;
         }

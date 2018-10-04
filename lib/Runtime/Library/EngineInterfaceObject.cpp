@@ -61,7 +61,7 @@
     GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) \
 
 #define GetTypedPropertyBuiltInFrom(obj, builtInPropID, Type) \
-    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && Type::Is(propertyValue)) \
+    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && VarIs<Type>(propertyValue)) \
 
 #define HasPropertyOn(obj, propID) \
     Js::JavascriptOperators::HasProperty(obj, propID) \
@@ -116,24 +116,6 @@ namespace Js
         return newObject;
     }
 
-    bool EngineInterfaceObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_EngineInterfaceObject;
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
     void EngineInterfaceObject::Initialize()
     {
         Recycler* recycler = this->GetRecycler();
@@ -253,12 +235,12 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
 #if DBG
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString* message = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString* message = VarTo<JavascriptString>(args.Values[1]);
 
         Output::Print(message->GetString());
         Output::Flush();
@@ -324,7 +306,7 @@ namespace Js
             Var existingName = nullptr;
             if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
             {
-                JavascriptString *existingNameString = JavascriptString::FromVar(existingName);
+                JavascriptString *existingNameString = VarTo<JavascriptString>(existingName);
                 if (existingNameString->GetLength() == 0)
                 {
                     // Only overwrite the name of the function object if it was anonymous coming in
@@ -372,16 +354,16 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 #pragma warning(pop)
 
-        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && ScriptFunction::Is(args.Values[1]) && JavascriptString::Is(args.Values[2]));
+        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && VarIs<ScriptFunction>(args.Values[1]) && VarIs<JavascriptString>(args.Values[2]));
 
-        ScriptFunction *func = ScriptFunction::UnsafeFromVar(args[1]);
-        JavascriptString *methodName = JavascriptString::UnsafeFromVar(args[2]);
+        ScriptFunction *func = UnsafeVarTo<ScriptFunction>(args[1]);
+        JavascriptString *methodName = UnsafeVarTo<JavascriptString>(args[2]);
 
         bool isConstructor = true;
         if (args.Info.Count == 4)
         {
-            AssertOrFailFast(JavascriptBoolean::Is(args.Values[3]));
-            isConstructor = JavascriptBoolean::UnsafeFromVar(args.Values[3])->GetValue();
+            AssertOrFailFast(VarIs<JavascriptBoolean>(args.Values[3]));
+            isConstructor = UnsafeVarTo<JavascriptBoolean>(args.Values[3])->GetValue();
         }
 
         // isConstructor = true is the default (when no 3rd arg is provided)
@@ -395,13 +377,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !VarIs<RecyclableObject>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
+        RecyclableObject* value = VarTo<RecyclableObject>(args.Values[2]);
 
         obj->SetPrototype(value);
 
@@ -440,13 +422,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptRegExp>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *stringToUse = JavascriptString::FromVar(args.Values[1]);
-        JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
+        JavascriptString *stringToUse = VarTo<JavascriptString>(args.Values[1]);
+        JavascriptRegExp *regexpToUse = VarTo<JavascriptRegExp>(args.Values[2]);
 
         return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
     }
@@ -463,7 +445,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+        RecyclableObject *func = VarTo<RecyclableObject>(args.Values[1]);
 
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
@@ -495,12 +477,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 2 || !JavascriptString::Is(args.Values[1])) \
+        if(args.Info.Count < 2 || !VarIs<JavascriptString>(args.Values[1])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz()); \
     }
 
 #define BuiltInRaiseException2(exceptionType, exceptionID) \
@@ -508,12 +490,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2])) \
+        if(args.Info.Count < 3 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz()); \
     }
 
 #define BuiltInRaiseException3(exceptionType, exceptionID) \
@@ -521,12 +503,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 4 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]) || !JavascriptString::Is(args.Values[3])) \
+        if(args.Info.Count < 4 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2]) || !VarIs<JavascriptString>(args.Values[3])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz(), JavascriptString::FromVar(args.Values[3])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz(), VarTo<JavascriptString>(args.Values[3])->GetSz()); \
     }
 
 #include "EngineInterfaceObjectBuiltIns.h"

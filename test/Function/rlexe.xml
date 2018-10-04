@@ -436,6 +436,14 @@
   </test>
   <test>
     <default>
+      <files>stackArgsLenConstOpt.js</files>
+      <compile-flags>-mic:1 -off:simpleJit -testtrace:StackArgLenConstOpt</compile-flags>
+      <tags>exclude_dynapogo,exclude_nonative,require_backend,exclude_forceserialized,exclude_arm64</tags>
+      <baseline>stackArgsLenConstOpt.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>childCallsEvalJitLoopBody.js</files>
       <baseline />
       <compile-flags>-prejit</compile-flags>

@@ -71,10 +71,10 @@
     MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_EXTENDED_ROOT(opcode, layout, attr) \
-    MACRO_EXTENDED_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+    MACRO_EXTEND_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_EXTEND_WMS_ROOT(opcode, layout, attr) \
-    MACRO_EXTENDED_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+    MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_WMS_PROFILED( opcode, layout, attr) \
     MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
@@ -354,6 +354,7 @@ MACRO_WMS(              ChkUndecl,                  Reg1,           OpSideEffect
 
 MACRO_WMS_ROOT(         EnsureNoRootFld,            ElementRootU,   OpSideEffect)
 MACRO_WMS_ROOT(         EnsureNoRootRedeclFld,      ElementRootU,   OpSideEffect)
+MACRO_EXTEND_WMS_ROOT(  EnsureCanDeclGloFunc,       ElementRootU,   OpSideEffect)
 MACRO_WMS(              ScopedEnsureNoRedeclFld,    ElementScopedC, OpSideEffect)
 
 MACRO_WMS(              InitUndecl,                 Reg1,           OpCanCSE)

@@ -20,9 +20,6 @@ namespace Js
 
         inline BOOL GetValue() { return value; }
 
-        static inline bool Is(Var aValue);
-        static inline JavascriptBoolean* FromVar(Var aValue);
-        static inline JavascriptBoolean* UnsafeFromVar(Var aValue);
         static Var ToVar(BOOL fValue,ScriptContext* scriptContext);
 
         class EntryInfo
@@ -59,4 +56,9 @@ namespace Js
         static BOOL Equals(JavascriptBoolean* left, Var right, BOOL* value, ScriptContext * requestContext);
         static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName);
     };
+
+    template <> inline bool VarIsImpl<JavascriptBoolean>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Boolean;
+    }
 }

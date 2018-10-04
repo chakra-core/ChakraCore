@@ -138,13 +138,13 @@ namespace Js
 #if FLOATVAR
         case TypeIds_Number:
 #endif // FLOATVAR
-            Assert(!Js::RecyclableObject::Is(thisVar));
+            Assert(!Js::VarIs<Js::RecyclableObject>(thisVar));
             break;
         default:
             {
-                Assert(Js::RecyclableObject::Is(thisVar));
+                Assert(Js::VarIs<Js::RecyclableObject>(thisVar));
 
-                ScriptContext* scriptContextThisVar = Js::RecyclableObject::FromVar(thisVar)->GetScriptContext();
+                ScriptContext* scriptContextThisVar = Js::VarTo<Js::RecyclableObject>(thisVar)->GetScriptContext();
                 // We need to verify "this" pointer is active as well. The problem is that DOM prototype functions are
                 // the same across multiple frames, and caller can do function.call(closedthis)
                 Assert(!scriptContext->GetThreadContext()->IsDisableImplicitException());
@@ -317,10 +317,10 @@ namespace Js
         bool marshallingMayBeNeeded = false;
         if (result != nullptr)
         {
-            marshallingMayBeNeeded = Js::RecyclableObject::Is(result);
+            marshallingMayBeNeeded = Js::VarIs<Js::RecyclableObject>(result);
             if (marshallingMayBeNeeded)
             {
-            Js::RecyclableObject * obj = Js::RecyclableObject::FromVar(result);
+            Js::RecyclableObject * obj = Js::VarTo<Js::RecyclableObject>(result);
 
             // For JSRT, we could get result marshalled in different context.
             bool isJSRT = scriptContext->GetThreadContext()->IsJSRT();

@@ -50,7 +50,6 @@ namespace Js
         virtual BOOL DeleteRootProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
 
         ModuleID GetModuleID() { return moduleID;}
-        static bool Is(Var aValue);
 
     protected:
         // For module binder, there is only one IDispatch* associated with the name provided

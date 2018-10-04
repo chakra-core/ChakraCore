@@ -230,7 +230,7 @@ namespace Js
     template <class T>
     void ES5ArrayTypeHandlerBase<T>::SetInstanceTypeHandler(DynamicObject* instance, bool hasChanged)
     {
-        Assert(JavascriptArray::Is(instance));
+        Assert(JavascriptArray::IsNonES5Array(instance));
         if (this->GetFlags() & DynamicTypeHandler::IsPrototypeFlag)
         {
             // We have ES5 array has array/object prototype, we can't use array fast path for set
@@ -243,7 +243,7 @@ namespace Js
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(instance);
 #endif
-        JavascriptArray * arrayInstance = JavascriptArray::EnsureNonNativeArray(JavascriptArray::FromVar(instance));
+        JavascriptArray * arrayInstance = JavascriptArray::EnsureNonNativeArray(VarTo<JavascriptArray>(instance));
 #if DBG
         bool doneConversion = false;
         Js::Type* oldType = arrayInstance->GetType();
@@ -404,7 +404,7 @@ namespace Js
             }
             else if (descriptor->Setter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Setter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Setter);
                 // TODO : request context
                 JavascriptOperators::CallSetter(func, instance, value, NULL);
             }
@@ -478,7 +478,7 @@ namespace Js
             }
             else if (descriptor->Setter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Setter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Setter);
                 // TODO : request context
                 JavascriptOperators::CallSetter(func, instance, value, NULL);
             }
@@ -687,7 +687,7 @@ namespace Js
 
             if (descriptor->Getter)
             {
-                RecyclableObject* func = RecyclableObject::FromVar(descriptor->Getter);
+                RecyclableObject* func = VarTo<RecyclableObject>(descriptor->Getter);
                 *value = Js::JavascriptOperators::CallGetter(func, originalInstance, requestContext);
             }
             else
@@ -712,7 +712,7 @@ namespace Js
                 return None;
             }
 
-            if (HasDataItem(ES5Array::FromVar(instance), index))
+            if (HasDataItem(VarTo<ES5Array>(instance), index))
             {
                 // not a setter but shadows
                 return (descriptor->Attributes & PropertyWritable) ? WritableData : Data;
@@ -723,7 +723,7 @@ namespace Js
                 return Accessor;
             }
         }
-        else if (HasDataItem(ES5Array::FromVar(instance), index))
+        else if (HasDataItem(VarTo<ES5Array>(instance), index))
         {
             return (GetDataItemAttributes() & PropertyWritable) ? WritableData : Data;
         }
@@ -767,7 +767,7 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return GetItem(ES5Array::FromVar(instance), instance, index, value, requestContext);
+            return GetItem(VarTo<ES5Array>(instance), instance, index, value, requestContext);
         }
 
         return __super::GetProperty(instance, originalInstance, propertyId, value, info, requestContext);
@@ -813,7 +813,7 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return DeleteItem(ES5Array::FromVar(instance), instance, index, flags);
+            return DeleteItem(VarTo<ES5Array>(instance), instance, index, flags);
         }
 
         return __super::DeleteProperty(instance, propertyId, flags);
@@ -822,49 +822,49 @@ namespace Js
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::HasItem(DynamicObject* instance, uint32 index)
     {
-        return HasItem(ES5Array::FromVar(instance), index);
+        return HasItem(VarTo<ES5Array>(instance), index);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::SetItem(DynamicObject* instance, uint32 index, Var value, PropertyOperationFlags flags)
     {
-        return SetItem(ES5Array::FromVar(instance), instance, index, value, flags);
+        return SetItem(VarTo<ES5Array>(instance), instance, index, value, flags);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::SetItemWithAttributes(DynamicObject* instance, uint32 index, Var value, PropertyAttributes attributes)
     {
-        return SetItemWithAttributes(ES5Array::FromVar(instance), instance, index, value, attributes);
+        return SetItemWithAttributes(VarTo<ES5Array>(instance), instance, index, value, attributes);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::SetItemAttributes(DynamicObject* instance, uint32 index, PropertyAttributes attributes)
     {
-        return SetItemAttributes(ES5Array::FromVar(instance), instance, index, attributes);
+        return SetItemAttributes(VarTo<ES5Array>(instance), instance, index, attributes);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::SetItemAccessors(DynamicObject* instance, uint32 index, Var getter, Var setter)
     {
-        return SetItemAccessors(ES5Array::FromVar(instance), instance, index, getter, setter);
+        return SetItemAccessors(VarTo<ES5Array>(instance), instance, index, getter, setter);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::DeleteItem(DynamicObject* instance, uint32 index, PropertyOperationFlags flags)
     {
-        return DeleteItem(ES5Array::FromVar(instance), instance, index, flags);
+        return DeleteItem(VarTo<ES5Array>(instance), instance, index, flags);
     }
 
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::GetItem(DynamicObject* instance, Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return GetItem(ES5Array::FromVar(instance), instance, originalInstance, index, value, requestContext);
+        return GetItem(VarTo<ES5Array>(instance), instance, originalInstance, index, value, requestContext);
     }
 
     template <class T>
     DescriptorFlags ES5ArrayTypeHandlerBase<T>::GetItemSetter(DynamicObject* instance, uint32 index, Var* setterValue, ScriptContext* requestContext)
     {
-        return GetItemSetter(ES5Array::FromVar(instance), instance, index, setterValue, requestContext);
+        return GetItemSetter(VarTo<ES5Array>(instance), instance, index, setterValue, requestContext);
     }
 
     template <class T>
@@ -1047,7 +1047,7 @@ namespace Js
             }
             else
             {
-                if (!HasDataItem(ES5Array::FromVar(instance), index))
+                if (!HasDataItem(VarTo<ES5Array>(instance), index))
                 {
                     return false;
                 }
@@ -1166,7 +1166,7 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return GetItemAccessors(ES5Array::FromVar(instance), instance, index, getter, setter);
+            return GetItemAccessors(VarTo<ES5Array>(instance), instance, index, getter, setter);
         }
 
         return __super::GetAccessors(instance, propertyId, getter, setter);
@@ -1190,7 +1190,7 @@ namespace Js
     template <class T>
     BOOL ES5ArrayTypeHandlerBase<T>::FreezeImpl(DynamicObject* instance, bool isConvertedType)
     {
-        ES5Array* arr = ES5Array::FromVar(instance);
+        ES5Array* arr = VarTo<ES5Array>(instance);
 
         for (int i = 0; i < indexPropertyMap->Count(); i++)
         {
@@ -1245,7 +1245,7 @@ namespace Js
         // Check data item not in map
         if (this->GetDataItemAttributes() & PropertyConfigurable)
         {
-            if (HasAnyDataItemNotInMap(ES5Array::FromVar(instance)))
+            if (HasAnyDataItemNotInMap(VarTo<ES5Array>(instance)))
             {
                 return false;
             }
@@ -1308,7 +1308,7 @@ namespace Js
             return false;
         }
 
-        return IsObjectArrayFrozen(ES5Array::FromVar(instance));
+        return IsObjectArrayFrozen(VarTo<ES5Array>(instance));
     }
 
     template <class T>
@@ -1319,7 +1319,7 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return SetItemAttributes(ES5Array::FromVar(instance), instance, index, attributes);
+            return SetItemAttributes(VarTo<ES5Array>(instance), instance, index, attributes);
         }
 
         return __super::SetAttributes(instance, propertyId, attributes);

@@ -110,9 +110,6 @@ namespace Js
         static Var EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
-        static bool Is(Var aValue);
-        static JavascriptFunction* FromVar(Var aValue);
-        static JavascriptFunction* UnsafeFromVar(Var aValue);
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
 #ifdef ASMJS_PLAT
@@ -232,6 +229,9 @@ namespace Js
         private:
             static int CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
     };
+
+    template <> bool VarIsImpl<JavascriptFunction>(RecyclableObject* obj);
+
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     class ArrayAccessDecoder
     {

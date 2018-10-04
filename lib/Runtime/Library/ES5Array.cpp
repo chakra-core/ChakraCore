@@ -13,23 +13,6 @@ namespace Js
     {
     }
 
-    bool ES5Array::Is(Var instance)
-    {
-        return JavascriptOperators::GetTypeId(instance) == TypeIds_ES5Array;
-    }
-
-    ES5Array* ES5Array::FromVar(Var instance)
-    {
-        AssertOrFailFast(Is(instance));
-        return static_cast<ES5Array*>(instance);
-    }
-
-    ES5Array* ES5Array::UnsafeFromVar(Var instance)
-    {
-        Assert(Is(instance));
-        return static_cast<ES5Array*>(instance);
-    }
-
     DynamicType* ES5Array::DuplicateType()
     {
         return RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArrayType, this->GetDynamicType());

@@ -145,9 +145,11 @@ namespace Js
     public:
         static DynamicObject * New(Recycler * recycler, DynamicType * type);
 
-        static bool Is(Var aValue);
-        static DynamicObject* FromVar(Var value);
-        static DynamicObject* UnsafeFromVar(Var value);
+        // Return whether the type is exactly DynamicObject, not some subclass (for more inclusive check use VarIs)
+        static bool IsBaseDynamicObject(Var aValue);
+
+        // Returns the object if it is exactly DynamicObject, not some subclass. Otherwise returns null.
+        static DynamicObject* TryVarToBaseDynamicObject(Var aValue);
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
@@ -186,6 +188,7 @@ namespace Js
 
         // Check if a Var is either a JavascriptArray* or ES5Array*.
         static bool IsAnyArray(const Var aValue);
+        static bool IsAnyArray(DynamicObject* obj);
 
         // Check if a Var is a typedarray.
         static bool IsAnyTypedArray(const Var aValue);
@@ -386,4 +389,6 @@ namespace Js
         }
 
     };
+
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj);
 } // namespace Js

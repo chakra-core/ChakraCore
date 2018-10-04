@@ -97,7 +97,7 @@ namespace Js
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateSharedArrayBuffer(byteLength);
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), newArr, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), newArr, nullptr, scriptContext) :
             newArr;
     }
 
@@ -111,12 +111,12 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (args.Info.Count == 0 || !SharedArrayBuffer::Is(args[0]))
+        if (args.Info.Count == 0 || !VarIs<SharedArrayBuffer>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
 
-        SharedArrayBuffer* sharedArrayBuffer = SharedArrayBuffer::FromVar(args[0]);
+        SharedArrayBuffer* sharedArrayBuffer = VarTo<SharedArrayBuffer>(args[0]);
         return JavascriptNumber::ToVar(sharedArrayBuffer->GetByteLength(), scriptContext);
     }
 
@@ -132,13 +132,13 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if (!SharedArrayBuffer::Is(args[0]))
+        if (!VarIs<SharedArrayBuffer>(args[0]))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
         }
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        SharedArrayBuffer* currentBuffer = SharedArrayBuffer::FromVar(args[0]);
+        SharedArrayBuffer* currentBuffer = VarTo<SharedArrayBuffer>(args[0]);
 
         int64 currentLen = (int64)currentBuffer->GetByteLength();
         int64 start = 0, end = 0;
@@ -188,12 +188,12 @@ namespace Js
                 return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
             });
 
-            if (!SharedArrayBuffer::Is(newVar))
+            if (!VarIs<SharedArrayBuffer>(newVar))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedSharedArrayBufferObject);
             }
 
-            newBuffer = SharedArrayBuffer::FromVar(newVar);
+            newBuffer = VarTo<SharedArrayBuffer>(newVar);
 
             if (newBuffer == currentBuffer)
             {
@@ -231,25 +231,6 @@ namespace Js
         Assert(args.Info.Count > 0);
 
         return args[0];
-    }
-
-    SharedArrayBuffer* SharedArrayBuffer::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "var must be an SharedArrayBuffer");
-
-        return static_cast<SharedArrayBuffer *>(aValue);
-    }
-
-    SharedArrayBuffer* SharedArrayBuffer::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "var must be an SharedArrayBuffer");
-
-        return static_cast<SharedArrayBuffer *>(aValue);
-    }
-
-    bool  SharedArrayBuffer::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_SharedArrayBuffer;
     }
 
     BYTE* SharedArrayBuffer::AllocBuffer(uint32 length, uint32 maxLength)
@@ -365,13 +346,19 @@ namespace Js
         {
             sharedContents = contents;
         }
-        else 
+        else
         {
             Js::Throw::FatalInternalError();
         }
 #if DBG
         sharedContents->AddAgent((DWORD_PTR)GetScriptContext());
 #endif
+    }
+
+    SharedArrayBuffer * SharedArrayBuffer::GetAsSharedArrayBuffer()
+    {
+        AssertOrFailFast(VarIsCorrectType(this));
+        return this;
     }
 
     CriticalSection SharedArrayBuffer::csSharedArrayBuffer;
@@ -402,7 +389,7 @@ namespace Js
         return nullptr;
     }
 
-    uint32 SharedArrayBuffer::GetByteLength() const 
+    uint32 SharedArrayBuffer::GetByteLength() const
     {
         return sharedContents != nullptr ? sharedContents->bufferLength : 0;
     }
@@ -563,18 +550,6 @@ namespace Js
         WebAssemblySharedArrayBuffer* result = RecyclerNewFinalized(recycler, WebAssemblySharedArrayBuffer, sharedContents, type);
         return result;
     }
-
-    bool WebAssemblySharedArrayBuffer::Is(Var aValue)
-    {
-        return SharedArrayBuffer::Is(aValue) && SharedArrayBuffer::FromVar(aValue)->IsWebAssemblyArrayBuffer();
-    }
-
-    WebAssemblySharedArrayBuffer* WebAssemblySharedArrayBuffer::FromVar(Var aValue)
-    {
-        AssertOrFailFast(WebAssemblySharedArrayBuffer::Is(aValue));
-        return (WebAssemblySharedArrayBuffer*)aValue;
-    }
-
 
     bool WebAssemblySharedArrayBuffer::IsValidVirtualBufferLength(uint length) const
     {

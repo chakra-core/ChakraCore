@@ -387,7 +387,7 @@ namespace Js
             return true;
         };
 
-        FunctionInfo* calleeFunctionInfo = callee->GetTypeId() == TypeIds_Function ? JavascriptFunction::FromVar(callee)->GetFunctionInfo() : nullptr;
+        FunctionInfo* calleeFunctionInfo = callee->GetTypeId() == TypeIds_Function ? VarTo<JavascriptFunction>(callee)->GetFunctionInfo() : nullptr;
         if (calleeFunctionInfo == nullptr)
         {
             return false;
@@ -434,12 +434,12 @@ namespace Js
             return;
         }
 
-        if (arg != nullptr && RecyclableObject::Is(arg) && JavascriptFunction::Is(arg))
+        if (arg != nullptr && VarIs<RecyclableObject>(arg) && VarIs<JavascriptFunction>(arg))
         {
             CallbackInfo * callbackInfo = EnsureCallbackInfo(functionBody, callSiteId);
             if (callbackInfo->sourceId == NoSourceId)
             {
-                JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                JavascriptFunction * callback = UnsafeVarTo<JavascriptFunction>(arg);
                 GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &callbackInfo->sourceId, &callbackInfo->functionId);
                 callbackInfo->argNumber = argNum;
             }
@@ -453,7 +453,7 @@ namespace Js
                 {
                     Js::SourceId sourceId;
                     Js::LocalFunctionId functionId;
-                    JavascriptFunction * callback = JavascriptFunction::UnsafeFromVar(arg);
+                    JavascriptFunction * callback = UnsafeVarTo<JavascriptFunction>(arg);
                     GetSourceAndFunctionId(functionBody, callback->GetFunctionInfo(), callback, &sourceId, &functionId);
 
                     if (sourceId != callbackInfo->sourceId || functionId != callbackInfo->functionId)

@@ -142,6 +142,7 @@ EXDEF2_WMS(A2toXX,                  SetComputedNameVar,         JavascriptOperat
   DEF2_WMS(XXtoA1,                  InitUndecl,                 OP_InitUndecl)
   DEF2_WMS(ELEM_RtU_to_XX,          EnsureNoRootFld,            OP_EnsureNoRootProperty)
   DEF2_WMS(ELEM_RtU_to_XX,          EnsureNoRootRedeclFld,      OP_EnsureNoRootRedeclProperty)
+EXDEF2_WMS(ELEM_RtU_to_XX,          EnsureCanDeclGloFunc,       OP_EnsureCanDeclGloFunc)
   DEF2_WMS(ELEM_C2_to_XX,           ScopedEnsureNoRedeclFld,    OP_ScopedEnsureNoRedeclProperty)
   DEF2_WMS(A1toA1Profiled,          ProfiledBeginSwitch,        PROFILEDOP(ProfiledSwitch<true>, ProfiledSwitch<false>))
   DEF2_WMS(XXtoA1Mem,               LdC_A_Null,                 JavascriptOperators::OP_LdNull)

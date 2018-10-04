@@ -36,7 +36,7 @@ using namespace Js;
         const bool fastPath = isJsArray;
         if(fastPath)
         {
-            JavascriptArray *const array = JavascriptArray::UnsafeFromVar(base);
+            JavascriptArray *const array = UnsafeVarTo<JavascriptArray>(base);
             ldElemInfo.arrayType = ValueType::FromArray(ObjectType::Array, array, TypeIds_Array).ToLikely();
 
             const Var element = ProfiledLdElem_FastPath(array, varIndex, functionBody->GetScriptContext(), &ldElemInfo);
@@ -81,9 +81,9 @@ using namespace Js;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
                 ldElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
             }
-            else if(Js::RecyclableObject::Is(base))
+            else if(Js::VarIs<Js::RecyclableObject>(base))
             {
-                ldElemInfo.arrayType = ValueType::FromObject(Js::RecyclableObject::UnsafeFromVar(base)).ToLikely();
+                ldElemInfo.arrayType = ValueType::FromObject(Js::UnsafeVarTo<Js::RecyclableObject>(base)).ToLikely();
                 break;
             }
             else
@@ -257,7 +257,7 @@ using namespace Js;
         const bool fastPath = isJsArray && !JavascriptOperators::SetElementMayHaveImplicitCalls(scriptContext);
         if(fastPath)
         {
-            JavascriptArray *const array = JavascriptArray::UnsafeFromVar(base);
+            JavascriptArray *const array = UnsafeVarTo<JavascriptArray>(base);
             stElemInfo.arrayType = ValueType::FromArray(ObjectType::Array, array, TypeIds_Array).ToLikely();
             stElemInfo.createdMissingValue = array->HasNoMissingValues();
 
@@ -273,7 +273,7 @@ using namespace Js;
         TypeId arrayTypeId;
         if(isJsArray)
         {
-            array = JavascriptArray::UnsafeFromVar(base);
+            array = UnsafeVarTo<JavascriptArray>(base);
             isObjectWithArray = false;
             arrayTypeId = TypeIds_Array;
         }
@@ -312,7 +312,7 @@ using namespace Js;
             {
                 length = headSegmentLength;
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
-                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();        
+                stElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
                 if (!TaggedNumber::Is(value) && !JavascriptNumber::Is_NoTaggedIntCheck(value))
                 {
                     // Non-number stored to a typed array. A helper call will be needed to convert the value.
@@ -526,7 +526,7 @@ using namespace Js;
         ...)
     {
         ARGUMENTS(args, callee, framePointer, profileId, arrayProfileId, callInfo);
-        ScriptFunction* func = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        ScriptFunction* func = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArray);
         return
             ProfiledNewScObjArray(
@@ -549,7 +549,7 @@ using namespace Js;
     {
         ARGUMENTS(args, spreadIndices, callee, framePointer, profileId, arrayProfileId, callInfo);
 
-        Js::ScriptFunction *function = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        Js::ScriptFunction *function = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ScriptContext* scriptContext = function->GetScriptContext();
 
         JIT_HELPER_REENTRANT_HEADER(ProfiledNewScObjArraySpread);
@@ -638,7 +638,7 @@ using namespace Js;
 
         args.Values[0] = nullptr;
         Var array;
-        Js::RecyclableObject* calleeObject = RecyclableObject::UnsafeFromVar(callee);
+        Js::RecyclableObject* calleeObject = UnsafeVarTo<RecyclableObject>(callee);
         if (arrayInfo->IsNativeIntArray())
         {
             array = JavascriptNativeIntArray::NewInstance(calleeObject, args);
@@ -701,7 +701,7 @@ using namespace Js;
             const auto calleeObject = JavascriptOperators::GetCallableObjectOrThrow(callee, scriptContext);
             const auto calleeFunctionInfo =
                 calleeObject->GetTypeId() == TypeIds_Function
-                    ? JavascriptFunction::UnsafeFromVar(calleeObject)->GetFunctionInfo()
+                    ? UnsafeVarTo<JavascriptFunction>(calleeObject)->GetFunctionInfo()
                     : nullptr;
             DynamicProfileInfo *profileInfo = callerFunctionBody->GetDynamicProfileInfo();
             profileInfo->RecordCallSiteInfo(
@@ -720,7 +720,7 @@ using namespace Js;
                 retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
             }
             END_SAFE_REENTRANT_CALL
-            
+
             profileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retVal);
             return retVal;
         }
@@ -751,7 +751,7 @@ using namespace Js;
         void *const framePointer)
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdLen);
-        ScriptFunction * const scriptFunction = ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+        ScriptFunction * const scriptFunction = UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         FunctionBody * functionBody = scriptFunction->GetFunctionBody();
         DynamicProfileInfo * profileInfo = functionBody->GetDynamicProfileInfo();
 
@@ -778,7 +778,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, false>(
                 instance,
@@ -799,7 +799,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdSuperFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, false>(
             instance,
@@ -819,7 +819,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFldForTypeOf);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
         return ProfiledLdFldForTypeOf<false, false, false>(
             instance,
@@ -839,7 +839,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdFld_CallApplyTarget);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, false, true>(
                 instance,
@@ -859,7 +859,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdMethodFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<false, true, false>(
                 instance,
@@ -879,7 +879,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<true, false, false>(
                 instance,
@@ -899,7 +899,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootFldForTypeOf);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
 
         return ProfiledLdFldForTypeOf<true, false, false>(
             instance,
@@ -918,7 +918,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledLdRootMethodFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         return
             ProfiledLdFld<true, true, false>(
                 instance,
@@ -954,17 +954,17 @@ using namespace Js;
         DynamicProfileInfo *const dynamicProfileInfo = functionBody->GetDynamicProfileInfo();
         Var value;
         FldInfoFlags fldInfoFlags = FldInfo_NoInfo;
-        if (Root || (RecyclableObject::Is(instance) && RecyclableObject::Is(thisInstance)))
+        if (Root || (VarIs<RecyclableObject>(instance) && VarIs<RecyclableObject>(thisInstance)))
         {
-            RecyclableObject *const object = RecyclableObject::UnsafeFromVar(instance);
-            RecyclableObject *const thisObject = RecyclableObject::UnsafeFromVar(thisInstance);
+            RecyclableObject *const object = UnsafeVarTo<RecyclableObject>(instance);
+            RecyclableObject *const thisObject = UnsafeVarTo<RecyclableObject>(thisInstance);
 
-            if (!Root && Method && (propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && ScriptFunction::Is(object))
+            if (!Root && Method && (propertyId == PropertyIds::apply || propertyId == PropertyIds::call) && VarIs<ScriptFunction>(object))
             {
                 // If the property being loaded is "apply"/"call", make an optimistic assumption that apply/call is not overridden and
                 // undefer the function right here if it was defer parsed before. This is required so that the load of "apply"/"call"
                 // happens from the same "type". Otherwise, we will have a polymorphic cache for load of "apply"/"call".
-                ScriptFunction *fn = ScriptFunction::UnsafeFromVar(object);
+                ScriptFunction *fn = UnsafeVarTo<ScriptFunction>(object);
                 if (fn->GetType()->GetEntryPoint() == JavascriptFunction::DeferredParsingThunk)
                 {
                     JavascriptFunction::DeferredParse(&fn);
@@ -1086,7 +1086,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1109,7 +1109,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStSuperFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1131,7 +1131,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStFld_Strict);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<false>(
             instance,
             propertyId,
@@ -1153,7 +1153,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
             instance,
             propertyId,
@@ -1175,7 +1175,7 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledStRootFld_Strict);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledStFld<true>(
             instance,
             propertyId,
@@ -1216,10 +1216,10 @@ using namespace Js;
 
         ScriptContext *const scriptContext = functionBody->GetScriptContext();
         FldInfoFlags fldInfoFlags = FldInfo_NoInfo;
-        if(Root || (RecyclableObject::Is(instance) && RecyclableObject::Is(thisInstance)))
+        if(Root || (VarIs<RecyclableObject>(instance) && VarIs<RecyclableObject>(thisInstance)))
         {
-            RecyclableObject *const object = RecyclableObject::UnsafeFromVar(instance);
-            RecyclableObject *const thisObject = RecyclableObject::UnsafeFromVar(thisInstance);
+            RecyclableObject *const object = UnsafeVarTo<RecyclableObject>(instance);
+            RecyclableObject *const thisObject = UnsafeVarTo<RecyclableObject>(thisInstance);
             PropertyCacheOperationInfo operationInfo;
             PropertyValueInfo propertyValueInfo;
             PropertyValueInfo::SetCacheInfo(&propertyValueInfo, functionBody, inlineCache, inlineCacheIndex, true);
@@ -1326,9 +1326,9 @@ using namespace Js;
     {
         JIT_HELPER_REENTRANT_HEADER(ProfiledInitFld);
         ScriptFunction *const scriptFunction =
-            ScriptFunction::UnsafeFromVar(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
+            UnsafeVarTo<ScriptFunction>(JavascriptCallStackLayout::FromFramePointer(framePointer)->functionObject);
         ProfiledInitFld(
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             propertyId,
             GetInlineCache(scriptFunction, inlineCacheIndex),
             inlineCacheIndex,
@@ -1436,7 +1436,7 @@ using namespace Js;
 
         return
             scriptFunction->GetHasInlineCaches()
-                ? ScriptFunctionWithInlineCache::UnsafeFromVar(scriptFunction)->GetInlineCache(inlineCacheIndex)
+                ? UnsafeVarTo<ScriptFunctionWithInlineCache>(scriptFunction)->GetInlineCache(inlineCacheIndex)
                 : scriptFunction->GetFunctionBody()->GetInlineCache(inlineCacheIndex);
     }
 #endif
