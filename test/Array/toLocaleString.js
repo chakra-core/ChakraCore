@@ -186,34 +186,30 @@ guarded_call(function () {
 });
 
 scenario("Array: toLocaleString should use toLocaleString accessor on element");
+var originalToLocaleString = String.prototype.toLocaleString;
+String.prototype.toLocaleString = function () {
+    return "accessor-value";
+};
 var o = ["test"];
 guarded_call(function () {
-    Object.defineProperty(String.prototype, "toLocaleString", {
-        get() {
-            return function() { return "accessor-value"; };
-        }
-    });
     echo(Array.prototype.toLocaleString.apply(o));
 });
+String.prototype.toLocaleString = originalToLocaleString;
 
 scenario("Array: toLocaleString should throw TypeError on undefined");
+var originalToLocaleString = String.prototype.toLocaleString;
+String.prototype.toLocaleString = undefined;
 var o = ["test"];
 guarded_call(function () {
-    Object.defineProperty(String.prototype, "toLocaleString", {
-        get() {
-            return undefined;
-        }
-    });
     echo(Array.prototype.toLocaleString.apply(o));
 });
+String.prototype.toLocaleString = originalToLocaleString;
 
 scenario("Array: toLocaleString should throw TypeError on invalid function");
+var originalToLocaleString = String.prototype.toLocaleString;
+String.prototype.toLocaleString = 0;
 var o = ["test"];
 guarded_call(function () {
-    Object.defineProperty(String.prototype, "toLocaleString", {
-        get() {
-            return 0;
-        }
-    });
     echo(Array.prototype.toLocaleString.apply(o));
 });
+String.prototype.toLocaleString = originalToLocaleString;

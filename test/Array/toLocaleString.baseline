@@ -50,8 +50,8 @@ accessor-value
 
 
 11. Array: toLocaleString should throw TypeError on undefined
-TypeError : Cannot redefine non-configurable property 'toLocaleString'
+TypeError : The value of the property 'toLocaleString' is not a Function object
 
 
 12. Array: toLocaleString should throw TypeError on invalid function
-TypeError : Cannot redefine non-configurable property 'toLocaleString'
+TypeError : The value of the property 'toLocaleString' is not a Function object
