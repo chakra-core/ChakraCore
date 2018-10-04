@@ -10646,6 +10646,18 @@ GlobOpt::TypeSpecializeFloatBinary(IR::Instr *instr, Value *src1Val, Value *src2
         case Js::OpCode::CmSrEq_A:
         case Js::OpCode::CmNeq_A:
         case Js::OpCode::CmSrNeq_A:
+        {
+            if (src1Val->GetValueInfo()->IsNotNumber() || src2Val->GetValueInfo()->IsNotNumber())
+            {
+                return false;
+            }
+
+            allowUndefinedOrNullSrc1 = false;
+            allowUndefinedOrNullSrc2 = false;
+            convertDstToBool = true;
+            break;
+        }
+
         case Js::OpCode::CmLe_A:
         case Js::OpCode::CmLt_A:
         case Js::OpCode::CmGe_A:
