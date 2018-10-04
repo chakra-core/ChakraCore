@@ -184,3 +184,36 @@ guarded_call(function () {
         echo(output);
     }
 });
+
+scenario("Array: toLocaleString should use toLocaleString accessor on element");
+var o = ["test"];
+guarded_call(function () {
+    Object.defineProperty(String.prototype, "toLocaleString", {
+        get() {
+            return function() { return "accessor-value"; };
+        }
+    });
+    echo(Array.prototype.toLocaleString.apply(o));
+});
+
+scenario("Array: toLocaleString should throw TypeError on undefined");
+var o = ["test"];
+guarded_call(function () {
+    Object.defineProperty(String.prototype, "toLocaleString", {
+        get() {
+            return undefined;
+        }
+    });
+    echo(Array.prototype.toLocaleString.apply(o));
+});
+
+scenario("Array: toLocaleString should throw TypeError on invalid function");
+var o = ["test"];
+guarded_call(function () {
+    Object.defineProperty(String.prototype, "toLocaleString", {
+        get() {
+            return 0;
+        }
+    });
+    echo(Array.prototype.toLocaleString.apply(o));
+});
