@@ -17658,7 +17658,7 @@ void GlobOpt::PRE::RemoveOverlyOptimisticInitialValues(Loop * loop)
 {
     BasicBlock * landingPad = loop->landingPad;
 
-    // For a property sym whose obj ptr sym wasn't live in the landing pad, we can optmistically (if the obj ptr sym was
+    // For a property sym whose obj ptr sym wasn't live in the landing pad, we can optimistically (if the obj ptr sym was
     // single def) insert an initial value in the landing pad, with the hope that PRE could make the obj ptr sym live. 
     // But, if PRE couldn't make the obj ptr sym live, we need to clear the value for the property sym from the landing pad
 
