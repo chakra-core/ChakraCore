@@ -701,17 +701,6 @@ CommonNumber:
         case TypeIds_Number:
             return JavascriptNumber::ToLocaleString(JavascriptNumber::GetValue(aValue), scriptContext);
 
-        case TypeIds_String: {
-            RecyclableObject* object = VarTo<RecyclableObject>(aValue);
-            Var value = JavascriptOperators::GetProperty(object, PropertyIds::toLocaleString, scriptContext, NULL);
-            RecyclableObject* toLocaleStringFunction = VarTo<RecyclableObject>(value);
-            Var aResult = scriptContext->GetThreadContext()->ExecuteImplicitCall(toLocaleStringFunction, Js::ImplicitCall_ToPrimitive, [=]()->Js::Var
-            {
-                return CALL_FUNCTION(scriptContext->GetThreadContext(), toLocaleStringFunction, CallInfo(1), aValue);
-            });
-            return UnsafeVarTo<JavascriptString>(aResult);
-        }
-
         case TypeIds_VariantDate:
             // Legacy behavior was to create an empty object and call toLocaleString on it, which would result in this value
             return scriptContext->GetLibrary()->GetObjectDisplayString();
