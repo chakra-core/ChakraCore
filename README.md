@@ -22,61 +22,61 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 
 <sup>[a]</sup> Static | <sup>[s]</sup> Shared | <sup>[n]</sup> NoJIT | * Omitted
 
-[x64dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
-[x64dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
-[x64testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
-[x64testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
-[x64relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
-[x64rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
+[x64dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
+[x64dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
+[x64testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
+[x64testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
+[x64relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
+[x64rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
 
-[x86dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
-[x86dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
-[x86testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
-[x86testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
-[x86relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
-[x86rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
+[x86dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
+[x86dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
+[x86testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
+[x86testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
+[x86relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
+[x86rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
 
-[armdbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
-[armdbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
-[armtesticon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
-[armtestlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
-[armrelicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
-[armrellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
+[armdbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
+[armdbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
+[armtesticon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
+[armtestlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
+[armrelicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
+[armrellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
 
-[linux_a_dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/badge/icon
-[linux_a_dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/
-[linux_a_testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/badge/icon
-[linux_a_testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/
-[linux_a_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/badge/icon
-[linux_a_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/
+[linux_a_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/badge/icon
+[linux_a_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/
+[linux_a_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/badge/icon
+[linux_a_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/
+[linux_a_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/badge/icon
+[linux_a_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/
 
-[linux_s_dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/badge/icon
-[linux_s_dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/
-[linux_s_testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/badge/icon
-[linux_s_testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/
-[linux_s_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/badge/icon
-[linux_s_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/
+[linux_s_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/badge/icon
+[linux_s_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/
+[linux_s_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/badge/icon
+[linux_s_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/
+[linux_s_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/badge/icon
+[linux_s_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/
 
-[linux_sn_dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/badge/icon
-[linux_sn_dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/
-[linux_sn_testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/badge/icon
-[linux_sn_testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/
-[linux_sn_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/badge/icon
-[linux_sn_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/
+[linux_sn_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/badge/icon
+[linux_sn_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/
+[linux_sn_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/badge/icon
+[linux_sn_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/
+[linux_sn_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/badge/icon
+[linux_sn_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/
 
-[osx_a_dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/badge/icon
-[osx_a_dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/
-[osx_a_testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/badge/icon
-[osx_a_testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/
-[osx_a_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/badge/icon
-[osx_a_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/
+[osx_a_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/badge/icon
+[osx_a_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/
+[osx_a_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/badge/icon
+[osx_a_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/
+[osx_a_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/badge/icon
+[osx_a_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/
 
-[osx_sn_dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/badge/icon
-[osx_sn_dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/
-[osx_sn_testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/badge/icon
-[osx_sn_testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/
-[osx_sn_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/badge/icon
-[osx_sn_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/
+[osx_sn_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/badge/icon
+[osx_sn_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/
+[osx_sn_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/badge/icon
+[osx_sn_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/
+[osx_sn_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/badge/icon
+[osx_sn_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/
 
 Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds and additional details.
 
