@@ -659,6 +659,8 @@ ENTRY(Array_every)
 ENTRY(Array_includes)
 ENTRY(Array_reduce)
 ENTRY(Object_fromEntries)
+ENTRY(Math_min)
+ENTRY(Math_max)
 ENTRY(FunctionKind)
 
 // EngineInterfaceObject built-ins

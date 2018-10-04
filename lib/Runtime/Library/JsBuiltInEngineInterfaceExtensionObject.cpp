@@ -40,24 +40,26 @@
     } \
 
 #define FUNCTIONKIND_VALUES(VALUE) \
-VALUE(Array, values, false) \
-VALUE(Array, keys, false) \
-VALUE(Array, entries, false) \
-VALUE(Array, indexOf, false) \
-VALUE(Array, filter, false) \
-VALUE(Array, flat, false) \
-VALUE(Array, flatMap, false) \
-VALUE(Array, forEach, false) \
-VALUE(Array, some, false) \
-VALUE(Array, every, false) \
-VALUE(Array, includes, false) \
-VALUE(Array, reduce, false) \
-VALUE(Object, fromEntries, true)
+VALUE(Array, values, false, Prototype) \
+VALUE(Array, keys, false, Prototype) \
+VALUE(Array, entries, false,  Prototype) \
+VALUE(Array, indexOf, false, Prototype) \
+VALUE(Array, filter, false, Prototype) \
+VALUE(Array, flat, false, Prototype) \
+VALUE(Array, flatMap, false, Prototype) \
+VALUE(Array, forEach, false, Prototype) \
+VALUE(Array, some, false, Prototype) \
+VALUE(Array, every, false, Prototype) \
+VALUE(Array, includes, false, Prototype) \
+VALUE(Array, reduce, false, Prototype) \
+VALUE(Object, fromEntries, true, Constructor) \
+VALUE(Math, max, true, Object) \
+VALUE(Math, min, true, Object)
 
 enum class FunctionKind
 {
-#define VALUE(ClassName, methodName, isStatic) ClassName##_##methodName,
-    FUNCTIONKIND_VALUES(VALUE)
+#define VALUE(ClassName, methodName, isStatic, propertyType) ClassName##_##methodName,
+    FUNCTIONKIND_VALUES(VALUE) 
 #undef VALUE
     Max
 };
@@ -207,11 +209,13 @@ namespace Js
 
         DynamicObject * functionKindObj = library->CreateObject();
 
-#define VALUE(ClassName, methodName, isStatic) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
+#define VALUE(ClassName, methodName, isStatic, propertyType) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
         FUNCTIONKIND_VALUES(VALUE)
 #undef VALUE
 
         library->AddMember(builtInNativeInterfaces, PropertyIds::FunctionKind, functionKindObj);
+        library->AddMember(builtInNativeInterfaces, PropertyIds::POSITIVE_INFINITY, library->GetPositiveInfinite());
+        library->AddMember(builtInNativeInterfaces, PropertyIds::NEGATIVE_INFINITY, library->GetNegativeInfinite());
 
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerChakraLibraryFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction, 2);
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction, 2);
@@ -297,12 +301,14 @@ namespace Js
         PropertyId methodPropID = PropertyIds::_none;
         PropertyString *methodPropString = nullptr;
         PropertyString *classPropString = nullptr;
+        JavascriptString *fullName = nullptr;
+        JavascriptString *dot = library->GetDotString();
         switch (funcKind)
         {
-#define VALUE(ClassName, methodName, _isStatic) \
-        case FunctionKind::ClassName##_##methodName: \
+#define VALUE(ClassName, methodName, _isStatic, propertyType) \
+            case FunctionKind::ClassName##_##methodName: \
             isStatic = _isStatic; \
-            installTarget = _isStatic ? library->Get##ClassName##Constructor() : library->Get##ClassName##Prototype(); \
+            installTarget = library->Get##ClassName##propertyType##(); \
             methodPropID = PropertyIds::methodName; \
             methodPropString = scriptContext->GetPropertyString(methodPropID); \
             classPropString = scriptContext->GetPropertyString(PropertyIds::ClassName); \
@@ -312,10 +318,9 @@ FUNCTIONKIND_VALUES(VALUE)
         default:
             AssertOrFailFastMsg(false, "funcKind should never be outside the range of projected values");
         }
+
         Assert(methodPropString && classPropString && installTarget && methodPropID != PropertyIds::_none);
 
-        JavascriptString *fullName = nullptr;
-        JavascriptString *dot = library->GetDotString();
         if (isStatic)
         {
             fullName = JavascriptString::Concat3(classPropString, dot, methodPropString);
@@ -369,6 +374,12 @@ FUNCTIONKIND_VALUES(VALUE)
             break;
         case FunctionKind::Array_reduce:
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
+            break;
+        case FunctionKind::Math_max:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMax, func);
+            break;
+        case FunctionKind::Math_min:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMin, func);
             break;
         // FunctionKinds with no entry functions
         case FunctionKind::Array_flat:
