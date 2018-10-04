@@ -2407,7 +2407,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 
     //StackArguments Optimization - We bail out if the index is out of range of actuals.
     if ((instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem) &&
-        instr->DoStackArgsOpt(this->func) && !this->IsLoopPrePass())
+        instr->DoStackArgsOpt() && !this->IsLoopPrePass())
     {
         GenerateBailAtOperation(&instr, IR::BailOnStackArgsOutOfActualsRange);
     }
@@ -5179,7 +5179,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IR::IndirOpnd *src = instr->GetSrc1()->AsIndirOpnd();
     const ValueType baseValueType(src->GetBaseOpnd()->GetValueType());
-    if (instr->DoStackArgsOpt(this->func) ||
+    if (instr->DoStackArgsOpt() ||
         !(
             baseValueType.IsLikelyOptimizedTypedArray() ||
             (baseValueType.IsLikelyNativeArray() && instr->IsProfiledInstr()) // Specialized native array lowering for LdElem requires that it is profiled.
@@ -5203,7 +5203,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
                     this->func->GetDebugNumberSet(debugStringBuffer),
                     Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                     baseValueTypeStr,
-                    instr->DoStackArgsOpt(this->func) ? _u("instruction uses the arguments object") :
+                    instr->DoStackArgsOpt() ? _u("instruction uses the arguments object") :
                     baseValueType.IsLikelyOptimizedTypedArray() ? _u("index is negative or likely not int") : _u("of array type"));
                 Output::Flush();
             }
@@ -10753,7 +10753,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
 
     IR::RegOpnd *baseOpnd = instr->GetDst()->AsIndirOpnd()->GetBaseOpnd();
     ValueType baseValueType(baseOpnd->GetValueType());
-    if (instr->DoStackArgsOpt(this->func) ||
+    if (instr->DoStackArgsOpt() ||
         (!this->DoTypedArrayTypeSpec() && baseValueType.IsLikelyOptimizedTypedArray()) ||
         (!this->DoNativeArrayTypeSpec() && baseValueType.IsLikelyNativeArray()) ||
         !(baseValueType.IsLikelyOptimizedTypedArray() || baseValueType.IsLikelyNativeArray()))
@@ -10769,7 +10769,7 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
                 this->func->GetDebugNumberSet(debugStringBuffer),
                 Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
                 baseValueTypeStr,
-                instr->DoStackArgsOpt(this->func) ?
+                instr->DoStackArgsOpt() ?
                     _u("instruction uses the arguments object") :
                     _u("typed array type specialization is disabled, or base is not an optimized typed array"));
             Output::Flush();
@@ -15625,7 +15625,7 @@ GlobOpt::DoArrayCheckHoist() const
 bool
 GlobOpt::DoArrayCheckHoist(const ValueType baseValueType, Loop* loop, IR::Instr const * const instr) const
 {
-    if(!DoArrayCheckHoist() || (instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func)))
+    if(!DoArrayCheckHoist() || (instr && !IsLoopPrePass() && instr->DoStackArgsOpt()))
     {
         return false;
     }
@@ -15759,7 +15759,7 @@ GlobOpt::DoLdLenIntSpec(IR::Instr * const instr, const ValueType baseValueType)
     if(PHASE_OFF(Js::LdLenIntSpecPhase, func) ||
         IsTypeSpecPhaseOff(func) ||
         (func->HasProfileInfo() && func->GetReadOnlyProfileInfo()->IsLdLenIntSpecDisabled()) ||
-        (instr && !IsLoopPrePass() && instr->DoStackArgsOpt(func)))
+        (instr && !IsLoopPrePass() && instr->DoStackArgsOpt()))
     {
         return false;
     }
