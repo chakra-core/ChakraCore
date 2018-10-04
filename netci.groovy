@@ -141,7 +141,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
     def staticFlag = staticBuild ? "--static" : ""
     def swbCheckFlag = (platform == "linux" && buildType == "debug" && !staticBuild) ? "--wb-check" : "";
-    def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
+    def icuFlag = (platform == "osx" ? "--icu=/Users/DDITLABS/homebrew/Cellar/icu4c/62.1" : "")
     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
     def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} " +
                       "${swbCheckFlag} ${compilerPaths} ${icuFlag} ${customOption} ${extraBuildParams}"
