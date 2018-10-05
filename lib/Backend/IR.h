@@ -214,7 +214,7 @@ public:
     bool            StartsBasicBlock() const;
     bool            EndsBasicBlock() const;
     bool            HasFallThrough() const;
-    bool            DoStackArgsOpt(Func *topFunc) const;
+    bool            DoStackArgsOpt() const;
     bool            HasAnyLoadHeapArgsOpCode();
     bool            IsEqual(IR::Instr *instr) const;
 

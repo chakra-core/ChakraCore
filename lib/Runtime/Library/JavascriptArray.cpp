@@ -9903,9 +9903,13 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
 
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
-
+        
+#ifdef ENABLE_JS_BUILTINS
+        Assert(!scriptContext->IsJsBuiltInEnabled());
+#endif
+        
         CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
-
+        
         Assert(!(callInfo.Flags & CallFlags_New));
 
         if (args.Info.Count == 0)
@@ -9964,7 +9968,14 @@ Case0:
         {
             if (length == 0)
             {
-                JavascriptError::ThrowTypeError(scriptContext, VBSERR_ActionNotSupported);
+                if (typedArrayBase)
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("TypedArray.prototype.reduce"));
+                }
+                else 
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
+                }
             }
 
             bool bPresent = false;
@@ -9999,7 +10010,14 @@ Case0:
 
             if (bPresent == false)
             {
-                JavascriptError::ThrowTypeError(scriptContext, VBSERR_ActionNotSupported);
+                if (typedArrayBase)
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("TypedArray.prototype.reduce"));
+                }
+                else
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_EmptyArrayAndInitValueNotPresent, _u("Array.prototype.reduce"));
+                }
             }
         }
 
