@@ -268,7 +268,7 @@ var tests = [
             assert.areEqual("\u1F86", "\u1F86".toLowerCase(), "Expecting Greek lower-case alpha with psili and perispomeni and ypogegrammeni");
             assert.areEqual("\u1F87", "\u1F87".toLowerCase(), "Expecting Greek lower-case alpha with dasia and perispomeni and ypogegrammeni");
 
-            if (WScript.Platform.INTL_LIBRARY !== "icu" || WScript.Platform.ICU_VERSION < 62) {
+            if (WScript.Platform.INTL_LIBRARY !== "icu" || WScript.Platform.ICU_VERSION !== 62) {
                 // ICU 62 returns nonsensical answers for a lot of these
                 assert.areEqual("\u1F80", "\u1F88".toLowerCase(), "Expecting Greek upper-case alpha with psili and prosgegrammeni");
                 assert.areEqual("\u1F81", "\u1F89".toLowerCase(), "Expecting Greek upper-case alpha with dasia and prosgegrammeni");
