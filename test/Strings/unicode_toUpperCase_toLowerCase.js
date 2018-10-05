@@ -267,14 +267,38 @@ var tests = [
             assert.areEqual("\u1F85", "\u1F85".toLowerCase(), "Expecting Greek lower-case alpha with dasia and oxia and ypogegrammeni");
             assert.areEqual("\u1F86", "\u1F86".toLowerCase(), "Expecting Greek lower-case alpha with psili and perispomeni and ypogegrammeni");
             assert.areEqual("\u1F87", "\u1F87".toLowerCase(), "Expecting Greek lower-case alpha with dasia and perispomeni and ypogegrammeni");
-            assert.areEqual("\u1F80", "\u1F88".toLowerCase(), "Expecting Greek upper-case alpha with psili and prosgegrammeni");
-            assert.areEqual("\u1F81", "\u1F89".toLowerCase(), "Expecting Greek upper-case alpha with dasia and prosgegrammeni");
-            assert.areEqual("\u1F82", "\u1F8A".toLowerCase(), "Expecting Greek upper-case alpha with psili and varia and prosgegrammeni");
-            assert.areEqual("\u1F83", "\u1F8B".toLowerCase(), "Expecting Greek upper-case alpha with dasia and varia and prosgegrammeni");
-            assert.areEqual("\u1F84", "\u1F8C".toLowerCase(), "Expecting Greek upper-case alpha with psili and oxia and prosgegrammeni");
-            assert.areEqual("\u1F85", "\u1F8D".toLowerCase(), "Expecting Greek upper-case alpha with dasia and oxia and prosgegrammeni");
-            assert.areEqual("\u1F86", "\u1F8E".toLowerCase(), "Expecting Greek upper-case alpha with psili and perispomeni and prosgegrammeni");
-            assert.areEqual("\u1F87", "\u1F8F".toLowerCase(), "Expecting Greek upper-case alpha with dasia and perispomeni and prosgegrammeni");
+
+            if (WScript.Platform.INTL_LIBRARY !== "icu" || WScript.Platform.ICU_VERSION !== 62) {
+                // ICU 62 returns nonsensical answers for a lot of these
+                assert.areEqual("\u1F80", "\u1F88".toLowerCase(), "Expecting Greek upper-case alpha with psili and prosgegrammeni");
+                assert.areEqual("\u1F81", "\u1F89".toLowerCase(), "Expecting Greek upper-case alpha with dasia and prosgegrammeni");
+                assert.areEqual("\u1F82", "\u1F8A".toLowerCase(), "Expecting Greek upper-case alpha with psili and varia and prosgegrammeni");
+                assert.areEqual("\u1F83", "\u1F8B".toLowerCase(), "Expecting Greek upper-case alpha with dasia and varia and prosgegrammeni");
+                assert.areEqual("\u1F84", "\u1F8C".toLowerCase(), "Expecting Greek upper-case alpha with psili and oxia and prosgegrammeni");
+                assert.areEqual("\u1F85", "\u1F8D".toLowerCase(), "Expecting Greek upper-case alpha with dasia and oxia and prosgegrammeni");
+                assert.areEqual("\u1F86", "\u1F8E".toLowerCase(), "Expecting Greek upper-case alpha with psili and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1F87", "\u1F8F".toLowerCase(), "Expecting Greek upper-case alpha with dasia and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1F90", "\u1F98".toLowerCase(), "Expecting Greek upper-case eta with psili and prosgegrammeni");
+                assert.areEqual("\u1F91", "\u1F99".toLowerCase(), "Expecting Greek upper-case eta with dasia and prosgegrammeni");
+                assert.areEqual("\u1F92", "\u1F9A".toLowerCase(), "Expecting Greek upper-case eta with psili and varia and prosgegrammeni");
+                assert.areEqual("\u1F93", "\u1F9B".toLowerCase(), "Expecting Greek upper-case eta with dasia and varia and prosgegrammeni");
+                assert.areEqual("\u1F94", "\u1F9C".toLowerCase(), "Expecting Greek upper-case eta with psili and oxia and prosgegrammeni");
+                assert.areEqual("\u1F95", "\u1F9D".toLowerCase(), "Expecting Greek upper-case eta with dasia and oxia and prosgegrammeni");
+                assert.areEqual("\u1F96", "\u1F9E".toLowerCase(), "Expecting Greek upper-case eta with psili and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1F97", "\u1F9F".toLowerCase(), "Expecting Greek upper-case eta with dasia and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1FA0", "\u1FA8".toLowerCase(), "Expecting Greek upper-case omega with psili and prosgegrammeni");
+                assert.areEqual("\u1FA1", "\u1FA9".toLowerCase(), "Expecting Greek upper-case omega with dasia and prosgegrammeni");
+                assert.areEqual("\u1FA2", "\u1FAA".toLowerCase(), "Expecting Greek upper-case omega with psili and varia and prosgegrammeni");
+                assert.areEqual("\u1FA3", "\u1FAB".toLowerCase(), "Expecting Greek upper-case omega with dasia and varia and prosgegrammeni");
+                assert.areEqual("\u1FA4", "\u1FAC".toLowerCase(), "Expecting Greek upper-case omega with psili and oxia and prosgegrammeni");
+                assert.areEqual("\u1FA5", "\u1FAD".toLowerCase(), "Expecting Greek upper-case omega with dasia and oxia and prosgegrammeni");
+                assert.areEqual("\u1FA6", "\u1FAE".toLowerCase(), "Expecting Greek upper-case omega with psili and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1FA7", "\u1FAF".toLowerCase(), "Expecting Greek upper-case omega with dasia and perispomeni and prosgegrammeni");
+                assert.areEqual("\u1FB3", "\u1FBC".toLowerCase(), "Expecting Greek upper-case alpha with prosgegrammeni");
+                assert.areEqual("\u1FC3", "\u1FCC".toLowerCase(), "Expecting Greek upper-case eta with prosgegrammeni");
+                assert.areEqual("\u1FF3", "\u1FFC".toLowerCase(), "Expecting Greek upper-case omega with prosgegrammeni");
+            }
+
             assert.areEqual("\u1F90", "\u1F90".toLowerCase(), "Expecting Greek lower-case eta with psili and ypogegrammeni");
             assert.areEqual("\u1F91", "\u1F91".toLowerCase(), "Expecting Greek lower-case eta with dasia and ypogegrammeni");
             assert.areEqual("\u1F92", "\u1F92".toLowerCase(), "Expecting Greek lower-case eta with psili and varia and ypogegrammeni");
@@ -283,14 +307,6 @@ var tests = [
             assert.areEqual("\u1F95", "\u1F95".toLowerCase(), "Expecting Greek lower-case eta with dasia and oxia and ypogegrammeni");
             assert.areEqual("\u1F96", "\u1F96".toLowerCase(), "Expecting Greek lower-case eta with psili and perispomeni and ypogegrammeni");
             assert.areEqual("\u1F97", "\u1F97".toLowerCase(), "Expecting Greek lower-case eta with dasia and perispomeni and ypogegrammeni");
-            assert.areEqual("\u1F90", "\u1F98".toLowerCase(), "Expecting Greek upper-case eta with psili and prosgegrammeni");
-            assert.areEqual("\u1F91", "\u1F99".toLowerCase(), "Expecting Greek upper-case eta with dasia and prosgegrammeni");
-            assert.areEqual("\u1F92", "\u1F9A".toLowerCase(), "Expecting Greek upper-case eta with psili and varia and prosgegrammeni");
-            assert.areEqual("\u1F93", "\u1F9B".toLowerCase(), "Expecting Greek upper-case eta with dasia and varia and prosgegrammeni");
-            assert.areEqual("\u1F94", "\u1F9C".toLowerCase(), "Expecting Greek upper-case eta with psili and oxia and prosgegrammeni");
-            assert.areEqual("\u1F95", "\u1F9D".toLowerCase(), "Expecting Greek upper-case eta with dasia and oxia and prosgegrammeni");
-            assert.areEqual("\u1F96", "\u1F9E".toLowerCase(), "Expecting Greek upper-case eta with psili and perispomeni and prosgegrammeni");
-            assert.areEqual("\u1F97", "\u1F9F".toLowerCase(), "Expecting Greek upper-case eta with dasia and perispomeni and prosgegrammeni");
             assert.areEqual("\u1FA0", "\u1FA0".toLowerCase(), "Expecting Greek lower-case omega with psili and ypogegrammeni");
             assert.areEqual("\u1FA1", "\u1FA1".toLowerCase(), "Expecting Greek lower-case omega with dasia and ypogegrammeni");
             assert.areEqual("\u1FA2", "\u1FA2".toLowerCase(), "Expecting Greek lower-case omega with psili and varia and ypogegrammeni");
@@ -299,20 +315,9 @@ var tests = [
             assert.areEqual("\u1FA5", "\u1FA5".toLowerCase(), "Expecting Greek lower-case omega with dasia and oxia and ypogegrammeni");
             assert.areEqual("\u1FA6", "\u1FA6".toLowerCase(), "Expecting Greek lower-case omega with psili and perispomeni and ypogegrammeni");
             assert.areEqual("\u1FA7", "\u1FA7".toLowerCase(), "Expecting Greek lower-case omega with dasia and perispomeni and ypogegrammeni");
-            assert.areEqual("\u1FA0", "\u1FA8".toLowerCase(), "Expecting Greek upper-case omega with psili and prosgegrammeni");
-            assert.areEqual("\u1FA1", "\u1FA9".toLowerCase(), "Expecting Greek upper-case omega with dasia and prosgegrammeni");
-            assert.areEqual("\u1FA2", "\u1FAA".toLowerCase(), "Expecting Greek upper-case omega with psili and varia and prosgegrammeni");
-            assert.areEqual("\u1FA3", "\u1FAB".toLowerCase(), "Expecting Greek upper-case omega with dasia and varia and prosgegrammeni");
-            assert.areEqual("\u1FA4", "\u1FAC".toLowerCase(), "Expecting Greek upper-case omega with psili and oxia and prosgegrammeni");
-            assert.areEqual("\u1FA5", "\u1FAD".toLowerCase(), "Expecting Greek upper-case omega with dasia and oxia and prosgegrammeni");
-            assert.areEqual("\u1FA6", "\u1FAE".toLowerCase(), "Expecting Greek upper-case omega with psili and perispomeni and prosgegrammeni");
-            assert.areEqual("\u1FA7", "\u1FAF".toLowerCase(), "Expecting Greek upper-case omega with dasia and perispomeni and prosgegrammeni");
             assert.areEqual("\u1FB3", "\u1FB3".toLowerCase(), "Expecting Greek lower-case alpha with ypogegrammeni");
-            assert.areEqual("\u1FB3", "\u1FBC".toLowerCase(), "Expecting Greek upper-case alpha with prosgegrammeni");
             assert.areEqual("\u1FC3", "\u1FC3".toLowerCase(), "Expecting Greek lower-case eta with ypogegrammeni");
-            assert.areEqual("\u1FC3", "\u1FCC".toLowerCase(), "Expecting Greek upper-case eta with prosgegrammeni");
             assert.areEqual("\u1FF3", "\u1FF3".toLowerCase(), "Expecting Greek lower-case omega with ypogegrammeni");
-            assert.areEqual("\u1FF3", "\u1FFC".toLowerCase(), "Expecting Greek upper-case omega with prosgegrammeni");
             assert.areEqual("\u1FB2", "\u1FB2".toLowerCase(), "Expecting Greek lower-case alpha with varia and ypogegrammeni");
             assert.areEqual("\u1FB4", "\u1FB4".toLowerCase(), "Expecting Greek lower-case alpha with oxia and ypogegrammeni");
             assert.areEqual("\u1FC2", "\u1FC2".toLowerCase(), "Expecting Greek lower-case eta with varia and ypogegrammeni");
