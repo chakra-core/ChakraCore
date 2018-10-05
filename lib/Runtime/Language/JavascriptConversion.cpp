@@ -701,9 +701,6 @@ CommonNumber:
         case TypeIds_Number:
             return JavascriptNumber::ToLocaleString(JavascriptNumber::GetValue(aValue), scriptContext);
 
-        case TypeIds_String:
-            return UnsafeVarTo<JavascriptString>(aValue);
-
         case TypeIds_VariantDate:
             // Legacy behavior was to create an empty object and call toLocaleString on it, which would result in this value
             return scriptContext->GetLibrary()->GetObjectDisplayString();
