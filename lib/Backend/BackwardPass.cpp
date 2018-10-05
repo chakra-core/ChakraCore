@@ -295,7 +295,7 @@ BackwardPass::MarkScopeObjSymUseForStackArgOpt()
     IR::Instr * instr = this->currentInstr;
     if (tag == Js::DeadStorePhase)
     {
-        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
+        if (instr->DoStackArgsOpt() && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
         {
             if (this->currentBlock->byteCodeUpwardExposedUsed == nullptr)
             {
@@ -315,7 +315,7 @@ BackwardPass::ProcessBailOnStackArgsOutOfActualsRange()
         (instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem) &&
         instr->HasBailOutInfo() && !IsPrePass())
     {
-        if (instr->DoStackArgsOpt(this->func))
+        if (instr->DoStackArgsOpt())
         {
             AssertMsg(instr->GetBailOutKind() & IR::BailOnStackArgsOutOfActualsRange, "Stack args bail out is not set when the optimization is turned on? ");
             if (instr->GetBailOutKind() & ~IR::BailOnStackArgsOutOfActualsRange)
@@ -3922,7 +3922,7 @@ IR::Instr *
 BackwardPass::TryChangeInstrForStackArgOpt()
 {
     IR::Instr * instr = this->currentInstr;
-    if (tag == Js::DeadStorePhase && instr->DoStackArgsOpt(this->func))
+    if (tag == Js::DeadStorePhase && instr->DoStackArgsOpt())
     {
         switch (instr->m_opcode)
         {

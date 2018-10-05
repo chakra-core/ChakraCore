@@ -48,6 +48,10 @@ VALUE(Array, filter, false) \
 VALUE(Array, flat, false) \
 VALUE(Array, flatMap, false) \
 VALUE(Array, forEach, false) \
+VALUE(Array, some, false) \
+VALUE(Array, every, false) \
+VALUE(Array, includes, false) \
+VALUE(Array, reduce, false) \
 VALUE(Object, fromEntries, true)
 
 enum class FunctionKind
@@ -353,6 +357,26 @@ FUNCTIONKIND_VALUES(VALUE)
             break;
         case FunctionKind::Array_indexOf:
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryIndexOf, func);
+            break;
+        case FunctionKind::Array_some:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntrySome, func);
+            break;
+        case FunctionKind::Array_every:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryEvery, func);
+            break;
+        case FunctionKind::Array_includes:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryIncludes, func);
+            break;
+        case FunctionKind::Array_reduce:
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
+            break;
+        // FunctionKinds with no entry functions
+        case FunctionKind::Array_flat:
+        case FunctionKind::Array_flatMap:
+        case FunctionKind::Object_fromEntries:
+            break;
+        default:
+            AssertOrFailFastMsg(false, "funcKind should never be outside the range of projected values");
             break;
         }
 

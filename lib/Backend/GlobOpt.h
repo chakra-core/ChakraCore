@@ -690,7 +690,7 @@ private:
     IR::Instr*              CreateBoundsCheckInstr(IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset, IR::BailOutKind bailoutkind, BailOutInfo* bailoutInfo, Func* func);
     IR::Instr*              AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset);
     void                    OptArraySrc(IR::Instr **const instrRef, Value ** src1Val, Value ** src2Val);
-    void                    OptArgLenAndConst(IR::Instr* instr, Value** src1Val);
+    void                    OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val);
 
 private:
     void                    TrackIntSpecializedAddSubConstant(IR::Instr *const instr, const AddSubConstantInfo *const addSubConstantInfo, Value *const dstValue, const bool updateSourceBounds);
