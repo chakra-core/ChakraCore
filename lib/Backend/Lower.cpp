@@ -6022,7 +6022,7 @@ Lowerer::GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld)
 
     IR::PropertySymOpnd * propertySymOpnd = opndSrc->AsPropertySymOpnd();
 
-    Assert(!instrLdFld->DoStackArgsOpt(this->m_func));
+    Assert(!instrLdFld->DoStackArgsOpt());
 
     if (propertySymOpnd->IsTypeCheckSeqCandidate())
     {
@@ -9176,7 +9176,7 @@ Lowerer::LowerLdElemI(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool i
         return instrPrev;
     }
 
-    if (!isHelper && instr->DoStackArgsOpt(this->m_func))
+    if (!isHelper && instr->DoStackArgsOpt())
     {
         IR::LabelInstr * labelLdElem = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func);
         // Pass in null for labelFallThru to only generate the LdHeapArgument call
@@ -17673,12 +17673,12 @@ Lowerer::GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef)
     labelFallThru = ldElem->GetOrCreateContinueLabel();
     labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
     // If we know for sure (based on flow graph) we're loading from the arguments object, then ignore the (path-based) profile info.
-    bool isNativeArrayLoad = !ldElem->DoStackArgsOpt(this->m_func) && indirOpnd->GetBaseOpnd()->GetValueType().IsLikelyNativeArray();
+    bool isNativeArrayLoad = !ldElem->DoStackArgsOpt() && indirOpnd->GetBaseOpnd()->GetValueType().IsLikelyNativeArray();
     bool needMissingValueCheck = true;
     bool emittedFastPath = false;
     bool emitBailout = false;
 
-    if (ldElem->DoStackArgsOpt(this->m_func))
+    if (ldElem->DoStackArgsOpt())
     {
         emittedFastPath = GenerateFastArgumentsLdElemI(ldElem, labelFallThru);
         emitBailout = true;
@@ -18969,7 +18969,7 @@ Lowerer::GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef)
 
     IR::LabelInstr *const labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
-    if (ldLen->DoStackArgsOpt(this->m_func))
+    if (ldLen->DoStackArgsOpt())
     {
         GenerateFastArgumentsLdLen(ldLen, ldLen->GetOrCreateContinueLabel());
         ldLen->Remove();
@@ -21673,7 +21673,7 @@ Lowerer::GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFa
     //labelCreateHeapArgs:
     //  ---Bail out to create Heap Arguments object
 
-    Assert(ldElem->DoStackArgsOpt(this->m_func));
+    Assert(ldElem->DoStackArgsOpt());
 
     IR::IndirOpnd *indirOpnd = ldElem->GetSrc1()->AsIndirOpnd();
     bool isInlinee = ldElem->m_func->IsInlinee();
@@ -21804,7 +21804,7 @@ Lowerer::GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelFallT
     // JMP $fallthrough
     //$helper:
 
-    Assert(ldLen->DoStackArgsOpt(this->m_func));
+    Assert(ldLen->DoStackArgsOpt());
 
     if(ldLen->m_func->IsInlinee())
     {
@@ -22005,7 +22005,7 @@ Lowerer::GenerateFastLdFld(IR::Instr * const instrLdFld, IR::JnHelperMethod help
     IR::Opnd * opndSrc = instrLdFld->GetSrc1();
     AssertMsg(opndSrc->IsSymOpnd() && opndSrc->AsSymOpnd()->IsPropertySymOpnd() && opndSrc->AsSymOpnd()->m_sym->IsPropertySym(), "Expected PropertySym as src of LdFld");
 
-    Assert(!instrLdFld->DoStackArgsOpt(this->m_func));
+    Assert(!instrLdFld->DoStackArgsOpt());
 
     IR::PropertySymOpnd * propertySymOpnd = opndSrc->AsPropertySymOpnd();
     PropertySym * propertySym = propertySymOpnd->m_sym->AsPropertySym();

@@ -1798,15 +1798,12 @@ namespace Js
         if (!scriptContext->IsJsBuiltInEnabled())
         {
             builtinFuncs[BuiltinFunction::JavascriptArray_IndexOf] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf, &JavascriptArray::EntryInfo::IndexOf, 1);
+            builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
         }
-
-        /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
 
         builtinFuncs[BuiltinFunction::JavascriptArray_LastIndexOf]    = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::lastIndexOf,     &JavascriptArray::EntryInfo::LastIndexOf,       1);
         /* No inlining                Array_Map            */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::map,             &JavascriptArray::EntryInfo::Map,               1);
-        /* No inlining                Array_Reduce         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduce,          &JavascriptArray::EntryInfo::Reduce,            1);
         /* No inlining                Array_ReduceRight    */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduceRight,     &JavascriptArray::EntryInfo::ReduceRight,       1);
-        /* No inlining                Array_Some           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::some,            &JavascriptArray::EntryInfo::Some,              1);
 
         if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled()) // This is not a typo, Array.prototype.find and .findIndex are part of the ES6 Improved String APIs feature
         {
@@ -1834,6 +1831,9 @@ namespace Js
 
             /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter, &JavascriptArray::EntryInfo::Filter, 1);
             /* No inlining                Array_ForEach        */ library->AddMember(arrayPrototype, PropertyIds::forEach, library->EnsureArrayPrototypeForEachFunction());
+            /* No inlining                Array_Some           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::some, &JavascriptArray::EntryInfo::Some, 1);
+            /* No inlining                Array_Reduce         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduce, &JavascriptArray::EntryInfo::Reduce, 1);
+            /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every, &JavascriptArray::EntryInfo::Every, 1);
         }
 
         if (scriptContext->GetConfig()->IsES6UnscopablesEnabled())
@@ -1853,8 +1853,6 @@ namespace Js
 
         /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
         /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
-
-        builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
