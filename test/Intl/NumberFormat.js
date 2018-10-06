@@ -5,6 +5,8 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+let suppressFormatEqualityCheck = false;
+
 function format() {
     let locale = "en-US", options, n;
     assert.isTrue(arguments.length > 0);
@@ -22,7 +24,7 @@ function format() {
     const localeString = n.toLocaleString(locale, options);
 
     assert.isTrue(format === localeString, `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match toLocaleString`);
-    if (WScript.Platform.INTL_LIBRARY === "icu") {
+    if (WScript.Platform.INTL_LIBRARY === "icu" && !suppressFormatEqualityCheck) {
         assert.isTrue(format === nf.formatToParts(n).map((part) => part.value).join(""), `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match formatToParts`);
     }
 
@@ -141,7 +143,12 @@ const tests = [
             assert.areEqual("$1.50", formatCurrency({ currencyDisplay: "symbol" }, 1.504), "Currency display: symbol");
             assert.areEqual("$1.51", formatCurrency({ currencyDisplay: "symbol" }, 1.505), "Currency display: symbol");
             // ICU has a proper "name" currency display, while WinGlob falls back to "code"
+            if (WScript.Platform.ICU_VERSION === 62) {
+                // In ICU 62, there is a mismatch between "1.00 US dollar" and "1.00 US dollars"
+                suppressFormatEqualityCheck = true;
+            }
             assert.matches(/(?:USD[\x20\u00a0]?1.00|1.00 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1), "Currency display: name");
+            suppressFormatEqualityCheck = false;
             assert.matches(/(?:USD[\x20\u00a0]?1.50|1.50 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1.504), "Currency display: name");
             assert.matches(/(?:USD[\x20\u00a0]?1.51|1.51 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1.505), "Currency display: name");
         }
@@ -217,7 +224,9 @@ const tests = [
                 { type: "group", value: "," },
                 { type: "integer", value: "000" }
             ]);
-            assertParts("en-US", undefined, NaN, [{ type: "nan", value: "NaN" }]);
+            if (WScript.Platform.ICU_VERSION !== 62) {
+                assertParts("en-US", undefined, NaN, [{ type: "nan", value: "NaN" }]);
+            }
             assertParts("en-US", undefined, Infinity, [{ type: "infinity", value: "∞" }]);
             assertParts("en-US", undefined, 1000.3423, [
                 { type: "integer", value: "1" },
