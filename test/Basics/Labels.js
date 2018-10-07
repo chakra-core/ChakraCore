@@ -436,13 +436,13 @@ var tests = [
 
             for(let label in invalidLabels)
             {
-                assert.throws(() => eval(label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'", invalidLabels[label]);
-                assert.throws(() => eval(strictMode + label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'", invalidLabels[label]);
+                assert.throws(() => eval(label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'");
+                assert.throws(() => eval(strictMode + label + testIfLabelIsValid), SyntaxError, "Expected syntax error for using invalid label identifier '" + label + "'");
             }
             
             for(let invalidLabelInStrict in strictModeOnlyInvalidLabels)
             {
-                assert.throws(() => eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'", strictModeOnlyInvalidLabels[invalidLabelInStrict])
+                assert.throws(() => eval(strictMode + invalidLabelInStrict + testIfLabelIsValid), SyntaxError, "Expected syntax error in strict mode for future reserved keyword '" + invalidLabelInStrict + "'")
                 assert.doesNotThrow(() => eval(invalidLabelInStrict + testIfLabelIsValid), "Expected no syntax error for future reserved keyword '" + invalidLabelInStrict + " in non-strict mode")
             }
         }

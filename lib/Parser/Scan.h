@@ -688,6 +688,7 @@ public:
         }
     };
 
+    tokens GetPrevious() { return m_tkPrevious; }
     void Capture(_Out_ RestorePoint* restorePoint);
     void SeekTo(const RestorePoint& restorePoint);
     void SeekToForcingPid(const RestorePoint& restorePoint);

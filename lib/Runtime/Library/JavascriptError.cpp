@@ -594,10 +594,38 @@ namespace Js
 
         hrParser = SCRIPT_E_RECORDED;
         EXCEPINFO ei;
-        se->GetError(&hrParser, &ei);
+        bool shouldFree = false;
+
+        if (se->line > 0)
+        {
+            ei = se->ei;
+        }
+        else
+        {
+            se->GetError(&hrParser, &ei);
+            shouldFree = true;
+        }
 
         JavascriptError* pError = MapParseError(scriptContext, ei.scode);
-        JavascriptError::SetMessageAndThrowError(scriptContext, pError, ei.scode, &ei);
+
+        if (ei.bstrDescription != nullptr)
+        {
+            uint32 len = SysStringLen(ei.bstrDescription) + 1;
+            char16 *allocatedString = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), char16, len);
+            wcscpy_s(allocatedString, len, ei.bstrDescription);
+            JavascriptError::SetErrorMessageProperties(pError, ei.scode, allocatedString, scriptContext);
+        }
+        else
+        {
+            JavascriptError::SetErrorMessage(pError, ei.scode, nullptr, scriptContext);
+        }
+
+        if (shouldFree)
+        {
+            FreeExcepInfo(&ei);
+        }
+
+        JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 
     ErrorTypeEnum JavascriptError::MapParseError(int32 hCode)

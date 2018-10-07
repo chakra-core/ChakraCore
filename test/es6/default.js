@@ -10,15 +10,15 @@ var tests = [
     name: "Default argument parsing",
     body: function () {
       // Incomplete expressions
-      assert.throws(function () { eval("function foo(a =) { return a; }"); },               SyntaxError, "Incomplete default expression throws in a function",                "Syntax error");
-      assert.throws(function () { eval("var x = function(a =) { return a; }"); },           SyntaxError, "Incomplete default expression throws in a function expression",     "Syntax error");
-      assert.throws(function () { eval("(a =) => a"); },                                    SyntaxError, "Incomplete default expression throws in a lambda",                  "Syntax error");
-      assert.throws(function () { eval("var x = { foo(a =) { return a; } }"); },            SyntaxError, "Incomplete default expression throws in an object method",          "Syntax error");
-      assert.throws(function () { eval("var x = class { foo(a =) { return a; } }"); },      SyntaxError, "Incomplete default expression throws in a class method",            "Syntax error");
-      assert.throws(function () { eval("var x = { foo: function (a =) { return a; } }"); }, SyntaxError, "Incomplete default expression throws in an object member function", "Syntax error");
-      assert.throws(function () { eval("function * foo(a =) { return a; }"); },             SyntaxError, "Incomplete default expression throws in a generator function",      "Syntax error");
-      assert.throws(function () { eval("var x = function*(a =) { return a; }"); },          SyntaxError, "Incomplete default expression throws in a generator function",      "Syntax error");
-      assert.throws(function () { eval("var x = class { * foo(a =) { return a; } }"); },    SyntaxError, "Incomplete default expression throws in a class generator method",  "Syntax error");
+      assert.throws(function () { eval("function foo(a =) { return a; }"); },               SyntaxError, "Incomplete default expression throws in a function",                "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = function(a =) { return a; }"); },           SyntaxError, "Incomplete default expression throws in a function expression",     "Unexpected token ')' after '='");
+      assert.throws(function () { eval("(a =) => a"); },                                    SyntaxError, "Incomplete default expression throws in a lambda",                  "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = { foo(a =) { return a; } }"); },            SyntaxError, "Incomplete default expression throws in an object method",          "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = class { foo(a =) { return a; } }"); },      SyntaxError, "Incomplete default expression throws in a class method",            "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = { foo: function (a =) { return a; } }"); }, SyntaxError, "Incomplete default expression throws in an object member function", "Unexpected token ')' after '='");
+      assert.throws(function () { eval("function * foo(a =) { return a; }"); },             SyntaxError, "Incomplete default expression throws in a generator function",      "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = function*(a =) { return a; }"); },          SyntaxError, "Incomplete default expression throws in a generator function",      "Unexpected token ')' after '='");
+      assert.throws(function () { eval("var x = class { * foo(a =) { return a; } }"); },    SyntaxError, "Incomplete default expression throws in a class generator method",  "Unexpected token ')' after '='");
 
       // Duplicate parameters
       assert.throws(function () { eval("function f(a, b, a, c = 10) { }"); },               SyntaxError, "Duplicate parameters are not allowed before the default argument", "Duplicate formal parameter names not allowed in this context");

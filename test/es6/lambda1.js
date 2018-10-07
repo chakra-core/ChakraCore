@@ -170,7 +170,7 @@ var tests = [
         name: "Interesting valid and invalid syntax",
         body: function () {
             assert.doesNotThrow(() => { eval('(x, ) => {};'); }, SyntaxError, "Trailing comma is valid syntax");
-            assert.throws(() => { eval('(var x) => {};'); }, SyntaxError, "var not used in formals declaration", "Syntax error");
+            assert.throws(() => { eval('(var x) => {};'); }, SyntaxError, "var not used in formals declaration", "Unexpected keyword 'var' after '('");
             assert.throws(() => { eval('a.x => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Syntax error");
             assert.throws(() => { eval('(x, y)[7] => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Expected '=>'");
             assert.throws(() => { eval('x() => {};'); }, SyntaxError, "valid expression syntax that is invalid parameter list syntax on lhs of =>", "Syntax error");
@@ -444,19 +444,19 @@ var tests = [
     {
         name: "New line characters are not allowed between arrow parameters and =>",
         body: function () {
-            assert.throws(function () { eval('x \n => d;'); }, SyntaxError, "Arrow with simple expression body and simple parameter", "Syntax error");
-            assert.throws(function () { eval('var a = x \n => d;'); }, SyntaxError, "Arrow with simple expression body and simple parameter assigned to a var", "Syntax error");
-            assert.throws(function () { eval('(x) \n => d;'); }, SyntaxError, "Arrow with simple expression body and single parameter", "Syntax error");
-            assert.throws(function () { eval('var a = (x) \n => d;'); }, SyntaxError, "Arrow with simple expression body and single parameter assigned to a var", "Syntax error");
-            assert.throws(function () { eval('() \n => d;'); }, SyntaxError, "Arrow with simple expression body and empty parameter list", "Syntax error");
-            assert.throws(function () { eval('var a = () \n => d;'); }, SyntaxError, "Arrow with simple expression body and empty parameter list assigned to a var", "Syntax error");
+            assert.throws(function () { eval('x \n => d;'); }, SyntaxError, "Arrow with simple expression body and simple parameter", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = x \n => d;'); }, SyntaxError, "Arrow with simple expression body and simple parameter assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('(x) \n => d;'); }, SyntaxError, "Arrow with simple expression body and single parameter", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = (x) \n => d;'); }, SyntaxError, "Arrow with simple expression body and single parameter assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('() \n => d;'); }, SyntaxError, "Arrow with simple expression body and empty parameter list", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = () \n => d;'); }, SyntaxError, "Arrow with simple expression body and empty parameter list assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
 
-            assert.throws(function () { eval('x \n => { return d };'); }, SyntaxError, "Arrow with block body and simple parameter", "Syntax error");
-            assert.throws(function () { eval('var a = x \n => { return d };'); }, SyntaxError, "Arrow with block body and simple parameter assigned to a var", "Syntax error");
-            assert.throws(function () { eval('(x) \n => { return d };'); }, SyntaxError, "Arrow with block body and single parameter", "Syntax error");
-            assert.throws(function () { eval('var a = (x) \n => { return d };'); }, SyntaxError, "Arrow with block body and single parameter assigned to a var", "Syntax error");
-            assert.throws(function () { eval('() \n => { return d };'); }, SyntaxError, "Arrow with block body and empty parameter list", "Syntax error");
-            assert.throws(function () { eval('var a = () \n => { return d };'); }, SyntaxError, "Arrow with block body and empty parameter list assigned to a var", "Syntax error");
+            assert.throws(function () { eval('x \n => { return d };'); }, SyntaxError, "Arrow with block body and simple parameter", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = x \n => { return d };'); }, SyntaxError, "Arrow with block body and simple parameter assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('(x) \n => { return d };'); }, SyntaxError, "Arrow with block body and single parameter", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = (x) \n => { return d };'); }, SyntaxError, "Arrow with block body and single parameter assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('() \n => { return d };'); }, SyntaxError, "Arrow with block body and empty parameter list", "Lambda parameter list is only valid if followed by '=>' on the same line");
+            assert.throws(function () { eval('var a = () \n => { return d };'); }, SyntaxError, "Arrow with block body and empty parameter list assigned to a var", "Lambda parameter list is only valid if followed by '=>' on the same line");
 
             assert.throws(function () { eval('var a = {}; a.x \n => d;'); }, SyntaxError, "Verify that badly formed arrow functions return correct error even if a newline is before the => token", "Syntax error");
             assert.throws(function () { eval('var a = {}; a\n.x => d;'); }, SyntaxError, "Verify that badly formed arrow functions return correct error even if a newline is before the => token", "Syntax error");
