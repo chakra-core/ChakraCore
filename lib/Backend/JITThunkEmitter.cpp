@@ -114,7 +114,20 @@ JITThunkEmitter<TAlloc>::CreateThunk(uintptr_t entryPoint)
 
     if (CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->threadContext->SetValidCallTargetForCFG((PVOID)thunkAddress);
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsJITServer())
+        {
+            HANDLE fileHandle = nullptr;
+            PVOID baseAddress = nullptr;
+            bool found = this->codeAllocator->GetFileInfo((PVOID)thunkAddress, &fileHandle, &baseAddress);
+            AssertOrFailFast(found);
+            this->threadContext->SetValidCallTargetFile((PVOID)thunkAddress, fileHandle, baseAddress, true);
+        }
+        else
+#endif
+        {
+            this->threadContext->SetValidCallTargetForCFG((PVOID)thunkAddress);
+        }
     }
     this->firstBitToCheck = (thunkIndex + 1 < JITThunkEmitter<TAlloc>::TotalThunkCount) ? thunkIndex + 1 : 0;
     this->freeThunks.Clear(thunkIndex);
@@ -147,7 +160,20 @@ JITThunkEmitter<TAlloc>::FreeThunk(uintptr_t thunkAddress)
 
     if (CONFIG_FLAG(OOPCFGRegistration))
     {
-        this->threadContext->SetValidCallTargetForCFG((PVOID)thunkAddress, false);
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsJITServer())
+        {
+            HANDLE fileHandle = nullptr;
+            PVOID baseAddress = nullptr;
+            bool found = this->codeAllocator->GetFileInfo((PVOID)thunkAddress, &fileHandle, &baseAddress);
+            AssertOrFailFast(found);
+            this->threadContext->SetValidCallTargetFile((PVOID)thunkAddress, fileHandle, baseAddress, false);
+        }
+        else
+#endif
+        {
+            this->threadContext->SetValidCallTargetForCFG((PVOID)thunkAddress, false);
+        }
     }
 
     uintptr_t pageStartAddress = GetThunkPageStart(thunkAddress);

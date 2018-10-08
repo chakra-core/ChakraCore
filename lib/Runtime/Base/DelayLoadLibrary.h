@@ -234,9 +234,11 @@ namespace Js
         typedef FNCSetProcessValidCallTargets* PFNCSetProcessValidCallTargets;
         PFNCSetProcessValidCallTargets m_pfnSetProcessValidCallTargets;
 
+        typedef BOOL(*PFNCSetProcessValidCallTargetsForMappedView)(HANDLE, PVOID, SIZE_T, ULONG, PCFG_CALL_TARGET_INFO, HANDLE, ULONG64);
+        PFNCSetProcessValidCallTargetsForMappedView m_pfnSetProcessValidCallTargetsForMappedView;
     public:
         DelayLoadWinCoreMemory() : DelayLoadLibrary(),
-            m_pfnSetProcessValidCallTargets(nullptr) { }
+            m_pfnSetProcessValidCallTargets(nullptr), m_pfnSetProcessValidCallTargetsForMappedView(nullptr) { }
 
         LPCTSTR GetLibraryName() const { return _u("api-ms-win-core-memory-l1-1-3.dll"); }
 
@@ -247,6 +249,16 @@ namespace Js
             _In_ ULONG NumberOfOffsets,
             _In_reads_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation
             );
+
+        BOOL SetProcessCallTargetsForMappedView(
+            _In_ HANDLE Process,
+            _In_ PVOID ViewBase,
+            _In_ SIZE_T ViewSize,
+            _In_ ULONG NumberOfOffsets,
+            _Inout_updates_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation,
+            _In_ HANDLE Section,
+            _In_ ULONG64 FileOffset
+        );
     };
 #endif
 

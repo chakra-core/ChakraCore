@@ -46,7 +46,7 @@ enum TypeId
     TypeIds_LastJavascriptPrimitiveType = TypeIds_SIMDBool8x16,
 
     TypeIds_HostDispatch = 22,
-    TypeIds_WithScopeObject = 23,
+    TypeIds_UnscopablesWrapperObject = 23,
     TypeIds_UndeclBlockVar = 24,
 
     TypeIds_LastStaticType = TypeIds_UndeclBlockVar,

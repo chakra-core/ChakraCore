@@ -29,6 +29,7 @@ using namespace Js;
     };
 
     const Var JavascriptArray::MissingItem = (Var)FloatMissingItemPattern;
+
 #if defined(TARGET_64)
     const Var JavascriptArray::IntMissingItemVar = (Var)(((uint64)IntMissingItemPattern << 32) | (uint32)IntMissingItemPattern);
     uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
@@ -721,6 +722,7 @@ using namespace Js;
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
         JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
+
         return array ? array->head : nullptr;
         JIT_HELPER_END(Array_Jit_GetArrayHeadSegmentForArrayOrObjectWithArray);
     }
@@ -773,6 +775,7 @@ using namespace Js;
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
         JavascriptArray *const array = Jit_GetArrayForArrayOrObjectWithArray(var);
+
         return array && array->UsesObjectArrayOrFlagsAsFlags() ? array->GetFlags() : DynamicObjectFlags::None;
         JIT_HELPER_END(Array_Jit_GetArrayFlagsForArrayOrObjectWithArray);
     }

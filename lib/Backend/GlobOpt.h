@@ -35,7 +35,7 @@ class GlobOpt;
         Output::Print(__VA_ARGS__); \
         Output::Print(_u("\n")); \
         Output::Flush(); \
-    } 
+    }
 #define GOPT_TRACE_OPND(opnd, ...) \
     if (PHASE_TRACE(Js::GlobOptPhase, this->func)) \
     { \
@@ -363,7 +363,7 @@ public:
 
         return
             killsAllArrays ||
-            (valueType.IsArrayOrObjectWithArray() && 
+            (valueType.IsArrayOrObjectWithArray() &&
              (
               (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
               (killsNativeArrays && !valueType.HasVarElements())
@@ -433,7 +433,7 @@ private:
     SparseArray<Value>       *  byteCodeConstantValueArray;
     // Global bitvectors
     BVSparse<JitArenaAllocator> * byteCodeConstantValueNumbersBv;
-   
+
     // Global bitvectors
     IntConstantToStackSymMap *  intConstantToStackSymMap;
     IntConstantToValueMap*      intConstantToValueMap;
@@ -536,7 +536,7 @@ private:
     void                    OptLoops(Loop *loop);
     void                    TailDupPass();
     bool                    TryTailDup(IR::BranchInstr *tailBranch);
-    
+
     void                    FieldPRE(Loop *loop);
     void                    SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *propertySym, PropertySym *originalPropertySym);
     PRECandidates *         FindBackEdgePRECandidates(BasicBlock *block, JitArenaAllocator *alloc);
@@ -869,7 +869,7 @@ private:
     void                    EndTrackingOfArgObjSymsForInlinee();
     void                    FillBailOutInfo(BasicBlock *block, BailOutInfo *bailOutInfo);
     void                    FillBailOutInfo(BasicBlock *block, _In_ IR::Instr * instr);
-    
+
     static void             MarkNonByteCodeUsed(IR::Instr * instr);
     static void             MarkNonByteCodeUsed(IR::Opnd * opnd);
 
@@ -919,7 +919,7 @@ private:
 
 #if DBG
     bool                    IsPropertySymId(SymID symId) const;
-    
+
     static void             AssertCanCopyPropOrCSEFieldLoad(IR::Instr * instr);
     void                    EmitIntRangeChecks(IR::Instr* instr);
     void                    EmitIntRangeChecks(IR::Instr* instr, IR::Opnd* opnd);
@@ -937,10 +937,10 @@ private:
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
-    void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
-    bool                    HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
     template<class Fn>
     bool                    MapObjectHeaderInlinedTypeSymsUntil(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId, Fn fn);
+    void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
+    bool                    HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
     void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);

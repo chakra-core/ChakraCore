@@ -1263,6 +1263,12 @@
   </test>
   <test>
     <default>
+      <files>boundCheckHoistBug.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>Miscellaneous_MaxInterpret.js</files>
       <baseline>Miscellaneous_MaxInterpret.baseline</baseline>
       <compile-flags>-bgJit- -minInterpretCount:1 -maxInterpretCount:1 -off:simpleJit</compile-flags>
@@ -1571,7 +1577,13 @@
   <test>
     <default>
       <files>pathdepbug.js</files>
-      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:aggressiveinttypespec</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1  -on:CaptureByteCodeRegUse  -off:aggressiveinttypespec</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>lengthsymstorebug.js</files>
+      <compile-flags>-mic:1 -off:simplejit</compile-flags>
     </default>
   </test>
   <test>

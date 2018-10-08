@@ -5,7 +5,7 @@
 #include "RuntimeBasePch.h"
 #include "Library/JavascriptProxy.h"
 #include "Library/HostObjectBase.h"
-#include "Types/WithScopeObject.h"
+#include "Types/UnscopablesWrapperObject.h"
 
 #if ENABLE_CROSSSITE_TRACE
 #define TTD_XSITE_LOG(CTX, MSG, VAR) if((CTX)->ShouldPerformRecordOrReplayAction()) \
@@ -32,6 +32,10 @@ namespace Js
         if (object->GetScriptContext() == requestContext)
         {
             return FALSE;
+        }
+        if (PHASE_TRACE1(Js::Phase::MarshalPhase))
+        {
+            Output::Print(_u("NeedMarshalVar: %p (var sc: %p, request sc: %p)\n"), instance, object->GetScriptContext(), requestContext);
         }
         if (DynamicType::Is(object->GetTypeId()))
         {
@@ -124,12 +128,12 @@ namespace Js
         for (uint16 i = 0; i < length; i++)
         {
             Var value = display->GetItem(i);
-            if (WithScopeObject::Is(value))
+            if (UnscopablesWrapperObject::Is(value))
             {
                 // Here we are marshalling the wrappedObject and then ReWrapping th object in the new context.
-                RecyclableObject* wrappedObject = WithScopeObject::FromVar(value)->GetWrappedObject();
+                RecyclableObject* wrappedObject = UnscopablesWrapperObject::FromVar(value)->GetWrappedObject();
                 ScriptContext* wrappedObjectScriptContext = wrappedObject->GetScriptContext();
-                value = JavascriptOperators::ToWithObject(CrossSite::MarshalVar(scriptContext,
+                value = JavascriptOperators::ToUnscopablesWrapperObject(CrossSite::MarshalVar(scriptContext,
                   wrappedObject, wrappedObjectScriptContext), scriptContext);
             }
             else
@@ -165,8 +169,24 @@ namespace Js
             return value;
         }
         Js::RecyclableObject* object =  RecyclableObject::UnsafeFromVar(value);
+
         if (fRequestWrapper || scriptContext != object->GetScriptContext())
         {
+            if (PHASE_TRACE1(Js::Phase::MarshalPhase))
+            {
+                Output::Print(_u("MarshalVar: %p (var sc: %p, request sc: %p, requestWrapper: %d)\n"), object, object->GetScriptContext(), scriptContext, fRequestWrapper);
+            }
+
+            // Do not allow marshaling if a callable object is being marshalled into a high privileged
+            // script context.
+            if (JavascriptConversion::IsCallable(object))
+            {
+                ScriptContext* objectScriptContext = object->GetScriptContext();
+                if (scriptContext->GetPrivilegeLevel() < objectScriptContext->GetPrivilegeLevel())
+                {
+                    return scriptContext->GetLibrary()->GetUndefined();
+                }
+            }
             return MarshalVarInner(scriptContext, object, fRequestWrapper);
         }
         return value;
@@ -242,17 +262,17 @@ namespace Js
         TypeId typeId = object->GetTypeId();
         AssertMsg(typeId != TypeIds_Enumerator, "enumerator shouldn't be marshalled here");
 
-        // At the moment the mental model for WithScopeObject Marshaling is this:
-        // Are we trying to marshal a WithScopeObject in the Frame Display? - then 1) unwrap in MarshalFrameDisplay,
-        // 2) marshal the wrapped object, 3) Create a new WithScopeObject in the current scriptContext and re-wrap.
-        // We can avoid copying the WithScopeObject because it has no properties and never should.
-        // Thus creating a new WithScopeObject per context in MarshalFrameDisplay should be kosher.
+        // At the moment the mental model for UnscopablesWrapperObject Marshaling is this:
+        // Are we trying to marshal a UnscopablesWrapperObject in the Frame Display? - then 1) unwrap in MarshalFrameDisplay,
+        // 2) marshal the wrapped object, 3) Create a new UnscopablesWrapperObject in the current scriptContext and re-wrap.
+        // We can avoid copying the UnscopablesWrapperObject because it has no properties and never should.
+        // Thus creating a new UnscopablesWrapperObject per context in MarshalFrameDisplay should be kosher.
         // If it is not a FrameDisplay then we should not marshal. We can wrap cross context objects with a
-        // withscopeObject in a different context. When we unwrap for property lookups and the wrapped object
+        // UnscopablesWrapperObject in a different context. When we unwrap for property lookups and the wrapped object
         // is cross context, then we marshal the wrapped object into the current scriptContext, thus avoiding
-        // the need to copy the WithScopeObject itself. Thus We don't have to handle marshaling the WithScopeObject
+        // the need to copy the UnscopablesWrapperObject itself. Thus We don't have to handle marshaling the UnscopablesWrapperObject
         // in non-FrameDisplay cases.
-        AssertMsg(typeId != TypeIds_WithScopeObject, "WithScopeObject shouldn't be marshalled here");
+        AssertMsg(typeId != TypeIds_UnscopablesWrapperObject, "UnscopablesWrapperObject shouldn't be marshalled here");
 
         if (StaticType::Is(typeId))
         {
@@ -452,7 +472,7 @@ namespace Js
         {
             BEGIN_SAFE_REENTRANT_CALL(targetScriptContext->GetThreadContext())
             {
-                 return JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
+                return JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
             }
             END_SAFE_REENTRANT_CALL
         }
@@ -485,7 +505,7 @@ namespace Js
             // The final eval arg is a frame display that needs to be marshaled specially.
             args.Values[count] = CrossSite::MarshalFrameDisplay(targetScriptContext, args.GetFrameDisplay());
         }
-        
+
 
 #if ENABLE_NATIVE_CODEGEN
         CheckCodeGenFunction checkCodeGenFunction = GetCheckCodeGenFunction(entryPoint);
@@ -533,7 +553,7 @@ namespace Js
 
             BEGIN_SAFE_REENTRANT_CALL(targetScriptContext->GetThreadContext())
             {
-            result = JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
+                result = JavascriptFunction::CallFunction<true>(function, entryPoint, args, true /*useLargeArgCount*/);
             }
             END_SAFE_REENTRANT_CALL
             ScriptContext* callerScriptContext = callerHostScriptContext->GetScriptContext();

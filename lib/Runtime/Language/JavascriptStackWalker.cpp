@@ -1387,7 +1387,6 @@ namespace Js
         if (!boxArgsAndDeepCopy)
         {
             args = &currentFrame->argv[firstArg];
-
         }
         else
         {

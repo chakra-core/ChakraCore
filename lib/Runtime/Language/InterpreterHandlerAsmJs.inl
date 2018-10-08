@@ -15,7 +15,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2    ( NOPASMJS         , Label        , Empty                                              )
   DEF2    ( BR_ASM           , AsmBr        , OP_Br                                              )
 
-  DEF2_WMS( FALLTHROUGH_ASM  , LdSlotArr    ,  /* Common case with LdSlot */                     )
+  DEF2_WMS( FALLTHROUGH_ASM  , LdSlotArr    , /* Common case with LdSlot */                      )
   DEF3_WMS( CUSTOM_ASMJS     , LdSlot       , OP_LdAsmJsSlot               , ElementSlot         )
 
 // Function Calls

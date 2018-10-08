@@ -49,7 +49,7 @@ IRBuilder::AddStatementBoundary(uint statementIndex, uint offset)
                     }
                 }
             }
-            else if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryLineFlag)) 
+            else if (Js::Configuration::Global.flags.IsEnabled(Js::BailOutAtEveryLineFlag))
             {
                 this->InjectBailOut(offset);
             }
@@ -1560,7 +1560,7 @@ IRBuilder::BuildConstantLoads()
             instr = IR::Instr::NewConstantLoad(dstOpnd, varConst, valueType, m_func,
                 m_func->IsOOPJIT() ? m_func->GetJITFunctionBody()->GetConstAsT<Js::RecyclableObject>(reg) : nullptr);
             break;
-        }        
+        }
         this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
     }
 
@@ -2202,7 +2202,7 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     {
         InsertBailOnNoProfile(instr);
     }
-    
+
     switch (newOpcode)
     {
     case Js::OpCode::LdHandlerScope:
@@ -2528,7 +2528,7 @@ IRBuilder::BuildReg5(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     src3Opnd = this->BuildSrcOpnd(src3RegSlot);
     src4Opnd = this->BuildSrcOpnd(src4RegSlot);
     dstOpnd = this->BuildDstOpnd(dstRegSlot);
-    
+
     instr = IR::Instr::New(Js::OpCode::ArgOut_A, IR::RegOpnd::New(TyVar, m_func), src4Opnd, m_func);
     this->AddInstr(instr, offset);
 
@@ -3717,7 +3717,7 @@ NewScFuncCommon:
                 if (stackFuncPtrSym)
                 {
                     IR::RegOpnd * dataOpnd = IR::RegOpnd::New(TyVar, m_func);
-                    instr = IR::Instr::New(Js::OpCode::NewScFuncData, dataOpnd, environmentOpnd, 
+                    instr = IR::Instr::New(Js::OpCode::NewScFuncData, dataOpnd, environmentOpnd,
                                            IR::RegOpnd::New(stackFuncPtrSym, TyVar, m_func), m_func);
                     this->AddInstr(instr, offset);
                     instr = IR::Instr::New(newOpcode, regOpnd, functionBodySlotOpnd, dataOpnd, m_func);
@@ -3831,7 +3831,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
 
             fieldSym = PropertySym::New(regOpnd->m_sym, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
-            
+
             if (newOpcode == Js::OpCode::LdModuleSlot)
             {
                 newOpcode = Js::OpCode::LdSlot;
@@ -3954,7 +3954,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                     m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
                 }
             }
-            newOpcode = 
+            newOpcode =
                 newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot ?
                 Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
             instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
@@ -4071,7 +4071,7 @@ IRBuilder::BuildElementSlotI3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot f
             IR::Opnd * environmentOpnd = this->BuildSrcOpnd(fieldRegSlot);
             IR::Opnd * homeObjOpnd = this->BuildSrcOpnd(homeObj);
             regOpnd = this->BuildDstOpnd(regSlot);
-            
+
             instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), homeObjOpnd, m_func);
             this->AddInstr(instr, offset);
 
@@ -4082,7 +4082,7 @@ IRBuilder::BuildElementSlotI3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot f
             this->AddInstr(instr, offset);
 
             instr = IR::Instr::New(newOpcode, regOpnd, instr->GetDst(), m_func);
-            
+
             if (regOpnd->m_sym->m_isSingleDef)
             {
                 regOpnd->m_sym->m_isSafeThis = true;
@@ -4654,7 +4654,7 @@ IRBuilder::BuildProfiledElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSl
     {
         isProfiled = false;
     }
-    
+
     bool wasNotProfiled = false;
     IR::Instr *instr = nullptr;
 

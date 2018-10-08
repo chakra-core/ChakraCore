@@ -433,6 +433,49 @@ namespace Js
         return SetProcessValidCallTargets(hProcess, VirtualAddress, RegionSize, NumberOfOffsets, OffsetInformation);
 #endif
     }
+
+    // Note. __declspec(guard(nocf)) causes the CFG check to be removed
+    // inside this function, and is needed only for test binaries (chk and FRETEST)
+#if defined(DELAYLOAD_SET_CFG_TARGET)
+    DECLSPEC_GUARDNOCF
+#endif
+        BOOL DelayLoadWinCoreMemory::SetProcessCallTargetsForMappedView(
+            _In_ HANDLE Process,
+            _In_ PVOID ViewBase,
+            _In_ SIZE_T ViewSize,
+            _In_ ULONG NumberOfOffsets,
+            _Inout_updates_(NumberOfOffsets) PCFG_CALL_TARGET_INFO OffsetInformation,
+            _In_ HANDLE Section,
+            _In_ ULONG64 FileOffset)
+    {
+#if defined(ENABLE_JIT_CLAMP)
+        // Ensure that dynamic code generation is allowed for this thread as
+        // this is required for the call to SetProcessValidCallTargets to
+        // succeed.
+        AutoEnableDynamicCodeGen enableCodeGen;
+#endif
+
+#if defined(DELAYLOAD_SET_CFG_TARGET)
+        if (m_hModule)
+        {
+            if (m_pfnSetProcessValidCallTargetsForMappedView == nullptr)
+            {
+                m_pfnSetProcessValidCallTargetsForMappedView = (PFNCSetProcessValidCallTargetsForMappedView)GetFunction("SetProcessValidCallTargetsForMappedView");
+                if (m_pfnSetProcessValidCallTargetsForMappedView == nullptr)
+                {
+                    return FALSE;
+                }
+            }
+
+            Assert(m_pfnSetProcessValidCallTargetsForMappedView != nullptr);
+            return m_pfnSetProcessValidCallTargetsForMappedView(Process, ViewBase, ViewSize, NumberOfOffsets, OffsetInformation, Section, FileOffset);
+        }
+
+        return FALSE;
+#else
+        return SetProcessValidCallTargetsForMappedView(Process, ViewBase, ViewSize, NumberOfOffsets, OffsetInformation, Section, FileOffset);
+#endif
+    }
 #endif
 
     BOOL DelayLoadWinCoreProcessThreads::GetMitigationPolicyForProcess(

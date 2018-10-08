@@ -397,33 +397,46 @@ namespace utf8
 
     // Encode a UTF-8 sequence into a UTF-8 sequence (which is just a memcpy). This is included for convenience in templates
     // when the character encoding is a template parameter.
-    __range(cch, cch)
-    inline size_t EncodeInto(__out_ecount(cch) utf8char_t *buffer, const utf8char_t *source, size_t cch)
+    __range(cbSource, cbDest)
+    __precond(cbDest == cbSource)
+    inline size_t EncodeInto(
+        _Out_writes_(cbDest) utf8char_t *dest,
+        size_t cbDest,
+        _In_reads_(cbSource) const utf8char_t *source,
+        size_t cbSource)
     {
-       memcpy_s(buffer, cch * sizeof(utf8char_t), source, cch * sizeof(utf8char_t));
-       return cch;
+        memcpy_s(dest, cbDest * sizeof(utf8char_t), source, cbSource * sizeof(utf8char_t));
+        return cbDest;
     }
 
-    // Encode a UTF16-LE sequence of cch words into a UTF-8 sequence returning the number of bytes needed.
-    // Since a UTF16 encoding can take up to 3 bytes buffer must refer to a buffer at least 3 times larger
-    // than cch.
-    // Returns the number of bytes copied into the buffer.
-    __range(0, cch * 3)
-    size_t EncodeInto(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
+    enum class Utf8EncodingKind
+    {
+        Cesu8,
+        TrueUtf8
+    };
 
-    // Like EncodeInto but ensures that buffer[return value] == 0.
-    __range(0, cch * 3)
-    size_t EncodeIntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
+    // Encode a UTF16-LE sequence of cchSource words (char16) into a UTF-8 sequence returning the number of bytes needed.
+    // Since a UTF16 encoding can encode to at most 3 bytes (utf8char_t) per char16, cbDest (dest buffer size) can be
+    // at most 3 * cchSource.
+    // Returns the number of bytes copied into the dest buffer.
+    template <Utf8EncodingKind encoding>
+    __range(0, cchSource * 3)
+    size_t EncodeInto(
+        _Out_writes_(cbDest) utf8char_t *dest,
+        __range(0, cchSource * 3) size_t cbDest,
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
 
-    // Like EncodeInto but ensures that buffer[return value] == 0.
-    __range(0, cch * 3)
-    size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
+    // Like EncodeInto but ensures that dest[return value] == 0.
+    template <Utf8EncodingKind encoding>
+    __range(0, cchSource * 3)
+    size_t EncodeIntoAndNullTerminate(
+        _Out_writes_z_(cbDest) utf8char_t *dest,
+        __range(1, cchSource * 3 + 1) size_t cbDest, // must be at least large enough to write null terminator
+        _In_reads_(cchSource) const char16 *source,
+        __range(0, INT_MAX) charcount_t cchSource);
 
-    // Like EncodeInto but ensures that we do not write anywhere other than between buffer and bufferEnd.
-    __range(0, cch * 3)
-    size_t EncodeTrueUtf8IntoBoundsChecked(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch, const void * bufferEnd);
-
-    // Determine the number of bytes that a UTF-8 sequence representing a UTF16-LE sequence of cch words
+    // Determine the number of UTF-8 bytes needed to represent a UTF16-LE sequence of cch * words (char16)
     __range(0, cch * 3)
     size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch);
 

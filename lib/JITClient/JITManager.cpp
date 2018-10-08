@@ -240,17 +240,20 @@ JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* server
 
     HRESULT hr = E_FAIL;
 
-
-    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
+    RPC_BINDING_HANDLE bindingHandle;
+    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &bindingHandle);
     if (FAILED(hr))
     {
         goto FailureCleanup;
     }
 
-    m_jitConnectionId = connectionUuid;
 
-    hr = ConnectProcess();
+    hr = ConnectProcess(bindingHandle);
     HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+
+    // Only store the binding handle after JIT handshake, so other threads do not prematurely think we are ready to JIT
+    m_rpcBindingHandle = bindingHandle;
+    m_jitConnectionId = connectionUuid;
 
     return hr;
 
@@ -290,7 +293,7 @@ JITManager::Shutdown()
 }
 
 HRESULT
-JITManager::ConnectProcess()
+JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
 {
     Assert(IsOOPJITEnabled());
 
@@ -306,7 +309,7 @@ JITManager::ConnectProcess()
     RpcTryExcept
     {
         hr = ClientConnectProcess(
-            m_rpcBindingHandle,
+            rpcBindingHandle,
 #ifdef USE_RPC_HANDLE_MARSHALLING
             processHandle,
 #endif

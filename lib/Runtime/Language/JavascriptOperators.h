@@ -43,10 +43,7 @@ namespace Js
     if (exceptionObject != nullptr) \
     { \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr); \
-        HRESULT hr = (errorObject != nullptr && Js::JavascriptError::Is(errorObject)) \
-                     ? Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr) \
-                     : S_OK; \
-        if (JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr) \
+        if (JavascriptError::ShouldTypeofErrorBeReThrown(errorObject)) \
         { \
             if (scriptContext->IsScriptContextInDebugMode()) \
             { \
@@ -125,7 +122,7 @@ namespace Js
         static bool IsConstructorSuperCall(Arguments args);
         static bool GetAndAssertIsConstructorSuperCall(Arguments args);
         static RecyclableObject* ToObject(Var aRight,ScriptContext* scriptContext);
-        static Var ToWithObject(Var aRight, ScriptContext* scriptContext);
+        static Var ToUnscopablesWrapperObject(Var aRight, ScriptContext* scriptContext);
         static Var OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext);
         static Var ToNumber(Var aRight,ScriptContext* scriptContext);
         static Var ToNumberInPlace(Var aRight,ScriptContext* scriptContext, JavascriptNumber* result);
@@ -452,7 +449,7 @@ namespace Js
 
         static FunctionInfo * GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
         // Detach the type array buffer, if possible, and returns the state of the object which can be used to initialize another object
-        static DetachedStateBase* DetachVarAndGetState(Var var);
+        static DetachedStateBase* DetachVarAndGetState(Var var, bool queueForDelayFree = true);
         static bool IsObjectDetached(Var var);
         // This will return a new object from the state returned by the above operation
         static Var NewVarFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);

@@ -138,7 +138,7 @@ namespace Js
     class IndexPropertyDescriptor;
     class DynamicObject;
     class ArrayObject;
-    class WithScopeObject;
+    class UnscopablesWrapperObject;
     class SpreadArgument;
     class JavascriptString;
     class StringCopyInfo;
@@ -471,6 +471,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(esVersion, feature, m_scriptContext)
 #endif
+
+#include "Library/DelayFreeArrayBufferHelper.h"
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"

@@ -247,7 +247,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             {
                 this->helperCallCheckState = (HelperCallCheckState)(this->helperCallCheckState | HelperCallCheckState_ImplicitCallsBailout);
             }
-            
+
             if ((bailoutKind & IR::BailOutOnArrayAccessHelperCall) != 0 &&
                 instr->m_opcode != Js::OpCode::Memcopy &&
                 instr->m_opcode != Js::OpCode::Memset)
@@ -979,8 +979,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerUnaryHelperMem(instr, IR::HelperOp_ConvObject);
             break;
 
-        case Js::OpCode::NewWithObject:
-            this->LowerUnaryHelperMem(instr, IR::HelperOp_NewWithObject);
+        case Js::OpCode::NewUnscopablesWrapperObject:
+            this->LowerUnaryHelperMem(instr, IR::HelperOp_NewUnscopablesWrapperObject);
             break;
 
         case Js::OpCode::LdCustomSpreadIteratorList:
@@ -6850,7 +6850,7 @@ Lowerer::LowerNewScFuncHomeObj(IR::Instr * newScFuncInstr)
     IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
     newScFuncInstr->SetSrc1(helperOpnd);
     newScFuncInstr->SetSrc2(src1);
-    
+
     return newScFuncInstr;
 }
 
@@ -6875,7 +6875,7 @@ Lowerer::LowerNewScGenFuncHomeObj(IR::Instr * newScFuncInstr)
     IR::Opnd * src1 = newScFuncInstr->UnlinkSrc1();
     newScFuncInstr->SetSrc1(helperOpnd);
     newScFuncInstr->SetSrc2(src1);
-    
+
     return newScFuncInstr;
 }
 
@@ -7817,7 +7817,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(IR::PropertySymOpnd
     if (propertySymOpnd->ShouldUsePolyEquivTypeGuard(this->m_func))
     {
         Js::JitPolyEquivalentTypeGuard *polyGuard = this->m_func->CreatePolyEquivalentTypeGuard(propertySymOpnd->GetObjTypeSpecFldId());
-       
+
         // Copy types from the type set to the guard's value locations
         Js::EquivalentTypeSet* typeSet = propertySymOpnd->GetEquivalentTypeSet();
         for (uint16 ti = 0; ti < typeSet->GetCount(); ti++)
@@ -14764,7 +14764,6 @@ IR::RegOpnd *Lowerer::GenerateArrayTest(
     {
         // Only DynamicObject is allowed (DynamicObject vtable is ensured) because some object types have special handling for
         // index properties - arguments object, string object, external object, etc.
-        // If other object types are also allowed in the future, corresponding changes will have to made to 
         // JavascriptArray::Jit_TryGetArrayForObjectWithArray as well.
         GenerateObjectTypeTest(baseOpnd, insertBeforeInstr, isNotObjectLabel);
         GenerateObjectHeaderInliningTest(baseOpnd, isNotArrayLabel, insertBeforeInstr);
@@ -15888,7 +15887,7 @@ Lowerer::GenerateDynamicLoadPolymorphicInlineCacheSlot(IR::Instr * instrInsert, 
 
 // Test that the operand is a PropertyString, or bail to helper
 void
-Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr *labelHelper, bool usePoison)
+Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert, IR::LabelInstr *labelHelper, bool isStore)
 {
     // Generates:
     //      StringTest(srcReg, $helper)                ; verify index is string type
@@ -15904,7 +15903,9 @@ Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert,
         LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
         Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
 
-    InsertObjectPoison(srcReg, branchInstr, instrInsert, !usePoison);
+    InsertObjectPoison(srcReg, branchInstr, instrInsert, isStore);
+
+    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
 
     InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
 
@@ -15915,7 +15916,7 @@ Lowerer::GeneratePropertyStringTest(IR::RegOpnd *srcReg, IR::Instr *instrInsert,
         LoadVTableValueOpnd(instrInsert, VTableValue::VtableLiteralStringWithPropertyStringPtr),
         Js::OpCode::BrNeq_A, labelHelper, instrInsert);
 
-    InsertObjectPoison(srcReg, branchInstr, instrInsert, !usePoison);
+    InsertObjectPoison(srcReg, branchInstr, instrInsert, isStore);
 
     IR::IndirOpnd * propStrOpnd = IR::IndirOpnd::New(srcReg, Js::LiteralStringWithPropertyStringPtr::GetOffsetOfPropertyString(), TyMachPtr, m_func);
     InsertCompareBranch(propStrOpnd, IR::IntConstOpnd::New(NULL, TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, instrInsert);
@@ -15943,7 +15944,7 @@ Lowerer::GenerateFastElemIStringIndexCommon(
     //      PropertyStringTest(indexOpnd, $helper)                ; verify index is string type
     //      FastElemISymbolOrStringIndexCommon(indexOpnd, baseOpnd, $helper) ; shared code with JavascriptSymbol
 
-    GeneratePropertyStringTest(indexOpnd, elemInstr, labelHelper, !isStore /*usePoison*/);
+    GeneratePropertyStringTest(indexOpnd, elemInstr, labelHelper, isStore);
 
     const uint32 inlineCacheOffset = isStore ? Js::PropertyString::GetOffsetOfStElemInlineCache() : Js::PropertyString::GetOffsetOfLdElemInlineCache();
     const uint32 hitRateOffset = Js::PropertyString::GetOffsetOfHitRate();
@@ -16178,6 +16179,7 @@ Lowerer::GenerateLookUpInIndexCache(
 
     IR::IndirOpnd * hitRateOpnd = IR::IndirOpnd::New(indexOpnd, hitRateOffset, TyInt32, m_func);
     IR::IntConstOpnd * incOpnd = IR::IntConstOpnd::New(1, TyInt32, m_func);
+    // overflow check: not needed here, we don't allocate anything with hitrate
     InsertAdd(false, hitRateOpnd, hitRateOpnd, incOpnd, instrInsert);
 }
 
@@ -16790,6 +16792,11 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     // to the helper in any case where this would execute, it's a functional no-op.
 
                     // indexLessThanSize:
+                    // In speculative cases, we want to avoid a write to an array setting the length to something huge, which
+                    // would then allow subsequent reads to hit arbitrary memory (in the speculative path). This is done with
+                    // a mask generated from the difference between the index and the size. Since we should have already gone
+                    // to the helper in any case where this would execute, it's a functional no-op.
+
                     //     if(!index->IsConstOpnd()) {
                     //       sub  temp, index, [headSegment + offset(size)]
                     //       sar  temp, 31
@@ -17047,76 +17054,77 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     dst = tmpDst;
                 }
 
+                // Use a mask to prevent arbitrary speculative reads
+                // If you think this code looks highly similar to the code later in this function,
+                // you'd be right. Unfortunately, I wasn't able to find a way to reduce duplication
+                // here without significantly complicating the code structure.
+                if (!headSegmentLengthOpnd)
                 {
-                    // Use a mask to prevent arbitrary speculative reads
-                    if (!headSegmentLengthOpnd)
-                    {
-                        headSegmentLengthOpnd =
-                            IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
-                        autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
-                    }
-                    IR::RegOpnd* localMaskOpnd = nullptr;
+                    headSegmentLengthOpnd =
+                        IR::IndirOpnd::New(headSegmentOpnd, Js::SparseArraySegmentBase::GetOffsetOfLength(), TyUint32, m_func);
+                    autoReuseHeadSegmentLengthOpnd.Initialize(headSegmentLengthOpnd, m_func);
+                }
+                IR::RegOpnd* localMaskOpnd = nullptr;
 #if TARGET_64
-                    IR::Opnd* lengthOpnd = nullptr;
-                    AnalysisAssert(headSegmentLengthOpnd != nullptr);
-                    lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
-                    {
-                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
-                        instr->InsertBefore(instrMov);
-                        LowererMD::Legalize(instrMov);
-                    }
+                IR::Opnd* lengthOpnd = nullptr;
+                AnalysisAssert(headSegmentLengthOpnd != nullptr);
+                lengthOpnd = IR::RegOpnd::New(headSegmentLengthOpnd->GetType(), m_func);
+                {
+                    IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, lengthOpnd, headSegmentLengthOpnd, m_func);
+                    instr->InsertBefore(instrMov);
+                    LowererMD::Legalize(instrMov);
+                }
 
-                    if (lengthOpnd->GetSize() != MachPtr)
-                    {
-                        lengthOpnd = lengthOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
-                    }
+                if (lengthOpnd->GetSize() != MachPtr)
+                {
+                    lengthOpnd = lengthOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                }
 
-                    //  MOV r1, [opnd + offset(type)]
-                    IR::RegOpnd* indexValueRegOpnd = IR::RegOpnd::New(indexValueOpnd->GetType(), m_func);
+                //  MOV r1, [opnd + offset(type)]
+                IR::RegOpnd* indexValueRegOpnd = IR::RegOpnd::New(indexValueOpnd->GetType(), m_func);
 
-                    {
-                        IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
-                        instr->InsertBefore(instrMov);
-                        LowererMD::Legalize(instrMov);
-                    }
+                {
+                    IR::Instr * instrMov = IR::Instr::New(Js::OpCode::MOV_TRUNC, indexValueRegOpnd, indexValueOpnd, m_func);
+                    instr->InsertBefore(instrMov);
+                    LowererMD::Legalize(instrMov);
+                }
 
-                    if (indexValueRegOpnd->GetSize() != MachPtr)
-                    {
-                        indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
-                    }
+                if (indexValueRegOpnd->GetSize() != MachPtr)
+                {
+                    indexValueRegOpnd = indexValueRegOpnd->UseWithNewType(TyMachPtr, this->m_func)->AsRegOpnd();
+                }
 
-                    localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-                    InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
-                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
+                localMaskOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+                InsertSub(false, localMaskOpnd, indexValueRegOpnd, lengthOpnd, instr);
+                InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(63, TyInt8, m_func), instr);
 #else
-                    localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
-                    InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, instr);
-                    InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
+                localMaskOpnd = IR::RegOpnd::New(TyInt32, m_func);
+                InsertSub(false, localMaskOpnd, indexValueOpnd, headSegmentLengthOpnd, instr);
+                InsertShift(Js::OpCode::Shr_A, false, localMaskOpnd, localMaskOpnd, IR::IntConstOpnd::New(31, TyInt8, m_func), instr);
 #endif
 
-                    // for pop we always do the masking before the load in cases where we load a value
-                    IR::RegOpnd* loadAddr = IR::RegOpnd::New(TyMachPtr, m_func);
+                // for pop we always do the masking before the load in cases where we load a value
+                IR::RegOpnd* loadAddr = IR::RegOpnd::New(TyMachPtr, m_func);
 
 #if _M_ARM32_OR_ARM64
-                    if (indirOpnd->GetIndexOpnd() != nullptr && indirOpnd->GetScale() > 0)
+                if (indirOpnd->GetIndexOpnd() != nullptr && indirOpnd->GetScale() > 0)
+                {
+                    // We don't support encoding for LEA with scale on ARM/ARM64, so do the scale calculation as a separate instruction
+                    IR::RegOpnd* fullIndexOpnd = IR::RegOpnd::New(indirOpnd->GetIndexOpnd()->GetType(), m_func);
+                    InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), instr);
+                    IR::IndirOpnd* newIndir = IR::IndirOpnd::New(indirOpnd->GetBaseOpnd(), fullIndexOpnd, indirType, m_func);
+                    if (indirOpnd->GetOffset() != 0)
                     {
-                        // We don't support encoding for LEA with scale on ARM/ARM64, so do the scale calculation as a separate instruction
-                        IR::RegOpnd* fullIndexOpnd = IR::RegOpnd::New(indirOpnd->GetIndexOpnd()->GetType(), m_func);
-                        InsertShift(Js::OpCode::Shl_A, false, fullIndexOpnd, indirOpnd->GetIndexOpnd(), IR::IntConstOpnd::New(indirOpnd->GetScale(), TyInt8, m_func), instr);
-                        IR::IndirOpnd* newIndir = IR::IndirOpnd::New(indirOpnd->GetBaseOpnd(), fullIndexOpnd, indirType, m_func);
-                        if (indirOpnd->GetOffset() != 0)
-                        {
-                            newIndir->SetOffset(indirOpnd->GetOffset());
-                        }
-                        indirOpnd = newIndir;
+                        newIndir->SetOffset(indirOpnd->GetOffset());
                     }
-#endif
-                    IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
-
-                    InsertLea(loadAddr, indirOpnd, instr);
-                    InsertAnd(loadAddr, loadAddr, localMaskOpnd, instr);
-                    indirOpnd = IR::IndirOpnd::New(loadAddr, 0, indirType, m_func);
+                    indirOpnd = newIndir;
                 }
+#endif
+                IR::AutoReuseOpnd reuseIndir(indirOpnd, m_func);
+
+                InsertLea(loadAddr, indirOpnd, instr);
+                InsertAnd(loadAddr, loadAddr, localMaskOpnd, instr);
+                indirOpnd = IR::IndirOpnd::New(loadAddr, 0, indirType, m_func);
 
                 //  MOV dst, [head + offset]
                 InsertMove(dst, indirOpnd, instr);
@@ -17183,8 +17191,8 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayLoad))
                     || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayLoad))
                     || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayLoad)))
-                    )
                 )
+            )
             ||
             (isStore &&
                 (baseValueType.IsLikelyTypedArray()
@@ -17192,10 +17200,10 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                     : ((indirType == TyVar && CONFIG_FLAG_RELEASE(PoisonVarArrayStore))
                     || (IRType_IsNativeInt(indirType) && CONFIG_FLAG_RELEASE(PoisonIntArrayStore))
                     || (IRType_IsFloat(indirType) && CONFIG_FLAG_RELEASE(PoisonFloatArrayStore)))
-                    )
                 )
             )
-        ;
+        )
+    ;
 
     // We have two exit paths for this function in the store case when we might grow the head
     // segment, due to tracking for missing elements. This unfortunately means that we need a
@@ -20366,7 +20374,7 @@ void Lowerer::GenerateFastObjectIsIn(IR::Instr * instr)
 
     if (likelyStringIndex)
     {
-        GeneratePropertyStringTest(indexOpnd, instr, helperLabel, true /*usePoison*/);
+        GeneratePropertyStringTest(indexOpnd, instr, helperLabel, false /*isStore*/);
 
         const uint32 inlineCacheOffset = Js::PropertyString::GetOffsetOfLdElemInlineCache();
         const uint32 hitRateOffset = Js::PropertyString::GetOffsetOfHitRate();
@@ -21367,7 +21375,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyMachReg, func);
     const IR::AutoReuseOpnd autoReuseLdLenDstOpnd(ldLenDstOpnd, func);
-    IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd, stackArgs, func);
+    IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd ,stackArgs, func);
     ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); /*LdLen_A works only on stack arguments*/
     callInstr->InsertBefore(ldLen);
     GenerateFastRealStackArgumentsLdLen(ldLen);
@@ -24947,7 +24955,7 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
     }
     else
     {
-        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode 
+        // Even if the function does not have home object in eval cases we still have the LdHomeObj opcode
         InsertBranch(Js::OpCode::Br, labelDone, instr);
     }
 
@@ -28291,7 +28299,7 @@ Lowerer::LowerCheckLowerIntBound(IR::Instr * instr)
     m_lowererMD.ChangeToHelperCall(helperCallInstr, IR::HelperIntRangeCheckFailure);
 
     instr->InsertAfter(continueLabel);
-    
+
     instr->Remove();
 
     return instrPrev;
@@ -28307,7 +28315,7 @@ Lowerer::LowerCheckUpperIntBound(IR::Instr * instr)
 
     IR::LabelInstr * continueLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, false /*isOpHelper*/);
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, instr->m_func, true /*isOpHelper*/);
-    
+
     Assert(instr->GetSrc1()->IsInt32() || instr->GetSrc1()->IsUInt32());
     if (lowerBoundCheckInstr)
     {

@@ -95,7 +95,7 @@ namespace Js
         Assert(propertyId);
         Assert(type);
 
-        for(; index < propertyMap->Count(); ++index )
+        for (; index < propertyMap->Count(); ++index)
         {
             DictionaryPropertyDescriptor<T> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
@@ -165,7 +165,7 @@ namespace Js
         Assert(propertyId);
         Assert(type);
 
-        for(; index < propertyMap->Count(); ++index )
+        for (; index < propertyMap->Count(); ++index)
         {
             DictionaryPropertyDescriptor<BigPropertyIndex> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
@@ -290,7 +290,7 @@ namespace Js
             {
                 return false;
             }
-            
+
             if (entry->mustBeWritable && (!(descriptor->Attributes & PropertyWritable) || descriptor->IsOrMayBecomeFixed()))
             {
                 return false;
@@ -331,7 +331,7 @@ namespace Js
         if (propertyMap->TryGetReference(propertyRecord, &descriptor) && !(descriptor->Attributes & PropertyDeleted))
         {
             BigPropertyIndex dataPropertyIndex = descriptor->GetDataPropertyIndex<allowLetConstGlobal>();
-            if(dataPropertyIndex < Constants::NoSlot)
+            if (dataPropertyIndex < Constants::NoSlot)
             {
                 return (PropertyIndex)dataPropertyIndex;
             }
@@ -434,7 +434,7 @@ namespace Js
                 {
                     // PropertyAttributes is only one byte so it can't carry out data about whether this is an accessor.
                     // Accessors must be cached differently than normal properties, so if we want to cache this we must
-                    // do so here rather than in the caller. However, caching here would require passing originalInstance and 
+                    // do so here rather than in the caller. However, caching here would require passing originalInstance and
                     // requestContext through a wide variety of call paths to this point (like we do for GetProperty), for
                     // very little improvement. For now, just block caching this case.
                     PropertyValueInfo::SetNoCache(info, instance);
@@ -660,13 +660,13 @@ namespace Js
             }
             if (descriptor->Attributes & PropertyConst)
             {
-                return (DescriptorFlags)(Const|Data);
+                return (DescriptorFlags)(Const | Data);
             }
             return Data;
         }
         else if (descriptor->GetSetterPropertyIndex() != NoSlots)
         {
-            *setterValue=((DynamicObject*)instance)->GetSlot(descriptor->GetSetterPropertyIndex());
+            *setterValue = ((DynamicObject*)instance)->GetSlot(descriptor->GetSetterPropertyIndex());
             SetPropertyValueInfoNonFixed(info, instance, descriptor->GetSetterPropertyIndex(), descriptor->Attributes, InlineCacheSetterFlag);
             return Accessor;
         }
@@ -743,7 +743,6 @@ namespace Js
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_UseBeforeDeclaration);
                 }
             }
-
 #if ENABLE_FIXED_FIELDS
             if (!descriptor->IsInitialized)
             {
@@ -765,9 +764,7 @@ namespace Js
                 InvalidateFixedField(instance, propertyId, descriptor);
             }
 #endif
-
             SetSlotUnchecked(instance, dataSlotAllowLetConstGlobal, value);
-
             // If we just added a fixed method, don't populate the inline cache so that we always take the slow path
             // when overwriting this property and correctly invalidate any JIT-ed code that hard-coded this method.
             if (!descriptor->IsOrMayBecomeFixed())
@@ -884,7 +881,7 @@ namespace Js
             return SetItem(instance, propertyRecord->GetNumericValue(), value, flags);
         }
         return this->AddProperty(instance, propertyRecord, value, PropertyDynamicTypeDefaults, info, flags, throwIfNotExtensible, SideEffects_Any);
-    }
+        }
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -1455,7 +1452,7 @@ namespace Js
                 AssertMsg(RootObjectBase::Is(instance), "instance needs to be global object when letconst global is set");
             }
 #endif
-        }
+                }
         if (!isConvertedType)
         {
             // Change of [[Writable]] property requires cache invalidation, hence ChangeType
@@ -1469,7 +1466,7 @@ namespace Js
         }
 
         this->ClearHasOnlyWritableDataProperties();
-        if(GetFlags() & IsPrototypeFlag)
+        if (GetFlags() & IsPrototypeFlag)
         {
             InvalidateStoreFieldCachesForAllProperties(instance->GetScriptContext());
             instance->GetLibrary()->GetTypesWithOnlyWritablePropertyProtoChainCache()->Clear();
@@ -1552,7 +1549,7 @@ namespace Js
     {
         DictionaryPropertyDescriptor<T>* descriptor;
         ScriptContext* scriptContext = instance->GetScriptContext();
-        AssertMsg(nullptr != getter && nullptr != setter, "Getter/Setter must be a valid pointer" );
+        AssertMsg(nullptr != getter && nullptr != setter, "Getter/Setter must be a valid pointer");
 
         Assert(propertyId != Constants::NoProperty);
         PropertyRecord const* propertyRecord = scriptContext->GetPropertyName(propertyId);
@@ -2810,7 +2807,7 @@ namespace Js
     template <typename T>
     void DictionaryTypeHandlerBase<T>::MarkObjectSlots_TTD(TTD::SnapshotExtractor* extractor, DynamicObject* obj) const
     {
-        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
 
@@ -2821,7 +2818,7 @@ namespace Js
 
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
 #if ENABLE_FIXED_FIELDS
-            if((!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid)) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
+            if ((!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid)) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
 #else
             if ((!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid)) | (descriptor.Attributes & PropertyDeleted))
 #endif
@@ -2830,7 +2827,7 @@ namespace Js
             }
 
             T dIndex = descriptor.template GetDataPropertyIndex<false>();
-            if(dIndex != NoSlots)
+            if (dIndex != NoSlots)
             {
                 Js::Var dValue = obj->GetSlot(dIndex);
                 extractor->MarkVisitVar(dValue);
@@ -2838,14 +2835,14 @@ namespace Js
             else
             {
                 T gIndex = descriptor.GetGetterPropertyIndex();
-                if(gIndex != NoSlots)
+                if (gIndex != NoSlots)
                 {
                     Js::Var gValue = obj->GetSlot(gIndex);
                     extractor->MarkVisitVar(gValue);
                 }
 
                 T sIndex = descriptor.GetSetterPropertyIndex();
-                if(sIndex != NoSlots)
+                if (sIndex != NoSlots)
                 {
                     Js::Var sValue = obj->GetSlot(sIndex);
                     extractor->MarkVisitVar(sValue);
@@ -2859,13 +2856,13 @@ namespace Js
     {
         T maxSlot = 0;
 
-        for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        for (auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
 
             T dIndex = descriptor.template GetDataPropertyIndex<false>();
-            if(dIndex != NoSlots)
+            if (dIndex != NoSlots)
             {
                 maxSlot = max(maxSlot, dIndex);
 
@@ -2883,7 +2880,7 @@ namespace Js
 #endif
 
                 T gIndex = descriptor.GetGetterPropertyIndex();
-                if(gIndex != NoSlots)
+                if (gIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, gIndex);
 
@@ -2892,7 +2889,7 @@ namespace Js
                 }
 
                 T sIndex = descriptor.GetSetterPropertyIndex();
-                if(sIndex != NoSlots)
+                if (sIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, sIndex);
 
@@ -2902,7 +2899,7 @@ namespace Js
             }
         }
 
-        if(this->propertyMap->Count() == 0)
+        if (this->propertyMap->Count() == 0)
         {
             return 0;
         }
@@ -2915,12 +2912,12 @@ namespace Js
     template <typename T>
     Js::BigPropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
-        for(Js::BigPropertyIndex index = 0; index < this->propertyMap->Count(); index++)
+        for (Js::BigPropertyIndex index = 0; index < this->propertyMap->Count(); index++)
         {
             Js::PropertyId pid = this->propertyMap->GetKeyAt(index)->GetPropertyId();
             const DictionaryPropertyDescriptor<T>& idescriptor = propertyMap->GetValueAt(index);
 
-            if(pid == pRecord->GetPropertyId() && !(idescriptor.Attributes & PropertyDeleted))
+            if (pid == pRecord->GetPropertyId() && !(idescriptor.Attributes & PropertyDeleted))
             {
                 return index;
             }

@@ -64,12 +64,13 @@ void VTuneChakraProfile::LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::Fu
 
         size_t methodLength = wcslen(methodNameBuffer);
         Assert(methodLength < _MAX_PATH);
-        size_t length = methodLength * 3 + 1;
-        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, length);
+        charcount_t ccMethodLength = static_cast<charcount_t>(methodLength);
+        size_t cbUtf8MethodName = UInt32Math::MulAdd<3, 1>(ccMethodLength);
+        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, cbUtf8MethodName);
         if (utf8MethodName)
         {
             methodInfo.method_id = iJIT_GetNewMethodID();
-            utf8::EncodeIntoAndNullTerminate(utf8MethodName, methodNameBuffer, (charcount_t)methodLength);
+            utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8MethodName, cbUtf8MethodName, methodNameBuffer, ccMethodLength);
             methodInfo.method_name = (char*)utf8MethodName;
             methodInfo.method_load_address = (void*)entryPoint->GetNativeAddress();
             methodInfo.method_size = (uint)entryPoint->GetCodeSize();        // Size in memory - Must be exact
@@ -107,7 +108,7 @@ void VTuneChakraProfile::LogMethodNativeLoadEvent(Js::FunctionBody* body, Js::Fu
                 HeapDeleteArray(urlLength, utf8Url);
             }
 
-            HeapDeleteArray(length, utf8MethodName);
+            HeapDeleteArray(cbUtf8MethodName, utf8MethodName);
         }
     }
 #endif
@@ -125,14 +126,16 @@ void VTuneChakraProfile::LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopEn
         memset(&methodInfo, 0, sizeof(iJIT_Method_Load));
         const char16* methodName = body->GetExternalDisplayName();
         size_t methodLength = wcslen(methodName);
-        methodLength = min(methodLength, (size_t)UINT_MAX); // Just truncate if it is too big
-        size_t length = methodLength * 3 + /* spaces */ 2 + _countof(LoopStr) + /*size of loop number*/ 10 + /*NULL*/ 1;
-        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, length);
+        charcount_t ccMethodLength = static_cast<charcount_t>(methodLength);
+        ccMethodLength = min(ccMethodLength, UINT_MAX); // Just truncate if it is too big
+        constexpr size_t sizeToAdd = /* spaces */ 2 + _countof(LoopStr) + /* size of loop number */ 10 + /*NULL*/ 1;
+        size_t cbUtf8MethodName = UInt32Math::MulAdd<3, sizeToAdd>(ccMethodLength);
+        utf8char_t* utf8MethodName = HeapNewNoThrowArray(utf8char_t, cbUtf8MethodName);
         if(utf8MethodName)
         {
             methodInfo.method_id = iJIT_GetNewMethodID();
-            size_t len = utf8::EncodeInto(utf8MethodName, methodName, (charcount_t)methodLength);
-            sprintf_s((char*)(utf8MethodName + len), length - len," %s %d", LoopStr, loopNumber + 1);
+            size_t len = utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>(utf8MethodName, cbUtf8MethodName, methodName, ccMethodLength);
+            sprintf_s((char*)(utf8MethodName + len), cbUtf8MethodName - len," %s %d", LoopStr, loopNumber + 1);
             methodInfo.method_name = (char*)utf8MethodName;
             methodInfo.method_load_address = (void*)entryPoint->GetNativeAddress();
             methodInfo.method_size = (uint)entryPoint->GetCodeSize();        // Size in memory - Must be exact
@@ -148,7 +151,7 @@ void VTuneChakraProfile::LogLoopBodyLoadEvent(Js::FunctionBody* body, Js::LoopEn
             {
                 HeapDeleteArray(urlLength, utf8Url);
             }
-            HeapDeleteArray(length, utf8MethodName);
+            HeapDeleteArray(cbUtf8MethodName, utf8MethodName);
         }
     }
 #endif
@@ -166,13 +169,14 @@ utf8char_t* VTuneChakraProfile::GetUrl(Js::FunctionBody* body, size_t* urlBuffer
         if (url)
         {
             size_t urlCharLength = wcslen(url);
-            urlCharLength = min(urlCharLength, (size_t)UINT_MAX);       // Just truncate if it is too big
+            charcount_t ccUrlCharLength = static_cast<charcount_t>(urlCharLength);
+            ccUrlCharLength = min(ccUrlCharLength, UINT_MAX);       // Just truncate if it is too big
 
-            *urlBufferLength = urlCharLength * 3 + 1;
+            *urlBufferLength = UInt32Math::MulAdd<3, 1>(ccUrlCharLength);
             utf8Url = HeapNewNoThrowArray(utf8char_t, *urlBufferLength);
             if (utf8Url)
             {
-                utf8::EncodeIntoAndNullTerminate(utf8Url, url, (charcount_t)urlCharLength);
+                utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8Url, *urlBufferLength, url, ccUrlCharLength);
             }
         }
     }

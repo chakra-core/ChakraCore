@@ -17,7 +17,13 @@ namespace utf8
     ///     As long as that function exists, it _must_ be updated alongside any updates here
     ///
     template <typename AllocatorFunction>
-    HRESULT WideStringToNarrow(_In_ AllocatorFunction allocator, _In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
+    HRESULT WideStringToNarrow(
+        _In_ AllocatorFunction allocator,
+        _In_ LPCWSTR sourceString,
+        size_t sourceCount,
+        _Out_ LPSTR* destStringPtr,
+        _Out_ size_t* destCount,
+        size_t* allocateCount = nullptr)
     {
         size_t cchSourceString = sourceCount;
 
@@ -40,12 +46,16 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        size_t cbEncoded = utf8::EncodeTrueUtf8IntoAndNullTerminate(destString, sourceString, (charcount_t) cchSourceString);
+        size_t cbEncoded = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>(destString, cbDestString, sourceString, static_cast<charcount_t>(cchSourceString));
         Assert(cbEncoded <= cbDestString);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = (char*)destString;
         *destCount = cbEncoded;
-        if (allocateCount != nullptr) *allocateCount = cbEncoded;
+        if (allocateCount != nullptr)
+        {
+            *allocateCount = cbEncoded;
+        }
+
         return S_OK;
     }
 
@@ -54,7 +64,12 @@ namespace utf8
     /// The caller is responsible for providing the buffer
     /// The returned string is null terminated.
     ///
-    inline HRESULT WideStringToNarrowNoAlloc(_In_ LPCWSTR sourceString, size_t sourceCount, __out_ecount(destCount) LPSTR destString, size_t destCount, size_t* writtenCount = nullptr)
+    inline HRESULT WideStringToNarrowNoAlloc(
+        _In_ LPCWSTR sourceString,
+        size_t sourceCount,
+        __out_ecount(destCount) LPSTR destString,
+        size_t destCount,
+        size_t* writtenCount = nullptr)
     {
         size_t cchSourceString = sourceCount;
 
@@ -72,11 +87,15 @@ namespace utf8
         }
         else
         {
-            cbEncoded = utf8::EncodeTrueUtf8IntoBoundsChecked((utf8char_t*)destString, sourceString, (charcount_t)cchSourceString, &destString[destCount]);
+            cbEncoded = utf8::EncodeInto<utf8::Utf8EncodingKind::TrueUtf8>((utf8char_t*)destString, destCount, sourceString, static_cast<charcount_t>(cchSourceString));
             Assert(cbEncoded <= destCount);
         }
 
-        if (writtenCount != nullptr) *writtenCount = cbEncoded;
+        if (writtenCount != nullptr)
+        {
+            *writtenCount = cbEncoded;
+        }
+
         return S_OK;
     }
 

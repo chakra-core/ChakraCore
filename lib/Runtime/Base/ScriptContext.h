@@ -127,6 +127,13 @@ enum LoadScriptFlag
     LoadScriptFlag_CreateParserState = 0x200            // create the parser state cache while parsing.
 };
 
+enum class ScriptContextPrivilegeLevel
+{
+    Low,
+    Medium,
+    High
+};
+
 #ifdef INLINE_CACHE_STATS
 // Used to store inline cache stats
 
@@ -501,7 +508,9 @@ namespace Js
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
 #endif
 
-        void SetIsDiagnosticsScriptContext(bool set) { this->isDiagnosticsScriptContext = set; }
+        void SetPrivilegeLevel(ScriptContextPrivilegeLevel level) { this->scriptContextPrivilegeLevel = level; }
+        ScriptContextPrivilegeLevel GetPrivilegeLevel() { return this->scriptContextPrivilegeLevel; }
+        void SetIsDiagnosticsScriptContext(bool);
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
         bool IsScriptContextInNonDebugMode() const;
         bool IsScriptContextInDebugMode() const;
@@ -879,6 +888,9 @@ private:
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
 
+        // Privilege levels are a way of enforcing a relationship hierarchy between two script contexts
+        // A less privileged script context is not allowed to marshal in objects that live in a more privileged context
+        ScriptContextPrivilegeLevel scriptContextPrivilegeLevel;
         size_t sourceSize;
 
         void CleanSourceListInternal(bool calledDuringMark);
