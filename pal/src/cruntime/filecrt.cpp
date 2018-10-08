@@ -547,7 +547,7 @@ CorUnix::InternalFwrite(
 
     nWrittenBytes = fwrite(pvBuffer, nSize, nCount, f);
 
-    // Make sure no error ocurred.
+    // Make sure no error occurred.
     if ( nWrittenBytes < nCount )
     {
         // Set the FILE* error code

@@ -120,7 +120,7 @@ namespace Js
         {
             if (args.HasNewTarget())
             {
-                // target has an overriden new target make a new object from the newTarget
+                // target has an overridden new target make a new object from the newTarget
                 Var newTargetVar = args.GetNewTarget();
                 AssertOrFailFastMsg(JavascriptOperators::IsConstructor(newTargetVar), "newTarget must be a constructor");
                 RecyclableObject* newTarget = UnsafeVarTo<RecyclableObject>(newTargetVar);
@@ -150,7 +150,7 @@ namespace Js
             }
             else
             {
-                // target is a proxy without an overriden new target
+                // target is a proxy without an overridden new target
                 // give nullptr - FunctionCallTrap will make a new object
                 args.Values[0] = newVarInstance;
             }

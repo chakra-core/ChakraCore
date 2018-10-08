@@ -1173,7 +1173,7 @@ DEFINE_ISXLOCALEAVAILABLE(PR, uloc)
                     hr == S_OK && unicodeCollation16Len == unicodeCollationLen && unicodeCollation16Len < MaxCharCount,
                     "Unicode collation char16 conversion was unsuccessful"
                 );
-                // i + 1 to not ovewrite leading null element
+                // i + 1 to not overwrite leading null element
                 ret->SetItem(i + 1, JavascriptString::NewWithBuffer(
                     unicodeCollation16,
                     unicodeCollation16Len,
