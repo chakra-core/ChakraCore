@@ -99,7 +99,7 @@ namespace Js
             return false;
         }
 
-        // Reload the type after EnsureObjecteReady
+        // Reload the type after EnsureObjectReady
         type = object->GetDynamicType();
         if (!type->PrepareForTypeSnapshotEnumeration())
         {
