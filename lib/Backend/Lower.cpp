@@ -6314,8 +6314,7 @@ IR::Instr* Lowerer::GenerateCompleteLdFld(IR::Instr* instr, bool emitFastPath, I
 {
     if(instr->CallsAccessor() && instr->HasBailOutInfo())
     {
-        IR::BailOutKind kindMinusBits = instr->GetBailOutKind() & ~IR::BailOutKindBits;
-        Assert(kindMinusBits != IR::BailOutOnImplicitCalls && kindMinusBits != IR::BailOutOnImplicitCallsPreOp);
+        Assert(!BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()));
     }
 
     IR::Instr* prevInstr = instr->m_prev;
@@ -13693,7 +13692,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     {
         Assert(bailOutInstr != instr);
 
-        // jump to the cloned bail out label
+        // Jump to the cloned bail out label
         IR::LabelInstr * bailOutLabelInstr = bailOutInstr->AsLabelInstr();
         IR::BranchInstr * bailOutBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, bailOutLabelInstr, this->m_func);
         instr->InsertBefore(bailOutBranch);
@@ -13792,10 +13791,10 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         return collectRuntimeStatsLabel ? collectRuntimeStatsLabel : bailOutLabel;
     }
 
-    // The bailout hasn't be generated yet.
+    // The bailout hasn't been generated yet.
     Assert(!bailOutInstr->IsLabelInstr());
 
-    // capture the condition for this bailout
+    //Ccapture the condition for this bailout
     if (bailOutLabel == nullptr)
     {
         // Create a label and place it in the bailout info so that shared bailout point can jump to this one
@@ -13858,7 +13857,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             this->m_lowererMD.EmitInt4Instr(subInstr);
             // We should really do a DEC/NEG for a full 2's complement flip from 0/1 to 1/0,
             // but DEC is sufficient to flip from 0/1 to -1/0, which is false/true to true/false...
-            //instr->InsertBefore(IR::Instr::New(Js::OpCode::Neg_I4, condOpnd, condOpnd, instr->m_func));
+            // instr->InsertBefore(IR::Instr::New(Js::OpCode::Neg_I4, condOpnd, condOpnd, instr->m_func));
 
             invertTarget = invertTarget ? false : true;
         }
@@ -13930,7 +13929,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     if (instr->GetSrc2() != nullptr)
     {
         // Ideally we should never be in this situation but incase we reached a
-        // condition where we didn't freed src2. Free it here.
+        // condition where we didn't free src2, free it here.
         instr->FreeSrc2();
     }
 

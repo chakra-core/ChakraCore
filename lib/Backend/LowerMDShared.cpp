@@ -667,7 +667,7 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+        const IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
         if (bailOutKind == IR::BailOutOnNotPrimitive ||
             bailOutKind == IR::BailOutOnPowIntIntOverflow)
         {
@@ -680,9 +680,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
                                         : Js::OpCode::BailOnPowIntIntOverflow;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
-        else
+        else if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
         {
             bailOutInstr = this->m_lowerer->SplitBailOnImplicitCall(callInstr);
+        }
+        else
+        {
+            AssertMsg(false, "Unexpected BailOutKind, are we adding new BailOutKind on instructions?");
         }
     }
 
@@ -701,24 +705,21 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
 
     if (bailOutInstr != callInstr)
     {
+        const Js::OpCode opcode = bailOutInstr->m_opcode;
         // The bailout needs to be lowered after we lower the helper call because the helper argument
         // has already been loaded.  We need to drain them on AMD64 before starting another helper call
-        if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
-        {
-            this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
-        }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive ||
-            bailOutInstr->m_opcode == Js::OpCode::BailOnPowIntIntOverflow)
+        if (opcode == Js::OpCode::BailOnNotPrimitive ||
+            opcode == Js::OpCode::BailOnPowIntIntOverflow)
         {
             this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOut)
+        else if (opcode == Js::OpCode::BailOnNotEqual)
         {
-            this->m_lowerer->GenerateBailOut(bailOutInstr, nullptr, labelBailOut);
+            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
         }
         else
         {
-            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
+            AssertMsg(false, "Unexpected OpCode for BailOutInstruction");
         }
     }
 
@@ -8663,6 +8664,7 @@ LowererMD::InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1,
 
     return instr;
 }
+
 IR::BranchInstr*
 LowererMD::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
 {
