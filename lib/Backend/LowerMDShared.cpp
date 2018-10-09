@@ -715,6 +715,7 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
         }
         else if (opcode == Js::OpCode::BailOnNotEqual)
         {
+            // This opcode could either result from SplitBailOnImplicitCall above or just a regular BailOnNotEqual
             this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
         }
         else
