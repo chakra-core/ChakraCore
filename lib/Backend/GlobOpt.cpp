@@ -5104,6 +5104,18 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::IsInst:
     case Js::OpCode::LdTrue:
     case Js::OpCode::LdFalse:
+    case Js::OpCode::CmEq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmSrNeq_A:
+    case Js::OpCode::CmLe_A:
+    case Js::OpCode::CmUnLe_A:
+    case Js::OpCode::CmLt_A:
+    case Js::OpCode::CmUnLt_A:
+    case Js::OpCode::CmGe_A:
+    case Js::OpCode::CmUnGe_A:
+    case Js::OpCode::CmGt_A:
+    case Js::OpCode::CmUnGt_A:
         return this->NewGenericValue(ValueType::Boolean, dst);
 
     case Js::OpCode::LdUndef:
