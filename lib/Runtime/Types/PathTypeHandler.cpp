@@ -1476,6 +1476,9 @@ namespace Js
                 if (!(attributes[descriptor->GetDataPropertyIndex<false>()] & ObjectSlotAttr_Accessor))
                 {
                     // Setter without a getter; this is a stale entry, so ignore it
+                    // Just consume the slot so no descriptor refers to it.
+                    Assert(i == newTypeHandler->nextPropertyIndex);
+                    ::Math::PostInc(newTypeHandler->nextPropertyIndex);
                     continue;
                 }
                 Assert(oldTypeHandler->GetSetterSlotIndex(descriptor->GetDataPropertyIndex<false>()) == newTypeHandler->nextPropertyIndex);

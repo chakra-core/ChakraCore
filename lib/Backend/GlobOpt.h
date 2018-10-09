@@ -1029,7 +1029,6 @@ private:
     void                    FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc);
     void                    PreloadPRECandidates(Loop *loop);
     BOOL                    PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate);
-    IR::Instr *             InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
     IR::Instr *             InsertPropertySymPreloadInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
     void                    InsertInstrInLandingPad(IR::Instr * instr, Loop * loop);
     bool                    InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym ** objPtrCopyPropSym);
