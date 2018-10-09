@@ -13794,7 +13794,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     // The bailout hasn't been generated yet.
     Assert(!bailOutInstr->IsLabelInstr());
 
-    //Ccapture the condition for this bailout
+    // Capture the condition for this bailout
     if (bailOutLabel == nullptr)
     {
         // Create a label and place it in the bailout info so that shared bailout point can jump to this one
