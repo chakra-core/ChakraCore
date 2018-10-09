@@ -150,7 +150,7 @@ namespace Js
             else
             {
                 RtlVirtualUnwind(UNW_FLAG_NHANDLER, ImageBase, Context.Rip, RuntimeFunction,
-                    &Context, &HandlerData, &EstablisherFrame, &NvContext);
+                    &Context, &HandlerData, &EstablisherFrame, NULL);
             }
 
             if (!Context.Rip)
