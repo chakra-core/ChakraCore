@@ -16,6 +16,7 @@
     <default>
       <files>array_qsortr.js</files>
       <tags>exclude_windows</tags>
+      <compile-flags>-JsBuiltIn-</compile-flags>
     </default>
   </test>
   <test>
@@ -302,33 +303,13 @@
   <test>
     <default>
       <files>array_sort.js</files>
-      <baseline>array_sort.baseline</baseline>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>array_includes.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>array_sort2.js</files>
-      <baseline>array_sort2.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>array_sort3.js</files>
-      <baseline>array_sort3.baseline</baseline>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>array_sort3.js</files>
-      <baseline>array_sort3.baseline</baseline>
-      <compile-flags>-arrayValidate</compile-flags>
-      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
@@ -790,12 +771,14 @@
     <default>
       <files>bug_gh5667.js</files>
       <tags>exclude_windows</tags>
+      <compile-flags>-JsBuiltIn-</compile-flags>
     </default>
   </test>
+  <!-- TODO improve performance of sort for no-jit builds then re-enable this case for them-->
   <test>
     <default>
-      <files>test_qsortr_random.js</files>
-      <tags>exclude_windows</tags>
+      <files>array_sort_random.js</files>
+      <tags>exclude_disable_jit,exclude_lite</tags>
     </default>
   </test>
 </regress-exe>
