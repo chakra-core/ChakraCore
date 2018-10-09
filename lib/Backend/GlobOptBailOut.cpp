@@ -583,6 +583,8 @@ GlobOpt::TrackCalls(IR::Instr * instr)
             instr->m_func->m_hasInlineArgsOpt = true;
             InlineeFrameInfo* frameInfo = InlineeFrameInfo::New(func->m_alloc);
             instr->m_func->frameInfo = frameInfo;
+            frameInfo->functionSymStartValue = instr->GetSrc1()->GetSym() ?
+                CurrentBlockData()->FindValue(instr->GetSrc1()->GetSym()) : nullptr;
             frameInfo->floatSyms = CurrentBlockData()->liveFloat64Syms->CopyNew(this->alloc);
             frameInfo->intSyms = CurrentBlockData()->liveInt32Syms->MinusNew(CurrentBlockData()->liveLossyInt32Syms, this->alloc);
             frameInfo->varSyms = CurrentBlockData()->liveVarSyms->CopyNew(this->alloc);
@@ -762,6 +764,15 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             }
             else
             {
+                // If the value of the functionObject symbol has changed between the inlineeStart and the inlineeEnd,
+                // we don't record the inlinee frame info (see OS#18318884).
+                Assert(frameInfo->functionSymStartValue != nullptr);
+                if (!frameInfo->functionSymStartValue->IsEqualTo(CurrentBlockData()->FindValue(functionObject->m_sym)))
+                {
+                    argInstr->m_func->DisableCanDoInlineArgOpt();
+                    return true;
+                }
+
                 frameInfo->function = InlineFrameInfoValue(functionObject->m_sym);
             }
         }
