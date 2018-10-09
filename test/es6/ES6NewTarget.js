@@ -35,10 +35,10 @@ var tests = [
         name: "Test new.target parsing path with badly-formed meta-property references",
         body: function() {
             assert.throws(function() { return new['target']; }, TypeError, "Meta-property new.target is not a real property lookup", "Object doesn't support this action");
-            assert.throws(function() { return eval('new.'); }, SyntaxError, "Something like 'new.' should fall out of the meta-property parser path", "Syntax error");
-            assert.throws(function() { return eval('new.target2'); }, SyntaxError, "No other keywords should produce meta-properties", "Syntax error");
-            assert.throws(function() { return eval('new.something'); }, SyntaxError, "No other keywords should produce meta-properties", "Syntax error");
-            assert.throws(function() { return eval('new.eval'); }, SyntaxError, "No other keywords should produce meta-properties", "Syntax error");
+            assert.throws(function() { return eval('new.'); }, SyntaxError, "Something like 'new.' should fall out of the meta-property parser path", "'new.' is only valid if followed by 'target'");
+            assert.throws(function() { return eval('new.target2'); }, SyntaxError, "No other keywords should produce meta-properties", "'new.' is only valid if followed by 'target'");
+            assert.throws(function() { return eval('new.something'); }, SyntaxError, "No other keywords should produce meta-properties", "'new.' is only valid if followed by 'target'");
+            assert.throws(function() { return eval('new.eval'); }, SyntaxError, "No other keywords should produce meta-properties", "'new.' is only valid if followed by 'target'");
         }
     },
     {

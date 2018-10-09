@@ -251,7 +251,7 @@ void CompileScriptException::CopyInto(CompileScriptException* pse)
     }
 }
 
-HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, ParseNode * pnodeBase)
+HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, ParseNode * pnodeBase, LPCWSTR stringOne, LPCWSTR stringTwo)
 {
     // fill in the ScriptException structure
     Free();
@@ -266,6 +266,13 @@ HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, Pars
         _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, _u("error %d"), ei.scode);
         if (nullptr == (ei.bstrDescription = SysAllocString(szT)))
             ei.scode = E_OUTOFMEMORY;
+    }
+    else if (wcslen(stringOne) > 0)
+    {
+        OLECHAR szT[128];
+        _snwprintf_s(szT, ARRAYSIZE(szT), ARRAYSIZE(szT)-1, ei.bstrDescription, stringOne, stringTwo);
+        SysFreeString(ei.bstrDescription);
+        ei.bstrDescription = SysAllocString(szT);
     }
 
     ei.bstrSource = BstrGetResourceString(IDS_COMPILATION_ERROR_SOURCE);
