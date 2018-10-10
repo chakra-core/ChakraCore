@@ -719,7 +719,7 @@ typedef unsigned short uint16_t;
     /// <summary>
     ///     A structure containing information about interceptors.
     /// </summary>
-    typedef struct JsSetterGetterInterceptor {
+    typedef struct JsGetterSetterInterceptor {
         JsValueRef getTrap;
         JsValueRef setTrap;
         JsValueRef deletePropertyTrap;
@@ -729,12 +729,12 @@ typedef unsigned short uint16_t;
         JsValueRef getOwnPropertyDescriptorTrap;
         JsValueRef definePropertyTrap;
 
-        explicit JsSetterGetterInterceptor(JsSetterGetterInterceptor * setterGetterInterceptor);
+        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 
-        JsSetterGetterInterceptor();
+        JsGetterSetterInterceptor();
 
         bool AreInterceptorsRequired();
-    } JsSetterGetterInterceptor;
+    } JsGetterSetterInterceptor;
 
     /// <summary>
     ///     A finalizer callback.

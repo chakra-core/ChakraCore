@@ -294,22 +294,22 @@ namespace JsRTApiTest
         REQUIRE(hasExternalData);
 
         JsValueRef object1 = JS_INVALID_REFERENCE;
-        JsSetterGetterInterceptor * interceptor1 = nullptr;
+        JsGetterSetterInterceptor * interceptor1 = nullptr;
         REQUIRE(JsCreateCustomExternalObject((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &interceptor1, &object1) == JsNoError);
 
 
         JsValueRef object2 = JS_INVALID_REFERENCE;
-        JsSetterGetterInterceptor * interceptor2 = nullptr;
+        JsGetterSetterInterceptor * interceptor2 = nullptr;
         JsValueRef prototype1 = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateCustomExternalObjectWithPrototype((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &interceptor2, prototype1, &object2) == JsNoError);
 
         JsValueRef object3 = JS_INVALID_REFERENCE;
-        JsSetterGetterInterceptor * interceptor3 = nullptr;
+        JsGetterSetterInterceptor * interceptor3 = nullptr;
         JsValueRef prototype2 = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateTracedCustomExternalObjectWithPrototype((void *)0xdeadbeef, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor3, prototype2, &object3) == JsNoError);
 
         JsValueRef object4 = JS_INVALID_REFERENCE;
-        JsSetterGetterInterceptor * interceptor4 = nullptr;
+        JsGetterSetterInterceptor * interceptor4 = nullptr;
         JsValueRef prototype4 = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateTracedCustomExternalObjectWithPrototypeAndSlots((void *)0xdeadbeef, 92, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor4, prototype4, &object4) == JsNoError);
     }

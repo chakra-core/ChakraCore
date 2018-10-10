@@ -1361,7 +1361,7 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
     _In_opt_ size_t inlineSlotSize,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
@@ -1381,10 +1381,10 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
             return JsErrorInvalidArgument;
         }
 
-        Js::JsSetterGetterInterceptor * interceptor = nullptr;
+        Js::JsGetterSetterInterceptor * interceptor = nullptr;
         *object = Js::CustomExternalWrapperObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, &interceptor, prototypeObject, scriptContext);
         Assert(interceptor);
-        *setterGetterInterceptor = reinterpret_cast<JsSetterGetterInterceptor*>(interceptor);
+        *getterSetterInterceptor = reinterpret_cast<JsGetterSetterInterceptor*>(interceptor);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
@@ -1396,28 +1396,28 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototype(
     _In_opt_ void *data,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
-    return JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(data, 0, traceCallback, finalizeCallback, setterGetterInterceptor, prototype, object);
+    return JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(data, 0, traceCallback, finalizeCallback, getterSetterInterceptor, prototype, object);
 }
 
 CHAKRA_API JsCreateCustomExternalObjectWithPrototype(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
-    return JsCreateTracedCustomExternalObjectWithPrototype(data, nullptr, finalizeCallback, setterGetterInterceptor, prototype, object);
+    return JsCreateTracedCustomExternalObjectWithPrototype(data, nullptr, finalizeCallback, getterSetterInterceptor, prototype, object);
 }
 
 CHAKRA_API JsCreateCustomExternalObject(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
     _Out_ JsValueRef * object)
 {
-    return JsCreateCustomExternalObjectWithPrototype(data, finalizeCallback, setterGetterInterceptor, JS_INVALID_REFERENCE, object);
+    return JsCreateCustomExternalObjectWithPrototype(data, finalizeCallback, getterSetterInterceptor, JS_INVALID_REFERENCE, object);
 }
 
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
