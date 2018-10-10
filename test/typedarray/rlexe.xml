@@ -423,4 +423,9 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <files>bug18321215.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>definitetypedarray.js</files>
+    </default>
+  </test>
 </regress-exe>
