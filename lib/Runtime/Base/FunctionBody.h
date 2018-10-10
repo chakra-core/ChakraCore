@@ -1088,8 +1088,10 @@ namespace Js
             {
                 func(this->deferredPrototypeType);
             }
-            // NOTE: We deliberately do not map the undeferredFunctionType here, since it's in the list
-            // of registered function object types we processed above.
+            if (this->undeferredFunctionType)
+            {
+                func(this->undeferredFunctionType);
+            }
         }
 
         static uint GetOffsetOfDeferredPrototypeType() { return static_cast<uint>(offsetof(Js::FunctionProxy, deferredPrototypeType)); }

@@ -4953,13 +4953,18 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 }
                 else if (instanceType == TypeIds_NativeIntArray)
                 {
-                    // Only accept tagged int. Also covers case for MissingItem
+                    // Only accept tagged int.
                     if (!TaggedInt::Is(value))
                     {
                         return false;
                     }
                     int32 intValue = 0;
                     if (!MemsetConversion<int32, JavascriptConversion::ToInt32>(value, scriptContext, &intValue))
+                    {
+                        return false;
+                    }
+                     // Special case for missing item
+                    if (SparseArraySegment<int32>::IsMissingItem(&intValue))
                     {
                         return false;
                     }

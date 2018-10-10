@@ -2119,7 +2119,7 @@ namespace Js
     {
         FunctionTypeWeakRefList* typeList = EnsureFunctionObjectTypeList();
 
-        Assert(functionType != deferredPrototypeType);
+        Assert(functionType != deferredPrototypeType && functionType != undeferredFunctionType);
         Recycler * recycler = this->GetScriptContext()->GetRecycler();
         FunctionTypeWeakRef* weakRef = recycler->CreateWeakReferenceHandle(functionType);
         typeList->SetAtFirstFreeSpot(weakRef);
