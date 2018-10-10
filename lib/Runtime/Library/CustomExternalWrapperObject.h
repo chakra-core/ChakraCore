@@ -73,7 +73,7 @@ namespace Js
         static BOOL Is(_In_ RecyclableObject* obj);
         static CustomExternalWrapperObject * FromVar(Var value);
         static CustomExternalWrapperObject * UnsafeFromVar(Var value);
-        static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, void ** setterGetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
+        static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsSetterGetterInterceptor ** setterGetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
         static CustomExternalWrapperObject * Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);

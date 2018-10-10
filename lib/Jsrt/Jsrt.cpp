@@ -1361,7 +1361,7 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
     _In_opt_ size_t inlineSlotSize,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ void ** setterGetterInterceptor,
+    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
@@ -1381,10 +1381,10 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
             return JsErrorInvalidArgument;
         }
 
-        void * interceptor = nullptr;
+        Js::JsSetterGetterInterceptor * interceptor = nullptr;
         *object = Js::CustomExternalWrapperObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, &interceptor, prototypeObject, scriptContext);
         Assert(interceptor);
-        *setterGetterInterceptor = interceptor;
+        *setterGetterInterceptor = reinterpret_cast<JsSetterGetterInterceptor*>(interceptor);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
@@ -1396,7 +1396,7 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototype(
     _In_opt_ void *data,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ void ** setterGetterInterceptor,
+    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
@@ -1405,7 +1405,7 @@ CHAKRA_API JsCreateTracedCustomExternalObjectWithPrototype(
 
 CHAKRA_API JsCreateCustomExternalObjectWithPrototype(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ void ** setterGetterInterceptor,
+    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef * object)
 {
@@ -1414,7 +1414,7 @@ CHAKRA_API JsCreateCustomExternalObjectWithPrototype(_In_opt_ void *data,
 
 CHAKRA_API JsCreateCustomExternalObject(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ void ** setterGetterInterceptor,
+    _Inout_opt_ JsSetterGetterInterceptor ** setterGetterInterceptor,
     _Out_ JsValueRef * object)
 {
     return JsCreateCustomExternalObjectWithPrototype(data, finalizeCallback, setterGetterInterceptor, JS_INVALID_REFERENCE, object);

@@ -20,7 +20,7 @@ JsSetterGetterInterceptor::JsSetterGetterInterceptor() :
 }
 
 JsSetterGetterInterceptor::JsSetterGetterInterceptor(
-    Js::JsSetterGetterInterceptor * setterGetterInterceptor) :
+    JsSetterGetterInterceptor * setterGetterInterceptor) :
     getTrap(setterGetterInterceptor->getTrap),
     setTrap(setterGetterInterceptor->setTrap),
     deletePropertyTrap(setterGetterInterceptor->deletePropertyTrap),
@@ -84,7 +84,7 @@ CustomExternalWrapperObject::CustomExternalWrapperObject(CustomExternalWrapperTy
 }
 
 /* static */
-CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, void ** setterGetterInterceptor, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
+CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsSetterGetterInterceptor ** setterGetterInterceptor, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
 {
     if (prototype == nullptr)
     {
@@ -134,7 +134,7 @@ CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalW
 {
     Js::CustomExternalWrapperType * externalType = source->GetExternalType();
     Js::JsSetterGetterInterceptor * originalInterceptors = externalType->GetJsSetterGetterInterceptor();
-    void * newInterceptors = originalInterceptors;
+    Js::JsSetterGetterInterceptor * newInterceptors = originalInterceptors;
     Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
         source->GetSlotData(),
         source->GetInlineSlotSize(),
