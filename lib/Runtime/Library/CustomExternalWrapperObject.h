@@ -9,7 +9,7 @@ namespace Js
     typedef void (*JsTraceCallback)(void * data);
     typedef void (*JsFinalizeCallback)(void * data);
 
-    typedef struct JsSetterGetterInterceptor {
+    typedef struct JsGetterSetterInterceptor {
         void * getTrap;
         void * setTrap;
         void * deletePropertyTrap;
@@ -19,27 +19,27 @@ namespace Js
         void * getOwnPropertyDescriptorTrap;
         void * definePropertyTrap;
 
-        explicit JsSetterGetterInterceptor(JsSetterGetterInterceptor * setterGetterInterceptor);
+        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 
-        JsSetterGetterInterceptor();
+        JsGetterSetterInterceptor();
 
         bool AreInterceptorsRequired();
-    } JsSetterGetterInterceptor;
+    } JsGetterSetterInterceptor;
 
     class CustomExternalWrapperType sealed : public DynamicType
     {
     public:
-        CustomExternalWrapperType(CustomExternalWrapperType * type) : DynamicType(type), jsTraceCallback(type->jsTraceCallback), jsFinalizeCallback(type->jsFinalizeCallback), jsSetterGetterInterceptor(type->jsSetterGetterInterceptor) {}
+        CustomExternalWrapperType(CustomExternalWrapperType * type) : DynamicType(type), jsTraceCallback(type->jsTraceCallback), jsFinalizeCallback(type->jsFinalizeCallback), jsGetterSetterInterceptor(type->jsGetterSetterInterceptor) {}
         CustomExternalWrapperType(ScriptContext * scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, RecyclableObject * prototype);
 
         JsTraceCallback GetJsTraceCallback() const { return this->jsTraceCallback; }
         JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
-        JsSetterGetterInterceptor * GetJsSetterGetterInterceptor() const { return this->jsSetterGetterInterceptor; }
+        JsGetterSetterInterceptor * GetJsGetterSetterInterceptor() const { return this->jsGetterSetterInterceptor; }
 
     private:
         FieldNoBarrier(JsTraceCallback const) jsTraceCallback;
         FieldNoBarrier(JsFinalizeCallback const) jsFinalizeCallback;
-        FieldNoBarrier(JsSetterGetterInterceptor *) jsSetterGetterInterceptor;
+        FieldNoBarrier(JsGetterSetterInterceptor *) jsGetterSetterInterceptor;
     };
     AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::CustomExternalWrapperType, &Js::Type::DumpObjectFunction);
 
@@ -73,7 +73,7 @@ namespace Js
         static BOOL Is(_In_ RecyclableObject* obj);
         static CustomExternalWrapperObject * FromVar(Var value);
         static CustomExternalWrapperObject * UnsafeFromVar(Var value);
-        static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, void ** setterGetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
+        static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsGetterSetterInterceptor ** getterSetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
         static CustomExternalWrapperObject * Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext);
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);

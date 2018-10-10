@@ -7,7 +7,7 @@
 
 using namespace Js;
 
-JsSetterGetterInterceptor::JsSetterGetterInterceptor() :
+JsGetterSetterInterceptor::JsGetterSetterInterceptor() :
     getTrap(nullptr),
     setTrap(nullptr),
     deletePropertyTrap(nullptr),
@@ -19,20 +19,20 @@ JsSetterGetterInterceptor::JsSetterGetterInterceptor() :
 {
 }
 
-JsSetterGetterInterceptor::JsSetterGetterInterceptor(
-    Js::JsSetterGetterInterceptor * setterGetterInterceptor) :
-    getTrap(setterGetterInterceptor->getTrap),
-    setTrap(setterGetterInterceptor->setTrap),
-    deletePropertyTrap(setterGetterInterceptor->deletePropertyTrap),
-    enumerateTrap(setterGetterInterceptor->enumerateTrap),
-    ownKeysTrap(setterGetterInterceptor->ownKeysTrap),
-    hasTrap(setterGetterInterceptor->hasTrap),
-    getOwnPropertyDescriptorTrap(setterGetterInterceptor->getOwnPropertyDescriptorTrap),
-    definePropertyTrap(setterGetterInterceptor->definePropertyTrap)
+JsGetterSetterInterceptor::JsGetterSetterInterceptor(
+    JsGetterSetterInterceptor * getterSetterInterceptor) :
+    getTrap(getterSetterInterceptor->getTrap),
+    setTrap(getterSetterInterceptor->setTrap),
+    deletePropertyTrap(getterSetterInterceptor->deletePropertyTrap),
+    enumerateTrap(getterSetterInterceptor->enumerateTrap),
+    ownKeysTrap(getterSetterInterceptor->ownKeysTrap),
+    hasTrap(getterSetterInterceptor->hasTrap),
+    getOwnPropertyDescriptorTrap(getterSetterInterceptor->getOwnPropertyDescriptorTrap),
+    definePropertyTrap(getterSetterInterceptor->definePropertyTrap)
 {
 }
 
-bool JsSetterGetterInterceptor::AreInterceptorsRequired()
+bool JsGetterSetterInterceptor::AreInterceptorsRequired()
 {
     return (this->getTrap != nullptr ||
         this->setTrap != nullptr ||
@@ -60,7 +60,7 @@ CustomExternalWrapperType::CustomExternalWrapperType(Js::ScriptContext* scriptCo
     , jsTraceCallback(traceCallback)
     , jsFinalizeCallback(finalizeCallback)
 {
-    this->jsSetterGetterInterceptor = RecyclerNew(scriptContext->GetRecycler(), JsSetterGetterInterceptor);
+    this->jsGetterSetterInterceptor = RecyclerNew(scriptContext->GetRecycler(), JsGetterSetterInterceptor);
     this->flags |= TypeFlagMask_JsrtExternal;
 }
 
@@ -84,30 +84,30 @@ CustomExternalWrapperObject::CustomExternalWrapperObject(CustomExternalWrapperTy
 }
 
 /* static */
-CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, void ** setterGetterInterceptor, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
+CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsGetterSetterInterceptor ** getterSetterInterceptor, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
 {
     if (prototype == nullptr)
     {
         prototype = scriptContext->GetLibrary()->GetObjectPrototype();
     }
 
-    Js::DynamicType * dynamicType = scriptContext->GetLibrary()->GetCachedCustomExternalWrapperType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(*setterGetterInterceptor), reinterpret_cast<uintptr_t>(prototype));
+    Js::DynamicType * dynamicType = scriptContext->GetLibrary()->GetCachedCustomExternalWrapperType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(*getterSetterInterceptor), reinterpret_cast<uintptr_t>(prototype));
 
     if (dynamicType == nullptr)
     {
         dynamicType = RecyclerNew(scriptContext->GetRecycler(), CustomExternalWrapperType, scriptContext, traceCallback, finalizeCallback, prototype);
-        *setterGetterInterceptor = reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsSetterGetterInterceptor();
-        scriptContext->GetLibrary()->CacheCustomExternalWrapperType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(*setterGetterInterceptor), reinterpret_cast<uintptr_t>(prototype), dynamicType);
+        *getterSetterInterceptor = reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsGetterSetterInterceptor();
+        scriptContext->GetLibrary()->CacheCustomExternalWrapperType(reinterpret_cast<uintptr_t>(traceCallback), reinterpret_cast<uintptr_t>(finalizeCallback), reinterpret_cast<uintptr_t>(*getterSetterInterceptor), reinterpret_cast<uintptr_t>(prototype), dynamicType);
     }
     else
     {
-        if (*setterGetterInterceptor == nullptr)
+        if (*getterSetterInterceptor == nullptr)
         {
-            *setterGetterInterceptor = reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsSetterGetterInterceptor();
+            *getterSetterInterceptor = reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsGetterSetterInterceptor();
         }
         else
         {
-            Assert(*setterGetterInterceptor == reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsSetterGetterInterceptor());
+            Assert(*getterSetterInterceptor == reinterpret_cast<CustomExternalWrapperType *>(dynamicType)->GetJsGetterSetterInterceptor());
         }
     }
 
@@ -133,8 +133,8 @@ CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uin
 CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext)
 {
     Js::CustomExternalWrapperType * externalType = source->GetExternalType();
-    Js::JsSetterGetterInterceptor * originalInterceptors = externalType->GetJsSetterGetterInterceptor();
-    void * newInterceptors = originalInterceptors;
+    Js::JsGetterSetterInterceptor * originalInterceptors = externalType->GetJsGetterSetterInterceptor();
+    Js::JsGetterSetterInterceptor * newInterceptors = originalInterceptors;
     Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
         source->GetSlotData(),
         source->GetInlineSlotSize(),
@@ -149,7 +149,7 @@ CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalW
     // If we are using type from the cache we don't need to copy the interceptors over.
     if (newInterceptors != originalInterceptors)
     {
-        newInterceptors = new (newInterceptors) Js::JsSetterGetterInterceptor(originalInterceptors);
+        newInterceptors = new (newInterceptors) Js::JsGetterSetterInterceptor(originalInterceptors);
     }
 
     AssertOrFailFast(success);
@@ -370,9 +370,9 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
     Js::RecyclableObject * targetObj = this;
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* getGetMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->getTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->getTrap != nullptr)
     {
-        getGetMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->getTrap);
+        getGetMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->getTrap);
     }
 
     if (nullptr == getGetMethod || requestContext->IsHeapEnumInProgress())
@@ -419,9 +419,9 @@ BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc get
     Js::RecyclableObject *targetObj = this;
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* hasMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->hasTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->hasTrap != nullptr)
     {
-        hasMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->hasTrap);
+        hasMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->hasTrap);
     }
 
     if (nullptr == hasMethod || requestContext->IsHeapEnumInProgress())
@@ -470,9 +470,9 @@ BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId prope
 
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* gOPDMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->getOwnPropertyDescriptorTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->getOwnPropertyDescriptorTrap != nullptr)
     {
-        gOPDMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->getOwnPropertyDescriptorTrap);
+        gOPDMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->getOwnPropertyDescriptorTrap);
     }
 
     if (GetScriptContext()->IsHeapEnumInProgress())
@@ -563,9 +563,9 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
 
     CustomExternalWrapperType * type = customObject->GetExternalType();
     Js::JavascriptFunction* defineOwnPropertyMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->definePropertyTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->definePropertyTrap != nullptr)
     {
-        defineOwnPropertyMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->definePropertyTrap);
+        defineOwnPropertyMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->definePropertyTrap);
     }
 
     Assert(!requestContext->IsHeapEnumInProgress());
@@ -651,9 +651,9 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     Js::RecyclableObject *targetObj = this;
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* setMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->setTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->setTrap != nullptr)
     {
-        setMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->setTrap);
+        setMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->setTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -886,9 +886,9 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
 
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* getEnumeratorMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->enumerateTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->enumerateTrap != nullptr)
     {
-        getEnumeratorMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->enumerateTrap);
+        getEnumeratorMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->enumerateTrap);
     }
 
     Js::RecyclableObject * targetObj = this;
@@ -1080,9 +1080,9 @@ BOOL CustomExternalWrapperObject::DeleteProperty(Js::PropertyId propertyId, Js::
     RecyclableObject * targetObj = this;
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* deleteMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->deletePropertyTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->deletePropertyTrap != nullptr)
     {
-        deleteMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->deletePropertyTrap);
+        deleteMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->deletePropertyTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -1150,9 +1150,9 @@ Js::JavascriptArray * CustomExternalWrapperObject::PropertyKeysTrap(KeysTrapKind
     Js::RecyclableObject * targetObj = this;
     CustomExternalWrapperType * type = this->GetExternalType();
     Js::JavascriptFunction* ownKeysMethod = nullptr;
-    if (type->GetJsSetterGetterInterceptor()->ownKeysTrap != nullptr)
+    if (type->GetJsGetterSetterInterceptor()->ownKeysTrap != nullptr)
     {
-        ownKeysMethod = Js::JavascriptFunction::FromVar(type->GetJsSetterGetterInterceptor()->ownKeysTrap);
+        ownKeysMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->ownKeysTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
