@@ -110,6 +110,7 @@ LSC_ERROR_MSG(1094, ERRLabelFollowedByEOF, "Unexpected end of script after a lab
 LSC_ERROR_MSG(1095, ERRFunctionAfterLabelInStrict, "Function declarations not allowed after a label in strict mode.")
 LSC_ERROR_MSG(1096, ERRAwaitAsLabelInAsync, "Use of 'await' as label in async function is not allowed.")
 LSC_ERROR_MSG(1097, ERRExperimental, "Use of disabled experimental feature")
+LSC_ERROR_MSG(1098, ERRDuplicateExport, "Duplicate export of name '%s'")
 //1098-1199 available for future use
 
 // Generic errors intended to be re-usable

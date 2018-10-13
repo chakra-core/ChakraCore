@@ -106,13 +106,6 @@
   </test>
   <test>
     <default>
-      <files>exportBindingLoader.js</files>
-      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>test_bug_2645.js</files>
       <compile-flags>-ES6Module</compile-flags>
       <tags>exclude_sanitize_address</tags>
@@ -144,6 +137,20 @@
       <files>bug_issue_3257.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_issue_5777.js</files>
+      <compile-flags>-ESDynamicImport -MuteHostErrorMsg</compile-flags>
+      <tags>exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>export_namespace_as.js</files>
+      <compile-flags>-ESExportNsAs -MuteHostErrorMsg -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
     </default>
   </test>

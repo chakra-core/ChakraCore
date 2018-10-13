@@ -48,6 +48,7 @@ FLAG_RELEASE(IsESObjectGetOwnPropertyDescriptorsEnabled, ESObjectGetOwnPropertyD
 FLAG_RELEASE(IsESSharedArrayBufferEnabled, ESSharedArrayBuffer)
 FLAG_RELEASE(IsESDynamicImportEnabled, ESDynamicImport)
 FLAG_RELEASE(IsESBigIntEnabled, ESBigInt)
+FLAG_RELEASE(IsESExportNsAsEnabled, ESExportNsAs)
 #ifdef ENABLE_PROJECTION
 FLAG(AreWinRTDelegatesInterfaces, WinRTDelegateInterfaces)
 FLAG_RELEASE(IsWinRTAdaptiveAppsEnabled, WinRTAdaptiveApps)

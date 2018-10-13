@@ -272,6 +272,12 @@ namespace Js
             // TODO: maybe we can cache the slot address & offset, instead of looking up everytime? We do need to look up the reference everytime.
             if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
             {
+                // special case for export * as ns
+                if (moduleNameRecord.bindingName == Js::PropertyIds::star_)
+                {
+                    *value = static_cast<Var>(moduleNameRecord.module->GetNamespace());
+                    return PropertyQueryFlags::Property_Found;
+                }
                 return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }
