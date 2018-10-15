@@ -6727,6 +6727,10 @@ skipThunk:
             // Finally exited with LeaveNull, We don't throw for early returns
             if (finallyEndOffset == 0 && exceptionObj)
             {
+                if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
+                {
+                    JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
+                }
                 JavascriptExceptionOperators::DoThrow(const_cast<Js::JavascriptExceptionObject *>(exceptionObj), scriptContext);
             }
             if (finallyEndOffset != 0)
