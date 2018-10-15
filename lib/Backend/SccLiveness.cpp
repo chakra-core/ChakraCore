@@ -463,7 +463,7 @@ SCCLiveness::ProcessBailOutUses(IR::Instr * instr)
     }
     NEXT_BITSET_IN_SPARSEBV;
 
-    FOREACH_SLISTBASE_ENTRY(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues.copyPropSyms)
+    FOREACH_SLISTBASE_ENTRY(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues->copyPropSyms)
     {
         ProcessStackSymUse(copyPropSyms.Value(), instr);
     }

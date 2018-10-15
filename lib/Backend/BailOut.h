@@ -41,7 +41,9 @@ public:
 #endif
         this->capturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
         this->capturedValues->refCount = 1;
-        this->usedCapturedValues.argObjSyms = nullptr;
+
+        this->usedCapturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
+        this->usedCapturedValues->argObjSyms = nullptr;
     }
     void Clear(JitArenaAllocator * allocator);
 
@@ -77,9 +79,9 @@ public:
 #endif
     uint32 bailOutOffset;
     BailOutRecord * bailOutRecord;
-    CapturedValues* capturedValues;                                      // Values we know about after forward pass
-    CapturedValues usedCapturedValues;                                  // Values that need to be restored in the bail out
-    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;            // Non-constant stack syms that needs to be restored in the bail out
+    CapturedValues * capturedValues;                                      // Values we know about after forward pass
+    CapturedValues * usedCapturedValues;                                  // Values that need to be restored in the bail out
+    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;              // Non-constant stack syms that needs to be restored in the bail out
     uint polymorphicCacheIndex;
     uint startCallCount;
     uint totalOutParamCount;
