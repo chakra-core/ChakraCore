@@ -22,6 +22,12 @@ BailOutInfo::Clear(JitArenaAllocator * allocator)
     {
         this->capturedValues->constantValues.Clear(allocator);
         this->capturedValues->copyPropSyms.Clear(allocator);
+
+        if (this->capturedValues->argObjSyms)
+        {
+            JitAdelete(allocator, this->capturedValues->argObjSyms);
+        }
+
         JitAdelete(allocator, this->capturedValues);
     }
     this->usedCapturedValues.constantValues.Clear(allocator);
