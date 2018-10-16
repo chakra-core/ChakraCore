@@ -7781,16 +7781,20 @@ void EmitCallTarget(
             funcInfo->ReleaseLoc(pnodeBinTarget->AsParseNodeSuperReference()->pnodeThis);
             funcInfo->ReleaseLoc(pnodeBinTarget->pnode1);
 
-            // Function calls on the 'super' object should maintain current 'this' pointer
+            // Function calls on the 'super' object should maintain current 'this' pointer.
             *thisLocation = pnodeBinTarget->AsParseNodeSuperReference()->pnodeThis->location;
             *releaseThisLocation = false;
+
+            uint cacheId = funcInfo->FindOrAddInlineCacheId(protoLocation, propertyId, false, false);
+            byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::LdSuperFld,
+                pnodeTarget->location, protoLocation, *thisLocation, cacheId, false);
         }
         else
         {
             *thisLocation = pnodeBinTarget->pnode1->location;
+            EmitMethodFld(pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
         }
 
-        EmitMethodFld(pnodeBinTarget, protoLocation, propertyId, byteCodeGenerator, funcInfo);
         break;
     }
 
