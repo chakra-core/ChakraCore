@@ -32,7 +32,8 @@ namespace utf8
             return E_OUTOFMEMORY;
         }
 
-        size_t cbDestString = (cchSourceString + 1) * 3;
+        // Multiply by 3 for max size of encoded character, plus 1 for the null terminator (don't need 3 bytes for the null terminator)
+        size_t cbDestString = (cchSourceString * 3) + 1;
 
         // Check for overflow- cbDestString should be >= cchSourceString
         if (cbDestString < cchSourceString)

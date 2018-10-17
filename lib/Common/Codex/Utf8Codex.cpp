@@ -433,7 +433,7 @@ LSlowPath:
     }
 
     template <Utf8EncodingKind encoding, bool countBytesOnly = false>
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeIntoImpl(
         _When_(!countBytesOnly, _Out_writes_(cbDest)) utf8char_t *destBuffer,
         __range(0, cchSource * 3) size_t cbDest,
@@ -492,7 +492,7 @@ LSlowPath:
     }
 
     template <Utf8EncodingKind encoding>
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeInto(
         _Out_writes_(cbDest) utf8char_t *dest,
         __range(0, cchSource * 3) size_t cbDest,
@@ -503,7 +503,7 @@ LSlowPath:
     }
 
     template <Utf8EncodingKind encoding>
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeIntoAndNullTerminate(
         _Out_writes_z_(cbDest) utf8char_t *dest,
         __range(1, cchSource * 3 + 1) size_t cbDest, // must be at least large enough to write null terminator
@@ -513,11 +513,11 @@ LSlowPath:
         size_t destWriteMaxBytes = cbDest - 1; // leave room for null terminator
         size_t result = EncodeIntoImpl<encoding>(dest, destWriteMaxBytes, source, cchSource);
         dest[result] = 0;
-        return result;
+        return result + 1;
     }
 
     template
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeInto<Utf8EncodingKind::Cesu8>(
         _Out_writes_(cbDest) utf8char_t *dest,
         __range(0, cchSource * 3) size_t cbDest,
@@ -525,7 +525,7 @@ LSlowPath:
         __range(0, INT_MAX) charcount_t cchSource);
 
     template
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeInto<Utf8EncodingKind::TrueUtf8>(
         _Out_writes_(cbDest) utf8char_t *dest,
         __range(0, cchSource * 3) size_t cbDest,
@@ -533,7 +533,7 @@ LSlowPath:
         __range(0, INT_MAX) charcount_t cchSource);
 
     template
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeIntoAndNullTerminate<Utf8EncodingKind::Cesu8>(
         _Out_writes_z_(cbDest) utf8char_t *dest,
         __range(1, cchSource * 3 + 1) size_t cbDest,
@@ -541,17 +541,18 @@ LSlowPath:
         __range(0, INT_MAX) charcount_t cchSource);
 
     template
-    __range(0, cchSource * 3)
+    __range(0, cbDest)
     size_t EncodeIntoAndNullTerminate<Utf8EncodingKind::TrueUtf8>(
         _Out_writes_z_(cbDest) utf8char_t *dest,
         __range(1, cchSource * 3 + 1) size_t cbDest,
         _In_reads_(cchSource) const char16 *source,
         __range(0, INT_MAX) charcount_t cchSource);
 
+    // Since we are not actually encoding, the return value is bounded on cch
     __range(0, cch * 3)
     size_t CountTrueUtf8(__in_ecount(cch) const char16 *source, charcount_t cch)
     {
-        return EncodeIntoImpl<Utf8EncodingKind::TrueUtf8, true>(nullptr, 0, source, cch);
+        return EncodeIntoImpl<Utf8EncodingKind::TrueUtf8, true /*count only*/>(nullptr, 0, source, cch);
     }
 
     // Convert the character index into a byte index.
