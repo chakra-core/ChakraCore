@@ -121,10 +121,6 @@ namespace Js
             BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
 #endif /* IR_VIEWER */
 
-        static bool Is(Var aValue);
-        static GlobalObject* FromVar(Var aValue);
-        static GlobalObject* UnsafeFromVar(Var aValue);
-
         typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
         FieldNoBarrier(EvalHelperType) EvalHelper;
 
@@ -152,7 +148,7 @@ namespace Js
         virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
-        virtual BOOL GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags) override;
@@ -189,4 +185,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<GlobalObject>(RecyclableObject* obj)
+    {
+        return obj->GetTypeId() == TypeIds_GlobalObject;
+    }
 }

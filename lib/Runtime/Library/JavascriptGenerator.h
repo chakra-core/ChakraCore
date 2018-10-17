@@ -77,10 +77,6 @@ namespace Js
 
         const Arguments& GetArguments() const { return args; }
 
-        static bool Is(Var var);
-        static JavascriptGenerator* FromVar(Var var);
-        static JavascriptGenerator* UnsafeFromVar(Var var);
-
         class EntryInfo
         {
         public:
@@ -99,4 +95,6 @@ namespace Js
         //virtual void ProcessCorePaths() override;
 #endif
     };
+
+    template <> bool VarIsImpl<JavascriptGenerator>(RecyclableObject* obj);
 }

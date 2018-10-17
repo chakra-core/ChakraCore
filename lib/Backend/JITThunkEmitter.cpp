@@ -119,7 +119,10 @@ JITThunkEmitter<TAlloc>::CreateThunk(uintptr_t entryPoint)
     this->firstBitToCheck = (thunkIndex + 1 < JITThunkEmitter<TAlloc>::TotalThunkCount) ? thunkIndex + 1 : 0;
     this->freeThunks.Clear(thunkIndex);
 
-    FlushInstructionCache(this->processHandle, (PVOID)thunkAddress, ThunkSize);
+    if (!FlushInstructionCache(this->processHandle, (PVOID)thunkAddress, ThunkSize))
+    {
+        return NULL;
+    }
 
     return thunkAddress;
 }

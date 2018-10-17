@@ -23,6 +23,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -153,9 +154,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
           "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
@@ -172,6 +171,10 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
+          "flat": "function <large string>",
+          "flatMap": "function <large string>",
           "length": "number 0"
         },
         "length": "number 0"
@@ -232,6 +235,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",

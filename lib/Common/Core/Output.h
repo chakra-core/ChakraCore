@@ -114,7 +114,10 @@ public:
 
     static WORD     SetConsoleForeground(WORD color);
     static void     CaptureStart();
-    static char16* CaptureEnd();
+    static char16*  CaptureEnd();
+
+    static void     SetAlignAndPrefix(unsigned int align, const char16 *prefix);
+    static void     ResetAlignAndPrefix();
 
 private:
     static void     DirectPrint(const char16 * string);
@@ -133,6 +136,11 @@ private:
 #endif // ENABLE_TRACE
 
 #define THREAD_ST THREAD_LOCAL
+
+    THREAD_ST static bool hasDoneAlignPrefixForThisLine;
+    THREAD_ST static bool usingCustomAlignAndPrefix;
+    THREAD_ST static const char16* prefix;
+    THREAD_ST static size_t align;
 
     THREAD_ST static bool s_capture;
     THREAD_ST static FILE * s_file;

@@ -1,29 +1,18 @@
 ;; Test memory section structure
+
 (module (memory 0 0))
 (module (memory 0 1))
 (module (memory 1 256))
 (module (memory 0 65536))
-(module (memory 0 0) (data (i32.const 0)))
-(module (memory 0 0) (data (i32.const 0) ""))
-(module (memory 1 1) (data (i32.const 0) "a"))
-(module (memory 1 2) (data (i32.const 0) "a") (data (i32.const 65535) "b"))
-(module (memory 1 2)
-  (data (i32.const 0) "a") (data (i32.const 1) "b") (data (i32.const 2) "c")
-)
-(module (global (import "spectest" "global") i32) (memory 1) (data (get_global 0) "a"))
-(module (global $g (import "spectest" "global") i32) (memory 1) (data (get_global $g) "a"))
-;; Use of internal globals in constant expressions is not allowed in MVP.
-;; (module (memory 1) (data (get_global 0) "a") (global i32 (i32.const 0)))
-;; (module (memory 1) (data (get_global $g) "a") (global $g i32 (i32.const 0)))
 
 (assert_invalid (module (memory 0) (memory 0)) "multiple memories")
 (assert_invalid (module (memory (import "spectest" "memory") 0) (memory 0)) "multiple memories")
 
-(module (memory (data)) (func (export "memsize") (result i32) (current_memory)))
+(module (memory (data)) (func (export "memsize") (result i32) (memory.size)))
 (assert_return (invoke "memsize") (i32.const 0))
-(module (memory (data "")) (func (export "memsize") (result i32) (current_memory)))
+(module (memory (data "")) (func (export "memsize") (result i32) (memory.size)))
 (assert_return (invoke "memsize") (i32.const 0))
-(module (memory (data "x")) (func (export "memsize") (result i32) (current_memory)))
+(module (memory (data "x")) (func (export "memsize") (result i32) (memory.size)))
 (assert_return (invoke "memsize") (i32.const 1))
 
 (assert_invalid (module (data (i32.const 0))) "unknown memory")
@@ -47,85 +36,14 @@
   "unknown memory"
 )
 (assert_invalid
-  (module (func (drop (current_memory))))
+  (module (func (drop (memory.size))))
   "unknown memory"
 )
 (assert_invalid
-  (module (func (drop (grow_memory (i32.const 0)))))
+  (module (func (drop (memory.grow (i32.const 0)))))
   "unknown memory"
 )
 
-(assert_invalid
-  (module (memory 1) (data (i64.const 0)))
-  "type mismatch"
-)
-(assert_invalid
-  (module (memory 1) (data (i32.ctz (i32.const 0))))
-  "constant expression required"
-)
-(assert_invalid
-  (module (memory 1) (data (nop)))
-  "constant expression required"
-)
-;; Use of internal globals in constant expressions is not allowed in MVP.
-;; (assert_invalid
-;;   (module (memory 1) (data (get_global $g)) (global $g (mut i32) (i32.const 0)))
-;;   "constant expression required"
-;; )
-
-(assert_unlinkable
-  (module (memory 0 0) (data (i32.const 0) "a"))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 0 1) (data (i32.const 0) "a"))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 1 2) (data (i32.const -1) "a"))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 1 2) (data (i32.const -1000) "a"))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 1 2) (data (i32.const 0) "a") (data (i32.const 98304) "b"))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 0 0) (data (i32.const 1) ""))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 1) (data (i32.const 0x12000) ""))
-  "data segment does not fit"
-)
-(assert_unlinkable
-  (module (memory 1 2) (data (i32.const -1) ""))
-  "data segment does not fit"
-)
-;; This seems to cause a time-out on Travis.
-(;assert_unlinkable
-  (module (memory 0x10000) (data (i32.const 0xffffffff) "ab"))
-  ""  ;; either out of memory or segment does not fit
-;)
-(assert_unlinkable
-  (module
-    (global (import "spectest" "global") i32)
-    (memory 0) (data (get_global 0) "a")
-  )
-  "data segment does not fit"
-)
-
-(module (memory 0 0) (data (i32.const 0) ""))
-(module (memory 1 1) (data (i32.const 0x10000) ""))
-(module (memory 1 2) (data (i32.const 0) "abc") (data (i32.const 0) "def"))
-(module (memory 1 2) (data (i32.const 3) "ab") (data (i32.const 0) "de"))
-(module
-  (memory 1 2)
-  (data (i32.const 0) "a") (data (i32.const 2) "b") (data (i32.const 1) "c")
-)
 
 (assert_invalid
   (module (memory 1 0))

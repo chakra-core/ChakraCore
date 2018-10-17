@@ -40,29 +40,6 @@ _Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uin
     return initBytes <= bufferLength && bufferLength <= maxBytes;
 }
 
-/* static */
-bool
-WebAssemblyMemory::Is(Var value)
-{
-    return JavascriptOperators::GetTypeId(value) == TypeIds_WebAssemblyMemory;
-}
-
-/* static */
-WebAssemblyMemory *
-WebAssemblyMemory::FromVar(Var value)
-{
-    AssertOrFailFast(WebAssemblyMemory::Is(value));
-    return static_cast<WebAssemblyMemory*>(value);
-}
-
-/* static */
-WebAssemblyMemory *
-WebAssemblyMemory::UnsafeFromVar(Var value)
-{
-    Assert(WebAssemblyMemory::Is(value));
-    return static_cast<WebAssemblyMemory*>(value);
-}
-
 Var
 WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
 {
@@ -85,7 +62,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("memoryDescriptor"));
     }
-    DynamicObject * memoryDescriptor = JavascriptObject::FromVar(args[1]);
+    DynamicObject * memoryDescriptor = VarTo<DynamicObject>(args[1]);
 
     Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
@@ -126,25 +103,25 @@ WebAssemblyMemory::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (!WebAssemblyMemory::Is(args[0]))
+    if (!VarIs<WebAssemblyMemory>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedMemoryObject);
     }
 
-    WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
-    Assert(ArrayBufferBase::Is(memory->m_buffer));
-
-    if (memory->m_buffer->IsDetached())
-    {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
-    }
+    WebAssemblyMemory* memory = VarTo<WebAssemblyMemory>(args[0]);
+    Assert(VarIsCorrectType(memory->m_buffer));
 
     Var deltaVar = scriptContext->GetLibrary()->GetUndefined();
     if (args.Info.Count >= 2)
     {
         deltaVar = args[1];
     }
+
     uint32 deltaPages = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
+    if (memory->m_buffer->IsDetached())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+    }
 
     int32 oldPageCount = memory->GrowInternal(deltaPages);
     if (oldPageCount == -1)
@@ -281,13 +258,13 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count == 0 || !WebAssemblyMemory::Is(args[0]))
+    if (args.Info.Count == 0 || !VarIs<WebAssemblyMemory>(args[0]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedMemoryObject);
     }
 
-    WebAssemblyMemory* memory = WebAssemblyMemory::FromVar(args[0]);
-    Assert(ArrayBufferBase::Is(memory->m_buffer));
+    WebAssemblyMemory* memory = VarTo<WebAssemblyMemory>(args[0]);
+    Assert(VarIsCorrectType(memory->m_buffer));
     return CrossSite::MarshalVar(scriptContext, memory->m_buffer);
 }
 
@@ -298,7 +275,6 @@ WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, bool isSha
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    // This shouldn't overflow since we checked in the module, but just to be safe
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     ArrayBufferBase* buffer = nullptr;
 #ifdef ENABLE_WASM_THREADS
@@ -377,7 +353,7 @@ WebAssemblyMemory::GetCurrentMemoryPages() const
 #ifdef ENABLE_WASM_THREADS
 bool WebAssemblyMemory::IsSharedMemory() const
 {
-    return WebAssemblySharedArrayBuffer::Is(m_buffer);
+    return VarIs<WebAssemblySharedArrayBuffer>(m_buffer);
 }
 #endif
 

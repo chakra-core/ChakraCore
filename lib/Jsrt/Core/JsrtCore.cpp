@@ -78,7 +78,7 @@ JsParseModuleSource(
             size_t moduleUrlLen = 0;
             if (moduleRecord->GetModuleUrl())
             {
-                Js::JavascriptString *moduleUrl = Js::JavascriptString::FromVar(moduleRecord->GetModuleUrl());
+                Js::JavascriptString *moduleUrl = Js::VarTo<Js::JavascriptString>(moduleRecord->GetModuleUrl());
                 moduleUrlSz = moduleUrl->GetSz();
                 moduleUrlLen = moduleUrl->GetLength();
             }
@@ -172,7 +172,7 @@ JsSetModuleHostInfo(
             currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
         case JsModuleHostInfo_Url:
-            moduleRecord->SetModuleUrl(hostInfo);    
+            moduleRecord->SetModuleUrl(hostInfo);
             break;
         default:
             return JsInvalidModuleHostInfoKind;
@@ -295,12 +295,12 @@ JsGetArrayBufferExtraInfo(
     PARAM_NOT_NULL(extraInfo);
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        *extraInfo = Js::ArrayBuffer::FromVar(arrayBuffer)->GetExtraInfoBits();
+        *extraInfo = Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->GetExtraInfoBits();
     }
     END_JSRT_NO_EXCEPTION
 
@@ -314,12 +314,12 @@ JsSetArrayBufferExtraInfo(
     VALIDATE_JSREF(arrayBuffer);
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
         }
 
-        Js::ArrayBuffer::FromVar(arrayBuffer)->SetExtraInfoBits(extraInfo);
+        Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->SetExtraInfoBits(extraInfo);
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -331,12 +331,12 @@ JsDetachArrayBuffer(
     VALIDATE_JSREF(arrayBuffer);
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        if (!Js::ArrayBuffer::Is(arrayBuffer))
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
         {
             return JsErrorInvalidArgument;
         }
 
-        Js::ArrayBuffer::FromVar(arrayBuffer)->Detach();
+        Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->Detach();
         return JsNoError;
     });
 }

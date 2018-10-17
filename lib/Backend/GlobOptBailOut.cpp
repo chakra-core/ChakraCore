@@ -22,7 +22,8 @@ GlobOpt::CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListB
 void
 GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
     SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter,
+    BVSparse<JitArenaAllocator>* argsToCapture)
 {
     Sym * sym = nullptr;
     Value * value = nullptr;
@@ -48,6 +49,11 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
         block->globOptData.changedSyms->Set(sym->m_id);
     }
     NEXT_GLOBHASHTABLE_ENTRY;
+
+    if (argsToCapture)
+    {
+        block->globOptData.changedSyms->Or(argsToCapture);
+    }
 
     FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
     {
@@ -80,7 +86,8 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
 void
 GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter)
+    SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter,
+    BVSparse<JitArenaAllocator>* argsToCapture)
 {
     CapturedValues * currCapturedValues = block->globOptData.capturedValues;
     SListBase<ConstantStackSymValue>::Iterator iterConst(currCapturedValues ? &currCapturedValues->constantValues : nullptr);
@@ -89,6 +96,11 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     bool hasCopyPropSym = currCapturedValues ? iterCopyPropSym.Next() : false;
 
     block->globOptData.changedSyms->Set(Js::Constants::InvalidSymID);
+
+    if (argsToCapture)
+    {
+        block->globOptData.changedSyms->Or(argsToCapture);
+    }
 
     FOREACH_BITSET_IN_SPARSEBV(symId, block->globOptData.changedSyms)
     {
@@ -189,7 +201,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     NEXT_BITSET_IN_SPARSEBV
 
     // If, after going over the set of changed syms since the last time we captured values,
-    // there are remaining unprocessed entries in the current captured values set, 
+    // there are remaining unprocessed entries in the current captured values set,
     // they can simply be copied over to the new bailout info.
     while (hasConstValue)
     {
@@ -225,7 +237,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
 
 
 void
-GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
+GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture)
 {
     if (!this->func->DoGlobOptsForGeneratorFunc())
     {
@@ -244,11 +256,11 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
 
     if (!block->globOptData.capturedValues)
     {
-        CaptureValuesFromScratch(block, bailOutConstValuesIter, bailOutCopySymsIter);
+        CaptureValuesFromScratch(block, bailOutConstValuesIter, bailOutCopySymsIter, argsToCapture);
     }
     else
     {
-        CaptureValuesIncremental(block, bailOutConstValuesIter, bailOutCopySymsIter);
+        CaptureValuesIncremental(block, bailOutConstValuesIter, bailOutCopySymsIter, argsToCapture);
     }
 
     // attach capturedValues to bailOutInfo
@@ -260,7 +272,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo)
     bailOutInfo->capturedValues->copyPropSyms.Clear(this->func->m_alloc);
     bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues->copyPropSyms);
     bailOutInfo->capturedValues->copyPropSyms = capturedValues.copyPropSyms;
-    
+
     // In pre-pass only bailout info created should be for the loop header, and that doesn't take into account the back edge.
     // Don't use the captured values on that bailout for incremental capturing of values.
     if (!PHASE_OFF(Js::IncrementalBailoutPhase, func) && !this->IsLoopPrePass())
@@ -470,6 +482,18 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
+    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && instr->m_func->IsStackArgsEnabled()
+        && instr->m_func->hasArgLenAndConstOpt && instr->m_func->unoptimizableArgumentsObjReference == 0)
+    {
+        instr->m_func->hasUnoptimizedArgumentsAccess = false;
+        if (DoInlineArgsOpt(instr->m_func))
+        {
+            instr->m_func->m_hasInlineArgsOpt = true;
+            Assert(instr->m_func->cachedInlineeFrameInfo);
+            instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+        }
+    }
+
     if (instr->m_func->m_hasInlineArgsOpt)
     {
         RecordInlineeFrameInfo(instr);
@@ -494,7 +518,6 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         if (this->currentBlock->globOptData.callSequence == nullptr)
         {
             this->currentBlock->globOptData.callSequence = JitAnew(this->alloc, SListBase<IR::Opnd *>);
-            this->currentBlock->globOptData.callSequence = this->currentBlock->globOptData.callSequence;
         }
         this->currentBlock->globOptData.callSequence->Prepend(this->alloc, instr->GetDst());
 
@@ -559,6 +582,7 @@ GlobOpt::TrackCalls(IR::Instr * instr)
     }
 
     case Js::OpCode::InlineeStart:
+    {
         Assert(instr->m_func->GetParentFunc() == this->currentBlock->globOptData.curFunc);
         Assert(instr->m_func->GetParentFunc());
         this->currentBlock->globOptData.curFunc = instr->m_func;
@@ -566,16 +590,24 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         this->func->UpdateMaxInlineeArgOutSize(this->currentBlock->globOptData.inlinedArgOutSize);
         this->EndTrackCall(instr);
 
+        InlineeFrameInfo* inlineeFrameInfo = InlineeFrameInfo::New(instr->m_func->m_alloc);
+        inlineeFrameInfo->functionSymStartValue = instr->GetSrc1()->GetSym() ?
+            CurrentBlockData()->FindValue(instr->GetSrc1()->GetSym()) : nullptr;
+        inlineeFrameInfo->floatSyms = CurrentBlockData()->liveFloat64Syms->CopyNew(this->alloc);
+        inlineeFrameInfo->intSyms = CurrentBlockData()->liveInt32Syms->MinusNew(CurrentBlockData()->liveLossyInt32Syms, this->alloc);
+        inlineeFrameInfo->varSyms = CurrentBlockData()->liveVarSyms->CopyNew(this->alloc);
+
         if (DoInlineArgsOpt(instr->m_func))
         {
             instr->m_func->m_hasInlineArgsOpt = true;
-            InlineeFrameInfo* frameInfo = InlineeFrameInfo::New(func->m_alloc);
-            instr->m_func->frameInfo = frameInfo;
-            frameInfo->floatSyms = CurrentBlockData()->liveFloat64Syms->CopyNew(this->alloc);
-            frameInfo->intSyms = CurrentBlockData()->liveInt32Syms->MinusNew(CurrentBlockData()->liveLossyInt32Syms, this->alloc);
-            frameInfo->varSyms = CurrentBlockData()->liveVarSyms->CopyNew(this->alloc);
+            instr->m_func->frameInfo = inlineeFrameInfo;
+        }
+        else
+        {
+            instr->m_func->cachedInlineeFrameInfo = inlineeFrameInfo;
         }
         break;
+    }
 
     case Js::OpCode::EndCallForPolymorphicInlinee:
         // Have this opcode mimic the functions of both InlineeStart and InlineeEnd in the bailout block of a polymorphic call inlined using fixed methods.
@@ -750,6 +782,15 @@ void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)
             }
             else
             {
+                // If the value of the functionObject symbol has changed between the inlineeStart and the inlineeEnd,
+                // we don't record the inlinee frame info (see OS#18318884).
+                Assert(frameInfo->functionSymStartValue != nullptr);
+                if (!frameInfo->functionSymStartValue->IsEqualTo(CurrentBlockData()->FindValue(functionObject->m_sym)))
+                {
+                    argInstr->m_func->DisableCanDoInlineArgOpt();
+                    return true;
+                }
+
                 frameInfo->function = InlineFrameInfoValue(functionObject->m_sym);
             }
         }
@@ -837,7 +878,7 @@ void GlobOpt::EndTrackingOfArgObjSymsForInlinee()
             // This means there are arguments object symbols in the current function which are not in the current block.
             // This could happen when one of the blocks has a throw and arguments object aliased in it and other blocks don't see it.
             // Rare case, abort stack arguments optimization in this case.
-            CannotAllocateArgumentsObjectOnStack();
+            CannotAllocateArgumentsObjectOnStack(this->currentBlock->globOptData.curFunc);
         }
         else
         {
@@ -891,6 +932,8 @@ void
 GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 {
     AssertMsg(!this->isCallHelper, "Bail out can't be inserted the middle of CallHelper sequence");
+
+    BVSparse<JitArenaAllocator>* argsToCapture = nullptr;
 
     bailOutInfo->liveVarSyms = block->globOptData.liveVarSyms->CopyNew(this->func->m_alloc);
     bailOutInfo->liveFloat64Syms = block->globOptData.liveFloat64Syms->CopyNew(this->func->m_alloc);
@@ -971,7 +1014,12 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
                     sym = opnd->GetStackSym();
                     Assert(this->currentBlock->globOptData.FindValue(sym));
                     // StackSym args need to be re-captured
-                    this->currentBlock->globOptData.SetChangedSym(sym->m_id);
+                    if (!argsToCapture)
+                    {
+                        argsToCapture = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+                    }
+
+                    argsToCapture->Set(sym->m_id);
                 }
 
                 Assert(totalOutParamCount != 0);
@@ -1019,7 +1067,7 @@ GlobOpt::FillBailOutInfo(BasicBlock *block, BailOutInfo * bailOutInfo)
 
     // Save the constant values that we know so we can restore them directly.
     // This allows us to dead store the constant value assign.
-    this->CaptureValues(block, bailOutInfo);
+    this->CaptureValues(block, bailOutInfo, argsToCapture);
 }
 
 void
@@ -1134,7 +1182,7 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val)
     case IR::OpndKindReg:
         // Only need implicit call if the operation will call ToPrimitive and we haven't prove
         // that it is already a primitive
-        return 
+        return
             !(val && val->GetValueInfo()->IsPrimitive()) &&
             !opnd->AsRegOpnd()->GetValueType().IsPrimitive() &&
             !opnd->AsRegOpnd()->m_sym->IsInt32() &&

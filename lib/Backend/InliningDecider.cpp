@@ -491,7 +491,6 @@ bool InliningDecider::GetBuiltInInfoCommon(
     case Js::JavascriptBuiltInFunction::JavascriptArray_Splice:
 
     case Js::JavascriptBuiltInFunction::JavascriptString_Link:
-    case Js::JavascriptBuiltInFunction::JavascriptString_LocaleCompare:
         goto CallDirectCommon;
 
     case Js::JavascriptBuiltInFunction::JavascriptArray_Join:
@@ -553,6 +552,9 @@ bool InliningDecider::GetBuiltInInfoCommon(
         break;
     case Js::JavascriptBuiltInFunction::JavascriptFunction_Call:
         *inlineCandidateOpCode = Js::OpCode::InlineFunctionCall;
+        break;
+    case Js::JavascriptBuiltInFunction::EngineInterfaceObject_CallInstanceFunction:
+        *inlineCandidateOpCode = Js::OpCode::InlineCallInstanceFunction;
         break;
 
     // The following are not currently inlined, but are tracked for their return type

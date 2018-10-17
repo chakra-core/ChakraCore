@@ -43,3 +43,15 @@ TypeError : The value of the property 'toLocaleString' is not a Function object
 
 9. Array: toLocaleString should use length property
 10.00, 20.00, 30.00, , , 
+
+
+10. Array: toLocaleString should use toLocaleString accessor on element
+accessor-value
+
+
+11. Array: toLocaleString should throw TypeError on undefined
+TypeError : The value of the property 'toLocaleString' is not a Function object
+
+
+12. Array: toLocaleString should throw TypeError on invalid function
+TypeError : The value of the property 'toLocaleString' is not a Function object

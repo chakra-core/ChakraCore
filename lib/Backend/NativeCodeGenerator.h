@@ -59,7 +59,7 @@ public:
     static bool IsAsmJsCodeGenThunk(Js::JavascriptMethod codeAddress);
     static CheckCodeGenFunction GetCheckCodeGenFunction(Js::JavascriptMethod codeAddress);
     static Js::JavascriptMethod CheckCodeGen(Js::ScriptFunction * function);
-    static Js::Var CheckAsmJsCodeGen(Js::ScriptFunction * function);
+    static Js::JavascriptMethod CheckAsmJsCodeGen(Js::ScriptFunction * function);
 
 public:
     static void Jit_TransitionFromSimpleJit(void *const framePointer);
@@ -138,6 +138,7 @@ private:
 
     InProcCodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)
     {
+        Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
         if (this->foregroundAllocators == nullptr)
         {
             this->foregroundAllocators = CreateAllocators(pageAllocator);
@@ -178,7 +179,10 @@ private:
 
     virtual void ProcessorThreadSpecificCallBack(PageAllocator * pageAllocator) override
     {
-        AllocateBackgroundAllocators(pageAllocator);
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            AllocateBackgroundAllocators(pageAllocator);
+        }
     }
 
     static ExecutionMode PrejitJitMode(Js::FunctionBody *const functionBody);

@@ -318,7 +318,7 @@ namespace Js
 
     DynamicTypeHandler* NullTypeHandlerBase::ConvertToTypeWithItemAttributes(DynamicObject* instance)
     {
-        return JavascriptArray::Is(instance) ?
+        return JavascriptArray::IsNonES5Array(instance) ?
             ConvertToES5ArrayType(instance) : ConvertToDictionaryType(instance);
     }
 

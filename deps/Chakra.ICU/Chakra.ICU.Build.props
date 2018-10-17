@@ -27,7 +27,7 @@
         UCONFIG_NO_REGULAR_EXPRESSIONS=1;
         UCONFIG_NO_SERVICE=1;
         %(PreprocessorDefinitions)
-    </PreprocessorDefinitions>
+      </PreprocessorDefinitions>
 
       <!-- Default ICU Configuration (see source\common\common.vcxproj) -->
       <!-- Note that we already configure most of what common.vcxproj handles elsewhere -->
@@ -36,6 +36,9 @@
         _CRT_SECURE_NO_DEPRECATE;
         %(PreprocessorDefinitions)
       </PreprocessorDefinitions>
+
+      <!-- Some ICU files use embedded UTF-8 -->
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>

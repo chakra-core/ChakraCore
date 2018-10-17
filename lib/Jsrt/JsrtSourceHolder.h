@@ -19,7 +19,7 @@ namespace Js
 
 #ifndef NTBUILD
         Field(JsValueRef) mappedScriptValue;
-        Field(JsValueRef) mappedSerializedScriptValue;
+        Field(DetachedStateBase*) mappedSerializedScriptValue;
 #endif
         Field(utf8char_t const *) mappedSource;
         Field(size_t) mappedSourceByteLength;
@@ -46,13 +46,13 @@ namespace Js
         JsrtSourceHolder(_In_ TLoadCallback scriptLoadCallback,
             _In_ TUnloadCallback scriptUnloadCallback,
             _In_ JsSourceContext sourceContext,
-            JsValueRef serializedScriptValue = nullptr) :
+            Js::ArrayBuffer* serializedScriptValue = nullptr) :
             scriptLoadCallback(scriptLoadCallback),
             scriptUnloadCallback(scriptUnloadCallback),
             sourceContext(sourceContext),
 #ifndef NTBUILD
             mappedScriptValue(nullptr),
-            mappedSerializedScriptValue(serializedScriptValue),
+            mappedSerializedScriptValue(serializedScriptValue == nullptr ? nullptr : serializedScriptValue->DetachAndGetState()),
 #endif
             mappedSourceByteLength(0),
             mappedSource(nullptr)
@@ -89,6 +89,15 @@ namespace Js
 
         virtual void Dispose(bool isShutdown) override
         {
+#ifndef NTBUILD
+            if (this->mappedSerializedScriptValue != nullptr)
+            {
+                // We have to extend the buffer data's lifetime until Dispose because
+                // it might be used during finalization of other objects, such as
+                // FunctionEntryPointInfo which wants to log its name.
+                this->mappedSerializedScriptValue->CleanUp();
+            }
+#endif
         }
 
         virtual void Mark(Recycler * recycler) override

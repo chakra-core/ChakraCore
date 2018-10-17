@@ -63,6 +63,7 @@ struct ObjdumpState {
   std::vector<Reloc> data_relocations;
   std::vector<std::string> function_names;
   std::vector<std::string> global_names;
+  std::vector<std::string> section_names;
   std::vector<ObjdumpSymbol> symtab;
 };
 

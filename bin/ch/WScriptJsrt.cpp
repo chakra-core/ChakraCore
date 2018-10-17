@@ -35,6 +35,7 @@
 #endif // FreeBSD or unix ?
 #endif // _WIN32 ?
 
+#pragma prefast(disable:26444, "This warning unfortunately raises false positives when auto is used for declaring the type of an iterator in a loop.")
 #ifdef HAS_ICU
 #define INTL_LIBRARY_TEXT "icu"
 #elif defined(_WIN32)
@@ -140,7 +141,7 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
                 }
                 charcount_t len;
                 LPWSTR ws = str.GetWideString(&len);
-                LPWSTR wsNoNull = new WCHAR[len + 1];
+                LPWSTR wsNoNull = new WCHAR[((size_t)len) + 1];
                 charcount_t newIndex = 0;
                 for (charcount_t j = 0; j < len; j++)
                 {
@@ -609,6 +610,15 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
 Error:
     if (errorCode != JsNoError)
     {
+        // check and clear exception if any
+        bool hasException;
+        if (ChakraRTInterface::JsHasException(&hasException) == JsNoError && hasException)
+        {
+            JsValueRef unusedException = JS_INVALID_REFERENCE;
+            ChakraRTInterface::JsGetAndClearException(&unusedException);
+            unusedException;
+        }
+
         JsValueRef errorObject;
         JsValueRef errorMessageString;
 
@@ -2257,8 +2267,6 @@ void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef
 {
     Assert(promise != JS_INVALID_REFERENCE);
     Assert(reason != JS_INVALID_REFERENCE);
-    JsValueRef strValue;
-    JsErrorCode error = ChakraRTInterface::JsConvertValueToString(reason, &strValue);
 
     if (!handled)
     {
@@ -2269,11 +2277,32 @@ void WScriptJsrt::PromiseRejectionTrackerCallback(JsValueRef promise, JsValueRef
         wprintf(_u("Promise rejection handled\n"));
     }
 
+    JsPropertyIdRef stackPropertyID; 
+    JsErrorCode error = ChakraRTInterface::JsCreatePropertyId("stack", strlen("stack"), &stackPropertyID);
     if (error == JsNoError)
     {
-        AutoString str(strValue);
-        if (str.GetError() == JsNoError)
+        JsValueRef stack;
+        error = ChakraRTInterface::JsGetProperty(reason, stackPropertyID, &stack);
+        if (error == JsNoError)
         {
+            JsValueRef stackStrValue;
+            error = ChakraRTInterface::JsConvertValueToString(stack, &stackStrValue);
+            if (error == JsNoError)
+            {
+                AutoString str(stackStrValue);
+                wprintf(_u("%ls\n"), str.GetWideString());
+            }
+        }
+    }
+    
+    if (error != JsNoError)
+    {
+        // weren't able to print stack, so just convert reason to a string
+        JsValueRef strValue;
+        error = ChakraRTInterface::JsConvertValueToString(reason, &strValue);
+        if (error == JsNoError)
+        {
+            AutoString str(strValue);
             wprintf(_u("%ls\n"), str.GetWideString());
         }
     }

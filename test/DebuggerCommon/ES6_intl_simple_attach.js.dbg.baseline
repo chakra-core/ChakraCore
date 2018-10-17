@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "Run": "function <large string>"
     },
@@ -22,6 +23,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "Run": "function <large string>"
     }
@@ -55,7 +57,8 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>"
+              "entries": "function <large string>",
+              "fromEntries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",
@@ -203,7 +206,8 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>"
+              "entries": "function <large string>",
+              "fromEntries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",
@@ -351,7 +355,8 @@
               "is": "function <large string>",
               "assign": "function <large string>",
               "values": "function <large string>",
-              "entries": "function <large string>"
+              "entries": "function <large string>",
+              "fromEntries": "function <large string>"
             },
             "hasOwnProperty": {
               "#__proto__": "function <large string>",

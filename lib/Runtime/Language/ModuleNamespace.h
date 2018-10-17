@@ -30,8 +30,6 @@ namespace Js
         static ModuleNamespace* GetModuleNamespace(ModuleRecordBase* moduleRecord);
         void Initialize();
         ListForListIterator* GetSortedExportedNames() { return this->sortedExportedNames; }
-        static bool Is(Var aValue) {  return JavascriptOperators::GetTypeId(aValue) == TypeIds_ModuleNamespace; }
-        static ModuleNamespace* FromVar(Var obj) { AssertOrFailFast(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
@@ -61,7 +59,7 @@ namespace Js
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { return true; }
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { return false; }
-        virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { return false; }
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override { return FALSE; };
         virtual BOOL IsWritable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
@@ -79,8 +77,8 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
-        virtual void RemoveFromPrototype(ScriptContext * requestContext) override { Assert(false); }
-        virtual void AddToPrototype(ScriptContext * requestContext) override { Assert(false); }
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override { Assert(false); }
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override { Assert(false); }
         virtual void SetPrototype(RecyclableObject* newPrototype) override { Assert(false); return; }
 
     private:
@@ -98,4 +96,9 @@ namespace Js
         // Methods used by NamespaceEnumerator;
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const;
     };
+
+    template <> inline bool VarIsImpl<ModuleNamespace>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace;
+    }
 }

@@ -37,9 +37,9 @@ namespace Js
     public:
         bool IsSingleSuccessor() const { return kind == PathTypeSuccessorKindSingle; }
         bool IsMultiSuccessor() const { return !IsSingleSuccessor(); }
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const = 0;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) = 0;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) = 0;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapSuccessors(Fn fn);
         template<class Fn> void MapSuccessorsUntil(Fn fn);
@@ -60,9 +60,9 @@ namespace Js
 
         PathTypeSingleSuccessorInfo(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapSingleSuccessor(Fn fn);
 
@@ -78,9 +78,9 @@ namespace Js
 
         PathTypeMultiSuccessorInfo(Recycler * recycler, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
-        virtual bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const override;
-        virtual void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext) override;
-        virtual void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef) override;
+        bool GetSuccessor(const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> ** typeWeakRef) const;
+        void SetSuccessor(DynamicType * type, const PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef, ScriptContext * scriptContext);
+        void ReplaceSuccessor(DynamicType * type, PathTypeSuccessorKey successorKey, RecyclerWeakReference<DynamicType> * typeWeakRef);
 
         template<class Fn> void MapMultiSuccessors(Fn fn);
         template<class Fn> void MapMultiSuccessorsUntil(Fn fn);
@@ -127,7 +127,7 @@ namespace Js
         static bool ObjectSlotAttributesContains(const PropertyAttributes attr) { return attr == (attr & ObjectSlotAttr_PropertyAttributesMask); }
         static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, bool *const check__proto__Ref = nullptr);
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
-        static DynamicType* CreateNewScopeObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, PropertyAttributes extraAttributes = PropertyNone, uint extraAttributesSlotCount = UINT_MAX);
+        template <bool skipLetAttrForArguments> static DynamicType* CreateNewScopeObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, PropertyAttributes extraAttributes = PropertyNone, uint extraAttributesSlotCount = UINT_MAX);
 
         static PathTypeHandlerBase * FromTypeHandler(DynamicTypeHandler * const typeHandler) { Assert(typeHandler->IsPathTypeHandler()); return static_cast<PathTypeHandlerBase*>(typeHandler); }
 
@@ -515,7 +515,7 @@ namespace Js
         virtual BOOL SetProperty(DynamicObject* instance, PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(DynamicObject* instance, JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
 
-        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter) override;
         virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;

@@ -62,6 +62,7 @@ namespace UnifiedRegex
         bool IsIgnoreCase() const;
         bool IsGlobal() const;
         bool IsMultiline() const;
+        bool IsDotAll() const;
         bool IsUnicode() const;
         bool IsSticky() const;
         bool WasLastMatchSuccessful() const;

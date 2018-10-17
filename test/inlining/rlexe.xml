@@ -134,6 +134,7 @@
       <files>NoProf.js</files>
     </default>
   </test>
+<!-- Random stack overflow with forced inlining
   <test>
     <default>
       <files>bug515849.js</files>
@@ -142,6 +143,7 @@
       <tags>exclude_arm64</tags>
     </default>
   </test>
+-->
   <test>
     <default>
       <files>inlineBuiltIns.js</files>
@@ -299,6 +301,22 @@
       <files>InlineCallbacks.js</files>
       <compile-flags>-testtrace:InlineCallbacks</compile-flags>
       <baseline>InlineCallbacks.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>InlineCallbackCallBailout.js</files>
+      <compile-flags>-testtrace:InlineCallbacks -testtrace:Bailout</compile-flags>
+      <baseline>InlineCallbackCallBailout.baseline</baseline>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>InlineCallInstanceFunction.js</files>
+      <compile-flags>-TestChakraLib -testtrace:bailout -testtrace:inlineCallbacks</compile-flags>
+      <baseline>InlineCallInstanceFunction.baseline</baseline>
       <tags>exclude_dynapogo,exclude_nonative,exclude_forceserialized,require_backend</tags>
     </default>
   </test>

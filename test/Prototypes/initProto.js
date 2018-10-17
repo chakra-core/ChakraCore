@@ -7,7 +7,11 @@ function write(v) { WScript.Echo(v + ""); }
 
 function doEval(str)
 {
-    write(str + " = " + eval(str));
+    try {
+        write(str + " = " + eval(str));
+    } catch (e) { 
+        write(str + " = err: " + e);
+    }
 }
 
 function check(type)

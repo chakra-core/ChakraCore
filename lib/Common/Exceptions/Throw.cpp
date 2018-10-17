@@ -66,14 +66,21 @@ namespace Js {
 #if defined(GENERATE_DUMP) && defined(STACK_BACK_TRACE)
     THREAD_LOCAL StackBackTrace * Throw::stackBackTrace = nullptr;
 #endif
-    void Throw::FatalInternalError()
+    void Throw::FatalInternalError(HRESULT hr)
     {
         int scenario = 2;
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
+        ReportFatalException(NULL, hr, Fatal_Internal_Error, scenario);
     }
 
     void Throw::FatalInternalErrorEx(int scenario)
     {
+        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
+    }
+
+    void Throw::FatalInternalGlobalizationError()
+    {
+        AssertMsg(false, "Failure in initializing Globalization library");
+        int scenario = 2;
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
 
@@ -118,13 +125,21 @@ namespace Js {
         }
         throw OutOfMemoryException();
     }
-    void Throw::CheckAndThrowOutOfMemory(BOOLEAN status)
+
+#if !defined(_M_IX86) && defined(_WIN32)
+    void Throw::XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart)
     {
-        if (!status)
+        ULONG_PTR            imageBase = 0;
+        RUNTIME_FUNCTION  *runtimeFunction = RtlLookupFunctionEntry(funcStart, &imageBase, nullptr);
+
+        if (JsUtil::ExternalApi::GetCurrentThreadContextId())
         {
-            OutOfMemory();
+            XDataRegistration_unrecoverable_error(hr, (ULONG_PTR)runtimeFunction);
         }
+        throw OutOfMemoryException();
     }
+#endif
+
     void Throw::StackOverflow(ScriptContext *scriptContext, PVOID returnAddress)
     {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

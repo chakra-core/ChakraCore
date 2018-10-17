@@ -235,3 +235,10 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16Recyclab
         jmp rax
 
 NESTED_END _ZN2Js18JavascriptFunction24DeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
+
+.balign 16
+NESTED_ENTRY BreakSpeculation, _TEXT, NoHandler
+        cmp rdi, rdi
+        cmove rax, rdi
+        ret
+NESTED_END BreakSpeculation, _TEXT

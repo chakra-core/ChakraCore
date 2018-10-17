@@ -1,0 +1,3 @@
+Error: throw exception from throwFunction
+	at throwFunction() (JsDiagBreakOnUncaughtException.js:18:4)
+	at Global code (JsDiagBreakOnUncaughtException.js:20:1)

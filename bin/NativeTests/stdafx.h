@@ -40,7 +40,7 @@ if (!(exp)) \
 
 #define Assert(exp)             AssertMsg(exp, #exp)
 #define _JSRT_
-#include "chakracore.h"
+#include "ChakraCore.h"
 #include "Core/CommonTypedefs.h"
 
 #include <FileLoadHelpers.h>

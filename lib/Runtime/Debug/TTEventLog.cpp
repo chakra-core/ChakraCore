@@ -201,7 +201,7 @@ namespace TTD
 
         for(TTEventListLink* curr = this->m_headBlock; curr != nullptr; curr = curr->Previous)
         {
-            size_t cpos = curr->StartPos; 
+            size_t cpos = curr->StartPos;
             while(cpos != curr->CurrPos)
             {
                 count++;
@@ -814,7 +814,7 @@ namespace TTD
     void EventLog::RecordTelemetryLogEvent(Js::JavascriptString* infoStringJs, bool doPrint)
     {
         NSLogEvents::TelemetryEventLogEntry* tEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::TelemetryEventLogEntry, NSLogEvents::EventKind::TelemetryLogTag>();
-        this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetSz(), infoStringJs->GetLength(), tEvent->InfoString);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(infoStringJs->GetString(), infoStringJs->GetLength(), tEvent->InfoString);
         tEvent->DoPrint = doPrint;
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
@@ -864,7 +864,7 @@ namespace TTD
         this->RecordGetInitializedEvent_DataOnly<NSLogEvents::ExplicitLogWriteEventLogEntry, NSLogEvents::EventKind::ExplicitLogWriteTag>();
 
         AutoArrayPtr<char> uri(HeapNewArrayZ(char, uriString->GetLength() * 3), uriString->GetLength() * 3);
-        size_t uriLength = utf8::EncodeInto((LPUTF8)((char*)uri), uriString->GetSz(), uriString->GetLength());
+        size_t uriLength = utf8::EncodeInto((LPUTF8)((char*)uri), uriString->GetString(), uriString->GetLength());
 
         this->EmitLog(uri, uriLength);
     }
@@ -901,7 +901,7 @@ namespace TTD
     void EventLog::RecordDateStringEvent(Js::JavascriptString* stringValue)
     {
         NSLogEvents::StringValueEventLogEntry* sEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::StringValueEventLogEntry, NSLogEvents::EventKind::StringTag>();
-        this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue->GetSz(), stringValue->GetLength(), sEvent->StringValue);
+        this->m_eventSlabAllocator.CopyStringIntoWLength(stringValue->GetString(), stringValue->GetLength(), sEvent->StringValue);
     }
 
     void EventLog::ReplayDateTimeEvent(double* result)
@@ -949,12 +949,12 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         if(returnCode)
         {
-            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), peEvent->PropertyString);
+            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetString(), propertyName->GetLength(), peEvent->PropertyString);
         }
 #else
         if(returnCode && pid == Js::Constants::NoProperty)
         {
-            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetSz(), propertyName->GetLength(), peEvent->PropertyString);
+            this->m_eventSlabAllocator.CopyStringIntoWLength(propertyName->GetString(), propertyName->GetLength(), peEvent->PropertyString);
         }
 #endif
 
@@ -1035,7 +1035,7 @@ namespace TTD
 #endif
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(func, true, argc, argv, this->GetLastEventTime());
+        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(func, true, args.Info.Count, args.Values, this->GetLastEventTime());
 #endif
 
         return evt;
@@ -1063,7 +1063,7 @@ namespace TTD
         ThreadContextTTD* executeContext = ctx->GetThreadContext()->TTDContext;
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(function, true, argc, argv, this->GetLastEventTime());
+        this->m_threadContext->TTDExecutionInfo->GetTraceLogger()->WriteCall(function, true, args.Info.Count, args.Values, this->GetLastEventTime());
 #endif
 
         //make sure we log all of the passed arguments in the replay host
@@ -1335,7 +1335,7 @@ namespace TTD
         }
 
         //Now allocate the arrays for them and do the processing
-        snapEvent->LongLivedRefRootsIdArray = nullptr; 
+        snapEvent->LongLivedRefRootsIdArray = nullptr;
         if(snapEvent->LongLivedRefRootsCount != 0)
         {
             snapEvent->LongLivedRefRootsIdArray = this->m_eventSlabAllocator.SlabAllocateArray<TTD_LOG_PTR_ID>(snapEvent->LongLivedRefRootsCount);
@@ -2131,7 +2131,7 @@ namespace TTD
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTByteBufferAction, NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>(&cAction);
         cAction->Length = size;
 
-        cAction->Buffer = nullptr; 
+        cAction->Buffer = nullptr;
         if(cAction->Length != 0)
         {
             cAction->Buffer = this->m_eventSlabAllocator.SlabAllocateArray<byte>(cAction->Length);
@@ -2420,9 +2420,9 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length)
     {
-        TTDAssert(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
-        TTDAssert(dstIndex + length <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
-        TTDAssert(srcIndex + length <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::VarIs<Js::ArrayBuffer>(dst) && Js::VarIs<Js::ArrayBuffer>(src), "Not array buffer objects!!!");
+        TTDAssert(dstIndex + length <= Js::VarTo<Js::ArrayBuffer>(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(srcIndex + length <= Js::VarTo<Js::ArrayBuffer>(src)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferCopyAction* rbcAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferCopyAction, NSLogEvents::EventKind::RawBufferCopySync>(&rbcAction);
@@ -2437,8 +2437,8 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferModifySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 index, uint32 count)
     {
-        TTDAssert(Js::ArrayBuffer::Is(dst), "Not array buffer object!!!");
-        TTDAssert(index + count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::VarIs<Js::ArrayBuffer>(dst), "Not array buffer object!!!");
+        TTDAssert(index + count <= Js::VarTo<Js::ArrayBuffer>(dst)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferModifyAction* rbmAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferModifyAction, NSLogEvents::EventKind::RawBufferModifySync>(&rbmAction);
@@ -2447,7 +2447,7 @@ namespace TTD
         rbmAction->Length = count;
 
         rbmAction->Data = (rbmAction->Length != 0) ? this->m_eventSlabAllocator.SlabAllocateArray<byte>(rbmAction->Length) : nullptr;
-        byte* copyBuff = Js::ArrayBuffer::FromVar(dst)->GetBuffer() + index;
+        byte* copyBuff = Js::VarTo<Js::ArrayBuffer>(dst)->GetBuffer() + index;
         js_memcpy_s(rbmAction->Data, rbmAction->Length, copyBuff, count);
 
         actionPopper.InitializeWithEventAndEnter(evt);
@@ -2465,7 +2465,7 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferAsyncModifyComplete(TTDJsRTActionResultAutoRecorder& actionPopper, TTDPendingAsyncBufferModification& pendingAsyncInfo, byte* finalModPos)
     {
-        Js::ArrayBuffer* dstBuff = Js::ArrayBuffer::FromVar(pendingAsyncInfo.ArrayBufferVar);
+        Js::ArrayBuffer* dstBuff = Js::VarTo<Js::ArrayBuffer>(pendingAsyncInfo.ArrayBufferVar);
         byte* copyBuff = dstBuff->GetBuffer() + pendingAsyncInfo.Index;
 
         NSLogEvents::JsRTRawBufferModifyAction* rbrAction = nullptr;

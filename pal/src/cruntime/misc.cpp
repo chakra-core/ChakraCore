@@ -555,7 +555,7 @@ void MiscUnsetenv(const char *name)
             if (memcmp(name, palEnvironment[i], length) == 0)
             {
                 // Remove this one. Don't free it, though, since
-                // there might be oustanding references to it that
+                // there might be outstanding references to it that
                 // were acquired via getenv. This is an
                 // unavoidable memory leak.
                 for(j = i + 1; palEnvironment[j] != NULL; j++) { }

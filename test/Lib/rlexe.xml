@@ -60,6 +60,12 @@
       <baseline />
     </default>
   </test>
+  <test>
+    <default>
+      <files>proxyenum.js</files>
+      <baseline>proxyenum.baseline</baseline>
+    </default>
+  </test>
   <!--
 Re-enable after 190575 is fixed
 <test>

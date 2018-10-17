@@ -65,11 +65,12 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "script1": "Object {...}",
+      "script2": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
-      "Func1": "function <large string>",
-      "script1": "Object {...}",
-      "script2": "Object {...}"
+      "Func1": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -81,11 +82,12 @@
       "x": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "script1": "Object {...}",
+      "script2": "Object {...}",
       "Func2": "function <large string>",
       "Func3": "function <large string>",
-      "Func1": "function <large string>",
-      "script1": "Object {...}",
-      "script2": "Object {...}"
+      "Func1": "function <large string>"
     }
   }
 ]

@@ -214,7 +214,7 @@ public:
     bool            StartsBasicBlock() const;
     bool            EndsBasicBlock() const;
     bool            HasFallThrough() const;
-    bool            DoStackArgsOpt(Func *topFunc) const;
+    bool            DoStackArgsOpt() const;
     bool            HasAnyLoadHeapArgsOpCode();
     bool            IsEqual(IR::Instr *instr) const;
 
@@ -579,7 +579,6 @@ public:
     // problems because we end up with an instruction losing atomicity in terms of its
     // bytecode use and generation lifetimes.
     void AggregateFollowingByteCodeUses();
-    void AggregatePrecedingByteCodeUses();
 
 private:
     void Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr);

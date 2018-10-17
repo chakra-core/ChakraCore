@@ -251,13 +251,13 @@ namespace Js
         }
         END_LEAVE_SCRIPT(scriptContext);
 
-        bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
+        bool isExternalArray = Js::VarIs<Js::ArrayBuffer>(scriptVal),
              isString = false;
         bool isUtf8   = !(attributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
         if (!isExternalArray)
         {
-            isString = Js::JavascriptString::Is(scriptVal);
+            isString = Js::VarIs<Js::JavascriptString>(scriptVal);
             if (!isString)
             {
                 Js::JavascriptError::ThrowOutOfMemoryError(nullptr);
@@ -299,7 +299,6 @@ namespace Js
             this->mappedSource = nullptr;
         }
         this->mappedScriptValue = nullptr;
-        this->mappedSerializedScriptValue = nullptr;
 
         // Don't allow load or unload again after told to unload.
         scriptLoadCallback = nullptr;

@@ -479,7 +479,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward
                 fprintf(stderr, "Must be in replay mode to use reverse-step - launch with \"--replay-debug\" flag in Node.");
                 jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
             }
@@ -500,7 +500,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward
                 fprintf(stderr, "Must be in replay mode to use reverse-continue - launch with \"--replay-debug\" flag in Node.");
                 jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
             }
@@ -566,12 +566,12 @@ CHAKRA_API JsDiagGetFunctionPosition(
 
         *functionPosition = JS_INVALID_REFERENCE;
 
-        if (!Js::RecyclableObject::Is(function) || !Js::ScriptFunction::Is(function))
+        if (!Js::VarIs<Js::RecyclableObject>(function) || !Js::VarIs<Js::ScriptFunction>(function))
         {
             return JsErrorInvalidArgument;
         }
 
-        Js::ScriptFunction* jsFunction = Js::ScriptFunction::FromVar(function);
+        Js::ScriptFunction* jsFunction = Js::VarTo<Js::ScriptFunction>(function);
 
         BOOL fParsed = jsFunction->GetParseableFunctionInfo()->IsFunctionParsed();
         if (!fParsed)
@@ -788,13 +788,13 @@ CHAKRA_API JsDiagEvaluate(
         PARAM_NOT_NULL(expressionVal);
         PARAM_NOT_NULL(evalResult);
 
-        bool isArrayBuffer = Js::ArrayBuffer::Is(expressionVal),
+        bool isArrayBuffer = Js::VarIs<Js::ArrayBuffer>(expressionVal),
              isString = false;
         bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
         if (!isArrayBuffer)
         {
-            isString = Js::JavascriptString::Is(expressionVal);
+            isString = Js::VarIs<Js::JavascriptString>(expressionVal);
             if (!isString)
             {
                 return JsErrorInvalidArgument;
@@ -802,8 +802,8 @@ CHAKRA_API JsDiagEvaluate(
         }
 
         const size_t len = isArrayBuffer ?
-            Js::ArrayBuffer::FromVar(expressionVal)->GetByteLength() :
-            Js::JavascriptString::FromVar(expressionVal)->GetLength();
+            Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetByteLength() :
+            Js::VarTo<Js::JavascriptString>(expressionVal)->GetLength();
 
         if (len > INT_MAX)
         {
@@ -815,7 +815,7 @@ CHAKRA_API JsDiagEvaluate(
         if (isArrayBuffer && isUtf8)
         {
             wide_expression.Initialize(
-                (const char*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(), len);
+                (const char*)Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetBuffer(), len);
             if (!wide_expression)
             {
                 return JsErrorOutOfMemory;
@@ -825,9 +825,9 @@ CHAKRA_API JsDiagEvaluate(
         else
         {
             expression = !isArrayBuffer ?
-                Js::JavascriptString::FromVar(expressionVal)->GetSz() // String
+                Js::VarTo<Js::JavascriptString>(expressionVal)->GetSz() // String
                 :
-                (const WCHAR*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(); // ArrayBuffer;
+                (const WCHAR*)Js::VarTo<Js::ArrayBuffer>(expressionVal)->GetBuffer(); // ArrayBuffer;
         }
 
         *evalResult = JS_INVALID_REFERENCE;

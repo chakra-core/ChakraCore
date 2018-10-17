@@ -47,7 +47,8 @@ namespace Js
     {
         Heap = 0x0,
         CoTask = 0x1,
-        MemAlloc = 0x02
+        MemAlloc = 0x02,
+        External = 0x03,
     } ArrayBufferAllocationType;
 
     class ArrayBufferDetachedStateBase : public DetachedStateBase

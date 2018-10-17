@@ -15,6 +15,7 @@
 void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_PTR functionStart, _In_ const ULONG_PTR functionEnd, _Out_ PVOID* pdataTable, ULONG entryCount, ULONG maxEntryCount)
 {
     BOOLEAN success = FALSE;
+    HRESULT hr = S_OK;
     if (AutoSystemInfo::Data.IsWin8OrLater())
     {
         Assert(pdataTable != NULL);
@@ -28,17 +29,22 @@ void PDataManager::RegisterPdata(RUNTIME_FUNCTION* pdataStart, _In_ const ULONG_
             /*RangeBase*/ functionStart,
             /*RangeEnd*/ functionEnd);
         success = NT_SUCCESS(status);
-        if (success)
-        {
-            Assert(pdataTable);
-        }
+        Assert(!success || pdataTable);
+        hr = status;
     }
     else
     {
         *pdataTable = pdataStart;
         success = RtlAddFunctionTable(pdataStart, entryCount, functionStart);
+        if (!success) 
+        {
+            hr = E_OUTOFMEMORY; // only OOM error can happen for RtlAddFunctionTable
+        }
     }
-    Js::Throw::CheckAndThrowOutOfMemory(success);
+    if (!success)
+    {
+        Js::Throw::XDataRegistrationError(hr, functionStart);
+    }
 }
 
 void PDataManager::UnregisterPdata(RUNTIME_FUNCTION* pdata)

@@ -146,7 +146,7 @@ public:
     typedef JsUtil::BaseDictionary<double,Js::RegSlot, ArenaAllocator, PrimeSizePolicy> DoubleRegisterMap;
     DoubleRegisterMap doubleConstantToRegister; // maps double constant to register
 
-    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator, PowerOf2SizePolicy, Js::StringTemplateCallsiteObjectComparer> StringTemplateCallsiteRegisterMap;
+    typedef JsUtil::BaseDictionary<ParseNodePtr, Js::RegSlot, ArenaAllocator, PowerOf2SizePolicy> StringTemplateCallsiteRegisterMap;
     StringTemplateCallsiteRegisterMap stringTemplateCallsiteRegisterMap; // maps string template callsite constant to register
 
     Scope *paramScope; // top level scope for parameter default values
@@ -674,7 +674,7 @@ public:
         }
 
         // If we share inline caches we should never have more than one entry in the list.
-        Assert(Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
+        Assert(!Js::FunctionBody::ShouldShareInlineCaches() || cacheList->Count() <= 1);
 
         InlineCacheUnit cacheIdUnit;
 

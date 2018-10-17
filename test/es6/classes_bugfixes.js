@@ -258,7 +258,7 @@ var tests = [
         b.arguments=function() { };
         assert.areEqual(100, b.length, "Get/set accessor \'length\'");
         assert.areEqual("Caller", b.caller, "Get/set accessor \'caller\'");
-        assert.areEqual("function () { }", b.arguments.toString(), "Get/set accessor \'arguments\'");
+        assert.areEqual("function() { }", b.arguments.toString(), "Get/set accessor \'arguments\'");
     }
   },
   {

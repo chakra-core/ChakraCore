@@ -161,7 +161,7 @@ namespace Js
 #if !defined(USED_IN_STATIC_LIB)
     inline bool JavascriptNumber::Is_NoTaggedIntCheck(Var aValue)
     {
-        RecyclableObject* object = RecyclableObject::FromVar(aValue);
+        RecyclableObject* object = VarTo<RecyclableObject>(aValue);
         AssertMsg((object->GetTypeId() == TypeIds_Number) == VirtualTableInfo<JavascriptNumber>::HasVirtualTable(object), "JavascriptNumber has no unique VTABLE?");
         return VirtualTableInfo<JavascriptNumber>::HasVirtualTable(object);
     }

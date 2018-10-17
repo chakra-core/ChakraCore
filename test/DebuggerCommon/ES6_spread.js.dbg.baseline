@@ -1,9 +1,10 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "a": "Array [1,2,check]",
       "bar": "function <large string>",
-      "foo": "function <large string>",
-      "a": "Array [1,2,check]"
+      "foo": "function <large string>"
     },
     "locals": {
       "x": "number 1",
@@ -20,9 +21,10 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "a": "Array [1,2,check]",
       "bar": "function <large string>",
-      "foo": "function <large string>",
-      "a": "Array [1,2,check]"
+      "foo": "function <large string>"
     }
   },
   {

@@ -68,7 +68,7 @@ Instr::IsPlainInstr() const
 }
 
 bool
-Instr::DoStackArgsOpt(Func *topFunc) const
+Instr::DoStackArgsOpt() const
 {
     return this->usesStackArgumentsObject && m_func->IsStackArgsEnabled();
 }
@@ -1001,20 +1001,6 @@ void ByteCodeUsesInstr::AggregateFollowingByteCodeUses()
     }
 }
 
-void ByteCodeUsesInstr::AggregatePrecedingByteCodeUses()
-{
-    IR::Instr * instr = this->m_prev;
-    while(instr && CanAggregateByteCodeUsesAcrossInstr(instr))
-    {
-        if (instr->IsByteCodeUsesInstr() && instr->GetByteCodeOffset() == this->GetByteCodeOffset())
-        {
-            IR::ByteCodeUsesInstr* precedingByteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            this->Aggregate(precedingByteCodeUsesInstr);
-        }
-        instr = instr->m_prev;
-    }
-}
-
 void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 {
     Assert(this->m_func == byteCodeUsesInstr->m_func);
@@ -1037,7 +1023,7 @@ void ByteCodeUsesInstr::Aggregate(ByteCodeUsesInstr * byteCodeUsesInstr)
 
 bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
 {
-    return !instr->EndsBasicBlock() && 
+    return !instr->StartsBasicBlock() && 
         instr->m_func == this->m_func &&
         ((instr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset) ||
         (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
@@ -2731,11 +2717,21 @@ Instr::GetNextByteCodeInstr() const
     {
         nextInstr = getNext(nextInstr);
     }
-    // This can happen due to break block removal
-    while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
-        nextInstr->GetByteCodeOffset() < currentOffset)
+
+    // Do not check if the instr trying to bailout is in the function prologue
+    // nextInstr->GetByteCodeOffset() < currentOffset would always be true and we would crash
+    if (currentOffset != Js::Constants::NoByteCodeOffset)
     {
-        nextInstr = getNext(nextInstr);
+        // This can happen due to break block removal
+        while (nextInstr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset ||
+            nextInstr->GetByteCodeOffset() < currentOffset)
+        {
+            nextInstr = getNext(nextInstr);
+        }
+    }
+    else
+    {
+        AssertMsg(nextInstr->GetByteCodeOffset() == 0, "Only instrs before the first one are allowed to not have a bytecode offset");
     }
     return nextInstr;
 }
@@ -3309,7 +3305,6 @@ bool Instr::TransfersSrcValue()
     // No point creating an unknown value for the src of a binary instr, as the dst will just be a different
     // Don't create value for instruction without dst as well. The value doesn't go anywhere.
 
-    // if (src2 == nullptr) Disable copy prop for ScopedLdFld/ScopeStFld, etc., consider enabling that in the future
     // Consider: Add opcode attribute to indicate whether the opcode would use the value or not
 
     return this->GetDst() != nullptr && this->GetSrc2() == nullptr && !OpCodeAttr::DoNotTransfer(this->m_opcode) && !this->CallsAccessor();

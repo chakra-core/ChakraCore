@@ -30,6 +30,12 @@
 #include "DictionaryStats.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:__WARNING_CALLER_FAILING_TO_HOLD_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_FAILING_TO_RELEASE_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_FAILING_TO_ACQUIRE_MEDIUM_CONFIDENCE)
+#pragma warning(disable:__WARNING_RELEASING_UNHELD_LOCK_MEDIUM_CONFIDENCE)
+
 namespace Js
 {
     template <class TDictionary>
@@ -54,10 +60,10 @@ namespace JsUtil
     class AsymetricResizeLock
     {
     public:
-        void BeginResize() { cs.Enter(); }
-        void EndResize() { cs.Leave(); }
-        void LockResize() { cs.Enter(); }
-        void UnlockResize() { cs.Leave(); }
+        void _Acquires_lock_(cs.cs) BeginResize() { cs.Enter(); }
+        void _Releases_lock_(cs.cs) EndResize() { cs.Leave(); }
+        void _Acquires_lock_(cs.cs) LockResize() { cs.Enter(); }
+        void _Releases_lock_(cs.cs) UnlockResize() { cs.Leave(); }
     private:
         CriticalSection cs;
     };
@@ -117,8 +123,8 @@ namespace JsUtil
         class AutoDoResize
         {
         public:
-            AutoDoResize(Lock& lock) : lock(lock) { lock.BeginResize(); };
-            ~AutoDoResize() { lock.EndResize(); };
+            AutoDoResize(Lock& lock) : lock(lock) { this->lock.BeginResize(); };
+            ~AutoDoResize() { this->lock.EndResize(); };
         private:
             Lock& lock;
         };
@@ -244,6 +250,7 @@ namespace JsUtil
             return Insert<Insert_Add>(key, value);
         }
 
+        // Returns -1 if the key is already in the dictionary
         int AddNew(const TKey& key, const TValue& value)
         {
             return Insert<Insert_AddNew>(key, value);
@@ -671,12 +678,12 @@ namespace JsUtil
             DoCopy(other);
         }
 
-        void LockResize()
+        void _Acquires_lock_(this->cs.cs) LockResize()
         {
             __super::LockResize();
         }
 
-        void UnlockResize()
+        void _Releases_lock_(this->cs.cs) UnlockResize()
         {
             __super::UnlockResize();
         }
@@ -1573,12 +1580,12 @@ namespace JsUtil
             this->DoCopy(other);
         }
 
-        void LockResize()
+        void _Acquires_lock_(this->cs.cs) LockResize()
         {
             __super::LockResize();
         }
 
-        void UnlockResize()
+        void _Releases_lock_(this->cs.cs) UnlockResize()
         {
             __super::UnlockResize();
         }
@@ -1852,3 +1859,5 @@ namespace JsUtil
         PREVENT_COPY(SynchronizedDictionary);
     };
 }
+
+#pragma warning(pop)

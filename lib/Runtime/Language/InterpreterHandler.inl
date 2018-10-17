@@ -142,6 +142,7 @@ EXDEF2_WMS(A2toXX,                  SetComputedNameVar,         JavascriptOperat
   DEF2_WMS(XXtoA1,                  InitUndecl,                 OP_InitUndecl)
   DEF2_WMS(ELEM_RtU_to_XX,          EnsureNoRootFld,            OP_EnsureNoRootProperty)
   DEF2_WMS(ELEM_RtU_to_XX,          EnsureNoRootRedeclFld,      OP_EnsureNoRootRedeclProperty)
+EXDEF2_WMS(ELEM_RtU_to_XX,          EnsureCanDeclGloFunc,       OP_EnsureCanDeclGloFunc)
   DEF2_WMS(ELEM_C2_to_XX,           ScopedEnsureNoRedeclFld,    OP_ScopedEnsureNoRedeclProperty)
   DEF2_WMS(A1toA1Profiled,          ProfiledBeginSwitch,        PROFILEDOP(ProfiledSwitch<true>, ProfiledSwitch<false>))
   DEF2_WMS(XXtoA1Mem,               LdC_A_Null,                 JavascriptOperators::OP_LdNull)
@@ -375,8 +376,8 @@ EXDEF3_WMS(CUSTOM,                  LdLocalElemUndef,           OP_LdLocalElemen
   DEF3    (CUSTOM_L_R0,             NewScIntArray,              OP_NewScIntArray, Auxiliary)
   DEF3    (CUSTOM_L_R0,             NewScFltArray,              OP_NewScFltArray, Auxiliary)
   DEF3_WMS(CUSTOM_L_R0,             ProfiledNewScArray,         PROFILEDOP(OP_ProfiledNewScArray, OP_ProfiledNewScArray_NoProfile), ProfiledReg1Unsigned1)
-  DEF3    (CUSTOM_L_R0,             ProfiledNewScIntArray,      PROFILEDOP(OP_ProfiledNewScIntArray, OP_NewScIntArray), ProfiledAuxiliary)
-  DEF3    (CUSTOM_L_R0,             ProfiledNewScFltArray,      PROFILEDOP(OP_ProfiledNewScFltArray, OP_NewScFltArray), ProfiledAuxiliary)
+  DEF3    (CUSTOM_L_R0,             ProfiledNewScIntArray,      PROFILEDOP(ProfiledNewScIntArray<true>, ProfiledNewScIntArray<false>), ProfiledAuxiliary)
+  DEF3    (CUSTOM_L_R0,             ProfiledNewScFltArray,      PROFILEDOP(ProfiledNewScFltArray<true>, ProfiledNewScFltArray<false>), ProfiledAuxiliary)
   DEF2_WMS(RegextoA1,               NewRegEx,                   JavascriptRegExp::OP_NewRegEx)
 EXDEF3_WMS(CUSTOM,                  InitClass,                  OP_InitClass, Class)
   DEF2_WMS(BRBReturnP1toA1,         BrOnEmpty,                  JavascriptOperators::OP_BrOnEmpty)
@@ -396,6 +397,11 @@ EXDEF3_WMS(CUSTOM,                  ClearAttributes,            OP_ClearAttribut
 EXDEF3_WMS(CUSTOM,                  EmitTmpRegCount,            OP_EmitTmpRegCount, Unsigned1)
 #endif
 EXDEF2    (EMPTY,                   BeginBodyScope,             OP_BeginBodyScope)
+EXDEF2_WMS(A2toXXMem,               SpreadObjectLiteral,        JavascriptObject::SpreadObjectLiteral)
+EXDEF2_WMS(A2A2NonVartoXXMem,       Restify,                    JavascriptObject::Restify)
+EXDEF2_WMS(SET_ELEM_SLOTMem,        StPropIdArrFromVar,         OP_StPropIdArrFromVar)
+EXDEF2_WMS(SIZEtoA1MemNonVar,       NewPropIdArrForCompProps,   OP_NewPropIdArrForCompProps)
+
 
 #endif
 

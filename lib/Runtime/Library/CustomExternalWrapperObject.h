@@ -69,10 +69,6 @@ namespace Js
         BOOL IsObjectAlive();
         BOOL VerifyObjectAlive();
 
-        static BOOL Is(_In_ Var value);
-        static BOOL Is(_In_ RecyclableObject* obj);
-        static CustomExternalWrapperObject * FromVar(Var value);
-        static CustomExternalWrapperObject * UnsafeFromVar(Var value);
         static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsGetterSetterInterceptor ** getterSetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
         static CustomExternalWrapperObject * Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext);
 
@@ -158,7 +154,7 @@ namespace Js
             for (uint32 i = 0; i < len; i++)
             {
                 if (!JavascriptOperators::GetItem(trapResultArray, i, &element, scriptContext) || // missing
-                    !(JavascriptString::Is(element) || JavascriptSymbol::Is(element)))  // neither String nor Symbol
+                    !(VarIs<JavascriptString>(element) || VarIs<JavascriptSymbol>(element)))  // neither String nor Symbol
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
                 }
@@ -187,5 +183,12 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<CustomExternalWrapperObject>(RecyclableObject* obj)
+    {
+        return (VirtualTableInfo<CustomExternalWrapperObject>::HasVirtualTable(obj)) ||
+            (VirtualTableInfo<Js::CrossSiteObject<CustomExternalWrapperObject>>::HasVirtualTable(obj));
+    }
+
 }
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::CustomExternalWrapperObject, &Js::RecyclableObject::DumpObjectFunction);

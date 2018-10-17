@@ -152,16 +152,9 @@ namespace Js
         }
     }
 
-    /* static */
-    bool LiteralStringWithPropertyStringPtr::Is(RecyclableObject * obj)
+    template <> bool VarIsImpl<LiteralStringWithPropertyStringPtr>(RecyclableObject * obj)
     {
         return VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(obj);
-    }
-
-    /* static */
-    bool LiteralStringWithPropertyStringPtr::Is(Var var)
-    {
-        return RecyclableObject::Is(var) && LiteralStringWithPropertyStringPtr::Is(RecyclableObject::UnsafeFromVar(var));
     }
 
     void LiteralStringWithPropertyStringPtr::GetPropertyRecord(_Out_ PropertyRecord const** propRecord, bool dontLookupFromDictionary)
@@ -538,24 +531,9 @@ namespace Js
             scriptContext->GetLibrary()->GetStringTypeStatic());
     }
 
-    bool
-    ConcatStringMulti::Is(Var var)
+    template <> bool VarIsImpl<ConcatStringMulti>(RecyclableObject* obj)
     {
-        return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(var);
-    }
-
-    ConcatStringMulti *
-    ConcatStringMulti::FromVar(Var var)
-    {
-        AssertOrFailFast(ConcatStringMulti::Is(var));
-        return static_cast<ConcatStringMulti *>(var);
-    }
-
-    ConcatStringMulti *
-    ConcatStringMulti::UnsafeFromVar(Var var)
-    {
-        Assert(ConcatStringMulti::Is(var));
-        return static_cast<ConcatStringMulti *>(var);
+        return VirtualTableInfo<ConcatStringMulti>::HasVirtualTable(obj);
     }
 
     const char16 *

@@ -14,7 +14,7 @@ namespace Internal
 {
 // this is in place of including PlatformAgnostic/UnicodeTextInternal.h, which has template
 // instantiations that upset Clang on macOS and Linux
-int LogicalStringCompareImpl(const char16* p1, const char16* p2);
+int LogicalStringCompareImpl(const char16* p1, int p1size, const char16* p2, int p2size);
 }
 }
 }

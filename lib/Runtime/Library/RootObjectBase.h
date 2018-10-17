@@ -32,6 +32,7 @@ namespace Js
         virtual BOOL EnsureProperty(PropertyId propertyId) override;
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override sealed;
         virtual BOOL HasOwnPropertyCheckNoRedecl(PropertyId propertyId) override sealed;
+        void EnsureCanDeclGloFunc(PropertyId propertyId);
 
         // These are special "Root" versions of the property APIs that allow access
         // to global let and const variables, which are stored as properties on the
@@ -54,11 +55,6 @@ namespace Js
         bool IsLetConstGlobal(PropertyId propertyId);
 #endif
 
-        static bool Is(Var var);
-        static bool Is(RecyclableObject * obj);
-        static RootObjectBase * FromVar(Var var);
-        static RootObjectBase * UnsafeFromVar(Var var);
-
     protected:
         DEFINE_VTABLE_CTOR(RootObjectBase, DynamicObject);
 
@@ -73,6 +69,12 @@ namespace Js
         Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
         Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
+
+    template <> inline bool VarIsImpl<RootObjectBase>(RecyclableObject* obj)
+    {
+        TypeId id = obj->GetTypeId();
+        return id == TypeIds_GlobalObject || id == TypeIds_ModuleRoot;
+    }
 
     template <typename Fn>
     void

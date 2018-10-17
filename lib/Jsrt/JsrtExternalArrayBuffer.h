@@ -12,6 +12,7 @@ namespace Js {
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JsrtExternalArrayBuffer);
 
         JsrtExternalArrayBuffer(byte *buffer, uint32 length, JsFinalizeCallback finalizeCallback, void *callbackState, DynamicType *type);
+        virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
 
     public:
         static JsrtExternalArrayBuffer* New(byte *buffer, uint32 length, JsFinalizeCallback finalizeCallback, void *callbackState, DynamicType *type);
@@ -19,7 +20,18 @@ namespace Js {
 
     private:
         FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
-        Field(void *) callbackState;
+        FieldNoBarrier(void *) callbackState;
+
+        class JsrtExternalArrayBufferDetachedState : public ExternalArrayBufferDetachedState
+        {
+            FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
+            FieldNoBarrier(void *) callbackState;
+        public:
+            JsrtExternalArrayBufferDetachedState(BYTE* buffer, uint32 bufferLength, JsFinalizeCallback finalizeCallback, void *callbackState);
+            virtual void ClearSelfOnly() override;
+            virtual void DiscardState() override;
+            virtual ArrayBuffer* Create(JavascriptLibrary* library) override;
+        };
     };
 }
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::JsrtExternalArrayBuffer, &Js::RecyclableObject::DumpObjectFunction);

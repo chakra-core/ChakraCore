@@ -296,7 +296,6 @@ namespace Js
 
     public:
         virtual void Finalize(bool isShutdown) override;
-        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
 #if ENABLE_NATIVE_CODEGEN
         NativeEntryPointData * EnsureNativeEntryPointData();
@@ -623,6 +622,8 @@ namespace Js
         Field(ExecutionMode) jitMode;
     public:
         FunctionEntryPointInfo(FunctionProxy * functionInfo, Js::JavascriptMethod method, ThreadContext* context);
+
+        virtual bool IsFunctionEntryPointInfo() const override { return true; }
 
         bool ExecutedSinceCallCountCollection() const;
         void CollectCallCounts();
@@ -1063,8 +1064,35 @@ namespace Js
         FunctionTypeWeakRefList* GetFunctionObjectTypeList() const;
         void SetFunctionObjectTypeList(FunctionTypeWeakRefList* list);
         void RegisterFunctionObjectType(ScriptFunctionType* functionType);
+
         template <typename Fn>
-        void MapFunctionObjectTypes(Fn func);
+        void MapFunctionObjectTypes(Fn func)
+        {
+            FunctionTypeWeakRefList* functionObjectTypeList = this->GetFunctionObjectTypeList();
+            if (functionObjectTypeList != nullptr)
+            {
+                functionObjectTypeList->Map([&](int, FunctionTypeWeakRef* typeWeakRef)
+                {
+                    if (typeWeakRef)
+                    {
+                        ScriptFunctionType* type = typeWeakRef->Get();
+                        if (type)
+                        {
+                            func(type);
+                        }
+                    }
+                });
+            }
+
+            if (this->deferredPrototypeType)
+            {
+                func(this->deferredPrototypeType);
+            }
+            if (this->undeferredFunctionType)
+            {
+                func(this->undeferredFunctionType);
+            }
+        }
 
         static uint GetOffsetOfDeferredPrototypeType() { return static_cast<uint>(offsetof(Js::FunctionProxy, deferredPrototypeType)); }
         static Js::ScriptFunctionType * EnsureFunctionProxyDeferredPrototypeType(FunctionProxy * proxy)
@@ -1096,7 +1124,7 @@ namespace Js
         // this is also now being used for function.name.
         const char16* GetShortDisplayName(charcount_t * shortNameLength);
 
-        bool GetDisplayNameIsRecyclerAllocated() { return m_displayNameIsRecyclerAllocated; }
+        bool GetDisplayNameIsRecyclerAllocated() const { return m_displayNameIsRecyclerAllocated; }
 
         bool IsJitLoopBodyPhaseEnabled() const
         {
@@ -1597,6 +1625,7 @@ namespace Js
 
         uint LengthInBytes() const { return m_cbLength; }
         uint StartOffset() const;
+        uint PrintableStartOffset() const;
         ULONG GetLineNumber() const;
         ULONG GetColumnNumber() const;
         template <class T>
@@ -1608,6 +1637,7 @@ namespace Js
         ULONG GetRelativeColumnNumber() const { return m_columnNumber; }
         uint GetSourceIndex() const;
         LPCUTF8 GetSource(const  char16* reason = nullptr) const;
+        LPCUTF8 GetToStringSource(const  char16* reason = nullptr) const;
         charcount_t LengthInChars() const { return m_cchLength; }
         charcount_t StartInDocument() const;
         bool IsEval() const { return m_isEval; }
@@ -1678,6 +1708,7 @@ namespace Js
         void CopyNestedArray(ParseableFunctionInfo * other);
 
         const char16* GetExternalDisplayName() const;
+        JavascriptString* GetExternalDisplayNameObject(ScriptContext* scriptContext) const;
 
         //
         // Algorithm to retrieve a function body's external display name. Template supports both
@@ -1765,19 +1796,20 @@ namespace Js
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
         // more and also fix our thunks to handle 8 bit offsets
 
-        FieldWithBarrier(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
-        FieldWithBarrier(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
-#if DYNAMIC_INTERPRETER_THUNK
-        FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
-#endif
-        FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
-
-        // This is generally the same as m_cchStartOffset unless the buffer has a BOM
+        FieldWithBarrier(bool) m_utf8SourceHasBeenSet : 1;          // start of UTF8-encoded source
 
 #define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
 #define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER protected:
 #include "SerializableFunctionFields.h"
+
+        FieldWithBarrier(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
+#if DYNAMIC_INTERPRETER_THUNK
+        FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
+#endif
+        FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
+                                                        // This is generally the same as m_cchStartOffset unless the buffer has a BOM or other non-ascii characters
+        FieldWithBarrier(uint) m_cbStartPrintOffset;    // pUtf8Source is this many bytes from the start of the toString-relevant part of the scriptContext's source buffer.
 
         FieldWithBarrier(ULONG) m_lineNumber;
         FieldWithBarrier(ULONG) m_columnNumber;
@@ -1890,6 +1922,7 @@ namespace Js
 #if DBG
             void LockDownCounters() { counters.isLockedDown = true; };
             void UnlockCounters() { counters.isLockedDown = false; };
+            void SetIsClosing() { counters.isClosing = true; };
 #endif
 
             struct StatementMap
@@ -2469,6 +2502,9 @@ namespace Js
     public:
 #if DBG
         int GetProfileSession() { return m_iProfileSession; }
+#ifdef ENABLE_SCRIPT_DEBUGGING
+        Js::DebuggerMode GetDebuggerMode();
+#endif
 #endif
         virtual void Finalize(bool isShutdown) override;
         virtual void OnMark() override;
@@ -2754,6 +2790,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         void SetPolymorphicCallSiteInfoHead(PolymorphicCallSiteInfo *polyCallSiteInfo) { this->SetAuxPtr<AuxPointerType::PolymorphicCallSiteInfoHead>(polyCallSiteInfo); }
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return this->GetAuxPtr<AuxPointerType::PolymorphicCallSiteInfoHead>(); }
+        PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoWithLock() { return this->GetAuxPtrWithLock<AuxPointerType::PolymorphicCallSiteInfoHead>(); }
 
         void SetCallbackInfoList(CallbackInfoList * callbackInfoList) { this->SetAuxPtr<AuxPointerType::CallbackArgOutInfoList>(callbackInfoList); }
         CallbackInfoList * GetCallbackInfoList() { return this->GetAuxPtr<AuxPointerType::CallbackArgOutInfoList>(); }
@@ -3207,6 +3244,8 @@ namespace Js
         void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparseHelper();
+        void UpdateEntryPointsOnDebugReparse();
+
         void AddDeferParseAttribute();
         void RemoveDeferParseAttribute();
 #if DBG

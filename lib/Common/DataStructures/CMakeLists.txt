@@ -1,5 +1,5 @@
 add_library (Chakra.Common.DataStructures OBJECT
-    BigInt.cpp
+    BigUInt.cpp
     BufferBuilder.cpp
     CommonDataStructuresPch.cpp
     DictionaryStats.cpp

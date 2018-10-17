@@ -1727,9 +1727,9 @@ namespace Js
     void AsmJsModuleInfo::EnsureHeapAttached(ScriptFunction * func)
     {
 #ifdef ENABLE_WASM
-        if (WasmScriptFunction::Is(func))
+        if (VarIs<WasmScriptFunction>(func))
         {
-            WasmScriptFunction* wasmFunc = WasmScriptFunction::FromVar(func);
+            WasmScriptFunction* wasmFunc = VarTo<WasmScriptFunction>(func);
             WebAssemblyMemory * wasmMem = wasmFunc->GetWebAssemblyMemory();
             if (wasmMem && wasmMem->GetBuffer() && wasmMem->GetBuffer()->IsDetached())
             {
@@ -1739,7 +1739,7 @@ namespace Js
         else
 #endif
         {
-            AsmJsScriptFunction* asmFunc = AsmJsScriptFunction::FromVar(func);
+            AsmJsScriptFunction* asmFunc = VarTo<AsmJsScriptFunction>(func);
             ArrayBuffer* moduleArrayBuffer = asmFunc->GetAsmJsArrayBuffer();
             if (moduleArrayBuffer && moduleArrayBuffer->IsDetached())
             {
@@ -1761,7 +1761,7 @@ namespace Js
         // AsmJsModuleEnvironment is all laid out here
         Var * asmJsEnvironment = static_cast<Var*>(env);
         Var * asmBufferPtr = asmJsEnvironment + asmModuleInfo->GetModuleMemory().mArrayBufferOffset;
-        ArrayBuffer * asmBuffer = *asmBufferPtr ? ArrayBuffer::FromVar(*asmBufferPtr) : nullptr;
+        ArrayBuffer * asmBuffer = *asmBufferPtr ? VarTo<ArrayBuffer>(*asmBufferPtr) : nullptr;
 
         Var stdLibObj = *(asmJsEnvironment + asmModuleInfo->GetModuleMemory().mStdLibOffset);
         Var asmMathObject = stdLibObj ? JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::Math, scriptContext) : nullptr;

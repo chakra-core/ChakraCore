@@ -45,7 +45,7 @@ ObjTypeSpecFldInfo::NeedsDepolymorphication() const
     return m_data.polymorphicInfoArray != nullptr;
 }
 
-void 
+void
 ObjTypeSpecFldInfo::TryDepolymorphication(JITTypeHolder type, uint16 slotIndex, bool usesAuxSlot, uint16 * pNewSlotIndex, bool * pNewUsesAuxSlot, uint16 * checkedTypeSetIndex) const
 {
     Assert(NeedsDepolymorphication());
@@ -505,7 +505,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
                 propertyGuard = entryPoint->GetNativeEntryPointData()->RegisterSharedPropertyGuard(propertyId, scriptContext);
             }
 
-            if (fixedProperty != nullptr && Js::JavascriptFunction::Is(fixedProperty))
+            if (fixedProperty != nullptr && Js::VarIs<Js::JavascriptFunction>(fixedProperty))
             {
                 functionObject = (Js::JavascriptFunction *)fixedProperty;
                 if (PHASE_VERBOSE_TRACE(Js::FixedMethodsPhase, functionBody))
@@ -742,7 +742,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     uint16 firstNonEmptyCacheIndex = UINT16_MAX;
     uint16 slotIndex = 0;
     bool areEquivalent = true;
-    bool canDepolymorphize = topFunctionBody != functionBody && PHASE_ON(Js::DepolymorphizeInlineesPhase, topFunctionBody);
+    bool canDepolymorphize = topFunctionBody != functionBody && !PHASE_OFF(Js::DepolymorphizeInlineesPhase, topFunctionBody);
     bool usesAuxSlot = false;
     bool isProto = false;
     bool isAccessor = false;
@@ -860,7 +860,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
                 {
                     areEquivalent = false;
                 }
-                if (!isAccessor || isGetterAccessor != inlineCache.IsGetterAccessor() || !isAccessorOnProto || !inlineCache.u.accessor.isOnProto || 
+                if (!isAccessor || isGetterAccessor != inlineCache.IsGetterAccessor() || !isAccessorOnProto || !inlineCache.u.accessor.isOnProto ||
                     accessorOwnerObject != inlineCache.u.accessor.object || typeId != TypeWithoutAuxSlotTag(inlineCache.u.accessor.type)->GetTypeId())
                 {
                     areEquivalent = false;

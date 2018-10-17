@@ -31,7 +31,7 @@ namespace Arrays
     bool GetLocaleSeparator(char16* szSeparator, uint32* sepOutLength, uint32 sepBufferSize);
 
     template <uint32 sepBufferSize>
-    inline bool GetLocaleSeparator(char16(&szSepatator)[sepBufferSize], uint32 *sepOutLength)
+    inline bool GetLocaleSeparator(char16(&szSeparator)[sepBufferSize], uint32 *sepOutLength)
     {
         return GetLocaleSeparator(szSeparator, sepOutLength, sepBufferSize);
     }

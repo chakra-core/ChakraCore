@@ -591,7 +591,7 @@ policies and contribution forms [3].
 
         /**
          * Returns a Promise that will resolve after the specified event or
-         * series of events has occured.
+         * series of events has occurred.
          */
         this.wait_for = function(types) {
             if (waitingFor) {
@@ -971,7 +971,7 @@ policies and contribution forms [3].
     function assert_approx_equals(actual, expected, epsilon, description)
     {
         /*
-         * Test if two primitive numbers are equal withing +/- epsilon
+         * Test if two primitive numbers are equal within +/- epsilon
          */
         assert(typeof actual === "number",
                "assert_approx_equals", description,

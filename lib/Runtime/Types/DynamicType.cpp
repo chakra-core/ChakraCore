@@ -449,7 +449,7 @@ namespace Js
     {
         if (JavascriptConversion::IsCallable(toPrimitiveFunction))
         {
-            RecyclableObject* toStringFunction = RecyclableObject::FromVar(toPrimitiveFunction);
+            RecyclableObject* toStringFunction = VarTo<RecyclableObject>(toPrimitiveFunction);
 
             ThreadContext * threadContext = requestContext->GetThreadContext();
             Var aResult = threadContext->ExecuteImplicitCall(toStringFunction, ImplicitCall_ToPrimitive, [=]() -> Js::Var
@@ -497,7 +497,7 @@ namespace Js
         return GetTypeHandler()->SetAccessors(this, propertyId, getter, setter, flags);
     }
 
-    BOOL DynamicObject::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
+    _Check_return_ _Success_(return) BOOL DynamicObject::GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext)
     {
         return GetTypeHandler()->GetAccessors(this, propertyId, getter, setter);
     }
@@ -609,14 +609,19 @@ namespace Js
     }
 #endif
 
-    void DynamicObject::RemoveFromPrototype(ScriptContext * requestContext)
+    bool DynamicObject::ClearProtoCachesWereInvalidated()
     {
-        GetTypeHandler()->RemoveFromPrototype(this, requestContext);
+        return GetTypeHandler()->ClearProtoCachesWereInvalidated();
     }
 
-    void DynamicObject::AddToPrototype(ScriptContext * requestContext)
+    void DynamicObject::RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
     {
-        GetTypeHandler()->AddToPrototype(this, requestContext);
+        GetTypeHandler()->RemoveFromPrototype(this, requestContext, allProtoCachesInvalidated);
+    }
+
+    void DynamicObject::AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated)
+    {
+        GetTypeHandler()->AddToPrototype(this, requestContext, allProtoCachesInvalidated);
     }
 
     void DynamicObject::SetPrototype(RecyclableObject* newPrototype)

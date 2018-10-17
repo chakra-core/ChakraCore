@@ -61,7 +61,7 @@
     GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) \
 
 #define GetTypedPropertyBuiltInFrom(obj, builtInPropID, Type) \
-    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && Type::Is(propertyValue)) \
+    (GetPropertyFrom(obj, Js::PropertyIds::builtInPropID) && VarIs<Type>(propertyValue)) \
 
 #define HasPropertyOn(obj, propID) \
     Js::JavascriptOperators::HasProperty(obj, propID) \
@@ -101,36 +101,10 @@ namespace Js
         }
     }
 
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetErrorMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetErrorMessage));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::LogDebugMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_LogDebugMessage));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::TagPublicLibraryCode(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_TagPublicLibraryCode));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_SetPrototype));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetArrayLength));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_RegexMatch));
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::CallInstanceFunction(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_CallInstanceFunction));
-
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_##global##_##method##(FORCE_NO_WRITE_BARRIER_TAG(global##::##method##)); \
-
-#define GlobalBuiltInConstructor(global)
-
-#define BuiltInRaiseException(exceptionType, exceptionID) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID)); \
-
-#define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException3(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID##_3)
-
+// initialize EngineInterfaceObject::EntryInfo
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::nativeMethod(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_##nativeMethod));
+#define BuiltInRaiseException(exceptionType, exceptionID) NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID));
 #include "EngineInterfaceObjectBuiltIns.h"
-
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltInConstructor
-#undef GlobalBuiltIn
-#endif
 
     EngineInterfaceObject * EngineInterfaceObject::New(Recycler * recycler, DynamicType * type)
     {
@@ -142,24 +116,6 @@ namespace Js
         return newObject;
     }
 
-    bool EngineInterfaceObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_EngineInterfaceObject;
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
-
-    EngineInterfaceObject* EngineInterfaceObject::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "aValue is actually an EngineInterfaceObject");
-
-        return static_cast<EngineInterfaceObject *>(aValue);
-    }
     void EngineInterfaceObject::Initialize()
     {
         Recycler* recycler = this->GetRecycler();
@@ -206,48 +162,28 @@ namespace Js
 
     bool EngineInterfaceObject::InitializeCommonNativeInterfaces(DynamicObject* commonNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(commonNativeInterfaces, mode, 38);
+        // start with 1 for CallInstanceFunction
+        int initSlotCapacity = 1;
+
+#define GlobalMathBuiltIn(mathMethod) initSlotCapacity++;
+#define GlobalBuiltIn(global, method) initSlotCapacity++;
+#define GlobalBuiltInConstructor(global) initSlotCapacity++;
+#define BuiltInRaiseException(exceptionType, exceptionID) initSlotCapacity++;
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) initSlotCapacity++;
+#include "EngineInterfaceObjectBuiltIns.h"
+
+        typeHandler->Convert(commonNativeInterfaces, mode, initSlotCapacity);
 
         JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
 
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method) \
-    library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtIn##global##method, &EngineInterfaceObject::EntryInfo::BuiltIn_##global##_##method##, 1); \
-
-#define GlobalBuiltInConstructor(global) SetPropertyOn(commonNativeInterfaces, Js::PropertyIds::##global##, library->Get##global##Constructor());
-
-#define BuiltInRaiseException(exceptionType, exceptionID) \
-    library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::raise##exceptionID, &EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID, 1); \
-
-#define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
-#define BuiltInRaiseException3(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID##_3)
-
+#define GlobalMathBuiltIn(mathMethod) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtInMath##mathMethod, &Math::EntryInfo::mathMethod, 1);
+#define GlobalBuiltIn(global, method) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtIn##global##Entry##method, &global::EntryInfo::method, 1);
+#define GlobalBuiltInConstructor(global) SetPropertyOn(commonNativeInterfaces, PropertyIds::##global##, library->Get##global##Constructor());
+#define BuiltInRaiseException(exceptionType, exceptionID) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::raise##exceptionID, &EngineInterfaceObject::EntryInfo::BuiltIn_raise##exceptionID, 1);
+#define EngineInterfaceBuiltIn2(propId, nativeMethod) library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::propId, &EngineInterfaceObject::EntryInfo::nativeMethod, 1);
 #include "EngineInterfaceObjectBuiltIns.h"
 
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltIn
-#undef GlobalBuiltInConstructor
-#endif
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectCreate, &JavascriptObject::EntryInfo::Create, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectPreventExtensions, &JavascriptObject::EntryInfo::PreventExtensions, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInJavascriptObjectGetOwnPropertyDescriptor, &JavascriptObject::EntryInfo::GetOwnPropertyDescriptor, 1);
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInGlobalObjectEval, &GlobalObject::EntryInfo::Eval, 2);
-
-        library->AddMember(commonNativeInterfaces, PropertyIds::Object_prototype, library->GetObjectPrototype());
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::getErrorMessage, &EngineInterfaceObject::EntryInfo::GetErrorMessage, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::logDebugMessage, &EngineInterfaceObject::EntryInfo::LogDebugMessage, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::tagPublicLibraryCode, &EngineInterfaceObject::EntryInfo::TagPublicLibraryCode, 1);
-
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInSetPrototype, &EngineInterfaceObject::EntryInfo::SetPrototype, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInGetArrayLength, &EngineInterfaceObject::EntryInfo::GetArrayLength, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInRegexMatch, &EngineInterfaceObject::EntryInfo::RegexMatch, 1);
-        library->AddFunctionToLibraryObject(commonNativeInterfaces, Js::PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
+        library->AddFunctionToLibraryObject(commonNativeInterfaces, PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
 
         commonNativeInterfaces->SetHasNoEnumerableProperties(true);
 
@@ -299,12 +235,12 @@ namespace Js
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
 #if DBG
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString* message = JavascriptString::FromVar(args.Values[1]);
+        JavascriptString* message = VarTo<JavascriptString>(args.Values[1]);
 
         Output::Print(message->GetString());
         Output::Flush();
@@ -313,34 +249,125 @@ namespace Js
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-    Var EngineInterfaceObject::Entry_TagPublicLibraryCode(RecyclableObject *function, CallInfo callInfo, ...)
+    /* static */
+    ScriptFunction *EngineInterfaceObject::CreateLibraryCodeScriptFunction(ScriptFunction *scriptFunction, JavascriptString *displayName, bool isConstructor, bool isJsBuiltIn, bool isPublic)
     {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (callInfo.Count >= 2 && JavascriptFunction::Is(args.Values[1]))
+        if (scriptFunction->GetFunctionProxy()->IsPublicLibraryCode())
         {
-            JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[1]);
-            func->GetFunctionProxy()->SetIsPublicLibraryCode();
-
-            if (callInfo.Count >= 3 && JavascriptString::Is(args.Values[2]))
-            {
-                JavascriptString* customFunctionName = JavascriptString::FromVar(args.Values[2]);
-                // tagPublicFunction("Intl.Collator", Collator); in Intl.js calls TagPublicLibraryCode the expected name is Collator so we need to calculate the offset
-                const char16 * shortName = wcsrchr(customFunctionName->GetString(), _u('.'));
-                uint shortNameOffset = 0;
-                if (shortName != nullptr)
-                {
-                    // JavascriptString length is bounded by uint max
-                    shortName++;
-                    shortNameOffset = static_cast<uint>(shortName - customFunctionName->GetString());
-                }
-                func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(customFunctionName->GetString(), customFunctionName->GetLength(), shortNameOffset);
-            }
-
-            return func;
+            // this can happen when we re-initialize Intl for a different mode -- for instance, if we have the following JS:
+            // print((1).toLocaleString())
+            // print(new Intl.NumberFormat().format(1))
+            // Intl will first get initialized for Number, and then will get re-initialized for all of Intl. This will cause
+            // Number.prototype.toLocaleString to be registered twice, which breaks some of our assertions below.
+            return scriptFunction;
         }
 
-        return scriptContext->GetLibrary()->GetUndefined();
+        ScriptContext *scriptContext = scriptFunction->GetScriptContext();
+
+        if (!isConstructor)
+        {
+            // set the ErrorOnNew attribute to disallow construction. JsBuiltIn/Intl functions are usually regular ScriptFunctions
+            // (not lambdas or class methods), so they are usually constructable by default.
+            FunctionInfo *info = scriptFunction->GetFunctionInfo();
+            AssertMsg((info->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why are we trying to disable construction of a function that already isn't constructable?");
+            info->SetAttributes((FunctionInfo::Attributes) (info->GetAttributes() | FunctionInfo::Attributes::ErrorOnNew));
+
+            // Assert that the type handler is deferred to ensure that we aren't overwriting previous modifications.
+            // Script functions start with deferred type handlers, which undefer as soon as any property is modified.
+            // Since the function that is passed in should be an inline function expression, its type should still be deferred by the time it gets here.
+            AssertOrFailFast(scriptFunction->GetDynamicType()->GetTypeHandler()->IsDeferredTypeHandler());
+
+            // give the function a type handler with name and length but without prototype
+            DynamicTypeHandler::SetInstanceTypeHandler(scriptFunction, scriptContext->GetLibrary()->GetDeferredFunctionWithLengthTypeHandler());
+        }
+        else
+        {
+            AssertMsg((scriptFunction->GetFunctionInfo()->GetAttributes() & FunctionInfo::Attributes::ErrorOnNew) == 0, "Why is the function not constructable by default?");
+        }
+
+        if (isPublic)
+        {
+            // Use GetSz rather than GetString because we use wcsrchr below, which expects a null-terminated string
+            // Callers can pass in a string like "get compare" or "Intl.Collator.prototype.resolvedOptions" -- only for the
+            // latter do we extract a shortName.
+            const char16 *methodNameBuf = displayName->GetSz();
+            charcount_t methodNameLength = displayName->GetLength();
+            const char16 *shortName = wcsrchr(methodNameBuf, _u('.'));
+            charcount_t shortNameOffset = 0;
+            if (shortName != nullptr)
+            {
+                shortName++;
+                shortNameOffset = static_cast<charcount_t>(shortName - methodNameBuf);
+            }
+
+            scriptFunction->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodNameBuf, methodNameLength, shortNameOffset);
+
+            // handle the name property AFTER handling isConstructor, because this can initialize the function's deferred type
+            Var existingName = nullptr;
+            if (JavascriptOperators::GetOwnProperty(scriptFunction, PropertyIds::name, &existingName, scriptContext, nullptr))
+            {
+                JavascriptString *existingNameString = VarTo<JavascriptString>(existingName);
+                if (existingNameString->GetLength() == 0)
+                {
+                    // Only overwrite the name of the function object if it was anonymous coming in
+                    // If the input function was named, it is likely intentional
+                    existingName = nullptr;
+                }
+            }
+
+            if (existingName == nullptr || JavascriptOperators::IsUndefined(existingName))
+            {
+                // It is convenient to set the name here rather than in script, since it is often duplicated.
+                JavascriptString *funcName = displayName;
+                if (shortName)
+                {
+                    funcName = JavascriptString::NewCopyBuffer(shortName, methodNameLength - shortNameOffset, scriptContext);
+                }
+
+                scriptFunction->SetPropertyWithAttributes(PropertyIds::name, funcName, PropertyConfigurable, nullptr);
+            }
+
+            scriptFunction->GetFunctionProxy()->SetIsPublicLibraryCode();
+        }
+
+        if (isJsBuiltIn)
+        {
+            scriptFunction->GetFunctionProxy()->SetIsJsBuiltInCode();
+
+            // This makes it so that the given scriptFunction can't reference/close over any outside variables,
+            // which is desirable for JsBuiltIns (though currently not for Intl)
+            scriptFunction->SetEnvironment(const_cast<FrameDisplay *>(&StrictNullFrameDisplay));
+
+            // TODO(jahorto): investigate force-inlining Intl code
+            scriptFunction->GetFunctionProxy()->EnsureDeserialized();
+            AssertOrFailFast(scriptFunction->HasFunctionBody());
+            scriptFunction->GetFunctionBody()->SetJsBuiltInForceInline();
+        }
+
+        return scriptFunction;
+    }
+
+    Var EngineInterfaceObject::Entry_TagPublicLibraryCode(RecyclableObject *function, CallInfo callInfo, ...)
+    {
+#pragma warning(push)
+#pragma warning(disable: 4189) // 'scriptContext': local variable is initialized but not referenced
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+#pragma warning(pop)
+
+        AssertOrFailFast((args.Info.Count == 3 || args.Info.Count == 4) && VarIs<ScriptFunction>(args.Values[1]) && VarIs<JavascriptString>(args.Values[2]));
+
+        ScriptFunction *func = UnsafeVarTo<ScriptFunction>(args[1]);
+        JavascriptString *methodName = UnsafeVarTo<JavascriptString>(args[2]);
+
+        bool isConstructor = true;
+        if (args.Info.Count == 4)
+        {
+            AssertOrFailFast(VarIs<JavascriptBoolean>(args.Values[3]));
+            isConstructor = UnsafeVarTo<JavascriptBoolean>(args.Values[3])->GetValue();
+        }
+
+        // isConstructor = true is the default (when no 3rd arg is provided)
+        return CreateLibraryCodeScriptFunction(func, methodName, isConstructor, false /* isJsBuiltIn */, true /* isPublic */);
     }
 
     /*
@@ -350,13 +377,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 3 || !DynamicObject::Is(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !DynamicObject::IsBaseDynamicObject(args.Values[1]) || !VarIs<RecyclableObject>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        DynamicObject* obj = DynamicObject::FromVar(args.Values[1]);
-        RecyclableObject* value = RecyclableObject::FromVar(args.Values[2]);
+        DynamicObject* obj = VarTo<DynamicObject>(args.Values[1]);
+        RecyclableObject* value = VarTo<RecyclableObject>(args.Values[2]);
 
         obj->SetPrototype(value);
 
@@ -395,13 +422,13 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        if (callInfo.Count < 2 || !JavascriptString::Is(args.Values[1]) || !JavascriptRegExp::Is(args.Values[2]))
+        if (callInfo.Count < 2 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptRegExp>(args.Values[2]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JavascriptString *stringToUse = JavascriptString::FromVar(args.Values[1]);
-        JavascriptRegExp *regexpToUse = JavascriptRegExp::FromVar(args.Values[2]);
+        JavascriptString *stringToUse = VarTo<JavascriptString>(args.Values[1]);
+        JavascriptRegExp *regexpToUse = VarTo<JavascriptRegExp>(args.Values[2]);
 
         return RegexHelper::RegexMatchNoHistory(scriptContext, regexpToUse, stringToUse, false);
     }
@@ -413,37 +440,29 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
 
-        Assert(args.Info.Count <= 5);
-        if (callInfo.Count < 3 || args.Info.Count > 5 || !JavascriptConversion::IsCallable(args.Values[1]) || !RecyclableObject::Is(args.Values[2]))
+        if (callInfo.Count < 3 || !JavascriptConversion::IsCallable(args.Values[1]))
         {
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *func = RecyclableObject::FromVar(args.Values[1]);
+        RecyclableObject *func = VarTo<RecyclableObject>(args.Values[1]);
 
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
         //Shift the arguments by 2 so argument at index 2 becomes the 'this' argument at index 0
-        Var newVars[3];
-        Js::Arguments newArgs(callInfo, newVars);
-
-        for (uint i = 0; i<args.Info.Count - 2; ++i)
+        for (uint i = 0; i < args.Info.Count - 2; ++i)
         {
-            newArgs.Values[i] = args.Values[i + 2];
+            args.Values[i] = args.Values[i + 2];
         }
 
-        newArgs.Info.Count = args.Info.Count - 2;
+        args.Info.Count -= 2;
 
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
-            return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), newArgs);
+            return JavascriptFunction::CallFunction<true>(func, func->GetEntryPoint(), args);
         }
         END_SAFE_REENTRANT_CALL
     }
-
-#ifndef GlobalBuiltIn
-#define GlobalBuiltIn(global, method)
-#define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
     Var EngineInterfaceObject::Entry_BuiltIn_raise##exceptionID(RecyclableObject *function, CallInfo callInfo, ...) \
@@ -458,12 +477,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 2 || !JavascriptString::Is(args.Values[1])) \
+        if(args.Info.Count < 2 || !VarIs<JavascriptString>(args.Values[1])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz()); \
     }
 
 #define BuiltInRaiseException2(exceptionType, exceptionID) \
@@ -471,12 +490,12 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 3 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2])) \
+        if(args.Info.Count < 3 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz()); \
     }
 
 #define BuiltInRaiseException3(exceptionType, exceptionID) \
@@ -484,23 +503,15 @@ namespace Js
     { \
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo); \
         \
-        if(args.Info.Count < 4 || !JavascriptString::Is(args.Values[1]) || !JavascriptString::Is(args.Values[2]) || !JavascriptString::Is(args.Values[3])) \
+        if(args.Info.Count < 4 || !VarIs<JavascriptString>(args.Values[1]) || !VarIs<JavascriptString>(args.Values[2]) || !VarIs<JavascriptString>(args.Values[3])) \
         { \
             Assert(false); \
             JavascriptError::Throw##exceptionType(scriptContext, JSERR_##exceptionID); \
         } \
-        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, JavascriptString::FromVar(args.Values[1])->GetSz(), JavascriptString::FromVar(args.Values[2])->GetSz(), JavascriptString::FromVar(args.Values[3])->GetSz()); \
+        JavascriptError::Throw##exceptionType##Var(scriptContext, JSERR_##exceptionID, VarTo<JavascriptString>(args.Values[1])->GetSz(), VarTo<JavascriptString>(args.Values[2])->GetSz(), VarTo<JavascriptString>(args.Values[3])->GetSz()); \
     }
 
 #include "EngineInterfaceObjectBuiltIns.h"
-
-#undef BuiltInRaiseException
-#undef BuiltInRaiseException1
-#undef BuiltInRaiseException2
-#undef BuiltInRaiseException3
-#undef GlobalBuiltIn
-#undef GlobalBuiltInConstructor
-#endif
 
 }
 #endif // ENABLE_INTL_OBJECT || ENABLE_JS_BUILTINS || ENABLE_PROJECTION

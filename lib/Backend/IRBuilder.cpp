@@ -1877,9 +1877,11 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
 
     switch (newOpcode)
     {
+    case Js::OpCode::SpreadObjectLiteral:
+        // fall through
     case Js::OpCode::SetComputedNameVar:
     {
-        IR::Instr *instr = IR::Instr::New(Js::OpCode::SetComputedNameVar, m_func);
+        IR::Instr *instr = IR::Instr::New(newOpcode, m_func);
         instr->SetSrc1(this->BuildSrcOpnd(R0));
         instr->SetSrc2(src1Opnd);
         this->AddInstr(instr, offset);
@@ -2301,12 +2303,35 @@ void
 IRBuilder::BuildReg4(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot, Js::RegSlot src1RegSlot,
                     Js::RegSlot src2RegSlot, Js::RegSlot src3RegSlot)
 {
-    IR::Instr *     instr;
-    Assert(newOpcode == Js::OpCode::Concat3);
+    IR::Instr *     instr = nullptr;
+    Assert(newOpcode == Js::OpCode::Concat3 || newOpcode == Js::OpCode::Restify);
 
     IR::RegOpnd * src1Opnd = this->BuildSrcOpnd(src1RegSlot);
     IR::RegOpnd * src2Opnd = this->BuildSrcOpnd(src2RegSlot);
-    IR::RegOpnd * src3Opnd = this->BuildSrcOpnd(src3RegSlot);
+    IR::RegOpnd * src3Opnd = this->BuildSrcOpnd(src3RegSlot);    
+
+    if (newOpcode == Js::OpCode::Restify)
+    {
+        IR::RegOpnd * src0Opnd = this->BuildSrcOpnd(dstRegSlot);
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src3Opnd, m_func);
+        this->AddInstr(instr, offset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src2Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src1Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src0Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+
+        IR::Opnd *firstArg = instr->GetDst();
+        instr = IR::Instr::New(newOpcode, m_func);
+        instr->SetSrc1(firstArg);
+        this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
+        return;
+    }
+
     IR::RegOpnd * dstOpnd = this->BuildDstOpnd(dstRegSlot);
 
     IR::RegOpnd * str1Opnd = InsertConvPrimStr(src1Opnd, offset, true);
@@ -2995,6 +3020,7 @@ IRBuilder::BuildReg1Unsigned1(Js::OpCode newOpcode, uint offset, Js::RegSlot R0,
         dstOpnd->SetValueTypeFixed();
     }
 }
+
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::BuildReg2Int1
@@ -3124,10 +3150,9 @@ IRBuilder::BuildElementScopedC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot 
     case Js::OpCode::ScopedDeleteFld:
     case Js::OpCode::ScopedDeleteFldStrict:
     {
-        // Implicit root object as default instance
-        IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
+        Assert(this->m_func->GetScriptContextInfo()->GetAddr() == this->m_func->GetTopFunc()->GetScriptContextInfo()->GetAddr());
         regOpnd = this->BuildDstOpnd(regSlot);
-        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, instance2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
         break;
     }
 
@@ -3421,6 +3446,29 @@ StSlotCommon:
             instr->SetSrc2(fieldSymOpnd);
         }
         break;
+
+    case Js::OpCode::StPropIdArrFromVar:
+    {
+        IR::RegOpnd *   src0Opnd = this->BuildSrcOpnd(fieldRegSlot);
+        IR::RegOpnd *   src1Opnd = this->BuildSrcOpnd(regSlot);
+        IntConstType    value = slotId;
+        IR::IntConstOpnd * valOpnd = IR::IntConstOpnd::New(value, TyInt32, m_func);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src1Opnd, m_func);
+        this->AddInstr(instr, offset);
+        offset = Js::Constants::NoByteCodeOffset;
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), valOpnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, offset);
+
+        instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), src0Opnd, instr->GetDst(), m_func);
+        this->AddInstr(instr, offset);
+
+        IR::Opnd * firstArg = instr->GetDst();
+        instr = IR::Instr::New(newOpcode, m_func);
+        instr->SetSrc1(firstArg);
+        break;
+    }
 
     default:
         AssertMsg(UNREACHED, "Unknown ElementSlot opcode");
@@ -4363,13 +4411,12 @@ stCommon:
     case Js::OpCode::ScopedLdFldForTypeOf:
     {
         Assert(!isProfiled);
+        Assert(this->m_func->GetScriptContextInfo()->GetAddr() == this->m_func->GetTopFunc()->GetScriptContextInfo()->GetAddr());
 
         fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instance, propertyId, (Js::PropertyIdIndexType)-1, PropertyKindData, inlineCacheIndex);
 
-        // Implicit root object as default instance
-        IR::Opnd * instance2Opnd = this->BuildSrcOpnd(Js::FunctionBody::RootObjectRegSlot);
         regOpnd = this->BuildDstOpnd(regSlot);
-        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, instance2Opnd, m_func);
+        instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
         break;
     }
 
@@ -6937,23 +6984,35 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         break;
 
     case Js::OpCode::BeginBodyScope:
+    {
         // This marks the end of a param socpe which is not merged with body scope.
         // So we have to first cache the closure so that we can use it to copy the initial values for
         // body syms from corresponding param syms (LdParamSlot). Body should get its own scope slot.
         Assert(!this->IsParamScopeDone());
         this->SetParamScopeDone();
 
+        IR::Opnd * localClosureOpnd;
+        if (this->m_func->GetLocalClosureSym() != nullptr)
+        {
+            localClosureOpnd = IR::RegOpnd::New(this->m_func->GetLocalClosureSym(), TyVar, this->m_func);
+        }
+        else
+        {
+            AssertOrFailFast(this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() == 0 && !this->m_func->GetJITFunctionBody()->HasScopeObject());
+            localClosureOpnd = IR::IntConstOpnd::New(0, TyVar, this->m_func);
+        }
+
         this->AddInstr(
             IR::Instr::New(
                 Js::OpCode::Ld_A,
                 this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetParamClosureReg()),
-                IR::RegOpnd::New(this->m_func->GetLocalClosureSym(), TyVar, this->m_func),
+                localClosureOpnd,
                 this->m_func),
             offset);
 
         // Create a new local closure for the body when either body scope has scope slots allocated or
         // eval is present which can leak declarations.
-        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize()  > 0 || this->m_func->GetJITFunctionBody()->HasScopeObject())
+        if (this->m_func->GetJITFunctionBody()->GetScopeSlotArraySize() > 0 || this->m_func->GetJITFunctionBody()->HasScopeObject())
         {
             if (this->m_func->GetJITFunctionBody()->HasScopeObject())
             {
@@ -6994,6 +7053,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
             lfd->isNonFastPathFrameDisplay = true;
         }
         break;
+    }
 
     default:
         this->AddInstr(instr, offset);

@@ -131,7 +131,7 @@ namespace Js
         Dst ClaimTransferable(size_t index, JavascriptLibrary* library)
         {
             AssertMsg(index < this->m_cTransferableVars, "Index out of range.");
-            ArrayBuffer *ab = ArrayBuffer::FromVar(m_transferableVars[index]);
+            ArrayBuffer *ab = VarTo<ArrayBuffer>(m_transferableVars[index]);
 
             // TODO reuse the same ArrayBuffer instead of creating a new ArrayBuffer.
             // Current ArrayBuffer's from m_transferableVars are JsrtExternalArrayBuffer.

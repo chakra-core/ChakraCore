@@ -22,7 +22,7 @@ struct TestHooks
     typedef HRESULT(TESTHOOK_CALL *SetAssertToConsoleFlagPtr)(bool flag);
     typedef HRESULT(TESTHOOK_CALL *SetEnableCheckMemoryLeakOutputPtr)(bool flag);
     typedef void(TESTHOOK_CALL * NotifyUnhandledExceptionPtr)(PEXCEPTION_POINTERS exceptionInfo);
-    typedef int(TESTHOOK_CALL *LogicalStringCompareImpl)(const char16* p1, const char16* p2);
+    typedef int(TESTHOOK_CALL *LogicalStringCompareImpl)(const char16* p1, int p1size, const char16* p2, int p2size);
 
     SetConfigFlagsPtr pfSetConfigFlags;
     SetConfigFilePtr  pfSetConfigFile;

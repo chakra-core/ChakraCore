@@ -84,6 +84,7 @@ class ParseNodeExportDefault;
 class ParseNodeStrTemplate;
 class ParseNodeSuperReference;
 class ParseNodeArrLit;
+class ParseNodeObjLit;
 class ParseNodeClass;
 class ParseNodeParamPattern;
 
@@ -129,6 +130,7 @@ public:
     ParseNodeStrTemplate * AsParseNodeStrTemplate();
     ParseNodeSuperReference * AsParseNodeSuperReference();
     ParseNodeArrLit * AsParseNodeArrLit();
+    ParseNodeObjLit * AsParseNodeObjLit();
 
     ParseNodeCall * AsParseNodeCall();
     ParseNodeSuperCall * AsParseNodeSuperCall();
@@ -210,6 +212,9 @@ public:
     bool IsCallApplyTargetLoad() { return isCallApplyTargetLoad; }
     void SetIsCallApplyTargetLoad() { isCallApplyTargetLoad = true; }    
 
+    bool IsPatternDeclaration() { return isPatternDeclaration; }
+    void SetIsPatternDeclaration() { isPatternDeclaration = true; }
+
     bool IsUserIdentifier();
 
     bool IsVarLetOrConst() const
@@ -240,6 +245,9 @@ private:
     // Use by byte code generator
     bool notEscapedUse : 1;         // Currently, only used by child of knopComma
     bool isCallApplyTargetLoad : 1;
+
+    // Use by bytecodegen to identify the current node is a destructuring pattern declaration node.
+    bool isPatternDeclaration : 1;
 
 public:
     ushort grfpn;
@@ -399,6 +407,18 @@ public:
     DISABLE_SELF_CAST(ParseNodeArrLit);
 };
 
+class ParseNodeObjLit : public ParseNodeUni
+{
+public:
+    ParseNodeObjLit(OpCode nop, charcount_t ichMin, charcount_t ichLim, uint staticCnt=0, uint computedCnt=0, bool rest=false);
+
+    uint staticCount;
+    uint computedCount;
+    bool hasRest;
+
+    DISABLE_SELF_CAST(ParseNodeObjLit);
+};
+
 class FuncInfo;
 
 enum PnodeBlockType : unsigned
@@ -449,6 +469,14 @@ enum FncFlags : uint
 struct RestorePoint;
 struct DeferredFunctionStub;
 
+namespace SuperRestrictionState {
+    enum State {
+        Disallowed = 0,
+        CallAndPropertyAllowed = 1,
+        PropertyAllowed = 2
+    };
+}
+
 // function declaration
 class ParseNodeFnc : public ParseNode
 {
@@ -461,8 +489,6 @@ public:
     LPCOLESTR hint;
     uint32 hintLength;
     uint32 hintOffset;
-    bool  isNameIdentifierRef;
-    bool  nestedFuncEscapes;
     ParseNodeBlock * pnodeScopes;
     ParseNodeBlock * pnodeBodyScope;
     ParseNodePtr pnodeParams;
@@ -476,11 +502,10 @@ public:
     uint nestedCount; // Nested function count (valid until children have been processed)
     uint nestedIndex; // Index within the parent function (Used by ByteCodeGenerator)
 
-    uint16 firstDefaultArg; // Position of the first default argument, if any
-
     FncFlags fncFlags;
     int32 astSize;
     size_t cbMin; // Min an Lim UTF8 offsets.
+    size_t cbStringMin;
     size_t cbLim;
     ULONG lineNumber;   // Line number relative to the current source buffer of the function declaration.
     ULONG columnNumber; // Column number of the declaration.
@@ -491,12 +516,17 @@ public:
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
     IdentPtrSet *capturedNames;
+    uint16 firstDefaultArg; // Position of the first default argument, if any
+    bool isNameIdentifierRef;
+    bool nestedFuncEscapes;
     bool canBeDeferred;
     bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
                                     // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
     Js::RegSlot homeObjLocation;    // Stores the RegSlot from where the home object needs to be copied
 
     static const int32 MaxStackClosureAST = 800000;
+
+    SuperRestrictionState::State superRestrictionState;
 
     static bool CanBeRedeferred(FncFlags flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
 

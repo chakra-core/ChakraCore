@@ -67,17 +67,20 @@ namespace Js
     public:
         JavascriptWeakMap(DynamicType* type);
 
-        static bool Is(Var aValue);
-        static JavascriptWeakMap* FromVar(Var aValue);
-        static JavascriptWeakMap* UnsafeFromVar(Var aValue);
-
         void Clear();
         bool Delete(RecyclableObject* key);
         bool Get(RecyclableObject* key, Var* value) const;
         bool Has(RecyclableObject* key) const;
         void Set(RecyclableObject* key, Var value);
 
-        virtual void Finalize(bool isShutdown) override { Clear(); }
+        virtual void Finalize(bool isShutdown) override
+        {
+            if (!isShutdown)
+            {
+                Clear();
+            }
+        }
+
         virtual void Dispose(bool isShutdown) override { }
 
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -130,4 +133,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptWeakMap>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_WeakMap;
+    }
 }

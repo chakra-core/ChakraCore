@@ -1635,7 +1635,7 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
         }
 
         instr->ReplaceSrc(regOpnd, constOpnd);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
 
         return true;
     }
@@ -1655,7 +1655,7 @@ bool EncoderMD::TryFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
         }
         IR::SymOpnd *symOpnd = IR::SymOpnd::New(regOpnd->m_sym, regOpnd->GetType(), instr->m_func);
         instr->ReplaceSrc(regOpnd, symOpnd);
-        LegalizeMD::LegalizeInstr(instr, false);
+        LegalizeMD::LegalizeInstr(instr);
 
         return true;
     }

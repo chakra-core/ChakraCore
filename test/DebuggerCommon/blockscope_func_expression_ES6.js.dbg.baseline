@@ -1,10 +1,12 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "bar": "undefined undefined"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "x": "undefined undefined",
       "bar": "undefined undefined"
     },
@@ -12,10 +14,12 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "bar": "function <large string>"
     },
     "locals": {
+      "Symbol.toStringTag": "string global",
       "x": "number 1",
       "bar": {
         "#__proto__": "function <large string>",

@@ -50,6 +50,8 @@ parser.add_argument('-d', '--debug', action='store_true',
                     help='use debug build');
 parser.add_argument('-t', '--test', '--test-build', action='store_true',
                     help='use test build')
+parser.add_argument('-f', '--full', '--chakrafull', action='store_true',
+                    help='test chakrafull instead of chakracore')
 parser.add_argument('--static', action='store_true',
                     help='mark that we are testing a static build')
 parser.add_argument('--variants', metavar='variant', nargs='+',
@@ -78,12 +80,20 @@ parser.add_argument('--x86', action='store_true',
                     help='use x86 build')
 parser.add_argument('--x64', action='store_true',
                     help='use x64 build')
+parser.add_argument('--arm', action='store_true',
+                    help='use arm build')
+parser.add_argument('--arm64', action='store_true',
+                    help='use arm64 build')
 parser.add_argument('-j', '--processcount', metavar='processcount', type=int,
                     help='number of parallel threads to use')
 parser.add_argument('--warn-on-timeout', action='store_true',
                     help='warn when a test times out instead of labelling it as an error immediately')
 parser.add_argument('--override-test-root', type=str,
                     help='change the base directory for the tests (where rlexedirs will be sought)')
+parser.add_argument('--extra-flags', type=str,
+                    help='add extra flags to all executed tests')
+parser.add_argument('--orc','--only-return-code', action='store_true',
+                    help='only consider test return 0/non-0 for pass-fail (no baseline checks)')
 args = parser.parse_args()
 
 test_root = os.path.dirname(os.path.realpath(__file__))
@@ -93,8 +103,17 @@ repo_root = os.path.dirname(test_root)
 if args.override_test_root:
     test_root = os.path.realpath(args.override_test_root)
 
-# arch: x86, x64
-arch = 'x86' if args.x86 else ('x64' if args.x64 else None)
+# arch: x86, x64, arm, arm64
+arch = None
+if args.x86:
+    arch = 'x86'
+elif args.x64:
+    arch = 'x64'
+elif args.arm:
+    arch = 'arm'
+elif args.arm64:
+    arch = 'arm64'
+
 if arch == None:
     arch = os.environ.get('_BuildArch', 'x86')
 if sys.platform != 'win32':
@@ -110,26 +129,46 @@ if flavor == None:
     sys.exit(1)
 flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
+# handling for extra flags
+extra_flags = []
+if args.extra_flags:
+    extra_flags = args.extra_flags.split()
+
 # test variants
 if not args.variants:
     args.variants = ['interpreted', 'dynapogo']
+
+# target binary variants
+binary_name_noext = "ch"
+if args.full:
+    binary_name_noext = "jshost"
+    repo_root = os.path.dirname(repo_root)
+    # we need this to have consistent error message formatting with ch
+    extra_flags.append("-bvt")
+else:
+    extra_flags.append('-WERExceptionSupport')
+
+# append exe to the binary name on windows
+binary_name = binary_name_noext
+if sys.platform == 'win32':
+    binary_name = binary_name + ".exe"
 
 # binary: full ch path
 binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
         build = "VcBuild.SWB" if args.swb else "VcBuild"
-        binary = 'Build\\' + build + '\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
+        binary = os.path.join(repo_root, 'Build', build, 'bin', '{}_{}'.format(arch, flavor), binary_name)
     else:
-        binary = 'out/{0}/ch'.format(flavor)
-    binary = os.path.join(repo_root, binary)
+        binary = os.path.join(repo_root, 'out', flavor, binary_name)
+
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
     sys.exit(1)
 
 # global tags/not_tags
 tags = set(args.tag or [])
-not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch, 'exclude_' + flavor, 'exclude_ch'])
+not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch, 'exclude_' + flavor])
 
 if arch_alias:
     not_tags.add('exclude_' + arch_alias)
@@ -158,6 +197,14 @@ if sys.platform != 'win32':
 else:
     not_tags.add('exclude_windows')
 
+# exclude tests that depend on features not supported on a platform
+if arch == 'arm' or arch == 'arm64':
+    not_tags.add('require_asmjs')
+
+# exclude tests that exclude the current binary
+not_tags.add('exclude_' + binary_name_noext)
+
+# exclude tests known to fail under certain sanitizers
 if args.sanitize != None:
     not_tags.add('exclude_sanitize_'+args.sanitize)
 
@@ -182,6 +229,11 @@ warn_on_timeout = False
 if args.warn_on_timeout == True:
     warn_on_timeout = True
 
+# handle limiting test result analysis to return codes
+return_code_only = False
+if args.orc == True:
+    return_code_only = True
+
 # use tags/not_tags/not_compile_flags as case-insensitive
 def lower_set(s):
     return set([x.lower() for x in s] if s else [])
@@ -204,7 +256,7 @@ class LogFile(object):
             # Set up the log file paths
             # Make sure the right directory exists and the log file doesn't
             log_file_name = "testrun.{0}{1}.log".format(arch, flavor)
-            log_file_directory = os.path.join(repo_root, "test", "logs")
+            log_file_directory = os.path.join(test_root, "logs")
 
             if not os.path.exists(log_file_directory):
                 os.mkdir(log_file_directory)
@@ -306,7 +358,7 @@ class TestVariant(object):
     def __init__(self, name, compile_flags=[], variant_not_tags=[]):
         self.name = name
         self.compile_flags = \
-            ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost',
+            ['-ExtendedErrorStackForTestHost',
              '-BaselineMode'] + compile_flags
         self._compile_flags_has_expansion = self._has_expansion(compile_flags)
         self.tags = tags.copy()
@@ -318,6 +370,11 @@ class TestVariant(object):
         self.test_count = 0
         self._print_lines = [] # _print lines buffer
         self._last_len = 0
+        if verbose:
+            print("Added variant {0}:".format(name))
+            print("Flags: " + ", ".join(self.compile_flags))
+            print("Tags: " + ", ".join(self.tags))
+            print("NotTags: " + ", ".join(self.not_tags))
 
     @staticmethod
     def _has_expansion(flags):
@@ -348,11 +405,11 @@ class TestVariant(object):
 
     # print output from multi-process run, to be sent with result message
     def _print(self, line):
-        self._print_lines.append(str(line))
+        self._print_lines.append(line)
 
     # queue a test result from multi-process runs
     def _log_result(self, test, fail):
-        output = '\n'.join(self._print_lines) # collect buffered _print output
+        output = u'\n'.join(self._print_lines).encode('utf-8') # collect buffered _print output
         self._print_lines = []
         self.msg_queue.put((test.filename, fail, test.elapsed_time, output))
 
@@ -391,26 +448,28 @@ class TestVariant(object):
             else:
                 self._print('ERROR: Test timed out!')
         self._print('{} {} {}'.format(binary, ' '.join(flags), test.filename))
-        if expected_output == None or timedout:
-            self._print("\nOutput:")
-            self._print("----------------------------")
-            self._print(output.decode('utf-8'))
-            self._print("----------------------------")
-        else:
-            lst_output = output.split(b'\n')
-            lst_expected = expected_output.split(b'\n')
-            ln = min(len(lst_output), len(lst_expected))
-            for i in range(0, ln):
-                if lst_output[i] != lst_expected[i]:
-                    self._print("Output: (at line " + str(i+1) + ")")
-                    self._print("----------------------------")
-                    self._print(lst_output[i])
-                    self._print("----------------------------")
-                    self._print("Expected Output:")
-                    self._print("----------------------------")
-                    self._print(lst_expected[i])
-                    self._print("----------------------------")
-                    break
+
+        if not return_code_only:
+            if expected_output == None or timedout:
+                self._print("\nOutput:")
+                self._print("----------------------------")
+                self._print(output.decode('utf-8'))
+                self._print("----------------------------")
+            else:
+                lst_output = output.split(b'\n')
+                lst_expected = expected_output.split(b'\n')
+                ln = min(len(lst_output), len(lst_expected))
+                for i in range(0, ln):
+                    if lst_output[i] != lst_expected[i]:
+                        self._print("Output: (at line " + str(i+1) + ")")
+                        self._print("----------------------------")
+                        self._print(lst_output[i])
+                        self._print("----------------------------")
+                        self._print("Expected Output:")
+                        self._print("----------------------------")
+                        self._print(lst_expected[i])
+                        self._print("----------------------------")
+                        break
 
         self._print("exit code: {}".format(exit_code))
         if warn_on_timeout and timedout:
@@ -506,32 +565,33 @@ class TestVariant(object):
             return self._show_failed(timedout=True, **fail_args)
 
         # check ch failed
-        if exit_code != 0:
+        if exit_code != 0 and binary_name_noext == 'ch':
             return self._show_failed(**fail_args)
 
-        # check output
-        if 'baseline' not in test:
-            # output lines must be 'pass' or 'passed' or empty
-            lines = (line.lower() for line in js_output.split(b'\n'))
-            if any(line != b'' and line != b'pass' and line != b'passed'
-                    for line in lines):
-                return self._show_failed(**fail_args)
-        else:
-            baseline = test.get('baseline')
-            if not skip_baseline_match and baseline:
-                # perform baseline comparison
-                baseline = self._check_file(folder, baseline)
-                with open(baseline, 'rb') as bs_file:
-                    baseline_output = bs_file.read()
+        if not return_code_only:
+            # check output
+            if 'baseline' not in test:
+                # output lines must be 'pass' or 'passed' or empty
+                lines = (line.lower() for line in js_output.split(b'\n'))
+                if any(line != b'' and line != b'pass' and line != b'passed'
+                        for line in lines):
+                    return self._show_failed(**fail_args)
+            else:
+                baseline = test.get('baseline')
+                if not skip_baseline_match and baseline:
+                    # perform baseline comparison
+                    baseline = self._check_file(folder, baseline)
+                    with open(baseline, 'rb') as bs_file:
+                        baseline_output = bs_file.read()
 
-                # Cleanup carriage return
-                # todo: remove carriage return at the end of the line
-                #       or better fix ch to output same on all platforms
-                expected_output = normalize_new_line(baseline_output)
+                    # Cleanup carriage return
+                    # todo: remove carriage return at the end of the line
+                    #       or better fix ch to output same on all platforms
+                    expected_output = normalize_new_line(baseline_output)
 
-                if expected_output != js_output:
-                    return self._show_failed(
-                        expected_output=expected_output, **fail_args)
+                    if expected_output != js_output:
+                        return self._show_failed(
+                            expected_output=expected_output, **fail_args)
 
         # passed
         if verbose:
@@ -706,19 +766,19 @@ def main():
 
     # test variants
     variants = [x for x in [
-        TestVariant('interpreted', [
+        TestVariant('interpreted', extra_flags + [
                 '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-',
                 '-dynamicprofilecache:profile.dpl.${id}'
             ], [
                 'require_disable_jit'
             ]),
-        TestVariant('dynapogo', [
+        TestVariant('dynapogo', extra_flags + [
                 '-forceNative', '-off:simpleJit', '-bgJitDelay:0',
                 '-dynamicprofileinput:profile.dpl.${id}'
             ], [
                 'require_disable_jit'
             ]),
-        TestVariant('disable_jit', [
+        TestVariant('disable_jit', extra_flags + [
                 '-nonative'
             ], [
                 'exclude_interpreted', 'fails_interpreted', 'require_backend'

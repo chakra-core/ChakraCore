@@ -44,8 +44,8 @@ public:
         , consolidated(true)
 #endif
     {
-        list = AllocatorNewArrayLeaf(TAllocator, this->alloc, indexType, maxCount);
-        for (indextype i = 0; i < maxIndex; i++)
+        list = AllocatorNewArrayLeaf(TAllocator, this->alloc, indexType, maxIndex);
+        for (indexType i = 0; i < maxIndex; i++)
         {
             list[i] = i;
         }
@@ -68,7 +68,7 @@ public:
     {
         if (this->list != nullptr)
         {
-            AllocatorDeleteArrayLeaf(TAllocator, this->alloc, maxCount, this->list);
+            AllocatorDeleteArrayLeaf(TAllocator, this->alloc, maxIndex, this->list);
             this->list = nullptr;
         }
     }
@@ -86,7 +86,7 @@ public:
     // Reset the list; useful if we're re-using the data structure
     void Reset()
     {
-        for (indextype i = 0; i < maxIndex; i++)
+        for (indexType i = 0; i < maxIndex; i++)
         {
             list[i] = i;
         }
@@ -313,7 +313,7 @@ public:
         {
             if (backingStore[i] != nullptr)
             {
-                AllocatorDeleteArrayLeaf(TAllocator, alloc, numPerSegment, backingstore[i]);
+                AllocatorDeleteArrayLeaf(TAllocator, alloc, numPerSegment, backingStore[i]);
                 backingStore[i] = nullptr;
             }
         }

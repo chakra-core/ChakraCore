@@ -15,6 +15,8 @@
 namespace Xml
 {
 
+#pragma prefast(disable:26439) // implicit noexcept
+#pragma prefast(disable:26495) // uninitialized member variable
 
 // May want Unicode someday.
 

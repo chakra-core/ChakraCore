@@ -65,6 +65,13 @@ public:
     static const unsigned int MinArgumentsForCallOptimization = 16;
     bool forceNoNative;
 
+    // A flag that when set will force bytecode opcodes to be emitted in strict mode when avaliable.
+    // This flag is set outside of emit calls under the condition that the bytecode being emitted
+    // corresponds to computed property names within classes. This fixes a bug where computed property
+    // names would not enforce strict mode when inside a class even though the spec requires that
+    // all code within a class must be strict.
+    bool forceStrictModeForClassComputedPropertyName = false;
+
     ByteCodeGenerator(Js::ScriptContext* scriptContext, Js::ScopeInfo* parentScopeInfo);
 
 #if DBG_DUMP
@@ -326,7 +333,7 @@ public:
             isStrictMode ? (isRoot ? Js::OpCode::StRootFldStrict : Js::OpCode::StFldStrict) :
             isRoot ? Js::OpCode::StRootFld : Js::OpCode::StFld;
     }
-    static Js::OpCode GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit);
+    static Js::OpCode GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit, bool forceStrictModeForClassComputedPropertyName = false);
     static Js::OpCode GetScopedStFldOpCode(bool isStrictMode, bool isConsoleScope = false)
     {
         return isStrictMode ? 

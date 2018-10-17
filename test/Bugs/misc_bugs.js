@@ -154,8 +154,42 @@ var tests = [
 
         var obj2 = {__proto__ : p}; // This should not call the getPrototypeOf
     }
-  }
-  
+  },
+  {
+    name: "Destructuring declaration should return undefined",
+    body: function () {
+        assert.areEqual(undefined, eval("var {x} = {};"));
+        assert.areEqual(undefined, eval("let {x,y} = {};"));
+        assert.areEqual(undefined, eval("const [z] = [];"));
+        assert.areEqual(undefined, eval("let {x} = {}, y = 1, {z} = {};"));
+        assert.areEqual([1], eval("let {x} = {}; [x] = [1]"));
+    }
+  },
+  {
+    name: "Strict Mode : throw type error when the handler returns falsy value",
+    body: function () {
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { set() {}}); p1.foo = 1;}, TypeError, "returning undefined on set handler is return false which will throw type error",  "Proxy set handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { deleteProperty() {}}); delete p1.foo;}, TypeError, "returning undefined on deleteProperty handler is return false which will throw type error",  "Proxy deleteProperty handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { set() {return false;}}); p1.foo = 1;}, TypeError, "set handler is returning false which will throw type error",  "Proxy set handler returned false");
+        assert.throws(() => {"use strict"; let p1 = new Proxy({}, { deleteProperty() {return false;}}); delete p1.foo;}, TypeError, "deleteProperty handler is returning false which will throw type error",  "Proxy deleteProperty handler returned false");
+      }
+  },
+  {
+    name: "Generator : testing recursion",
+    body: function () {
+        // This will throw out of stack error
+        assert.throws(() => {
+            function foo() {
+                function *f() {
+                    yield foo();
+                }
+                f().next();
+            }
+            foo();
+        });
+      }
+  },
+
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

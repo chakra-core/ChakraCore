@@ -309,7 +309,7 @@ namespace Js
     void DeserializationCloner<Reader>::CloneProperties(SrcTypeId typeId, Src src, Dst dst)
     {
         // ScriptContext* scriptContext = GetScriptContext();
-        RecyclableObject* obj = RecyclableObject::FromVar(dst);
+        RecyclableObject* obj = VarTo<RecyclableObject>(dst);
 
         if (obj->IsExternal()) // Read host object properties
         {
@@ -363,7 +363,7 @@ namespace Js
     template <class Reader>
     void DeserializationCloner<Reader>::CloneMap(Src src, Dst dst)
     {
-        JavascriptMap* map = JavascriptMap::FromVar(dst);
+        JavascriptMap* map = VarTo<JavascriptMap>(dst);
 
         int32 size;
         m_reader->Read(&size);
@@ -392,7 +392,7 @@ namespace Js
     template <class Reader>
     void DeserializationCloner<Reader>::CloneSet(Src src, Dst dst)
     {
-        JavascriptSet* set = JavascriptSet::FromVar(dst);
+        JavascriptSet* set = VarTo<JavascriptSet>(dst);
 
         int32 size;
         m_reader->Read(&size);

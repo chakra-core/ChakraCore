@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "locals": {
@@ -14,11 +15,13 @@
       "b": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "locals": {
@@ -32,11 +35,13 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "locals": {
@@ -50,11 +55,13 @@
       "a": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     },
     "locals": {
@@ -68,6 +75,7 @@
       "b": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "Run": "function <large string>"
     }
   }

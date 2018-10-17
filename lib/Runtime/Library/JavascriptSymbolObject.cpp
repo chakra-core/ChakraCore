@@ -12,25 +12,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_SymbolObject);
     }
 
-    bool JavascriptSymbolObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_SymbolObject;
-    }
-
-    JavascriptSymbolObject* JavascriptSymbolObject::FromVar(Js::Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbolObject'");
-
-        return static_cast<JavascriptSymbolObject *>(aValue);
-    }
-
-    JavascriptSymbolObject* JavascriptSymbolObject::UnsafeFromVar(Js::Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptSymbolObject'");
-
-        return static_cast<JavascriptSymbolObject *>(aValue);
-    }
-
     Var JavascriptSymbolObject::Unwrap() const
     {
         return value;
@@ -54,7 +35,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptSymbolObject::SetValue_TTD(Js::Var val)
     {
-        AssertMsg(val == nullptr || Js::JavascriptSymbol::Is(val), "Only allowable values!");
+        AssertMsg(val == nullptr || Js::VarIs<Js::JavascriptSymbol>(val), "Only allowable values!");
 
         this->value = static_cast<Js::JavascriptSymbol*>(val);
     }

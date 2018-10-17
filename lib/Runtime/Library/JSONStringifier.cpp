@@ -67,7 +67,7 @@ JSONStringifier::ReadSpace(_In_opt_ Var space)
             break;
         }
         case TypeIds_String:
-            this->SetStringGap(JavascriptString::UnsafeFromVar(space));
+            this->SetStringGap(UnsafeVarTo<JavascriptString>(space));
             break;
         case TypeIds_StringObject:
             this->SetStringGap(JavascriptConversion::ToString(space, this->scriptContext));
@@ -88,7 +88,7 @@ JSONStringifier::AddToPropertyList(_In_ Var item, _Inout_ BVSparse<Recycler>* pr
         propertyName = this->scriptContext->GetIntegerString(item);
         break;
     case TypeIds_String:
-        propertyName = JavascriptString::UnsafeFromVar(item);
+        propertyName = UnsafeVarTo<JavascriptString>(item);
         break;
     case TypeIds_Number:
     case TypeIds_NumberObject:
@@ -134,7 +134,7 @@ JSONStringifier::ReadReplacer(_In_opt_ Var replacer)
 
                 BVSparse<Recycler> propertyListBV(recycler);
                 this->propertyList = RecyclerNew(recycler, PropertyList, recycler);
-                JavascriptArray* propertyArray = JavascriptOperators::TryFromVar<JavascriptArray>(replacer);
+                JavascriptArray* propertyArray = JavascriptArray::TryVarToNonES5Array(replacer);
                 if (propertyArray != nullptr)
                 {
                     uint32 length = propertyArray->GetLength();
@@ -221,7 +221,7 @@ _Ret_notnull_ Var
 JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder)
 {
     Var value = nullptr;
-    PropertyString* propertyString = PropertyString::TryFromVar(key);
+    PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
     PropertyValueInfo info;
     if (propertyString != nullptr)
     {
@@ -257,7 +257,7 @@ JSONStringifier::TryConvertPrimitiveObject(_In_ RecyclableObject* value)
     }
     else if (TypeIds_BooleanObject == id)
     {
-        return (JavascriptBooleanObject::UnsafeFromVar(value)->GetValue() != FALSE)
+        return (UnsafeVarTo<JavascriptBooleanObject>(value)->GetValue() != FALSE)
             ? this->scriptContext->GetLibrary()->GetTrue()
             : this->scriptContext->GetLibrary()->GetFalse();
     }
@@ -325,7 +325,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
     }
     if (JavascriptConversion::IsCallable(toJSON))
     {
-        RecyclableObject* func = RecyclableObject::UnsafeFromVar(toJSON);
+        RecyclableObject* func = UnsafeVarTo<RecyclableObject>(toJSON);
         Var values[2];
         Arguments args(2, values);
         args.Values[0] = valueObject;
@@ -342,7 +342,7 @@ JSONStringifier::ToJSON(_In_ JavascriptString* key, _In_ RecyclableObject* value
 uint32
 JSONStringifier::ReadArrayLength(_In_ RecyclableObject* value)
 {
-    JavascriptArray* arr = JavascriptOperators::TryFromVar<JavascriptArray>(value);
+    JavascriptArray* arr = JavascriptArray::TryVarToNonES5Array(value);
     if (arr != nullptr)
     {
         return arr->GetLength();
@@ -361,7 +361,7 @@ void
 JSONStringifier::ReadArrayElement(uint32 index, _In_ RecyclableObject* arr, _Out_ JSONProperty* prop, _In_ JSONObjectStack* objectStack)
 {
     Var value = nullptr;
-    JavascriptArray* jsArray = JavascriptOperators::TryFromVar<JavascriptArray>(arr);
+    JavascriptArray* jsArray = JavascriptArray::TryVarToNonES5Array(arr);
     if (jsArray && !jsArray->IsCrossSiteObject())
     {
         value = jsArray->DirectGetItem(index);
@@ -677,9 +677,9 @@ JSONStringifier::CalculateStringElementLength(_In_ JavascriptString* str)
 
         // Some characters may require an escape sequence. We can use the escapeMapCount table
         // to determine how many extra characters are needed
-        if (currentCharacter < _countof(JSONString::escapeMapCount))
+        if (currentCharacter < _countof(LazyJSONString::escapeMapCount))
         {
-            escapedStrLength += JSONString::escapeMapCount[currentCharacter];
+            escapedStrLength += LazyJSONString::escapeMapCount[currentCharacter];
         }
     }
     if (escapedStrLength > UINT32_MAX)
@@ -701,7 +701,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Boolean:
-        if (JavascriptBoolean::UnsafeFromVar(valueObj)->GetValue() != FALSE)
+        if (UnsafeVarTo<JavascriptBoolean>(valueObj)->GetValue() != FALSE)
         {
             prop->type = JSONContentType::True;
             this->totalStringLength = UInt32Math::Add(this->totalStringLength, Constants::TrueStringLength);
@@ -714,11 +714,11 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
         return;
 
     case TypeIds_Int64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(UnsafeVarTo<JavascriptInt64Number>(valueObj)->GetValue()), valueObj, prop);
         return;
 
     case TypeIds_UInt64Number:
-        this->SetNumericProperty(static_cast<double>(JavascriptUInt64Number::UnsafeFromVar(valueObj)->GetValue()), valueObj, prop);
+        this->SetNumericProperty(static_cast<double>(UnsafeVarTo<JavascriptUInt64Number>(valueObj)->GetValue()), valueObj, prop);
         return;
 
 #if !FLOATVAR
@@ -728,7 +728,7 @@ JSONStringifier::ReadData(_In_ RecyclableObject* valueObj, _Out_ JSONProperty* p
 #endif
 
     case TypeIds_String:
-        prop->stringValue = JavascriptString::UnsafeFromVar(valueObj);
+        prop->stringValue = UnsafeVarTo<JavascriptString>(valueObj);
         prop->type = JSONContentType::String;
         this->totalStringLength = UInt32Math::Add(this->totalStringLength, CalculateStringElementLength(prop->stringValue));
         return;

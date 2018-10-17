@@ -122,7 +122,7 @@ namespace Js
         virtual BOOL SetItemAccessors(DynamicObject* instance, uint32 index, Var getter, Var setter) override;
         virtual DescriptorFlags GetItemSetter(DynamicObject* instance, uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetAccessors(DynamicObject* instance, PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override sealed;
-        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter) override;
         virtual BOOL PreventExtensions(DynamicObject *instance) override;
         virtual BOOL Seal(DynamicObject* instance) override;
         virtual BOOL IsSealed(DynamicObject* instance) override;

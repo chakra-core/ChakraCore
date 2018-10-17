@@ -42,7 +42,7 @@ namespace Js
             typedef trace_type::TypedArrayType array_type;
 
             WriteTypeId(trace_type::GetSCATypeId());
-            array_type* arr = array_type::FromVar(src);
+            array_type* arr = VarTo<array_type>(src);
 
             GetEngine()->Clone(arr->GetArrayBuffer());
 

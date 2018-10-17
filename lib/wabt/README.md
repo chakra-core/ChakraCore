@@ -205,6 +205,10 @@ You can use `-h` to get additional help:
 $ out/wasm-interp -h
 ```
 
+## Running wasm2c
+
+See [wasm2c.md](wasm2c/README.md)
+
 ## Running the test suite
 
 See [test/README.md](test/README.md).

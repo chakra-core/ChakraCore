@@ -44,6 +44,19 @@ namespace Js
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
     };
 
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithPrototypeLengthAndNameTypeDescriptors[3] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
+    };
+
+    SimplePropertyDescriptor const JavascriptLibrary::FunctionWithPrototypeAndLengthTypeDescriptors[2] =
+    {
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
+    };
+
     SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[1] =
     {
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyNone)
@@ -57,6 +70,8 @@ namespace Js
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithConfigurableLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable);
     SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
     SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
+    SimpleTypeHandler<3> JavascriptLibrary::SharedFunctionWithPrototypeLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeLengthAndNameTypeDescriptors));
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeAndLengthTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithPrototypeAndLengthTypeDescriptors));
     SimpleTypeHandler<1> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors), PropertyTypesHasSpecialProperties);
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
@@ -403,18 +418,20 @@ namespace Js
         strictHeapArgumentsTypePath->Add<true /*isSetter*/>(BuiltInPropertyRecords::callee);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::length);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::_symbolIterator);
-        ObjectSlotAttributes *strictHeapArgumentsAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, strictHeapArgumentsTypePath->GetPathSize());
+        uint8 strictHeapArgumentsTypePathSize = strictHeapArgumentsTypePath->GetPathSize();
+        AnalysisAssert(strictHeapArgumentsTypePathSize >= 4);
+        ObjectSlotAttributes *strictHeapArgumentsAttributes = RecyclerNewArrayLeaf(recycler, ObjectSlotAttributes, strictHeapArgumentsTypePathSize);
         strictHeapArgumentsAttributes[0] = (ObjectSlotAttributes)(ObjectSlotAttr_Writable | ObjectSlotAttr_Accessor);
         strictHeapArgumentsAttributes[1] = ObjectSlotAttr_Setter;
         strictHeapArgumentsAttributes[2] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
         strictHeapArgumentsAttributes[3] = (ObjectSlotAttributes)PropertyBuiltInMethodDefaults;
-        for (int i = 4; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        for (int i = 4; i < strictHeapArgumentsTypePathSize; ++i)
         {
             strictHeapArgumentsAttributes[i] = ObjectSlotAttr_Default;
         }
-        PathTypeSetterSlotIndex * strictHeapArgumentsSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, strictHeapArgumentsTypePath->GetPathSize());
+        PathTypeSetterSlotIndex * strictHeapArgumentsSetters = RecyclerNewArrayLeaf(recycler, PathTypeSetterSlotIndex, strictHeapArgumentsTypePathSize);
         strictHeapArgumentsSetters[0] = 1;
-        for (int i = 1; i < strictHeapArgumentsTypePath->GetPathSize(); ++i)
+        for (int i = 1; i < strictHeapArgumentsTypePathSize; ++i)
         {
             strictHeapArgumentsSetters[i] = NoSetterSlot;
         }
@@ -540,12 +557,14 @@ namespace Js
             PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         variantDateType = StaticType::New(scriptContext, TypeIds_VariantDate, nullValue, nullptr);
 
-        anonymousFunctionTypeHandler = NullTypeHandler<false>::GetDefaultInstance();
-        anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandlerV11;
-
         //  Initialize function types
 
+        anonymousFunctionTypeHandler = &SharedFunctionWithConfigurableLengthTypeHandler;
+        anonymousFunctionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeAndLengthTypeHandler;
+
         functionTypeHandler = &SharedFunctionWithoutPrototypeTypeHandler;
+        functionTypeHandlerWithLength = &SharedFunctionWithLengthAndNameTypeHandler;
+        functionWithPrototypeAndLengthTypeHandler = &SharedFunctionWithPrototypeLengthAndNameTypeHandler;
         functionWithPrototypeTypeHandler = &SharedFunctionWithPrototypeTypeHandler;
         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
 
@@ -680,12 +699,23 @@ namespace Js
 
     bool JavascriptLibrary::InitializeGeneratorFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        JavascriptGeneratorFunction *function = JavascriptGeneratorFunction::FromVar(instance);
+        JavascriptGeneratorFunction *function = VarTo<JavascriptGeneratorFunction>(instance);
         bool isAnonymousFunction = function->IsAnonymousFunction();
 
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
-        typeHandler->ConvertFunction(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+        typeHandler->ConvertFunction(function, isAnonymousFunction ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeAndLengthTypeHandler);
         function->SetPropertyWithAttributes(PropertyIds::prototype, javascriptLibrary->CreateGeneratorConstructorPrototypeObject(), PropertyWritable, nullptr);
+
+        Var varLength;
+        GeneratorVirtualScriptFunction* scriptFunction = function->GetGeneratorVirtualScriptFunction();
+        if (!scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, nullptr, scriptFunction->GetScriptContext()))
+        {
+            // TODO - remove this if or convert it to a FailFast if this assert never triggers
+            // Nothing in the ChakraCore CI will reach this code
+            AssertMsg(false, "Initializing Generator function without a length property - why isn't there a length?.");
+            varLength = TaggedInt::ToVarUnchecked(0);
+        }
+        function->SetPropertyWithAttributes(PropertyIds::length, varLength, PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
 
         if (!isAnonymousFunction)
         {
@@ -701,15 +731,31 @@ namespace Js
     bool JavascriptLibrary::InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         // Async function instances do not have a prototype property as they are not constructable
-        typeHandler->Convert(function, mode, 1);
+        JavascriptAsyncFunction* asyncFunction = VarTo<JavascriptAsyncFunction>(function);
 
-        if (!JavascriptAsyncFunction::FromVar(function)->IsAnonymousFunction())
+        if (!asyncFunction->IsAnonymousFunction())
         {
+            typeHandler->Convert(function, mode, 2);
             JavascriptString * functionName = nullptr;
             DebugOnly(bool status = ) ((Js::JavascriptFunction*)function)->GetFunctionName(&functionName);
             Assert(status);
             function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
         }
+        else
+        {
+            typeHandler->Convert(function, mode, 1);
+        }
+
+        Var varLength;
+        GeneratorVirtualScriptFunction* scriptFunction = asyncFunction->GetGeneratorVirtualScriptFunction();
+        if (!scriptFunction->GetProperty(scriptFunction, PropertyIds::length, &varLength, nullptr, scriptFunction->GetScriptContext()))
+        {
+            // TODO - remove this if or convert it to a FailFast if this assert never triggers
+            // Nothing in the ChakraCore CI will reach this code
+            AssertMsg(false, "Initializing Async function without a length property - why isn't there a length?.");
+            varLength = TaggedInt::ToVarUnchecked(0);
+        }
+        function->SetPropertyWithAttributes(PropertyIds::length, varLength, PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
 
         return true;
     }
@@ -722,27 +768,40 @@ namespace Js
         JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptArray>();
     }
 
-    template<bool addPrototype>
+    template<bool addPrototype, bool addName, bool useLengthType>
     bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        JavascriptFunction * function = JavascriptFunction::FromVar(instance);
+        JavascriptFunction * function = VarTo<JavascriptFunction>(instance);
         JavascriptLibrary* javascriptLibrary = function->GetType()->GetLibrary();
         ScriptFunction *scriptFunction = nullptr;
         bool useAnonymous = false;
-        if (ScriptFunction::Is(function))
+        if (VarIs<ScriptFunction>(function))
         {
-            scriptFunction = Js::ScriptFunction::FromVar(function);
+            scriptFunction = Js::VarTo<Js::ScriptFunction>(function);
             useAnonymous = scriptFunction->IsAnonymousFunction();
         }
 
         if (!addPrototype)
         {
-            Assert(!useAnonymous);
-            typeHandler->ConvertFunction(function, javascriptLibrary->functionTypeHandler);
+            if (!useAnonymous && addName)
+            {
+                typeHandler->ConvertFunction(function, useLengthType ? javascriptLibrary->functionTypeHandlerWithLength : javascriptLibrary->functionTypeHandler);
+            }
+            else
+            {
+                typeHandler->ConvertFunction(function, javascriptLibrary->anonymousFunctionTypeHandler);
+            }
         }
         else
         {
-            typeHandler->ConvertFunction(function, useAnonymous ? javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+            if (useAnonymous)
+            {
+                typeHandler->ConvertFunction(function, javascriptLibrary->anonymousFunctionWithPrototypeTypeHandler);
+            }
+            else
+            {
+                typeHandler->ConvertFunction(function, useLengthType ? javascriptLibrary->functionWithPrototypeAndLengthTypeHandler : javascriptLibrary->functionWithPrototypeTypeHandler);
+            }
             DynamicObject *protoObject = javascriptLibrary->CreateConstructorPrototypeObject(function);
             if (scriptFunction && scriptFunction->GetFunctionInfo()->IsClassConstructor())
             {
@@ -754,14 +813,28 @@ namespace Js
             }
         }
 
-        if(scriptFunction && (useAnonymous || scriptFunction->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction()))
+        if (scriptFunction)
         {
-            return true;
+            ParseableFunctionInfo * funcInfo = scriptFunction->GetFunctionProxy()->EnsureDeserialized();
+
+            if (useLengthType)
+            {
+                function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(funcInfo->GetReportedInParamsCount() - 1), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
+            }
+
+            if (useAnonymous || funcInfo->GetIsStaticNameFunction())
+            {
+                return true;
+            }
         }
-        JavascriptString * functionName = nullptr;
-        if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
+
+        if (addName)
         {
-            function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+            JavascriptString * functionName = nullptr;
+            if (((Js::JavascriptFunction*)function)->GetFunctionName(&functionName))
+            {
+                function->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+            }
         }
 
         return true;
@@ -828,20 +901,20 @@ namespace Js
     template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable, bool isPrototypeAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredGeneratorFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeGeneratorFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeGeneratorFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, /*isLengthAvailable*/ true>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase()
     {
         // Async functions do not have the prototype property
-        return DeferredTypeHandler<InitializeAsyncFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, /* isPrototypeAvailable */ false>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeAsyncFunction, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, /* isPrototypeAvailable */ false, /*isLengthAvailable*/ true>>::GetDefaultInstance();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler()
@@ -864,9 +937,9 @@ namespace Js
         return JavascriptLibrary::GetDeferredAsyncFunctionTypeHandlerBase</*isNameAvailable*/ true>();
     }
 
-    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler()
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler()
     {
-        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false>();
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ false, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(ScriptContext* scriptContext)
@@ -874,19 +947,34 @@ namespace Js
         return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true>();
     }
 
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>();
+    }
+
     DynamicTypeHandler * JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext)
     {
         return DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredLengthInitializer, InitializeFunctionDeferredTypeHandlerFilter</* isNameAvailable */ true, /* isPrototypeAvailable */ true, /* isLengthAvailable */ true>>::GetDefaultInstance();
     }
 
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionWithLengthTypeHandler()
+    {
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ true>();
+    }
+
     DynamicTypeHandler * JavascriptLibrary::GetDeferredAnonymousFunctionTypeHandler()
     {
-        return anonymousFunctionTypeHandler;
+        return JavascriptLibrary::GetDeferredFunctionTypeHandlerBase</* isNameAvailable */ false, /* isPrototypeAvailable */ false, /* isLengthAvailable */ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandler()
     {
-        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false>();
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ false>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler()
+    {
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction)
@@ -896,14 +984,14 @@ namespace Js
         if (noPrototypeProperty)
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                this->GetDeferredAnonymousFunctionTypeHandler() :
-                this->GetDeferredFunctionTypeHandler();
+                this->GetDeferredAnonymousFunctionWithLengthTypeHandler() :
+                this->GetDeferredFunctionWithLengthTypeHandler();
         }
         else
         {
             scriptFunctionTypeHandler = isAnonymousFunction ?
-                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionTypeHandler() :
-                JavascriptLibrary::GetDeferredPrototypeFunctionTypeHandler(scriptContext);
+                JavascriptLibrary::GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler() :
+                JavascriptLibrary::GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         }
         return scriptFunctionTypeHandler;
     }
@@ -1139,6 +1227,11 @@ namespace Js
         AddMember(globalObject, PropertyIds::NaN, nan, PropertyNone);
         AddMember(globalObject, PropertyIds::Infinity, positiveInfinite, PropertyNone);
         AddMember(globalObject, PropertyIds::undefined, undefinedValue, PropertyNone);
+        // Note: for global object, we need to set toStringTag to global like other engines (v8)
+        if (globalObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            AddMember(globalObject, PropertyIds::_symbolToStringTag, scriptContext->GetPropertyString(PropertyIds::global), PropertyConfigurable | PropertyWritable | PropertyEnumerable);
+        }
 
         // Note: Any global function added/removed/changed here should also be updated in JavascriptLibrary::ProfilerRegisterBuiltinFunctions
         // so that the new functions show up in the profiler too.
@@ -1662,7 +1755,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(arrayPrototype, mode, 24);
+        typeHandler->Convert(arrayPrototype, mode, 26);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterArray
         // so that the update is in sync with profiler
 
@@ -1705,18 +1798,12 @@ namespace Js
         if (!scriptContext->IsJsBuiltInEnabled())
         {
             builtinFuncs[BuiltinFunction::JavascriptArray_IndexOf] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf, &JavascriptArray::EntryInfo::IndexOf, 1);
+            builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
         }
-
-        /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
-
-        /* No inlining                Array_ForEach        */
-        library->AddMember(arrayPrototype, PropertyIds::forEach, library->EnsureArrayPrototypeForEachFunction());
 
         builtinFuncs[BuiltinFunction::JavascriptArray_LastIndexOf]    = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::lastIndexOf,     &JavascriptArray::EntryInfo::LastIndexOf,       1);
         /* No inlining                Array_Map            */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::map,             &JavascriptArray::EntryInfo::Map,               1);
-        /* No inlining                Array_Reduce         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduce,          &JavascriptArray::EntryInfo::Reduce,            1);
         /* No inlining                Array_ReduceRight    */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduceRight,     &JavascriptArray::EntryInfo::ReduceRight,       1);
-        /* No inlining                Array_Some           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::some,            &JavascriptArray::EntryInfo::Some,              1);
 
         if (scriptContext->GetConfig()->IsES6StringExtensionsEnabled()) // This is not a typo, Array.prototype.find and .findIndex are part of the ES6 Improved String APIs feature
         {
@@ -1743,6 +1830,10 @@ namespace Js
             /* No inlining                Array_SymbolIterator */ library->AddMember(arrayPrototype, PropertyIds::_symbolIterator, values);
 
             /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter, &JavascriptArray::EntryInfo::Filter, 1);
+            /* No inlining                Array_ForEach        */ library->AddMember(arrayPrototype, PropertyIds::forEach, library->EnsureArrayPrototypeForEachFunction());
+            /* No inlining                Array_Some           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::some, &JavascriptArray::EntryInfo::Some, 1);
+            /* No inlining                Array_Reduce         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reduce, &JavascriptArray::EntryInfo::Reduce, 1);
+            /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every, &JavascriptArray::EntryInfo::Every, 1);
         }
 
         if (scriptContext->GetConfig()->IsES6UnscopablesEnabled())
@@ -1762,8 +1853,6 @@ namespace Js
 
         /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
         /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
-
-        builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
 
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
@@ -1824,7 +1913,7 @@ namespace Js
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::store, &AtomicsObject::EntryInfo::Store, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::sub, &AtomicsObject::EntryInfo::Sub, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wait, &AtomicsObject::EntryInfo::Wait, 4);
-        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::wake, &AtomicsObject::EntryInfo::Wake, 3);
+        library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::notify, &AtomicsObject::EntryInfo::Notify, 3);
         library->AddFunctionToLibraryObject(atomicsObject, PropertyIds::xor_, &AtomicsObject::EntryInfo::Xor, 3);
 
         if (atomicsObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
@@ -2666,7 +2755,7 @@ namespace Js
 
         library->AddMember(functionPrototype, PropertyIds::constructor, library->functionConstructor);
         library->AddMember(functionPrototype, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
-        library->AddMember(functionPrototype, PropertyIds::name, LiteralString::CreateEmptyString(scriptContext->GetLibrary()->GetStringTypeStatic()), PropertyConfigurable);
+        library->AddMember(functionPrototype, PropertyIds::name, library->GetEmptyString(), PropertyConfigurable);
 
         JavascriptFunction *func = library->AddFunctionToLibraryObject(functionPrototype, PropertyIds::apply, &JavascriptFunction::EntryInfo::Apply, 2);
         builtinFuncs[BuiltinFunction::JavascriptFunction_Apply] = func;
@@ -3275,9 +3364,6 @@ namespace Js
         case PropertyIds::link:
             return BuiltinFunction::JavascriptString_Link;
 
-        case PropertyIds::localeCompare:
-            return BuiltinFunction::JavascriptString_LocaleCompare;
-
         case PropertyIds::match:
             return BuiltinFunction::JavascriptString_Match;
 
@@ -3317,8 +3403,14 @@ namespace Js
         case PropertyIds::trimLeft:
             return BuiltinFunction::JavascriptString_TrimLeft;
 
+        case PropertyIds::trimStart:
+            return BuiltinFunction::JavascriptString_TrimStart;
+
         case PropertyIds::trimRight:
             return BuiltinFunction::JavascriptString_TrimRight;
+
+        case PropertyIds::trimEnd:
+            return BuiltinFunction::JavascriptString_TrimEnd;
 
         case PropertyIds::padStart:
             return BuiltinFunction::JavascriptString_PadStart;
@@ -3345,17 +3437,17 @@ namespace Js
         byte count = BuiltinFunction::Count;
         for (byte index = 0; index < count; index++)
         {
-            Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo((intptr_t)builtInFuncs[index]->GetFunctionInfo(), scriptContext->GetThreadContext())));
+            Assert(!builtInFuncs[index] || (index == GetBuiltInForFuncInfo(builtInFuncs[index]->GetFunctionInfo()->GetLocalFunctionId())));
         }
     }
 #endif
 
     // Returns built-in enum value for given funcInfo. Ultimately this will work for all built-ins (not only Math.*).
     // Used by inliner.
-    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo * context)
+    BuiltinFunction JavascriptLibrary::GetBuiltInForFuncInfo(LocalFunctionId localFuncId)
     {
 #define LIBRARY_FUNCTION(target, name, argc, flags, EntryInfo) \
-        if(funcInfoAddr == (intptr_t)ShiftAddr(context, &EntryInfo)) \
+        if(localFuncId == EntryInfo.GetLocalFunctionId()) \
         { \
             return BuiltinFunction::##target##_##name; \
         }
@@ -3563,6 +3655,18 @@ namespace Js
             propertyCount++;
         }
 
+        if (scriptContext->GetConfig()->IsES7ValuesEntriesEnabled())
+        {
+            propertyCount += 2;
+        }
+
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            propertyCount++;
+        }
+#endif
+
         typeHandler->Convert(objectConstructor, mode, propertyCount);
 
         library->AddMember(objectConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
@@ -3618,6 +3722,13 @@ namespace Js
             scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Entries.GetOriginalEntryPoint(),
                 library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::entries, &JavascriptObject::EntryInfo::Entries, 1));
         }
+
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            library->EnsureBuiltInEngineIsReady();
+        }
+#endif
 
         objectConstructor->SetHasNoEnumerableProperties(true);
 
@@ -3691,7 +3802,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeRegexPrototype(DynamicObject* regexPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(regexPrototype, mode, 24);
+        typeHandler->Convert(regexPrototype, mode, 26);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterRegExp
         // so that the update is in sync with profiler
         JavascriptFunction * func;
@@ -3744,8 +3855,17 @@ namespace Js
             {
                 library->regexUnicodeGetterFunction =
                     library->AddGetterToLibraryObject(regexPrototype, PropertyIds::unicode, &JavascriptRegExp::EntryInfo::GetterUnicode);
-                library->regexUnicodeGetterSlotIndex = 19;
+                library->regexUnicodeGetterSlotIndex = scriptConfig->IsES6RegExStickyEnabled() ? 19 : 17;
                 Assert(regexPrototype->GetSlot(library->regexUnicodeGetterSlotIndex) == library->regexUnicodeGetterFunction);
+            }
+
+            if (scriptConfig->IsES2018RegExDotAllEnabled())
+            {
+                library->regexDotAllGetterFunction =
+                    library->AddGetterToLibraryObject(regexPrototype, PropertyIds::dotAll, &JavascriptRegExp::EntryInfo::GetterDotAll);
+                library->regexDotAllGetterSlotIndex = 21 -
+                    (scriptConfig->IsES6UnicodeExtensionsEnabled() ? 0 : 2) - (scriptConfig->IsES6RegExStickyEnabled() ? 0 : 2);
+                Assert(regexPrototype->GetSlot(library->regexDotAllGetterSlotIndex) == library->regexDotAllGetterFunction);
             }
         }
 
@@ -3840,7 +3960,8 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptString_CharAt]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charAt,             &JavascriptString::EntryInfo::CharAt,               1);
         builtinFuncs[BuiltinFunction::JavascriptString_CharCodeAt]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charCodeAt,         &JavascriptString::EntryInfo::CharCodeAt,           1);
         builtinFuncs[BuiltinFunction::JavascriptString_Concat]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::concat,             &JavascriptString::EntryInfo::Concat,               1);
-        builtinFuncs[BuiltinFunction::JavascriptString_LocaleCompare]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::localeCompare,      &JavascriptString::EntryInfo::LocaleCompare,        1);
+        // OS#17824730: Don't inline String.prototype.localeCompare because it immediately calls back into Intl.js, which can break implicitCallFlags
+        /* No inlining                String_LocaleCompare */               library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::localeCompare,      &JavascriptString::EntryInfo::LocaleCompare,        1);
         builtinFuncs[BuiltinFunction::JavascriptString_Match]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::match,              &JavascriptString::EntryInfo::Match,                1);
         builtinFuncs[BuiltinFunction::JavascriptString_Split]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::split,              &JavascriptString::EntryInfo::Split,                2);
         builtinFuncs[BuiltinFunction::JavascriptString_Substring]         = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::substring,          &JavascriptString::EntryInfo::Substring,            2);
@@ -3876,8 +3997,10 @@ namespace Js
             /* No inlining                String_StartsWith    */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::startsWith,         &JavascriptString::EntryInfo::StartsWith,           1);
             /* No inlining                String_EndsWith      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::endsWith,           &JavascriptString::EntryInfo::EndsWith,             1);
             /* No inlining                String_Includes      */ library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::includes,           &JavascriptString::EntryInfo::Includes,             1);
-            builtinFuncs[BuiltinFunction::JavascriptString_TrimLeft]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimLeft,           &JavascriptString::EntryInfo::TrimLeft,             0);
-            builtinFuncs[BuiltinFunction::JavascriptString_TrimRight]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimRight,          &JavascriptString::EntryInfo::TrimRight,            0);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimStart]      = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimStart,           &JavascriptString::EntryInfo::TrimStart,             0);
+            library->AddMember(stringPrototype, PropertyIds::trimLeft, builtinFuncs[BuiltinFunction::JavascriptString_TrimStart], PropertyBuiltInMethodDefaults);
+            builtinFuncs[BuiltinFunction::JavascriptString_TrimEnd]     = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::trimEnd,          &JavascriptString::EntryInfo::TrimEnd,            0);
+            library->AddMember(stringPrototype, PropertyIds::trimRight, builtinFuncs[BuiltinFunction::JavascriptString_TrimEnd], PropertyBuiltInMethodDefaults);
         }
 
         library->AddFunctionToLibraryObjectWithName(stringPrototype, PropertyIds::_symbolIterator, PropertyIds::_RuntimeFunctionNameId_iterator, &JavascriptString::EntryInfo::SymbolIterator, 0);
@@ -4197,7 +4320,8 @@ namespace Js
         }
         else
         {
-            objPrototype = Js::RecyclableObject::FromVar(prototype);
+            AssertOrFailFast(Js::VarIsCorrectType(prototype));
+            objPrototype = prototype;
             Js::JavascriptOperators::InitProperty(objPrototype, Js::PropertyIds::constructor, function);
             objPrototype->SetEnumerable(Js::PropertyIds::constructor, false);
         }
@@ -4405,7 +4529,7 @@ namespace Js
 
     RuntimeFunction* JavascriptLibrary::CreateGetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
     {
-        Var name_withGetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("get "), scriptContext), scriptContext->GetPropertyString(nameId));
+        Var name_withGetPrefix = JavascriptString::Concat(GetGetterFunctionPrefixString(), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* getterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withGetPrefix);
         getterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable, nullptr);
         return getterFunction;
@@ -4413,7 +4537,7 @@ namespace Js
 
     RuntimeFunction* JavascriptLibrary::CreateSetterFunction(PropertyId nameId, FunctionInfo* functionInfo)
     {
-        Var name_withSetPrefix = LiteralString::Concat(LiteralString::NewCopySz(_u("set "), scriptContext), scriptContext->GetPropertyString(nameId));
+        Var name_withSetPrefix = JavascriptString::Concat(GetSetterFunctionPrefixString(), scriptContext->GetPropertyString(nameId));
         RuntimeFunction* setterFunction = DefaultCreateFunction(functionInfo, 0, nullptr, nullptr, name_withSetPrefix);
         setterFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
         return setterFunction;
@@ -4462,7 +4586,7 @@ namespace Js
     {
         typeHandler->Convert(engineInterface, mode, 3);
 
-        EngineInterfaceObject::FromVar(engineInterface)->Initialize();
+        VarTo<EngineInterfaceObject>(engineInterface)->Initialize();
 
         engineInterface->SetHasNoEnumerableProperties(true);
 
@@ -4512,7 +4636,7 @@ namespace Js
 
     void JavascriptLibrary::EnqueueTask(Var taskVar)
     {
-        Assert(JavascriptFunction::Is(taskVar));
+        Assert(VarIs<JavascriptFunction>(taskVar));
 
         if(this->nativeHostPromiseContinuationFunction)
         {
@@ -4646,6 +4770,9 @@ namespace Js
         JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
         typeHandler->Convert(chakraLibraryObject, mode, 8);
 
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
+        JavascriptFunction * func = nullptr;
+
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToLengthFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ToIntegerFunction, 1);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::GetLength, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_GetLength, 1);
@@ -4654,6 +4781,8 @@ namespace Js
         library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arraySpeciesCreate, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArraySpeciesCreate, 2);
         library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::arrayCreateDataPropertyOrThrow, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_Internal_ArrayCreateDataPropertyOrThrow, 3);
+        func = library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::builtInCallInstanceFunction, &EngineInterfaceObject::EntryInfo::CallInstanceFunction, 1);
+        builtinFuncs[BuiltinFunction::EngineInterfaceObject_CallInstanceFunction] = func;
 
         return true;
     }
@@ -4795,7 +4924,7 @@ namespace Js
 #if ENABLE_TTD
     Js::PropertyId JavascriptLibrary::ExtractPrimitveSymbolId_TTD(Var value)
     {
-        return Js::JavascriptSymbol::FromVar(value)->GetValue()->GetPropertyId();
+        return Js::VarTo<Js::JavascriptSymbol>(value)->GetValue()->GetPropertyId();
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreatePrimitveSymbol_TTD(Js::PropertyId pid)
@@ -4831,16 +4960,16 @@ namespace Js
         switch(obj->GetTypeId())
         {
         case Js::TypeIds_BooleanObject:
-            Js::JavascriptBooleanObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptBooleanObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_NumberObject:
-            Js::JavascriptNumberObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptNumberObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_StringObject:
-            Js::JavascriptStringObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptStringObject>(obj)->SetValue_TTD(value);
             break;
         case Js::TypeIds_SymbolObject:
-            Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
+            Js::VarTo<Js::JavascriptSymbolObject>(obj)->SetValue_TTD(value);
             break;
         default:
             TTDAssert(false, "Unsupported nullptr value boxed object.");
@@ -4876,7 +5005,7 @@ namespace Js
 
     void JavascriptLibrary::SetLengthWritableES5Array_TTD(Js::RecyclableObject* es5Array, bool isLengthWritable)
     {
-        Js::ES5Array* es5a = Js::ES5Array::FromVar(es5Array);
+        Js::ES5Array* es5a = Js::VarTo<Js::ES5Array>(es5Array);
         if(es5a->IsLengthWritable() != isLengthWritable)
         {
             es5a->SetWritable(Js::PropertyIds::length, isLengthWritable ? TRUE : FALSE);
@@ -4900,9 +5029,9 @@ namespace Js
 
     void JavascriptLibrary::AddWeakSetElementInflate_TTD(Js::JavascriptWeakSet* set, Var value)
     {
-        set->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(value));
+        set->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::VarTo<Js::DynamicObject>(value));
 
-        set->Add(Js::DynamicObject::FromVar(value));
+        set->Add(Js::VarTo<Js::DynamicObject>(value));
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateMap_TTD()
@@ -4922,9 +5051,9 @@ namespace Js
 
     void JavascriptLibrary::AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value)
     {
-        map->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::DynamicObject::FromVar(key));
+        map->GetScriptContext()->TTDContextInfo->TTDWeakReferencePinSet->Add(Js::VarTo<Js::DynamicObject>(key));
 
-        map->Set(Js::DynamicObject::FromVar(key), value);
+        map->Set(Js::VarTo<Js::DynamicObject>(key), value);
     }
 
     Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::Var fname)
@@ -5015,9 +5144,9 @@ namespace Js
         return JavascriptPromiseReaction::New(capabilities, handler, this->scriptContext);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
+    Js::RecyclableObject* JavascriptLibrary::CreatePromise_TTD(uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions)
     {
-        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, result, resolveReactions, rejectReactions);
+        return JavascriptPromise::InitializePromise_TTD(this->scriptContext, status, isHandled, result, resolveReactions, rejectReactions);
     }
 
     JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* JavascriptLibrary::CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined)
@@ -5030,7 +5159,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
     {
-        TTDAssert(JavascriptPromise::Is(promise), "Not a promise!");
+        TTDAssert(VarIs<JavascriptPromise>(promise), "Not a promise!");
 
         return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
     }
@@ -5050,7 +5179,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseAllResolveElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, bool alreadyCalled)
     {
-        Js::JavascriptPromiseAllResolveElementFunction* res = this->CreatePromiseAllResolveElementFunction(JavascriptPromise::EntryAllResolveElementFunction, index, Js::JavascriptArray::FromVar(values), capabilities, wrapper);
+        Js::JavascriptPromiseAllResolveElementFunction* res = this->CreatePromiseAllResolveElementFunction(JavascriptPromise::EntryAllResolveElementFunction, index, Js::VarTo<Js::JavascriptArray>(values), capabilities, wrapper);
         res->SetAlreadyCalled(alreadyCalled);
 
         return res;
@@ -5071,11 +5200,11 @@ namespace Js
     {
         Assert(function->GetDynamicType()->GetIsLocked());
 
-        if (ScriptFunction::Is(function))
+        if (VarIs<ScriptFunction>(function))
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
-        else if (BoundFunction::Is(function))
+        else if (VarIs<BoundFunction>(function))
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
@@ -5146,62 +5275,6 @@ namespace Js
         return function;
     }
 
-    void JavascriptLibrary::EnsureStringTemplateCallsiteObjectList()
-    {
-        if (this->stringTemplateCallsiteObjectList == nullptr)
-        {
-            this->stringTemplateCallsiteObjectList = RecyclerNew(GetRecycler(), StringTemplateCallsiteObjectList, GetRecycler());
-        }
-    }
-
-    void JavascriptLibrary::AddStringTemplateCallsiteObject(RecyclableObject* callsite)
-    {
-        this->EnsureStringTemplateCallsiteObjectList();
-
-        RecyclerWeakReference<RecyclableObject>* callsiteRef = this->GetRecycler()->CreateWeakReferenceHandle<RecyclableObject>(callsite);
-
-        this->stringTemplateCallsiteObjectList->Item(callsiteRef);
-    }
-
-    RecyclableObject* JavascriptLibrary::TryGetStringTemplateCallsiteObject(ParseNodePtr pnode)
-    {
-        this->EnsureStringTemplateCallsiteObjectList();
-
-        RecyclerWeakReference<RecyclableObject>* callsiteRef = this->stringTemplateCallsiteObjectList->LookupWithKey(pnode);
-
-        if (callsiteRef)
-        {
-            RecyclableObject* callsite = callsiteRef->Get();
-
-            if (callsite)
-            {
-                return callsite;
-            }
-        }
-
-        return nullptr;
-    }
-
-    RecyclableObject* JavascriptLibrary::TryGetStringTemplateCallsiteObject(RecyclableObject* callsite)
-    {
-        this->EnsureStringTemplateCallsiteObjectList();
-
-        RecyclerWeakReference<RecyclableObject>* callsiteRef = this->GetRecycler()->CreateWeakReferenceHandle<RecyclableObject>(callsite);
-        RecyclerWeakReference<RecyclableObject>* existingCallsiteRef = this->stringTemplateCallsiteObjectList->LookupWithKey(callsiteRef);
-
-        if (existingCallsiteRef)
-        {
-            RecyclableObject* existingCallsite = existingCallsiteRef->Get();
-
-            if (existingCallsite)
-            {
-                return existingCallsite;
-            }
-        }
-
-        return nullptr;
-    }
-
 #if DBG_DUMP
     const char16* JavascriptLibrary::GetStringTemplateCallsiteObjectKey(Var callsite)
     {
@@ -5209,11 +5282,11 @@ namespace Js
         // Key is combination of the raw string literals delimited by '${}' since string template literals cannot include that symbol.
         // `str1${expr1}str2${expr2}str3` => "str1${}str2${}str3"
 
-        ES5Array* callsiteObj = ES5Array::FromVar(callsite);
+        ES5Array* callsiteObj = VarTo<ES5Array>(callsite);
         ScriptContext* scriptContext = callsiteObj->GetScriptContext();
 
         Var var = JavascriptOperators::OP_GetProperty(callsiteObj, Js::PropertyIds::raw, scriptContext);
-        ES5Array* rawArray = ES5Array::FromVar(var);
+        ES5Array* rawArray = VarTo<ES5Array>(var);
         uint32 arrayLength = rawArray->GetLength();
         uint32 totalStringLength = 0;
         JavascriptString* str;
@@ -5224,7 +5297,7 @@ namespace Js
         for (uint32 i = 0; i < arrayLength; i++)
         {
             rawArray->DirectGetItemAt(i, &var);
-            str = JavascriptString::FromVar(var);
+            str = VarTo<JavascriptString>(var);
             totalStringLength += str->GetLength();
         }
 
@@ -5235,10 +5308,10 @@ namespace Js
 
         // Get first item before loop - there always must be at least one item
         rawArray->DirectGetItemAt(0, &var);
-        str = JavascriptString::FromVar(var);
+        str = VarTo<JavascriptString>(var);
 
         charcount_t len = str->GetLength();
-        js_wmemcpy_s(ptr, remainingSpace, str->GetSz(), len);
+        js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
         ptr += len;
         remainingSpace -= len;
 
@@ -5251,10 +5324,10 @@ namespace Js
             remainingSpace -= len;
 
             rawArray->DirectGetItemAt(i, &var);
-            str = JavascriptString::FromVar(var);
+            str = VarTo<JavascriptString>(var);
 
             len = str->GetLength();
-            js_wmemcpy_s(ptr, remainingSpace, str->GetSz(), len);
+            js_wmemcpy_s(ptr, remainingSpace, str->GetString(), len);
             ptr += len;
             remainingSpace -= len;
         }
@@ -5266,290 +5339,7 @@ namespace Js
     }
 #endif
 
-    bool StringTemplateCallsiteObjectComparer<ParseNodePtr>::Equals(ParseNodePtr x, RecyclerWeakReference<Js::RecyclableObject>* y)
-    {
-        Assert(x != nullptr);
-        Assert(x->nop == knopStrTemplate);
 
-        Js::RecyclableObject* obj = y->Get();
-
-        // If the weak reference is dead, we can't be equal.
-        if (obj == nullptr)
-        {
-            return false;
-        }
-
-        Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
-        uint32 length = callsite->GetLength();
-        Js::Var element;
-        Js::JavascriptString* str;
-        IdentPtr pid;
-
-        // If the length of string literals is different, these callsite objects are not equal.
-        if (x->AsParseNodeStrTemplate()->countStringLiterals != length)
-        {
-            return false;
-        }
-
-        JS_REENTRANCY_LOCK(reentrancyLock, callsite->GetScriptContext()->GetThreadContext());
-        Unused(reentrancyLock);
-
-        element = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        Js::ES5Array* rawArray = Js::ES5Array::FromVar(element);
-
-        // Length of the raw strings should be the same as the cooked string literals.
-        AssertOrFailFast(length != 0 && length == rawArray->GetLength());
-
-        x = x->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
-
-        for (uint32 i = 0; i < length - 1; i++)
-        {
-            BOOL hasElem = rawArray->DirectGetItemAt(i, &element);
-            AssertOrFailFast(hasElem);
-            str = Js::JavascriptString::FromVar(element);
-
-            Assert(x->nop == knopList);
-            Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
-
-            pid = x->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid;
-
-            // If strings have different length, they aren't equal
-            if (pid->Cch() != str->GetLength())
-            {
-                return false;
-            }
-
-            // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
-            {
-                return false;
-            }
-
-            x = x->AsParseNodeBin()->pnode2;
-        }
-
-        // There should be one more string in the callsite array - and the final string in the ParseNode
-
-        BOOL hasLastElem = rawArray->DirectGetItemAt(length - 1, &element);
-        AssertOrFailFast(hasLastElem);
-        str = Js::JavascriptString::FromVar(element);
-
-        Assert(x->nop == knopStr);
-        pid = x->AsParseNodeStr()->pid;
-
-        // If strings have different length, they aren't equal
-        if (pid->Cch() != str->GetLength())
-        {
-            return false;
-        }
-
-        // If the strings at this index are not equal, the callsite objects are not equal.
-        if (!JsUtil::CharacterBuffer<char16>::StaticEquals(pid->Psz(), str->GetSz(), str->GetLength()))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    bool StringTemplateCallsiteObjectComparer<ParseNodePtr>::Equals(ParseNodePtr x, ParseNodePtr y)
-    {
-        Assert(x != nullptr && y != nullptr);
-        Assert(x->nop == knopStrTemplate && y->nop == knopStrTemplate);
-
-        // If the ParseNode is the same, they are equal.
-        if (x == y)
-        {
-            return true;
-        }
-
-        x = x->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
-        y = y->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
-
-        // If one of the templates only includes one string value, the raw literals ParseNode will
-        // be a knopStr instead of knopList.
-        if (x->nop != y->nop)
-        {
-            return false;
-        }
-
-        const char16* pid_x;
-        const char16* pid_y;
-
-        while (x->nop == knopList)
-        {
-            // If y is knopStr here, that means x has more strings in the list than y does.
-            if (y->nop != knopList)
-            {
-                return false;
-            }
-
-            Assert(x->AsParseNodeBin()->pnode1->nop == knopStr);
-            Assert(y->AsParseNodeBin()->pnode1->nop == knopStr);
-
-            pid_x = x->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
-            pid_y = y->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
-
-            // If the pid values of each raw string don't match each other, these are different.
-            if (!DefaultComparer<const char16*>::Equals(pid_x, pid_y))
-            {
-                return false;
-            }
-
-            x = x->AsParseNodeBin()->pnode2;
-            y = y->AsParseNodeBin()->pnode2;
-        }
-
-        // If y is still knopList here, that means y has more strings in the list than x does.
-        if (y->nop != knopStr)
-        {
-            return false;
-        }
-
-        Assert(x->nop == knopStr);
-
-        pid_x = x->AsParseNodeStr()->pid->Psz();
-        pid_y = y->AsParseNodeStr()->pid->Psz();
-
-        // This is the final string in the raw literals list. Return true if they are equal.
-        return DefaultComparer<const char16*>::Equals(pid_x, pid_y);
-    }
-
-    hash_t StringTemplateCallsiteObjectComparer<ParseNodePtr>::GetHashCode(ParseNodePtr i)
-    {
-        hash_t hash = 0;
-
-        Assert(i != nullptr);
-        Assert(i->nop == knopStrTemplate);
-
-        i = i->AsParseNodeStrTemplate()->pnodeStringRawLiterals;
-
-        const char16* pid;
-
-        while (i->nop == knopList)
-        {
-            Assert(i->AsParseNodeBin()->pnode1->nop == knopStr);
-
-            pid = i->AsParseNodeBin()->pnode1->AsParseNodeStr()->pid->Psz();
-
-            hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
-            hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
-
-            i = i->AsParseNodeBin()->pnode2;
-        }
-
-        Assert(i->nop == knopStr);
-
-        pid = i->AsParseNodeStr()->pid->Psz();
-
-        hash ^= DefaultComparer<const char16*>::GetHashCode(pid);
-
-        return hash;
-    }
-
-    bool StringTemplateCallsiteObjectComparer<RecyclerWeakReference<Js::RecyclableObject>*>::Equals(RecyclerWeakReference<Js::RecyclableObject>* x, ParseNodePtr y)
-    {
-        return StringTemplateCallsiteObjectComparer<ParseNodePtr>::Equals(y, x);
-    }
-
-    bool StringTemplateCallsiteObjectComparer<RecyclerWeakReference<Js::RecyclableObject>*>::Equals(RecyclerWeakReference<Js::RecyclableObject>* x, RecyclerWeakReference<Js::RecyclableObject>* y)
-    {
-        Js::RecyclableObject* objLeft = x->Get();
-        Js::RecyclableObject* objRight = y->Get();
-
-        // If either WeakReference is dead, we can't be equal to anything.
-        if (objLeft == nullptr || objRight == nullptr)
-        {
-            return false;
-        }
-
-        // If the Var pointers are the same, they are equal.
-        if (objLeft == objRight)
-        {
-            return true;
-        }
-
-        Js::ES5Array* arrayLeft = Js::ES5Array::FromVar(objLeft);
-        Js::ES5Array* arrayRight = Js::ES5Array::FromVar(objRight);
-        uint32 lengthLeft = arrayLeft->GetLength();
-        uint32 lengthRight = arrayRight->GetLength();
-        Js::Var varLeft;
-        Js::Var varRight;
-
-        // If the length of string literals is different, these callsite objects are not equal.
-        if (lengthLeft != lengthRight)
-        {
-            return false;
-        }
-
-        AssertOrFailFast(lengthLeft != 0 && lengthRight != 0);
-
-        JS_REENTRANCY_LOCK(reentrancyLock, arrayLeft->GetScriptContext()->GetThreadContext());
-        Unused(reentrancyLock);
-
-        // Change to the set of raw strings.
-        varLeft = Js::JavascriptOperators::OP_GetProperty(arrayLeft, Js::PropertyIds::raw, arrayLeft->GetScriptContext());
-        arrayLeft = Js::ES5Array::FromVar(varLeft);
-
-        varRight = Js::JavascriptOperators::OP_GetProperty(arrayRight, Js::PropertyIds::raw, arrayRight->GetScriptContext());
-        arrayRight = Js::ES5Array::FromVar(varRight);
-
-        // Length of the raw strings should be the same as the cooked string literals.
-        AssertOrFailFast(lengthLeft == arrayLeft->GetLength());
-        AssertOrFailFast(lengthRight == arrayRight->GetLength());
-
-        for (uint32 i = 0; i < lengthLeft; i++)
-        {
-            BOOL hasLeft = arrayLeft->DirectGetItemAt(i, &varLeft);
-            AssertOrFailFast(hasLeft);
-            BOOL hasRight = arrayRight->DirectGetItemAt(i, &varRight);
-            AssertOrFailFast(hasRight);
-
-            // If the strings at this index are not equal, the callsite objects are not equal.
-            if (!Js::JavascriptString::Equals(JavascriptString::FromVar(varLeft), JavascriptString::FromVar(varRight)))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    hash_t StringTemplateCallsiteObjectComparer<RecyclerWeakReference<Js::RecyclableObject>*>::GetHashCode(RecyclerWeakReference<Js::RecyclableObject>* o)
-    {
-        hash_t hash = 0;
-
-        Js::RecyclableObject* obj = o->Get();
-
-        if (obj == nullptr)
-        {
-            return hash;
-        }
-        JS_REENTRANCY_LOCK(reentrancyLock, obj->GetScriptContext()->GetThreadContext());
-        Unused(reentrancyLock);
-
-        Js::ES5Array* callsite = Js::ES5Array::FromVar(obj);
-        Js::Var var = Js::JavascriptOperators::OP_GetProperty(callsite, Js::PropertyIds::raw, callsite->GetScriptContext());
-        Js::ES5Array* rawArray = Js::ES5Array::FromVar(var);
-
-        AssertOrFailFast(rawArray->GetLength() > 0);
-
-        rawArray->DirectGetItemAt(0, &var);
-        Js::JavascriptString* str = Js::JavascriptString::FromVar(var);
-        hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
-
-        for (uint32 i = 1; i < rawArray->GetLength(); i++)
-        {
-            hash ^= DefaultComparer<const char16*>::GetHashCode(_u("${}"));
-
-            BOOL hasItem = rawArray->DirectGetItemAt(i, &var);
-            AssertOrFailFast(hasItem);
-            str = Js::JavascriptString::FromVar(var);
-            hash ^= DefaultComparer<const char16*>::GetHashCode(str->GetSz());
-        }
-
-        return hash;
-    }
 
     DynamicType * JavascriptLibrary::GetObjectLiteralType(uint16 requestedInlineSlotCapacity)
     {
@@ -5768,6 +5558,13 @@ namespace Js
     ArrayBuffer* JavascriptLibrary::CreateProjectionArraybuffer(byte* buffer, uint32 length)
     {
         ArrayBuffer* arr = ProjectionArrayBuffer::Create(buffer, length, arrayBufferType);
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(arr));
+        return arr;
+    }
+
+    ArrayBuffer* JavascriptLibrary::CreateExternalArrayBuffer(byte* buffer, uint32 length)
+    {
+        ArrayBuffer* arr = ExternalArrayBuffer::Create(buffer, length, arrayBufferType);
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(arr));
         return arr;
     }
@@ -6115,9 +5912,9 @@ namespace Js
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
         Var functionNameOrId = name;
-        if (JavascriptString::Is(name))
+        if (VarIs<JavascriptString>(name))
         {
-            JavascriptString * functionName = JavascriptString::FromVar(name);
+            JavascriptString * functionName = VarTo<JavascriptString>(name);
             const char16 * functionNameBuffer = functionName->GetString();
             int functionNameBufferLength = functionName->GetLengthAsSignedInt();
 
@@ -6194,20 +5991,20 @@ namespace Js
     JavascriptPromiseThenFinallyFunction* JavascriptLibrary::CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow)
     {
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-        
+
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
 
         JavascriptPromiseThenFinallyFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseThenFinallyFunction, type, functionInfo, OnFinally, Constructor, shouldThrow);
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
-        
+
         return function;
     }
 
     JavascriptPromiseThunkFinallyFunction* JavascriptLibrary::CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow)
     {
         Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
-        
+
         FunctionInfo* functionInfo = RecyclerNew(this->GetRecycler(), FunctionInfo, entryPoint);
         DynamicType* type = CreateDeferredPrototypeFunctionType(entryPoint);
 
@@ -6611,8 +6408,9 @@ namespace Js
     JavascriptListIterator* JavascriptLibrary::CreateListIterator(ListForListIterator* list)
     {
         JavascriptListIterator* iterator = RecyclerNew(this->GetRecycler(), JavascriptListIterator, listIteratorType, list);
-        RuntimeFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
-        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, RuntimeFunction::FromVar(nextFunction), GetScriptContext(), PropertyOperation_None);
+        JavascriptFunction* nextFunction = DefaultCreateFunction(&JavascriptListIterator::EntryInfo::Next, 0, nullptr, nullptr, PropertyIds::next);
+        AssertOrFailFast(VarIsCorrectType(nextFunction));
+        JavascriptOperators::SetProperty(iterator, iterator, PropertyIds::next, nextFunction, GetScriptContext(), PropertyOperation_None);
         return iterator;
     }
 
@@ -7358,8 +7156,8 @@ namespace Js
             REG_OBJECTS_LIB_FUNC(startsWith, JavascriptString::EntryStartsWith);
             REG_OBJECTS_LIB_FUNC(endsWith, JavascriptString::EntryEndsWith);
             REG_OBJECTS_LIB_FUNC(includes, JavascriptString::EntryIncludes);
-            REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimLeft);
-            REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimRight);
+            REG_OBJECTS_LIB_FUNC(trimLeft, JavascriptString::EntryTrimStart);
+            REG_OBJECTS_LIB_FUNC(trimRight, JavascriptString::EntryTrimEnd);
 
         }
 
@@ -7416,7 +7214,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(store, AtomicsObject::EntryStore);
         REG_OBJECTS_LIB_FUNC(sub, AtomicsObject::EntrySub);
         REG_OBJECTS_LIB_FUNC(wait, AtomicsObject::EntryWait);
-        REG_OBJECTS_LIB_FUNC(wake, AtomicsObject::EntryWake);
+        REG_OBJECTS_LIB_FUNC(notify, AtomicsObject::EntryNotify);
         REG_OBJECTS_LIB_FUNC(xor_, AtomicsObject::EntryXor);
 
         return hr;

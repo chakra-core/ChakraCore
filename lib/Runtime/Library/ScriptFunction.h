@@ -15,16 +15,14 @@ namespace Js
         DEFINE_VTABLE_CTOR(ScriptFunctionBase, JavascriptFunction);
 
     public:
-        static bool Is(Var func);
-        static ScriptFunctionBase * FromVar(Var func);
-        static ScriptFunctionBase * UnsafeFromVar(Var func);
-
         virtual Var  GetHomeObj() const = 0;
         virtual void SetHomeObj(Var homeObj) = 0;
         virtual void SetComputedNameVar(Var computedNameVar) = 0;
         virtual Var GetComputedNameVar() const = 0;
         virtual bool IsAnonymousFunction() const = 0;
     };
+
+    template <> bool VarIsImpl<ScriptFunctionBase>(RecyclableObject* obj);
 
     template <class BaseClass>
     class FunctionWithComputedName : public BaseClass
@@ -43,17 +41,6 @@ namespace Js
         }
         virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
         virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
-
-#if ENABLE_TTD
-        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
-        {
-            __super::MarkVisitKindSpecificPtrs(extractor);
-            if (this->computedNameVar != nullptr)
-            {
-                extractor->MarkVisitVar(this->computedNameVar);
-            }
-        }
-#endif
     };
 
     template <class BaseClass>
@@ -82,7 +69,6 @@ namespace Js
         Field(ActivationObjectEx *) cachedScopeObj;
         Field(bool) hasInlineCaches;
 
-        JavascriptString * FormatToString(JavascriptString* inputString);
         static JavascriptString* GetComputedName(Var computedNameVar, ScriptContext * scriptContext);
         static bool GetSymbolName(Var computedNameVar, const char16** symbolName, charcount_t *length);
     protected:
@@ -90,18 +76,19 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(ScriptFunction);
     public:
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
-        static bool Is(Var func);
         inline static BOOL Test(JavascriptFunction *func) { return func->IsScriptFunction(); }
-        static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * UnsafeFromVar(Var func);
         static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
         static ScriptFunction * OP_NewScFuncHomeObj(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, Var homeObj);
+
+        static void CopyEntryPointInfoToThreadContextIfNecessary(ProxyEntryPointInfo* oldEntryPointInfo, ProxyEntryPointInfo* newEntryPointInfo);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
         {
             Assert(this->GetFunctionProxy()->IsDeferred() == FALSE);
-            return (FunctionEntryPointInfo*) this->GetEntryPointInfo();
+            ProxyEntryPointInfo* result = this->GetEntryPointInfo();
+            Assert(result->IsFunctionEntryPointInfo());
+            return (FunctionEntryPointInfo*)result;
         }
 
         FunctionProxy * GetFunctionProxy() const;
@@ -123,6 +110,8 @@ namespace Js
         JavascriptMethod UpdateUndeferredBody(FunctionBody* newFunctionInfo);
 
         virtual ScriptFunctionType * DuplicateType() override;
+        virtual void PrepareForConversionToNonPathType() override;
+        virtual void ReplaceTypeWithPredecessorType(DynamicType * previousType) override;
 
         virtual Var GetSourceString() const;
         virtual JavascriptString * EnsureSourceString();
@@ -163,6 +152,11 @@ namespace Js
         }
     };
 
+    template <> inline bool VarIsImpl<ScriptFunction>(RecyclableObject* obj)
+    {
+        return VarIs<JavascriptFunction>(obj) && UnsafeVarTo<JavascriptFunction>(obj)->IsScriptFunction();
+    }
+
     typedef FunctionWithComputedName<ScriptFunction> ScriptFunctionWithComputedName;
     typedef FunctionWithHomeObj<ScriptFunction> ScriptFunctionWithHomeObj;
 
@@ -171,9 +165,6 @@ namespace Js
     public:
         AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
-        static bool Is(Var func);
-        static AsmJsScriptFunction* FromVar(Var func);
-        static AsmJsScriptFunction* UnsafeFromVar(Var func);
         static AsmJsScriptFunction * OP_NewAsmJsFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         virtual bool IsAsmJsFunction() const override { return true; }
@@ -191,6 +182,11 @@ namespace Js
         Field(Field(Var)*) m_moduleEnvironment;
     };
 
+    template <> inline bool VarIsImpl<AsmJsScriptFunction>(RecyclableObject* obj)
+    {
+        return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->IsAsmJsFunction();
+    }
+
     typedef FunctionWithComputedName<AsmJsScriptFunction> AsmJsScriptFunctionWithComputedName;
 
 #ifdef ENABLE_WASM
@@ -199,10 +195,6 @@ namespace Js
     public:
         WasmScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
-        static bool Is(Var func);
-        static WasmScriptFunction* FromVar(Var func);
-        static WasmScriptFunction* UnsafeFromVar(Var func);
-
         void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
         Wasm::WasmSignature * GetSignature() const { return m_signature; }
         static uint32 GetOffsetOfSignature() { return offsetof(WasmScriptFunction, m_signature); }
@@ -210,18 +202,22 @@ namespace Js
         WebAssemblyMemory* GetWebAssemblyMemory() const;
 
         virtual bool IsWasmFunction() const override { return true; }
-    protected:        
+    protected:
         DEFINE_VTABLE_CTOR(WasmScriptFunction, AsmJsScriptFunction);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WasmScriptFunction);
     private:
         Field(Wasm::WasmSignature *) m_signature;
     };
-#else
-    class WasmScriptFunction
+
+    template <> inline bool VarIsImpl<WasmScriptFunction>(RecyclableObject* obj)
     {
-    public:
-        static bool Is(Var) { return false; }
+        return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->IsWasmFunction();
+    }
+#else
+    class WasmScriptFunction : public AsmJsScriptFunction
+    {
     };
+    template <> inline bool VarIsImpl<WasmScriptFunction>(RecyclableObject* obj) { return false; }
 #endif
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
@@ -249,9 +245,6 @@ namespace Js
 
     public:
         ScriptFunctionWithInlineCache(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
-        static bool Is(Var func);
-        static ScriptFunctionWithInlineCache * FromVar(Var func);
-        static ScriptFunctionWithInlineCache * UnsafeFromVar(Var func);
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
@@ -263,6 +256,11 @@ namespace Js
         void FreeOwnInlineCaches();
         virtual void Finalize(bool isShutdown) override;
     };
+
+    template <> inline bool VarIsImpl<ScriptFunctionWithInlineCache>(RecyclableObject* obj)
+    {
+        return VarIs<ScriptFunction>(obj) && UnsafeVarTo<ScriptFunction>(obj)->GetHasInlineCaches();
+    }
 
     typedef FunctionWithComputedName<ScriptFunctionWithInlineCache> ScriptFunctionWithInlineCacheAndComputedName;
 } // namespace Js

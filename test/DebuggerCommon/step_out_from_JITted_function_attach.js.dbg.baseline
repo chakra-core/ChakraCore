@@ -23,6 +23,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -40,10 +41,11 @@
         "length": "number 0"
       },
       "c": {
-        "#__proto__": "Date Invalid Date"
+        "#__proto__": "Object {...}"
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"

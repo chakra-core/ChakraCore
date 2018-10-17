@@ -1301,7 +1301,7 @@ namespace Js
         return false;
     }
 
-    void ByteCodeWriter::Element(OpCode op, RegSlot Value, RegSlot Instance, RegSlot Element, bool instanceAtReturnRegOK)
+    void ByteCodeWriter::Element(OpCode op, RegSlot Value, RegSlot Instance, RegSlot Element, bool instanceAtReturnRegOK, bool forceStrictMode)
     {
         CheckOpen();
         CheckOp(op, OpLayoutType::ElementI);
@@ -1311,7 +1311,7 @@ namespace Js
         Instance = ConsumeReg(Instance);
         Element = ConsumeReg(Element);
 
-        if (this->m_functionWrite->GetIsStrictMode())
+        if (this->m_functionWrite->GetIsStrictMode() || forceStrictMode)
         {
             if (op == OpCode::DeleteElemI_A)
             {
@@ -1401,7 +1401,7 @@ StoreCommon:
         return false;
     }
 
-    void ByteCodeWriter::ScopedProperty(OpCode op, RegSlot value, PropertyIdIndexType propertyIdIndex)
+    void ByteCodeWriter::ScopedProperty(OpCode op, RegSlot value, PropertyIdIndexType propertyIdIndex, bool forceStrictMode)
     {
         CheckOpen();
         CheckOp(op, OpLayoutType::ElementScopedC);
@@ -1424,7 +1424,7 @@ StoreCommon:
         }
 #endif
 
-        if (this->m_functionWrite->GetIsStrictMode())
+        if (this->m_functionWrite->GetIsStrictMode() || forceStrictMode)
         {
             if (op == OpCode::ScopedDeleteFld)
             {
@@ -1448,7 +1448,7 @@ StoreCommon:
         return false;
     }
 
-    void ByteCodeWriter::Property(OpCode op, RegSlot value, RegSlot instance, PropertyIdIndexType propertyIdIndex)
+    void ByteCodeWriter::Property(OpCode op, RegSlot value, RegSlot instance, PropertyIdIndexType propertyIdIndex, bool forceStrictMode)
     {
         CheckOpen();
         CheckOp(op, OpLayoutType::ElementC);
@@ -1477,7 +1477,7 @@ StoreCommon:
         }
 #endif
 
-        if (this->m_functionWrite->GetIsStrictMode())
+        if (this->m_functionWrite->GetIsStrictMode() || forceStrictMode)
         {
             if (op == OpCode::DeleteFld)
             {
@@ -1525,6 +1525,7 @@ StoreCommon:
 #endif
         case OpCode::StObjSlot:
         case OpCode::StObjSlotChkUndecl:
+        case OpCode::StPropIdArrFromVar:
             break;
 
         default:

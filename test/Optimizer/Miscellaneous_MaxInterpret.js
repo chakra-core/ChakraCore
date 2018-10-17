@@ -1071,3 +1071,23 @@ function test66() {
 }
 WScript.Echo("test66: " + test66());
 WScript.Echo("test66: " + test66());
+
+(function test67Runner(){
+    function test67(a,b,x){
+        var i = a[0];
+        var j = b[0];
+        var t = a;
+        for (var p = 0; p < x; p++) {
+            if (p > 2) {
+                t = b;
+                b = a;
+            }
+        }
+    }
+
+    var arr1 = [1,2];
+    var arr2 = [3,4];
+    var x = 1;
+    test67(arr1, arr2, x);
+    test67(arr1, arr2, x)
+})();

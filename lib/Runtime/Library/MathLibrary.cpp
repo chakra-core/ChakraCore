@@ -8,10 +8,6 @@
 
 #include <math.h>
 
-#if defined(_M_IX86) || defined(_M_X64)
-#pragma intrinsic(_mm_round_sd)
-#endif
-
 const LPCWSTR UCrtC99MathApis::LibraryName = _u("api-ms-win-crt-math-l1-1-0.dll");
 
 void UCrtC99MathApis::Ensure()

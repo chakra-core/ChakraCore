@@ -1513,7 +1513,7 @@
       <files>mul_rejit_bug.js</files>
       <baseline>mul_rejit_bug.baseline</baseline>
       <compile-flags>-mic:1 -oopjit- -bgJit- -off:simplejit -trace:rejit</compile-flags>
-      <tags>exclude_dynapogo,exclude_nonative</tags>
+      <tags>exclude_dynapogo,exclude_nonative,exclude_serialized</tags>
     </default>
   </test>
   <test>
@@ -1558,8 +1558,26 @@
   </test>
   <test>
     <default>
+      <files>bcebug.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit- -lic:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>rembug.js</files>
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1  -loopinterpretcount:1 -oopjit- -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>pathdepbug.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -off:aggressiveinttypespec</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>valuetypegap.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -force:inline</compile-flags>
     </default>
   </test>
 </regress-exe>

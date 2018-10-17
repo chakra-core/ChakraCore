@@ -33,7 +33,6 @@ namespace Js
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
-        static bool Is(void* instance);
 
 #if ENABLE_TTD
     public:
@@ -41,6 +40,8 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<ActivationObject>(RecyclableObject* instance);
 
     // A block-ActivationObject is a scope for an ES6 block that should only receive block-scoped inits,
     // including function, let, and const.
@@ -56,15 +57,6 @@ namespace Js
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override;
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
-        static bool Is(void* instance)
-        {
-            return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance);
-        }
-        static BlockActivationObject* FromVar(Var value)
-        {
-            AssertOrFailFast(BlockActivationObject::Is(value));
-            return static_cast<BlockActivationObject*>(DynamicObject::FromVar(value));
-        }
 
         BlockActivationObject* Clone(ScriptContext *scriptContext);
 
@@ -74,6 +66,8 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<BlockActivationObject>(RecyclableObject* instance);
 
     // A pseudo-ActivationObject is a scope like a "catch" scope that shouldn't receive var inits.
     class PseudoActivationObject : public ActivationObject
@@ -88,10 +82,6 @@ namespace Js
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
-        static bool Is(void* instance)
-        {
-            return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
-        }
 
 #if ENABLE_TTD
     public:
@@ -99,6 +89,8 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<PseudoActivationObject>(RecyclableObject* instance);
 
     class ConsoleScopeActivationObject : public ActivationObject
     {
@@ -114,18 +106,14 @@ namespace Js
             AssertMsg(false, "ConsoleScopeActivationObject::DummyVirtualFunc function should never be called");
         }
 
-        static bool Is(void* instance)
-        {
-            return VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance)
-                || VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
-        }
-
 #if ENABLE_TTD
     public:
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<ConsoleScopeActivationObject>(RecyclableObject* instance);
 
     class ActivationObjectEx : public ActivationObject
     {
@@ -208,18 +196,6 @@ namespace Js
 
         static byte ExtraSlotCount() { return 4; }
 
-        static bool Is(void* instance)
-        {
-            return VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
-                VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance);
-        }
-
-        static ActivationObjectEx * FromVar(Var instance)
-        {
-            AssertOrFailFast(Is(instance));
-            return reinterpret_cast<ActivationObjectEx *>(instance);
-        }
-
     private:
         Field(ScriptFunction *) parentFunc;
         Field(uint) cachedFuncCount;
@@ -234,4 +210,6 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<ActivationObjectEx>(RecyclableObject* instance);
 };

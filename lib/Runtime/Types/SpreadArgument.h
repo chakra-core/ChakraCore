@@ -18,9 +18,6 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(SpreadArgument);
 
     public:
-        static bool Is(Var aValue);
-        static SpreadArgument* FromVar(Var value);
-        static SpreadArgument* UnsafeFromVar(Var value);
         SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type);
         const Var* GetArgumentSpread() const { return iteratorIndices ? iteratorIndices->GetBuffer() : nullptr; }
         uint GetArgumentSpreadCount()  const { return iteratorIndices ? iteratorIndices->Count() : 0; }
@@ -56,7 +53,7 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, EnumeratorCache * enumeratorCache = nullptr) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { AssertAndFailFast(); return FALSE; };
-        virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { AssertAndFailFast(); return FALSE; };
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext * requestContext) override { AssertAndFailFast();  return FALSE; };
         virtual BOOL IsWritable(PropertyId propertyId) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL IsConfigurable(PropertyId propertyId) override { AssertAndFailFast(); return FALSE; };
         virtual BOOL IsEnumerable(PropertyId propertyId) override { AssertAndFailFast(); return FALSE; };
@@ -73,4 +70,9 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override { AssertAndFailFast(); return FALSE; };
         virtual Var GetTypeOfString(ScriptContext * requestContext) override { AssertAndFailFast(); return RecyclableObject::GetTypeOfString(requestContext); };
     };
+
+    template <> inline bool VarIsImpl<SpreadArgument>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_SpreadArgument;
+    }
 }

@@ -19,6 +19,7 @@
       "level_1_identifier_0": "string level1_0",
       "level_1_identifier_1": "string level1_1",
       "level_1_identifier_2": "string [Uninitialized block variable]",
+      "level_0_identifier_0": "string level0",
       "verify": {
         "#__proto__": "function function() {\n    [native code]\n}",
         "prototype": "Object {...}",
@@ -26,10 +27,10 @@
         "caller": "object null",
         "arguments": "object null",
         "length": "number 3"
-      },
-      "level_0_identifier_0": "string level0"
+      }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }
@@ -46,6 +47,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     },
@@ -67,11 +69,12 @@
       "level_1_identifier_2": "undefined undefined"
     },
     "scopes1": {
-      "verify": "function <large string>",
       "level_0_identifier_0": "string level0",
-      "level2Func": "function <large string>"
+      "level2Func": "function <large string>",
+      "verify": "function <large string>"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "verify": "function function verify(){}",
       "Run": "function <large string>"
     }

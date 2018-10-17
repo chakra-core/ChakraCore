@@ -14,26 +14,6 @@ namespace Js
         Assert(type->GetTypeId() == TypeIds_StringIterator);
     }
 
-    bool JavascriptStringIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_StringIterator;
-    }
-
-    JavascriptStringIterator* JavascriptStringIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptStringIterator'");
-
-        return static_cast<JavascriptStringIterator *>(aValue);
-    }
-
-    JavascriptStringIterator* JavascriptStringIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptStringIterator'");
-
-        return static_cast<JavascriptStringIterator *>(aValue);
-    }
-
     Var JavascriptStringIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -46,12 +26,12 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptStringIterator::Is(thisObj))
+        if (!VarIs<JavascriptStringIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedStringIterator, _u("String Iterator.prototype.next"));
         }
 
-        JavascriptStringIterator* iterator = JavascriptStringIterator::FromVar(thisObj);
+        JavascriptStringIterator* iterator = VarTo<JavascriptStringIterator>(thisObj);
         JavascriptString* string = iterator->m_string;
 
         if (string == nullptr)

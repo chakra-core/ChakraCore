@@ -4,4 +4,4 @@ bug16252562.js(9, 3)
 	Unhandled parse opcode for asm.js
 
 Asm.js compilation failed.
-new.target: function () {console.log(`new.target: ${new.target}`);}
+new.target: function () { console.log(`new.target: ${new.target}`); }

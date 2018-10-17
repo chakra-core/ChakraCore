@@ -27,10 +27,6 @@ namespace Js
     public:
         JavascriptMapIterator(DynamicType* type, JavascriptMap* map, JavascriptMapIteratorKind kind);
 
-        static bool Is(Var aValue);
-        static JavascriptMapIterator* FromVar(Var aValue);
-        static JavascriptMapIterator* UnsafeFromVar(Var aValue);
-
         class EntryInfo
         {
         public:
@@ -42,4 +38,9 @@ namespace Js
     public:
         JavascriptMap* GetMapForHeapEnum() { return m_map; }
     };
+
+    template <> inline bool VarIsImpl<JavascriptMapIterator>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_MapIterator;
+    }
 } // namespace Js

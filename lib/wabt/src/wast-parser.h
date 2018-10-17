@@ -162,6 +162,7 @@ class WastParser {
   Result ParseBlockInstr(std::unique_ptr<Expr>*);
   Result ParseLabelOpt(std::string*);
   Result ParseEndLabelOpt(const std::string&);
+  Result ParseBlockDeclaration(BlockDeclaration*);
   Result ParseBlock(Block*);
   Result ParseIfExceptHeader(IfExceptExpr*);
   Result ParseExprList(ExprList*);

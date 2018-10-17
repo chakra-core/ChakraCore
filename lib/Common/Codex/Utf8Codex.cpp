@@ -17,6 +17,7 @@
 #pragma warning(push)
 
 #pragma warning(disable: 4127)  // constant expression for template parameter
+#pragma warning(disable: 26451) // size-conversion/arithmetic-operation ordering
 #endif
 
 namespace utf8

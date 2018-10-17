@@ -1267,6 +1267,14 @@ static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pno
     if (pnodeFnc->IsMethod())
     {
         attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Method);
+
+        // #sec-runtime-semantics-classdefinitionevaluation calls #sec-makeconstructor. #sec-makeconstructor
+        // creates a prototype. Thus a method that is a class constructor has a prototype and should not
+        // throw an error when new is called on the method.
+        if (!pnodeFnc->IsClassConstructor())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::ErrorOnNew);
+        }
     }
     if (pnodeFnc->IsGenerator())
     {
@@ -1923,9 +1931,9 @@ Scope * ByteCodeGenerator::FindScopeForSym(Scope *symScope, Scope *scope, Js::Pr
 }
 
 /* static */
-Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit)
+Js::OpCode ByteCodeGenerator::GetStFldOpCode(FuncInfo* funcInfo, bool isRoot, bool isLetDecl, bool isConstDecl, bool isClassMemberInit, bool forceStrictModeForClassComputedPropertyName)
 {
-    return GetStFldOpCode(funcInfo->GetIsStrictMode(), isRoot, isLetDecl, isConstDecl, isClassMemberInit);
+    return GetStFldOpCode(funcInfo->GetIsStrictMode() || forceStrictModeForClassComputedPropertyName, isRoot, isLetDecl, isConstDecl, isClassMemberInit);
 }
 
 /* static */

@@ -587,7 +587,7 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
 }
 
 template <typename EncodingPolicy>
-typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt)
+typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt, size_t savedMultiUnits)
 {
     EncodedCharPtr last = m_pchLast;
     EncodedCharPtr pchT = nullptr;
@@ -686,6 +686,7 @@ LIdCheck:
     }
     if (this->charClassifier->IsIdStart(outChar))
     {
+        this->RestoreMultiUnits(savedMultiUnits);
         Error(ERRIdAfterLit);
     }
 
@@ -695,12 +696,14 @@ LIdCheck:
         startingLocation++; // TryReadEscape expects us to point to the 'u', and since it is by reference we need to do it beforehand.
         if (TryReadEscape(startingLocation, m_pchLast, &outChar))
         {
+            this->RestoreMultiUnits(savedMultiUnits);
             Error(ERRIdAfterLit);
         }
     }
 
     if (Js::NumberUtilities::IsDigit(*startingLocation))
     {
+        this->RestoreMultiUnits(savedMultiUnits);
         Error(ERRbadNumber);
     }
 
@@ -1587,6 +1590,7 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
     m_tkPrevious = m_ptoken->tk;
     m_iecpLimTokPrevious = IecpLimTok();    // Introduced for use by lambda parsing to find correct span of expression lambdas
     m_ichLimTokPrevious = IchLimTok();
+    size_t savedMultiUnits = this->m_cMultiUnits;
 
     if (p >= last)
     {
@@ -1720,9 +1724,10 @@ LEof:
                 p = m_pchMinTok;
                 this->RestoreMultiUnits(m_cMinTokMultiUnits);
                 bool likelyInt = true;
-                pchT = FScanNumber(p, &dbl, likelyInt);
+                pchT = FScanNumber(p, &dbl, likelyInt, savedMultiUnits);
                 if (p == pchT)
                 {
+                    this->RestoreMultiUnits(savedMultiUnits);
                     Assert(this->PeekFirst(p, last) != '.');
                     Error(ERRbadNumber);
                 }

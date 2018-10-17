@@ -144,9 +144,11 @@ protected:
 
 #pragma warning(push)
 #pragma warning(error: 4440)
+CLANG_WNO_BEGIN("-Wignored-attributes")
 // MSVC will give warning C4440 in case of calling convention redefinition
 template<typename F> void EnsureStdcall(F*) { typedef F __stdcall* T; }
 template<typename F> void EnsureCdecl(F*) { typedef F __cdecl* T; }
+CLANG_WNO_END
 #pragma warning(pop)
 template<typename T>
 uintptr_t ShiftCdeclAddr(const ThreadContextInfo*const context, T* address)

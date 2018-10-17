@@ -71,10 +71,10 @@
     MACRO_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_EXTENDED_ROOT(opcode, layout, attr) \
-    MACRO_EXTENDED_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+    MACRO_EXTEND_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_EXTEND_WMS_ROOT(opcode, layout, attr) \
-    MACRO_EXTENDED_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
+    MACRO_EXTEND_WMS_WITH_DBG_ATTR(opcode, layout, attr, OpDbgAttr_LoadRoot)
 
 #define MACRO_WMS_PROFILED( opcode, layout, attr) \
     MACRO_WMS(opcode, layout, OpHasProfiled|attr) \
@@ -354,6 +354,7 @@ MACRO_WMS(              ChkUndecl,                  Reg1,           OpSideEffect
 
 MACRO_WMS_ROOT(         EnsureNoRootFld,            ElementRootU,   OpSideEffect)
 MACRO_WMS_ROOT(         EnsureNoRootRedeclFld,      ElementRootU,   OpSideEffect)
+MACRO_EXTEND_WMS_ROOT(  EnsureCanDeclGloFunc,       ElementRootU,   OpSideEffect)
 MACRO_WMS(              ScopedEnsureNoRedeclFld,    ElementScopedC, OpSideEffect)
 
 MACRO_WMS(              InitUndecl,                 Reg1,           OpCanCSE)
@@ -765,6 +766,7 @@ MACRO_BACKEND_ONLY(     InlineArrayPop,      Empty,          OpSideEffect|OpInli
 MACRO_BACKEND_ONLY(     InlineArrayPush,     Empty,          OpSideEffect|OpInlinableBuiltIn|OpHasImplicitCall)
 MACRO_BACKEND_ONLY(     InlineFunctionApply, Empty,          OpSideEffect|OpInlinableBuiltIn)
 MACRO_BACKEND_ONLY(     InlineFunctionCall,  Empty,          OpSideEffect|OpInlinableBuiltIn)
+MACRO_BACKEND_ONLY(     InlineCallInstanceFunction,  Empty,  OpSideEffect|OpInlinableBuiltIn)
 MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInlinableBuiltIn)
 
 MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
@@ -772,6 +774,7 @@ MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTe
 MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
 MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     AdjustObjTypeReloadAuxSlotPtr,       Empty,          OpSideEffect)
 
                                                                                                             // Edge inline built-ins
 #ifdef ENABLE_DOM_FAST_PATH
@@ -826,6 +829,12 @@ MACRO_BACKEND_ONLY(     ThrowRuntimeError,  Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfUnalignedAccess, Reg3,        OpSideEffect)
+
+MACRO_EXTEND_WMS(       SpreadObjectLiteral,Reg2,           OpSideEffect|OpHasImplicitCall)
+MACRO_EXTEND_WMS(       StPropIdArrFromVar, ElementSlot,    OpSideEffect|OpHasImplicitCall)
+MACRO_EXTEND_WMS(       Restify,            Reg4,           OpSideEffect|OpHasImplicitCall)
+MACRO_EXTEND_WMS(       NewPropIdArrForCompProps, Reg1Unsigned1, OpSideEffect)
+
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

@@ -31,9 +31,7 @@ class JavascriptThreadService;
 struct RecyclerMemoryData;
 #endif
 
-#if DBG
 class ThreadContext;
-#endif
 
 namespace Memory
 {
@@ -235,10 +233,11 @@ private:
 #define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
 
 #ifdef RECYCLER_VISITED_HOST
-#define RecyclerAllocVisitedHostTracedAndFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
-#define RecyclerAllocVisitedHostFinalizedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
-#define RecyclerAllocVisitedHostTracedZero(recycler,size) recycler->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
-#define RecyclerAllocLeafZero(recycler,size) recycler->AllocVisitedHost<LeafBit>(size)
+// We need to track these allocations. The RecyclerVisitedHost* object allocation APIs don't provide us with the type of the objects being allocated. Use the DummyVTableObject type used elsewhere to track the allocations.
+#define RecyclerAllocVisitedHostTracedAndFinalized(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostTracedFinalizableBits>(size)
+#define RecyclerAllocVisitedHostFinalized(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostFinalizableBits>(size)
+#define RecyclerAllocVisitedHostTraced(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<RecyclerVisitedHostTracedBits>(size)
+#define RecyclerAllocLeaf(recycler,size) (TRACK_ALLOC_INFO(recycler, DummyVTableObject, Recycler, size, (size_t)-1))->AllocVisitedHost<LeafBit>(size)
 #endif
 
 #ifdef TRACE_OBJECT_LIFETIME
@@ -538,9 +537,7 @@ struct CollectionParam
 #if ENABLE_CONCURRENT_GC
 class RecyclerParallelThread
 {
-#if DBG
     friend class ThreadContext;
-#endif
 
 public:
     typedef void (Recycler::* WorkFunc)();
@@ -716,11 +713,17 @@ private:
         virtual void ValueChanged(const CollectionState& newVal, const CollectionState& oldVal)
         {
 #ifdef ENABLE_BASIC_TELEMETRY
-            if (oldVal == CollectionState::CollectionStateNotCollecting && newVal != CollectionState::CollectionStateNotCollecting && newVal != CollectionState::Collection_PreCollection)
+            if (oldVal == CollectionState::CollectionStateNotCollecting && 
+                newVal != CollectionState::CollectionStateNotCollecting && 
+                newVal != CollectionState::Collection_PreCollection && 
+                newVal != CollectionState::CollectionStateExit)
             {
                 this->recycler->GetRecyclerTelemetryInfo().StartPass(newVal);
             }
-            else if (oldVal != CollectionState::CollectionStateNotCollecting && oldVal != CollectionState::Collection_PreCollection && newVal == CollectionState::CollectionStateNotCollecting)
+            else if (oldVal != CollectionState::CollectionStateNotCollecting && 
+                oldVal != CollectionState::Collection_PreCollection && 
+                oldVal != CollectionState::CollectionStateExit &&
+                newVal == CollectionState::CollectionStateNotCollecting)
             {
                 this->recycler->GetRecyclerTelemetryInfo().EndPass(oldVal);
             }
@@ -911,6 +914,7 @@ private:
     bool inDisposeWrapper;
     bool needOOMRescan;
     bool hasDisposableObject;
+    bool hasNativeGCHost;
     DWORD tickCountNextDispose;
     bool inExhaustiveCollection;
     bool hasExhaustiveCandidate;
@@ -1171,6 +1175,8 @@ public:
     void SetIsThreadBound();
     void SetIsScriptActive(bool isScriptActive);
     void SetIsInScript(bool isInScript);
+    bool HasNativeGCHost() const;
+    void SetHasNativeGCHost();
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
 
@@ -1347,7 +1353,7 @@ public:
     template <ObjectInfoBits infoBits>
     char * AllocVisitedHost(DECLSPEC_GUARD_OVERFLOW size_t size)
     {
-        return AllocZeroWithAttributes<infoBits, /* nothrow = */ true>(size);
+        return AllocWithAttributes<infoBits, /* nothrow = */ true>(size);
     }
 
     template<typename T>
@@ -1809,9 +1815,8 @@ private:
     friend class HeapInfo;
     friend class HeapInfoManager;
     friend class LargeHeapBucket;
-#if DBG
     friend class ThreadContext;
-#endif
+
     template <typename TBlockType>
     friend class HeapBucketT;
     template <typename TBlockType>

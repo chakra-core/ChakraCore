@@ -6,11 +6,9 @@
 //
 // executable regression worker for rl.c
 
-
 #include "rl.h"
 
 #define TMP_PREFIX "ex"   // 2 characters
-
 
 #define POGO_PGD "rlpogo.pgd"
 
@@ -42,14 +40,13 @@ __declspec(thread) char EnvFlags[MAX_ENV_LEN];
 // either be protected by synchronization or use thread-local storage.
 //
 
-
 LOCAL void __cdecl
-    RunCleanUp()
+RunCleanUp()
 {
 }
 
 void
-    RunInit()
+RunInit()
 {
     char *opts;    // value of EXEC_TESTS_FLAGS environment variable
     int numOptions;
@@ -116,17 +113,17 @@ void
 }
 
 BOOL
-    RunStartDir(
+RunStartDir(
     char * /*dir -- unused*/
-    )
+)
 {
     return TRUE;
 }
 
 void
-    DumpFileToLog(
+DumpFileToLog(
     char* path
-    )
+)
 {
     FILE* fp;
     char buf[BUFFER_SIZE];
@@ -192,9 +189,9 @@ void
 
 // Use a state machine to recognize the word "pass"
 BOOL
-    LookForPass(
+LookForPass(
     char *p
-    )
+)
 {
     int state = 0;
 
@@ -226,18 +223,18 @@ BOOL
 
 // Return TRUE if the specified test is Pogo-specific.
 BOOL
-    IsPogoTest(
+IsPogoTest(
     Test * pTest
-    )
+)
 {
     return HasInfo(pTest->defaultTestInfo.data[TIK_TAGS], XML_DELIM, "Pogo");
 }
 
 // Return TRUE if the specified test should NOT use nogpfnt.obj.
 BOOL
-    SuppressNoGPF(
+SuppressNoGPF(
     Test * pTest
-    )
+)
 {
     return HasInfo(pTest->defaultTestInfo.data[TIK_RL_DIRECTIVES], XML_DELIM,
         "NoGPF");
@@ -245,10 +242,10 @@ BOOL
 
 template <size_t bufSize>
 void
-    FillNoGPFFlags(
+FillNoGPFFlags(
     char (&nogpfFlags)[bufSize],
     BOOL fSuppressNoGPF
-    )
+)
 {
     nogpfFlags[0] = '\0';
     if (FNogpfnt && TargetInfo[TargetMachine].fUseNoGPF) {
@@ -261,7 +258,7 @@ void
 }
 
 BOOL
-    CheckForPass(char * filename, char * optReportBuf, char * cmdbuf, BOOL fDumpOutputFile = TRUE)
+CheckForPass(char * filename, char * optReportBuf, char * cmdbuf, BOOL fDumpOutputFile = TRUE)
 {
     FILE * fp;
     char buf[BUFFER_SIZE];
@@ -269,7 +266,8 @@ BOOL
     // Check to see if the exe ran at all.
 
     fp = fopen_unsafe(filename, "r");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         LogOut("ERROR: Test failed to run. Unable to open file '%s', error '%s' (%s):", filename, strerror_unsafe(errno), optReportBuf);
         LogOut("    %s", cmdbuf);
         return FALSE;
@@ -327,7 +325,7 @@ void CopyRebaseFile(PCSTR testout, PCSTR baseline)
 //   copy: copy the generated files to a subdirectory (COPYDIR=subdir)
 //
 int
-    DoOneExternalTest(
+DoOneExternalTest(
     CDirectory* pDir,
     TestVariant *pTestVariant,
     const char *optFlags,
@@ -339,9 +337,10 @@ int
     BOOL fCleanBefore,
     BOOL fCleanAfter,
     BOOL fSuppressNoGPF,
-    void *envFlags,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout /* = INFINITE */,
+    uint32 timeoutRetries /* = 0 */,
+    void *envFlags /* = NULL */
+)
 {
 #define NMAKE "nmake -nologo -R -f "
     char full[MAX_PATH];
@@ -384,7 +383,8 @@ int
         ccFlags[0] = '\0';
     }
 
-    switch (TargetMachine) {
+    switch (TargetMachine)
+    {
     case TM_WVM:
     case TM_WVMX86:
     case TM_WVM64:
@@ -393,9 +393,13 @@ int
     }
 
     if (inLinkFlags)
+    {
         strcpy_s(linkFlags, inLinkFlags);
+    }
     else
+    {
         linkFlags[0] = '\0';
+    }
 
     sprintf_s(optReportBuf, "%s%s%s", optFlags, *linkFlags ? ";" : "", linkFlags);
 
@@ -413,10 +417,10 @@ int
 
     start_variation = time(NULL);
 
-    if (kind == TK_MAKEFILE) {
+    if (kind == TK_MAKEFILE)
+    {
         Message(""); // newline
-        Message("Processing %s with '%s' flags",
-            testCmd, optReportBuf);
+        Message("Processing %s with '%s' flags", testCmd, optReportBuf);
         Message(""); // newline
 
         if (FTest)
@@ -424,10 +428,9 @@ int
             return 0;
         }
 
-        if (fCleanBefore) {
-
+        if (fCleanBefore)
+        {
             // Clean the directory.
-
             sprintf_s(cmdbuf, NMAKE"%s clean", testCmd);
             Message(cmdbuf);
             ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf);
@@ -443,15 +446,19 @@ int
             testCmd,
             optFlags, EXTRA_CC_FLAGS, ccFlags,
             LINKFLAGS, linkFlags, nogpfFlags);
+
         if (strlen(cmdbuf) > BUFFER_SIZE - 1)
+        {
             Fatal("Buffer overrun");
+        }
 
         Message(cmdbuf);
         fFailed = ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf);
 
         elapsed_build_variation = (int)(time(NULL) - start_build_variation);
 
-        if (Timing & TIME_VARIATION) {
+        if (Timing & TIME_VARIATION)
+        {
             Message("RL: Variation elapsed time (build) (%s, %s, %s): %02d:%02d",
                 pDir->GetDirectoryName(),
                 "rl.mak",
@@ -476,7 +483,8 @@ int
         QueryPerformanceFrequency(&frequency);
         elapsed_run = (int) (((end_run.QuadPart - start_run.QuadPart) * 1000UI64) / frequency.QuadPart);
 
-        if (Timing & TIME_VARIATION) {
+        if (Timing & TIME_VARIATION)
+        {
             Message("RL: Variation elapsed time (run) (%s, %s, %s): %02d:%02d.%03d",
                 pDir->GetDirectoryName(),
                 "rl.mak",
@@ -497,7 +505,7 @@ int
         {
             return 0;
         }
-        cmdResult = ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf, millisecTimeout, envFlags);
+        cmdResult = ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf, millisecTimeout, timeoutRetries, envFlags);
     }
     else if (kind == TK_JSCRIPT || kind==TK_HTML || kind == TK_COMMAND)
     {
@@ -538,13 +546,13 @@ int
 
         Message("Running '%s'", cmdbuf);
 
-        if(FTest)
+        if (FTest)
         {
             DeleteFileIfFound(full);
             return 0;
         }
 
-        cmdResult = ExecuteCommand(pDir->GetFullPathFromSourceOrDirectory(), cmdbuf, millisecTimeout, envFlags);
+        cmdResult = ExecuteCommand(pDir->GetFullPathFromSourceOrDirectory(), cmdbuf, millisecTimeout, timeoutRetries, envFlags);
 
         if (cmdResult && cmdResult != WAIT_TIMEOUT && !pTestVariant->testInfo.data[TIK_BASELINE]) // failure code, not baseline diffing
         {
@@ -562,7 +570,8 @@ int
 
     // Check for timeout.
 
-    if (cmdResult == WAIT_TIMEOUT) {
+    if (cmdResult == WAIT_TIMEOUT)
+    {
         ASSERT(millisecTimeout != INFINITE);
         sprintf_s(nonZeroReturnBuf, "timed out after %u second%s", millisecTimeout / 1000, millisecTimeout == 1000 ? "" : "s");
         reason = nonZeroReturnBuf;
@@ -571,29 +580,33 @@ int
     }
 
     // If we have a baseline test, we need to check the baseline file.
-    if (pTestVariant->testInfo.data[TIK_BASELINE]) {
+    if (pTestVariant->testInfo.data[TIK_BASELINE])
+    {
         char baseline_file[_MAX_PATH];
 
         sprintf_s(baseline_file, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
             pTestVariant->testInfo.data[TIK_BASELINE]);
-        if (DoCompare(baseline_file, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION])) {
+        if (DoCompare(baseline_file, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION]))
+        {
             reason = "diffs from baseline";
             sprintf_s(optReportBuf, "%s", baseline_file);
             fFailed = TRUE;
             CopyRebaseFile(full, baseline_file);
         }
     }
-    else if ((kind == TK_JSCRIPT || kind == TK_HTML || kind == TK_COMMAND) && !pTestVariant->testInfo.hasData[TIK_BASELINE]) {
-        if (!CheckForPass(full, optReportBuf, cmdbuf, fDumpOutputFile)) {
+    else if ((kind == TK_JSCRIPT || kind == TK_HTML || kind == TK_COMMAND) && !pTestVariant->testInfo.hasData[TIK_BASELINE])
+    {
+        if (!CheckForPass(full, optReportBuf, cmdbuf, fDumpOutputFile))
+        {
             fFailed = TRUE;
             goto SkipLogFailure;
         }
     }
 
 logFailure:
-    if (fFailed) {
-        LogOut("ERROR: Test failed to run correctly: %s (%s):",
-            reason, optReportBuf);
+    if (fFailed)
+    {
+        LogOut("ERROR: Test failed to run correctly: %s (%s):", reason, optReportBuf);
         LogOut("    %s", cmdbuf);
         if (fDumpOutputFile) {
             DumpFileToLog(full);
@@ -605,12 +618,14 @@ logFailure:
     }
 
 SkipLogFailure:
-    if (fFileToDelete && !FNoDelete) {
+    if (fFileToDelete && !FNoDelete)
+    {
         DeleteFileRetryMsg(full);
     }
 
     elapsed_variation = (int)(time(NULL) - start_variation);
-    if (Timing & TIME_VARIATION) {
+    if (Timing & TIME_VARIATION)
+    {
         Message("RL: Variation elapsed time (%s, %s, %s): %02d:%02d",
             pDir->GetDirectoryName(),
             kind == TK_MAKEFILE ? "rl.mak" : "dotest.cmd",
@@ -618,11 +633,12 @@ SkipLogFailure:
             elapsed_variation / 60, elapsed_variation % 60);
     }
 
-    if (kind == TK_MAKEFILE) {
-
+    if (kind == TK_MAKEFILE)
+    {
         // If the test failed and we are asked to copy the failures, do so.
 
-        if (fFailed && FCopyOnFail) {
+        if (fFailed && FCopyOnFail)
+        {
             sprintf_s(cmdbuf, NMAKE"%s copy COPYDIR=\"fail.%s.%s\"",
                 testCmd, optFlags, linkFlags);
             Message(cmdbuf);
@@ -631,21 +647,26 @@ SkipLogFailure:
 
         // Clean up after ourselves.
 
-        if (!FNoDelete && (fFailed || fCleanAfter)) {
+        if (!FNoDelete && (fFailed || fCleanAfter))
+        {
             sprintf_s(cmdbuf, NMAKE"%s clean", testCmd);
             Message(cmdbuf);
             ExecuteCommand(pDir->GetDirectoryPath(), cmdbuf);
         }
     }
 
-    if (FSyncVariation) {
-        if (FRLFE && fFailed) {
+    if (FSyncVariation)
+    {
+        if (FRLFE && fFailed)
+        {
             RLFEAddLog(pDir, RLFES_FAILED, testCmd,
                 optReportBuf, ThreadOut->GetText());
         }
 
         if (fSyncVariationWhenFinished)
+        {
             FlushOutput();
+        }
     }
     DeleteFileIfFound(full);
 
@@ -694,30 +715,32 @@ void * GetEnvFlags
 }
 
 int
-    DoExternalTest(
+DoExternalTest(
     CDirectory* pDir,
     TestVariant * pTestVariant,
     char *testCmd,
     ExternalTestKind kind,
     BOOL fSuppressNoGPF,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout,
+    uint32 timeoutRetries
+)
 {
     const char *ccFlags = pTestVariant->testInfo.data[TIK_COMPILE_FLAGS];
     void *envFlags = GetEnvFlags(pTestVariant);
     return DoOneExternalTest(pDir, pTestVariant, pTestVariant->optFlags, ccFlags, NULL,
-        testCmd, kind, TRUE, TRUE, TRUE, fSuppressNoGPF, envFlags, millisecTimeout);
+        testCmd, kind, TRUE, TRUE, TRUE, fSuppressNoGPF, millisecTimeout, timeoutRetries, envFlags);
 }
 
 int
-    DoPogoExternalTest(
+DoPogoExternalTest(
     CDirectory* pDir,
     TestVariant * pTestVariant,
     char *testCmd,
     ExternalTestKind kind,
     BOOL fSuppressNoGPF,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout,
+    uint32 timeoutRetries
+)
 {
     static const char *pgc = "*.pgc";
     static const char *pgd = POGO_PGD;
@@ -741,7 +764,8 @@ int
 
     ASSERT(strstr(optFlags, "GL") != NULL);
 
-    if (!kind == TK_MAKEFILE) {
+    if (!kind == TK_MAKEFILE)
+    {
         Warning("'%s\\%s' is not a makefile test; Pogo almost certainly won't work", pDir->GetDirectoryPath(), testCmd);
     }
 
@@ -749,44 +773,47 @@ int
     sprintf_s(linkFlags, "-ltcg:pgi -pgd:%s", pgd);
 
     if (DoOneExternalTest(pDir, pTestVariant, ccFlags, inCCFlags, linkFlags,
-        testCmd, kind, FALSE, TRUE, FALSE, fSuppressNoGPF, envFlags, millisecTimeout)) {
-            fFailed = TRUE;
-            goto logFailure;
+        testCmd, kind, FALSE, TRUE, FALSE, fSuppressNoGPF, millisecTimeout, timeoutRetries, envFlags))
+    {
+        fFailed = TRUE;
+        goto logFailure;
     }
 
     sprintf_s(ccFlags, "%s %s", PogoForceErrors, optFlags);
     sprintf_s(linkFlags, "-ltcg:pgo -pgd:%s", pgd);
 
     // Manually erase EXE and DLL files to get makefile to relink.
-    // Also erase ASM files because some makefiles try to rebuild from
-    // them.
+    // Also erase ASM files because some makefiles try to rebuild from them.
 
     DeleteMultipleFiles(pDir, "*.exe");
     DeleteMultipleFiles(pDir, "*.dll");
     DeleteMultipleFiles(pDir, "*.asm");
 
     if (DoOneExternalTest(pDir, pTestVariant, ccFlags, inCCFlags, linkFlags,
-        testCmd, kind, FALSE, FALSE, TRUE, fSuppressNoGPF, envFlags, millisecTimeout)) {
-            fFailed = TRUE;
+        testCmd, kind, FALSE, FALSE, TRUE, fSuppressNoGPF, millisecTimeout, timeoutRetries, envFlags))
+    {
+        fFailed = TRUE;
     }
 
 logFailure:
-
-    if (FSyncVariation) {
-        if (FRLFE && fFailed) {
-            sprintf_s(cmdbuf, "%s%s%s", ccFlags,
-                *linkFlags ? ";" : "", linkFlags);
-            RLFEAddLog(pDir, RLFES_FAILED, testCmd,
-                cmdbuf, ThreadOut->GetText());
+    if (FSyncVariation)
+    {
+        if (FRLFE && fFailed)
+        {
+            sprintf_s(cmdbuf, "%s%s%s", ccFlags, *linkFlags ? ";" : "", linkFlags);
+            RLFEAddLog(pDir, RLFES_FAILED, testCmd, cmdbuf, ThreadOut->GetText());
         }
 
         FlushOutput();
     }
 
     if (FRLFE)
+    {
         RLFETestStatus(pDir);
+    }
 
-    if (!FNoDelete) {
+    if (!FNoDelete)
+    {
         DeleteFileRetryMsg(pgdFull);
         DeleteMultipleFiles(pDir, pgc);
     }
@@ -795,7 +822,7 @@ logFailure:
 }
 
 BOOL
-    DoOneSimpleTest(
+DoOneSimpleTest(
     CDirectory *pDir,
     Test * pTest,
     TestVariant * pTestVariant,
@@ -806,12 +833,13 @@ BOOL
     BOOL fCleanAfter,
     BOOL fLinkOnly,    // relink only
     BOOL fSuppressNoGPF,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout,
+    uint32 timeoutRetries
+)
 {
     int rc;
     char *p = NULL;
-    char cmdbuf[BUFFER_SIZE*2];
+    char cmdbuf[BUFFER_SIZE * 2];
     char ccFlags[BUFFER_SIZE];
     char linkFlags[BUFFER_SIZE];
     char nogpfFlags[BUFFER_SIZE];
@@ -832,11 +860,16 @@ BOOL
     // Avoid conditionals by copying/creating ccFlags appropriately.
 
     if (inCCFlags)
+    {
         sprintf_s(ccFlags, " %s", inCCFlags);
+    }
     else
+    {
         ccFlags[0] = '\0';
+    }
 
-    switch (TargetMachine) {
+    switch (TargetMachine)
+    {
     case TM_WVM:
     case TM_WVMX86:
     case TM_WVM64:
@@ -845,9 +878,13 @@ BOOL
     }
 
     if (inLinkFlags)
+    {
         strcpy_s(linkFlags, inLinkFlags);
+    }
     else
+    {
         linkFlags[0] = '\0';
+    }
 
     sprintf_s(optReportBuf, "%s%s%s", optFlags, *linkFlags ? ";" : "", linkFlags);
 
@@ -870,8 +907,7 @@ BOOL
 
     // Build up the compile command string.
 
-    sprintf_s(cmdbuf, "%s %s%s %s", REGR_CL,
-        optFlags, ccFlags, EXTRA_CC_FLAGS);
+    sprintf_s(cmdbuf, "%s %s%s %s", REGR_CL, optFlags, ccFlags, EXTRA_CC_FLAGS);
 
     for (StringList * pFile = pTest->files; pFile != NULL; pFile = pFile->next)
     {
@@ -889,7 +925,8 @@ BOOL
 
     // Build the link option string.
 
-    if (LINKFLAGS && LINKFLAGS[0] != '\0') {
+    if (LINKFLAGS && LINKFLAGS[0] != '\0')
+    {
         strcat_s(linkFlags, " ");
         strcat_s(linkFlags, LINKFLAGS);
     }
@@ -897,7 +934,8 @@ BOOL
     FillNoGPFFlags(nogpfFlags, fSuppressNoGPF);
     strcat_s(linkFlags, nogpfFlags);
 
-    switch (TargetMachine) {
+    switch (TargetMachine)
+    {
     case TM_X86:
     case TM_IA64:
     case TM_AMD64:
@@ -913,7 +951,8 @@ BOOL
     case TM_SH5M:
     case TM_SH5C:
     case TM_WVMX86:
-        if (*linkFlags) {
+        if (*linkFlags)
+        {
             strcat_s(cmdbuf, " /link ");
             strcat_s(cmdbuf, linkFlags);
         }
@@ -922,7 +961,8 @@ BOOL
         strcat_s(cmdbuf, " /c ");
         break;
     case TM_PPCWCE:
-        if (*linkFlags) {
+        if (*linkFlags)
+        {
             strcat_s(cmdbuf, " ");
             strcat_s(cmdbuf, linkFlags);
         }
@@ -942,7 +982,8 @@ BOOL
     if (FTest)
     {
         Message("%s", cmdbuf);
-        if (pTestVariant->testInfo.data[TIK_BASELINE]) {
+        if (pTestVariant->testInfo.data[TIK_BASELINE])
+        {
             Message("   (baseline %s)", pTestVariant->testInfo.data[TIK_BASELINE]);
         }
         return 0;
@@ -997,7 +1038,8 @@ BOOL
     // See if the compile succeeded by checking for the existence
     // of the executable.
 
-    if ((rc != 0) || GetFileAttributes(fullexebuf) == INVALID_FILE_ATTRIBUTES) {
+    if ((rc != 0) || GetFileAttributes(fullexebuf) == INVALID_FILE_ATTRIBUTES)
+    {
         LogOut("ERROR: Test failed to compile or link (%s):", optReportBuf);
         LogOut("    %s", cmdbuf);
         fFailed = TRUE;
@@ -1006,7 +1048,8 @@ BOOL
 
     // Run the resulting exe.
 
-    if (TargetVM) {
+    if (TargetVM)
+    {
         strcpy_s(buf, TargetVM);
         strcat_s(buf, " ");
         strcat_s(buf, exebuf);
@@ -1016,7 +1059,8 @@ BOOL
 
         strcpy_s(cmdbuf, buf);
     }
-    else {
+    else
+    {
         strcpy_s(buf, exebuf);
     }
 
@@ -1030,15 +1074,18 @@ BOOL
     // of RL are running in the same directory.
 
     if (mytmpnam(pDir->GetDirectoryPath(), TMP_PREFIX, tmp_file1) == NULL ||
-        mytmpnam(pDir->GetDirectoryPath(), TMP_PREFIX, tmp_file2) == NULL) {
-            Fatal("Unable to create temporary files");
+        mytmpnam(pDir->GetDirectoryPath(), TMP_PREFIX, tmp_file2) == NULL)
+    {
+        Fatal("Unable to create temporary files");
     }
 
     ThreadInfo[ThreadId].AddToTmpFileList(tmp_file1);
     ThreadInfo[ThreadId].AddToTmpFileList(tmp_file2);
 
     if (FVerbose)
+    {
         Message("INFO: tmp file 1 = %s, tmp file 2 = %s", tmp_file1, tmp_file2);
+    }
 
     Message("Running the test (%s)", buf);
     strcat_s(buf, " > ");
@@ -1052,8 +1099,9 @@ BOOL
 
     // Check for timeout.
     {
-        int retval = ExecuteCommand(pDir->GetDirectoryPath(), buf, millisecTimeout, envFlags);
-        if (retval == WAIT_TIMEOUT) {
+        int retval = ExecuteCommand(pDir->GetDirectoryPath(), buf, millisecTimeout, timeoutRetries, envFlags);
+        if (retval == WAIT_TIMEOUT)
+        {
             ASSERT(millisecTimeout != INFINITE);
             LogOut("ERROR: Test timed out after %ul seconds", millisecTimeout / 1000);
             fFailed = TRUE;
@@ -1063,33 +1111,37 @@ BOOL
 
     // Check the output.
 
-    if (pTestVariant->testInfo.data[TIK_BASELINE]) {
+    if (pTestVariant->testInfo.data[TIK_BASELINE])
+    {
         int spiff_ret;
 
         // Check to see if the exe ran at all.
 
-        if (GetFileAttributes(tmp_file1) == INVALID_FILE_ATTRIBUTES) {
+        if (GetFileAttributes(tmp_file1) == INVALID_FILE_ATTRIBUTES)
+        {
             LogOut("ERROR: Test failed to run. Couldn't find file '%s' (%s):", tmp_file1, optReportBuf);
             LogOut("    %s", cmdbuf);
             fFailed = TRUE;
         }
-        else {
-            sprintf_s(full, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(),
-                pTestVariant->testInfo.data[TIK_BASELINE]);
-            if (DoCompare(tmp_file1, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION])) {
+        else
+        {
+            sprintf_s(full, "%s\\%s", pDir->GetFullPathFromSourceOrDirectory(), pTestVariant->testInfo.data[TIK_BASELINE]);
 
+            if (DoCompare(tmp_file1, full, pTestVariant->testInfo.hasData[TIK_EOL_NORMALIZATION]))
+            {
                 // Output differs, run spiff to see if it's just minor
                 // floating point anomalies.
 
                 DeleteFileIfFound(tmp_file2);
-                sprintf_s(buf, "spiff -m -n -s \"command spiff\" %s %s > %s",
-                    tmp_file1, full, tmp_file2);
+                sprintf_s(buf, "spiff -m -n -s \"command spiff\" %s %s > %s", tmp_file1, full, tmp_file2);
                 spiff_ret = ExecuteCommand(pDir->GetDirectoryPath(), buf);
-                if (GetFileAttributes(tmp_file2) == INVALID_FILE_ATTRIBUTES) {
+                if (GetFileAttributes(tmp_file2) == INVALID_FILE_ATTRIBUTES)
+                {
                     LogError("ERROR: spiff failed to run");
                     fFailed = TRUE;
                 }
-                else if (spiff_ret) {
+                else if (spiff_ret)
+                {
                     LogOut("ERROR: Test failed to run correctly. spiff returned %d (%s):", spiff_ret, optReportBuf);
                     LogOut("    %s", cmdbuf);
                     fFailed = TRUE;
@@ -1097,25 +1149,31 @@ BOOL
             }
         }
     }
-    else {
-        if (!CheckForPass(tmp_file1, optReportBuf, cmdbuf)) {
+    else
+    {
+        if (!CheckForPass(tmp_file1, optReportBuf, cmdbuf))
+        {
             fFailed = TRUE;
         }
     }
 
 logFailure:
 
-    if (fFailed) {
-        if (FCopyOnFail) {
+    if (fFailed)
+    {
+        if (FCopyOnFail)
+        {
             if (FVerbose)
+            {
                 Message("INFO: Copying '%s' failure", optReportBuf);
+            }
 
-            sprintf_s(failDir, "%s\\fail.%s",
-                pDir->GetDirectoryPath(), optReportBuf);
+            sprintf_s(failDir, "%s\\fail.%s", pDir->GetDirectoryPath(), optReportBuf);
 
             if ((GetFileAttributes(failDir) == INVALID_FILE_ATTRIBUTES) &&
-                !CreateDirectory(failDir, NULL)) {
-                    Message("ERROR: Couldn't create directory '%s'", failDir);
+                !CreateDirectory(failDir, NULL))
+            {
+                Message("ERROR: Couldn't create directory '%s'", failDir);
             }
             else
             {
@@ -1126,36 +1184,39 @@ logFailure:
                     sprintf_s(copyName, "%s\\%s", failDir, pFile->string);
                     p = strrchr(copyName, '.') + 1;
                     strcpy_s(p, REMAININGARRAYLEN(copyName, p + 1), "obj");
-                    sprintf_s(buf, "%s\\%s", pDir->GetDirectoryPath(),
-                        pFile->string);
+                    sprintf_s(buf, "%s\\%s", pDir->GetDirectoryPath(), pFile->string);
                     p = strrchr(buf, '.') + 1;
                     strcpy_s(p, REMAININGARRAYLEN(buf, p + 1), "obj");
 
-                    if (!CopyFile(buf, copyName, FALSE)) {
-                        Message("ERROR: Couldn't copy '%s' to '%s'",
-                            buf, copyName);
+                    if (!CopyFile(buf, copyName, FALSE))
+                    {
+                        Message("ERROR: Couldn't copy '%s' to '%s'", buf, copyName);
                     }
                 }
 
                 sprintf_s(copyName, "%s\\%s", failDir, exebuf);
-                if (!CopyFile(fullexebuf, copyName, FALSE)) {
-                    Message("ERROR: Couldn't copy '%s' to '%s'",
-                        fullexebuf, copyName);
+                if (!CopyFile(fullexebuf, copyName, FALSE))
+                {
+                    Message("ERROR: Couldn't copy '%s' to '%s'", fullexebuf, copyName);
                 }
             }
         }
     }
 
-    if (FRLFE) {
+    if (FRLFE)
+    {
         RLFETestStatus(pDir);
     }
 
     if (FVerbose)
+    {
         Message("INFO: cleaning up test run");
+    }
 
     // Remove the exe.
 
-    if (!FNoDelete) {
+    if (!FNoDelete)
+    {
         DeleteFileRetryMsg(fullexebuf);
     }
 
@@ -1193,7 +1254,8 @@ logFailure:
                 DeleteFileRetryMsg(buf);
             }
 
-            if (REGR_ASM) {
+            if (REGR_ASM)
+            {
                 strcpy_s(p, REMAININGARRAYLEN(buf, p), "asm");
                 DeleteFileRetryMsg(buf);
             }
@@ -1201,18 +1263,24 @@ logFailure:
     }
 
     elapsed_variation = (int)(time(NULL) - start_variation);
-    if (Timing & TIME_VARIATION) {
+    if (Timing & TIME_VARIATION)
+    {
         Message("RL: Variation elapsed time (%s, %s, %s): %02d:%02d",
             pDir->GetDirectoryName(), pTest->name, optReportBuf,
             elapsed_variation / 60, elapsed_variation % 60);
     }
 
-    if (FSyncVariation) {
+    if (FSyncVariation)
+    {
         if (FRLFE && fFailed)
+        {
             RLFEAddLog(pDir, RLFES_FAILED, pTest->name, optReportBuf, ThreadOut->GetText());
+        }
 
         if (fSyncVariationWhenFinished)
+        {
             FlushOutput();
+        }
     }
 
     ThreadInfo[ThreadId].DeleteTmpFileList();
@@ -1221,28 +1289,30 @@ logFailure:
 }
 
 int
-    DoSimpleTest(
+DoSimpleTest(
     CDirectory *pDir,
     Test * pTest,
     TestVariant * pTestVariant,
     BOOL fSuppressNoGPF,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout,
+    uint32 timeoutRetries
+)
 {
     return DoOneSimpleTest(pDir, pTest, pTestVariant, pTestVariant->optFlags,
         pTestVariant->testInfo.data[TIK_COMPILE_FLAGS],
         pTestVariant->testInfo.data[TIK_LINK_FLAGS],
-        TRUE, TRUE, FALSE, fSuppressNoGPF, millisecTimeout);
+        TRUE, TRUE, FALSE, fSuppressNoGPF, millisecTimeout, timeoutRetries);
 }
 
 int
-    DoPogoSimpleTest(
+DoPogoSimpleTest(
     CDirectory *pDir,
     Test * pTest,
     TestVariant * pTestVariant,
     BOOL fSuppressNoGPF,
-    DWORD millisecTimeout
-    )
+    DWORD millisecTimeout,
+    uint32 timeoutRetries
+)
 {
     static const char *pgc = "*.pgc";
     static const char *pgd = POGO_PGD;
@@ -1268,9 +1338,10 @@ int
     sprintf_s(linkFlags, "-ltcg:pgi -pgd:%s", pgd);
 
     if (DoOneSimpleTest(pDir, pTest, pTestVariant, ccFlags, inCCFlags,
-        linkFlags, FALSE, FALSE, FALSE, fSuppressNoGPF, millisecTimeout)) {
-            fFailed = TRUE;
-            goto logFailure;
+        linkFlags, FALSE, FALSE, FALSE, fSuppressNoGPF, millisecTimeout, timeoutRetries))
+    {
+        fFailed = TRUE;
+        goto logFailure;
     }
 
     if (FTest)
@@ -1282,13 +1353,15 @@ int
     sprintf_s(linkFlags, "-ltcg:pgo -pgd:%s", pgd);
 
     if (DoOneSimpleTest(pDir, pTest, pTestVariant, ccFlags, inCCFlags,
-        linkFlags, FALSE, TRUE, TRUE, fSuppressNoGPF, millisecTimeout)) {
-            fFailed = TRUE;
+        linkFlags, FALSE, TRUE, TRUE, fSuppressNoGPF, millisecTimeout, timeoutRetries))
+    {
+        fFailed = TRUE;
     }
 
 logFailure:
 
-    if (FSyncVariation) {
+    if (FSyncVariation)
+    {
 #if 0
         if (FRLFE && fFailed) {
             sprintf_s(cmdbuf, "%s%s%s", ccFlags,
@@ -1301,7 +1374,8 @@ logFailure:
         FlushOutput();
     }
 
-    if (!FNoDelete) {
+    if (!FNoDelete)
+    {
         DeleteFileRetryMsg(pgdFull);
         DeleteMultipleFiles(pDir, pgc);
     }
@@ -1310,27 +1384,38 @@ logFailure:
 }
 
 int
-    ExecTest
-    (
+ExecTest(
     CDirectory* pDir,
     Test * pTest,
     TestVariant * pTestVariant
-    )
+)
 {
     char *p = NULL;
     char full[MAX_PATH];
     DWORD millisecTimeout = DEFAULT_TEST_TIMEOUT;
+    uint32 timeoutRetries = DEFAULT_TEST_TIMEOUT_RETRIES;
     const char *strTimeout = pTestVariant->testInfo.data[TIK_TIMEOUT];
+    const char *strTimeoutRetries = pTestVariant->testInfo.data[TIK_TIMEOUT_RETRIES];
 
-    if (strTimeout) {
-        char *end;
+    if (strTimeout)
+    {
+        char *end = nullptr;
         _set_errno(0);
         uint32 secTimeout = strtoul(strTimeout, &end, 10);
         millisecTimeout = 1000 * secTimeout;
         // Validation has already occurred so this string should
         // parse fine and the value shouldn't overflow the DWORD.
-        ASSERT(errno == 0 && *end == 0);
+        ASSERT(errno == 0 && *end == '\0');
         ASSERT(millisecTimeout > secTimeout);
+    }
+
+    if (strTimeoutRetries)
+    {
+        char *end = nullptr;
+        _set_errno(0);
+        timeoutRetries = strtoul(strTimeoutRetries, &end, 10);
+        // Validation has already occurred so this string should parse fine.
+        ASSERT(errno == 0 && *end == '\0');
     }
 
     // Check to see if all of the files exist.
@@ -1343,32 +1428,33 @@ int
 
         // If we have no pathname, use the current directory.
 
-        if (p == pFile->string) {
+        if (p == pFile->string)
+        {
             sprintf_s(full, "%s\\", pDir->GetFullPathFromSourceOrDirectory());
         }
-        else {
-
+        else
+        {
             // Look for %REGRESS% specifier.
 
-            if (!_strnicmp(pFile->string, "%REGRESS%",
-                strlen("%REGRESS%"))) {
+            if (!_strnicmp(pFile->string, "%REGRESS%", strlen("%REGRESS%")))
+            {
+                // Temporarily truncate the filename.
 
-                    // Temporarily truncate the filename.
-
-                    ASSERT(p[-1] == '\\');
-                    p[-1] = '\0';
-                    sprintf_s(full, "%s%s\\",
-                        REGRESS, pFile->string + strlen("%REGRESS%"));
-                    p[-1] = '\\';
+                ASSERT(p[-1] == '\\');
+                p[-1] = '\0';
+                sprintf_s(full, "%s%s\\", REGRESS, pFile->string + strlen("%REGRESS%"));
+                p[-1] = '\\';
             }
-            else {
+            else
+            {
                 *p = '\0';
             }
         }
 
         strcat_s(full, p);
 
-        if (GetFileAttributes(full) == INVALID_FILE_ATTRIBUTES) {
+        if (GetFileAttributes(full) == INVALID_FILE_ATTRIBUTES)
+        {
             LogError("ERROR: '%s' does not exist", full);
             return -1;
         }
@@ -1377,63 +1463,72 @@ int
     const char* ext = GetFilenameExt(p);
 
     // Special case dotest.cmd
-    if (!_stricmp(p, "dotest.cmd")) {
-
+    if (!_stricmp(p, "dotest.cmd"))
+    {
         // We don't handle these yet.
 
         ASSERTNR(pTestVariant->testInfo.data[TIK_LINK_FLAGS] == NULL);
 
         if (IsPogoTest(pTest))
-            return DoPogoExternalTest(pDir, pTestVariant, full, TK_CMDSCRIPT, TRUE, millisecTimeout);
+        {
+            return DoPogoExternalTest(pDir, pTestVariant, full, TK_CMDSCRIPT, TRUE, millisecTimeout, timeoutRetries);
+        }
         else
-            return DoExternalTest(pDir, pTestVariant, full, TK_CMDSCRIPT, TRUE, millisecTimeout);
+        {
+            return DoExternalTest(pDir, pTestVariant, full, TK_CMDSCRIPT, TRUE, millisecTimeout, timeoutRetries);
+        }
     }
 
     // Special case for standardized RL makefiles.
-    else if (!_stricmp(p, "rl.mak")) {
-
+    else if (!_stricmp(p, "rl.mak"))
+    {
         // We don't handle these yet.
 
         ASSERTNR(pTestVariant->testInfo.data[TIK_LINK_FLAGS] == NULL);
 
         if (IsPogoTest(pTest))
-            return DoPogoExternalTest(pDir, pTestVariant, full, TK_MAKEFILE, FALSE, millisecTimeout);
+        {
+            return DoPogoExternalTest(pDir, pTestVariant, full, TK_MAKEFILE, FALSE, millisecTimeout, timeoutRetries);
+        }
         else
-            return DoExternalTest(pDir, pTestVariant, full, TK_MAKEFILE, SuppressNoGPF(pTest), millisecTimeout);
+        {
+            return DoExternalTest(pDir, pTestVariant, full, TK_MAKEFILE, SuppressNoGPF(pTest), millisecTimeout, timeoutRetries);
+        }
     }
 
     // Special case for files ending with ".js", ".html", ".htm" (<command> dealt with separately)
     else if (pTestVariant->testInfo.data[TIK_COMMAND] == NULL
         && !_stricmp(ext, ".js"))
     {
-        return DoExternalTest(pDir, pTestVariant, full, TK_JSCRIPT, FALSE, millisecTimeout);
+        return DoExternalTest(pDir, pTestVariant, full, TK_JSCRIPT, FALSE, millisecTimeout, timeoutRetries);
     }
+
     else if (pTestVariant->testInfo.data[TIK_COMMAND] == NULL
         && (!_stricmp(ext, ".html") || !_stricmp(ext, ".htm")))
     {
-        return DoExternalTest(pDir, pTestVariant, full, TK_HTML, FALSE, millisecTimeout);
+        return DoExternalTest(pDir, pTestVariant, full, TK_HTML, FALSE, millisecTimeout, timeoutRetries);
     }
 
     // Special case for tests with a <command> argument
     else if (pTestVariant->testInfo.data[TIK_COMMAND] != NULL)
     {
-        return DoExternalTest(pDir, pTestVariant, full, TK_COMMAND, FALSE, millisecTimeout);
+        return DoExternalTest(pDir, pTestVariant, full, TK_COMMAND, FALSE, millisecTimeout, timeoutRetries);
     }
 
     // Non-scripted test.
-
-    else {
-        if (IsPogoTest(pTest)) {
-
+    else
+    {
+        if (IsPogoTest(pTest))
+        {
             // We don't handle these yet.
 
             ASSERTNR(pTestVariant->testInfo.data[TIK_LINK_FLAGS] == NULL);
 
-            return DoPogoSimpleTest(pDir, pTest, pTestVariant, FALSE, millisecTimeout);
+            return DoPogoSimpleTest(pDir, pTest, pTestVariant, FALSE, millisecTimeout, timeoutRetries);
         }
         else
         {
-            return DoSimpleTest(pDir, pTest, pTestVariant, SuppressNoGPF(pTest), millisecTimeout);
+            return DoSimpleTest(pDir, pTest, pTestVariant, SuppressNoGPF(pTest), millisecTimeout, timeoutRetries);
         }
     }
 }

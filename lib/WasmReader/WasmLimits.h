@@ -24,7 +24,7 @@ namespace Wasm {
         static const uint32 MaxFunctionReturns = 10000; // todo::We need to figure out what is the right limit here
         static const uint32 MaxBrTableElems = 1000000;
 
-        static const uint32 MaxMemoryInitialPages = 16384;
+        static const uint32 MaxMemoryInitialPages = Js::ArrayBuffer::MaxArrayBufferLength / Js::WebAssembly::PageSize;
         static const uint32 MaxMemoryMaximumPages = 65536;
         static const uint32 MaxModuleSize = 1024 * 1024 * 1024;
         static const uint32 MaxFunctionSize = 7654321;

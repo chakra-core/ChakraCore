@@ -61,7 +61,9 @@
         -Wno-microsoft-extra-qualification
         -Wno-microsoft-default-arg-redefinition
         -Wno-microsoft-exception-spec
-        -v
+        -Wno-clang-cl-pch
+        -Wno-unused-lambda-capture
+        -Wno-pragma-pack
       </AdditionalOptions>
       <!-- Clang doesn't support code view information, but will generate line number.  It only support /Z7 generation -->
       <DebugInformationFormat>OldStyle</DebugInformationFormat>

@@ -31,9 +31,6 @@
         %(AdditionalIncludeDirectories);
         $(IcuSourceDirectory)\common
       </AdditionalIncludeDirectories>
-
-      <!-- Some ICU files use embedded UTF-8 -->
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link Condition="'$(ChakraICU)'=='shared'">
       <SubSystem>Console</SubSystem>

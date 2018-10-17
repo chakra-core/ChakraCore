@@ -111,9 +111,13 @@ public:
         return AddMul<add,mul>(left, ::Math::DefaultOverflowPolicy);
     }
 
+    _When_(lhs + rhs < lhs, _Analysis_noreturn_)
+    _Post_satisfies_(return == lhs + rhs)
     static uint32 Add(uint32 lhs, uint32 rhs)
     {
-        return Add( lhs, rhs, ::Math::DefaultOverflowPolicy );
+        uint32 result = Add( lhs, rhs, ::Math::DefaultOverflowPolicy );
+        _Analysis_assume_(result == lhs + rhs);
+        return result;
     }
 
     static uint32 Mul(uint32 lhs, uint32 rhs)

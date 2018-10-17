@@ -8,4 +8,10 @@
       <compile-flags>-testtrace:fieldcopyprop -oopjit-</compile-flags>
     </default>
   </test> 
+  <test>
+    <default>
+      <files>bug0.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

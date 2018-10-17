@@ -72,19 +72,22 @@ private:
     bool        InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inlinerData, const FunctionJITTimeInfo** pInlineeData, const FunctionJITTimeInfo * applyFuncInfo,
                                     const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth, bool isArrayOpndArgumentsObject, uint argsCount);
     void        GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount);
-    _Success_(return != false) bool        TryGetApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyLdInstr, _Outptr_result_nullonfailure_ IR::Instr ** applyTargetLdInstr);
-    IR::Instr * InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeData, const FunctionJITTimeInfo * inlinerData, const StackSym *symThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth);
+    _Success_(return != false) bool        TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_result_nullonfailure_ IR::Instr ** callApplyLdInstr, _Outptr_result_nullonfailure_ IR::Instr ** callApplyTargetLdInstr);
+    IR::Instr * InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeData, const FunctionJITTimeInfo * inlinerData, const StackSym *symThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth, bool isCallInstanceFunction);
     bool        InlineCallTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inlinerData, const FunctionJITTimeInfo** pInlineeData, const FunctionJITTimeInfo *callFuncInfo,
-                                    const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth);
+                                    const StackSym *symThis, IR::Instr ** returnInstr, uint recursiveInlineDepth, bool isCallInstanceFunction);
+
+    bool        TryGetCallApplyInlineeData(const FunctionJITTimeInfo* inlinerData, IR::Instr * callInstr, IR::Instr * callApplyLdInstr, IR::Instr * callApplyTargetLdInstr, const FunctionJITTimeInfo ** inlineeData, Js::InlineCacheIndex * inlineCacheIndex, 
+                                    IR::Instr ** callbackDefInstr, bool isCallInstanceFunction);
 
     bool        InlConstFoldArg(IR::Instr *instr, __in_ecount_opt(callerArgOutCount) IR::Instr *callerArgOuts[], Js::ArgSlot callerArgOutCount);
     bool        InlConstFold(IR::Instr *instr, IntConstType *pValue, __in_ecount_opt(callerArgOutCount) IR::Instr *callerArgOuts[], Js::ArgSlot callerArgOutCount);
 
     IR::Instr * InlineCallApplyTarget_Shared(IR::Instr *callInstr, bool originalCallTargetOpndIsJITOpt, StackSym* originalCallTargetStackSym, const FunctionJITTimeInfo*const inlineeData,
-                    uint inlineCacheIndex, bool safeThis, bool isApplyTarget, bool isCallTarget, uint recursiveInlineDepth);
+                    uint inlineCacheIndex, bool safeThis, bool isApplyTarget, bool isCallTarget, IR::Instr * inlineeDefInstr, uint recursiveInlineDepth);
     bool        SkipCallApplyScriptTargetInlining_Shared(IR::Instr *callInstr, const FunctionJITTimeInfo* inlinerData, const FunctionJITTimeInfo* inlineeData, bool isApplyTarget, bool isCallTarget);
     bool        TryGetFixedMethodsForBuiltInAndTarget(IR::Instr *callInstr, const FunctionJITTimeInfo* inlinerData, const FunctionJITTimeInfo* inlineeData, const FunctionJITTimeInfo *builtInFuncInfo,
-                                IR::Instr* builtInLdInstr, IR::Instr* targetLdInstr, bool& safeThis, bool isApplyTarget);
+                                IR::Instr* builtInLdInstr, IR::Instr* targetLdInstr, bool& safeThis, bool isApplyTarget, bool isCallback);
 
     IR::Instr * InlineBuiltInFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * inlineeData, Js::OpCode inlineCallOpCode, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, bool* pIsInlined, uint profileId, uint recursiveInlineDepth);
     IR::Instr * InlineFunc(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const uint profileId);
@@ -93,7 +96,12 @@ private:
         const bool isInlined, const bool doneFixedMethodFld, IR::Instr** createObjInstrOut, IR::Instr** callCtorInstrOut) const;
     IR::Instr * InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, uint recursiveInlineDepth, bool triedUsingFixedMethods = false);
     IR::Instr * InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, const Js::ProfileId profileId, IR::PropertySymOpnd* methodValueOpnd, bool* pIsInlined, uint recursiveInlineDepth);
-    IR::Instr * TryGetCallbackDefInstr(IR::Instr * callInstr);
+
+    IR::RegOpnd * GetCallbackFunctionOpnd(IR::Instr * callInstr);
+    IR::Instr * TryGetCallbackDefInstr(StackSym * callbackSym);
+    IR::Instr * TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr);
+    IR::Instr * TryGetCallbackDefInstrForCallApplyTarget(IR::Instr * callApplyLdInstr);
+    IR::Instr * TryGetCallbackDefInstrForCallInstanceFunction(IR::Instr * callInstr);
 
     IR::Instr * InlineSpread(IR::Instr *spreadCall);
 
@@ -102,7 +110,7 @@ private:
     void        SetupInlineeFrame(Func *inlinee, IR::Instr *inlineeStart, Js::ArgSlot actualCount, IR::Opnd *functionObject);
     void        FixupExtraActualParams(IR::Instr * instr, IR::Instr *argOuts[], IR::Instr *argOutsExtra[], uint index, uint actualCount, Js::ProfileId callSiteId);
     void        RemoveExtraFixupArgouts(IR::Instr* instr, uint argoutRemoveCount, Js::ProfileId callSiteId);
-    IR::Instr*  PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind = IR::BailOutOnInlineFunction);
+    IR::Instr*  PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, IR::Instr *insertBeforeInstr);
     IR::ByteCodeUsesInstr*  EmitFixedMethodOrFunctionObjectChecksForBuiltIns(IR::Instr *callInstr, IR::Instr * funcObjCheckInsertInstr, const FunctionJITTimeInfo * inlineeInfo, bool isPolymorphic, bool isBuiltIn, bool isCtor, bool isInlined);
     Js::ArgSlot MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *argOuts[], Js::ArgSlot formalCount, Func *inlinee, Js::ProfileId callSiteId, bool *stackArgsArgOutExpanded, IR::Instr *argOutsExtra[] = nullptr, Js::ArgSlot maxParamCount = Js::InlineeCallInfo::MaxInlineeArgoutCount);
     uint32      CountActuals(IR::Instr *callIntr);
@@ -145,11 +153,11 @@ private:
     void SetInlineeFrameStartSym(Func *inlinee, uint actualCount);
     void CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr);
 
-    void InsertObjectCheck(IR::Instr *callInstr, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
-    void InsertFunctionTypeIdCheck(IR::Instr *callInstr, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
-    void InsertJsFunctionCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind);
-    void InsertFunctionInfoCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
-    void InsertFunctionObjectCheck(IR::Instr *callInstr, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
+    void InsertObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
+    void InsertFunctionTypeIdCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
+    void InsertJsFunctionCheck(IR::Instr * callInstr, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind);
+    void InsertFunctionInfoCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
+    void InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
 
     void TryResetObjTypeSpecFldInfoOn(IR::PropertySymOpnd* propertySymOpnd);
     void TryDisableRuntimePolymorphicCacheOn(IR::PropertySymOpnd* propertySymOpnd);

@@ -132,11 +132,12 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
         /*RangeBase*/ functionStart,
         /*RangeEnd*/ functionStart + functionSize);
     BOOLEAN success = NT_SUCCESS(status);
-    if (success)
+    Assert(!success || xdataInfo->functionTable != nullptr);
+
+    if (!success)
     {
-        Assert(xdataInfo->functionTable != nullptr);
+        Js::Throw::XDataRegistrationError(status, functionStart);
     }
-    Js::Throw::CheckAndThrowOutOfMemory(success);
 
 #if DBG
     // Validate that the PDATA registration succeeded

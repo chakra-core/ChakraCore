@@ -45,7 +45,6 @@ set(CRLIB_SOURCE_CODES
     JSONParser.cpp
     JSONScanner.cpp
     JSONStack.cpp
-    JSONString.cpp
     JSONStringBuilder.cpp
     JSONStringifier.cpp
     JavascriptArray.cpp

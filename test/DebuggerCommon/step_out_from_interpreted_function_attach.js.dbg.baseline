@@ -29,11 +29,12 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     },
     "arguments": {
       "#__proto__": "Object {...}",
@@ -45,11 +46,12 @@
       "x": "number 2"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     }
   },
   {
@@ -76,11 +78,12 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     },
     "[Return value]": "undefined undefined",
     "functionCallsReturn": {
@@ -105,20 +108,22 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     },
     "[Return value]": "undefined undefined",
     "functionCallsReturn": {
@@ -140,11 +145,12 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
+      "callcount": "number 5",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "baz": "function <large string>",
-      "Run": "function <large string>",
-      "callcount": "number 5"
+      "Run": "function <large string>"
     }
   }
 ]

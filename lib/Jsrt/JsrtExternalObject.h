@@ -49,9 +49,6 @@ protected:
 public:
     JsrtExternalObject(JsrtExternalType * type, void *data, uint inlineSlotSize);
 
-    static bool Is(Js::Var value);
-    static JsrtExternalObject * FromVar(Js::Var value);
-    static JsrtExternalObject * UnsafeFromVar(Js::Var value);
     static JsrtExternalObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext, JsrtExternalType * type);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
@@ -89,3 +86,9 @@ public:
 #endif
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalObject, &Js::RecyclableObject::DumpObjectFunction);
+
+template <> inline bool Js::VarIsImpl<JsrtExternalObject>(Js::RecyclableObject* obj)
+{
+    return (VirtualTableInfo<JsrtExternalObject>::HasVirtualTable(obj)) ||
+        (VirtualTableInfo<Js::CrossSiteObject<JsrtExternalObject>>::HasVirtualTable(obj));
+}

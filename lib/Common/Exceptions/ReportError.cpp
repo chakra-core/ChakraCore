@@ -4,13 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonExceptionsPch.h"
 
-// Disable inline so that _ReturnAdddress() will get the address of the calling function.
+// Disable inline so that _ReturnAddress() will get the address of the calling function.
 _NOINLINE
 void ReportFatalException(
     __in ULONG_PTR context,
     __in HRESULT exceptionCode,
     __in ErrorReason reasonCode,
-    __in ULONG scenario)
+    __in ULONG_PTR scenario)
 {
     // avoid the error text methods to be optimized out.
     UNREFERENCED_PARAMETER(scenario);
@@ -170,6 +170,63 @@ _NOINLINE void OutOfMemoryTooManyPinnedObjects_unrecoverable_error()
 _NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error()
 {
     int scenario = 13;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+// same as OutOfMemory_unrecoverable_error, but with a different `scenario`
+// - just to cause separate bucketing of these failures 
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error()
+{
+    int scenario = 14;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void XDataRegistration_unrecoverable_error(HRESULT hr, ULONG_PTR scenario)
+{
+    ReportFatalException(NULL, hr, Fatal_XDataRegistration, scenario);
+}
+
+///////
+//
+// The following variety of OOM unrecoverable errors are similar to the ones above 
+// and exist specifically for additional distinct bucketing of crash dumps for 
+// diagnostics purposes.
+//
+///////
+
+_NOINLINE void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_visible()
+{
+    int scenario = 15;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error_visible()
+{
+    int scenario = 16;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error_visible()
+{
+    int scenario = 17;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyPinnedObjects_unrecoverable_error_notvisible()
+{
+    int scenario = 18;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryTooManyClosedContexts_unrecoverable_error_notvisible()
+{
+    int scenario = 19;
+    ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
+}
+
+_NOINLINE void OutOfMemoryAllocationPolicy_unrecoverable_error_notvisible()
+{
+    int scenario = 20;
     ReportFatalException(NULL, E_OUTOFMEMORY, Fatal_OutOfMemory, scenario);
 }
 

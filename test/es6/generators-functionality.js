@@ -949,6 +949,11 @@ var tests = [
             assert.areEqual({ value: 2, done: false }, g.return(100), "Return causes the finally block to execute");
             assert.throws(function () { g.next(); }, ExpectedException, "Second next call should throw from finally block");
             assert.areEqual({ value: undefined, done: true }, g.next(), "Method execution has finished");
+
+            gf = function* () { try { throw new ExpectedException(); } catch (e) { throw e; } }
+            g = gf();
+            assert.throws(function () { g.next() }, ExpectedException, "First next call should rethrow exception");
+            assert.areEqual({ value: 2, done: true }, g.return(2), "Return statement completes the function from try block");
         }
     },
     {

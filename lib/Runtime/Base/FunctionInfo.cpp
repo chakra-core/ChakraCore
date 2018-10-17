@@ -23,7 +23,7 @@ namespace Js
     }
 
     FunctionInfo::FunctionInfo(FunctionInfo& that)
-        : originalEntryPoint(that.originalEntryPoint), attributes(that.attributes), 
+        : originalEntryPoint(that.originalEntryPoint), attributes(that.attributes),
         functionBodyImpl(FORCE_NO_WRITE_BARRIER_TAG(that.functionBodyImpl)), functionId(that.functionId), compileCount(that.compileCount)
     {
 
@@ -61,6 +61,6 @@ namespace Js
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)
     {
         return function->GetTypeId() == Js::TypeIds_Function ?
-            Js::JavascriptFunction::UnsafeFromVar(function)->GetFunctionInfo()->GetAttributes() : Js::FunctionInfo::None;
+            Js::UnsafeVarTo<Js::JavascriptFunction>(function)->GetFunctionInfo()->GetAttributes() : Js::FunctionInfo::None;
     }
 }

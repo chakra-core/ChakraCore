@@ -3,6 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
+#pragma warning(disable:26434) // Function definition hides non-virtual function in base class
+#pragma warning(disable:26439) // Implicit noexcept
+#pragma warning(disable:26451) // Arithmetic overflow
+#pragma warning(disable:26495) // Uninitialized member variable
 #include "catch.hpp"
 
 #pragma warning(disable:6387) // suppressing preFAST which raises warning for passing null to the JsRT APIs

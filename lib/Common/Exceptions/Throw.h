@@ -19,8 +19,10 @@ namespace Js {
         static void __declspec(noreturn) StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
         static void __declspec(noreturn) NotImplemented();
         static void __declspec(noreturn) InternalError();
-        static void __declspec(noreturn) FatalInternalError();
+        static void __declspec(noreturn) FatalInternalError(HRESULT hr = E_FAIL);
         static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
+        static void __declspec(noreturn) FatalInternalGlobalizationError();
+
         static void __declspec(noreturn) FatalProjectionError();
 #if ENABLE_JS_REENTRANCY_CHECK
         static void __declspec(noreturn) FatalJsReentrancyError();
@@ -28,7 +30,10 @@ namespace Js {
 #ifdef ENABLE_JS_BUILTINS
         static void __declspec(noreturn) FatalJsBuiltInError();
 #endif
-        static void CheckAndThrowOutOfMemory(BOOLEAN status);
+
+#if !defined(_M_IX86) && defined(_WIN32)
+        static void XDataRegistrationError(HRESULT hr, ULONG_PTR funcStart);
+#endif
 
         static bool ReportAssert(__in LPCSTR fileName, uint lineNumber, __in LPCSTR error, __in LPCSTR message);
         static void LogAssert();
@@ -161,7 +166,7 @@ namespace Js {
     else if (FAILED(hr)) \
     { \
         /* Intended to be the inverse of E_FAIL in CATCH_UNHANDLED_EXCEPTION */ \
-        AssertOrFailFast(false); \
+        AssertOrFailFastHR(false, hr); \
     }
 
 #define CATCH_UNHANDLED_EXCEPTION(hr) \
@@ -205,10 +210,10 @@ namespace Js {
 #define GET_RUNTIME_ERROR_IMPL(hr, GetRuntimeErrorFunc, exceptionObject) \
     {   \
         Js::Var errorObject = exceptionObject->GetThrownObject(nullptr);   \
-        if (errorObject != nullptr && (Js::JavascriptError::Is(errorObject) ||  \
+        if (errorObject != nullptr && (Js::VarIs<Js::JavascriptError>(errorObject) ||  \
             Js::JavascriptError::IsRemoteError(errorObject)))   \
         {       \
-            hr = GetRuntimeErrorFunc(Js::RecyclableObject::FromVar(errorObject), nullptr);   \
+            hr = GetRuntimeErrorFunc(Js::VarTo<Js::RecyclableObject>(errorObject), nullptr);   \
         }   \
         else if (errorObject != nullptr) \
         {  \

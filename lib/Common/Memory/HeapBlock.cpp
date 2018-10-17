@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#ifdef __clang__
+#if defined(__clang__) && !defined(_MSC_VER)
 #include <cxxabi.h>
 #endif
 
@@ -472,7 +472,9 @@ SmallHeapBlockT<TBlockAttributes>::ReleasePagesShutdown(Recycler * recycler)
 
     // Don't release the page in shut down, the page allocator will release them faster
     // Leaf block's allocator need not be closed
-    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed());
+    // For non-large normal heap blocks ReleasePagesShutdown could be called during shutdown cleanup when the block is still pending concurrent
+    // sweep i.e. it resides in the pendingSweepList of the RecyclerSweep instance. In this case the page allocator may not have been closed yet.
+    Assert(this->IsLeafBlock() || this->GetPageAllocator()->IsClosed() || this->isPendingConcurrentSweep);
 #endif
 
 }
@@ -882,7 +884,7 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
     if (Recycler::DoProfileAllocTracker())
     {
         // need CheckMemoryLeak or KeepRecyclerTrackData flag to have the tracker data and show following detailed info
-#ifdef __clang__
+#if  defined(__clang__) && !defined(_MSC_VER)
         auto getDemangledName = [](const type_info* typeinfo) ->const char*
         {
             int status;

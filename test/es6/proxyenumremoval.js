@@ -86,18 +86,16 @@ passed &= keys==="a";
 
 // check property descriptor trap
 var keys=""
-var already_non_enmerable = false;
 var getPrototypeOfCalled = 0;
 var proxy = new Proxy({}, {
   ownKeys: function() {
-    return ['a','b','a']; // make first a non-enumerable, and second a enumerable, second a won't show up in for-in
+    return ['a','b']; // make a non-enumerable and b enumerable
   },
   getOwnPropertyDescriptor: function(target, key){
     var enumerable = true;
-    if(key === "a" && !already_non_enmerable)
+    if(key === "a")
     {
       enumerable=false;
-      already_non_enmerable = true;
     }
     return {
       configurable: true,

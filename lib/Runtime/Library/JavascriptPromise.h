@@ -21,10 +21,6 @@ namespace Js
         JavascriptPromiseResolveOrRejectFunction(DynamicType* type);
         JavascriptPromiseResolveOrRejectFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromise* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord);
 
-        inline static bool Is(Var var);
-        inline static JavascriptPromiseResolveOrRejectFunction* FromVar(Var var);
-        inline static JavascriptPromiseResolveOrRejectFunction* UnsafeFromVar(Var var);
-
         JavascriptPromise* GetPromise();
         bool IsRejectFunction();
         bool IsAlreadyResolved();
@@ -44,6 +40,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseResolveOrRejectFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseAsyncSpawnExecutorFunction : public RuntimeFunction
     {
     protected:
@@ -52,10 +50,6 @@ namespace Js
 
     public:
         JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target);
-
-        inline static bool Is(Var var);
-        inline static JavascriptPromiseAsyncSpawnExecutorFunction* FromVar(Var var);
-        inline static JavascriptPromiseAsyncSpawnExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptGenerator* GetGenerator();
         Var GetTarget();
@@ -73,6 +67,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnExecutorFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction : public RuntimeFunction
     {
     protected:
@@ -81,10 +77,6 @@ namespace Js
 
     public:
         JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);
-
-        inline static bool Is(Var var);
-        inline static JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* FromVar(Var var);
-        inline static JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptGenerator* GetGenerator();
         Var GetReject();
@@ -108,6 +100,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseCapabilitiesExecutorFunction : public RuntimeFunction
     {
     protected:
@@ -116,10 +110,6 @@ namespace Js
 
     public:
         JavascriptPromiseCapabilitiesExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromiseCapability* capability);
-
-        inline static bool Is(Var var);
-        inline static JavascriptPromiseCapabilitiesExecutorFunction* FromVar(Var var);
-        inline static JavascriptPromiseCapabilitiesExecutorFunction* UnsafeFromVar(Var var);
 
         JavascriptPromiseCapability* GetCapability();
 
@@ -135,6 +125,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseCapabilitiesExecutorFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseResolveThenableTaskFunction : public RuntimeFunction
     {
     protected:
@@ -145,26 +137,6 @@ namespace Js
         JavascriptPromiseResolveThenableTaskFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromise* promise, RecyclableObject* thenable, RecyclableObject* thenFunction)
             : RuntimeFunction(type, functionInfo), promise(promise), thenable(thenable), thenFunction(thenFunction)
         { }
-
-        inline static bool Is(Var var)
-        {
-            if (JavascriptFunction::Is(var))
-            {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
-                return VirtualTableInfo<JavascriptPromiseResolveThenableTaskFunction>::HasVirtualTable(obj)
-                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseResolveThenableTaskFunction>>::HasVirtualTable(obj);
-            }
-
-            return false;
-        }
-
-        inline static JavascriptPromiseResolveThenableTaskFunction* FromVar(Var var)
-        {
-            AssertOrFailFast(JavascriptPromiseResolveThenableTaskFunction::Is(var));
-
-            return static_cast<JavascriptPromiseResolveThenableTaskFunction*>(var);
-        }
 
         JavascriptPromise* GetPromise();
         RecyclableObject* GetThenable();
@@ -185,6 +157,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseResolveThenableTaskFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseReactionTaskFunction : public RuntimeFunction
     {
     protected:
@@ -195,26 +169,6 @@ namespace Js
         JavascriptPromiseReactionTaskFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptPromiseReaction* reaction, Var argument)
             : RuntimeFunction(type, functionInfo), reaction(reaction), argument(argument)
         { }
-
-        inline static bool Is(Var var)
-        {
-            if (JavascriptFunction::Is(var))
-            {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
-                return VirtualTableInfo<JavascriptPromiseReactionTaskFunction>::HasVirtualTable(obj)
-                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseReactionTaskFunction>>::HasVirtualTable(obj);
-            }
-
-            return false;
-        }
-
-        inline static JavascriptPromiseReactionTaskFunction* FromVar(Var var)
-        {
-            AssertOrFailFast(JavascriptPromiseReactionTaskFunction::Is(var));
-
-            return static_cast<JavascriptPromiseReactionTaskFunction*>(var);
-        }
 
         JavascriptPromiseReaction* GetReaction();
         Var GetArgument();
@@ -232,6 +186,8 @@ namespace Js
 #endif
     };
 
+    template <> bool VarIsImpl<JavascriptPromiseReactionTaskFunction>(RecyclableObject* obj);
+
     class JavascriptPromiseThenFinallyFunction : public RuntimeFunction
     {
     protected:
@@ -243,26 +199,6 @@ namespace Js
             : RuntimeFunction(type, functionInfo), OnFinally(OnFinally), Constructor(Constructor), shouldThrow(shouldThrow)
         { }
 
-        inline static bool Is(Var var)
-        {
-            if (JavascriptFunction::Is(var))
-            {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
-                return VirtualTableInfo<JavascriptPromiseThenFinallyFunction>::HasVirtualTable(obj)
-                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThenFinallyFunction>>::HasVirtualTable(obj);
-            }
-
-            return false;
-        }
-
-        inline static JavascriptPromiseThenFinallyFunction* FromVar(Var var)
-        {
-            AssertOrFailFast(JavascriptPromiseThenFinallyFunction::Is(var));
-
-            return static_cast<JavascriptPromiseThenFinallyFunction*>(var);
-        }
-
         inline bool GetShouldThrow() { return this->shouldThrow; }
         inline RecyclableObject* GetOnFinally() { return this->OnFinally; }
         inline RecyclableObject* GetConstructor() { return this->Constructor; }
@@ -272,6 +208,8 @@ namespace Js
         Field(RecyclableObject*) Constructor;
         Field(bool) shouldThrow;
     };
+
+    template <> bool VarIsImpl<JavascriptPromiseThenFinallyFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseThunkFinallyFunction : public RuntimeFunction
     {
@@ -284,25 +222,6 @@ namespace Js
             : RuntimeFunction(type, functionInfo), value(value), shouldThrow(shouldThrow)
         { }
 
-        inline static bool Is(Var var)
-        {
-            if (JavascriptFunction::Is(var))
-            {
-                JavascriptFunction* obj = JavascriptFunction::UnsafeFromVar(var);
-
-                return VirtualTableInfo<JavascriptPromiseThunkFinallyFunction>::HasVirtualTable(obj)
-                    || VirtualTableInfo<CrossSiteObject<JavascriptPromiseThunkFinallyFunction>>::HasVirtualTable(obj);
-            }
-            return false;
-        }
-
-        inline static JavascriptPromiseThunkFinallyFunction* FromVar(Var var)
-        {
-            AssertOrFailFast(JavascriptPromiseThunkFinallyFunction::Is(var));
-
-            return static_cast<JavascriptPromiseThunkFinallyFunction*>(var);
-        }
-
         inline bool GetShouldThrow() { return this->shouldThrow; }
         inline Var GetValue() { return this->value; }
 
@@ -310,6 +229,8 @@ namespace Js
         Field(Var) value;
         Field(bool) shouldThrow;
     };
+
+    template <> bool VarIsImpl<JavascriptPromiseThunkFinallyFunction>(RecyclableObject* obj);
 
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
     {
@@ -325,10 +246,6 @@ namespace Js
     public:
         JavascriptPromiseAllResolveElementFunction(DynamicType* type);
         JavascriptPromiseAllResolveElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper);
-
-        inline static bool Is(Var var);
-        inline static JavascriptPromiseAllResolveElementFunction* FromVar(Var var);
-        inline static JavascriptPromiseAllResolveElementFunction* UnsafeFromVar(Var var);
 
         JavascriptPromiseCapability* GetCapabilities();
         uint32 GetIndex();
@@ -354,6 +271,8 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> bool VarIsImpl<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapability : FinalizableObject
     {
@@ -398,12 +317,10 @@ namespace Js
         //Do any additional marking that is needed for a TT snapshotable object
         void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
 
-        //Do the extraction 
+        //Do the extraction
         void ExtractSnapPromiseCapabilityInto(TTD::NSSnapValues::SnapPromiseCapabilityInfo* snapPromiseCapability, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
 #endif
     };
-
-    typedef JsUtil::List<Js::JavascriptPromiseCapability*> JavascriptPromiseCapabilityList;
 
     class JavascriptPromiseReaction : FinalizableObject
     {
@@ -442,12 +359,18 @@ namespace Js
         //Do any additional marking that is needed for a TT snapshotable object
         void MarkVisitPtrs(TTD::SnapshotExtractor* extractor);
 
-        //Do the extraction 
+        //Do the extraction
         void ExtractSnapPromiseReactionInto(TTD::NSSnapValues::SnapPromiseReactionInfo* snapPromiseReaction, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc);
 #endif
     };
 
-    typedef JsUtil::List<Js::JavascriptPromiseReaction*> JavascriptPromiseReactionList;
+    struct JavascriptPromiseReactionPair
+    {
+        JavascriptPromiseReaction* resolveReaction;
+        JavascriptPromiseReaction* rejectReaction;
+    };
+
+    typedef SList<Js::JavascriptPromiseReactionPair, Recycler> JavascriptPromiseReactionList;
 
     class JavascriptPromise : public DynamicObject
     {
@@ -509,10 +432,6 @@ namespace Js
         static Var EntryJavascriptPromiseAsyncSpawnStepThrowExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryJavascriptPromiseAsyncSpawnCallStepExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static bool Is(Var aValue);
-        static JavascriptPromise* FromVar(Js::Var aValue);
-        static JavascriptPromise* UnsafeFromVar(Js::Var aValue);
-
         static Var CreateRejectedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreatePassThroughPromise(JavascriptPromise* sourcePromise, ScriptContext* scriptContext);
@@ -521,12 +440,12 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
-        JavascriptPromiseReactionList* GetResolveReactions();
-        JavascriptPromiseReactionList* GetRejectReactions();
+        JavascriptPromiseReactionList* GetReactions();
+
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
         static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
-        static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, Var resolution, ScriptContext* scriptContext);
+        static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, bool isReject, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
 
         static void InitializePromise(JavascriptPromise* promise, JavascriptPromiseResolveOrRejectFunction** resolve, JavascriptPromiseResolveOrRejectFunction** reject, ScriptContext* scriptContext);
@@ -538,31 +457,38 @@ namespace Js
         Var Resolve(Var resolution, ScriptContext* scriptContext);
         Var Reject(Var resolution, ScriptContext* scriptContext);
 
-        enum PromiseStatus
+        enum PromiseStatus : unsigned char
         {
-            PromiseStatusCode_Undefined,
-            PromiseStatusCode_Unresolved,
-            PromiseStatusCode_HasResolution,
-            PromiseStatusCode_HasRejection
+            PromiseStatusCode_Undefined     = 0x00,
+            PromiseStatusCode_Unresolved    = 0x01,
+            PromiseStatusCode_HasResolution = 0x02,
+            PromiseStatusCode_HasRejection  = 0x03
         };
 
-        bool GetIsHandled() { return isHandled; }
-        void SetIsHandled() { isHandled = true; }
-        PromiseStatus GetStatus() const { return status; }
+
+        bool GetIsHandled() const { return this->isHandled; }
+        void SetIsHandled() { this->isHandled = true; }
+
+        PromiseStatus GetStatus() const { return this->status; }
+        void SetStatus(const PromiseStatus newStatus) { this->status = newStatus; }
+
         Var GetResult() const { return result; }
 
     protected:
         Var ResolveHelper(Var resolution, bool isRejecting, ScriptContext* scriptContext);
 
     protected:
+        Field(Var) result;
+        Field(JavascriptPromiseReactionList*) reactions;
+
+        // we could pack status & isHandled into a single byte, but the compiler is aligning this on address-size
+        // boundaries, so we don't save anything.  Leaving these separate fields for clarity
         Field(PromiseStatus) status;
         Field(bool) isHandled;
-        Field(Var) result;
-        Field(JavascriptPromiseReactionList*) resolveReactions;
-        Field(JavascriptPromiseReactionList*) rejectReactions;
 
     private :
         static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, Var resolve, Var reject);
+        bool WillRejectionBeUnhandled();
 
 #if ENABLE_TTD
     public:
@@ -571,7 +497,12 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        static JavascriptPromise* InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
+        static JavascriptPromise* InitializePromise_TTD(ScriptContext* scriptContext, uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptPromise>(RecyclableObject* obj)
+    {
+        return Js::JavascriptOperators::GetTypeId(obj) == TypeIds_Promise;
+    }
 }
