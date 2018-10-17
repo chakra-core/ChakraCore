@@ -6210,7 +6210,7 @@ CHAKRA_API JsIsConstructor(_In_ JsValueRef object, _Out_ bool *isConstructor)
         VALIDATE_INCOMING_OBJECT(object, scriptContext);
         PARAM_NOT_NULL(isConstructor);
 
-        Js::RecyclableObject * instance = Js::RecyclableObject::FromVar(object);
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
         AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
 
         *isConstructor = Js::JavascriptOperators::IsConstructor(instance);
