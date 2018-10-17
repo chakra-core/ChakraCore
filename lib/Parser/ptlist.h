@@ -23,6 +23,7 @@ PTNODE(knopNone       , "<none>"           , Nop      , None        , fnopNone  
 ***************************************************************************/
 PTNODE(knopName       , "name"             , Nop      , Name        , fnopLeaf|fnopAllowDefer, "NameExpr"                       )
 PTNODE(knopInt        , "int const"        , Nop      , Int         , fnopLeaf|fnopConst    , "NumberLit"                      )
+PTNODE(knopBigInt     , "bigint const"     , Nop      , BigInt      , fnopLeaf|fnopConst    , "BigIntLit"                      )
 PTNODE(knopImport     , "import"           , Nop      , None        , fnopLeaf              , "ImportExpr"                     )
 PTNODE(knopFlt        , "flt const"        , Nop      , Float       , fnopLeaf|fnopConst    , "NumberLit"                      )
 PTNODE(knopStr        , "str const"        , Nop      , Str         , fnopLeaf|fnopConst    , "StringLit"                      )

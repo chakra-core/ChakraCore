@@ -969,6 +969,18 @@ Js::RegSlot ByteCodeGenerator::EnregisterConstant(unsigned int constant)
     return loc;
 }
 
+Js::RegSlot ByteCodeGenerator::EnregisterBigIntConstant(ParseNode* pnode)
+{
+    Js::RegSlot loc = Js::Constants::NoRegister;
+    FuncInfo *top = funcInfoStack->Top();
+    if (!top->bigintToRegister.TryGetValue(pnode, &loc))
+    {
+        loc = NextConstRegister();
+        top->bigintToRegister.Add(pnode, loc);
+    }
+    return loc;
+}
+
 Js::RegSlot ByteCodeGenerator::EnregisterStringConstant(IdentPtr pid)
 {
     Js::RegSlot loc = Js::Constants::NoRegister;
@@ -4930,6 +4942,9 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         pnode->location = byteCodeGenerator->EnregisterDoubleConstant(pnode->AsParseNodeFloat()->dbl);
         break;
     }
+    case knopBigInt:
+        pnode->location = byteCodeGenerator->EnregisterBigIntConstant(pnode);
+        break;
     case knopStr:
         pnode->location = byteCodeGenerator->EnregisterStringConstant(pnode->AsParseNodeStr()->pid);
         break;

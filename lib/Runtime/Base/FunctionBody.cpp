@@ -4349,6 +4349,13 @@ namespace Js
         this->RecordConstant(location, str);
     }
 
+    void FunctionBody::RecordBigIntConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool isNegative)
+    {
+        ScriptContext *scriptContext = this->GetScriptContext();
+        Var bigintConst = JavascriptBigInt::Create(psz, cch, isNegative, scriptContext);
+        this->RecordConstant(location, bigintConst);
+    }
+
     void FunctionBody::RecordFloatConstant(RegSlot location, double d)
     {
         ScriptContext *scriptContext = this->GetScriptContext();

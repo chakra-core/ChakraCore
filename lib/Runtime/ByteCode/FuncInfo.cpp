@@ -76,6 +76,7 @@ FuncInfo::FuncInfo(
 
     constantToRegister(alloc, 17),
     stringToRegister(alloc, 17),
+    bigintToRegister(alloc, 17),
     doubleConstantToRegister(alloc, 17),
     stringTemplateCallsiteRegisterMap(alloc, 17),
 

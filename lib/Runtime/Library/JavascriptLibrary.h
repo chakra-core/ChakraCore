@@ -193,6 +193,7 @@ namespace Js
         static DWORD GetBooleanFalseOffset() { return offsetof(JavascriptLibrary, booleanFalse); }
         static DWORD GetNegativeZeroOffset() { return offsetof(JavascriptLibrary, negativeZero); }
         static DWORD GetNumberTypeStaticOffset() { return offsetof(JavascriptLibrary, numberTypeStatic); }
+        static DWORD GetBigIntTypeStaticOffset() { return offsetof(JavascriptLibrary, bigintTypeStatic); }
         static DWORD GetObjectTypesOffset() { return offsetof(JavascriptLibrary, objectTypes); }
         static DWORD GetObjectHeaderInlinedTypesOffset() { return offsetof(JavascriptLibrary, objectHeaderInlinedTypes); }
         static DWORD GetRegexTypeOffset() { return offsetof(JavascriptLibrary, regexType); }
@@ -259,6 +260,8 @@ namespace Js
         Field(DynamicType *) charArrayType;
         Field(StaticType *) booleanTypeStatic;
         Field(DynamicType *) booleanTypeDynamic;
+        Field(DynamicType *) bigintTypeDynamic;
+        Field(StaticType *) bigintTypeStatic;
         Field(DynamicType *) dateType;
         Field(StaticType *) variantDateType;
         Field(DynamicType *) symbolTypeDynamic;
@@ -656,6 +659,8 @@ namespace Js
         StaticType  * GetBooleanTypeStatic() const { return booleanTypeStatic; }
         DynamicType * GetBooleanTypeDynamic() const { return booleanTypeDynamic; }
         DynamicType * GetDateType() const { return dateType; }
+        StaticType * GetBigIntTypeStatic() const { return bigintTypeStatic; }
+        DynamicType * GetBigIntTypeDynamic() const { return bigintTypeDynamic; }
         DynamicType * GetBoundFunctionType() const { return boundFunctionType; }
         DynamicType * GetRegExpConstructorType() const { return regexConstructorType; }
         StaticType  * GetEnumeratorType() const { return enumeratorType; }
@@ -674,6 +679,7 @@ namespace Js
         StaticType  * GetNumberTypeStatic() const { return numberTypeStatic; }
         StaticType  * GetInt64TypeStatic() const { return int64NumberTypeStatic; }
         StaticType  * GetUInt64TypeStatic() const { return uint64NumberTypeStatic; }
+
         DynamicType * GetNumberTypeDynamic() const { return numberTypeDynamic; }
         DynamicType * GetPromiseType() const { return promiseType; }
 
@@ -1144,6 +1150,7 @@ namespace Js
         STANDARD_INIT(Proxy);
         STANDARD_INIT(Function);
         STANDARD_INIT(Number);
+        STANDARD_INIT(BigInt);
         STANDARD_INIT(Object);
         STANDARD_INIT(Regex);
         STANDARD_INIT(String);
@@ -1253,6 +1260,7 @@ namespace Js
         HRESULT ProfilerRegisterFunction();
         HRESULT ProfilerRegisterMath();
         HRESULT ProfilerRegisterNumber();
+        HRESULT ProfilerRegisterBigInt();
         HRESULT ProfilerRegisterString();
         HRESULT ProfilerRegisterRegExp();
         HRESULT ProfilerRegisterJSON();

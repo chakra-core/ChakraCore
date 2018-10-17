@@ -183,6 +183,7 @@ public:
     Js::RegSlot EnregisterConstant(unsigned int constant);
     Js::RegSlot EnregisterStringConstant(IdentPtr pid);
     Js::RegSlot EnregisterDoubleConstant(double d);
+    Js::RegSlot EnregisterBigIntConstant(ParseNodePtr pid);
     Js::RegSlot EnregisterStringTemplateCallsiteConstant(ParseNode* pnode);
 
     static Js::JavascriptArray* BuildArrayFromStringList(ParseNode* stringNodeList, uint arrayLength, Js::ScriptContext* scriptContext);
@@ -213,6 +214,7 @@ public:
 
     void RecordAllIntConstants(FuncInfo * funcInfo);
     void RecordAllStrConstants(FuncInfo * funcInfo);
+    void RecordAllBigIntConstants(FuncInfo * funcInfo);
     void RecordAllStringTemplateCallsiteConstants(FuncInfo* funcInfo);
 
     // For now, this just assigns field ids for the current script.

@@ -1052,6 +1052,15 @@ ParseNodeStr * Parser::CreateStrNode(IdentPtr pid)
     return pnode;
 }
 
+ParseNodeBigInt * Parser::CreateBigIntNode(IdentPtr pid)
+{
+    Assert(!this->m_deferringAST);
+    ParseNodeBigInt * pnode = Anew(&m_nodeAllocator, ParseNodeBigInt, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok(), pid);
+    pnode->isNegative = false;
+    AddAstSize(sizeof(ParseNodeBigInt));
+    return pnode;
+}
+
 ParseNodeName * Parser::CreateNameNode(IdentPtr pid)
 {
     ParseNodeName * pnode = Anew(&m_nodeAllocator, ParseNodeName, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok(), pid);
@@ -3339,6 +3348,20 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         if (buildAST)
         {
             pnode = CreateIntNode(m_token.GetLong());
+        }
+        fCanAssign = FALSE;
+        this->GetScanner()->Scan();
+        break;
+
+    case tkBigIntCon:
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
+        {
+            Error(ERRES5NoOctal);
+        }
+
+        if (buildAST)
+        {
+            pnode = CreateBigIntNode(m_token.GetBigInt());
         }
         fCanAssign = FALSE;
         this->GetScanner()->Scan();
@@ -8786,7 +8809,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
                 else if (nop == knopNeg &&
                     ((pnodeT->nop == knopInt && pnodeT->AsParseNodeInt()->lw != 0) ||
-                    (pnodeT->nop == knopFlt && (pnodeT->AsParseNodeFloat()->dbl != 0 || this->m_InAsmMode))))
+                    (pnodeT->nop == knopFlt && (pnodeT->AsParseNodeFloat()->dbl != 0 || this->m_InAsmMode)) ||
+                    (pnodeT->nop == knopBigInt)))
                 {
                     // Fold a unary '-' on a number into the value of the number itself.
                     pnode = pnodeT;
@@ -8794,7 +8818,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     {
                         pnode->AsParseNodeInt()->lw = -pnode->AsParseNodeInt()->lw;
                     }
-                    else
+                    else if (pnode->nop == knopBigInt)
+                    {
+                        pnode->AsParseNodeBigInt()->isNegative = true;
+                    }
+                    else 
                     {
                         pnode->AsParseNodeFloat()->dbl = -pnode->AsParseNodeFloat()->dbl;
                     }
@@ -9160,6 +9188,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
             case knopName:
             case knopInt:
+            case knopBigInt:
             case knopFlt:
             case knopStr:
             case knopRegExp:
@@ -12272,6 +12301,9 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
                    //PTNODE(knopInt        , "int const"    ,None    ,Int  ,fnopLeaf|fnopConst)
     case knopInt:
         return pnode;
+        //PTNODE(knopBigInt        , "bigint const"    ,None    ,BigInt  ,fnopLeaf|fnopConst)
+    case knopBigInt:
+        return pnode;
         //PTNODE(knopFlt        , "flt const"    ,None    ,Flt  ,fnopLeaf|fnopConst)
     case knopFlt:
         return pnode;
@@ -13347,6 +13379,11 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
     case knopInt:
         Indent(indentAmt);
         Output::Print(_u("%d\n"), pnode->AsParseNodeInt()->lw);
+        break;
+        //PTNODE(knopInt        , "int const"    ,None    ,Int  ,fnopLeaf|fnopConst)
+    case knopBigInt:
+        Indent(indentAmt);
+        Output::Print(_u("%s%s\n"), pnode->AsParseNodeBigInt()->isNegative? "-" : "", pnode->AsParseNodeBigInt()->pid->Psz());
         break;
         //PTNODE(knopFlt        , "flt const"    ,None    ,Flt  ,fnopLeaf|fnopConst)
     case knopFlt:

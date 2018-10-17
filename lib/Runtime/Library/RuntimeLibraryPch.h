@@ -14,6 +14,7 @@
 #include "Library/JavascriptNumberObject.h"
 #include "Library/JavascriptStringObject.h"
 #include "Library/JavascriptBooleanObject.h"
+#include "Library/JavascriptBigIntObject.h"
 
 #include "Library/ObjectPrototypeObject.h"
 

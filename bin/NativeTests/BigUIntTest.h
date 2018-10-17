@@ -26,7 +26,7 @@ namespace Js
 }
 
 template <typename EncodedChar>
-double Js::NumberUtilities::StrToDbl(const EncodedChar *, const EncodedChar **, bool& )
+double Js::NumberUtilities::StrToDbl(const EncodedChar *, const EncodedChar **, LikelyNumberType& , bool)
 {
     Assert(false);
     return 0.0;// don't care

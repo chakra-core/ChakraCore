@@ -126,6 +126,7 @@ namespace Js
     class JavascriptGenerator;
     class LiteralString;
     class JavascriptStringObject;
+    class JavascriptBigIntObject;
     struct PropertyDescriptor;
     class Type;
     class DynamicType;
@@ -141,6 +142,7 @@ namespace Js
     class WithScopeObject;
     class SpreadArgument;
     class JavascriptString;
+    class JavascriptBigInt;
     class StringCopyInfo;
     class StringCopyInfoStack;
     class ObjectPrototypeObject;
@@ -510,6 +512,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
+#include "Library/JavascriptBigInt.h"
 #include "Library/WebAssemblyEnvironment.h"
 #include "Library/WebAssemblyTable.h"
 #include "Library/WebAssemblyMemory.h"

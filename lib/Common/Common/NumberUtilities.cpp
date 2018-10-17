@@ -684,8 +684,8 @@ using namespace Js;
     double NumberUtilities::StrToDbl(const EncodedChar * psz, const EncodedChar **ppchLim, Js::ScriptContext *const scriptContext)
     {
         Assert(scriptContext);
-        bool likelyInt = true;
-        return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyInt);
+        LikelyNumberType likelyType = LikelyNumberType::Int;
+        return Js::NumberUtilities::StrToDbl<EncodedChar>(psz, ppchLim, likelyType);
     }
 
     template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);

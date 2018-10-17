@@ -83,6 +83,8 @@ namespace Js {
 
         static int64 ToLength(Var aValue, ScriptContext* scriptContext);
 
+        static JavascriptBigInt * ToBigInt(Var aValue, ScriptContext * scriptContext);
+
         static float  LongToFloat(__int64 aValue);
         static float  ULongToFloat(unsigned __int64 aValue);
         static double LongToDouble(__int64 aValue);
