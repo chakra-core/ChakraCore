@@ -107,6 +107,7 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+    JsIsConstructor
 #ifndef NTBUILD
     JsCreateString
     JsCreateStringUtf16

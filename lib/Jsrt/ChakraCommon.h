@@ -2457,6 +2457,22 @@ typedef unsigned short uint16_t;
             _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
+    /// <summary>
+    ///      Returns a value that indicates whether an object is a constructor.
+    /// </summary>
+    /// <remarks>
+    ///     Requires an active script context.
+    /// </remarks>
+    /// <param name="object">The object to test.</param>
+    /// <param name="isConstructor">If the object is a constructor, <c>true</c>, <c>false</c> otherwise.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsIsConstructor(
+            _In_ JsValueRef object,
+            _Out_ bool *isConstructor);
+
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
 #endif // _WIN32
