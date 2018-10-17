@@ -78,6 +78,7 @@ void GlobOpt::ArrayLowerBoundCheckHoistInfo::SetLoop(
 void GlobOpt::ArrayLowerBoundCheckHoistInfo::SetLoop(
     ::Loop *const loop,
     StackSym *const indexSym,
+    const int indexOffset,
     const int offset,
     Value *const indexValue,
     const IntConstantBounds &indexConstantBounds,
@@ -91,6 +92,7 @@ void GlobOpt::ArrayLowerBoundCheckHoistInfo::SetLoop(
 
     this->loop = loop;
     this->indexSym = indexSym;
+    this->indexOffset = indexOffset;
     this->offset = offset;
     this->indexValueNumber = indexValue->GetValueNumber();
     this->indexValue = indexValue;
@@ -142,6 +144,7 @@ void GlobOpt::ArrayUpperBoundCheckHoistInfo::SetLoop(
 void GlobOpt::ArrayUpperBoundCheckHoistInfo::SetLoop(
     ::Loop *const loop,
     StackSym *const indexSym,
+    const int indexOffset,
     const int offset,
     Value *const indexValue,
     const IntConstantBounds &indexConstantBounds,
@@ -151,7 +154,7 @@ void GlobOpt::ArrayUpperBoundCheckHoistInfo::SetLoop(
 {
     Assert(headSegmentLengthValue);
 
-    SetLoop(loop, indexSym, offset, indexValue, indexConstantBounds, isLoopCountBasedBound);
+    SetLoop(loop, indexSym, indexOffset, offset, indexValue, indexConstantBounds, isLoopCountBasedBound);
     this->headSegmentLengthValue = headSegmentLengthValue;
     this->headSegmentLengthConstantBounds = headSegmentLengthConstantBounds;
 }
@@ -1831,8 +1834,9 @@ void GlobOpt::GenerateLoopCountPlusOne(Loop *const loop, LoopCount *const loopCo
 void GlobOpt::GenerateSecondaryInductionVariableBound(
     Loop *const loop,
     StackSym *const inductionVariableSym,
-    const LoopCount *const loopCount,
+    LoopCount *const loopCount,
     const int maxMagnitudeChange,
+    const bool needsMagnitudeAdjustment,
     StackSym *const boundSym)
 {
     Assert(loop);
@@ -1857,18 +1861,33 @@ void GlobOpt::GenerateSecondaryInductionVariableBound(
     Assert(insertBeforeInstr);
     Func *const func = bailOutInfo->bailOutFunc;
 
+    StackSym* loopCountSym = nullptr;
+
+    // If indexOffset < maxMagnitudeChange, we need to account for the difference between them in the bound check
+    // i.e. BoundCheck: inductionVariable + loopCountMinusOne * maxMagnitudeChange + maxMagnitudeChange - indexOffset <= length - offset
+    // Since the BoundCheck instruction already deals with offset, we can simplify this to
+    // BoundCheck: inductionVariable + loopCount * maxMagnitudeChange <= length + indexOffset - offset
+    if (needsMagnitudeAdjustment)
+    {
+        GenerateLoopCountPlusOne(loop, loopCount);
+        loopCountSym = loopCount->LoopCountSym();
+    }
+    else
+    {
+        loopCountSym = loopCount->LoopCountMinusOneSym();
+    }
     // intermediateValue = loopCount * maxMagnitudeChange
     StackSym *intermediateValueSym;
     if(maxMagnitudeChange == 1 || maxMagnitudeChange == -1)
     {
-        intermediateValueSym = loopCount->LoopCountMinusOneSym();
+        intermediateValueSym = loopCountSym;
     }
     else
     {
         IR::BailOutInstr *const instr = IR::BailOutInstr::New(Js::OpCode::Mul_I4, bailOutKind, bailOutInfo, func);
 
         instr->SetSrc1(
-            IR::RegOpnd::New(loopCount->LoopCountMinusOneSym(), loopCount->LoopCountMinusOneSym()->GetType(), func));
+            IR::RegOpnd::New(loopCountSym, loopCountSym->GetType(), func));
         instr->GetSrc1()->SetIsJITOptimizedReg(true);
 
         instr->SetSrc2(IR::IntConstOpnd::New(maxMagnitudeChange, TyInt32, func, true));
@@ -2418,6 +2437,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                     loop,
                     indexSym,
                     lowerOffset,
+                    lowerOffset,
                     landingPadIndexValue,
                     landingPadIndexConstantBounds);
             }
@@ -2469,11 +2489,13 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         // Normalize the offset such that:
         //     boundBase <= headSegmentLength + offset
         // Where (offset = -1 - boundOffset), and -1 is to simulate < instead of <=.
+        int indexOffset = upperOffset;
         upperOffset = -1 - upperOffset;
 
         upperHoistInfo.SetLoop(
             loop,
             indexSym,
+            indexOffset,
             upperOffset,
             landingPadIndexValue,
             landingPadIndexConstantBounds,
@@ -2619,6 +2641,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                             loop,
                             indexBoundBaseSym,
                             offset,
+                            offset,
                             landingPadIndexBoundBaseValue,
                             landingPadIndexBoundBaseConstantBounds);
                         break;
@@ -2643,11 +2666,13 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
                     // Normalize the offset such that:
                     //     boundBase <= headSegmentLength + offset
                     // Where (offset = -1 - boundOffset), and -1 is to simulate < instead of <=.
+                    int indexOffset = offset;
                     offset = -1 - offset;
 
                     upperHoistInfo.SetLoop(
                         loop,
                         indexBoundBaseSym,
+                        indexOffset,
                         offset,
                         landingPadIndexBoundBaseValue,
                         landingPadIndexBoundBaseConstantBounds,
@@ -3139,6 +3164,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
         lowerHoistInfo.SetLoop(
             currentLoop,
             indexLoopCountBasedBoundBaseSym,
+            indexOffset,
             offset,
             indexLoopCountBasedBoundBaseValue,
             indexLoopCountBasedBoundBaseConstantBounds,
@@ -3153,6 +3179,7 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     upperHoistInfo.SetLoop(
         currentLoop,
         indexLoopCountBasedBoundBaseSym,
+        indexOffset,
         offset,
         indexLoopCountBasedBoundBaseValue,
         indexLoopCountBasedBoundBaseConstantBounds,

@@ -1102,17 +1102,9 @@ inline BucketId GetBucketForSize(size_t bytes)
         return BucketId::LargeObjectList;
     }
 
-    BucketId bucket = (BucketId) (log2(bytes) - 7);
-
-    // < 8 => 0
-    // 8 => 1
-    // 9 => 2 ...
+    BucketId bucket = (BucketId) (log2(bytes / Page::sizePerBit));
     Assert(bucket < BucketId::LargeObjectList);
-
-    if (bucket < BucketId::SmallObjectList)
-    {
-        bucket = BucketId::SmallObjectList;
-    }
+    Assert(bucket >= BucketId::SmallObjectList);
 
     return bucket;
 }

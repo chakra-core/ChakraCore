@@ -107,16 +107,19 @@ protected:
                 }\
         }
 
-#define LEAVE_SCRIPT_IF(scriptContext, condition, block) \
-        if (condition) \
+#define LEAVE_SCRIPT_IF_ACTIVE(scriptContext, externalCall) \
+        if (scriptContext->GetThreadContext()->IsScriptActive()) \
         { \
             BEGIN_LEAVE_SCRIPT(scriptContext); \
-            block \
+            externalCall \
             END_LEAVE_SCRIPT(scriptContext); \
         } \
         else \
         { \
-            block \
+            DECLARE_EXCEPTION_CHECK_DATA \
+            SAVE_EXCEPTION_CHECK \
+            externalCall \
+            RESTORE_EXCEPTION_CHECK \
         }
 
 #define ENTER_SCRIPT_IF(scriptContext, doCleanup, isCallRoot, hasCaller, condition, block) \
@@ -320,6 +323,8 @@ private:
     }
 };
 
+class AutoReentrancyHandler;
+
 class ThreadContext sealed :
     public DefaultRecyclerCollectionWrapper,
     public JsUtil::DoublyLinkedListElement<ThreadContext>,
@@ -459,7 +464,7 @@ private:
     };
 
 public:
-    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
+    typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PowerOf2SizePolicy, const Js::PropertyRecord *,
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
@@ -663,7 +668,7 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
-    void * tryCatchFrameAddr;
+    void * tryHandlerAddrOfReturnAddr;
     enum RedeferralState
     {
         InitialRedeferralState,
@@ -861,6 +866,16 @@ public:
     // at the time of failfast due to allocation limits.
     // high number may indicate that context leaks have occured.
     uint closedScriptContextCount;
+
+    enum VisibilityState : BYTE
+    {
+        Undefined = 0,
+        Visible = 1,
+        NotVisible = 2
+    };
+
+    // indicates the visibility state of the hosting application/window/tab if known.
+    VisibilityState visibilityState;
 
 #if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
@@ -1254,8 +1269,8 @@ public:
     uint EnterScriptStart(Js::ScriptEntryExitRecord *, bool doCleanup);
     void EnterScriptEnd(Js::ScriptEntryExitRecord *, bool doCleanup);
 
-    void * GetTryCatchFrameAddr() { return this->tryCatchFrameAddr; }
-    void SetTryCatchFrameAddr(void * frameAddr) { this->tryCatchFrameAddr = frameAddr; }
+    void * GetTryHandlerAddrOfReturnAddr() { return this->tryHandlerAddrOfReturnAddr; }
+    void SetTryHandlerAddrOfReturnAddr(void * addrOfReturnAddr) { this->tryHandlerAddrOfReturnAddr = addrOfReturnAddr; }
 
     template <bool leaveForHost>
     void LeaveScriptStart(void *);
@@ -1450,6 +1465,18 @@ public:
                 recyclableData->oldEntryPointInfo = oldEntryPointInfo;
             }
         }
+    }
+
+    bool IsOldEntryPointInfo(Js::ProxyEntryPointInfo* entryPointInfo)
+    {
+        Js::FunctionEntryPointInfo* current = this->recyclableData->oldEntryPointInfo;
+        while (current != nullptr)
+        {
+            if (current == entryPointInfo)
+                return true;
+            current = current->nextEntryPoint;
+        }
+        return false;
     }
 
     static bool IsOnStack(void const *ptr);
@@ -1880,8 +1907,9 @@ private:
         }
 
         virtual LPFILETIME GetLastScriptExecutionEndTime() const;
-        virtual bool TransmitTelemetry(RecyclerTelemetryInfo& rti);
+        virtual bool TransmitGCTelemetryStats(RecyclerTelemetryInfo& rti);
         virtual bool TransmitTelemetryError(const RecyclerTelemetryInfo& rti, const char * msg);
+        virtual bool TransmitHeapUsage(size_t totalHeapBytes, size_t usedHeapBytes, double heapUsedRatio);
         virtual bool ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const;
         virtual DWORD ThreadContextRecyclerTelemetryHostInterface::GetCurrentScriptThreadID() const;
         virtual bool IsTelemetryProviderEnabled() const;

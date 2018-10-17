@@ -557,10 +557,11 @@ int
 ExecuteCommand(
     const char* path,
     const char* CommandLine,
-    DWORD millisecTimeout,
-    void* envFlags)
+    DWORD millisecTimeout /* = INFINITE */,
+    uint32 timeoutRetries /* = 0 */,
+    void* envFlags /* = NULL */)
 {
-    int rc;
+    int rc = 0;
     FILE* childOutput = NULL;
     char putEnvStr[BUFFER_SIZE];
     char ExecuteProgramCmdLine[BUFFER_SIZE];
@@ -568,37 +569,62 @@ ExecuteCommand(
 
     prevmode = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
 
-    // Always flush output buffers before executing a command. Note: this
-    // shouldn't really be necessary because all output should be buffered
-    // by the COutputBuffer class on a per-thread basis.
-    fflush(stdout);
-    fflush(stderr);
-
     strcpy_s(ExecuteProgramCmdLine, "cmd.exe /c "); // for .cmd/.bat scripts
     strcat_s(ExecuteProgramCmdLine, CommandLine);
 
-    EnterCriticalSection(&csCurrentDirectory);
+    for (uint32 numTimeouts = 0; numTimeouts <= timeoutRetries; numTimeouts++)
+    {
+        if (numTimeouts != 0)
+        {
+            LogOut("Timeout retry (attempt #%u)...\n", numTimeouts);
+        }
 
-    // If we're doing executable tests, set the TARGET_VM environment variable.
-    // We must do this inside a critical section since the environment is
-    // not thread specific.
+        // Always flush output buffers before executing a command. Note: this
+        // shouldn't really be necessary because all output should be buffered
+        // by the COutputBuffer class on a per-thread basis.
+        fflush(stdout);
+        fflush(stderr);
 
-    if ((Mode == RM_EXE) && TargetVM) {
-        sprintf_s(putEnvStr, "TARGET_VM=%s", TargetVM);
-        _putenv(putEnvStr);
-    }
+        EnterCriticalSection(&csCurrentDirectory);
 
-    rc = _chdir(path);
-    if (rc == 0) {
-        childOutput = PipeSpawn(ExecuteProgramCmdLine, envFlags);
-    }
-    LeaveCriticalSection(&csCurrentDirectory);
+        // If we're doing executable tests, set the TARGET_VM environment variable.
+        // We must do this inside a critical section since the environment is
+        // not thread specific.
+        if ((Mode == RM_EXE) && TargetVM)
+        {
+            sprintf_s(putEnvStr, "TARGET_VM=%s", TargetVM);
+            _putenv(putEnvStr);
+        }
 
-    if (rc != 0) {
-        LogError("Could not change directory to '%s' - errno == %d\n", path, errno);
-    } else if (childOutput != NULL) {
-        rc = FilterThread(childOutput, millisecTimeout);
-        rc = PipeSpawnClose(childOutput, rc == WAIT_TIMEOUT);
+        // Change directory and then spawn child process inside a critical section
+        // because the environment (including CWD) is not thread-specific
+        // and the child process depends on CWD.
+        rc = _chdir(path);
+        if (rc == 0)
+        {
+            childOutput = PipeSpawn(ExecuteProgramCmdLine, envFlags);
+        }
+
+        LeaveCriticalSection(&csCurrentDirectory);
+
+        if (rc != 0)
+        {
+            LogError("Could not change directory to '%s' - errno == %d\n", path, errno);
+        }
+        else if (childOutput != NULL)
+        {
+            rc = FilterThread(childOutput, millisecTimeout);
+            bool timedOut = (rc == WAIT_TIMEOUT);
+            rc = PipeSpawnClose(childOutput, timedOut);
+            if (timedOut)
+            {
+                continue; // retry timed-out command
+            }
+            else
+            {
+                break; // did not timeout, do not retry
+            }
+        }
     }
 
     SetErrorMode(prevmode);

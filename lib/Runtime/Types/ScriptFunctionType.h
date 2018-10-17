@@ -13,6 +13,7 @@ namespace Js
         static DWORD GetEntryPointInfoOffset() { return offsetof(ScriptFunctionType, entryPointInfo); }
         ProxyEntryPointInfo * GetEntryPointInfo() const { return entryPointInfo; }
         void SetEntryPointInfo(ProxyEntryPointInfo * entryPointInfo) { this->entryPointInfo = entryPointInfo; }
+        void ChangeEntryPoint(ProxyEntryPointInfo * entryPointInfo, JavascriptMethod entryPoint, bool isAsmJS);
     private:
         ScriptFunctionType(ScriptFunctionType * type);
         ScriptFunctionType(ScriptContext* scriptContext, RecyclableObject* prototype,

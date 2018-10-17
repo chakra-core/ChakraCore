@@ -170,6 +170,9 @@ namespace Js
                     {
                         *exceptionVar = this->errorObject;
                     }
+
+                    // Cleanup in case of error.
+                    this->ReleaseParserResources();
                     return E_FAIL;
                 }
             }
@@ -203,11 +206,10 @@ namespace Js
             }
 
             // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
-            bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
             if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (ParseSource error)\n"), this->GetSpecifierSz());
-                LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
+                LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
                 {
                     scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
                 });
@@ -252,6 +254,14 @@ namespace Js
         SetLocalExportRecordList(moduleParseNode->localExportEntries);
     }
 
+    void SourceTextModuleRecord::ReleaseParserResources()
+    {
+        if (this->parser != nullptr)
+        {
+            this->parser->ReleaseTemporaryGuestArena();
+        }
+    }
+
     HRESULT SourceTextModuleRecord::PostParseProcess()
     {
         HRESULT hr = NOERROR;
@@ -263,6 +273,12 @@ namespace Js
         {
             hr = PrepareForModuleDeclarationInitialization();
         }
+        else
+        {
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
+        }
+
         return hr;
     }
 
@@ -289,16 +305,16 @@ namespace Js
 
                 if (this->errorObject != nullptr)
                 {
+                    // Cleanup in case of error.
+                    this->ReleaseParserResources();
                     SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this);
                 }
                 else
                 {
                     if (!hadNotifyHostReady && !WasEvaluated())
                     {
-                        bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
-
                         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PostProcessDynamicModuleImport)\n"), this->GetSpecifierSz());
-                        LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
+                        LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
                         {
                             hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
                         });
@@ -310,6 +326,9 @@ namespace Js
 
             if (FAILED(hr))
             {
+                // Cleanup in case of error.
+                this->ReleaseParserResources();
+
                 // We cannot just use the buffer in the specifier string - need to make a copy here.
                 const char16* moduleName = this->GetSpecifierSz();
                 size_t length = wcslen(moduleName);
@@ -341,8 +360,7 @@ namespace Js
                 // TODO: move this as a promise call? if parser is called from a different thread
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
                 ScriptContext* scriptContext = GetScriptContext();
-                bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
-                Assert(!isScriptActive || this->promise != nullptr);
+                Assert(!scriptContext->GetThreadContext()->IsScriptActive() || this->promise != nullptr);
 
                 if (ModuleDeclarationInstantiation())
                 {
@@ -351,7 +369,7 @@ namespace Js
                 if (!hadNotifyHostReady && !WasEvaluated())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PrepareForModuleDeclarationInitialization)\n"), this->GetSpecifierSz());
-                    LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
+                    LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
                     {
                         hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
                     });
@@ -375,10 +393,11 @@ namespace Js
                 this->errorObject = childException;
             }
 
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
+
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded (childException)\n"), this->GetSpecifierSz());
             NotifyParentsAsNeeded();
-
-            bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
 
             if (this->promise != nullptr)
             {
@@ -388,7 +407,7 @@ namespace Js
             if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (OnChildModuleReady)\n"), this->GetSpecifierSz());
-                LEAVE_SCRIPT_IF(scriptContext, isScriptActive,
+                LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
                 {
                     hr = scriptContext->GetHostScriptContext()->NotifyHostAboutModuleReady(this, this->errorObject);
                 });
@@ -829,6 +848,10 @@ namespace Js
         Assert(wasDeclarationInitialized);
         // Debugger can reparse the source and generate the byte code again. Don't cleanup the
         // helper information for now.
+
+        // Parser uses a temporary guest arena to keep regex patterns alive. We need to release this arena only after we have no further use
+        // for the regex pattern objects.
+        this->ReleaseParserResources();
     }
 
     bool SourceTextModuleRecord::ModuleDeclarationInstantiation()
@@ -836,7 +859,7 @@ namespace Js
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
-        if (this->WasDeclarationInitialized())
+        if (this->WasDeclarationInitialized() || this->errorObject != nullptr)
         {
             return false;
         }
@@ -873,6 +896,8 @@ namespace Js
         if (this->errorObject != nullptr)
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
             NotifyParentsAsNeeded();
             return false;
         }
@@ -944,6 +969,9 @@ namespace Js
 
         if (this->errorObject != nullptr)
         {
+            // Cleanup in case of error.
+            this->ReleaseParserResources();
+
             if (this->promise != nullptr)
             {
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
@@ -1010,7 +1038,7 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::OnHostException(void* errorVar)
     {
-        if (!RecyclableObject::Is(errorVar))
+        if (!VarIs<RecyclableObject>(errorVar))
         {
             return E_INVALIDARG;
         }

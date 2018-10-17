@@ -14,7 +14,7 @@ enum
     fscrWillDeferFncParse = 1 << 3,  // Heuristically choosing to defer parsing of functions
     fscrCanDeferFncParse = 1 << 4,   // Functionally able to defer parsing of functions
     fscrDynamicCode = 1 << 5,   // The code is being generated dynamically (eval, new Function, etc.)
-    // Unused = 1 << 6,
+    fscrDeferredFncIsGenerator = 1 << 6,
     fscrNoImplicitHandlers = 1 << 7,   // same as Opt NoConnect at start of block
     fscrCreateParserState = 1 << 8, // The parser should expose parser state information on the parse nodes.
                                     // This parser state includes the set of names which are captured by each function
@@ -28,7 +28,7 @@ enum
     fscrEval = 1 << 10,  // this expression has eval semantics (i.e., run in caller's context
     fscrEvalCode = 1 << 11,  // this is an eval expression
     fscrGlobalCode = 1 << 12,  // this is a global script
-    // Unused = 1 << 13,
+    fscrDeferredFncIsAsync = 1 << 13,
     fscrDeferredFncExpression = 1 << 14,  // the function decl node we deferred is an expression,
                                           // i.e., not a declaration statement
     fscrDeferredFnc = 1 << 15,  // the function we are parsing is deferred

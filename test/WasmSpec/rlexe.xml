@@ -310,15 +310,30 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/custom_section.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/custom_section.wast -endargs</compile-flags>
+      <baseline>baselines/custom.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/custom.wast -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/custom_section.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/custom_section.wast -endargs -nonative</compile-flags>
+      <baseline>baselines/custom.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/custom.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/data.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/data.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/data.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/data.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>

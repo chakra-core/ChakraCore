@@ -61,7 +61,7 @@ endif
 ;; NativeCodeGenerator::CheckAsmJsCodeGenThunk
 ;;============================================================================================================
 
-extrn ?CheckAsmJsCodeGen@NativeCodeGenerator@@SAPEAXPEAVScriptFunction@Js@@@Z : PROC
+extrn ?CheckAsmJsCodeGen@NativeCodeGenerator@@SAP6APEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZPEAVScriptFunction@3@@Z : PROC
 align 16
 ?CheckAsmJsCodeGenThunk@NativeCodeGenerator@@SAPEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZ PROC FRAME
         ;; save volatile registers
@@ -83,14 +83,11 @@ align 16
         movups xmmword ptr [rsp + 40h], xmm2
         movups xmmword ptr [rsp + 50h], xmm3
 
+        call ?CheckAsmJsCodeGen@NativeCodeGenerator@@SAP6APEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZPEAVScriptFunction@3@@Z
 ifdef _CONTROL_FLOW_GUARD
-        call ?CheckAsmJsCodeGen@NativeCodeGenerator@@SAPEAXPEAVScriptFunction@Js@@@Z
-
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
         mov rax, rcx ; CFG is guaranteed not to mess up rcx
-else
-        call ?CheckAsmJsCodeGen@NativeCodeGenerator@@SAPEAXPEAVScriptFunction@Js@@@Z
 endif
 
         ;EPILOGUE starts here

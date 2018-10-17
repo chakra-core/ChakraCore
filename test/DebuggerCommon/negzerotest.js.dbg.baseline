@@ -2,6 +2,7 @@
   {
     "this": "Object {...}",
     "locals": {
+      "Symbol.toStringTag": "string global",
       "y": "number 0"
     }
   }

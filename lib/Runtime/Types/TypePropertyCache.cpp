@@ -205,8 +205,7 @@ namespace Js
 
         #if DBG
             const PropertyIndex typeHandlerPropertyIndex =
-                DynamicObject
-                    ::FromVar(propertyObject)
+                VarTo<DynamicObject>(propertyObject)
                     ->GetDynamicType()
                     ->GetTypeHandler()
                     ->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, isInlineSlot);
@@ -221,8 +220,8 @@ namespace Js
             {
                 *propertyValue =
                     isInlineSlot
-                        ? DynamicObject::FromVar(propertyObject)->GetInlineSlot(propertyIndex)
-                        : DynamicObject::FromVar(propertyObject)->GetAuxSlot(propertyIndex);
+                        ? VarTo<DynamicObject>(propertyObject)->GetInlineSlot(propertyIndex)
+                        : VarTo<DynamicObject>(propertyObject)->GetAuxSlot(propertyIndex);
             }
 
             if(propertyObject->GetScriptContext() == requestContext)
@@ -236,7 +235,7 @@ namespace Js
 
                 CacheOperators::Cache<false, true, false>(
                     false,
-                    DynamicObject::FromVar(propertyObject),
+                    VarTo<DynamicObject>(propertyObject),
                     false,
                     propertyObject->GetType(),
                     nullptr,
@@ -300,7 +299,10 @@ namespace Js
         {
             if (!OutputExistence)
             {
-                Assert(*propertyValue == JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
+                DebugOnly(Var getPropertyValue = JavascriptOperators::GetProperty(propertyObject, propertyId, requestContext));
+                Assert(*propertyValue == getPropertyValue ||
+                    // In some cases, such as CustomExternalObject, if implicit calls are disabled GetPropertyQuery may return null. See CustomExternalObject::GetPropertyQuery for an example.
+                    (getPropertyValue == requestContext->GetLibrary()->GetNull() && requestContext->GetThreadContext()->IsDisableImplicitCall() && propertyObject->GetType()->IsExternal()));
             }
 
             if(propertyObject->GetScriptContext() != requestContext)
@@ -399,8 +401,7 @@ namespace Js
 #endif
         Assert(
             (
-                DynamicObject
-                    ::FromVar(object)
+                VarTo<DynamicObject>(object)
                     ->GetDynamicType()
                     ->GetTypeHandler()
                     ->InlineOrAuxSlotIndexToPropertyIndex(propertyIndex, isInlineSlot)
@@ -415,18 +416,18 @@ namespace Js
 
         if(isInlineSlot)
         {
-            DynamicObject::FromVar(object)->SetInlineSlot(SetSlotArguments(propertyId, propertyIndex, propertyValue));
+            VarTo<DynamicObject>(object)->SetInlineSlot(SetSlotArguments(propertyId, propertyIndex, propertyValue));
         }
         else
         {
-            DynamicObject::FromVar(object)->SetAuxSlot(SetSlotArguments(propertyId, propertyIndex, propertyValue));
+            VarTo<DynamicObject>(object)->SetAuxSlot(SetSlotArguments(propertyId, propertyIndex, propertyValue));
         }
 
         if(objectScriptContext == requestContext)
         {
             CacheOperators::Cache<false, false, false>(
                 false,
-                DynamicObject::FromVar(object),
+                VarTo<DynamicObject>(object),
                 false,
                 object->GetType(),
                 nullptr,

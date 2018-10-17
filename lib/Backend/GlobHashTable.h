@@ -329,13 +329,13 @@ public:
         {
             _TYPENAME SListBase<HashBucket>::Iterator iter2(&this2->table[i]);
             iter2.Next();
-            FOREACH_SLISTBASE_ENTRY_EDITING((HashBucket), bucket, &this->table[i], iter)
+            FOREACH_SLISTBASE_ENTRY_EDITING(HashBucket, bucket, &this->table[i], iter)
             {
                 while (iter2.IsValid() && bucket.value < iter2.Data().value)
                 {
                     HashBucket * newBucket = iter.InsertNodeBefore(this->alloc);
                     newBucket->value = iter2.Data().value;
-                    newBucket->element = fn(null, iter2.Data().element);
+                    newBucket->element = fn(nullptr, iter2.Data().element);
                     iter2.Next();
                 }
 
@@ -354,7 +354,7 @@ public:
             {
                 HashBucket * newBucket = iter.InsertNodeBefore(this->alloc);
                 newBucket->value = iter2.Data().value;
-                newBucket->element = fn(null, iter2.Data().element);
+                newBucket->element = fn(nullptr, iter2.Data().element);
                 iter2.Next();
             }
         }

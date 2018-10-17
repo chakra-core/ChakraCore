@@ -181,7 +181,7 @@ namespace Js
                     break;
                 case Js::TypeIds_Boolean:
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(
-                        JavascriptBoolean::FromVar(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
+                        VarTo<JavascriptBoolean>(varConst)->GetValue() ? OpCode::LdTrue : OpCode::LdFalse));
                     break;
                 case Js::TypeIds_Number:
 #if ENABLE_NATIVE_CODEGEN
@@ -197,7 +197,7 @@ namespace Js
 #else
                     Output::Print(_u("%-10s"), OpCodeUtil::GetOpCodeName(OpCode::Ld_A));
 #endif
-                    Output::Print(_u(" (\"%s\")%s"), JavascriptString::FromVar(varConst)->GetSz(), Js::PropertyString::Is(varConst) ? _u(" [prop]") : _u(""));
+                    Output::Print(_u(" (\"%s\")%s"), VarTo<JavascriptString>(varConst)->GetSz(), Js::VarIs<Js::PropertyString>(varConst) ? _u(" [prop]") : _u(""));
                     break;
                 case Js::TypeIds_GlobalObject:
 #if ENABLE_NATIVE_CODEGEN
@@ -630,6 +630,11 @@ namespace Js
                 Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
                 break;
             }
+            case OpCode::EnsureCanDeclGloFunc:
+            {
+                Output::Print(_u(" root.%s"), pPropertyName->GetBuffer());
+                break;
+            }
             case OpCode::LdLocalElemUndef:
             {
                 Output::Print(_u(" %s = undefined"), pPropertyName->GetBuffer());
@@ -804,6 +809,11 @@ namespace Js
                 DumpU4(data->C1);
                 break;
             }
+            case OpCode::NewPropIdArrForCompProps:
+            {
+                Output::Print(_u(" R%u = [%u] "), data->R0, data->C1);
+                break;
+            }
             default:
                 DumpReg(data->R0);
                 Output::Print(_u("="));
@@ -840,6 +850,7 @@ namespace Js
 #endif
             case OpCode::StObjSlot:
             case OpCode::StObjSlotChkUndecl:
+            case OpCode::StPropIdArrFromVar:
                 Output::Print(_u(" R%d[%d] = R%d "),data->Instance,data->SlotIndex,data->Value);
                 break;
             case OpCode::LdSlot:
@@ -877,7 +888,7 @@ namespace Js
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
-                Output::Print(_u(" R%d = [%d] "),data->Value, data->SlotIndex);
+                Output::Print(_u(" R%d = [%d] "), data->Value, data->SlotIndex);
                 break;
             case OpCode::NewScFunc:
             case OpCode::NewStackScFunc:

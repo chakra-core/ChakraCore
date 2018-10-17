@@ -226,6 +226,7 @@ public:
     bool                IsUnsigned() const { return IRType_IsUnsignedInt(this->m_type); }
     int                 GetSize() const { return TySize[this->m_type]; }
     bool                IsInt64() const { return IRType_IsInt64(this->m_type); }
+    bool                IsUint64() const { return this->m_type == TyUint64; }
     bool                IsInt32() const { return this->m_type == TyInt32; }
     bool                IsUInt32() const { return this->m_type == TyUint32; }
     bool                IsIntegral32() const { return IsInt32() || IsUInt32(); }
@@ -635,6 +636,8 @@ public:
             // Note that even usesFixedValue cannot live on ObjTypeSpecFldInfo, because we may share a cache between
             // e.g. Object.prototype and new Object(), and only the latter actually uses the fixed value, even though both have it.
             bool usesFixedValue: 1;
+            bool auxSlotPtrSymAvailable:1;
+            bool producesAuxSlotPtr:1;
 
             union
             {
@@ -647,6 +650,7 @@ public:
                     bool initialTypeChecked: 1;
                     bool typeMismatch: 1;
                     bool writeGuardChecked: 1;
+                    bool typeCheckRequired: 1;
                 };
                 uint8 typeCheckSeqFlags;
             };
@@ -962,6 +966,28 @@ public:
         this->typeDead = value;
     }
 
+    bool IsAuxSlotPtrSymAvailable() const
+    {
+        return this->auxSlotPtrSymAvailable;
+    }
+
+    void SetAuxSlotPtrSymAvailable(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->auxSlotPtrSymAvailable = value;
+    }
+
+    bool ProducesAuxSlotPtr() const
+    {
+        return this->producesAuxSlotPtr;
+    }
+
+    void SetProducesAuxSlotPtr(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->producesAuxSlotPtr = value;
+    }
+
     void SetTypeDeadIfTypeCheckSeqCandidate(bool value)
     {
         if (IsTypeCheckSeqCandidate())
@@ -1012,6 +1038,17 @@ public:
     {
         Assert(IsTypeCheckSeqCandidate());
         this->writeGuardChecked = value;
+    }
+
+    bool TypeCheckRequired() const
+    {
+        return this->typeCheckRequired;
+    }
+
+    void SetTypeCheckRequired(bool value)
+    {
+        Assert(IsTypeCheckSeqCandidate());
+        this->typeCheckRequired = value;
     }
 
     uint16 GetObjTypeSpecFlags() const
@@ -1154,9 +1191,6 @@ public:
     {
         this->finalType = JITTypeHolder(nullptr);
     }
-
-    bool NeedsAuxSlotPtrSymLoad() const;
-    void GenerateAuxSlotPtrSymLoad(IR::Instr * instrInsert);
 
     BVSparse<JitArenaAllocator>* GetGuardedPropOps()
     {

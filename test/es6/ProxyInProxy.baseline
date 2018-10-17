@@ -112,3 +112,5 @@ function
 *** proxied function and Function.prototype.toString.call
 function a() { }
 function a() { }
+*** deeply nested proxy and typeof
+pass

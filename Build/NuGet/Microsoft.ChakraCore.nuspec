@@ -4,7 +4,7 @@
     <id>Microsoft.ChakraCore</id>
     <!-- Note: actual version number is overridden by the NuGet package creation command. -->
     <version>$version$</version>
-    <authors>Chakra Team</authors>
+    <authors>Microsoft</authors>
     <owners>Chakra Team</owners>
     <licenseUrl>https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt</licenseUrl>
     <projectUrl>https://github.com/Microsoft/ChakraCore</projectUrl>
@@ -12,7 +12,7 @@
     <developmentDependency>true</developmentDependency>
     <description>ChakraCore is the core part of the Chakra Javascript engine that powers Microsoft Edge.</description>
     <releaseNotes>https://github.com/Microsoft/ChakraCore/wiki/Roadmap#release-notes</releaseNotes>
-    <copyright>Copyright (C) 2016 Microsoft</copyright>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
     <language>en-US</language>
     <tags>Chakra,ChakraCore,javascript,js,ecmascript,compiler,platform,oss,opensource,native</tags>
     <dependencies>

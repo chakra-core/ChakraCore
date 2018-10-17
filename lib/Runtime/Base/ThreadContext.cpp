@@ -124,7 +124,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     entryExitRecord(nullptr),
     leafInterpreterFrame(nullptr),
     threadServiceWrapper(nullptr),
-    tryCatchFrameAddr(nullptr),
+    tryHandlerAddrOfReturnAddr(nullptr),
     temporaryArenaAllocatorCount(0),
     temporaryGuestArenaAllocatorCount(0),
     crefSContextForDiag(0),
@@ -213,6 +213,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     , reentrancySafeOrHandled(false)
     , isInReentrancySafeRegion(false)
     , closedScriptContextCount(0)
+    , visibilityState(VisibilityState::Undefined)
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
     hostScriptContextStack = Anew(GetThreadAlloc(), JsUtil::Stack<HostScriptContext*>, GetThreadAlloc());
@@ -527,9 +528,9 @@ ThreadContext::~ThreadContext()
         Assert(this->debugManager == nullptr);
 #endif
 
-#if DBG && ENABLE_CONCURRENT_GC && defined(_WIN32)
-        AssertMsg(recycler->concurrentThread == NULL, "Recycler background thread should have been shutdown before destroying Recycler.");
-        AssertMsg((recycler->parallelThread1.concurrentThread == NULL) && (recycler->parallelThread2.concurrentThread == NULL), "Recycler parallelThread(s) should have been shutdown before destroying Recycler.");
+#if ENABLE_CONCURRENT_GC && defined(_WIN32)
+        AssertOrFailFastMsg(recycler->concurrentThread == NULL, "Recycler background thread should have been shutdown before destroying Recycler.");
+        AssertOrFailFastMsg((recycler->parallelThread1.concurrentThread == NULL) && (recycler->parallelThread2.concurrentThread == NULL), "Recycler parallelThread(s) should have been shutdown before destroying Recycler.");
 #endif
 
         HeapDelete(recycler);
@@ -682,15 +683,23 @@ LPFILETIME ThreadContext::ThreadContextRecyclerTelemetryHostInterface::GetLastSc
 #endif
 }
 
-bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemetry(RecyclerTelemetryInfo& rti)
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitGCTelemetryStats(RecyclerTelemetryInfo& rti)
 {
 #if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
-    return Js::TransmitRecyclerTelemetry(rti);
+    return Js::TransmitRecyclerTelemetryStats(rti);
 #else
     return false;
 #endif
 }
 
+bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitHeapUsage(size_t totalHeapBytes, size_t usedHeapBytes, double heapUsedRatio)
+{
+#if defined(ENABLE_BASIC_TELEMETRY) && defined(NTBUILD)
+    return Js::TransmitRecyclerHeapUsage(totalHeapBytes, usedHeapBytes, heapUsedRatio);
+#else
+    return false;
+#endif
+}
 
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsTelemetryProviderEnabled() const
 {
@@ -712,7 +721,7 @@ bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::TransmitTelemet
 
 bool ThreadContext::ThreadContextRecyclerTelemetryHostInterface::IsThreadBound() const
 {
-    return this->tc->IsThreadBound(); 
+    return this->tc->IsThreadBound();
 }
 
 
@@ -996,7 +1005,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
     {
         if(this->TTDContext->GetActiveScriptContext() != nullptr && this->TTDContext->GetActiveScriptContext()->ShouldPerformReplayAction())
         {
-            //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
+            //We reload all properties that occur in the trace so they only way we get here in TTD mode is:
             //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or
             //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
             Js::PropertyId propertyId = Js::Constants::NoProperty;
@@ -1737,7 +1746,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 {
     AssertCanHandleStackOverflowCall(obj->IsExternal() ||
         (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-        Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()));
+        Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()));
     if (!this->IsStackAvailable(size))
     {
         if (this->IsExecutionDisabled())
@@ -1749,7 +1758,7 @@ ThreadContext::ProbeStack(size_t size, Js::RecyclableObject * obj, Js::ScriptCon
 
         if (obj->IsExternal() ||
             (Js::JavascriptOperators::GetTypeId(obj) == Js::TypeIds_Function &&
-            Js::JavascriptFunction::FromVar(obj)->IsExternalFunction()))
+            Js::VarTo<Js::JavascriptFunction>(obj)->IsExternalFunction()))
         {
             Js::JavascriptError::ThrowStackOverflowError(scriptContext);
         }
@@ -2634,11 +2643,16 @@ ThreadContext::DoExpirableCollectModeStackWalk()
             if (javascriptFunction != nullptr && Js::ScriptFunction::Test(javascriptFunction))
             {
                 Js::ScriptFunction* scriptFunction = (Js::ScriptFunction*) javascriptFunction;
-                Js::FunctionEntryPointInfo* entryPointInfo =  scriptFunction->GetFunctionEntryPointInfo();
-                entryPointInfo->SetIsObjectUsed();
+
                 scriptFunction->GetFunctionBody()->MapEntryPoints([](int index, Js::FunctionEntryPointInfo* entryPoint){
                     entryPoint->SetIsObjectUsed();
                 });
+
+                // Make sure we marked the current one when iterating all entry points
+                Js::ProxyEntryPointInfo* entryPointInfo = scriptFunction->GetEntryPointInfo();
+                Assert(entryPointInfo == nullptr
+                    || !entryPointInfo->IsFunctionEntryPointInfo()
+                    || ((Js::FunctionEntryPointInfo*)entryPointInfo)->IsObjectUsed());
             }
         }
     }

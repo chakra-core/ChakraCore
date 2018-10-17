@@ -179,28 +179,6 @@ BOOL CustomExternalWrapperObject::VerifyObjectAlive()
     return TRUE;
 }
 
-BOOL CustomExternalWrapperObject::Is(_In_ Js::Var value)
-{
-    if (Js::TaggedNumber::Is(value))
-    {
-        return false;
-    }
-
-    return (VirtualTableInfo<CustomExternalWrapperObject>::HasVirtualTable(value)) ||
-        (VirtualTableInfo<Js::CrossSiteObject<CustomExternalWrapperObject>>::HasVirtualTable(value));
-}
-
-BOOL CustomExternalWrapperObject::Is(_In_ RecyclableObject * value)
-{
-    if (Js::TaggedNumber::Is(value))
-    {
-        return false;
-    }
-
-    return (VirtualTableInfo<CustomExternalWrapperObject>::HasVirtualTable(value)) ||
-        (VirtualTableInfo<Js::CrossSiteObject<CustomExternalWrapperObject>>::HasVirtualTable(value));
-}
-
 BOOL CustomExternalWrapperObject::Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
 {
     // Reject implicit call
@@ -237,18 +215,6 @@ BOOL CustomExternalWrapperObject::StrictEquals(__in Var other, __out BOOL* value
     // comparision is used for Buffers.
     *value = (other == this);
     return true;
-}
-
-CustomExternalWrapperObject * CustomExternalWrapperObject::FromVar(Js::Var value)
-{
-    AssertOrFailFast(Is(value));
-    return static_cast<CustomExternalWrapperObject *>(value);
-}
-
-CustomExternalWrapperObject * CustomExternalWrapperObject::UnsafeFromVar(Js::Var value)
-{
-    Assert(Is(value));
-    return static_cast<CustomExternalWrapperObject *>(value);
 }
 
 void CustomExternalWrapperObject::Mark(Recycler * recycler)
@@ -322,7 +288,7 @@ Js::Var CustomExternalWrapperObject::GetValueFromDescriptor(Js::Var instance, Js
     }
     if (propertyDescriptor.GetterSpecified())
     {
-        return Js::JavascriptOperators::CallGetter(RecyclableObject::FromVar(propertyDescriptor.GetGetter()), instance, requestContext);
+        return Js::JavascriptOperators::CallGetter(VarTo<RecyclableObject>(propertyDescriptor.GetGetter()), instance, requestContext);
     }
     Assert(FALSE);
     return requestContext->GetLibrary()->GetUndefined();
@@ -372,7 +338,7 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
     Js::JavascriptFunction* getGetMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->getTrap != nullptr)
     {
-        getGetMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->getTrap);
+        getGetMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->getTrap);
     }
 
     if (nullptr == getGetMethod || requestContext->IsHeapEnumInProgress())
@@ -421,7 +387,7 @@ BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc get
     Js::JavascriptFunction* hasMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->hasTrap != nullptr)
     {
-        hasMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->hasTrap);
+        hasMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->hasTrap);
     }
 
     if (nullptr == hasMethod || requestContext->IsHeapEnumInProgress())
@@ -472,7 +438,7 @@ BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId prope
     Js::JavascriptFunction* gOPDMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->getOwnPropertyDescriptorTrap != nullptr)
     {
-        gOPDMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->getOwnPropertyDescriptorTrap);
+        gOPDMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->getOwnPropertyDescriptorTrap);
     }
 
     if (GetScriptContext()->IsHeapEnumInProgress())
@@ -521,7 +487,7 @@ BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId prope
     Js::Var propertyNameNumericValue;
     Js::Var propertyName = GetName(requestContext, propertyId, &isPropertyNameNumeric, &propertyNameNumericValue);
 
-    Assert(Js::JavascriptString::Is(propertyName) || Js::JavascriptSymbol::Is(propertyName));
+    Assert(Js::VarIs<JavascriptString>(propertyName) || Js::VarIs<JavascriptSymbol>(propertyName));
 
     Js::Var getResult = threadContext->ExecuteImplicitCall(gOPDMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
@@ -541,7 +507,7 @@ BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId prope
 
 BOOL CustomExternalWrapperObject::GetOwnPropertyDescriptor(Js::RecyclableObject * obj, Js::PropertyId propertyId, Js::ScriptContext * requestContext, Js::PropertyDescriptor * propertyDescriptor)
 {
-    CustomExternalWrapperObject * customObject = CustomExternalWrapperObject::FromVar(obj);
+    CustomExternalWrapperObject * customObject = VarTo<CustomExternalWrapperObject>(obj);
     return customObject->GetPropertyDescriptorTrap(propertyId, propertyDescriptor, requestContext);
 }
 
@@ -557,7 +523,7 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
         return FALSE;
     }
 
-    CustomExternalWrapperObject * customObject = CustomExternalWrapperObject::FromVar(obj);
+    CustomExternalWrapperObject * customObject = VarTo<CustomExternalWrapperObject>(obj);
 
     Js::RecyclableObject * targetObj = obj;
 
@@ -565,7 +531,7 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
     Js::JavascriptFunction* defineOwnPropertyMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->definePropertyTrap != nullptr)
     {
-        defineOwnPropertyMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->definePropertyTrap);
+        defineOwnPropertyMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->definePropertyTrap);
     }
 
     Assert(!requestContext->IsHeapEnumInProgress());
@@ -653,7 +619,7 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     Js::JavascriptFunction* setMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->setTrap != nullptr)
     {
-        setMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->setTrap);
+        setMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->setTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -888,7 +854,7 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
     Js::JavascriptFunction* getEnumeratorMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->enumerateTrap != nullptr)
     {
-        getEnumeratorMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->enumerateTrap);
+        getEnumeratorMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->enumerateTrap);
     }
 
     Js::RecyclableObject * targetObj = this;
@@ -957,9 +923,9 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
                     if (var)
                     {
                         // if (typeof key === "string") {
-                        if (JavascriptString::Is(var))
+                        if (VarIs<JavascriptString>(var))
                         {
-                            JavascriptString* propertyName = JavascriptString::FromVar(var);
+                            JavascriptString* propertyName = VarTo<JavascriptString>(var);
                             // let desc = Reflect.getOwnPropertyDescriptor(obj, key);
                             Js::PropertyDescriptor desc;
                             BOOL ret = JavascriptOperators::GetOwnPropertyDescriptor(wrapper, propertyName, scriptContext, &desc);
@@ -971,7 +937,7 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
-                                    return JavascriptString::FromVar(CrossSite::MarshalVar(
+                                    return VarTo<JavascriptString>(CrossSite::MarshalVar(
                                         scriptContext, propertyName, propertyName->GetScriptContext()));
                                 }
                             }
@@ -1082,7 +1048,7 @@ BOOL CustomExternalWrapperObject::DeleteProperty(Js::PropertyId propertyId, Js::
     Js::JavascriptFunction* deleteMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->deletePropertyTrap != nullptr)
     {
-        deleteMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->deletePropertyTrap);
+        deleteMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->deletePropertyTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -1152,7 +1118,7 @@ Js::JavascriptArray * CustomExternalWrapperObject::PropertyKeysTrap(KeysTrapKind
     Js::JavascriptFunction* ownKeysMethod = nullptr;
     if (type->GetJsGetterSetterInterceptor()->ownKeysTrap != nullptr)
     {
-        ownKeysMethod = Js::JavascriptFunction::FromVar(type->GetJsGetterSetterInterceptor()->ownKeysTrap);
+        ownKeysMethod = Js::VarTo<JavascriptFunction>(type->GetJsGetterSetterInterceptor()->ownKeysTrap);
     }
 
     Assert(!GetScriptContext()->IsHeapEnumInProgress());
@@ -1173,7 +1139,7 @@ Js::JavascriptArray * CustomExternalWrapperObject::PropertyKeysTrap(KeysTrapKind
         Js::JavascriptError::ThrowTypeError(requestContext, JSERR_InconsistentTrapResult, _u("ownKeys"));
     }
 
-    Js::RecyclableObject* trapResultArray = Js::RecyclableObject::FromVar(ownKeysResult);
+    Js::RecyclableObject* trapResultArray = Js::VarTo<RecyclableObject>(ownKeysResult);
     Js::JavascriptArray* trapResult = requestContext->GetLibrary()->CreateArray(0);
     bool isConfigurableKeyMissingFromTrapResult = false;
     bool isNonconfigurableKeyMissingFromTrapResult = false;
@@ -1226,7 +1192,7 @@ Js::JavascriptArray * CustomExternalWrapperObject::PropertyKeysTrap(KeysTrapKind
         for (uint32 i = 0; i < targetKeys->GetLength(); i++)
         {
             element = targetKeys->DirectGetItem(i);
-            AssertMsg(Js::JavascriptSymbol::Is(element) || Js::JavascriptString::Is(element), "Invariant check during ownKeys wrapper trap should make sure we only get property key here. (symbol or string primitives)");
+            AssertMsg(Js::VarIs<JavascriptSymbol>(element) || Js::VarIs<JavascriptString>(element), "Invariant check during ownKeys wrapper trap should make sure we only get property key here. (symbol or string primitives)");
             Js::JavascriptConversion::ToPropertyKey(element, requestContext, &propertyRecord, nullptr);
             propertyId = propertyRecord->GetPropertyId();
 

@@ -180,7 +180,7 @@ namespace Js
         virtual BOOL SetEnumerable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetWritable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
         virtual BOOL SetConfigurable(DynamicObject* instance, PropertyId propertyId, BOOL value) override;
-        virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, Var* getter, Var* setter) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(DynamicObject* instance, PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter) override;
         virtual BOOL Seal(DynamicObject* instance) override;
         virtual BOOL IsSealed(DynamicObject* instance) override;
         virtual BOOL IsFrozen(DynamicObject* instance) override;

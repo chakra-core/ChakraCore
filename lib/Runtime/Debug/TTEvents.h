@@ -28,7 +28,7 @@
         }
 
 #define TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
-        Js::RecyclableObject* __obj = Js::RecyclableObject::FromVar(p); \
+        Js::RecyclableObject* __obj = Js::VarTo<Js::RecyclableObject>(p); \
         if (__obj->GetScriptContext() != scriptContext) \
         { \
             p = Js::CrossSite::MarshalVar(scriptContext, __obj); \
@@ -36,7 +36,7 @@
 
 #define TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(p, scriptContext) \
         TTD_REPLAY_VALIDATE_JSREF(p); \
-        if (Js::RecyclableObject::Is(p)) \
+        if (Js::VarIs<Js::RecyclableObject>(p)) \
         { \
             TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
         }
@@ -64,7 +64,7 @@
 #define TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
         { \
             TTD_REPLAY_VALIDATE_JSREF(p); \
-            if(!Js::JavascriptFunction::Is(p)) \
+            if(!Js::VarIs<Js::JavascriptFunction>(p)) \
             { \
                 return; \
             } \
@@ -272,7 +272,7 @@ namespace TTD
         //A struct that represents snapshot events
         struct SnapshotEventLogEntry
         {
-            //The timestamp we should restore to 
+            //The timestamp we should restore to
             int64 RestoreTimestamp;
 
             //The snapshot (we many persist this to disk and inflate back in later)

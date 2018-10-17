@@ -892,7 +892,7 @@ SECOND_PASS:
                         else if (!HasNoMissingValues())
                         {
                             // Have we overwritten all the missing values?
-                            if (!ScanForMissingValues<T>(0, startOffset))
+                            if (!ScanForMissingValues<T>(0, startOffset) && !ScanForMissingValues<T>(startOffset + length, current->length))
                             {
                                 SetHasNoMissingValues();
                             }

@@ -3,9 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
-#ifdef __clang__
-#include <cxxabi.h>
-#endif
 
 #if ENABLE_MEM_STATS
 MemStats::MemStats()

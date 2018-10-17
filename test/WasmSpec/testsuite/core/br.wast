@@ -238,8 +238,8 @@
     (block (result i32) (i32.wrap/i64 (br 0 (i32.const 41))))
   )
 
-  (func (export "as-grow_memory-size") (result i32)
-    (block (result i32) (grow_memory (br 0 (i32.const 40))))
+  (func (export "as-memory.grow-size") (result i32)
+    (block (result i32) (memory.grow (br 0 (i32.const 40))))
   )
 
   (func (export "nested-block-value") (result i32)
@@ -398,7 +398,7 @@
 
 (assert_return (invoke "as-convert-operand") (i32.const 41))
 
-(assert_return (invoke "as-grow_memory-size") (i32.const 40))
+(assert_return (invoke "as-memory.grow-size") (i32.const 40))
 
 (assert_return (invoke "nested-block-value") (i32.const 9))
 (assert_return (invoke "nested-br-value") (i32.const 9))

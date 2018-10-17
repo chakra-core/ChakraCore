@@ -1288,6 +1288,7 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
     if (globalBailOutRecordDataTable == nullptr)
     {
         globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(allocator, GlobalBailOutRecordDataTable);
+        globalBailOutRecordDataTable->entryPointInfo = (Js::EntryPointInfo*)func->GetWorkItem()->GetJITTimeInfo()->GetEntryPointInfoAddr();
         globalBailOutRecordDataTable->length = globalBailOutRecordDataTable->size = 0;
         globalBailOutRecordDataTable->isInlinedFunction = !isTopFunc;
         globalBailOutRecordDataTable->hasNonSimpleParams = func->GetHasNonSimpleParams();
@@ -1319,6 +1320,26 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
 #endif
     }
     return globalBailOutRecordDataTable;
+}
+
+void
+LinearScan::SetBitVectorIfTypeSpec(StackSym * sym, Js::RegSlot regSlot, BVFixed * intSyms, BVFixed * floatSyms)
+{
+    if (sym->IsTypeSpec())
+    {
+        if (IRType_IsNativeInt(sym->m_type))
+        {
+            intSyms->Set(regSlot);
+        }
+        else if (IRType_IsFloat(sym->m_type))
+        {
+            floatSyms->Set(regSlot);
+        }
+        else
+        {
+            Assert(UNREACHED);
+        }
+    }
 }
 
 void
@@ -1463,14 +1484,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
         StackSym * copyStackSym = copyPropSyms.Value();
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], copyStackSym, &state, instr);
-        if (copyStackSym->IsInt32())
-        {
-            funcBailOutData[index].losslessInt32Syms->Set(i);
-        }
-        else if (copyStackSym->IsFloat64())
-        {
-            funcBailOutData[index].float64Syms->Set(i);
-        }
+        SetBitVectorIfTypeSpec(copyStackSym, i, funcBailOutData[index].losslessInt32Syms, funcBailOutData[index].float64Syms);
+
         copyPropSymsIter.RemoveCurrent(this->func->m_alloc);
     }
     NEXT_SLISTBASE_ENTRY_EDITING;
@@ -1494,14 +1509,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
 
         this->FillBailOutOffset(&funcBailOutData[index].localOffsets[i], stackSym, &state, instr);
-        if (stackSym->IsInt32())
-        {
-            funcBailOutData[index].losslessInt32Syms->Set(i);
-        }
-        else if (stackSym->IsFloat64())
-        {
-            funcBailOutData[index].float64Syms->Set(i);
-        }
+        SetBitVectorIfTypeSpec(stackSym, i, funcBailOutData[index].losslessInt32Syms, funcBailOutData[index].float64Syms);
     }
     NEXT_BITSET_IN_SPARSEBV;
 
@@ -1572,7 +1580,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                             funcBailOutData[dataIndex].localOffsets[regSlotId] = this->func->AdjustOffsetValue(offset);
 
                             // We don't support typespec for debug, rework on the bellow assert once we start support them.
-                            Assert(!stackSym->IsInt32() && !stackSym->IsFloat64() && !stackSym->IsSimd128());
+                            Assert(!stackSym->IsTypeSpec());
                         }
                     }
                 }
@@ -1737,14 +1745,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                             else
                             {
                                 this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], copyStackSym, &state, instr);
-                                if (copyStackSym->IsInt32())
-                                {
-                                    argOutLosslessInt32Syms->Set(outParamOffsetIndex);
-                                }
-                                else if (copyStackSym->IsFloat64())
-                                {
-                                    argOutFloat64Syms->Set(outParamOffsetIndex);
-                                }
+                                SetBitVectorIfTypeSpec(copyStackSym, outParamOffsetIndex, argOutLosslessInt32Syms, argOutFloat64Syms);
                             }
 #if DBG_DUMP
                             if (PHASE_DUMP(Js::BailOutPhase, this->func))
@@ -1861,14 +1862,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         this->FillBailOutOffset(&outParamOffsets[outParamOffsetIndex], sym, &state, instr);
                     }
 
-                    if (sym->IsFloat64())
-                    {
-                        argOutFloat64Syms->Set(outParamOffsetIndex);
-                    }
-                    else if (sym->IsInt32())
-                    {
-                        argOutLosslessInt32Syms->Set(outParamOffsetIndex);
-                    }
+                    SetBitVectorIfTypeSpec(sym, outParamOffsetIndex, argOutLosslessInt32Syms, argOutFloat64Syms);
 #if DBG_DUMP
                     if (PHASE_DUMP(Js::BailOutPhase, this->func))
                     {
@@ -2610,14 +2604,14 @@ LinearScan::FindReg(Lifetime *newLifetime, IR::RegOpnd *regOpnd, bool force)
                 // Avoid the temp reg that we have loaded in this basic block
                 regsBvNoTemps.Minus(this->tempRegs);
             }
-            
+
             BitVector regsBvNoTempsNoCallee = regsBvNoTemps;
             // Try to find a non-callee saved reg so that we don't have to save it in prolog
             regsBvNoTempsNoCallee.Minus(this->calleeSavedRegs);
 
             // Allocate a non-callee saved reg from the other end of the bit vector so that it can keep live for longer
             regIndex = regsBvNoTempsNoCallee.GetPrevBit();
-            
+
             if (regIndex == BVInvalidIndex)
             {
                 // If we don't have any non-callee saved reg then get the first available callee saved reg so that prolog can store adjacent registers
@@ -3737,7 +3731,7 @@ LinearScan::ProcessSecondChanceBoundaryHelper(IR::BranchInstr *branchInstr, IR::
                     }
                     else
                     {
-                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...  
+                        // Dead code after the unconditional branch causes the currentBlock data to be freed later on...
                         // Deep copy in this case.
                         branchLabel->m_loweredBasicBlock = this->currentBlock->Clone(this->tempAlloc);
                     }
@@ -4737,7 +4731,7 @@ IR::Instr * LinearScan::GetIncInsertionPoint(IR::Instr *instr)
 }
 
 void LinearScan::DynamicStatsInstrument()
-{    
+{
     {
         IR::Instr *firstInstr = this->func->m_headInstr;
     IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetCallCountStatsAddr(), TyUint32, this->func);
@@ -4804,7 +4798,8 @@ IR::Instr* LinearScan::InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *con
 {
     IR::Instr *instrPrev = insertBeforeInstr->m_prev;
 
-    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr, true);
+    AutoRestoreLegalize restore(insertBeforeInstr->m_func, true);
+    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr);
 
     for (IR::Instr *instr = instrPrev->m_next; instr != insertBeforeInstr; instr = instr->m_next)
     {

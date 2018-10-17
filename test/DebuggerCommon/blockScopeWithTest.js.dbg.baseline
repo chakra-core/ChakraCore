@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -21,11 +22,13 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -44,11 +47,13 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -66,11 +71,13 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     },
     "arguments": {
@@ -87,6 +94,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "blockScopeWithTestFunc": "function <large string>"
     }
   }

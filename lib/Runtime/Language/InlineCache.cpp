@@ -322,12 +322,12 @@ namespace Js
 
             if (type == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetInlineSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(object)->GetInlineSlot(u.accessor.slotIndex));
                 return true;
             }
             else if (taggedType == u.accessor.type)
             {
-                *callee = RecyclableObject::FromVar(DynamicObject::FromVar(object)->GetAuxSlot(u.accessor.slotIndex));
+                *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(object)->GetAuxSlot(u.accessor.slotIndex));
                 return true;
             }
         }
@@ -344,19 +344,19 @@ namespace Js
         {
             if (type == u.local.type)
             {
-                const Var objectAtInlineSlot = DynamicObject::FromVar(obj)->GetInlineSlot(u.local.slotIndex);
+                const Var objectAtInlineSlot = VarTo<DynamicObject>(obj)->GetInlineSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtInlineSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtInlineSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtInlineSlot);
                     return true;
                 }
             }
             else if (taggedType == u.local.type)
             {
-                const Var objectAtAuxSlot = DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex);
+                const Var objectAtAuxSlot = VarTo<DynamicObject>(obj)->GetAuxSlot(u.local.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = RecyclableObject::FromVar(DynamicObject::FromVar(obj)->GetAuxSlot(u.local.slotIndex));
+                    *callee = VarTo<RecyclableObject>(VarTo<DynamicObject>(obj)->GetAuxSlot(u.local.slotIndex));
                     return true;
                 }
             }
@@ -369,7 +369,7 @@ namespace Js
                 const Var objectAtInlineSlot = u.proto.prototypeObject->GetInlineSlot(u.proto.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtInlineSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtInlineSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtInlineSlot);
                     return true;
                 }
             }
@@ -378,7 +378,7 @@ namespace Js
                 const Var objectAtAuxSlot = u.proto.prototypeObject->GetAuxSlot(u.proto.slotIndex);
                 if (!Js::TaggedNumber::Is(objectAtAuxSlot))
                 {
-                    *callee = RecyclableObject::FromVar(objectAtAuxSlot);
+                    *callee = VarTo<RecyclableObject>(objectAtAuxSlot);
                     return true;
                 }
             }
@@ -468,7 +468,7 @@ namespace Js
             {
                 isUseFixedProperty = propertyOwnerTypeHandler->TryUseFixedAccessor(methodPropertyRecord, &fixedMethod, Js::FixedPropertyKind::FixedAccessorProperty, this->IsGetterAccessor(), functionBody->GetScriptContext());
             }
-            AssertMsg(fixedMethod == nullptr || Js::JavascriptFunction::Is(fixedMethod), "The fixed value should have been a Method !!!");
+            AssertMsg(fixedMethod == nullptr || Js::VarIs<Js::JavascriptFunction>(fixedMethod), "The fixed value should have been a Method !!!");
             *pFixedMethod = reinterpret_cast<JavascriptFunction*>(fixedMethod);
             return isUseFixedProperty;
         }
@@ -1181,7 +1181,7 @@ namespace Js
         Assert(function != NULL);
 
         if (this->function == function &&
-            this->type == RecyclableObject::FromVar(instance)->GetType())
+            this->type == VarTo<RecyclableObject>(instance)->GetType())
         {
             if (result != nullptr)
             {
@@ -1222,7 +1222,7 @@ namespace Js
             this->Set(instanceType, function, result);
         }
     }
-    
+
     /* static */
     uint32 IsInstInlineCache::OffsetOfFunction()
     {

@@ -524,7 +524,7 @@
   {
     "callStack": [
       {
-        "line": 132,
+        "line": 129,
         "column": 0,
         "sourceText": "g.return(2)",
         "function": "Global code"
@@ -540,7 +540,7 @@
         "function": "gf4"
       },
       {
-        "line": 132,
+        "line": 129,
         "column": 0,
         "sourceText": "g.return(2)",
         "function": "Global code"
@@ -550,21 +550,9 @@
   {
     "callStack": [
       {
-        "line": 77,
-        "column": 4,
-        "sourceText": "yield 1",
-        "function": "gf3"
-      },
-      {
-        "line": 82,
-        "column": 4,
-        "sourceText": "yield* gf3()",
-        "function": "gf4"
-      },
-      {
-        "line": 132,
+        "line": 138,
         "column": 0,
-        "sourceText": "g.return(2)",
+        "sourceText": "g = gf5()",
         "function": "Global code"
       }
     ]
@@ -572,21 +560,9 @@
   {
     "callStack": [
       {
-        "line": 78,
-        "column": 4,
-        "sourceText": "yield 2",
-        "function": "gf3"
-      },
-      {
-        "line": 82,
-        "column": 4,
-        "sourceText": "yield* gf3()",
-        "function": "gf4"
-      },
-      {
-        "line": 132,
+        "line": 148,
         "column": 0,
-        "sourceText": "g.return(2)",
+        "sourceText": "g.return(1)",
         "function": "Global code"
       }
     ]
@@ -594,15 +570,25 @@
   {
     "callStack": [
       {
-        "line": 82,
-        "column": 4,
-        "sourceText": "yield* gf3()",
-        "function": "gf4"
+        "line": 133,
+        "column": 8,
+        "sourceText": "yield 32",
+        "function": "gf5"
       },
       {
-        "line": 132,
+        "line": 148,
         "column": 0,
-        "sourceText": "g.return(2)",
+        "sourceText": "g.return(1)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 150,
+        "column": 0,
+        "sourceText": "WScript.Echo(\"PASS\")",
         "function": "Global code"
       }
     ]

@@ -57,10 +57,8 @@
 #define alloca _alloca
 #elif defined(__MINGW32__)
 #include <malloc.h>
-#elif defined(__FreeBSD__)
-#include <stdlib.h>
 #else
-#error no alloca
+#include <stdlib.h>
 #endif
 
 #if COMPILER_IS_CLANG || COMPILER_IS_GNU

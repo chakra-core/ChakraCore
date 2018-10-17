@@ -136,7 +136,7 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 ///     User implemented callback to fetch imported modules dynamically in scripts.
 /// </summary>
 /// <remarks>
-///     The callback is invoked on the current runtime execution thread, therefore execution is blocked untill
+///     The callback is invoked on the current runtime execution thread, therefore execution is blocked until
 ///     the callback completes. Notify the host to fetch the dependent module. This is used for the dynamic
 ///     import() syntax.
 ///
@@ -720,8 +720,8 @@ CHAKRA_API
 ///     Requires an active script context.
 ///     </para>
 ///     <para>
-///     The runtime will hold on to the buffer until all instances of any functions created from
-///     the buffer are garbage collected.
+///     The runtime will detach the data from the buffer and hold on to it until all
+///     instances of any functions created from the buffer are garbage collected.
 ///     </para>
 /// </remarks>
 /// <param name="buffer">The serialized script as an ArrayBuffer (preferably ExternalArrayBuffer).</param>

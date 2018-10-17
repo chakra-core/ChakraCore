@@ -145,6 +145,7 @@ namespace UnifiedRegex
         , tempLocationOfRange(nullptr)
         , codePointAtTempLocation(0)
         , unicodeFlagPresent(false)
+        , dotAllFlagPresent(false)
         , caseInsensitiveFlagPresent(false)
         , positionAfterLastSurrogate(nullptr)
         , valueOfLastSurrogate(INVALID_CODEPOINT)
@@ -257,6 +258,7 @@ namespace UnifiedRegex
 
             if (codePoint > 0x10FFFF)
             {
+                DeferredFailIfUnicode(JSERR_RegExpInvalidEscape);
                 return 0;
             }
             i++;
@@ -1528,7 +1530,13 @@ namespace UnifiedRegex
         else if (ECLookahead() == 'c')
         {
             if (standardEncodedChars->IsLetter(ECLookahead(1))) // terminating 0 is not a letter
+            {
                 ECConsume(2);
+            }
+            else
+            {
+                DeferredFailIfUnicode(JSERR_RegExpInvalidEscape);
+            }
             return false;
         }
         else
@@ -1930,6 +1938,7 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         codepoint_t pendingRangeEnd = INVALID_CODEPOINT;
         bool previousSurrogatePart = false;
+
         while(nextChar != ']')
         {
             current = next;
@@ -2033,7 +2042,7 @@ namespace UnifiedRegex
 
                     lastCodepoint = INVALID_CODEPOINT;
                 }
-                // If we the next character is the end of range ']', then we can't have a surrogate pair.
+                // If the next character is the end of range ']', then we can't have a surrogate pair.
                 // The current character is the range end, if we don't already have a candidate.
                 else if (ECLookahead() == ']' && pendingRangeEnd == INVALID_CODEPOINT)
                 {
@@ -2123,6 +2132,10 @@ namespace UnifiedRegex
         codepoint_t pendingRangeStart = INVALID_CODEPOINT;
         EncodedChar nextChar = ECLookahead();
         bool previousWasASurrogate = false;
+        bool currIsACharSet = false;
+        bool prevWasACharSetAndPartOfRange = false;
+        bool prevprevWasACharSetAndPartOfRange = false;
+
         while(nextChar != ']')
         {
             codepoint_t codePointToSet = INVALID_CODEPOINT;
@@ -2132,6 +2145,7 @@ namespace UnifiedRegex
             {
                 ECConsume();
             }
+
             // These if-blocks are the logical ClassAtomPass1, they weren't grouped into a method to simplify dealing with multiple out parameters.
             if (containsSurrogates && this->currentSurrogatePairNode != nullptr && this->currentSurrogatePairNode->location == this->next)
             {
@@ -2146,22 +2160,30 @@ namespace UnifiedRegex
             else if (nextChar == '\\')
             {
                 Node* returnedNode = ClassEscapePass1(&deferredCharNode, &deferredSetNode, previousWasASurrogate);
+                codePointToSet = pendingCodePoint;
 
                 if (returnedNode->tag == Node::MatchSet)
                 {
-                    codePointToSet = pendingCodePoint;
-                    pendingCodePoint = INVALID_CODEPOINT;
                     if (pendingRangeStart != INVALID_CODEPOINT)
                     {
+                        if (unicodeFlagPresent)
+                        {
+                            //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                            //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                            Fail(JSERR_UnicodeRegExpRangeContainsCharClass); //From #sec-patterns-static-semantics-early-errors-annexb
+                        }
+
                         codePointSet.Set(ctAllocator, '-');
                     }
+
+                    pendingCodePoint = INVALID_CODEPOINT;
                     pendingRangeStart = INVALID_CODEPOINT;
                     codePointSet.UnionInPlace(ctAllocator, deferredSetNode.set);
+                    currIsACharSet = true;
                 }
                 else
                 {
                     // Just a character
-                    codePointToSet = pendingCodePoint;
                     pendingCodePoint = deferredCharNode.cs[0];
                 }
             }
@@ -2187,9 +2209,26 @@ namespace UnifiedRegex
                 pendingCodePoint = NextChar();
             }
 
-            if (codePointToSet != INVALID_CODEPOINT)
+            if (codePointToSet != INVALID_CODEPOINT || prevprevWasACharSetAndPartOfRange)
             {
-                if (pendingRangeStart != INVALID_CODEPOINT)
+                if (prevprevWasACharSetAndPartOfRange)
+                {
+                    //A range containing a character class and the unicode flag is present, thus we end up having to throw a "Syntax" error here
+                    //This breaks the notion of Pass0 check for valid syntax, because during that time, the unicode flag is unknown.
+                    if (unicodeFlagPresent)
+                    {
+                        Fail(JSERR_UnicodeRegExpRangeContainsCharClass);
+                    }
+
+                    if (pendingCodePoint != INVALID_CODEPOINT)
+                    {
+                        codePointSet.Set(ctAllocator, pendingCodePoint);
+                    }
+
+                    codePointSet.Set(ctAllocator, '-'); //Add '-' to set because a range was detected but turned out to be a union of character set with '-' and another atom.
+                    pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
+                }
+                else if (pendingRangeStart != INVALID_CODEPOINT)
                 {
                     if (pendingRangeStart > pendingCodePoint)
                     {
@@ -2198,6 +2237,7 @@ namespace UnifiedRegex
                         Assert(!unicodeFlagPresent);
                         Fail(JSERR_RegExpBadRange);
                     }
+                    
                     codePointSet.SetRange(ctAllocator, pendingRangeStart, pendingCodePoint);
                     pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
                 }
@@ -2208,6 +2248,9 @@ namespace UnifiedRegex
             }
 
             nextChar = ECLookahead();
+            prevprevWasACharSetAndPartOfRange = prevWasACharSetAndPartOfRange;
+            prevWasACharSetAndPartOfRange = currIsACharSet && nextChar == '-';
+            currIsACharSet = false;
         }
 
         if (pendingCodePoint != INVALID_CODEPOINT)
@@ -2458,6 +2501,8 @@ namespace UnifiedRegex
                 }
                 else
                 {
+                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term 
+
                     if (!IsEOF())
                     {
                         EncodedChar ecLookahead = ECLookahead();
@@ -2589,7 +2634,7 @@ namespace UnifiedRegex
                 standardChars->SetNonWordChars(ctAllocator, deferredSetNode->set);
                 return deferredSetNode;
             case 'c':
-                if (standardEncodedChars->IsLetter(ECLookahead())) // terminating 0 is not a letter
+                if (standardEncodedChars->IsWord(ECLookahead())) // terminating 0 is not a word character
                 {
                     c = UTC(Chars<EncodedChar>::CTU(ECLookahead()) % 32);
                     ECConsume();
@@ -2597,25 +2642,11 @@ namespace UnifiedRegex
                 }
                 else
                 {
-                    // SPEC DEVIATION: For non-letters, still take lower 5 bits, e.g. [\c1] == [\x11].
-                    //                 However, '-', ']', and EOF make the \c just a 'c'.
-                    if (!IsEOF())
-                    {
-                        EncodedChar ec = ECLookahead();
-                        switch (ec)
-                        {
-                        case '-':
-                        case ']':
-                            // fall-through for identity escape with 'c'
-                            break;
-                        default:
-                            c = UTC(Chars<EncodedChar>::CTU(ec) % 32);
-                            ECConsume();
-                            // fall-through for identity escape
-                            break;
-                        }
-                    }
-                    // else: fall-through for identity escape with 'c'
+                    // If the lookahead is a non-alphanumeric and not an underscore ('_'), then treat '\' and 'c' separately.
+                    //#sec-regular-expression-patterns-semantics 
+                    ECRevert(1); //Put cursor back at 'c' and treat it as a non-escaped character.
+                    deferredCharNode->cs[0] = '\\';
+                    return deferredCharNode;
                 }
                 break;
             case 'x':
@@ -2728,6 +2759,16 @@ namespace UnifiedRegex
                 }
                 flags = (RegexFlags)(flags | MultilineRegexFlag);
                 break;
+            case 's':
+                if (scriptContext->GetConfig()->IsES2018RegExDotAllEnabled())
+                {
+                    if ((flags & DotAllRegexFlag) != 0)
+                    {
+                        Fail(JSERR_RegExpSyntax);
+                    }
+                    flags = (RegexFlags)(flags | DotAllRegexFlag);
+                    break;
+                }
             case 'u':
                 // If we don't have unicode enabled, fall through to default
                 if (scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
@@ -2802,12 +2843,15 @@ namespace UnifiedRegex
                 Fail(JSERR_RegExpSyntax);
             this->unicodeFlagPresent = (flags & UnifiedRegex::UnicodeRegexFlag) == UnifiedRegex::UnicodeRegexFlag;
             this->caseInsensitiveFlagPresent = (flags & UnifiedRegex::IgnoreCaseRegexFlag) == UnifiedRegex::IgnoreCaseRegexFlag;
+            this->dotAllFlagPresent = (flags & UnifiedRegex::DotAllRegexFlag) == UnifiedRegex::DotAllRegexFlag;
             Assert(!this->unicodeFlagPresent || scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled());
+            Assert(!this->dotAllFlagPresent || scriptContext->GetConfig()->IsES2018RegExDotAllEnabled());
         }
         else
         {
             this->unicodeFlagPresent = false;
             this->caseInsensitiveFlagPresent = false;
+            this->dotAllFlagPresent = false;
         }
 
         // If this HR has been set, that means we have an earlier failure than the one caught above.
@@ -2861,6 +2905,7 @@ namespace UnifiedRegex
         Options(flags);
         this->unicodeFlagPresent = (flags & UnifiedRegex::UnicodeRegexFlag) == UnifiedRegex::UnicodeRegexFlag;
         this->caseInsensitiveFlagPresent = (flags & UnifiedRegex::IgnoreCaseRegexFlag) == UnifiedRegex::IgnoreCaseRegexFlag;
+        this->dotAllFlagPresent = (flags & UnifiedRegex::DotAllRegexFlag) == UnifiedRegex::DotAllRegexFlag;
         Assert(!this->unicodeFlagPresent || scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled());
 
         // If this HR has been set, that means we have an earlier failure than the one caught above.
@@ -2916,6 +2961,7 @@ namespace UnifiedRegex
         Options(dummyFlags);
         this->unicodeFlagPresent = (dummyFlags & UnifiedRegex::UnicodeRegexFlag) == UnifiedRegex::UnicodeRegexFlag;
         this->caseInsensitiveFlagPresent = (dummyFlags & UnifiedRegex::IgnoreCaseRegexFlag) == UnifiedRegex::IgnoreCaseRegexFlag;
+        this->dotAllFlagPresent = (dummyFlags & UnifiedRegex::DotAllRegexFlag) == UnifiedRegex::DotAllRegexFlag;
         outTotalEncodedChars = Chars<EncodedChar>::OSB(next, input);
         outTotalChars = Pos();
 
@@ -3071,7 +3117,14 @@ namespace UnifiedRegex
             switch (cc)
             {
             case '.':
-                standardChars->SetNonNewline(ctAllocator, partialPrefixSetNode->set);
+                if (this->dotAllFlagPresent)
+                {
+                    standardChars->SetFullSet(ctAllocator, partialPrefixSetNode->set);
+                }
+                else
+                {
+                    standardChars->SetNonNewline(ctAllocator, partialPrefixSetNode->set);
+                }
                 break;
             case 'S':
                 standardChars->SetNonWhitespace(ctAllocator, partialPrefixSetNode->set);
@@ -3107,7 +3160,14 @@ namespace UnifiedRegex
             switch (cc)
             {
             case '.':
-                standardChars->SetNonNewline(ctAllocator, setNode->set);
+                if (this->dotAllFlagPresent)
+                {
+                    standardChars->SetFullSet(ctAllocator, setNode->set);
+                }
+                else
+                {
+                    standardChars->SetNonNewline(ctAllocator, setNode->set);
+                }
                 break;
             case 'S':
                 standardChars->SetNonWhitespace(ctAllocator, setNode->set);

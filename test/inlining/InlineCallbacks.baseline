@@ -17,3 +17,13 @@ foo
 bar
 foo
 bar
+foo
+foo
+INLINING : Found callback def instr for call/apply target callback at	CallSite: 0	Caller: DispatchCall ( (#1.23), #24)
+INLINING CALLBACK : Inlining callback for call/apply target : 	Foo ( (#1.2), #3)
+foo
+bar
+bar
+INLINING : Found callback def instr for call/apply target callback at	CallSite: 0	Caller: DispatchApply ( (#1.27), #28)
+INLINING CALLBACK : Inlining callback for call/apply target : 	Bar ( (#1.9), #10)
+bar

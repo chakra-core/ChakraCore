@@ -358,7 +358,7 @@ void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 
 #ifdef _WIN32
 
-void ConfigParser::SetConfigStringFromRegistry(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Inout_ Js::String& str)
+void ConfigParser::SetConfigStringFromRegistry(_In_ HKEY hk, _In_z_ const char16* subKeyName, _In_z_ const char16* valName, _Inout_ Js::String& str)
 {
     const char16* regValue = nullptr;
     DWORD len = 0;
@@ -376,7 +376,7 @@ void ConfigParser::SetConfigStringFromRegistry(_In_ HKEY hk, _In_ const char16* 
  * doesn't exist, or if we can't allocate memory.  
  * Will allocate a char16* buffer on the heap. Caller is responsible for freeing.
  */
-void ConfigParser::ReadRegistryString(_In_ HKEY hk, _In_ const char16* subKeyName, _In_ const char16* valName, _Out_ const char16** sz, _Out_ DWORD* length)
+void ConfigParser::ReadRegistryString(_In_ HKEY hk, _In_z_ const char16* subKeyName, _In_z_ const char16* valName, _Outptr_result_maybenull_z_ const char16** sz, _Out_ DWORD* length)
 {
     DWORD bufLength = 0;
     *length = 0;

@@ -42,6 +42,7 @@ Build/swum-cache.txt
 Build/VCBuild.Lite/
 Build/VCBuild.NoJIT/
 Build/VCBuild.SWB/
+Build/VCBuild.ClangCL/
 Build/VCBuild/
 buildchk.*
 buildfre.*

@@ -8,7 +8,7 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 //setup code
 let constructionCount = 0;
 let functionCallCount = 0;
-let classConstructorCount = 0;
+var classConstructorCount = 0; // var not let, so it can be accessed from other context
 function a(arg1, arg2) {
     this[arg1] = arg2;
     this.localVal = this.protoVal;
@@ -25,6 +25,19 @@ class A {
 }
 A.prototype.protoVal = 2;
 
+const crossContext = WScript.LoadScript("\
+class A {                                \
+    constructor(arg1, arg2) {            \
+        this[arg1] = arg2;               \
+        this.localVal = this.protoVal;   \
+        ++other.classConstructorCount;   \
+    }                                    \
+}                                        \
+A.prototype.protoVal = 2;                \
+this.A2 = A;                             \
+", "samethread");
+crossContext.other = this;
+
 const trapped = new Proxy(a, {
     construct: function (x, y, z) {
         ++constructionCount;
@@ -32,7 +45,31 @@ const trapped = new Proxy(a, {
     }
 });
 
+const trappedClass = new Proxy(A, {
+    construct: function (x, y, z) {
+        ++constructionCount;
+        return Reflect.construct(x, y, z);
+    }
+});
+
+const evalTrappedClass = new Proxy(A, {
+    construct: function (x, y, z) {
+        return eval("++constructionCount; Reflect.construct(x, y, z);");
+    }
+});
+
+const withTrappedClass = new Proxy(A, {
+    construct: function (x, y, z) {
+        with (Reflect) {
+            ++constructionCount;
+            return construct(x, y, z);
+        }
+    }
+});
+
 const noTrap = new Proxy(a, {});
+const noTrapClass = new Proxy(A, {});
+const noTrapClassCrossContext = new Proxy(crossContext.A2, {});
 
 const boundObject = {};
 
@@ -43,6 +80,9 @@ boundClass.prototype = {};
 
 const boundTrapped = trapped.bind(boundObject, "prop-name");
 const boundUnTrapped = noTrap.bind(boundObject, "prop-name");
+const boundTrappedClass = trappedClass.bind(boundObject, "prop-name");
+const boundUnTrappedClass = noTrapClass.bind(boundObject, "prop-name");
+const boundUnTrappedClassCrossContext = noTrapClassCrossContext.bind(boundObject, "prop-name");
 
 class newTarget {}
 newTarget.prototype.protoVal = 3;
@@ -60,11 +100,47 @@ ExtendsClass.prototype.protoVal = 7;
 const boundClassExtendsFunc = ExtendsFunc.bind(boundObject, "prop-name");
 const boundClassExtendsClass = ExtendsClass.bind(boundObject, "prop-name");
 
-function test(ctor, useReflect, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount) {
+// flags
+const ConstructionMode = {
+    useReflect: 1,
+    useEval: 2,
+    useWith: 4,
+};
+
+function testImpl(ctor, constructionMode, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount) {
+    const useReflect = (constructionMode & 1) === 1;
     constructionCount = 0;
     functionCallCount = 0;
     classConstructorCount = 0;
-    const obj = useReflect ? Reflect.construct(ctor, ["prop-value"], newTarget) : new ctor("prop-value");
+    let obj;
+    switch (constructionMode) {
+        case 0:
+            obj = new ctor("prop-value");
+            break;
+        case 1:
+            obj = Reflect.construct(ctor, ["prop-value"], newTarget);
+            break;
+        case 2:
+            eval('obj = new ctor("prop-value");');
+            break;
+        case 3:
+            eval('obj = Reflect.construct(ctor, ["prop-value"], newTarget);');
+            break;
+        case 4:
+            with ({}) { obj = new ctor("prop-value"); }
+            break;
+        case 5:
+            with (Reflect) { obj = construct(ctor, ["prop-value"], newTarget); }
+            break;
+        case 6:
+            eval('with ({}) { obj = new ctor("prop-value"); }');
+            break;
+        case 7:
+            eval('with (Reflect) { obj = construct(ctor, ["prop-value"], newTarget); }');
+            break;
+        default:
+            throw new Error("unrecognized mode");
+    }
     assert.areNotEqual(boundObject, obj, "bound function should ignore bound this when constructing");
     assert.areEqual("prop-value", obj["prop-name"], "bound function should keep bound arguments when constructing");
     assert.areEqual(expectedConstructionCount, constructionCount, `proxy construct trap should be called ${expectedConstructionCount} times`);
@@ -74,101 +150,146 @@ function test(ctor, useReflect, expectedPrototype, expectedConstructionCount, ex
     assert.areEqual(expectedPrototype.prototype.protoVal, obj.localVal, "prototype should be available during construction");
 }
 
+function test(ctor, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount) {
+    testImpl(ctor, 0, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 1, newTarget, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 2, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 3, newTarget, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 4, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 5, newTarget, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 6, expectedPrototype, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+    testImpl(ctor, 7, newTarget, expectedConstructionCount, expectedFunctionCallCount, expectedClassConstructorCount);
+}
+
 const tests = [
     {
-        name : "Construct trapped bound proxy with new",
+        name : "Construct trapped bound proxy around function",
         body : function() {
-            test(boundTrapped, false, a, 1, 1, 0);
+            test(boundTrapped, a, 1, 1, 0);
         }
     },
     {
-        name : "Construct trapped bound proxy with Reflect",
+        name : "Construct bound proxy around function",
         body : function() {
-            test(boundTrapped, true, newTarget, 1, 1, 0);
+            test(boundUnTrapped, a, 0, 1, 0);
         }
     },
     {
-        name : "Construct bound proxy with new",
+        name : "Construct trapped bound proxy around class",
         body : function() {
-            test(boundUnTrapped, false, a, 0, 1, 0);
+            test(boundTrappedClass, A, 1, 0, 1);
         }
     },
     {
-        name : "Construct bound proxy with Reflect",
+        name : "Construct bound proxy around class",
         body : function() {
-            test(boundUnTrapped, true, newTarget, 0, 1, 0);
+            test(boundUnTrappedClass, A, 0, 0, 1);
         }
     },
     {
-        name : "Construct bound function with Reflect",
+        name : "Construct bound proxy around class with cross-context construction",
         body : function() {
-            test(boundFunc, true, newTarget, 0, 1, 0);
+            test(boundUnTrappedClassCrossContext, crossContext.A2, 0, 0, 1);
         }
     },
     {
-        name : "Construct bound function with new",
-        body : function() {
-            test(boundFunc, false, a, 0, 1, 0);
+        name: "Trapped bound proxy around class using eval",
+        body: function () {
+            test(evalTrappedClass.bind(boundObject, "prop-name"), A, 1, 0, 1);
         }
     },
     {
-        name : "Construct bound class with new",
-        body : function() {
-            test(boundClass, false, A, 0, 0, 1);
+        name: "Trapped bound proxy around class using with",
+        body: function () {
+            test(withTrappedClass.bind(boundObject, "prop-name"), A, 1, 0, 1);
         }
     },
     {
-        name : "Construct bound class with Reflect",
+        name : "Construct bound function",
         body : function() {
-            test(boundClass, true, newTarget, 0, 0, 1);
+            test(boundFunc, a, 0, 1, 0);
         }
     },
     {
-        name : "Construct class extending bound function with new",
+        name : "Construct bound class",
         body : function() {
-            test(ExtendsBoundFunc, false, ExtendsBoundFunc, 0, 1, 0);
+            test(boundClass, A, 0, 0, 1);
         }
     },
     {
-        name : "Construct class extending bound function with Reflect",
+        name : "Construct class extending bound function",
         body : function() {
-            test(ExtendsBoundFunc, true, newTarget, 0, 1, 0);
+            test(ExtendsBoundFunc, ExtendsBoundFunc, 0, 1, 0);
         }
     },
     {
-        name : "Construct class extending bound class with new",
+        name : "Construct class extending bound class",
         body : function() {
-            test(ExtendsBoundClass, false, ExtendsBoundClass, 0, 0, 1);
+            test(ExtendsBoundClass, ExtendsBoundClass, 0, 0, 1);
         }
     },
     {
-        name : "Construct class extending bound class with Reflect",
+        name : "Construct bound class that extends a function",
         body : function() {
-            test(ExtendsBoundClass, true, newTarget, 0, 0, 1);
+            test(boundClassExtendsFunc, ExtendsFunc, 0, 1, 0);
         }
     },
     {
-        name : "Construct bound class that extends a function with new",
+        name : "Construct bound class that extends another class",
         body : function() {
-            test(boundClassExtendsFunc, false, ExtendsFunc, 0, 1, 0);
+            test(boundClassExtendsClass, ExtendsClass, 0, 0, 1);
         }
     },
     {
-        name : "Construct bound class that extends a function with Reflect",
+        name : "Construct bound proxy around proxy",
         body : function() {
-            test(boundClassExtendsFunc, true, newTarget, 0, 1, 0);
+            const baseProxies = [
+                { proxy: trapped, func: true, trap: true },
+                { proxy: trappedClass, func: false, trap: true },
+                { proxy: noTrap, func: true, trap: false },
+                { proxy: noTrapClass, func: false, trap: false }
+            ];
+
+            for (const { proxy, func, trap } of baseProxies) {
+                const p1 = new Proxy(proxy, {});
+                const p2 = new Proxy(proxy, {
+                    construct: function (x, y, z) {
+                        ++constructionCount;
+                        return Reflect.construct(x, y, z);
+                    }
+                });
+                const b1 = p1.bind(boundObject, "prop-name");
+                const b2 = p2.bind(boundObject, "prop-name");
+                test(b1, func ? a : A, trap ? 1 : 0, func ? 1 : 0, func ? 0 : 1);
+                test(b2, func ? a : A, 1 + (trap ? 1 : 0), func ? 1 : 0, func ? 0 : 1);
+            }
         }
     },
     {
-        name : "Construct bound class that extends another class with new",
-        body : function() {
-            test(boundClassExtendsClass, false, ExtendsClass, 0, 0, 1);
-        }
-    },
-    {
-        name : "Construct bound class that extends another class with Reflect",
-        body : function() {
-            test(boundClassExtendsClass, true, newTarget, 0, 0, 1);
+        name: "Construct built-in class",
+        body: function () {
+            const bound = Boolean.bind(boundObject, false);
+            const noTrap = new Proxy(Boolean, {});
+            const trap = new Proxy(Boolean, {
+                construct: function (x, y, z) {
+                    return Reflect.construct(x, y, z);
+                }
+            });
+
+            function verify(obj, expectedNewTarget) {
+                assert.isTrue(Boolean.prototype.valueOf.call(obj) === false, "Boolean should represent value false");
+                assert.isFalse(obj === false, "Boolean is not a value type");
+                assert.strictEqual(expectedNewTarget.prototype, obj.__proto__, "Object should get constructed with appropriate prototype");
+            }
+
+            verify(new bound(true), Boolean);
+            verify(Reflect.construct(bound, [true], newTarget), newTarget);
+            verify(new noTrap(false), Boolean);
+            verify(eval("new noTrap(false)"), Boolean);
+            verify(Reflect.construct(noTrap, [false], newTarget), newTarget);
+            verify(new trap(false), Boolean);
+            verify(Reflect.construct(trap, [false], newTarget), newTarget);
+            verify(eval("Reflect.construct(trap, [false], newTarget)"), newTarget);
         }
     }
 ];

@@ -69,7 +69,7 @@ namespace Js
         friend class JavascriptNativeArray; // for xplat offsetof field access
         friend class JavascriptOperators;
         friend class JavascriptLibrary;
-        friend class ModuleNamespace; // for slot setting.       
+        friend class ModuleNamespace; // for slot setting.
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
@@ -145,14 +145,16 @@ namespace Js
     public:
         static DynamicObject * New(Recycler * recycler, DynamicType * type);
 
-        static bool Is(Var aValue);
-        static DynamicObject* FromVar(Var value);
-        static DynamicObject* UnsafeFromVar(Var value);
+        // Return whether the type is exactly DynamicObject, not some subclass (for more inclusive check use VarIs)
+        static bool IsBaseDynamicObject(Var aValue);
+
+        // Returns the object if it is exactly DynamicObject, not some subclass. Otherwise returns null.
+        static DynamicObject* TryVarToBaseDynamicObject(Var aValue);
 
         void EnsureSlots(int oldCount, int newCount, ScriptContext * scriptContext, DynamicTypeHandler * newTypeHandler = nullptr);
         void EnsureSlots(int newCount, ScriptContext *scriptContext);
         void ReplaceType(DynamicType * type);
-        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
+        virtual void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
         DynamicTypeHandler * GetTypeHandler() const;
 
@@ -186,6 +188,10 @@ namespace Js
 
         // Check if a Var is either a JavascriptArray* or ES5Array*.
         static bool IsAnyArray(const Var aValue);
+        static bool IsAnyArray(DynamicObject* obj);
+
+        // Check if a Var is a typedarray.
+        static bool IsAnyTypedArray(const Var aValue);
 
         bool UsesObjectArrayOrFlagsAsFlags() const
         {
@@ -274,7 +280,7 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext, EnumeratorCache * enumeratorCache = nullptr) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
-        virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
@@ -296,13 +302,15 @@ namespace Js
         virtual bool CanStorePropertyValueDirectly(PropertyId propertyId, bool allowLetConst) override;
 #endif
 
-        virtual void RemoveFromPrototype(ScriptContext * requestContext) override;
-        virtual void AddToPrototype(ScriptContext * requestContext) override;
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override;
+        virtual bool ClearProtoCachesWereInvalidated() override;
         virtual void SetPrototype(RecyclableObject* newPrototype) override;
 
         virtual BOOL IsCrossSiteObject() const { return FALSE; }
 
         virtual DynamicType* DuplicateType();
+        virtual void PrepareForConversionToNonPathType();
         static bool IsTypeHandlerCompatibleForObjectHeaderInlining(DynamicTypeHandler * oldTypeHandler, DynamicTypeHandler * newTypeHandler);
 
         void ChangeType();
@@ -339,7 +347,7 @@ namespace Js
         void SetArrayCallSiteIndex(ProfileId profileId);
 
         static DynamicObject * BoxStackInstance(DynamicObject * instance, bool deepCopy);
-        
+
     private:
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
@@ -376,11 +384,13 @@ namespace Js
     public:
         virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
         {
-            // This virtual function hinders linker to do ICF vtable of this class with other classes. 
-            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should 
+            // This virtual function hinders linker to do ICF vtable of this class with other classes.
+            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should
             // override this function and return a unique value.
             return VTableValue::VtableDynamicObject;
         }
 
     };
+
+    template <> bool VarIsImpl<DynamicObject>(RecyclableObject* obj);
 } // namespace Js

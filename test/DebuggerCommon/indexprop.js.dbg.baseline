@@ -22,14 +22,14 @@
         "callee": {
           "#__proto__": "function <large string>",
           "prototype": "Object {...}",
+          "length": "number 0",
           "caller": "object null",
-          "arguments": "Object {...}",
-          "length": "number 0"
+          "arguments": "Object {...}"
         },
         "Symbol.iterator": {
           "#__proto__": "function <large string>",
-          "name": "string values",
-          "length": "number 0"
+          "length": "number 0",
+          "name": "string values"
         },
         "[0]": "string \"arg0\"",
         "[1]": "string \"arg1\"",
@@ -51,10 +51,7 @@
           "toLocaleString": "function <large string>",
           "toString": "function <large string>",
           "unshift": "function <large string>",
-          "indexOf": "function <large string>",
           "every": "function <large string>",
-          "filter": "function <large string>",
-          "forEach": "function <large string>",
           "lastIndexOf": "function <large string>",
           "map": "function <large string>",
           "reduce": "function <large string>",
@@ -70,6 +67,11 @@
           "values": "function <large string>",
           "Symbol.iterator": "function <large string>",
           "entries": "function <large string>",
+          "indexOf": "function <large string>",
+          "filter": "function <large string>",
+          "flat": "function <large string>",
+          "flatMap": "function <large string>",
+          "forEach": "function <large string>",
           "length": "number 0"
         },
         "length": "number 8",
@@ -89,20 +91,20 @@
         "[3]": {
           "#__proto__": "function <large string>",
           "prototype": "Object {...}",
+          "length": "number 0",
           "caller": "object null",
           "arguments": "object null",
-          "length": "number 0",
           "[104]": "string 104"
         },
         "[4]": {
-          "#__proto__": "Error ",
+          "#__proto__": "Object {...}",
           "description": "string ErrorObj",
           "message": "string ErrorObj",
           "stack": "string <large string>",
           "[105]": "string 105"
         },
         "[5]": {
-          "#__proto__": "RegExp ",
+          "#__proto__": "Object {...}",
           "lastIndex": "number 0",
           "global": "boolean false",
           "multiline": "boolean false",
@@ -110,11 +112,12 @@
           "source": "string regex",
           "options": "string ",
           "unicode": "boolean false",
+          "dotAll": "boolean false",
           "sticky": "boolean false",
           "[106]": "string 106"
         },
         "[6]": {
-          "#__proto__": "Date Invalid Date",
+          "#__proto__": "Object {...}",
           "[107]": "string 107"
         },
         "[7]": {
@@ -135,13 +138,18 @@
         }
       }
     },
-    "globals": {}
+    "globals": {
+      "Symbol.toStringTag": "string global"
+    }
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "[200]": "string 200"
     },
-    "locals": {},
+    "locals": {
+      "Symbol.toStringTag": "string global"
+    },
     "globals": {}
   }
 ]

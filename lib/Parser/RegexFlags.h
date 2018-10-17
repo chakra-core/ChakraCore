@@ -14,6 +14,7 @@ namespace UnifiedRegex
         MultilineRegexFlag  = 1 << 2,
         UnicodeRegexFlag    = 1 << 3,
         StickyRegexFlag     = 1 << 4,
-        AllRegexFlags       = (1 << 5) - 1
+        DotAllRegexFlag     = 1 << 5,
+        AllRegexFlags       = (1 << 6) - 1
     };
 }

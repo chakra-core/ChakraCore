@@ -177,7 +177,7 @@ public:
         return block ? block->template AsRecyclerVisitedHostBlock<TBlockAttributes>() : nullptr;
     }
 
-    virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
+    virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) sealed
     {
         return this->template FindHeapObjectImpl<SmallRecyclerVisitedHostHeapBlockT<TBlockAttributes>>(objectAddress, recycler, flags, heapObject);
     }

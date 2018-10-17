@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"
@@ -14,7 +15,7 @@
     "locals": {
       "x": "number 1",
       "e": {
-        "#__proto__": "Error ",
+        "#__proto__": "Object {...}",
         "number": "number 0",
         "description": "string ",
         "stack": "string <large string>"
@@ -22,6 +23,7 @@
       "z": "number 1"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "foo": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>"

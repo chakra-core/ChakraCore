@@ -1,0 +1,102 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 11,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection1')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 19,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection2')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 30,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection3')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 42,
+        "column": 12,
+        "sourceText": "throw new Error('error for unhandledPromiseRejection3')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 53,
+        "column": 12,
+        "sourceText": "throw new Error('error for handledPromiseRejection5')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 61,
+        "column": 12,
+        "sourceText": "throw new Error('error for handledPromiseRejection6')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 70,
+        "column": 12,
+        "sourceText": "throw new Error('error for handledPromiseRejection7')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 82,
+        "column": 8,
+        "sourceText": "throw new Error('error for handledPromiseRejection8')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 91,
+        "column": 16,
+        "sourceText": "throw new Error('error for noRejection9')",
+        "function": "Anonymous function"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 45,
+        "column": 12,
+        "sourceText": "throw err",
+        "function": "Anonymous function"
+      }
+    ]
+  }
+]

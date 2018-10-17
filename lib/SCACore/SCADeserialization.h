@@ -49,7 +49,7 @@ namespace Js
 
             Dst arrayBuffer;
             GetEngine()->Clone(m_reader->GetPosition(), &arrayBuffer);
-            if (!arrayBuffer || !ArrayBufferBase::Is(arrayBuffer))
+            if (!arrayBuffer || !VarIs<ArrayBufferBase>(arrayBuffer))
             {
                 ThrowSCADataCorrupt();
             }
@@ -58,7 +58,7 @@ namespace Js
             Read(&byteOffset);
             Read(&length);
             *dst = trace_type::CreateTypedArray(
-                ArrayBufferBase::FromVar(arrayBuffer), byteOffset, length, GetScriptContext());
+                VarTo<ArrayBufferBase>(arrayBuffer), byteOffset, length, GetScriptContext());
         }
 
         void ReadTypedArray(SrcTypeId typeId, Dst* dst) const;

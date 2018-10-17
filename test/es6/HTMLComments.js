@@ -56,8 +56,8 @@ WScript.Echo("Code before <!-- LineTerminator --> is reachable"); <!-- WScript.E
 /* Multi
    Line
    Comment */ --> WScript.Echo("Code after */ --> is unreachable");
-assert.throws(function () { eval('/* */ --> WScript.Echo("Code after /* */ --> is parsed");'); }, SyntaxError, "MultiLineComment without a line terminator throws a syntax error",                         "Syntax error");
-assert.throws(function () { eval('/* */--> WScript.Echo("Code after /* */--> is parsed");'); },   SyntaxError, "MultiLineComment without a line terminator and whitespace sequence throws a syntax error", "Syntax error");
+assert.throws(function () { eval('/* */ --> WScript.Echo("Code after /* */ --> is parsed");'); }, SyntaxError, "MultiLineComment without a line terminator throws a syntax error",                         "Unexpected token '>' after '--'");
+assert.throws(function () { eval('/* */--> WScript.Echo("Code after /* */--> is parsed");'); },   SyntaxError, "MultiLineComment without a line terminator and whitespace sequence throws a syntax error", "Unexpected token '>' after '--'");
 {
     let x = 0;
     if (x/* */--> -1) {
@@ -71,4 +71,4 @@ assert.throws(function () { eval('/* */--> WScript.Echo("Code after /* */--> is 
 var a = 1; a-->a; WScript.Echo("Code after post-decrement with a greater-than comparison (-->) is reachable");
 assert.areEqual(0, a, "Post decrement executes");
 
-assert.throws(function () { eval('/* */ --->'); }, SyntaxError, "HTMLCloseComment causes syntax error with an extra -", "Syntax error");
+assert.throws(function () { eval('/* */ --->'); }, SyntaxError, "HTMLCloseComment causes syntax error with an extra -", "Unexpected token '>' after '-'");

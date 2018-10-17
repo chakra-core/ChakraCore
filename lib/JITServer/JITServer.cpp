@@ -221,6 +221,7 @@ ServerInitializeThreadContext(
         if (!PHASE_OFF1(Js::PreReservedHeapAllocPhase))
         {
             *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
+            contextInfo->SetCanCreatePreReservedSegment(*prereservedRegionAddr != 0);
         }
 #if !defined(_M_ARM)
         *jitThunkAddr = (intptr_t)contextInfo->GetJITThunkEmitter()->EnsureInitialized();
@@ -329,6 +330,11 @@ ServerAddDOMFastPathHelper(
         Assert(false);
         return RPC_S_INVALID_ARG;
     }
+    if (helper < 0 || helper >= IR::JnHelperMethodCount)
+    {
+        Assert(UNREACHED);
+        return E_ACCESSDENIED;
+    }
 
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
@@ -430,11 +436,7 @@ ServerCloseScriptContext(
     return ServerCallWrapper(scriptContextInfo, [&]()->HRESULT
     {
 #ifdef PROFILE_EXEC
-        auto profiler = scriptContextInfo->GetCodeGenProfiler();
-        if (profiler && profiler->IsInitialized())
-        {
-            profiler->ProfilePrint(Js::Configuration::Global.flags.Profile.GetFirstPhase());
-        }
+        scriptContextInfo->GetFirstCodeGenProfiler()->ProfilePrint();
 #endif
         scriptContextInfo->Close();
         ServerContextManager::UnRegisterScriptContext(scriptContextInfo);
@@ -533,7 +535,11 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize);
+        if (!emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize))
+        {
+            Js::Throw::OutOfMemory();
+        }
+
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
@@ -559,7 +565,7 @@ ServerNewInterpreterThunkBlock(
 HRESULT
 ServerIsInterpreterThunkAddr(
     /* [in] */ handle_t binding,
-    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
     /* [in] */ intptr_t address,
     /* [in] */ boolean asmjsThunk,
     /* [out] */ __RPC__out boolean * result)
@@ -733,12 +739,10 @@ ServerRemoteCodeGen(
             Output::Flush();
         }
 
-        auto profiler = scriptContextInfo->GetCodeGenProfiler();
 #ifdef PROFILE_EXEC
-        if (profiler && !profiler->IsInitialized())
-        {
-            profiler->Initialize(pageAllocator, nullptr);
-        }
+        Js::ScriptContextProfiler* profiler = scriptContextInfo->GetCodeGenProfiler(pageAllocator);
+#else
+        Js::ScriptContextProfiler* profiler = nullptr;
 #endif
 
 #if !FLOATVAR

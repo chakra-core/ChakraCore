@@ -266,10 +266,12 @@ namespace PlatformAgnostic
             return u_hasBinaryProperty(ch, UCHAR_ID_CONTINUE);
         }
 
-        int LogicalStringCompare(const char16* string1, const char16* string2)
+#ifndef _WIN32
+        int LogicalStringCompare(const char16* string1, int str1size, const char16* string2, int str2size)
         {
-            return PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(string1, string2);
+            return PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl(string1, str1size, string2, str2size);
         }
+#endif
 
         bool IsExternalUnicodeLibraryAvailable()
         {

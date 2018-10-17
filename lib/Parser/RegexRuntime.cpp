@@ -384,7 +384,7 @@ namespace UnifiedRegex
         size_t size = sizeof(*((T *)that));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offset, size, sizeof(T), alignof(T), annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offset, size, annotation);
 
         for (; currentByte < endByte; ++currentByte)
         {
@@ -409,7 +409,7 @@ namespace UnifiedRegex
         byte *startByte = (byte *)(&(start->tag));
         byte *endByte = startByte + size;
         byte *currentByte = startByte;
-        w->Print(_u("0x%p[+0x%03x](0x%03x)(size:0x%02x)(align:0x%02x) [%s]:"), startByte, offsetToData, size, sizeof(Inst), alignof(Inst), annotation);
+        w->Print(_u("0x%p[+0x%03x](0x%03x) [%s]:"), startByte, offsetToData, size, annotation);
         for (; currentByte < endByte; ++currentByte)
         {
             if ((currentByte - endByte) % 4 == 0)
@@ -778,6 +778,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void TrieMixin::Print(DebugWriter* w, const char16* litbuf) const
     {
+        w->PrintEOL(_u(""));
         trie.Print(w);
     }
 #endif
@@ -1907,12 +1908,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
             PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndContinue");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndContinue");
             PRINT_MIXIN(SetMixin<false>);
         }
 
@@ -2120,12 +2121,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
             PRINT_MIXIN(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndConsume");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndConsume");
             PRINT_MIXIN(SetMixin<false>);
         }
 
@@ -2352,12 +2353,12 @@ namespace UnifiedRegex
     {
         if (IsNegation)
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
+            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
             PRINT_MIXIN_COMMA(SetMixin<true>);
         }
         else
         {
-            PRINT_RE_BYTECODE_BEGIN("SyncToNegatedSetAndBackup");
+            PRINT_RE_BYTECODE_BEGIN("SyncToSetAndBackup");
             PRINT_MIXIN_COMMA(SetMixin<false>);
         }
 
@@ -5752,12 +5753,33 @@ namespace UnifiedRegex
         w->PrintEOL(_u("Program {"));
         w->Indent();
         w->PrintEOL(_u("source:       %s"), PointerValue(source));
+
+        w->Print(_u("litbuf:       "));
+        const char16 *litbuf = this->rep.insts.litbuf;
+        size_t litbufLen = 0;
+        if (litbuf == nullptr)
+        {
+            w->PrintEOL(_u("<NONE>"));
+        }
+        else
+        {
+            litbufLen = this->rep.insts.litbufLen;
+            for (size_t i = 0; i < litbufLen; ++i)
+            {
+                const char16 c = (char16)litbuf[i];
+                w->PrintEscapedChar(c);
+            }
+            w->PrintEOL(_u(""));
+        }
+        w->PrintEOL(_u("litbufLen:    %u"), litbufLen);
+
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));
-        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase"));
-        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode"));
-        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky"));
+        if ((flags & IgnoreCaseRegexFlag) != 0) w->Print(_u("ignorecase "));
+        if ((flags & DotAllRegexFlag) != 0) w->Print(_u("dotAll "));
+        if ((flags & UnicodeRegexFlag) != 0) w->Print(_u("unicode "));
+        if ((flags & StickyRegexFlag) != 0) w->Print(_u("sticky "));
         w->EOL();
         w->PrintEOL(_u("numGroups:    %d"), numGroups);
         w->PrintEOL(_u("numLoops:     %d"), numLoops);

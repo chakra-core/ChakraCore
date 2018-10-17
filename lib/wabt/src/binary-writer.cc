@@ -55,7 +55,7 @@ void WriteOpcode(Stream* stream, Opcode opcode) {
 }
 
 void WriteType(Stream* stream, Type type) {
-  stream->WriteU8Enum(type, GetTypeName(type));
+  WriteS32Leb128(stream, type, GetTypeName(type));
 }
 
 void WriteLimits(Stream* stream, const Limits* limits) {
@@ -88,10 +88,11 @@ static const size_t LEB_SECTION_SIZE_GUESS = 1;
   fprintf(stderr, "%s:%d: allocation failed\n", __FILE__, __LINE__)
 
 struct RelocSection {
-  RelocSection(const char* name, BinarySection code);
+  RelocSection(const char* name, Index index)
+      : name(name), section_index(index) {}
 
   const char* name;
-  BinarySection section_code;
+  Index section_index;
   std::vector<Reloc> relocations;
 };
 
@@ -100,9 +101,6 @@ struct Symbol {
   SymbolType type;
   Index element_index;
 };
-
-RelocSection::RelocSection(const char* name, BinarySection code)
-    : name(name), section_code(code) {}
 
 class BinaryWriter {
   WABT_DISALLOW_COPY_AND_ASSIGN(BinaryWriter);
@@ -131,6 +129,7 @@ class BinaryWriter {
   Index GetLocalIndex(const Func* func, const Var& var);
   Index GetSymbolIndex(RelocType reloc_type, Index index);
   void AddReloc(RelocType reloc_type, Index index);
+  void WriteBlockDecl(const BlockDeclaration& decl);
   void WriteU32Leb128WithReloc(Index index,
                                const char* desc,
                                RelocType reloc_type);
@@ -157,6 +156,7 @@ class BinaryWriter {
   std::vector<RelocSection> reloc_sections_;
   RelocSection* current_reloc_section_ = nullptr;
 
+  Index section_count_ = 0;
   size_t last_section_offset_ = 0;
   size_t last_section_leb_size_guess_ = 0;
   BinarySection last_section_type_ = BinarySection::Invalid;
@@ -225,16 +225,20 @@ Offset BinaryWriter::WriteFixupU32Leb128Size(Offset offset,
   }
 }
 
-static void write_inline_signature_type(Stream* stream,
-                                        const BlockSignature& sig) {
-  if (sig.size() == 0) {
-    WriteType(stream, Type::Void);
-  } else if (sig.size() == 1) {
-    WriteType(stream, sig[0]);
-  } else {
-    /* this is currently unrepresentable */
-    stream->WriteU8(0xff, "INVALID INLINE SIGNATURE");
+void BinaryWriter::WriteBlockDecl(const BlockDeclaration& decl) {
+  if (decl.sig.GetNumParams() == 0 && decl.sig.GetNumResults() <= 1) {
+    if (decl.sig.GetNumResults() == 0) {
+      WriteType(stream_, Type::Void);
+    } else if (decl.sig.GetNumResults() == 1) {
+      WriteType(stream_, decl.sig.GetResultType(0));
+    }
+    return;
   }
+
+  Index index = decl.has_func_type ? module_->GetFuncTypeIndex(decl.type_var)
+                                   : module_->GetFuncTypeIndex(decl.sig);
+  assert(index != kInvalidIndex);
+  WriteS32Leb128(stream_, index, "block type function index");
 }
 
 void BinaryWriter::WriteSectionHeader(const char* desc,
@@ -274,6 +278,7 @@ void BinaryWriter::EndSection() {
     }
   }
   last_section_leb_size_guess_ = 0;
+  section_count_++;
 }
 
 void BinaryWriter::BeginSubsection(const char* name) {
@@ -328,9 +333,8 @@ Index BinaryWriter::GetSymbolIndex(RelocType reloc_type, Index index) {
 void BinaryWriter::AddReloc(RelocType reloc_type, Index index) {
   // Add a new reloc section if needed
   if (!current_reloc_section_ ||
-      current_reloc_section_->section_code != last_section_type_) {
-    reloc_sections_.emplace_back(GetSectionName(last_section_type_),
-                                 last_section_type_);
+      current_reloc_section_->section_index != section_count_) {
+    reloc_sections_.emplace_back(GetSectionName(last_section_type_), section_count_);
     current_reloc_section_ = &reloc_sections_.back();
   }
 
@@ -401,7 +405,7 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
       break;
     case ExprType::Block:
       WriteOpcode(stream_, Opcode::Block);
-      write_inline_signature_type(stream_, cast<BlockExpr>(expr)->block.sig);
+      WriteBlockDecl(cast<BlockExpr>(expr)->block.decl);
       WriteExprList(func, cast<BlockExpr>(expr)->block.exprs);
       WriteOpcode(stream_, Opcode::End);
       break;
@@ -478,10 +482,6 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
     case ExprType::Convert:
       WriteOpcode(stream_, cast<ConvertExpr>(expr)->opcode);
       break;
-    case ExprType::CurrentMemory:
-      WriteOpcode(stream_, Opcode::CurrentMemory);
-      WriteU32Leb128(stream_, 0, "current_memory reserved");
-      break;
     case ExprType::Drop:
       WriteOpcode(stream_, Opcode::Drop);
       break;
@@ -497,14 +497,10 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
       WriteU32Leb128(stream_, index, "local index");
       break;
     }
-    case ExprType::GrowMemory:
-      WriteOpcode(stream_, Opcode::GrowMemory);
-      WriteU32Leb128(stream_, 0, "grow_memory reserved");
-      break;
     case ExprType::If: {
       auto* if_expr = cast<IfExpr>(expr);
       WriteOpcode(stream_, Opcode::If);
-      write_inline_signature_type(stream_, if_expr->true_.sig);
+      WriteBlockDecl(if_expr->true_.decl);
       WriteExprList(func, if_expr->true_.exprs);
       if (!if_expr->false_.empty()) {
         WriteOpcode(stream_, Opcode::Else);
@@ -516,7 +512,7 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
     case ExprType::IfExcept: {
       auto* if_except_expr = cast<IfExceptExpr>(expr);
       WriteOpcode(stream_, Opcode::IfExcept);
-      write_inline_signature_type(stream_, if_except_expr->true_.sig);
+      WriteBlockDecl(if_except_expr->true_.decl);
       Index index = module_->GetExceptIndex(if_except_expr->except_var);
       WriteU32Leb128(stream_, index, "exception index");
       WriteExprList(func, if_except_expr->true_.exprs);
@@ -532,9 +528,17 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
       break;
     case ExprType::Loop:
       WriteOpcode(stream_, Opcode::Loop);
-      write_inline_signature_type(stream_, cast<LoopExpr>(expr)->block.sig);
+      WriteBlockDecl(cast<LoopExpr>(expr)->block.decl);
       WriteExprList(func, cast<LoopExpr>(expr)->block.exprs);
       WriteOpcode(stream_, Opcode::End);
+      break;
+    case ExprType::MemoryGrow:
+      WriteOpcode(stream_, Opcode::MemoryGrow);
+      WriteU32Leb128(stream_, 0, "memory.grow reserved");
+      break;
+    case ExprType::MemorySize:
+      WriteOpcode(stream_, Opcode::MemorySize);
+      WriteU32Leb128(stream_, 0, "memory.size reserved");
       break;
     case ExprType::Nop:
       WriteOpcode(stream_, Opcode::Nop);
@@ -577,7 +581,7 @@ void BinaryWriter::WriteExpr(const Func* func, const Expr* expr) {
     case ExprType::Try: {
       auto* try_expr = cast<TryExpr>(expr);
       WriteOpcode(stream_, Opcode::Try);
-      write_inline_signature_type(stream_, try_expr->block.sig);
+      WriteBlockDecl(try_expr->block.decl);
       WriteExprList(func, try_expr->block.exprs);
       WriteOpcode(stream_, Opcode::Catch);
       WriteExprList(func, try_expr->catch_);
@@ -628,9 +632,9 @@ void BinaryWriter::WriteFuncLocals(const Func* func,
     return;
   }
 
-  Index local_decl_count = local_types.decls.size();
+  Index local_decl_count = local_types.decls().size();
   WriteU32Leb128(stream_, local_decl_count, "local decl count");
-  for (auto decl : local_types.decls) {
+  for (auto decl : local_types.decls()) {
     WriteU32Leb128(stream_, decl.second, "local type count");
     WriteType(stream_, decl.first);
   }
@@ -668,7 +672,7 @@ void BinaryWriter::WriteRelocSection(const RelocSection* reloc_section) {
   wabt_snprintf(section_name, sizeof(section_name), "%s.%s",
                 WABT_BINARY_SECTION_RELOC, reloc_section->name);
   BeginCustomSection(section_name);
-  WriteU32Leb128(stream_, reloc_section->section_code, "reloc section type");
+  WriteU32Leb128(stream_, reloc_section->section_index, "reloc section index");
   const std::vector<Reloc>& relocs = reloc_section->relocations;
   WriteU32Leb128(stream_, relocs.size(), "num relocs");
 
@@ -692,6 +696,7 @@ void BinaryWriter::WriteRelocSection(const RelocSection* reloc_section) {
 
 void BinaryWriter::WriteLinkingSection() {
   BeginCustomSection(WABT_BINARY_SECTION_LINKING);
+  WriteU32Leb128(stream_, 1, "metadata version");
   if (symbols_.size()) {
     stream_->WriteU8Enum(LinkingEntryType::SymbolTable, "symbol table");
     BeginSubsection("symbol table");
@@ -975,6 +980,13 @@ Result BinaryWriter::WriteModule() {
       if (!func->name.empty()) {
         named_functions++;
       }
+    }
+
+    if (!module_->name.empty()) {
+      WriteU32Leb128(stream_, 0, "module name type");
+      BeginSubsection("module name subsection");
+      WriteDebugName(stream_, module_->name, "module name");
+      EndSubsection();
     }
 
     if (named_functions > 0) {

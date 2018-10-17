@@ -34,4 +34,34 @@ namespace Js
             library->ScriptFunctionTypeHandler(!proxy->IsConstructor(), proxy->GetIsAnonymousFunction()),
             isShared, isShared);
     }
+
+    void ScriptFunctionType::ChangeEntryPoint(ProxyEntryPointInfo * entryPointInfo, JavascriptMethod entryPoint, bool isAsmJS)
+    {
+        Assert(entryPoint != nullptr);
+        Assert(entryPointInfo != nullptr);
+        if (this->GetEntryPoint() == entryPoint && this->GetEntryPointInfo() == entryPointInfo)
+        {
+            return;
+        }
+
+        // ASMJS:- for asmjs we don't need to update the entry point here as it updates the types entry point
+        if (!isAsmJS)
+        {
+            // We can't go from cross-site to non-cross-site. Update only in the non-cross site case
+            if (!CrossSite::IsThunk(this->GetEntryPoint()))
+            {
+                this->SetEntryPoint(entryPoint);
+            }
+        }
+        // instead update the address in the function entrypoint info
+        else
+        {
+            entryPointInfo->jsMethod = entryPoint;
+        }
+
+        ProxyEntryPointInfo* oldEntryPointInfo = this->GetEntryPointInfo();
+        ScriptFunction::CopyEntryPointInfoToThreadContextIfNecessary(oldEntryPointInfo, entryPointInfo);
+
+        this->SetEntryPointInfo(entryPointInfo);
+    }
 };

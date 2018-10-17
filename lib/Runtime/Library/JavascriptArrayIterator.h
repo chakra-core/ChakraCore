@@ -27,10 +27,6 @@ namespace Js
     public:
         JavascriptArrayIterator(DynamicType* type, Var iterable, JavascriptArrayIteratorKind kind);
 
-        static bool Is(Var aValue);
-        static JavascriptArrayIterator* FromVar(Var aValue);
-        static JavascriptArrayIterator* UnsafeFromVar(Var aValue);
-
         class EntryInfo
         {
         public:
@@ -42,4 +38,9 @@ namespace Js
     public:
         Var GetIteratorObjectForHeapEnum() { return m_iterableObject; }
     };
+
+    template <> inline bool VarIsImpl<JavascriptArrayIterator>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_ArrayIterator;
+    }
 } // namespace Js

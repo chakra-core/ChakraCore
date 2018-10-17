@@ -127,7 +127,7 @@ var tests = [
             var callsite3 = GetCallsite`simple template literal 3`;
             var callsite4 = GetCallsite`simple template literal 3`;
 
-            assert.isTrue(callsite3 === callsite4, "different string template literals with the same string literal value create identical callsite objects");
+            assert.isFalse(callsite3 === callsite4, "different string template literals (with the same string literal value) create different callsite objects");
 
             var loopCallsite = undefined;
             for (var i = 0; i < 10; i++) {
@@ -175,7 +175,7 @@ var tests = [
         body: function() {
             var foo;
 
-            assert.areEqual("function () { return 'foo called'; }", `${foo = function() { return 'foo called'; }}`, "Function declaration (+assignment) in string template");
+            assert.areEqual("function() { return 'foo called'; }", `${foo = function() { return 'foo called'; }}`, "Function declaration (+assignment) in string template");
             assert.areEqual('function', typeof foo, "Assignment inside string template substitution expression");
             assert.areEqual('foo called', foo(), "Function declared in template expression can be called later");
 
@@ -349,65 +349,57 @@ var tests = [
         }
     },
     {
-        name: "String template callsite objects are unique per-Realm and indexed by the raw strings",
+        name: "Each string template literal corresponds to exactly one (cached) callsite object",
         body: function() {
-            var callsite = undefined;
-            var counter = 0;
-
-            function tag(c)
-            {
-                counter++;
-
-                assert.areEqual('uniquestringforrealmcachetest\\n', c.raw[0], 'String template callsite has correct raw value');
-
-                if (callsite === undefined) {
-                    callsite = c;
+            var callsite1 = GetCallsite`simple template literal 1`;
+            var callsite2 = GetCallsite`simple template literal 2`;
+            
+            assert.isFalse(callsite1 === callsite2, "different string template literals create different callsite objects");
+            
+            var callsite3 = GetCallsite`simple template literal 3`;
+            var callsite4 = GetCallsite`simple template literal 3`;
+            
+            assert.isFalse(callsite3 === callsite4, "different string template literals (with the same string literal value) create different callsite objects");
+            
+            var loopCallsite = undefined;
+            for (var i = 0; i < 10; i++) {
+                var c = GetCallsite`loop template literal ${i}`;
+                
+                if (loopCallsite === undefined) {
+                    loopCallsite = c;
                 } else {
-                    assert.isTrue(c === callsite, 'Callsite is correctly cached per-Realm');
+                    assert.isTrue(loopCallsite === c, "string template literal used in a loop reuses the same callsite object.");
                 }
+                
+                assert.areEqual(2, c.length, "loop callsite has expected count of string literals");
+                assert.areEqual("loop template literal ", c[0], "loop callsite has expected first string literal value");
+                assert.areEqual("", c[1], "loop callsite has expected second string literal value");
+                
+                assert.areEqual(2, c.raw.length, "loop callsite.raw has expected count of string literals");
+                assert.areEqual("loop template literal ", c.raw[0], "loop callsite.raw has expected first string literal value");
+                assert.areEqual("", c.raw[1], "loop callsite.raw has expected second string literal value");
             }
-
-            function foo() {
-                tag`uniquestringforrealmcachetest\n`;
-                tag`uniquestringforrealmcachetest\n`;
+            
+            loopCallsite = undefined
+            for (var i = 0; i < 10; i++) {
+                var c = GetExpectedCachedCallsite();
+                
+                if (loopCallsite === undefined) {
+                    loopCallsite = c;
+                } else {
+                    assert.isTrue(loopCallsite === c, "string template declared in other function returns same callsite object when function called.");
+                }
+                
+                assert.areEqual(3, c.length, "loop callsite has expected count of string literals");
+                assert.areEqual("some string template ", c[0], "loop callsite has expected first string literal value");
+                assert.areEqual(" with replacements ", c[1], "loop callsite has expected second string literal value");
+                assert.areEqual("", c[2], "loop callsite has expected third string literal value");
+                
+                assert.areEqual(3, c.raw.length, "loop callsite.raw has expected count of string literals");
+                assert.areEqual("some string template ", c.raw[0], "loop callsite.raw has expected first string literal value");
+                assert.areEqual(" with replacements ", c.raw[1], "loop callsite.raw has expected second string literal value");
+                assert.areEqual("", c.raw[2], "loop callsite.raw has expected third string literal value");
             }
-
-            foo();
-            foo();
-
-            function foo2() {
-                tag`uniquestringforrealmcachetest\n`;
-                tag`uniquestringforrealmcachetest\n`;
-            }
-
-            foo2();
-            foo2();
-
-            function foo3() {
-                eval('tag`uniquestringforrealmcachetest\\n`');
-                eval('tag`uniquestringforrealmcachetest\\n`');
-            }
-
-            foo3();
-            foo3();
-
-            counter = 0;
-
-            var foo4 = new Function('t','t`uniquestringforrealmcachetest\\n`;');
-
-            foo4(tag);
-            foo4(tag);
-
-            assert.areEqual(2, counter, "tag function is called correct number of times");
-
-            counter = 0;
-
-            var foo5 = new Function('t','eval("t`uniquestringforrealmcachetest\\\\n`;");');
-
-            foo5(tag);
-            foo5(tag);
-
-            assert.areEqual(2, counter, "tag function is called correct number of times");
         }
     },
     {
@@ -424,15 +416,6 @@ after`;
             assert.isTrue(callsite1[0] === callsite2[0], 'Cooked strings are strictly equal');
             assert.isFalse(callsite1.raw[0] === callsite2.raw[0], 'Raw strings are not strictly equal');
             assert.isFalse(callsite1 === callsite2, 'Callsite objects are not the same ');
-        }
-    },
-    {
-        name: "Callsite objects are constant even if replacement values differ",
-        body: function() {
-            var callsite1 = GetCallsite`string1${'r1'}string2${'r2'}string3`;
-            var callsite2 = GetCallsite`string1${'r3'}string2${'r4'}string3`;
-
-            assert.isTrue(callsite1 === callsite2, "Callsite objects are strictly equal");
         }
     },
     {

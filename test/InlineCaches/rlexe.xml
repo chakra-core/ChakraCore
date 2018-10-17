@@ -83,6 +83,11 @@
   </test>
   <test>
     <default>
+      <files>defaultsetterbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>BigDictionaryTypeHandler.js</files>
     </default>
   </test>
@@ -108,6 +113,16 @@
     <default>
       <files>MissingPropertyCache3.js</files>
       <baseline>MissingPropertyCache3.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>MissingPropertyCache4.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>MissingProtoInval.js</files>
     </default>
   </test>
   <test>

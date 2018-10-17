@@ -71,11 +71,6 @@ using namespace Js;
         Assert(!ThreadContext::IsOnStack(instance->lastIndexVar));
     }
 
-    bool JavascriptRegExp::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_RegEx;
-    }
-
     // IsRegExp in the spec.
     bool JavascriptRegExp::IsRegExpLike(Var aValue, ScriptContext* scriptContext)
     {
@@ -87,7 +82,7 @@ using namespace Js;
             }
 
             Var symbolMatchProperty = JavascriptOperators::GetProperty(
-                RecyclableObject::FromVar(aValue),
+                VarTo<RecyclableObject>(aValue),
                 PropertyIds::_symbolMatch,
                 scriptContext);
             if (!JavascriptOperators::IsUndefined(symbolMatchProperty))
@@ -96,21 +91,7 @@ using namespace Js;
             }
         }
 
-        return JavascriptRegExp::Is(aValue);
-    }
-
-    JavascriptRegExp* JavascriptRegExp::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
-
-        return static_cast<JavascriptRegExp *>(aValue);
-    }
-
-    JavascriptRegExp* JavascriptRegExp::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptRegExp'");
-
-        return static_cast<JavascriptRegExp *>(aValue);
+        return VarIs<JavascriptRegExp>(aValue);
     }
 
     CharCount JavascriptRegExp::GetLastIndexProperty(RecyclableObject* instance, ScriptContext* scriptContext)
@@ -133,7 +114,7 @@ using namespace Js;
     {
         JavascriptOperators::SetProperty(
             instance,
-            RecyclableObject::FromVar(instance),
+            VarTo<RecyclableObject>(instance),
             PropertyIds::lastIndex,
             lastIndex,
             scriptContext,
@@ -199,7 +180,7 @@ using namespace Js;
         if (JavascriptOperators::GetTypeId(var) == TypeIds_HostDispatch)
         {
             TypeId remoteTypeId = TypeIds_Limit;
-            RecyclableObject* reclObj = RecyclableObject::UnsafeFromVar(var);
+            RecyclableObject* reclObj = UnsafeVarTo<RecyclableObject>(var);
             if (reclObj->GetRemoteTypeId(&remoteTypeId) && remoteTypeId == TypeIds_RegEx)
             {
                 return static_cast<JavascriptRegExp *>(reclObj->GetRemoteObject());
@@ -217,7 +198,7 @@ using namespace Js;
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, varName);
         }
 
-        return RecyclableObject::FromVar(args[0]);
+        return VarTo<RecyclableObject>(args[0]);
     }
 
     JavascriptString* JavascriptRegExp::GetFirstStringArg(Arguments& args, ScriptContext* scriptContext)
@@ -272,7 +253,7 @@ using namespace Js;
         else if (JavascriptRegExp::IsRegExpLike(args[1], scriptContext))
         {
             // JavascriptRegExp::IsRegExpLike() makes sure that args[1] is an Object.
-            RecyclableObject* regexLikeObj = RecyclableObject::FromVar(args[1]);
+            RecyclableObject* regexLikeObj = VarTo<RecyclableObject>(args[1]);
 
             if (!(callInfo.Flags & CallFlags_New) &&
                 (callInfo.Count == 2 || JavascriptOperators::IsUndefinedObject(args[2])) &&
@@ -284,9 +265,9 @@ using namespace Js;
                 return regexLikeObj;
             }
 
-            if (JavascriptRegExp::Is(regexLikeObj))
+            if (VarIs<JavascriptRegExp>(regexLikeObj))
             {
-                JavascriptRegExp* source = JavascriptRegExp::FromVar(regexLikeObj);
+                JavascriptRegExp* source = VarTo<JavascriptRegExp>(regexLikeObj);
 
                 if (callInfo.Count > 2)
                 {
@@ -339,7 +320,7 @@ using namespace Js;
         regex->SetSplitPattern(splitPattern);
 
         return isCtorSuperCall ?
-            JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), regex, nullptr, scriptContext) :
+            JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), regex, nullptr, scriptContext) :
             regex;
     }
 
@@ -347,9 +328,9 @@ using namespace Js;
     {
         JavascriptString * strBody;
 
-        if (JavascriptString::Is(aValue))
+        if (VarIs<JavascriptString>(aValue))
         {
-            strBody = JavascriptString::FromVar(aValue);
+            strBody = VarTo<JavascriptString>(aValue);
         }
         else if (JavascriptOperators::GetTypeId(aValue) == TypeIds_Undefined)
         {
@@ -368,9 +349,9 @@ using namespace Js;
         JavascriptString * strOptions = nullptr;
         if (options != nullptr && !JavascriptOperators::IsUndefinedObject(options))
         {
-            if (JavascriptString::Is(options))
+            if (VarIs<JavascriptString>(options))
             {
-                strOptions = JavascriptString::FromVar(options);
+                strOptions = VarTo<JavascriptString>(options);
             }
             else
             {
@@ -398,9 +379,9 @@ using namespace Js;
         JIT_HELPER_REENTRANT_HEADER(Op_CoerseRegex);
         // This is called as helper from OpCode::CoerseRegEx. If aValue is regex pattern /a/, CreatePattern converts
         // it to pattern "/a/" instead of "a". So if we know that aValue is regex, then just return the same object
-        if (JavascriptRegExp::Is(aValue))
+        if (VarIs<JavascriptRegExp>(aValue))
         {
-            return JavascriptRegExp::FromVar(aValue);
+            return VarTo<JavascriptRegExp>(aValue);
         }
         else
         {
@@ -541,6 +522,10 @@ using namespace Js;
             {
                 builder->AppendChars(_u('m'));
             }
+            if (pattern->IsDotAll())
+            {
+                builder->AppendChars(_u('s'));
+            }
             if (pattern->IsUnicode())
             {
                 builder->AppendChars(_u('u'));
@@ -570,9 +555,9 @@ using namespace Js;
         {
             pattern = scriptContext->GetLibrary()->GetEmptyRegexPattern();
         }
-        else if (JavascriptRegExp::Is(args[1]))
+        else if (VarIs<JavascriptRegExp>(args[1]))
         {
-            JavascriptRegExp* source = JavascriptRegExp::FromVar(args[1]);
+            JavascriptRegExp* source = VarTo<JavascriptRegExp>(args[1]);
             //compile with a regular expression
             pattern = source->GetPattern();
             splitPattern = source->GetSplitPattern();
@@ -586,9 +571,9 @@ using namespace Js;
         {
             //compile with a string
             JavascriptString * strBody;
-            if (JavascriptString::Is(args[1]))
+            if (VarIs<JavascriptString>(args[1]))
             {
-                strBody = JavascriptString::FromVar(args[1]);
+                strBody = VarTo<JavascriptString>(args[1]);
             }
             else if(JavascriptOperators::GetTypeId(args[1]) == TypeIds_Undefined)
             {
@@ -607,9 +592,9 @@ using namespace Js;
             JavascriptString * strOptions = nullptr;
             if (callInfo.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
             {
-                if (JavascriptString::Is(args[2]))
+                if (VarIs<JavascriptString>(args[2]))
                 {
-                    strOptions = JavascriptString::FromVar(args[2]);
+                    strOptions = VarTo<JavascriptString>(args[2]);
                 }
                 else
                 {
@@ -792,9 +777,9 @@ using namespace Js;
 
         Var replaceValue = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
-        if (JavascriptFunction::Is(replaceValue))
+        if (VarIs<JavascriptFunction>(replaceValue))
         {
-            JavascriptFunction* replaceFunction = JavascriptFunction::FromVar(replaceValue);
+            JavascriptFunction* replaceFunction = VarTo<JavascriptFunction>(replaceValue);
             return RegexHelper::RegexReplaceFunction(scriptContext, thisObj, string, replaceFunction);
         }
         else
@@ -835,7 +820,7 @@ using namespace Js;
 
         return JavascriptOperators::IsNull(result)
             ? TaggedInt::ToVarUnchecked(-1)
-            : JavascriptOperators::GetProperty(RecyclableObject::FromVar(result), PropertyIds::index, scriptContext);
+            : JavascriptOperators::GetProperty(VarTo<RecyclableObject>(result), PropertyIds::index, scriptContext);
     }
 
     Var JavascriptRegExp::EntrySymbolSplit(RecyclableObject* function, CallInfo callInfo, ...)
@@ -878,7 +863,7 @@ using namespace Js;
         Var exec = JavascriptOperators::GetProperty(thisObj, PropertyIds::exec, scriptContext);
         if (JavascriptConversion::IsCallable(exec))
         {
-            RecyclableObject* execFn = RecyclableObject::UnsafeFromVar(exec);
+            RecyclableObject* execFn = UnsafeVarTo<RecyclableObject>(exec);
             ThreadContext * threadContext = scriptContext->GetThreadContext();
             Var result = threadContext->ExecuteImplicitCall(execFn, ImplicitCall_Accessor, [=]()->Js::Var
             {
@@ -948,6 +933,11 @@ using namespace Js;
                 APPEND_FLAG(PropertyIds::unicode, _u('u'));
             }
 
+            if (scriptConfig->IsES2018RegExDotAllEnabled())
+            {
+                APPEND_FLAG(PropertyIds::dotAll, _u('s'));
+            }
+
             if (scriptConfig->IsES6RegExStickyEnabled())
             {
                 APPEND_FLAG(PropertyIds::sticky, _u('y'));
@@ -1012,6 +1002,10 @@ using namespace Js;
             {
                 bs.Append(_u('m'));
             }
+            if(GetPattern()->IsDotAll())
+            {
+                bs.Append(_u('s'));
+            }
             if (GetPattern()->IsUnicode())
             {
                 bs.Append(_u('u'));
@@ -1050,7 +1044,7 @@ using namespace Js;
         Assert(!(callInfo.Flags & CallFlags_New)); \
         \
         ScriptContext* scriptContext = function->GetScriptContext(); \
-        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext)) \
+        if (ShouldApplyPrototypeWebWorkaround(args, scriptContext) || args[0] == scriptContext->GetLibrary()->GetRegExpPrototype()) \
         {\
             return scriptContext->GetLibrary()->GetUndefined(); \
         }\
@@ -1064,6 +1058,7 @@ using namespace Js;
     DEFINE_FLAG_GETTER(EntryGetterMultiline, multiline, IsMultiline)
     DEFINE_FLAG_GETTER(EntryGetterSticky, sticky, IsSticky)
     DEFINE_FLAG_GETTER(EntryGetterUnicode, unicode, IsUnicode)
+    DEFINE_FLAG_GETTER(EntryGetterDotAll, dotAll, IsDotAll)
 
     JavascriptRegExp * JavascriptRegExp::BoxStackInstance(JavascriptRegExp * instance, bool deepCopy)
     {
@@ -1098,9 +1093,22 @@ using namespace Js;
     {
         DEFAULT_SPECIAL_PROPERTY_IDS,
         PropertyIds::unicode,
+        PropertyIds::dotAll,
         PropertyIds::sticky
     };
     PropertyId const JavascriptRegExp::specialPropertyIdsWithoutUnicode[] =
+    {
+        DEFAULT_SPECIAL_PROPERTY_IDS,
+        PropertyIds::dotAll,
+        PropertyIds::sticky
+    };
+    PropertyId const JavascriptRegExp::specialPropertyIdsWithoutDotAll[] =
+    {
+        DEFAULT_SPECIAL_PROPERTY_IDS,
+        PropertyIds::unicode,
+        PropertyIds::sticky
+    };
+    PropertyId const JavascriptRegExp::specialPropertyIdsWithoutDotAllOrUnicode[] =
     {
         DEFAULT_SPECIAL_PROPERTY_IDS,
         PropertyIds::sticky
@@ -1123,6 +1131,8 @@ using namespace Js;
         case PropertyIds::source:
         case PropertyIds::options:
             HAS_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            HAS_PROPERTY(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         case PropertyIds::unicode:
             HAS_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         case PropertyIds::sticky:
@@ -1195,6 +1205,8 @@ using namespace Js;
             GET_FLAG(IsGlobal)
         case PropertyIds::multiline:
             GET_FLAG(IsMultiline)
+        case PropertyIds::dotAll:
+            GET_FLAG(IsDotAll)
         case PropertyIds::ignoreCase:
             GET_FLAG(IsIgnoreCase)
         case PropertyIds::unicode:
@@ -1281,6 +1293,8 @@ using namespace Js;
         case PropertyIds::source:
         case PropertyIds::options:
             SET_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            SET_PROPERTY(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
             SET_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
@@ -1319,6 +1333,8 @@ using namespace Js;
         case PropertyIds::source:
         case PropertyIds::options:
             DELETE_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            DELETE_PROPERTY(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
             DELETE_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
@@ -1357,6 +1373,10 @@ using namespace Js;
         else if (BuiltInPropertyRecords::unicode.Equals(propertyNameString))
         {
             DELETE_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        }
+        else if (BuiltInPropertyRecords::dotAll.Equals(propertyNameString))
+        {
+            DELETE_PROPERTY(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         }
         else if (BuiltInPropertyRecords::sticky.Equals(propertyNameString))
         {
@@ -1421,6 +1441,8 @@ using namespace Js;
             GET_SETTER(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
             GET_SETTER(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            GET_SETTER(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
             GET_SETTER(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
@@ -1462,6 +1484,8 @@ using namespace Js;
             IS_ENUMERABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
             IS_ENUMERABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            IS_ENUMERABLE(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
             IS_ENUMERABLE(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
@@ -1490,6 +1514,8 @@ using namespace Js;
             IS_CONFIGURABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::unicode:
             IS_CONFIGURABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        case PropertyIds::dotAll:
+            IS_CONFIGURABLE(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
             IS_CONFIGURABLE(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         default:
@@ -1516,6 +1542,8 @@ using namespace Js;
         case PropertyIds::source:
         case PropertyIds::options:
             IS_WRITABLE(!scriptConfig->IsES6RegExPrototypePropertiesEnabled())
+        case PropertyIds::dotAll:
+            IS_WRITABLE(scriptConfig->IsES2018RegExDotAllEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         case PropertyIds::unicode:
             IS_WRITABLE(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
         case PropertyIds::sticky:
@@ -1558,6 +1586,11 @@ using namespace Js;
             specialPropertyCount += 1;
         }
 
+        if (GetScriptContext()->GetConfig()->IsES2018RegExDotAllEnabled())
+        {
+            specialPropertyCount += 1;
+        }
+
         return specialPropertyCount;
     }
 
@@ -1569,9 +1602,29 @@ using namespace Js;
 
     inline PropertyId const * JavascriptRegExp::GetSpecialPropertyIdsInlined() const
     {
-        return GetScriptContext()->GetConfig()->IsES6UnicodeExtensionsEnabled()
-            ? specialPropertyIdsAll
-            : specialPropertyIdsWithoutUnicode;
+        const ScriptConfiguration* config = GetScriptContext()->GetConfig();
+        if (config->IsES6UnicodeExtensionsEnabled())
+        {
+            if (config->IsES2018RegExDotAllEnabled())
+            {
+                return specialPropertyIdsAll;
+            }
+            else
+            {
+                return specialPropertyIdsWithoutDotAll;
+            }
+        }
+        else
+        {
+            if (config->IsES2018RegExDotAllEnabled())
+            {
+                return specialPropertyIdsWithoutUnicode;
+            }
+            else
+            {
+                return specialPropertyIdsWithoutDotAllOrUnicode;
+            }
+        }
     }
 
 #if ENABLE_TTD

@@ -70,21 +70,23 @@ struct LegalInstrForms
 class LegalizeMD
 {
 public:
-    static void LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc);
-    static void LegalizeDst(IR::Instr * instr, bool fPostRegAlloc);
-    static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
+    static void LegalizeInstr(IR::Instr * instr);
+    static void LegalizeDst(IR::Instr * instr);
+    static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum);
 
     static bool LegalizeDirectBranch(IR::BranchInstr *instr, uint32 branchOffset); // DirectBranch has no src & dst operands.
     //Returns IndexOpnd which is removed from VFP indirect operand
-    static void LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd, bool fPostRegAlloc);
+    static void LegalizeIndirOpndForVFP(IR::Instr* insertInstr, IR::IndirOpnd *indirOpnd);
 
 private:
-    static IR::Instr *LegalizeStore(IR::Instr *instr, LegalForms forms, bool fPostRegAlloc);
-    static IR::Instr *LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
+    static RegNum GetScratchReg(IR::Instr * instr);
+
+    static IR::Instr *LegalizeStore(IR::Instr *instr, LegalForms forms);
+    static IR::Instr *LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms);
+    static void LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms);
+    static void LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * indirOpnd, LegalForms forms);
+    static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms);
+    static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum);
 
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);

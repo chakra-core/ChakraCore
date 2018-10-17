@@ -19,26 +19,6 @@ namespace Js
         }
     }
 
-    bool JavascriptArrayIterator::Is(Var aValue)
-    {
-        TypeId typeId = JavascriptOperators::GetTypeId(aValue);
-        return typeId == TypeIds_ArrayIterator;
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::FromVar(Var aValue)
-    {
-        AssertOrFailFastMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
-    JavascriptArrayIterator* JavascriptArrayIterator::UnsafeFromVar(Var aValue)
-    {
-        AssertMsg(Is(aValue), "Ensure var is actually a 'JavascriptArrayIterator'");
-
-        return static_cast<JavascriptArrayIterator *>(aValue);
-    }
-
     Var JavascriptArrayIterator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -56,12 +36,12 @@ namespace Js
 
         Var thisObj = args[0];
 
-        if (!JavascriptArrayIterator::Is(thisObj))
+        if (!VarIs<JavascriptArrayIterator>(thisObj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedArrayIterator, _u("Array Iterator.prototype.next"));
         }
 
-        JavascriptArrayIterator* iterator = JavascriptArrayIterator::FromVar(thisObj);
+        JavascriptArrayIterator* iterator = VarTo<JavascriptArrayIterator>(thisObj);
         Var iterable = iterator->m_iterableObject;
 
         if (iterable == nullptr)
@@ -72,17 +52,17 @@ namespace Js
         int64 length;
         JavascriptArray* pArr = nullptr;
         TypedArrayBase *typedArrayBase = nullptr;
-        if (JavascriptArray::Is(iterable) && !JavascriptArray::FromVar(iterable)->IsCrossSiteObject())
+        if (JavascriptArray::IsNonES5Array(iterable) && !VarTo<JavascriptArray>(iterable)->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
-            Assert(!JavascriptCopyOnAccessNativeIntArray::Is(iterable));
+            Assert(!VarIs<JavascriptCopyOnAccessNativeIntArray>(iterable));
 #endif
             pArr = JavascriptArray::FromAnyArray(iterable);
             length = pArr->GetLength();
         }
-        else if (TypedArrayBase::Is(iterable))
+        else if (VarIs<TypedArrayBase>(iterable))
         {
-            typedArrayBase = TypedArrayBase::UnsafeFromVar(iterable);
+            typedArrayBase = UnsafeVarTo<TypedArrayBase>(iterable);
             if (typedArrayBase->IsDetachedBuffer())
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);

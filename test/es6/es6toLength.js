@@ -382,7 +382,7 @@ var tests = [
             // a.reduce(sum); // same issue as Map, ForEach, Filter, Some, & Every
 
             var oNeg = { length : -1, [-5] : 2, [-2]: 3 };
-            assert.throws(function() { Array.prototype.reduce.call(oNeg, sum)},TypeError,"Reduce needs a length greater than 0","Object doesn't support this action");
+            assert.throws(function() { Array.prototype.reduce.call(oNeg, sum)},TypeError,"Reduce needs a length greater than 0","Array.prototype.reduce: Array contains no elements and initialValue is not provided");
        }
    },
    {

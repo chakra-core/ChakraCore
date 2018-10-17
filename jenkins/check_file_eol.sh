@@ -37,4 +37,10 @@ if [ $? -eq 0 ]; then # grep found matches ($?==0), so we found CR (0x0d) in the
     echo "--------------" >> $ERRFILE # same length as '--- ERRORS ---'
 fi
 
+# Check that each file ends in a newline character
+tail -c1 $1 | od -x | grep '000a' > $ERRFILETEMP
+if [ $? -ne 0 ]; then # last character is not a newline
+    echo "ERROR: $1 does not end in a new line" >> $ERRFILE
+fi
+
 rm -f $ERRFILETEMP

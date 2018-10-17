@@ -46,6 +46,11 @@ THREAD_ST WORD     Output::s_color = 0;
 THREAD_ST bool     Output::s_hasColor = false;
 THREAD_ST bool     Output::s_capture = false;
 
+THREAD_ST bool     Output::hasDoneAlignPrefixForThisLine = false;
+THREAD_ST bool     Output::usingCustomAlignAndPrefix = false;
+THREAD_ST size_t   Output::align = 0;
+THREAD_ST const char16* Output::prefix = nullptr;
+
 #define MAX_OUTPUT_BUFFER_SIZE 10 * 1024 * 1024  // 10 MB maximum before we force a flush
 
 size_t __cdecl
@@ -282,6 +287,86 @@ Output::VPrint(const char16 *form, va_list argptr)
 size_t __cdecl
 Output::PrintBuffer(const char16 * buf, size_t size)
 {
+    // Handle custom line prefixing
+    bool internallyAllocatedBuffer = false;
+    if (usingCustomAlignAndPrefix)
+    {
+        if (hasDoneAlignPrefixForThisLine && wcschr(buf, '\n') == nullptr)
+        {
+            // no newlines, and we've already prefixed this line, so nothing to do
+        }
+        else
+        {
+            size_t newbufsize = size + align;
+            char16* newbuf = (char16*)calloc(newbufsize, sizeof(char16));
+            AssertOrFailFastMsg(newbuf != nullptr, "Ran out of memory while printing output");
+            internallyAllocatedBuffer = true;
+            const char16* currentReadIndex = buf;
+            char16* currentWriteIndex = newbuf;
+            auto ensureSpace = [&currentWriteIndex, &newbuf, &newbufsize](size_t numCharsWantToWrite)
+            {
+                size_t charsWritten = (currentWriteIndex - newbuf); // pointer subtraction is number of elements of pointed type between pointers
+                size_t remaining = newbufsize - charsWritten;
+                if (numCharsWantToWrite + 1 > remaining)
+                {
+                    char16* tempbuf = (char16*)realloc(newbuf, newbufsize * sizeof(char16) * 2);
+                    AssertOrFailFastMsg(tempbuf != nullptr, "Ran out of memory while printing output");
+                    newbuf = tempbuf;
+                    newbufsize = newbufsize * 2;
+                    currentWriteIndex = newbuf + charsWritten;
+                }
+            };
+            const size_t prefixlength = wcslen(prefix);
+            size_t oldS_Column = Output::s_Column;
+            while (currentReadIndex < buf + size)
+            {
+                if (!hasDoneAlignPrefixForThisLine)
+                {
+                    // attempt to write the alignment
+                    {
+                        unsigned int alignspacesneeded = 1; // always put at least one space
+                        if (oldS_Column < align)
+                        {
+                            alignspacesneeded = (unsigned int)(align - oldS_Column);
+                        }
+                        ensureSpace(alignspacesneeded);
+                        for (unsigned int i = 0; i < alignspacesneeded; i++)
+                        {
+                            *(currentWriteIndex++) = ' ';
+                        }
+                    }
+                    // attempt to write the prefix
+                    ensureSpace(prefixlength);
+                    js_wmemcpy_s(currentWriteIndex, (newbuf + newbufsize) - currentWriteIndex, Output::prefix, prefixlength);
+                    currentWriteIndex += prefixlength;
+                    oldS_Column = align + prefixlength;
+                    hasDoneAlignPrefixForThisLine = true;
+                }
+                const char16* endOfLine = wcschr(currentReadIndex, '\n');
+                size_t charsToCopy = 0;
+                if (endOfLine != nullptr)
+                {
+                    charsToCopy = (endOfLine - currentReadIndex) + 1; // We want to grab the newline character as part of this line
+                    oldS_Column = 0; // We're ending this line, and want the next to be calculated properly
+                    hasDoneAlignPrefixForThisLine = false; // The next line will need this
+                }
+                else
+                {
+                    charsToCopy = (buf + size) - currentReadIndex; // the rest of the input buffer
+                    oldS_Column += charsToCopy; // Will be reset anyway later on
+                }
+                ensureSpace(endOfLine - currentReadIndex);
+                js_wmemcpy_s(currentWriteIndex, (newbuf + newbufsize) - currentWriteIndex, currentReadIndex, charsToCopy);
+                currentReadIndex += charsToCopy;
+                currentWriteIndex += charsToCopy;
+            }
+            // null terminate becuase there's no real reason not to
+            ensureSpace(1);
+            *(currentWriteIndex++) = '\0';
+            buf = newbuf;
+            size = (currentWriteIndex - newbuf) - 1; // not counting the terminator here though, to align with vsnwprintf_s's behavior
+        }
+    }
     Output::s_Column += size;
     const char16 * endbuf = wcschr(buf, '\n');
     while (endbuf != nullptr)
@@ -443,7 +528,19 @@ void Output::DirectPrint(char16 const * string)
 void
 Output::SkipToColumn(size_t column)
 {
-    if (column <= Output::s_Column)
+    size_t columnbias = 0;
+    // If we're using a custom alignment and prefix, we want to do this relative to that
+    if (usingCustomAlignAndPrefix)
+    {
+        // If we've already added the alignment and prefix, we need to add the alignment to our column number here
+        columnbias = align + wcslen(prefix);
+    }
+    size_t reference = 0;
+    if (Output::s_Column > columnbias)
+    {
+        reference = Output::s_Column - columnbias;
+    }
+    if (column <= reference)
     {
         Output::Print(_u(" "));
         return;
@@ -451,7 +548,7 @@ Output::SkipToColumn(size_t column)
 
     // compute distance to our destination
 
-    size_t dist = column - Output::s_Column;
+    size_t dist = column - reference;
 
     // Print at least one space
     while (dist > 0)
@@ -563,4 +660,21 @@ Output::CaptureEnd()
 #endif
 
     return returnBuffer;
+}
+
+void
+Output::SetAlignAndPrefix(unsigned int align, const char16 *prefix)
+{
+    Output::hasDoneAlignPrefixForThisLine = false;
+    Output::usingCustomAlignAndPrefix = true;
+    Output::prefix = prefix;
+    Output::align = align;
+}
+void
+Output::ResetAlignAndPrefix()
+{
+    Output::hasDoneAlignPrefixForThisLine = false;
+    Output::usingCustomAlignAndPrefix = false;
+    Output::prefix = nullptr;
+    Output::align = 0;
 }

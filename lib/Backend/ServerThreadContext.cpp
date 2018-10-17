@@ -169,6 +169,12 @@ ServerThreadContext::CanCreatePreReservedSegment() const
     return m_canCreatePreReservedSegment;
 }
 
+void
+ServerThreadContext::SetCanCreatePreReservedSegment(bool value)
+{
+    m_canCreatePreReservedSegment = value;
+}
+
 bool
 ServerThreadContext::IsNumericProperty(Js::PropertyId propertyId)
 {

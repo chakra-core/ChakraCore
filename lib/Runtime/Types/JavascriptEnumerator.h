@@ -37,10 +37,7 @@ namespace Js {
         // as a reference and then remove it. If you have already made the edits before
         // seeing this comment please just consolidate the changes.
         virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) = 0;
-
-
-        static bool Is(Var aValue);
-        static JavascriptEnumerator* FromVar(Var varValue);
-        static JavascriptEnumerator* UnsafeFromVar(Var varValue);
     };
+
+    template <> bool VarIsImpl<JavascriptEnumerator>(RecyclableObject* obj);
 }

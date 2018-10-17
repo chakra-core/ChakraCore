@@ -289,7 +289,7 @@ public:
         ULONG Data
         )
     {
-        NT_ASSERT(m_Offset < m_MaxOffset);
+        Assert(m_Offset < m_MaxOffset);
         m_BasePtr[m_Offset++] = Data;
         return 4;
     }
@@ -417,7 +417,7 @@ public:
     ULONG
     Encode() const
     {
-        NT_ASSERT(!IsExtended());
+        Assert(!IsExtended());
         return (((ShiftType() & 3) << 22) |
                  (RawRegister() << 16) |
                  (ShiftCount() << 10));
@@ -426,7 +426,7 @@ public:
     ULONG
     EncodeExtended() const
     {
-        NT_ASSERT(IsExtended());
+        Assert(IsExtended());
         return (((RawRegister() << 16) |
                  (ShiftType() & 7) << 13) |
                  (ShiftCount() << 10));
@@ -440,7 +440,7 @@ protected:
         )
     {
         UNREFERENCED_PARAMETER(Reg);
-        NT_ASSERT(Reg >= ARMREG_FIRST && Reg <= ARMREG_LAST);
+        Assert(Reg >= ARMREG_FIRST && Reg <= ARMREG_LAST);
     }
 
     static
@@ -452,12 +452,12 @@ protected:
     {
         UNREFERENCED_PARAMETER(Type);
         UNREFERENCED_PARAMETER(Amount);
-        NT_ASSERT(Type != SHIFT_NONE || Amount == 0);
-        NT_ASSERT(Type != SHIFT_LSL || (Amount >= 0 && Amount <= 63));
-        NT_ASSERT(Type != SHIFT_LSR || (Amount >= 0 && Amount <= 63));
-        NT_ASSERT(Type != SHIFT_ASR || (Amount >= 0 && Amount <= 63));
-        NT_ASSERT(Type != SHIFT_ROR || (Amount >= 0 && Amount <= 63));
-        NT_ASSERT(Type < EXTEND_UXTB || (Amount >= 0 && Amount <= 4));
+        Assert(Type != SHIFT_NONE || Amount == 0);
+        Assert(Type != SHIFT_LSL || (Amount >= 0 && Amount <= 63));
+        Assert(Type != SHIFT_LSR || (Amount >= 0 && Amount <= 63));
+        Assert(Type != SHIFT_ASR || (Amount >= 0 && Amount <= 63));
+        Assert(Type != SHIFT_ROR || (Amount >= 0 && Amount <= 63));
+        Assert(Type < EXTEND_UXTB || (Amount >= 0 && Amount <= 4));
     }
 
     ULONG m_Encoded;
@@ -482,7 +482,7 @@ public:
         )
         : Arm64RegisterParam(Src.Register())
     {
-        NT_ASSERT(Src.IsRegOnly());
+        Assert(Src.IsRegOnly());
     }
 
     bool
@@ -531,7 +531,7 @@ public:
     ~ArmBranchLinker()
     {
         if (HasInstruction() && HasTarget()) {
-            NT_ASSERT(m_Resolved);
+            Assert(m_Resolved);
         }
     }
     
@@ -560,7 +560,7 @@ public:
         ULONG InstructionOffset
         )
     {
-        NT_ASSERT(InstructionOffset % 4 == 0);
+        Assert(InstructionOffset % 4 == 0);
         m_InstructionOffset = InstructionOffset / 4;
     }
 
@@ -587,7 +587,7 @@ public:
         INT32 OffsetFromEmitterBase
         )
     {
-        NT_ASSERT(OffsetFromEmitterBase % 4 == 0);
+        Assert(OffsetFromEmitterBase % 4 == 0);
         m_TargetOffset = OffsetFromEmitterBase / 4;
     }
     
@@ -607,7 +607,7 @@ public:
         )
     {
         ULONG_PTR Delta = ULONG_PTR(Target) - ULONG_PTR(Emitter.GetEmitAreaBase());
-        NT_ASSERT(INT32(Delta) == Delta);
+        Assert(INT32(Delta) == Delta);
         SetTarget(INT32(Delta));
         Resolve(Emitter);
     }
@@ -667,7 +667,7 @@ public:
         } else if ((Instruction & 0x7e000000) == 0x36000000) {
             Class = CLASS_IMM14;
         } else {
-            NT_ASSERT(FALSE);
+            Assert(FALSE);
             return;
         }
         
@@ -688,23 +688,23 @@ private:
         switch (m_BranchClass) {
         
         case CLASS_IMM26:
-            NT_ASSERT(((INT32(Delta << (32-26))) >> (32-26)) == Delta);
-            NT_ASSERT((Instruction & 0x03ffffff) == 0);
-            NT_ASSERT((Instruction & 0x7c000000) == 0x14000000);
+            Assert(((INT32(Delta << (32-26))) >> (32-26)) == Delta);
+            Assert((Instruction & 0x03ffffff) == 0);
+            Assert((Instruction & 0x7c000000) == 0x14000000);
             Instruction = (Instruction & 0xfc000000) | (Delta & 0x03ffffff);
             break;
         
         case CLASS_IMM19:
-            NT_ASSERT(((INT32(Delta << (32-19))) >> (32-19)) == Delta);
-            NT_ASSERT((Instruction & 0x00ffffe0) == 0);
-            NT_ASSERT((Instruction & 0xff000000) == 0x54000000 || (Instruction & 0x7e000000) == 0x34000000);
+            Assert(((INT32(Delta << (32-19))) >> (32-19)) == Delta);
+            Assert((Instruction & 0x00ffffe0) == 0);
+            Assert((Instruction & 0xff000000) == 0x54000000 || (Instruction & 0x7e000000) == 0x34000000);
             Instruction = (Instruction & 0xff00001f) | ((Delta << 5) & 0x00ffffe0);
             break;
         
         case CLASS_IMM14:
-            NT_ASSERT(((INT32(Delta << (32-14))) >> (32-14)) == Delta);
-            NT_ASSERT((Instruction & 0x0007ffe0) == 0);
-            NT_ASSERT((Instruction & 0x7e000000) == 0x36000000);
+            Assert(((INT32(Delta << (32-14))) >> (32-14)) == Delta);
+            Assert((Instruction & 0x0007ffe0) == 0);
+            Assert((Instruction & 0x7e000000) == 0x36000000);
             Instruction = (Instruction & 0xfff8001f) | ((Delta << 5) & 0x0007ffe0);
             break;
         }
@@ -830,7 +830,7 @@ EmitMrs(
     )
 {
 
-    NT_ASSERT(SystemReg < (1 << 15));
+    Assert(SystemReg < (1 << 15));
 
     return Emitter.EmitFourBytes(0xd5300000 | (SystemReg << 5) | Dest.RawRegister());
 }
@@ -849,7 +849,7 @@ EmitMsr(
     )
 {
 
-    NT_ASSERT(SystemReg < (1 << 15));
+    Assert(SystemReg < (1 << 15));
 
     return Emitter.EmitFourBytes(0xd5100000 | (SystemReg << 5) | Source.RawRegister());
 }
@@ -866,8 +866,8 @@ BranchOpcode(
 
 {
 
-    NT_ASSERT((Offset >= -(1 << 25)) && (Offset < (1 << 25)));
-    NT_ASSERT((Offset & 0x3) == 0);
+    Assert((Offset >= -(1 << 25)) && (Offset < (1 << 25)));
+    Assert((Offset & 0x3) == 0);
 
     LONG OffsetInWords = (Offset / 4);
 
@@ -976,7 +976,7 @@ EmitTbz(
     ArmBranchLinker &Linker
     )
 {
-    //NT_ASSERT(Bit >= 0 && Bit <= 63);
+    //Assert(Bit >= 0 && Bit <= 63);
 
     return EmitBranchCommon(Emitter, Linker, CLASS_IMM14,
             0x36000000 | ((Bit >> 5) << 31) | ((Bit & 0x1f) << 19) | Reg.RawRegister());
@@ -991,7 +991,7 @@ EmitTbnz(
     ArmBranchLinker &Linker
     )
 {
-    //NT_ASSERT(Bit >= 0 && Bit <= 63);
+    //Assert(Bit >= 0 && Bit <= 63);
 
     return EmitBranchCommon(Emitter, Linker, CLASS_IMM14,
             0x37000000 | ((Bit >> 5) << 31) | ((Bit & 0x1f) << 19) | Reg.RawRegister());
@@ -1046,14 +1046,14 @@ EmitAddSubRegisterCommon(
     UINT32 ExtendedOpcode
     )
 {
-    NT_ASSERT(Src2.ShiftType() != SHIFT_ROR);
+    Assert(Src2.ShiftType() != SHIFT_ROR);
 
     //
     // ADD/SUB (shifted register)
     //
 
     if (Src2.IsExtended()) {
-        NT_ASSERT(ExtendedOpcode != 0);
+        Assert(ExtendedOpcode != 0);
         return Emitter.EmitFourBytes(ExtendedOpcode | Src2.EncodeExtended() | (Src1.RawRegister() << 5) | Dest.RawRegister());
     } else {
         return Emitter.EmitFourBytes(Opcode | Src2.Encode() | (Src1.RawRegister() << 5) | Dest.RawRegister());
@@ -2150,9 +2150,9 @@ EmitBfi(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 31);
-    NT_ASSERT(Width >= 1 && Width <= 32);
-    NT_ASSERT(Lsb + Width <= 32);
+    Assert(Lsb <= 31);
+    Assert(Width >= 1 && Width <= 32);
+    Assert(Lsb + Width <= 32);
 
     return EmitBfm(Emitter, Dest, Src, (32 - Lsb) % 32, Width - 1);
 }
@@ -2167,9 +2167,9 @@ EmitBfi64(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 63);
-    NT_ASSERT(Width >= 1 && Width <= 64);
-    NT_ASSERT(Lsb + Width <= 64);
+    Assert(Lsb <= 63);
+    Assert(Width >= 1 && Width <= 64);
+    Assert(Lsb + Width <= 64);
 
     return EmitBfm64(Emitter, Dest, Src, (64 - Lsb) % 64, Width - 1);
 }
@@ -2184,9 +2184,9 @@ EmitBfxil(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 31);
-    NT_ASSERT(Width >= 1 && Width <= 32);
-    NT_ASSERT(Lsb + Width <= 32);
+    Assert(Lsb <= 31);
+    Assert(Width >= 1 && Width <= 32);
+    Assert(Lsb + Width <= 32);
 
     return EmitBfm(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2201,9 +2201,9 @@ EmitBfxil64(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 63);
-    NT_ASSERT(Width >= 1 && Width <= 64);
-    NT_ASSERT(Lsb + Width <= 64);
+    Assert(Lsb <= 63);
+    Assert(Width >= 1 && Width <= 64);
+    Assert(Lsb + Width <= 64);
 
     return EmitBfm64(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2218,9 +2218,9 @@ EmitSbfx(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 31);
-    NT_ASSERT(Width >= 1 && Width <= 32);
-    NT_ASSERT(Lsb + Width <= 32);
+    Assert(Lsb <= 31);
+    Assert(Width >= 1 && Width <= 32);
+    Assert(Lsb + Width <= 32);
 
     return EmitSbfm(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2235,9 +2235,9 @@ EmitSbfx64(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 63);
-    NT_ASSERT(Width >= 1 && Width <= 64);
-    NT_ASSERT(Lsb + Width <= 64);
+    Assert(Lsb <= 63);
+    Assert(Width >= 1 && Width <= 64);
+    Assert(Lsb + Width <= 64);
 
     return EmitSbfm64(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2252,9 +2252,9 @@ EmitUbfx(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 31);
-    NT_ASSERT(Width >= 1 && Width <= 32);
-    NT_ASSERT(Lsb + Width <= 32);
+    Assert(Lsb <= 31);
+    Assert(Width >= 1 && Width <= 32);
+    Assert(Lsb + Width <= 32);
 
     return EmitUbfm(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2269,9 +2269,9 @@ EmitUbfx64(
     ULONG Width
     )
 {
-    NT_ASSERT(Lsb <= 63);
-    NT_ASSERT(Width >= 1 && Width <= 64);
-    NT_ASSERT(Lsb + Width <= 64);
+    Assert(Lsb <= 63);
+    Assert(Width >= 1 && Width <= 64);
+    Assert(Lsb + Width <= 64);
 
     return EmitUbfm64(Emitter, Dest, Src, Lsb, Lsb + Width - 1);
 }
@@ -2291,7 +2291,7 @@ EmitAsrImmediate(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 32);
+    Assert(Immediate < 32);
     return EmitSbfm(Emitter, Dest, Src, Immediate, 31);
 }
 
@@ -2304,7 +2304,7 @@ EmitAsrImmediate64(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 64);
+    Assert(Immediate < 64);
     return EmitSbfm64(Emitter, Dest, Src, Immediate, 63);
 }
 
@@ -2317,7 +2317,7 @@ EmitLslImmediate(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 32);
+    Assert(Immediate < 32);
     return EmitUbfm(Emitter, Dest, Src, 32 - Immediate, 31 - Immediate);
 }
 
@@ -2330,7 +2330,7 @@ EmitLslImmediate64(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 64);
+    Assert(Immediate < 64);
     return EmitUbfm64(Emitter, Dest, Src, 64 - Immediate, 63 - Immediate);
 }
 
@@ -2343,7 +2343,7 @@ EmitLsrImmediate(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 32);
+    Assert(Immediate < 32);
     return EmitUbfm(Emitter, Dest, Src, Immediate, 31);
 }
 
@@ -2356,7 +2356,7 @@ EmitLsrImmediate64(
     ULONG64 Immediate
     )
 {
-    NT_ASSERT(Immediate < 64);
+    Assert(Immediate < 64);
     return EmitUbfm64(Emitter, Dest, Src, Immediate, 63);
 }
 
@@ -2400,7 +2400,7 @@ EmitRorImmediate(
     ULONG Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 32);
+    //Assert(Immediate >= 0 && Immediate < 32);
     return EmitExtr(Emitter, Dest, Src, Src, Immediate);
 }
 
@@ -2413,7 +2413,7 @@ EmitRorImmediate64(
     ULONG Immediate
     )
 {
-    //NT_ASSERT(Immediate >= 0 && Immediate < 64);
+    //Assert(Immediate >= 0 && Immediate < 64);
     return EmitExtr64(Emitter, Dest, Src, Src, Immediate);
 }
 
@@ -2747,8 +2747,8 @@ EmitMovImmediateCommon(
     ULONG Opcode
     )
 {
-    NT_ASSERT(Shift % 16 == 0);
-    NT_ASSERT(Shift / 16 < 4);
+    Assert(Shift % 16 == 0);
+    Assert(Shift / 16 < 4);
     return Emitter.EmitFourBytes(Opcode | ((Shift / 16) << 21) | ((Immediate & 0xffff) << 5) | Dest.RawRegister());
 }
 
@@ -3531,7 +3531,7 @@ EmitLdrStrRegisterCommon(
     )
 {
 
-    NT_ASSERT(Index.IsExtended() || Index.ShiftType() == SHIFT_LSL || Index.ShiftType() == SHIFT_NONE);
+    Assert(Index.IsExtended() || Index.ShiftType() == SHIFT_LSL || Index.ShiftType() == SHIFT_NONE);
 
     //
     // Choose an extend type, mapping NONE/LSL to UXTX.
@@ -4045,7 +4045,7 @@ EmitLdpOffset(
     LONG Offset
     )
 {
-    NT_ASSERT(Dest1.RawRegister() != Dest2.RawRegister());
+    Assert(Dest1.RawRegister() != Dest2.RawRegister());
     return EmitLdpStpOffsetCommon(Emitter, Dest1, Dest2, Addr, Offset, 2, 0x29400000);
 }
 
@@ -4059,7 +4059,7 @@ EmitLdpOffset64(
     LONG Offset
     )
 {
-    NT_ASSERT(Dest1.RawRegister() != Dest2.RawRegister());
+    Assert(Dest1.RawRegister() != Dest2.RawRegister());
     return EmitLdpStpOffsetCommon(Emitter, Dest1, Dest2, Addr, Offset, 3, 0xa9400000);
 }
 

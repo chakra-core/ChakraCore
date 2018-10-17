@@ -1,0 +1,23 @@
+INLINING : Found callback def instr for call/apply target callback at	CallSite: 0	Caller: DispatchCallWithThis ( (#1.2), #3)
+INLINING CALLBACK : Inlining callback for call/apply target : 	BailOut ( (#1.1), #2)
+BailOut: function BailOut, Opcode: BoundCheck Kind: BailOutOnNotNativeArray
+BailOut: function DispatchCallWithThis, Opcode: InlineeEnd Kind: BailOutOnNotNativeArray
+BailOut: function DispatchBailout, Opcode: InlineeEnd Kind: BailOutOnNotNativeArray
+foo
+foo
+INLINING : Found callback def instr for call/apply target callback at	CallSite: 0	Caller: Dispatch ( (#1.5), #6)
+INLINING CALLBACK : Inlining callback for call/apply target : 	foo ( (#1.4), #5)
+foo
+BailOut: function Dispatch, Opcode: BailOnNotEqual Kind: BailOutOnInlineFunction
+bar
+BailOut: function CallDispatch, Opcode: InlineeEnd Kind: BailOutOnInlineFunction
+foo
+BailOut: function Dispatch, Opcode: CheckFixedFld Kind: BailOutFailedEquivalentFixedFieldTypeCheck
+foo
+BailOut: function CallDispatch, Opcode: InlineeEnd Kind: BailOutFailedEquivalentFixedFieldTypeCheck
+BailOut: function Dispatch, Opcode: CheckFixedFld Kind: BailOutFailedEquivalentFixedFieldTypeCheck
+foo
+BailOut: function CallDispatch, Opcode: InlineeEnd Kind: BailOutFailedEquivalentFixedFieldTypeCheck
+INLINING : Found callback def instr for call/apply target callback at	CallSite: 0	Caller: Dispatch ( (#1.5), #6)
+INLINING: Skip Inline: Skipping callback.call target inlining, did not get fixed method for call 	Inlinee: foo ( (#1.4), #5)	Caller: Dispatch	( (#1.5), #6) 	Top Func:CallDispatch	( (#1.6), #7)
+foo

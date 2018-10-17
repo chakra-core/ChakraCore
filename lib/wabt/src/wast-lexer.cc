@@ -447,8 +447,10 @@ Token WastLexer::GetToken(WastParser* parser) {
       <i> "i64.reinterpret/f64" { RETURN_OPCODE(Convert, I64ReinterpretF64); }
       <i> "select"              { RETURN_OPCODE0(Select); }
       <i> "unreachable"         { RETURN_OPCODE0(Unreachable); }
-      <i> "current_memory"      { RETURN_OPCODE0(CurrentMemory); }
-      <i> "grow_memory"         { RETURN_OPCODE0(GrowMemory); }
+      <i> "memory.size"         { RETURN_OPCODE0(MemorySize); }
+      <i> "memory.grow"         { RETURN_OPCODE0(MemoryGrow); }
+      <i> "current_memory"      { RETURN_OPCODE0(MemorySize); }
+      <i> "grow_memory"         { RETURN_OPCODE0(MemoryGrow); }
 
       <i> "i32.atomic.wait"     { RETURN_OPCODE(AtomicWait, I32AtomicWait); }
       <i> "i64.atomic.wait"     { RETURN_OPCODE(AtomicWait, I64AtomicWait); }

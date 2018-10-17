@@ -71,7 +71,7 @@ var tests = [
             assert.throws(function () { eval("function* gf() { +yield 2; }"); }, SyntaxError, "yield with operand cannot appear in UnaryExpression -- e.g. operand of unary +", "Syntax error");
             assert.throws(function () { eval("function* gf() { +yield* 'foo'; }"); }, SyntaxError, "yield* with operand cannot appear in UnaryExpression -- e.g. operand of unary +", "Syntax error");
 
-            assert.throws(function () { eval("function* gf() { yield++; }"); }, SyntaxError, "yield cannot appear in PostfixExpression -- e.g. operand of postfix ++", "Syntax error");
+            assert.throws(function () { eval("function* gf() { yield++; }"); }, SyntaxError, "yield cannot appear in PostfixExpression -- e.g. operand of postfix ++", "Unexpected token ';' after '++'");
         }
     },
     {
@@ -193,7 +193,7 @@ var tests = [
     {
         name: "yield is a keyword and disallowed within arrow function parameter syntax",
         body: function () {
-            assert.throws(function () { eval("function* gf() { var a = yield => { }; }"); }, SyntaxError, "yield cannot appear as the formal name of an unparenthesized arrow function parameter list", "Syntax error");
+            assert.throws(function () { eval("function* gf() { var a = yield => { }; }"); }, SyntaxError, "yield cannot appear as the formal name of an unparenthesized arrow function parameter list", "Unexpected token '=>' after 'yield'");
             assert.throws(function () { eval("function* gf() { var a = (yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (single formal)", "The use of a keyword for an identifier is invalid");
             assert.throws(function () { eval("function* gf() { var a = (x, y, yield) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (middle formal)", "The use of a keyword for an identifier is invalid");
             assert.throws(function () { eval("function* gf() { var a = (x, yield, y) => { }; }"); }, SyntaxError, "yield cannot appear as a formal name within parenthesized arrow function parameter list (last formal)", "The use of a keyword for an identifier is invalid");
@@ -212,6 +212,14 @@ var tests = [
             assert.throws(function () { eval("function *gf() { (a = (yield) => {}) => {}; }"); }, SyntaxError, "yield expression is disallowed within arrow function default parameter expression in nested case too", "The use of a keyword for an identifier is invalid");
         }
     },
+    {
+        name : "yield is allowed before 'in' in a for loop control but not elsewhere bug issue #5203",
+        body : function () {
+            assert.doesNotThrow(function () { eval("function* gf() {for(var a = yield in {});}"); }, "Yield is allowed before 'in' in a for loop");
+            assert.throws(function () { eval("function* gf() {var a = yield in {};}"); }, SyntaxError, "Yield is not allowed before 'in' when not declaring a loop");
+            assert.throws(function () { eval("function* gf() {yield in {};}"); }, SyntaxError, "Yield is not allowed before 'in' when not declaring a loop");
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

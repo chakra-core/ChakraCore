@@ -1847,6 +1847,10 @@ FlowGraph::Destroy(void)
             }
         }
         NEXT_BLOCK;
+    }
+#endif
+    if (fHasTry)
+    {
         FOREACH_BLOCK_ALL(block, this)
         {
             if (block->GetFirstInstr()->IsLabelInstr())
@@ -1861,8 +1865,6 @@ FlowGraph::Destroy(void)
             }
         } NEXT_BLOCK;
     }
-#endif
-
     this->func->isFlowGraphValid = false;
 }
 
@@ -3419,7 +3421,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
         *       - When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
         */
         Js::OpCode opcode = instr->m_opcode;
-        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
+        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt() &&
             globOpt->CurrentBlockData()->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
         {
             IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
@@ -3956,7 +3958,6 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     }
 
     IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr);
-    cmpInstr->InsertAfter(bytecodeInstr);
 
     if (cmpSrc1 != newSrc1)
     {
@@ -3995,6 +3996,7 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         }
     }
 
+    cmpInstr->InsertBefore(bytecodeInstr);
     return true;
 }
 
@@ -4854,13 +4856,15 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
             if (branchTarget != this->GetLastInstr()->GetNextRealInstrOrLabel())
             {
                 IR::Instr* lastInstr = this->GetLastInstr();
+                // We add an empty ByteCodeUses with correct bytecodeoffset, for correct info on a post-op bailout of the previous instr
+                IR::Instr* emptyByteCodeUse = IR::ByteCodeUsesInstr::New(lastInstr->m_func, lastInstr->GetByteCodeOffset());
+                lastInstr->InsertAfter(emptyByteCodeUse);
                 IR::BranchInstr * newBranch = IR::BranchInstr::New(Js::OpCode::Br, branchTarget, branchTarget->m_func);
-                newBranch->SetByteCodeOffset(lastInstr);
                 if (lastInstr->IsBranchInstr())
                 {
                     globOpt->ConvertToByteCodeUses(lastInstr);
                 }
-                this->GetLastInstr()->InsertAfter(newBranch);
+                emptyByteCodeUse->InsertAfter(newBranch);
                 globOpt->func->m_fg->AddEdge(this, branchTarget->GetBasicBlock());
                 this->IncrementDataUseCount();
             }

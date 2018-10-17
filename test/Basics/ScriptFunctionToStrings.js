@@ -11,16 +11,18 @@ var tests = [
         name: "function declaration test",
         body: function ()
         {
-            eval("function \n\t\r foo() {var a = 5;}");
-            assert.areEqual("function foo() {var a = 5;}", foo.toString(), "toString should remove all extra whitespace, new lines, tabs and carriage return before the open (");
+            var s = "function \n\t\r foo() {var a = 5;}";
+            eval(s);
+            assert.areEqual(s, foo.toString(), "Function.toString should preserve original formatting");
         }
     },
     {
         name: "function assignment test",
         body: function ()
         {
-            eval("var a = function \t\n\r\t foo() {var a = 5;}");
-            assert.areEqual("function foo() {var a = 5;}", a.toString(), "toString should remove all extra whitespace, new lines, tabs and carriage return before the open (");
+            var s = "function \t\n\r\t foo() {var a = 5;}";
+            eval("var a = " + s);
+            assert.areEqual(s, a.toString(), "Function.toString should preserve original formatting");
             a = function (i) { i++; }
             assert.areEqual("function (i) { i++; }", a.toString(), "toString should add a space if one does not exist");
         }
@@ -29,49 +31,58 @@ var tests = [
         name: "generator function declaration test",
         body: function ()
         {
-            eval("function* \t\r\n  foo() {var a = 5;}");
-            assert.areEqual("function* foo() {var a = 5;}", foo.toString(), "toString should remove all extra whitespace, new lines, tabs and carriage return before the open (");
-            eval("function \t\r\n*\n\r\n \t foo() {var a = 5;}");
-            assert.areEqual("function* foo() {var a = 5;}", foo.toString(), "toString should remove all extra whitespace,  new lines, tabs and carriage return before the open (");
+            var s = "function* \t\r\n  foo() {var a = 5;}";
+            eval(s);
+            assert.areEqual(s, foo.toString(), "Function.toString should preserve original formatting");
+            s = "function \t\r\n*\n\r\n \t foo() {var a = 5;}";
+            eval(s);
+            assert.areEqual(s, foo.toString(), "Function.toString should preserve original formatting");
         }
     },
     {
         name: "generator function assignment test",
         body: function ()
         {
-            eval("var a = function* \t\n\r  \t foo() {var a = 5;}");
-            assert.areEqual("function* foo() {var a = 5;}", a.toString(), "toString should remove all extra whitespace, new lines, tabs and carriage return before the open (");
-            eval("var a = function \t\n\r  *  \t\n foo() {var a = 5;}");
-            assert.areEqual("function* foo() {var a = 5;}", a.toString(), "toString should remove all extra whitespace, new lines, tabs and carriage return before the open (");
+            var s = "function* \t\n\r  \t foo() {var a = 5;}";
+            eval("var a = " + s);
+            assert.areEqual(s, a.toString(), "Function.toString should preserve original formatting");
+            s = "function \t\n\r  *  \t\n foo() {var a = 5;}";
+            eval("var a = " + s);
+            assert.areEqual(s, a.toString(), "Function.toString should preserve original formatting");
         }
     },
     {
         name: "Named function expression tests",
         body: function ()
         {
-            eval("var o = { foo : function \n\t bar \t () {}}");
-            eval("o.e = function \t qui \t () {}");
-            assert.areEqual("function bar() {}", o.foo.toString(), "confirm that the foo identifier does not override the name bar ");
-            assert.areEqual("function qui() {}", o.e.toString(), "confirm that the foo identifier does not override the name qui");
+            var s1 = "function \n\t bar \t () {}";
+            var s2 = "function \t qui \t () {}";
+            eval("var o = { foo : " + s1 + "}");
+            eval("o.e = " + s2);
+            assert.areEqual(s1, o.foo.toString(), "confirm that the foo identifier does not override the name bar ");
+            assert.areEqual(s2, o.e.toString(), "confirm that the foo identifier does not override the name qui");
         }
     },
     {
         name: "function expression tests without names",
         body: function ()
         {
-            eval("var o = { foo : function \n\t  \t () {}}");
-            eval("o.e = function \t  \t () {}");
-            assert.areEqual("function () {}", o.foo.toString(), "confirm that the foo identifier does not override the name bar ");
-            assert.areEqual("function () {}", o.e.toString(), "confirm that the foo identifier does not override the name qui");
+            var s1 = "function \n\t  \t () {}";
+            var s2 = "function \t  \t () {}";
+            eval("var o = { foo : " + s1 + "}");
+            eval("o.e = " + s2);
+            assert.areEqual(s1, o.foo.toString(), "confirm that the foo identifier does not override the name bar ");
+            assert.areEqual(s2, o.e.toString(), "confirm that the foo identifier does not override the name qui");
         }
     },
     {
         name: "internal function test",
         body: function ()
         {
-            eval("function foo() { return foo.toString(); }");
+            var s = "function foo() { return foo.toString(); }";
+            eval(s);
             var a = foo;
-            assert.areEqual("function foo() { return foo.toString(); }", a(), "confirm that even if we call toString internally it has no effect on the name")
+            assert.areEqual(s, a(), "confirm that even if we call toString internally it has no effect on the name")
         }
     },
     {
@@ -112,9 +123,8 @@ var tests = [
         name: "shorthand method function test",
         body: function ()
         {
-            // TODO update this test after fixing output (see Microsoft/ChakraCore#2914: Incorrect Function toString for methods declared with string in brackets)
             var o = { ['f']() { }, g() { } };
-            assert.areEqual("f() { }", o.f.toString());
+            assert.areEqual("['f']() { }", o.f.toString());
         }
     },
     {

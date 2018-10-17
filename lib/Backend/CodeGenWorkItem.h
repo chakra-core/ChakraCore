@@ -213,12 +213,11 @@ public:
     {
         const WCHAR* name = functionBody->GetExternalDisplayName();
         size_t nameSizeInChars = wcslen(name) + 1;
-        size_t sizeInBytes = nameSizeInChars * sizeof(WCHAR);
-        if(displayName == NULL || sizeInChars < nameSizeInChars)
+        if (displayName == NULL || sizeInChars < nameSizeInChars)
         {
-           return nameSizeInChars;
+            return nameSizeInChars;
         }
-        js_wmemcpy_s(displayName, sizeInChars, name, sizeInBytes);
+        js_wmemcpy_s(displayName, nameSizeInChars, name, nameSizeInChars);
         return nameSizeInChars;
     }
 

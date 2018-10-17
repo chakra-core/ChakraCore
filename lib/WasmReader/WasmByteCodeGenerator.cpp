@@ -11,6 +11,7 @@
 #include "EmptyWasmByteCodeWriter.h"
 #include "ByteCode/ByteCodeDumper.h"
 #include "AsmJsByteCodeDumper.h"
+#include "Language/InterpreterStackFrame.h"
 
 #if DBG_DUMP
 #define DebugPrintOp(op) if (DO_WASM_TRACE_BYTECODE) { PrintOpBegin(op); }
@@ -429,6 +430,8 @@ void WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     readerInfo->m_funcInfo = wasmInfo;
     readerInfo->m_module = m_module;
 
+    Js::WasmLibrary::ResetFunctionBodyDefaultEntryPoint(body);
+
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
     info->SetWebAssemblyModule(m_module);
@@ -770,15 +773,15 @@ void WasmBytecodeGenerator::EmitExpr(WasmOp op)
         break;
     case wbNop:
         return;
-    case wbCurrentMemory:
+    case wbMemorySize:
     {
         SetUsesMemory(0);
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
-        m_writer->AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
+        m_writer->AsmReg1(Js::OpCodeAsmJs::MemorySize_Int, tempReg);
         break;
     }
-    case wbGrowMemory:
+    case wbMemoryGrow:
     {
         info = EmitGrowMemory();
         break;

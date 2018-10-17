@@ -13,14 +13,14 @@ template <class T>
 class WeightedTable
 {
 public:
-    WeightedTable() :
+    WeightedTable() noexcept :
         entries(nullptr), size(0)
     {
     }
 
     void AddWeightedEntry(T value, unsigned int weight)
     {
-        T * newEntries = static_cast<T *>(realloc(entries, (size + weight) * sizeof(T)));
+        T * newEntries = static_cast<T *>(realloc(entries, ((size_t)size + weight) * sizeof(T)));
         if (newEntries == nullptr)
         {
             // Should throw something better

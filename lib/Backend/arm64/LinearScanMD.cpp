@@ -183,7 +183,7 @@ LinearScanMD::LegalizeDef(IR::Instr * instr)
 
     // Legalize opcodes, etc., but do not expand symbol/indirs with large offsets
     // because we can't safely do this until all loads and stores are in place.
-    LegalizeMD::LegalizeDst(instr, false);
+    LegalizeMD::LegalizeDst(instr);
 }
 
 void
@@ -201,11 +201,11 @@ LinearScanMD::LegalizeUse(IR::Instr * instr, IR::Opnd * opnd)
     // because we can't safely do this until all loads and stores are in place.
     if (opnd == instr->GetSrc1())
     {
-        LegalizeMD::LegalizeSrc(instr, opnd, 1, false);
+        LegalizeMD::LegalizeSrc(instr, opnd, 1);
     }
     else
     {
-        LegalizeMD::LegalizeSrc(instr, opnd, 2, false);
+        LegalizeMD::LegalizeSrc(instr, opnd, 2);
     }
 }
 

@@ -376,19 +376,19 @@
   <test>
     <default>
       <files>ES6_RegExp_specialproperties.js</files>
-      <compile-flags>-ES6Unicode- -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_default.js.dbg.baseline</compile-flags>
+      <compile-flags>-ES6Unicode- -ES2018RegExDotAll- -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_default.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6_RegExp_specialproperties.js</files>
-      <compile-flags>-ES6Unicode -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_unicode.js.dbg.baseline</compile-flags>
+      <compile-flags>-ES6Unicode -ES2018RegExDotAll- -ES6RegExSticky- -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_unicode.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>ES6_RegExp_specialproperties.js</files>
-      <compile-flags>-ES6Unicode- -ES6RegExSticky -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_sticky.js.dbg.baseline</compile-flags>
+      <compile-flags>-ES6Unicode- -ES2018RegExDotAll- -ES6RegExSticky -debuglaunch -inspectmaxstringlength:100 -dbgbaseline:ES6_RegExp_specialproperties_with_sticky.js.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>

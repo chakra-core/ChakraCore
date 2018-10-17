@@ -106,7 +106,12 @@ void PageAllocatorPool::ReturnPageAllocator(PageAllocator* pageAllocator)
 void PageAllocatorPool::IdleCleanup()
 {
     AutoCriticalSection autoCS(&cs);
-    if (Instance)
+    if (Instance
+#ifdef PROFILE_EXEC
+        // profiler keeps persistent reference to page allocators, so we can't cleanup on idle even if the allocators aren't currently being used for JIT
+        && !Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag)
+#endif
+        )
     {
         LARGE_INTEGER liDueTime;
         liDueTime.QuadPart = Js::Configuration::Global.flags.JITServerIdleTimeout * -10000LL; // wait for JITServerIdleTimeout milliseconds to do the cleanup

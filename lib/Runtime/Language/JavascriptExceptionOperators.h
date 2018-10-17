@@ -39,19 +39,19 @@ namespace Js
             void FetchNonUserCodeStatus(ScriptContext *scriptContext);
 
           public:
-            AutoCatchHandlerExists(ScriptContext* scriptContext);
+            AutoCatchHandlerExists(ScriptContext* scriptContext, bool isPromiseHandled = true);
             ~AutoCatchHandlerExists();
         };
 
-        class TryCatchFrameAddrStack
+        class TryHandlerAddrOfReturnAddrStack
         {
           private:
-            void * m_prevTryCatchFrameAddr;
+            void * m_prevTryHandlerAddrOfReturnAddr;
             ThreadContext* m_threadContext;
 
           public:
-            TryCatchFrameAddrStack(ScriptContext* scriptContext, void *frameAddr);
-            ~TryCatchFrameAddrStack();
+            TryHandlerAddrOfReturnAddrStack(ScriptContext* scriptContext, void *addrOfReturnAddr);
+            ~TryHandlerAddrOfReturnAddrStack();
         };
 
         class HasBailedOutPtrStack

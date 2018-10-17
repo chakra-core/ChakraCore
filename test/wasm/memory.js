@@ -32,8 +32,6 @@ function testDetach(buffer) {
   }
 }
 
-
-
 function test({init, max, checkOOM} = {}) {
   if (verbose) {
     print(`Testing memory {init: ${init|0}, max: ${max}}`);
@@ -41,8 +39,8 @@ function test({init, max, checkOOM} = {}) {
   const moduleTxt = `
   (module
     (memory (export "mem") ${init|0} ${max !== undefined ? max|0 : ""})
-    (func (export "grow") (param i32) (result i32) (grow_memory (get_local 0)))
-    (func (export "current") (result i32) (current_memory))
+    (func (export "grow") (param i32) (result i32) (memory.grow (get_local 0)))
+    (func (export "current") (result i32) (memory.size))
     (func (export "load") (param i32) (result i32) (i32.load (get_local 0)))
     (func (export "store") (param i32 i32) (i32.store (get_local 0) (get_local 1)))
   )`;

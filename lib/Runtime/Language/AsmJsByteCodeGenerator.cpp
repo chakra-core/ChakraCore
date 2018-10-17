@@ -421,6 +421,11 @@ namespace Js
 
     EmitExpressionInfo AsmJSByteCodeGenerator::Emit( ParseNode *pnode )
     {
+        if (!ThreadContext::IsCurrentStackAvailable(Js::Constants::MinStackCompile))
+        {
+            throw AsmJsCompilationException(_u("Out of stack space"));
+        }
+
         if( !pnode )
         {
             return EmitExpressionInfo( AsmJsType::Void );

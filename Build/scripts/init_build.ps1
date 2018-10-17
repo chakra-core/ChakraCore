@@ -152,13 +152,7 @@ if ($BranchName -eq "master") {
     $ShortBranch = $BranchName.replace("release/","")
 }
 
-# unless it is a build branch, subdivide the output directory by month
-if ($BranchPath.StartsWith("build")) {
-    $YearAndMonth = ""
-} else {
-    $YearAndMonth = (Get-Date $buildPushDate -Format yyMM) + "\"
-}
-
+$YearAndMonth = (Get-Date $buildPushDate -Format yyMM) + "\"
 $BuildIdentifier = "${buildPushIdString}_${PushDate}_${Username}_${CommitHash}"
 $ComputedDropPathSegment = "${BranchPath}\${YearAndMonth}${BuildIdentifier}"
 $ObjectDirectory = "${BinariesDirectory}\obj\${BuildPlatform}_${BuildConfiguration}"

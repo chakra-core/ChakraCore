@@ -808,7 +808,7 @@ ValueType ValueType::SetArrayTypeId(const Js::TypeId typeId) const
 {
     using namespace Js;
     Assert(IsLikelyArrayOrObjectWithArray());
-    Assert(JavascriptArray::Is(typeId));
+    Assert(JavascriptArray::IsNonES5Array(typeId));
     Assert(typeId == TypeIds_Array || IsLikelyObject() && GetObjectType() == ObjectType::Array); // objects with native arrays are currently not supported
 
     Bits newBits = bits & ~(Bits::NonInts | Bits::NonFloats);
@@ -1100,7 +1100,7 @@ ValueType ValueType::Merge(const Js::Var var) const
                     ? GetInt(false)
                     : ValueType::Float);
     }
-    return Merge(FromObject(RecyclableObject::UnsafeFromVar(var)));
+    return Merge(FromObject(UnsafeVarTo<RecyclableObject>(var)));
 }
 
 ValueType::Bits ValueType::TypeIdToBits[Js::TypeIds_Limit];
@@ -1352,7 +1352,7 @@ ValueType ValueType::FromObject(Js::RecyclableObject *const recyclableObject)
     }
     Assert(DynamicType::Is(typeId)); // all static type IDs have nonzero values in TypeIdToBits
 
-    if(!JavascriptArray::Is(typeId))
+    if(!JavascriptArray::IsNonES5Array(typeId))
     {
         // TODO: Once the issue with loop bodies and uninitialized interpreter local slots is fixed, use FromVar
         DynamicObject *const object = static_cast<DynamicObject *>(recyclableObject);
@@ -1376,7 +1376,7 @@ ValueType ValueType::FromObjectWithArray(Js::DynamicObject *const object)
     Assert(objectArray);
     if(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(objectArray))
         return GetObject(ObjectType::Object);
-    return FromObjectArray(JavascriptArray::FromVar(objectArray));
+    return FromObjectArray(VarTo<JavascriptArray>(objectArray));
 }
 
 ValueType ValueType::FromObjectArray(Js::JavascriptArray *const objectArray)

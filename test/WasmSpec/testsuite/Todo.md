@@ -4,11 +4,11 @@ have a link to an open issue/PR, or be obvious. Comments/corrections/additions
 welcome.
 
 Linear memory semantics:
- - test that newly allocated memory (program start and `grow_memory`) is zeroed
- - test that `grow_memory` does a full 32-bit unsigned check for page-size divisibility
+ - test that newly allocated memory (program start and `memory.grow`) is zeroed
+ - test that `memory.grow` does a full 32-bit unsigned check for page-size divisibility
  - test that load/store addreses are full int32 (or int64), and not OCaml int
  - test that when allocating 4GiB, accessing index -1 fails
- - test that too-big `grow_memory` fails appropriately
+ - test that too-big `memory.grow` fails appropriately
  - test that too-big linear memory initial allocation fails
  - test that one can clobber the entire contents of the linear memory without corrupting: call stack, local variables, program execution.
  - test that an i64 store with 4-byte alignment that's 4 bytes out of bounds traps without storing anything.

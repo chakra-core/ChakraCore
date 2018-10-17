@@ -75,22 +75,23 @@ struct LegalInstrForms
 class LegalizeMD
 {
 public:
-    static void LegalizeInstr(IR::Instr * instr, bool fPostRegAlloc);
-    static void LegalizeDst(IR::Instr * instr, bool fPostRegAlloc);
-    static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
+    static void LegalizeInstr(IR::Instr * instr);
+    static void LegalizeDst(IR::Instr * instr);
+    static void LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum);
 
     static bool LegalizeDirectBranch(IR::BranchInstr *instr, uintptr_t branchOffset);
     static bool LegalizeAdrOffset(IR::Instr *instr, uintptr_t instrOffset);
     static bool LegalizeDataAdr(IR::Instr *instr, uintptr_t dataOffset);
 
 private:
+    static RegNum GetScratchReg(IR::Instr * instr);
     static void LegalizeRegOpnd(IR::Instr* instr, IR::Opnd* opnd);
-    static IR::Instr *LegalizeStore(IR::Instr *instr, LegalForms forms, bool fPostRegAlloc);
-    static IR::Instr *LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * indirOpnd, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms, bool fPostRegAlloc);
-    static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc);
+    static IR::Instr *LegalizeStore(IR::Instr *instr, LegalForms forms);
+    static IR::Instr *LegalizeLoad(IR::Instr *instr, uint opndNum, LegalForms forms);
+    static void LegalizeIndirOffset(IR::Instr * instr, IR::IndirOpnd * indirOpnd, LegalForms forms);
+    static void LegalizeSymOffset(IR::Instr * instr, IR::SymOpnd * indirOpnd, LegalForms forms);
+    static void LegalizeImmed(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, IntConstType immed, LegalForms forms);
+    static void LegalizeLabelOpnd(IR::Instr * instr, IR::Opnd * opnd, uint opndNum);
 
     static inline uint32 ShiftTo16(UIntConstType* immed)
     {
@@ -106,9 +107,9 @@ private:
 
     static void LegalizeLDIMM(IR::Instr * instr, IntConstType immed);
     static void LegalizeLdLabel(IR::Instr * instr, IR::Opnd * opnd);
-    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg, bool fPostRegAlloc);
+    static IR::Instr * GenerateLDIMM(IR::Instr * instr, uint opndNum, RegNum scratchReg);
 
-    static IR::Instr * GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg, bool fPostRegAlloc);
+    static IR::Instr * GenerateHoistSrc(IR::Instr * instr, uint opndNum, Js::OpCode op, RegNum scratchReg);
 
     static void ObfuscateLDIMM(IR::Instr * instrMov, IR::Instr * instrMovt);
     static void EmitRandomNopBefore(IR::Instr * instrMov, UINT_PTR rand, RegNum targetReg);

@@ -191,6 +191,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     allowDispose(false),
     inDisposeWrapper(false),
     hasDisposableObject(false),
+    hasNativeGCHost(false),
     tickCountNextDispose(0),
     transientPinnedObject(nullptr),
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
@@ -939,6 +940,18 @@ Recycler::SetIsInScript(bool isInScript)
 }
 
 bool
+Recycler::HasNativeGCHost() const
+{
+    return this->hasNativeGCHost;
+}
+
+void
+Recycler::SetHasNativeGCHost()
+{
+    this->hasNativeGCHost = true;
+}
+
+bool
 Recycler::NeedOOMRescan() const
 {
     return this->needOOMRescan;
@@ -1681,7 +1694,7 @@ Recycler::ScanStack()
 
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
     // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
-    if (!this->isInScript || this->IsMemProtectMode())
+    if (!this->HasNativeGCHost() && (!this->isInScript || this->IsMemProtectMode()))
     {
         if (doSpecialMark)
         {
@@ -1700,7 +1713,7 @@ Recycler::ScanStack()
     {
         // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
         // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
-        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        // GC while running a script or when we have a host who allocates objects on the Chakra heap.
         if (doSpecialMark)
         {
             ScanMemoryInline<true, true /* forceInterior */>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave
@@ -1716,7 +1729,7 @@ Recycler::ScanStack()
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
     // We will not scan interior pointers on stack if we are not in script or we are in mem-protect mode.
-    if (!this->isInScript || this->IsMemProtectMode())
+    if (!this->HasNativeGCHost() && (!this->isInScript || this->IsMemProtectMode()))
     {
         if (doSpecialMark)
         {
@@ -1733,7 +1746,7 @@ Recycler::ScanStack()
     {
         // We may have interior pointers on the stack such as pointers in the middle of the character buffers backing a JavascriptString or SubString object.
         // To prevent UAFs of these buffers after the GC we will always do MarkInterior for the pointers on stack. This is necessary only when we are doing a
-        // GC while running a script as that is when the possiblity of a UAF after GC exists.
+        // GC while running a script or when we have a host who allocates objects on the Chakra heap.
         if (doSpecialMark)
         {
             ScanMemoryInline<true, true /* forceInterior */>((void**)stackTop, stackScanned
@@ -5707,6 +5720,22 @@ Recycler::FinishConcurrentCollectWrapped(CollectionFlags flags)
     return collected;
 }
 
+
+ /**
+  *  Compute ft1 - ft2, return result as a uint64
+  */
+uint64 DiffFileTimes(LPFILETIME ft1, LPFILETIME ft2)
+{
+    ULARGE_INTEGER ul1;
+    ULARGE_INTEGER ul2;
+    ul1.HighPart = ft1->dwHighDateTime;
+    ul1.LowPart = ft1->dwLowDateTime;
+    ul2.HighPart = ft2->dwHighDateTime;
+    ul2.LowPart = ft2->dwLowDateTime;
+    ULONGLONG result = ul1.QuadPart - ul2.QuadPart;
+    return result;
+}
+
 BOOL
 Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
 {
@@ -5721,8 +5750,22 @@ Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
     }
 
 #ifdef ENABLE_BASIC_TELEMETRY
-    bool isBlockingMainThread = this->telemetryStats.IsOnScriptThread();
-    Js::Tick start = Js::Tick::Now();
+    bool isBlockingMainThread = false;
+    Js::Tick start;
+    FILETIME kernelTime1;
+    FILETIME userTime1;
+    HANDLE hProcess = GetCurrentProcess();
+    if (this->telemetryStats.ShouldStartTelemetryCapture())
+    {
+        isBlockingMainThread = this->telemetryStats.IsOnScriptThread();
+        if (isBlockingMainThread)
+        {
+            start = Js::Tick::Now();
+            FILETIME creationTime;
+            FILETIME exitTime;
+            GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime1, &userTime1);
+        }
+    }
 #endif
 
     DWORD ret = WaitForSingleObject(concurrentWorkDoneEvent, waitTime);
@@ -5732,7 +5775,24 @@ Recycler::WaitForConcurrentThread(DWORD waitTime, RecyclerWaitReason caller)
     {
         Js::Tick end = Js::Tick::Now();
         Js::TickDelta elapsed = end - start;
+
+        FILETIME creationTime;
+        FILETIME exitTime;
+        FILETIME kernelTime2;
+        FILETIME userTime2;
+
+        GetProcessTimes(hProcess, &creationTime, &exitTime, &kernelTime2, &userTime2);
+        uint64 kernelTime = DiffFileTimes(&kernelTime2 , &kernelTime1);
+        uint64 userTime = DiffFileTimes(&userTime2, &userTime1);
+
+        // userTime & kernelTime reported from GetProcessTimes is the number of 100-nanosecond ticks
+        // for consistency convert to microseconds.
+        kernelTime = kernelTime / 10;
+        userTime = userTime / 10;
+
         this->telemetryStats.IncrementUserThreadBlockedCount(elapsed.ToMicroseconds(), caller);
+        this->telemetryStats.IncrementUserThreadBlockedCpuTimeUser(userTime, caller);
+        this->telemetryStats.IncrementUserThreadBlockedCpuTimeKernel(kernelTime, caller);
     }
 #endif
 

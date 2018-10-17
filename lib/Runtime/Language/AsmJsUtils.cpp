@@ -152,7 +152,7 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     int64 ConvertStringToInt64(Var string, ScriptContext* scriptContext)
     {
-        JavascriptString* str = JavascriptString::FromVar(string);
+        JavascriptString* str = VarTo<JavascriptString>(string);
         charcount_t length = str->GetLength();
         const char16* buf = str->GetString();
         int radix = 10;
@@ -197,7 +197,7 @@ namespace Js
                 if (i < actualArgCount)
                 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    if (allowTestInputs && VarIs<JavascriptString>(*origArgs))
                     {
                         intVal = (int32)ConvertStringToInt64(*origArgs, scriptContext);
                     }
@@ -229,13 +229,13 @@ namespace Js
                 int64 val;
                 if (i < actualArgCount)
                 {
-                    if (JavascriptString::Is(*origArgs))
+                    if (VarIs<JavascriptString>(*origArgs))
                     {
                         val = ConvertStringToInt64(*origArgs, scriptContext);
                     }
-                    else if (JavascriptObject::Is(*origArgs))
+                    else if (DynamicObject::IsBaseDynamicObject(*origArgs))
                     {
-                        RecyclableObject* object = RecyclableObject::FromVar(*origArgs);
+                        RecyclableObject* object = VarTo<RecyclableObject>(*origArgs);
                         PropertyRecord const * lowPropRecord = nullptr;
                         PropertyRecord const * highPropRecord = nullptr;
                         scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
@@ -268,7 +268,7 @@ namespace Js
                 if (i < actualArgCount)
                 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    if (allowTestInputs && VarIs<JavascriptString>(*origArgs))
                     {
                         int32 val = (int32)ConvertStringToInt64(*origArgs, scriptContext);
                         floatVal = *(float*)&val;
@@ -293,7 +293,7 @@ namespace Js
                 if (i < actualArgCount)
                 {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    if (allowTestInputs && VarIs<JavascriptString>(*origArgs))
                     {
                         int64 val = ConvertStringToInt64(*origArgs, scriptContext);
                         doubleVal = *(double*)&val;

@@ -6,6 +6,7 @@
 // This file contains stubs needed to make FunctionExecutionTest successfully compile and link as well
 // as a means to emulate behavior of objects that interact with FunctionExecutionStateMachine
 
+#include "..\..\lib\Common\Warnings.h"
 #include "..\..\lib\Common\Core\CommonMinMax.h"
 
 #define ENUM_CLASS_HELPERS(x, y)
@@ -108,6 +109,11 @@ namespace Js
         static size_t Print(const char16 *form, ...) { UNREFERENCED_PARAMETER(form);  return 0; }
     };
 
+    enum DebuggerMode : unsigned int
+    {
+        NotDebugging
+    };
+
     class FunctionBody
     {
     public:
@@ -117,6 +123,7 @@ namespace Js
         uint GetByteCodeCount() const { return 0; }
         uint GetByteCodeInLoopCount() const { return 0; }
         uint GetByteCodeWithoutLDACount() const { return 0; }
+        Js::DebuggerMode GetDebuggerMode() { return (Js::DebuggerMode)0; }
         FunctionEntryPointInfo* GetDefaultFunctionEntryPointInfo() { return &defaultInfo; }
         FunctionEntryPointInfo *GetSimpleJitEntryPointInfo() { return &simpleInfo; }
         void TraceExecutionMode(const char *const eventDescription = nullptr) const { UNREFERENCED_PARAMETER(eventDescription); }

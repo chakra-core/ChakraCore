@@ -135,11 +135,11 @@ private:
     void TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *block);
     void TrackObjTypeSpecWriteGuards(IR::PropertySymOpnd *opnd, BasicBlock *block);
     void TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block);
-    void InsertTypeTransition(IR::Instr *instrInsertBefore, int symId, AddPropertyCacheBucket *data);
-    void InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSym, AddPropertyCacheBucket *data);
-    void InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPropertyCacheBucket *data);
-    void InsertTypeTransitionsAtPriorSuccessors(BasicBlock *block, BasicBlock *blockSucc, int symId, AddPropertyCacheBucket *data);
-    void InsertTypeTransitionAfterInstr(IR::Instr *instr, int symId, AddPropertyCacheBucket *data);
+    void InsertTypeTransition(IR::Instr *instrInsertBefore, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
+    void InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSym, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
+    void InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
+    void InsertTypeTransitionsAtPriorSuccessors(BasicBlock *block, BasicBlock *blockSucc, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
+    void InsertTypeTransitionAfterInstr(IR::Instr *instr, int symId, AddPropertyCacheBucket *data, BVSparse<JitArenaAllocator>* upwardExposedUses);
     void InsertTypeTransitionsAtPotentialKills();
     bool TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const;
 

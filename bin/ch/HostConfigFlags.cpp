@@ -96,6 +96,7 @@ void HostConfigFlags::RemoveArg(int& argc, _Inout_updates_to_(argc, argc) LPWSTR
     Assert(index >= 0 && index < argc);
     for (int i = index + 1; i < argc; ++i)
     {
+#pragma prefast(suppress:__WARNING_READ_OVERRUN, "Operation is safe but PREfast is difficult to convince")
         argv[i - 1] = argv[i];
     }
     --argc;

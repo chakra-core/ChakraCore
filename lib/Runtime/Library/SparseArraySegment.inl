@@ -223,12 +223,18 @@ namespace Js
         return SparseArraySegment<T>::Allocate<isLeaf>(recycler, left, length, size);
     }
 
+    template<>
+    inline Var SparseArraySegment<int32>::GetMissingItemVar()
+    {
+        return JavascriptArray::IntMissingItemVar;
+    }
+
     template<typename T>
     void SparseArraySegment<T>::FillSegmentBuffer(uint32 start, uint32 size)
     {
         // Fill the segment buffer using gp-register-sized stores. Avoid using the FPU for the sake
         // of perf (especially x86).
-        Var fill = JavascriptArray::MissingItem;
+        Var fill = (Var)SparseArraySegment<T>::GetMissingItemVar();
         if (sizeof(Var) > sizeof(T))
         {
             // Pointer size is greater than the element (int32 buffer on x64).

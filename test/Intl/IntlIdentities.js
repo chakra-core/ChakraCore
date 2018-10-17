@@ -42,7 +42,10 @@ let tests = [
         name: "Invoking built-in static methods with `new` fails (check name in error message)",
         body: function () {
             for (let i in staticMethods) {
-                assert.throws(() => new staticMethods[i](), TypeError, "", `Function '${longNames[i]}' is not a constructor`);
+                const expectedMessage = WScript.Platform.INTL_LIBRARY === "icu"
+                    ? "Function is not a constructor"
+                    : `Function '${longNames[i]}' is not a constructor`;
+                assert.throws(() => new staticMethods[i](), TypeError, "", expectedMessage);
             }
         }
     },
@@ -50,8 +53,11 @@ let tests = [
         name: "toString of built-in static methods",
         body: function () {
             for (let i in staticMethods) {
-                assert.areEqual('' + staticMethods[i], expectedToString);
-                assert.areEqual(staticMethods[i].toString(), expectedToString);
+                const expectedMessage = WScript.Platform.INTL_LIBRARY === "icu"
+                    ? `function ${shortNames[i]}() { [native code] }`
+                    : expectedToString;
+                assert.areEqual(expectedMessage, "" + staticMethods[i]);
+                assert.areEqual(expectedMessage, staticMethods[i].toString());
             }
         }
     }

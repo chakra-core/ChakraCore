@@ -1,0 +1,40 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 8,
+        "sourceText": "throw \"err\"",
+        "function": "f2a"
+      },
+      {
+        "line": 28,
+        "column": 8,
+        "sourceText": "var p = f2a()",
+        "function": "f2c"
+      },
+      {
+        "line": 32,
+        "column": 4,
+        "sourceText": "f2c()",
+        "function": "f2"
+      },
+      {
+        "line": 34,
+        "column": 0,
+        "sourceText": "f2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 4,
+        "sourceText": "throw new Error('error in f1')",
+        "function": "f1"
+      }
+    ]
+  }
+]

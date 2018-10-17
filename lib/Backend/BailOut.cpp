@@ -506,6 +506,13 @@ uint32 BailOutRecord::GetArgumentsObjectOffset()
     return argumentsObjectOffset;
 }
 
+Js::FunctionEntryPointInfo *BailOutRecord::GetFunctionEntryPointInfo() const
+{
+    Js::EntryPointInfo* result = this->globalBailOutRecordTable->entryPointInfo;
+    AssertOrFailFast(result->IsFunctionEntryPointInfo());
+    return (Js::FunctionEntryPointInfo*)result;
+}
+
 Js::Var BailOutRecord::EnsureArguments(Js::InterpreterStackFrame * newInstance, Js::JavascriptCallStackLayout * layout, Js::ScriptContext* scriptContext, Js::Var* pArgumentsObject) const
 {
     Assert(globalBailOutRecordTable->hasStackArgOpt);
@@ -569,10 +576,10 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
                         Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] != TyFloat64);
                         value = registerSaveSpace[offset - 1];
                     }
-                    Assert(Js::DynamicObject::Is(value));
+                    Assert(Js::DynamicObject::IsBaseDynamicObject(value));
                     Assert(ThreadContext::IsOnStack(value));
 
-                    Js::DynamicObject * obj = Js::DynamicObject::FromVar(value);
+                    Js::DynamicObject * obj = Js::VarTo<Js::DynamicObject>(value);
                     uint propertyCount = obj->GetPropertyCount();
                     for (uint j = record.initFldCount; j < propertyCount; j++)
                     {
@@ -649,7 +656,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
     if (branchValueRegSlot != Js::Constants::NoRegister)
     {
         // Used when a t1 = CmCC is optimize to BrCC, and the branch bails out. T1 needs to be restored
-        Assert(branchValue && Js::JavascriptBoolean::Is(branchValue));
+        Assert(branchValue && Js::VarIs<Js::JavascriptBoolean>(branchValue));
         Assert(branchValueRegSlot < newInstance->GetJavascriptFunction()->GetFunctionBody()->GetLocalsCount());
         newInstance->m_localSlots[branchValueRegSlot] = branchValue;
     }
@@ -997,7 +1004,7 @@ BailOutRecord::BailOutCommonNoCodeGen(Js::JavascriptCallStackLayout * layout, Ba
     BailOutReturnValue * bailOutReturnValue, void * argoutRestoreAddress)
 {
     Assert(bailOutRecord->parent == nullptr);
-    Assert(Js::ScriptFunction::Is(layout->functionObject));
+    Assert(Js::VarIs<Js::ScriptFunction>(layout->functionObject));
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ArgumentReader args(&layout->callInfo, layout->args);
     Js::Var result = BailOutHelper(layout, functionRef, args, false, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, bailOutReturnValue, layout->GetArgumentsObjectLocation(), branchValue, argoutRestoreAddress);
@@ -1024,7 +1031,7 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Imp
         sizeof(registerSaves));
 
     Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, registerSaves, bailOutReturnValue, argoutRestoreAddress);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1053,7 +1060,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     }
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1069,7 +1076,7 @@ BailOutRecord::BailOutFromLoopBodyCommon(Js::JavascriptCallStackLayout * layout,
     js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
     uint32 result = BailOutFromLoopBodyHelper(layout, bailOutRecord, bailOutOffset, bailOutKind, branchValue, registerSaves);
-    ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind);
+    ScheduleLoopBodyCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), nullptr, bailOutRecord, bailOutKind);
     return result;
 }
 
@@ -1099,7 +1106,7 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
 
     uint32 result = BailOutFromLoopBodyHelper(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset,
         bailOutKind, nullptr, registerSaves, &bailOutReturnValue);
-    ScheduleLoopBodyCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
+    ScheduleLoopBodyCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
     return result;
 }
 
@@ -1111,7 +1118,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
     BailOutReturnValue * lastBailOutReturnValue = nullptr;
     *innerMostInlinee = nullptr;
 
-    Js::FunctionBody* functionBody = Js::ScriptFunction::FromVar(layout->functionObject)->GetFunctionBody();
+    Js::FunctionBody* functionBody = Js::VarTo<Js::ScriptFunction>(layout->functionObject)->GetFunctionBody();
 
     Js::EntryPointInfo *entryPointInfo;
     if(isInLoopBody)
@@ -1155,7 +1162,7 @@ BailOutRecord::BailOutInlinedHelper(Js::JavascriptCallStackLayout * layout, Bail
 
         Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&(inlinedFrame->function);
         AnalysisAssert(*functionRef);
-        Assert(Js::ScriptFunction::Is(inlinedFrame->function));
+        Assert(Js::VarIs<Js::ScriptFunction>(inlinedFrame->function));
 
         if (*innerMostInlinee == nullptr)
         {
@@ -1374,7 +1381,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         // when resuming a generator and not needed when yielding from a generator, as is occurring
         // here.
         AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
-        Js::JavascriptGenerator* generator = Js::JavascriptGenerator::FromVar(args[0]);
+        Js::JavascriptGenerator* generator = Js::VarTo<Js::JavascriptGenerator>(args[0]);
         newInstance = generator->GetFrame();
 
         if (newInstance != nullptr)
@@ -1706,7 +1713,27 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     BailOutRecord * bailOutRecordNotConst = (BailOutRecord *)(void *)bailOutRecord;
     bailOutRecordNotConst->bailOutCount++;
 
-    Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
+    Js::FunctionEntryPointInfo *entryPointInfo = bailOutRecord->GetFunctionEntryPointInfo();
+
+#if DBG
+    // BailOutRecord is not recycler-allocated, so make sure something the recycler can see was keeping the entry point info alive.
+    // We expect the entry point to be kept alive as follows:
+    // 1. The function's current type might still have the same entry point info as when we entered the function (easy case)
+    // 2. The function might have moved to a successor path type, which still keeps the previous type and its entry point info alive
+    // 3. The entry point info might be held by the ThreadContext (QueueFreeOldEntryPointInfoIfInScript):
+    //   a. If the entry point info was replaced on the type that used to hold it (ScriptFunction::ChangeEntryPoint)
+    //   b. If the function's last-added property was deleted and it moved to a previous type (ScriptFunction::ReplaceTypeWithPredecessorType)
+    //   c. If the function's path type got replaced with a dictionary, then all previous entry point infos in that path are queued on the ThreadContext (ScriptFunction::PrepareForConversionToNonPathType)
+    bool foundEntryPoint = false;
+    executeFunction->MapEntryPointsUntil([&](int index, Js::FunctionEntryPointInfo* info)
+    {
+        foundEntryPoint = info == entryPointInfo;
+        return foundEntryPoint;
+    });
+    foundEntryPoint = foundEntryPoint || function->GetScriptContext()->GetThreadContext()->IsOldEntryPointInfo(entryPointInfo);
+    Assert(foundEntryPoint);
+#endif
+
     uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
     RejitReason rejitReason = RejitReason::None;
     bool reThunk = false;
@@ -2235,7 +2262,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         if (bailOutRecord->IsForLoopTop() && IR::IsTypeCheckBailOutKind(bailOutRecord->bailOutKind))
         {
             // Disable FieldPRE if we're triggering a type check rejit due to a bailout at the loop top.
-            // Most likely this was caused by a CheckFixedFld that was hoisted from a branch block where 
+            // Most likely this was caused by a CheckFixedFld that was hoisted from a branch block where
             // only certain types flowed, to the loop top, where more types (different or non-equivalent)
             // were flowing in.
             profileInfo->DisableFieldPRE();

@@ -36,7 +36,7 @@ namespace Js
 
         case TypeIds_Boolean:
             WriteTypeId(
-                JavascriptBoolean::FromVar(src)->GetValue() ? SCA_TrueValue : SCA_FalseValue);
+                VarTo<JavascriptBoolean>(src)->GetValue() ? SCA_TrueValue : SCA_FalseValue);
             break;
 
         case TypeIds_Integer:
@@ -56,14 +56,14 @@ namespace Js
         case TypeIds_Int64Number:
             {
                 WriteTypeId(SCA_Int64Value);
-                m_writer->Write(JavascriptInt64Number::FromVar(src)->GetValue());
+                m_writer->Write(VarTo<JavascriptInt64Number>(src)->GetValue());
             }
             break;
 
         case TypeIds_UInt64Number:
             {
                 WriteTypeId(SCA_Uint64Value);
-                m_writer->Write(JavascriptUInt64Number::FromVar(src)->GetValue());
+                m_writer->Write(VarTo<JavascriptUInt64Number>(src)->GetValue());
             }
             break;
 
@@ -77,7 +77,7 @@ namespace Js
     template <class Writer>
     bool SerializationCloner<Writer>::TryCloneObject(SrcTypeId typeId, Src src, Dst* dst, SCADeepCloneType* deepClone)
     {
-        RecyclableObject* obj = RecyclableObject::FromVar(src);
+        RecyclableObject* obj = VarTo<RecyclableObject>(src);
         scaposition_t beginPos = m_writer->GetPosition();
         *deepClone = SCADeepCloneType::None;
 
@@ -98,7 +98,7 @@ namespace Js
             {
             case TypeIds_String: // Clone string value as object type to resolve multiple references
                 {
-                    JavascriptString* str = JavascriptString::FromVar(obj);
+                    JavascriptString* str = VarTo<JavascriptString>(obj);
                     WriteTypeId(SCA_StringValue);
                     Write(str->GetString(), str->GetLength());
                 }
@@ -131,13 +131,13 @@ namespace Js
             case TypeIds_Date:
                 {
                     WriteTypeId(SCA_DateObject);
-                    m_writer->Write(JavascriptDate::FromVar(src)->GetTime());
+                    m_writer->Write(VarTo<JavascriptDate>(src)->GetTime());
                 }
                 break;
 
             case TypeIds_RegEx:
                 {
-                    JavascriptRegExp* regex = JavascriptRegExp::FromVar(src);
+                    JavascriptRegExp* regex = VarTo<JavascriptRegExp>(src);
                     InternalString str = regex->GetSource();
                     DWORD flags = static_cast<DWORD>(regex->GetFlags());
                     WriteTypeId(SCA_RegExpObject);
@@ -147,20 +147,20 @@ namespace Js
                 break;
 
             case TypeIds_BooleanObject:
-                WriteTypeId(JavascriptBooleanObject::FromVar(src)->GetValue() ?
+                WriteTypeId(VarTo<JavascriptBooleanObject>(src)->GetValue() ?
                     SCA_BooleanTrueObject : SCA_BooleanFalseObject);
                 break;
 
             case TypeIds_NumberObject:
                 {
                     WriteTypeId(SCA_NumberObject);
-                    m_writer->Write(JavascriptNumberObject::FromVar(src)->GetValue());
+                    m_writer->Write(VarTo<JavascriptNumberObject>(src)->GetValue());
                 }
                 break;
 
             case TypeIds_StringObject:
                 {
-                    JavascriptString* str = JavascriptStringObject::FromVar(src)->Unwrap();
+                    JavascriptString* str = VarTo<JavascriptStringObject>(src)->Unwrap();
                     WriteTypeId(SCA_StringObject);
                     Write(str->GetString(), str->GetLength());
                 }
@@ -168,7 +168,7 @@ namespace Js
 
             case TypeIds_ArrayBuffer:
                 {
-                    ArrayBuffer* buf = ArrayBuffer::FromVar(src);
+                    ArrayBuffer* buf = VarTo<ArrayBuffer>(src);
                     WriteTypeId(SCA_ArrayBuffer);
                     Write(buf->GetBuffer(), buf->GetByteLength());
                 }
@@ -189,7 +189,7 @@ namespace Js
                     //    return false;
                     //}
 
-                    SharedArrayBuffer* buf = SharedArrayBuffer::FromVar(src);
+                    SharedArrayBuffer* buf = VarTo<SharedArrayBuffer>(src);
                     SharedContents* sharedContents = buf->GetSharedContents();
                     Assert(buf->IsWebAssemblyArrayBuffer() == sharedContents->IsWebAssembly());
                     sharedContents->AddRef();
@@ -216,14 +216,14 @@ namespace Js
 #ifdef ENABLE_WASM
             case TypeIds_WebAssemblyModule:
                 {
-                    WebAssemblyModule* wasmModule = WebAssemblyModule::FromVar(src);
+                    WebAssemblyModule* wasmModule = VarTo<WebAssemblyModule>(src);
                     WriteTypeId(SCA_WebAssemblyModule);
                     Write(wasmModule->GetBinaryBuffer(), wasmModule->GetBinaryBufferLength());
                 }
                 break;
             case TypeIds_WebAssemblyMemory:
             {
-                WebAssemblyMemory* wasmMem = WebAssemblyMemory::FromVar(src);
+                WebAssemblyMemory* wasmMem = VarTo<WebAssemblyMemory>(src);
                 ArrayBufferBase* buffer = wasmMem->GetBuffer();
                 WriteTypeId(SCA_WebAssemblyMemory);
                 Write(wasmMem->GetInitialLength());
@@ -232,7 +232,7 @@ namespace Js
                 Write((uint32)wasmMem->IsSharedMemory());
                 if (wasmMem->IsSharedMemory())
                 {
-                    WebAssemblySharedArrayBuffer* buf = WebAssemblySharedArrayBuffer::FromVar(buffer);
+                    WebAssemblySharedArrayBuffer* buf = VarTo<WebAssemblySharedArrayBuffer>(buffer);
                     SharedContents* sharedContents = buf->GetSharedContents();
                     sharedContents->AddRef();
                     this->m_sharedContentsrList->Add(sharedContents);
@@ -281,7 +281,7 @@ namespace Js
     template <class Writer>
     void SerializationCloner<Writer>::CloneProperties(SrcTypeId srcTypeId, Src src, Dst dst)
     {
-        RecyclableObject* obj = RecyclableObject::FromVar(src);
+        RecyclableObject* obj = VarTo<RecyclableObject>(src);
         // allocate the JavascriptStaticEnumerator on the heap to avoid blowing the stack
         JavascriptStaticEnumerator enumerator;
         ScriptContext* scriptContext = GetScriptContext();
@@ -319,7 +319,7 @@ namespace Js
     template <class Writer>
     void SerializationCloner<Writer>::CloneMap(Src src, Dst dst)
     {
-        JavascriptMap* map = JavascriptMap::FromVar(src);
+        JavascriptMap* map = VarTo<JavascriptMap>(src);
 
         Write((int32)(map->Size()));
 
@@ -335,7 +335,7 @@ namespace Js
     template <class Writer>
     void SerializationCloner<Writer>::CloneSet(Src src, Dst dst)
     {
-        JavascriptSet* set = JavascriptSet::FromVar(src);
+        JavascriptSet* set = VarTo<JavascriptSet>(src);
 
         Write((int32)(set->Size()));
 
@@ -537,7 +537,7 @@ namespace Js
     template <class Writer>
     void SerializationCloner<Writer>::WriteDenseArrayIndexProperties(JavascriptArray* arr)
     {
-        if (JavascriptArray::Is(arr))
+        if (JavascriptArray::IsNonES5Array(arr))
         {
             if (!arr->IsCrossSiteObject())
             {
@@ -560,7 +560,7 @@ namespace Js
     template <class Writer>
     void SerializationCloner<Writer>::WriteSparseArrayIndexProperties(JavascriptArray* arr)
     {
-        if (JavascriptArray::Is(arr))
+        if (JavascriptArray::IsNonES5Array(arr))
         {
             if (!arr->IsCrossSiteObject())
             {
@@ -579,7 +579,7 @@ namespace Js
             // enumerate enumerable index named properties through ES5ArrayIndexEnumerator. Just use
             // JavascriptArrayItemAccessor.
             WriteSparseArrayIndexProperties<
-                ES5ArrayIndexStaticEnumerator<>, JavascriptArrayItemAccessor>(ES5Array::FromVar(arr));
+                ES5ArrayIndexStaticEnumerator<>, JavascriptArrayItemAccessor>(VarTo<ES5Array>(arr));
         }
     }
 
@@ -598,7 +598,7 @@ namespace Js
             {
                 if (propertyName != undefined) //There are some code paths in which GetCurrentIndex can return undefined
                 {
-                    m_name = JavascriptString::FromVar(propertyName);
+                    m_name = VarTo<JavascriptString>(propertyName);
 
                     if (propertyId != Constants::NoProperty)
                     {

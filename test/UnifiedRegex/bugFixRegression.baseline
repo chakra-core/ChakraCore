@@ -632,26 +632,6 @@ exec(/(?:a||b)?/ /*lastIndex=0*/ , "b");
 ["b"] /*input="b", index=0*/ 
 r.lastIndex=0
 RegExp.${_,1,...,9}=["b","","","","","","","","",""]
-exec(/[\s-a-c]*/ /*lastIndex=0*/ , " -abc");
-[" -abc"] /*input=" -abc", index=0*/ 
-r.lastIndex=0
-RegExp.${_,1,...,9}=[" -abc","","","","","","","","",""]
-exec(/[\s\-a-c]*/ /*lastIndex=0*/ , " -abc");
-[" -abc"] /*input=" -abc", index=0*/ 
-r.lastIndex=0
-RegExp.${_,1,...,9}=[" -abc","","","","","","","","",""]
-exec(/[a-\s-b]*/ /*lastIndex=0*/ , " -ab");
-[" -ab"] /*input=" -ab", index=0*/ 
-r.lastIndex=0
-RegExp.${_,1,...,9}=[" -ab","","","","","","","","",""]
-exec(/[a\-\s\-b]*/ /*lastIndex=0*/ , " -ab");
-[" -ab"] /*input=" -ab", index=0*/ 
-r.lastIndex=0
-RegExp.${_,1,...,9}=[" -ab","","","","","","","","",""]
-exec(/[\s--c-!]*/ /*lastIndex=0*/ , " -./0Abc!");
-[" -./0Abc!"] /*input=" -./0Abc!", index=0*/ 
-r.lastIndex=0
-RegExp.${_,1,...,9}=[" -./0Abc!","","","","","","","","",""]
 EXCEPTION
 exec(/x*(?:(?=x(y*)+)y|\1x)/ /*lastIndex=0*/ , "xxy");
 ["xx",undefined] /*input="xxy", index=0*/ 

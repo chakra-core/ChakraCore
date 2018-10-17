@@ -3448,3 +3448,22 @@ LowererMDArch::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * tar
     // return the last instruction inserted
     return retInstr;
 }
+
+IR::BranchInstr*
+LowererMDArch::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
+{
+    Assert(compareSrc->IsFloat64() && missingItemOpnd->IsUint64());
+
+    IR::Opnd * compareSrcUint64Opnd = IR::RegOpnd::New(TyUint64, m_func);
+
+    if (compareSrc->IsRegOpnd())
+    {
+        this->lowererMD->EmitReinterpretPrimitive(compareSrcUint64Opnd, compareSrc, insertBeforeInstr);
+    }
+    else if (compareSrc->IsIndirOpnd())
+    {
+        compareSrcUint64Opnd = compareSrc->UseWithNewType(TyUint64, m_func);
+    }
+
+    return this->lowererMD->m_lowerer->InsertCompareBranch(missingItemOpnd, compareSrcUint64Opnd, opcode, target, insertBeforeInstr);
+}

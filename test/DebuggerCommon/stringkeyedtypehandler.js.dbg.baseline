@@ -53,6 +53,7 @@
       }
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "o": {
         "#__proto__": "Object {...}"
       },

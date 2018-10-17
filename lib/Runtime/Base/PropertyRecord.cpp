@@ -68,6 +68,13 @@ namespace Js
         }
     }
 
+    bool PropertyRecord::ShouldDisableWriteCache() const
+    {
+        // We can't cache stores to the 'prototype' property of function objects. We must go through the runtime and clear the constructor cache.
+        // We could consider treating 'prototype' as an accessor on JavascriptFunction and friends, though this seems like it will grow the object.
+        return pid == PropertyIds::prototype;
+    }
+
 #ifdef DEBUG
     // This is only used to assert that integer property names are not passed into
     // the GetSetter, GetProperty, SetProperty etc methods that take JavascriptString

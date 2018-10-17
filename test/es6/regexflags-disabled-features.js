@@ -7,7 +7,8 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests =
     [['sticky', 'y'],
-     ['unicode', 'u']].map(function ([propertyName, flag]) {
+     ['unicode', 'u'],
+     ['dotAll', 's']].map(function ([propertyName, flag]) {
         return {
             name: "RegExp.prototype.flags should not include the '" + propertyName + "' flag when the feature is disabled",
             body: function () {

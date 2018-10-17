@@ -389,7 +389,10 @@ LargeHeapBlock::ReleasePages(Recycler * recycler)
 #endif
 
 #ifdef RECYCLER_FREE_MEM_FILL
-    memset(blockStartAddress, DbgMemFill, AutoSystemInfo::PageSize * realPageCount);
+    if(blockStartAddress != nullptr)
+    {
+        memset(blockStartAddress, DbgMemFill, AutoSystemInfo::PageSize * realPageCount);
+    }
 #endif
     pageAllocator->Release(blockStartAddress, realPageCount, segment);
     RECYCLER_PERF_COUNTER_SUB(LargeHeapBlockPageSize, pageCount * AutoSystemInfo::PageSize);
@@ -1110,7 +1113,7 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
             size_t objectSize = header->objectSize;
             // trim off the trailing part which is not a pointer
             objectSize = HeapInfo::RoundObjectSize(objectSize);
-            if (objectSize > 0) // otherwize the object total size is less than a pointer size
+            if (objectSize > 0) // otherwise the object total size is less than a pointer size
             {
                 recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
             }
@@ -1167,7 +1170,7 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
                 size_t objectSize = header->objectSize;
                 // trim off the trailing part which is not a pointer
                 objectSize = HeapInfo::RoundObjectSize(objectSize);
-                if (objectSize > 0) // otherwize the object total size is less than a pointer size
+                if (objectSize > 0) // otherwise the object total size is less than a pointer size
                 {
                     recycler->ScanObjectInlineInterior((void **)objectAddress, objectSize);
                 }
@@ -1297,7 +1300,7 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
             // As such, our finalizeCount is not correct. Update it now.
 
             RECYCLER_STATS_INC(recycler, finalizeCount);
-            header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & ~NewFinalizeBit));
+            header->SetAttributes(recycler->Cookie, (attributes & ~NewFinalizeBit));
         }
 #endif
 
@@ -1318,13 +1321,19 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
             objectSize = HeapInfo::RoundObjectSize(objectSize);
         }
 #endif
-        if (objectSize > 0) // otherwize the object total size is less than a pointer size
+        if (objectSize > 0) // otherwise the object total size is less than a pointer size
         {
             bool noOOMDuringMark = true;
 #ifdef RECYCLER_VISITED_HOST
             if (attributes & TrackBit)
             {
                 noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+                if (noOOMDuringMark)
+                {
+                    // Object has been successfully processed, so clear NewTrackBit
+                    header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                    RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
+                }
             }
             else
 #endif
@@ -1411,7 +1420,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             continue;
         }
 
-        unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
+        unsigned char attributes = header->GetAttributes(recycler->Cookie);
 
 #ifdef RECYCLER_STATS
         if (((attributes & FinalizeBit) != 0) && ((attributes & NewFinalizeBit) != 0))
@@ -1420,7 +1429,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             // As such, our finalizeCount is not correct.  Update it now.
 
             RECYCLER_STATS_INC(recycler, finalizeCount);
-            header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & ~NewFinalizeBit));
+            header->SetAttributes(recycler->Cookie, (attributes & ~NewFinalizeBit));
         }
 #endif
 
@@ -1453,6 +1462,12 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
             if (attributes & TrackBit)
             {
                 noOOMDuringMark = recycler->AddPreciselyTracedMark(reinterpret_cast<IRecyclerVisitedObject*>(objectAddress));
+                if (noOOMDuringMark)
+                {
+                    // Object has been successfully processed, so clear NewTrackBit
+                    header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                    RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
+                }
             }
             else
 #endif
@@ -1562,6 +1577,12 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
                         {
                             header->markOnOOMRescan = true;
                         }
+                    }
+                    else
+                    {
+                        // Object has been successfully processed, so clear NewTrackBit
+                        header->SetAttributes(recycler->Cookie, (attributes & ~NewTrackBit));
+                        RECYCLER_STATS_INTERLOCKED_INC(recycler, trackCount);
                     }
 
                     rescanCount = objectSize / AutoSystemInfo::PageSize +
@@ -1981,7 +2002,8 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
         if (heapBlockMap.IsMarked(header->GetAddress()))
         {
 #if DBG
-            Assert((header->GetAttributes(recycler->Cookie) & NewFinalizeBit) == 0);
+            unsigned char attributes = header->GetAttributes(recycler->Cookie);
+            Assert((attributes & NewFinalizeBit) == 0);
 #endif
 
             RECYCLER_STATS_ADD(recycler, largeHeapBlockUsedByteCount, this->GetHeaderByIndex(i)->objectSize);

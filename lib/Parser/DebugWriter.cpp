@@ -72,6 +72,8 @@ namespace UnifiedRegex
         CheckForNewline();
         if (c > 0xff)
             Output::Print(_u("\\u%lc%lc%lc%lc"), hex[c >> 12], hex[(c >> 8) & 0xf], hex[(c >> 4) & 0xf], hex[c & 0xf]);
+        else if (c == '-')
+            Output::Print(_u("\\x2d"));
         else if (c < ' ' || c > '~')
             Output::Print(_u("\\x%lc%lc"), hex[c >> 4], hex[c & 0xf]);
         else

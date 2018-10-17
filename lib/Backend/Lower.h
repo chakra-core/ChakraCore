@@ -144,6 +144,8 @@ private:
     IR::Instr *     LowerNewScGenFunc(IR::Instr *instr);
     IR::Instr *     LowerNewScFuncHomeObj(IR::Instr *instr);
     IR::Instr *     LowerNewScGenFuncHomeObj(IR::Instr *instr);
+    IR::Instr *     LowerStPropIdArrFromVar(IR::Instr *instr);
+    IR::Instr *     LowerRestify(IR::Instr *instr);
     IR::Instr*      GenerateCompleteStFld(IR::Instr* instr, bool emitFastPath, IR::JnHelperMethod monoHelperAfterFastPath, IR::JnHelperMethod polyHelperAfterFastPath,
                         IR::JnHelperMethod monoHelperWithoutFastPath, IR::JnHelperMethod polyHelperWithoutFastPath, bool withPutFlags, Js::PropertyOperationFlags flags);
     bool            GenerateStFldWithCachedType(IR::Instr * instrStFld, bool* continueAsHelperOut, IR::LabelInstr** labelHelperOut, IR::RegOpnd** typeOpndOut);
@@ -374,11 +376,11 @@ private:
     void            GenerateFastBrBReturn(IR::Instr * instr);
 
 public:
-    static IR::Instr *Lowerer::HoistIndirOffset(IR::Instr* instr, IR::IndirOpnd *indirOpnd, RegNum regNum);
-    static IR::Instr *Lowerer::HoistIndirOffsetAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
-    static IR::Instr *Lowerer::HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::Opnd *indexOpnd, RegNum regNum);
-    static IR::Instr *Lowerer::HoistSymOffset(IR::Instr *instr, IR::SymOpnd *symOpnd, RegNum baseReg, uint32 offset, RegNum regNum);
-    static IR::Instr *Lowerer::HoistSymOffsetAsAdd(IR::Instr* instr, IR::SymOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
+    static IR::Instr *HoistIndirOffset(IR::Instr* instr, IR::IndirOpnd *indirOpnd, RegNum regNum);
+    static IR::Instr *HoistIndirOffsetAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
+    static IR::Instr *HoistIndirIndexOpndAsAdd(IR::Instr* instr, IR::IndirOpnd *orgOpnd, IR::Opnd *baseOpnd, IR::Opnd *indexOpnd, RegNum regNum);
+    static IR::Instr *HoistSymOffset(IR::Instr *instr, IR::SymOpnd *symOpnd, RegNum baseReg, uint32 offset, RegNum regNum);
+    static IR::Instr *HoistSymOffsetAsAdd(IR::Instr* instr, IR::SymOpnd *orgOpnd, IR::Opnd *baseOpnd, int offset, RegNum regNum);
 
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
@@ -397,8 +399,8 @@ public:
     static IR::BranchInstr *    InsertTestBranch(IR::Opnd *const testSrc1, IR::Opnd *const testSrc2, const Js::OpCode branchOpCode, const bool isUnsigned, IR::LabelInstr *const target, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertAdd(const bool needFlags, IR::Opnd *const dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertSub(const bool needFlags, IR::Opnd *const dst, IR::Opnd *src1, IR::Opnd *src2, IR::Instr *const insertBeforeInstr);
-    static IR::Instr *          InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, bool postRegAlloc = false);
-    static IR::Instr *          ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
+    static IR::Instr *          InsertLea(IR::RegOpnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
+    static IR::Instr *          ChangeToLea(IR::Instr *const instr);
     static IR::Instr *          InsertXor(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertAnd(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
     static IR::Instr *          InsertOr(IR::Opnd *const dst, IR::Opnd *const src1, IR::Opnd *const src2, IR::Instr *const insertBeforeInstr);
@@ -417,6 +419,8 @@ public:
 public:
     static IR::HelperCallOpnd*  CreateHelperCallOpnd(IR::JnHelperMethod helperMethod, int helperArgCount, Func* func);
     static IR::Opnd *           GetMissingItemOpnd(IRType type, Func *func);
+    static IR::Opnd *           GetMissingItemOpndForAssignment(IRType type, Func *func);
+    static IR::Opnd *           GetMissingItemOpndForCompare(IRType type, Func *func);
     static IR::Opnd *           GetImplicitCallFlagsOpnd(Func * func);
     inline static IR::IntConstOpnd* MakeCallInfoConst(ushort flags, int32 argCount, Func* func) {
         argCount = Js::CallInfo::GetArgCountWithoutExtraArgs((Js::CallFlags)flags, (uint16)argCount);
@@ -430,6 +434,7 @@ public:
         return IR::IntConstOpnd::New(argCount | (flags << 24), TyMachReg, func, true);
 #endif
     }
+    static void InsertAndLegalize(IR::Instr * instr, IR::Instr* insertBeforeInstr);
 private:
     IR::IndirOpnd* GenerateFastElemICommon(
         _In_ IR::Instr* elemInstr,
@@ -516,6 +521,7 @@ private:
         _Inout_ IR::RegOpnd** taggedTypeOpnd);
 
     void            GenerateFastIsInSymbolOrStringIndex(IR::Instr * instrInsert, IR::RegOpnd *indexOpnd, IR::RegOpnd *baseOpnd, IR::Opnd *dest, uint32 inlineCacheOffset, const uint32 hitRateOffset, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone);
+    IR::BranchInstr* InsertMissingItemCompareBranch(IR::Opnd* compareSrc, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr);
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);
@@ -630,6 +636,7 @@ private:
     void GenerateSetObjectTypeFromInlineCache(IR::Instr * instrToInsertBefore, IR::RegOpnd * opndBase, IR::RegOpnd * opndInlineCache, bool isTypeTagged);
     bool GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod helperMethod, IR::JnHelperMethod polymorphicHelperMethod,
         IR::LabelInstr ** labelBailOut, IR::RegOpnd* typeOpnd, bool* pIsHelper, IR::LabelInstr** pLabelHelper, bool withPutFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
+    void            GenerateAuxSlotPtrLoad(IR::PropertySymOpnd *propertySymOpnd, IR::Instr *insertInstr);
 
     bool            GenerateFastStFldForCustomProperty(IR::Instr *const instr, IR::LabelInstr * *const labelHelperRef);
 
@@ -744,7 +751,7 @@ private:
     static IR::RegOpnd *    LoadGeneratorArgsPtr(IR::Instr *instrInsert);
     static IR::Instr *      LoadGeneratorObject(IR::Instr *instrInsert);
 
-    IR::Opnd *      LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd, bool canReuseAuxSlotPtr);
+    IR::Opnd *      LoadSlotArrayWithCachedLocalType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd);
     IR::Opnd *      LoadSlotArrayWithCachedProtoType(IR::Instr * instrInsert, IR::PropertySymOpnd *propertySymOpnd);
     IR::Instr *     LowerLdAsmJsEnv(IR::Instr *instr);
     IR::Instr *     LowerLdEnv(IR::Instr *instr);

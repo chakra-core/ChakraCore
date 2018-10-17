@@ -142,10 +142,10 @@ void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod ent
 {
     Js::ScriptContext * scriptContext = function->GetScriptContext();
     // it's easy to call the default entry point from RecyclableObject.
-    AssertMsg((Js::JavascriptFunction::Is(function) && Js::JavascriptFunction::FromVar(function)->IsExternalFunction())
+    AssertMsg((Js::VarIs<Js::JavascriptFunction>(function) && Js::VarTo<Js::JavascriptFunction>(function)->IsExternalFunction())
         || Js::CrossSite::IsThunk(entrypoint)
         // External object with entrypoint
-        || (!Js::JavascriptFunction::Is(function)
+        || (!Js::VarIs<Js::JavascriptFunction>(function)
             && function->IsExternal()
             && Js::JavascriptConversion::IsCallable(function))
         || !scriptContext->IsActuallyClosed()
@@ -160,7 +160,7 @@ void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod ent
     {
         return;
     }
-    
+
     Js::TypeId typeId = Js::JavascriptOperators::GetTypeId(function);
     if (typeId == Js::TypeIds_HostDispatch)
     {

@@ -161,35 +161,6 @@ namespace Js
     };
 #endif
 
-    template <typename T>
-    struct StringTemplateCallsiteObjectComparer
-    {
-        static bool Equals(T x, T y)
-        {
-            static_assert(false, "Unexpected type T");
-        }
-        static hash_t GetHashCode(T i)
-        {
-            static_assert(false, "Unexpected type T");
-        }
-    };
-
-    template <>
-    struct StringTemplateCallsiteObjectComparer<ParseNodePtr>
-    {
-        static bool Equals(ParseNodePtr x, RecyclerWeakReference<Js::RecyclableObject>* y);
-        static bool Equals(ParseNodePtr x, ParseNodePtr y);
-        static hash_t GetHashCode(ParseNodePtr i);
-    };
-
-    template <>
-    struct StringTemplateCallsiteObjectComparer<RecyclerWeakReference<Js::RecyclableObject>*>
-    {
-        static bool Equals(RecyclerWeakReference<Js::RecyclableObject>* x, RecyclerWeakReference<Js::RecyclableObject>* y);
-        static bool Equals(RecyclerWeakReference<Js::RecyclableObject>* x, ParseNodePtr y);
-        static hash_t GetHashCode(RecyclerWeakReference<Js::RecyclableObject>* o);
-    };
-
     class JavascriptLibrary : public JavascriptLibraryBase
     {
         friend class EditAndContinue;
@@ -315,6 +286,8 @@ namespace Js
         Field(DynamicTypeHandler *) anonymousFunctionTypeHandler;
         Field(DynamicTypeHandler *) anonymousFunctionWithPrototypeTypeHandler;
         Field(DynamicTypeHandler *) functionTypeHandler;
+        Field(DynamicTypeHandler *) functionTypeHandlerWithLength;
+        Field(DynamicTypeHandler *) functionWithPrototypeAndLengthTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
@@ -426,6 +399,7 @@ namespace Js
         Field(JavascriptFunction*) regexFlagsGetterFunction;
         Field(JavascriptFunction*) regexGlobalGetterFunction;
         Field(JavascriptFunction*) regexStickyGetterFunction;
+        Field(JavascriptFunction*) regexDotAllGetterFunction;
         Field(JavascriptFunction*) regexUnicodeGetterFunction;
 
         Field(RuntimeFunction*) sharedArrayBufferConstructor;
@@ -453,6 +427,7 @@ namespace Js
         Field(int) regexFlagsGetterSlotIndex;
         Field(int) regexGlobalGetterSlotIndex;
         Field(int) regexStickyGetterSlotIndex;
+        Field(int) regexDotAllGetterSlotIndex;
         Field(int) regexUnicodeGetterSlotIndex;
 
         mutable Field(CharStringCache) charStringCache;
@@ -499,13 +474,6 @@ namespace Js
 
         Field(CustomExternalWrapperTypesCache*) customExternalWrapperTypesCache;
 
-        typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
-
-        // Used to store a list of template callsite objects.
-        // We use the raw strings in the callsite object (or a string template parse node) to identify unique callsite objects in the list.
-        // See abstract operation GetTemplateObject in ES6 Spec (RC1) 12.2.8.3
-        Field(StringTemplateCallsiteObjectList*) stringTemplateCallsiteObjectList;
-
         Field(ModuleRecordList*) moduleRecordList;
 
         Field(OnlyWritablePropertyProtoChainCache) typesWithOnlyWritablePropertyProtoChain;
@@ -541,6 +509,8 @@ namespace Js
         static SimpleTypeHandler<2> SharedFunctionWithLengthAndNameTypeHandler;
         static SimpleTypeHandler<2> SharedIdMappedFunctionWithPrototypeTypeHandler;
         static SimpleTypeHandler<1> SharedNamespaceSymbolTypeHandler;
+        static SimpleTypeHandler<3> SharedFunctionWithPrototypeLengthAndNameTypeHandler;
+        static SimpleTypeHandler<2> SharedFunctionWithPrototypeAndLengthTypeHandler;
         static MissingPropertyTypeHandler MissingPropertyHolderTypeHandler;
 
         static SimplePropertyDescriptor const SharedFunctionPropertyDescriptors[2];
@@ -548,6 +518,8 @@ namespace Js
         static SimplePropertyDescriptor const HeapArgumentsPropertyDescriptors[3];
         static SimplePropertyDescriptor const FunctionWithLengthAndPrototypeTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithLengthAndNameTypeDescriptors[2];
+        static SimplePropertyDescriptor const FunctionWithPrototypeLengthAndNameTypeDescriptors[3];
+        static SimplePropertyDescriptor const FunctionWithPrototypeAndLengthTypeDescriptors[2];
         static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[1];
 
     public:
@@ -579,7 +551,6 @@ namespace Js
             cacheForCopyOnAccessArraySegments(nullptr),
 #endif
             referencedPropertyRecords(nullptr),
-            stringTemplateCallsiteObjectList(nullptr),
             moduleRecordList(nullptr),
             rootPath(nullptr),
             bindRefChunkBegin(nullptr),
@@ -672,7 +643,7 @@ namespace Js
         Js::JavascriptPromiseCapability* CreatePromiseCapability_TTD(Var promise, Var resolve, Var reject);
         Js::JavascriptPromiseReaction* CreatePromiseReaction_TTD(RecyclableObject* handler, JavascriptPromiseCapability* capabilities);
 
-        Js::RecyclableObject* CreatePromise_TTD(uint32 status, Var result, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, JsUtil::List<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
+        Js::RecyclableObject* CreatePromise_TTD(uint32 status, bool isHandled, Var result, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& resolveReactions, SList<Js::JavascriptPromiseReaction*, HeapAllocator>& rejectReactions);
         JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined);
         Js::RecyclableObject* CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved);
         Js::RecyclableObject* CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument);
@@ -799,6 +770,7 @@ namespace Js
         JavascriptFunction* GetRegexFlagsGetterFunction() const { return regexFlagsGetterFunction; }
         JavascriptFunction* GetRegexGlobalGetterFunction() const { return regexGlobalGetterFunction; }
         JavascriptFunction* GetRegexStickyGetterFunction() const { return regexStickyGetterFunction; }
+        JavascriptFunction* GetRegexDotAllGetterFunction() const { return regexDotAllGetterFunction; }
         JavascriptFunction* GetRegexUnicodeGetterFunction() const { return regexUnicodeGetterFunction; }
 
         int GetRegexConstructorSlotIndex() const { return regexConstructorSlotIndex;  }
@@ -806,6 +778,7 @@ namespace Js
         int GetRegexFlagsGetterSlotIndex() const { return regexFlagsGetterSlotIndex;  }
         int GetRegexGlobalGetterSlotIndex() const { return regexGlobalGetterSlotIndex;  }
         int GetRegexStickyGetterSlotIndex() const { return regexStickyGetterSlotIndex;  }
+        int GetRegexDotAllGetterSlotIndex() const { return regexDotAllGetterSlotIndex;  }
         int GetRegexUnicodeGetterSlotIndex() const { return regexUnicodeGetterSlotIndex;  }
 
         TypePath* GetRootPath() const { return rootPath; }
@@ -866,6 +839,7 @@ namespace Js
         SharedArrayBuffer* CreateSharedArrayBuffer(SharedContents *contents);
         ArrayBuffer* CreateProjectionArraybuffer(uint32 length);
         ArrayBuffer* CreateProjectionArraybuffer(byte* buffer, uint32 length);
+        ArrayBuffer* CreateExternalArrayBuffer(byte* buffer, uint32 length);
         DataView* CreateDataView(ArrayBufferBase* arrayBuffer, uint32 offSet, uint32 mappedLength);
 
         template <typename TypeName, bool clamped>
@@ -942,12 +916,15 @@ namespace Js
 
         static DynamicTypeHandler * GetDeferredPrototypeFunctionTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredPrototypeFunctionWithLengthTypeHandler(ScriptContext* scriptContext);
-        static DynamicTypeHandler * GetDeferredAnonymousPrototypeFunctionTypeHandler();
+        static DynamicTypeHandler * GetDeferredAnonymousPrototypeFunctionWithLengthTypeHandler();
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeGeneratorFunctionTypeHandler();
         static DynamicTypeHandler * GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler();
 
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
+        DynamicTypeHandler * GetDeferredFunctionWithLengthTypeHandler();
+        DynamicTypeHandler * GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
+        DynamicTypeHandler * GetDeferredAnonymousFunctionWithLengthTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
         template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false>
         static DynamicTypeHandler * GetDeferredFunctionTypeHandlerBase();
@@ -1078,12 +1055,7 @@ namespace Js
         static bool IsCachedCopyOnAccessArrayCallSite(const JavascriptLibrary *lib, ArrayCallSiteInfo *arrayInfo);
         template <typename T>
         static void CheckAndConvertCopyOnAccessNativeIntArray(const T instance);
-#endif
-
-        void EnsureStringTemplateCallsiteObjectList();
-        void AddStringTemplateCallsiteObject(RecyclableObject* callsite);
-        RecyclableObject* TryGetStringTemplateCallsiteObject(ParseNodePtr pnode);
-        RecyclableObject* TryGetStringTemplateCallsiteObject(RecyclableObject* callsite);
+#endif    
 
         static void CheckAndInvalidateIsConcatSpreadableCache(PropertyId propertyId, ScriptContext *scriptContext);
 
@@ -1094,7 +1066,7 @@ namespace Js
         Field(JavascriptFunction*)* GetBuiltinFunctions();
         INT_PTR* GetVTableAddresses();
         static BuiltinFunction GetBuiltinFunctionForPropId(PropertyId id);
-        static BuiltinFunction GetBuiltInForFuncInfo(intptr_t funcInfoAddr, ThreadContextInfo *context);
+        static BuiltinFunction GetBuiltInForFuncInfo(LocalFunctionId localFuncId);
 #if DBG
         static void CheckRegisteredBuiltIns(Field(JavascriptFunction*)* builtInFuncs, ScriptContext *scriptContext);
 #endif
@@ -1279,7 +1251,7 @@ namespace Js
 #endif
 
     public:
-        template<bool addPrototype>
+        template<bool addPrototype, bool addName, bool useLengthType>
         static bool __cdecl InitializeFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         virtual void Finalize(bool isShutdown) override;
 

@@ -154,6 +154,10 @@ starting Property[ 5 ]:  sticky
 Does Property exist:  false
 
 
+starting Property[ 6 ]:  dotAll
+Does Property exist:  false
+
+
 starting Property[ 0 ]:  global
 Does Property exist:  true
 Is the Property configurable:  false
@@ -200,6 +204,15 @@ Pass Delete Test
 
 
 starting Property[ 5 ]:  sticky
+Does Property exist:  true
+Is the Property configurable:  false
+PASS, Not Configurable and will not allow redefinition
+PASS
+can you delete the property:  false did it actually delete? false
+Pass Delete Test
+
+
+starting Property[ 6 ]:  dotAll
 Does Property exist:  true
 Is the Property configurable:  false
 PASS, Not Configurable and will not allow redefinition

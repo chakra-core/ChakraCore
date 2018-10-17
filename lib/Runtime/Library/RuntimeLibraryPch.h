@@ -20,7 +20,6 @@
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
 
-#include "Library/JSONString.h"
 #include "Library/LazyJSONString.h"
 #include "Library/JSONStringBuilder.h"
 #include "Library/JSONStringifier.h"

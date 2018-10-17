@@ -27,6 +27,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
     jitData->isInlined = codeGenData->GetIsInlined();
     jitData->weakFuncRef = (intptr_t)codeGenData->GetWeakFuncRef();
     jitData->inlineesBv = (BVFixedIDL*)(const BVFixed*)codeGenData->inlineesBv;
+    jitData->entryPointInfoAddr = (intptr_t)codeGenData->GetEntryPointInfo();
 
     if (!codeGenData->GetFunctionBody() || !codeGenData->GetFunctionBody()->GetByteCode())
     {
@@ -62,7 +63,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
             Assert(defaultEntryPointInfo->IsFunctionEntryPointInfo());
             Js::FunctionEntryPointInfo *functionEntryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(defaultEntryPointInfo);
             jitData->callsCountAddress = (intptr_t)&functionEntryPointInfo->callsCount;
-                
+
             jitData->sharedPropertyGuards = codeGenData->sharedPropertyGuards;
             jitData->sharedPropGuardCount = codeGenData->sharedPropertyGuardCount;
         }
@@ -201,6 +202,12 @@ intptr_t
 FunctionJITTimeInfo::GetFunctionInfoAddr() const
 {
     return m_data.functionInfoAddr;
+}
+
+intptr_t
+FunctionJITTimeInfo::GetEntryPointInfoAddr() const
+{
+    return m_data.entryPointInfoAddr;
 }
 
 intptr_t

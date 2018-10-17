@@ -34,6 +34,8 @@ namespace Js
    extern "C" Var amd64_CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, CallInfo callInfo, uint argc, Var *argv);
 #endif
 
+    extern "C" Var BreakSpeculation(Var passthroughObject);
+
     class JavascriptFunction : public DynamicObject
     {
     private:
@@ -108,9 +110,6 @@ namespace Js
         static Var EntryInvokeJit(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
-        static bool Is(Var aValue);
-        static JavascriptFunction* FromVar(Var aValue);
-        static JavascriptFunction* UnsafeFromVar(Var aValue);
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
 #ifdef ASMJS_PLAT
@@ -199,7 +198,7 @@ namespace Js
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
-        virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override;
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
@@ -230,6 +229,9 @@ namespace Js
         private:
             static int CallRootEventFilter(int exceptionCode, PEXCEPTION_POINTERS exceptionInfo);
     };
+
+    template <> bool VarIsImpl<JavascriptFunction>(RecyclableObject* obj);
+
 #if ENABLE_NATIVE_CODEGEN && defined(_M_X64)
     class ArrayAccessDecoder
     {

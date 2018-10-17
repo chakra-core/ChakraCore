@@ -71,98 +71,8 @@
   </test>
   <test>
     <default>
-      <files>label1.js</files>
-      <baseline>label1.baseline</baseline>
-      <compile-flags>-Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label1.js</files>
-      <baseline>label1.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label2.js</files>
-      <baseline>label2.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-      <compile-flags>-Intl-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label2.js</files>
-      <baseline>label2.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label3.js</files>
-      <baseline>label3.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-      <compile-flags>-Intl-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label3.js</files>
-      <baseline>label3.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label4.js</files>
-      <baseline>label4.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-      <compile-flags>-Intl-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label4.js</files>
-      <baseline>label4.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label5.js</files>
-      <baseline>label5.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-      <compile-flags>-Intl-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label5.js</files>
-      <baseline>label5.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label6.js</files>
-      <baseline>label6.baseline</baseline>
-      <tags>exclude_dynapogo</tags>
-      <compile-flags>-Intl-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>label6.js</files>
-      <baseline>label6.baseline</baseline>
-      <compile-flags>-Force:Deferparse -Intl-</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <files>Labels.js</files>
+      <compile-flags>-MuteHostErrorMsg -args summary -endargs</compile-flags>
     </default>
   </test>
   <test>
@@ -238,7 +148,6 @@
   <test>
     <default>
       <files>typeof.js</files>
-      <baseline>typeof.baseline</baseline>
       <compile-flags>-Intl-</compile-flags>
     </default>
   </test>
@@ -426,6 +335,12 @@
       <files>bug_os16855035.js</files>
       <compile-flags>-UseParserStateCache -ParserStateCache -Force:DeferParse -Force:Redeferral -CollectGarbage</compile-flags>
       <tags>exclude_test,exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>FloatComparison.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
 </regress-exe>

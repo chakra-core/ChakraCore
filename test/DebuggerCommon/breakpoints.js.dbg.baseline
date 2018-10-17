@@ -1,6 +1,7 @@
 [
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -9,6 +10,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -36,6 +38,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -44,6 +47,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -71,6 +75,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "locals": {
@@ -89,6 +94,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -110,6 +116,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -118,6 +125,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -145,6 +153,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "scopes0": {
@@ -153,6 +162,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },
@@ -180,6 +190,7 @@
   },
   {
     "this": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     },
     "locals": {
@@ -198,6 +209,7 @@
       "test": "undefined undefined"
     },
     "globals": {
+      "Symbol.toStringTag": "string global",
       "f": "function <large string>"
     }
   },

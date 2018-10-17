@@ -128,6 +128,12 @@
   </test>
   <test>
     <default>
+      <files>dotAll.js</files>
+      <compile-flags>-ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>BolEol.js</files>
       <baseline>BolEol.baseline</baseline>
     </default>
@@ -226,6 +232,18 @@
   <test>
     <default>
       <files>Bug15992535.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>characterclass_with_range.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>control_character_escapes.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>

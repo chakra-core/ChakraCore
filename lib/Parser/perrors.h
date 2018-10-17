@@ -88,7 +88,7 @@ LSC_ERROR_MSG( 1077, ERRDestructNotInit, "Destructuring declarations cannot have
 LSC_ERROR_MSG(1079, ERRInvalidNewTarget, "Invalid use of the 'new.target' keyword")
 LSC_ERROR_MSG(1080, ERRForInNoInitAllowed, "for-in loop head declarations cannot have an initializer")
 LSC_ERROR_MSG(1081, ERRForOfNoInitAllowed, "for-of loop head declarations cannot have an initializer")
-LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Cannot apply strict mode on functions with non-simple parameter list")
+LSC_ERROR_MSG(1082, ERRNonSimpleParamListInStrictMode, "Illegal 'use strict' directive in function with non-simple parameter list")
 
 LSC_ERROR_MSG(1083, ERRBadAwait, "'await' expression not allowed in this context")
 
@@ -102,3 +102,19 @@ LSC_ERROR_MSG(1087, ERRInvalidExportName, "Unable to resolve module export name"
 LSC_ERROR_MSG(1088, ERRLetIDInLexicalDecl, "'let' is not an allowed identifier in lexical declarations")
 
 LSC_ERROR_MSG(1089, ERRInvalidLHSInFor, "Invalid left-hand side in for loop")
+LSC_ERROR_MSG(1090, ERRLabelBeforeLexicalDeclaration, "Labels not allowed before lexical declaration")
+LSC_ERROR_MSG(1091, ERRLabelBeforeGeneratorDeclaration, "Labels not allowed before generator declaration")
+LSC_ERROR_MSG(1092, ERRLabelBeforeAsyncFncDeclaration, "Labels not allowed before async function declaration")
+LSC_ERROR_MSG(1093, ERRLabelBeforeClassDeclaration, "Labels not allowed before class declaration")
+LSC_ERROR_MSG(1094, ERRLabelFollowedByEOF, "Unexpected end of script after a label.")
+LSC_ERROR_MSG(1095, ERRFunctionAfterLabelInStrict, "Function declarations not allowed after a label in strict mode.")
+LSC_ERROR_MSG(1096, ERRAwaitAsLabelInAsync, "Use of 'await' as label in async function is not allowed.")
+LSC_ERROR_MSG(1097, ERRExperimental, "Use of disabled experimental feature")
+//1098-1199 available for future use
+
+// Generic errors intended to be re-usable
+LSC_ERROR_MSG(1200, ERRKeywordAfter, "Unexpected keyword '%s' after '%s'")
+LSC_ERROR_MSG(1201, ERRTokenAfter, "Unexpected token '%s' after '%s'")
+LSC_ERROR_MSG(1202, ERRIdentifierAfter, "Unexpected identifier '%s' after '%s'")
+LSC_ERROR_MSG(1203, ERRInvalidIdentifier, "Unexpected invalid identifier '%s' after '%s'")
+LSC_ERROR_MSG(1205, ERRValidIfFollowedBy, "%s is only valid if followed by %s")

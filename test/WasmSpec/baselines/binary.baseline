@@ -1,1 +1,9 @@
-32/32 tests passed.
+(50) testsuite/core/binary.wast:190: assert_malformed module failed. Should have had an error
+(51) testsuite/core/binary.wast:200: assert_malformed module failed. Should have had an error
+(52) testsuite/core/binary.wast:210: assert_malformed module failed. Should have had an error
+(53) testsuite/core/binary.wast:220: assert_malformed module failed. Should have had an error
+(54) testsuite/core/binary.wast:231: assert_malformed module failed. Should have had an error
+(55) testsuite/core/binary.wast:241: assert_malformed module failed. Should have had an error
+(56) testsuite/core/binary.wast:251: assert_malformed module failed. Should have had an error
+(57) testsuite/core/binary.wast:261: assert_malformed module failed. Should have had an error
+53/61 tests passed.

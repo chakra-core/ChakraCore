@@ -14,16 +14,16 @@ FixedFieldInfo::PopulateFixedField(_In_opt_ Js::Type * type, _In_opt_ Js::Var va
     FixedFieldIDL * rawFF = fixed->GetRaw();
     rawFF->fieldValue = var;
     rawFF->nextHasSameFixedField = false;
-    if (var != nullptr && Js::JavascriptFunction::Is(var))
+    if (var != nullptr && Js::VarIs<Js::JavascriptFunction>(var))
     {
-        Js::JavascriptFunction * funcObj = Js::JavascriptFunction::FromVar(var);
+        Js::JavascriptFunction * funcObj = Js::VarTo<Js::JavascriptFunction>(var);
         rawFF->valueType = ValueType::FromObject(funcObj).GetRawData();
         rawFF->funcInfoAddr = (void*)funcObj->GetFunctionInfo();
         rawFF->isClassCtor = funcObj->GetFunctionInfo()->IsClassConstructor();
         rawFF->localFuncId = funcObj->GetFunctionInfo()->GetLocalFunctionId();
-        if (Js::ScriptFunction::Is(var))
+        if (Js::VarIs<Js::ScriptFunction>(var))
         {
-            rawFF->environmentAddr = (void*)Js::ScriptFunction::FromVar(funcObj)->GetEnvironment();
+            rawFF->environmentAddr = (void*)Js::VarTo<Js::ScriptFunction>(funcObj)->GetEnvironment();
         }
     }
     if (type != nullptr)

@@ -2,7 +2,7 @@
     (memory 1)
 
     (func $addr_limit (result i32)
-      (i32.mul (current_memory) (i32.const 0x10000))
+      (i32.mul (memory.size) (i32.const 0x10000))
     )
 
     (func (export "store") (param $i i32) (param $v i32)
@@ -13,8 +13,8 @@
       (i32.load (i32.add (call $addr_limit) (get_local $i)))
     )
 
-    (func (export "grow_memory") (param i32) (result i32)
-      (grow_memory (get_local 0))
+    (func (export "memory.grow") (param i32) (result i32)
+      (memory.grow (get_local 0))
     )
 )
 
@@ -30,7 +30,7 @@
 (assert_trap (invoke "load" (i32.const 0)) "out of bounds memory access")
 (assert_trap (invoke "store" (i32.const 0x80000000) (i32.const 13)) "out of bounds memory access")
 (assert_trap (invoke "load" (i32.const 0x80000000)) "out of bounds memory access")
-(assert_return (invoke "grow_memory" (i32.const 0x10001)) (i32.const -1))
+(assert_return (invoke "memory.grow" (i32.const 0x10001)) (i32.const -1))
 
 (module
   (memory 1)

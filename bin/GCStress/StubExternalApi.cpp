@@ -9,7 +9,7 @@
 
 bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
 {
-    swprintf_s(buffer, cchBufferSize, _u("Chakra GC: %d - %s"), GetCurrentProcessId(), moduleName);
+    swprintf_s(buffer, cchBufferSize, _u("Chakra GC: %lu - %s"), GetCurrentProcessId(), moduleName);
 
     return true;
 }

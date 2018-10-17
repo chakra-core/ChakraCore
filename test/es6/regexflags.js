@@ -16,7 +16,8 @@ function generatePrototypeFlagsTests() {
          ['ignoreCase', 'i'],
          ['multiline', 'm'],
          ['sticky', 'y'],
-         ['unicode', 'u']].map(function ([propertyName, flag]) {
+         ['unicode', 'u'],
+         ['dotAll', 's']].map(function ([propertyName, flag]) {
             return [
                 {
                     name: "RegExp.prototype.flags should include '" + flag + "' when '" + propertyName + "' is 'true'",
@@ -57,28 +58,38 @@ function generatePrototypeFlagsTests() {
 
 var tests = [
     {
-        name: "Test sticky and unicode getter on RegExp.prototype",
+        name: "Test sticky and unicode and dotAll getter on RegExp.prototype",
         body: function () {
-            assert.isFalse(RegExp.prototype.unicode, "RegExp.prototype.unicode");
-            assert.isFalse(RegExp.prototype.sticky, "RegExp.prototype.sticky");
+            assert.areEqual(undefined, RegExp.prototype.unicode, "RegExp.prototype.unicode");
+            assert.areEqual(undefined, RegExp.prototype.sticky, "RegExp.prototype.sticky");
+            assert.areEqual(undefined, RegExp.prototype.dotAll, "RegExp.prototype.sticky");
 
-            function verifier(r, expectedUnicode, expectedSticky)
+            function verifier(r, expectedUnicode, expectedSticky, expectedDotAll)
             {
                 r.unicode = true; // no-op
                 r.sticky = true; // no-op
+                r.dotAll = true; // no-op
                 assert.areEqual(expectedUnicode, r.unicode, r + ": unicode");
                 assert.areEqual(expectedSticky, r.sticky, r + ": sticky");
+                assert.areEqual(expectedDotAll, r.dotAll, r + ": dotAll");
             }
 
-            verifier(/.?\d+/, false, false);
+            verifier(/.?\d+/, false, false, false);
             RegExp.prototype.unicode = true; // no-op
-            verifier(/.?\d+/gu, true, false);
-            verifier(/.?\d+/iy, false, true);
+            verifier(/.?\d+/s, false, false, true);
+            verifier(/.?\d+/gu, true, false, false);
+            verifier(/.?\d+/gus, true, false, true);
+            verifier(/.?\d+/iy, false, true, false);
             RegExp.prototype.sticky = true; // no-op
-            verifier(new RegExp("a*bc", "g"), false, false);
-            verifier(new RegExp("a*bc", "u"), true, false);
-            verifier(new RegExp("a*bc?","y"), false, true);
-            verifier(new RegExp("a*b\d\s?","iuy"), true, true);
+            RegExp.prototype.dotAll = true; // no-op
+            assert.areEqual(undefined, RegExp.prototype.unicode, "RegExp.prototype.unicode");
+            assert.areEqual(undefined, RegExp.prototype.sticky, "RegExp.prototype.sticky");
+            assert.areEqual(undefined, RegExp.prototype.dotAll, "RegExp.prototype.dotAll");
+            verifier(new RegExp("a*bc", "g"), false, false, false);
+            verifier(new RegExp("a*bc", "u"), true, false, false);
+            verifier(new RegExp("a*bc?","y"), false, true, false);
+            verifier(new RegExp("a*bc?","s"), false, false, true);
+            verifier(new RegExp("a*b\d\s?","iuys"), true, true, true);
         }
     },
     {
@@ -236,9 +247,10 @@ var tests = [
                 unicode: true,
                 sticky: true,
                 multiline: true,
+                dotAll: true,
                 global: true
             };
-            assert.areEqual("gimuy", bindFlagsGetter(object)());
+            assert.areEqual("gimusy", bindFlagsGetter(object)());
         }
     },
 ];

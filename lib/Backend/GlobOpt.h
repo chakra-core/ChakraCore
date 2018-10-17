@@ -288,18 +288,14 @@ typedef JsUtil::BaseDictionary<ValueNumberPair, Value *, JitArenaAllocator> Valu
 namespace JsUtil
 {
     template <>
-    class ValueEntry<StackLiteralInitFldData> : public BaseValueEntry<StackLiteralInitFldData>
+    inline void ClearValue<StackLiteralInitFldData>::Clear(StackLiteralInitFldData* value)
     {
-    public:
-        void Clear()
-        {
 #if DBG
-            this->value.propIds = nullptr;
-            this->value.currentInitFldCount = (uint)-1;
+        value->propIds = nullptr;
+        value->currentInitFldCount = (uint)-1;
 #endif
-        }
-    };
-};
+    }
+}
 
 typedef JsUtil::BaseDictionary<IntConstType, StackSym *, JitArenaAllocator> IntConstantToStackSymMap;
 typedef JsUtil::BaseDictionary<int32, Value *, JitArenaAllocator> IntConstantToValueMap;
@@ -462,6 +458,8 @@ private:
     BVSparse<JitArenaAllocator> *  callerEquivBv;
 
     BVSparse<JitArenaAllocator> *   changedSymsAfterIncBailoutCandidate;
+
+    BVSparse<JitArenaAllocator> *   auxSlotPtrSyms;
 
     JitArenaAllocator *             alloc;
     JitArenaAllocator *             tempAlloc;
@@ -692,6 +690,7 @@ private:
     IR::Instr*              CreateBoundsCheckInstr(IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset, IR::BailOutKind bailoutkind, BailOutInfo* bailoutInfo, Func* func);
     IR::Instr*              AttachBoundsCheckData(IR::Instr* instr, IR::Opnd* lowerBound, IR::Opnd* upperBound, int offset);
     void                    OptArraySrc(IR::Instr **const instrRef, Value ** src1Val, Value ** src2Val);
+    void                    OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val);
 
 private:
     void                    TrackIntSpecializedAddSubConstant(IR::Instr *const instr, const AddSubConstantInfo *const addSubConstantInfo, Value *const dstValue, const bool updateSourceBounds);
@@ -709,7 +708,7 @@ private:
     void                    DetermineLoopCount(Loop *const loop);
     void                    GenerateLoopCount(Loop *const loop, LoopCount *const loopCount);
     void                    GenerateLoopCountPlusOne(Loop *const loop, LoopCount *const loopCount);
-    void                    GenerateSecondaryInductionVariableBound(Loop *const loop, StackSym *const inductionVariableSym, const LoopCount *const loopCount, const int maxMagnitudeChange, StackSym *const boundSym);
+    void                    GenerateSecondaryInductionVariableBound(Loop *const loop, StackSym *const inductionVariableSym, LoopCount *const loopCount, const int maxMagnitudeChange, const bool needsMagnitudeAdjustment, StackSym *const boundSym);
 
 private:
     void                    DetermineArrayBoundCheckHoistability(bool needLowerBoundCheck, bool needUpperBoundCheck, ArrayLowerBoundCheckHoistInfo &lowerHoistInfo, ArrayUpperBoundCheckHoistInfo &upperHoistInfo, const bool isJsArray, StackSym *const indexSym, Value *const indexValue, const IntConstantBounds &indexConstantBounds, StackSym *const headSegmentLengthSym, Value *const headSegmentLengthValue, const IntConstantBounds &headSegmentLengthConstantBounds, Loop *const headSegmentLengthInvariantLoop, bool &failedToUpdateCompatibleLowerBoundCheck, bool &failedToUpdateCompatibleUpperBoundCheck);
@@ -849,15 +848,15 @@ private:
     static void             TrackByteCodeSymUsed(IR::Opnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed, PropertySym **pPropertySymUse);
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
-    void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
+    void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureValuesFromScratch(
                                 BasicBlock * block,
-                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+                                SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter, SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter,
+                                BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureValuesIncremental(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
-                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
+                                SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter, BVSparse<JitArenaAllocator>* argsToCapture);
     void                    CaptureCopyPropValue(BasicBlock * block, Sym * sym, Value * val, SListBase<CopyPropSyms>::EditingIterator & bailOutCopySymsIter);
     void                    CaptureArguments(BasicBlock *block, BailOutInfo * bailOutInfo, JitArenaAllocator *allocator);
     void                    CaptureByteCodeSymUses(IR::Instr * instr);
@@ -915,7 +914,7 @@ private:
     void                    UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr);
 
     bool                    TrackArgumentsObject();
-    void                    CannotAllocateArgumentsObjectOnStack();
+    void                    CannotAllocateArgumentsObjectOnStack(Func * curFunc);
 
 #if DBG
     bool                    IsPropertySymId(SymID symId) const;
@@ -937,7 +936,12 @@ private:
     bool                    CheckIfInstrInTypeCheckSeqEmitsTypeCheck(IR::Instr* instr, IR::PropertySymOpnd *opnd);
     template<bool makeChanges>
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
+    StackSym *              EnsureAuxSlotPtrSym(IR::PropertySymOpnd *opnd);
+    void                    KillAuxSlotPtrSyms(IR::PropertySymOpnd *opnd, BasicBlock *block, bool isObjTypeSpecialized);
     void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
+    bool                    HasLiveObjectHeaderInlinedTypeSym(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = SymID_Invalid);
+    template<class Fn>
+    bool                    MapObjectHeaderInlinedTypeSymsUntil(BasicBlock *block, bool isObjTypeSpecialized, SymID opndId, Fn fn);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
     void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);
@@ -1026,7 +1030,6 @@ private:
     void                    FindPossiblePRECandidates(Loop *loop, JitArenaAllocator *alloc);
     void                    PreloadPRECandidates(Loop *loop);
     BOOL                    PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate);
-    IR::Instr *             InsertPropertySymPreloadWithoutDstInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
     IR::Instr *             InsertPropertySymPreloadInLandingPad(IR::Instr * origLdInstr, Loop * loop, PropertySym * propertySym);
     void                    InsertInstrInLandingPad(IR::Instr * instr, Loop * loop);
     bool                    InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym ** objPtrCopyPropSym);

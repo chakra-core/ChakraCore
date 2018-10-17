@@ -825,7 +825,8 @@ static interp::Result DefaultHostCallback(const HostFunc* func,
                                           Index num_results,
                                           TypedValue* out_results,
                                           void* user_data) {
-  memset(out_results, 0, sizeof(TypedValue) * num_results);
+  memset(static_cast<void*>(out_results), 0,
+                            sizeof(TypedValue) * num_results);
   for (Index i = 0; i < num_results; ++i)
     out_results[i].type = sig->result_types[i];
 
@@ -1091,8 +1092,9 @@ static wabt::Result ReadModule(string_view module_filename,
   if (Succeeded(result)) {
     const bool kReadDebugNames = true;
     const bool kStopOnFirstError = true;
+    const bool kFailOnCustomSectionError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(), kReadDebugNames,
-                              kStopOnFirstError);
+                              kStopOnFirstError, kFailOnCustomSectionError);
     result = ReadBinaryInterp(env, file_data.data(), file_data.size(),
                               &options, error_handler, out_module);
 

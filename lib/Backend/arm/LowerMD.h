@@ -94,8 +94,9 @@ public:
             void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget);
             bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
             bool            GenerateFastCmSrEqConst(IR::Instr *instr);
-            bool            GenerateFastCmXxI4(IR::Instr *instr);
-            bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return nullptr; }
+            void            GenerateFastCmXxI4(IR::Instr *instr);
+            void            GenerateFastCmXxR8(IR::Instr *instr);
+            void            GenerateFastCmXx(IR::Instr *instr);
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false);
             IR::Instr *     GenerateConvBool(IR::Instr *instr);
             void            GenerateClz(IR::Instr * instr);
@@ -210,7 +211,7 @@ public:
             IR::Opnd*           GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsInstr);
 
             template <bool verify = false>
-            static void         Legalize(IR::Instr *const instr, bool fPostRegAlloc = false);
+            static void         Legalize(IR::Instr *const instr);
 
             void                GenerateFastInlineBuiltInMathAbs(IR::Instr *callInstr);
             void                GenerateFastInlineBuiltInMathFloor(IR::Instr *callInstr);
@@ -247,6 +248,7 @@ public:
             void                LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd);
             void                LowerTypeof(IR::Instr * typeOfInstr);
             void                GenerateMemInit(IR::RegOpnd * opnd, int32 offset, size_t value, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+            IR::BranchInstr*    InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr);
 private:
     IR::Opnd* IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
 

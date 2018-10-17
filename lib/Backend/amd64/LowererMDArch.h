@@ -151,7 +151,7 @@ public:
 
     void                LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd);
     IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
-
+    IR::BranchInstr*    InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr);
 private:
     void                MovArgFromReg2Stack(IR::Instr * instr, RegNum reg, Js::ArgSlot slotNumber, IRType type = TyMachReg);
     void                GenerateStackAllocation(IR::Instr *instr, uint32 size);

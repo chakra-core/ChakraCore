@@ -61,7 +61,7 @@ namespace DateTime
         uint32 lastTimeZoneUpdateTickCount;
 
         void UpdateTimeZoneInfo();
-        UtilityPlatformData(): lastTimeZoneUpdateTickCount(0) { }
+        UtilityPlatformData() : lastTimeZoneUpdateTickCount(0) { GetTimeZoneInformation(&timeZoneInfo); }
     };
 
     class HiresTimerPlatformData
@@ -78,13 +78,14 @@ namespace DateTime
         bool fHiResAvailable;
 
         HiresTimerPlatformData() :
-            fInit(false),
             dBaseTime(0),
-            baseMsCount(0),
-            fHiResAvailable(true),
             dLastTime(0),
             dAdjustFactor(1),
-            fReset(true)
+            baseMsCount(0),
+            freq(0),
+            fReset(true),
+            fInit(false),
+            fHiResAvailable(true)
         {
         }
 

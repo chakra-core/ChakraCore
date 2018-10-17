@@ -16,9 +16,6 @@ namespace Js
 
     public:
         JavascriptSymbolObject(JavascriptSymbol* value, DynamicType * type);
-        static bool Is(Var aValue);
-        static JavascriptSymbolObject* FromVar(Js::Var aValue);
-        static JavascriptSymbolObject* UnsafeFromVar(Js::Var aValue);
 
         inline const PropertyRecord* GetValue()
         {
@@ -44,4 +41,9 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
+
+    template <> inline bool VarIsImpl<JavascriptSymbolObject>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_SymbolObject;
+    }
 }

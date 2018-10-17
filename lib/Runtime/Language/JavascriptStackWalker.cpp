@@ -163,7 +163,7 @@ namespace Js
 
         // Get the heap-allocated args for this frame.
         Var args = this->GetCurrentArgumentsObject();
-        if (args && ArgumentsObject::Is(args))
+        if (args && VarIs<ArgumentsObject>(args))
         {
             args = ((ArgumentsObject*)args)->GetHeapArguments();
         }
@@ -187,7 +187,7 @@ namespace Js
         return FALSE;
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pVarThis, int moduleId) const
+    void JavascriptStackWalker::GetThis(Var* pVarThis, int moduleId) const
     {
 #if ENABLE_NATIVE_CODEGEN
         if (inlinedFramesBeingWalked)
@@ -195,13 +195,12 @@ namespace Js
             if (inlinedFrameWalker.GetArgc() == 0)
             {
                 *pVarThis = JavascriptOperators::OP_GetThis(this->scriptContext->GetLibrary()->GetUndefined(), moduleId, scriptContext);
-                return false;
             }
-
-            *pVarThis = inlinedFrameWalker.GetThisObject();
-            Assert(*pVarThis);
-
-            return true;
+            else
+            {
+                *pVarThis = inlinedFrameWalker.GetThisObject();
+                Assert(*pVarThis);
+            }
         }
         else
 #endif
@@ -210,11 +209,16 @@ namespace Js
             if (callInfo.Count == 0)
             {
                 *pVarThis = JavascriptOperators::OP_GetThis(scriptContext->GetLibrary()->GetUndefined(), moduleId, scriptContext);
-                return false;
             }
+            else
+            {
+                *pVarThis = this->GetThisFromFrame();
+            }
+        }
 
-            *pVarThis = this->GetThisFromFrame();
-            return (*pVarThis) != nullptr;
+        if (*pVarThis == nullptr)
+        {
+            *pVarThis = this->scriptContext->GetLibrary()->GetNull();
         }
     }
 
@@ -276,7 +280,7 @@ namespace Js
 #endif
             if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments().Values;
         }
         else
@@ -450,7 +454,7 @@ namespace Js
             // are inlined frames on the stack the InlineeCallInfo of the first inlined frame
             // has the native offset of the current physical frame.
             Assert(!*inlinee);
-            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, ScriptFunction::FromVar(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/);
+            InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, VarTo<ScriptFunction>(parentFunction), PreviousInterpreterFrameIsFromBailout(), loopNum, this, useInternalFrameInfo, false /*noAlloc*/);
             inlineeOffset = tmpFrameWalker.GetBottomMostInlineeOffset();
             tmpFrameWalker.Close();
         }
@@ -555,7 +559,7 @@ namespace Js
                         }
 
                         bool hasInlinedFramesOnStack = InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame,
-                            ScriptFunction::FromVar(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/);
+                            VarTo<ScriptFunction>(function), true /*fromBailout*/, loopNum, this, false /*useInternalFrameInfo*/, false /*noAlloc*/);
 
                         if (hasInlinedFramesOnStack)
                         {
@@ -606,7 +610,7 @@ namespace Js
                     bool inlinedFramesFound = InlinedFrameWalker::FromPhysicalFrame(
                         inlinedFrameWalker,
                         currentFrame,
-                        ScriptFunction::FromVar(function),
+                        VarTo<ScriptFunction>(function),
                         false,  // fromBailout
                         -1,     // loopNum
                         nullptr,// walker
@@ -628,7 +632,7 @@ namespace Js
         return nullptr;
     }
 #if ENABLE_NATIVE_CODEGEN
-    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException(void *tryCatchFrameAddr)
+    void JavascriptStackWalker::WalkAndClearInlineeFrameCallInfoOnException(void *tryHandlerAddrOfReturnAddr)
     {
         // Walk the stack and when we find the first native frame, we clear the inlinee's callinfo for this frame
         // It is sufficient we stop at the first native frame which had the enclosing try-catch
@@ -645,10 +649,10 @@ namespace Js
                         inlinedFrame->callInfo.Clear();
                     }
                 }
-                if (this->currentFrame.GetFrame() == tryCatchFrameAddr)
-                {
-                    break;
-                }
+            }
+            if (this->currentFrame.GetAddressOfReturnAddress() == tryHandlerAddrOfReturnAddr)
+            {
+                break;
             }
         }
     }
@@ -887,7 +891,7 @@ namespace Js
         return addressOfReturnAddress == nativeLibraryEntryAddress
 #if defined(_M_IX86)
             // Under some odd cases on x86, addressOfReturnAddress and stashed entry address need to be aligned.
-            // This happens when code is generated using two stack pointers. One or both have the address of 
+            // This happens when code is generated using two stack pointers. One or both have the address of
             // return address offset by 4, 8, or 12.
             || (((uint)nativeLibraryEntryAddress - (uint)addressOfReturnAddress < 0x10) &&
                 *(void**)addressOfReturnAddress == *(void**)nativeLibraryEntryAddress
@@ -952,7 +956,7 @@ namespace Js
                 // wouldn't have created a new interpreterFrame if the bailout were from the loop body itself.
                 Assert(this->interpreterFrame->TestFlags(Js::InterpreterStackFrameFlags_FromBailOut));
                 InlinedFrameWalker tmpFrameWalker;
-                Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
+                Assert(InlinedFrameWalker::FromPhysicalFrame(tmpFrameWalker, currentFrame, Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]),
                     true /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, true /*noAlloc*/));
                 tmpFrameWalker.Close();
             }
@@ -989,7 +993,7 @@ namespace Js
                 return false;
             }
 
-            ScriptFunction* funcObj = Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]);
+            ScriptFunction* funcObj = Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]);
             if (funcObj->GetFunctionBody()->GetIsAsmjsMode())
             {
                 return false;
@@ -999,7 +1003,7 @@ namespace Js
             if (((CallInfo const *)&argv[JavascriptFunctionArgIndex_CallInfo])->Flags & CallFlags_InternalFrame)
             {
                 if (includeInlineFrames &&
-                    InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::ScriptFunction::FromVar(argv[JavascriptFunctionArgIndex_Function]),
+                    InlinedFrameWalker::FromPhysicalFrame(inlinedFrameWalker, currentFrame, Js::VarTo<Js::ScriptFunction>(argv[JavascriptFunctionArgIndex_Function]),
                         false /*fromBailout*/, this->tempInterpreterFrame->GetCurrentLoopNum(), this, false /*useInternalFrameInfo*/, false /*noAlloc*/))
                 {
                     // Found inlined frames in a jitted loop body. We dont want to skip the inlined frames; walk all of them before setting codeAddress on lastInternalFrameInfo.
@@ -1039,7 +1043,7 @@ namespace Js
             if (this->isNativeLibraryFrame)
         {
             // Return saved function. Do not read from stack as compiler may stackpack/optimize args.
-            return JavascriptFunction::FromVar(this->prevNativeLibraryEntry->function);
+            return VarTo<JavascriptFunction>(this->prevNativeLibraryEntry->function);
         }
         else
         {
@@ -1079,7 +1083,7 @@ namespace Js
         }
         else if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             callInfo = gen->GetArguments().Info;
         }
         else if (this->isNativeLibraryFrame)
@@ -1112,7 +1116,7 @@ namespace Js
 
         if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
-            JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
+            JavascriptGenerator* gen = VarTo<JavascriptGenerator>(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
             return gen->GetArguments()[0];
         }
 
@@ -1188,14 +1192,17 @@ namespace Js
         return FALSE;
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext)
+    void JavascriptStackWalker::GetThis(Var* pThis, int moduleId, ScriptContext* scriptContext)
     {
         JavascriptStackWalker walker(scriptContext);
         JavascriptFunction* caller;
-        return walker.GetCaller(&caller) && walker.GetThis(pThis, moduleId);
+        if (walker.GetCaller(&caller))
+        {
+            walker.GetThis(pThis, moduleId);
+        }
     }
 
-    bool JavascriptStackWalker::GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext)
+    void JavascriptStackWalker::GetThis(Var* pThis, int moduleId, JavascriptFunction* func, ScriptContext* scriptContext)
     {
         JavascriptStackWalker walker(scriptContext);
         JavascriptFunction* caller;
@@ -1204,10 +1211,9 @@ namespace Js
             if (caller == func)
             {
                 walker.GetThis(pThis, moduleId);
-                return true;
+                return;
             }
         }
-        return false;
     }
 
     // Try to see whether there is a top-most javascript frame, and if there is return true if it's native.
@@ -1461,20 +1467,15 @@ namespace Js
     {
         Assert(!IsTopMostFrame());
         Assert(currentIndex);
-#pragma warning(push)
-#pragma warning(disable: 4254)
+
         return GetFrameAtIndex(currentIndex - 1)->callInfo.InlineeStartOffset;
-#pragma warning(pop)
     }
 
     uint32 InlinedFrameWalker::GetBottomMostInlineeOffset() const
     {
         Assert(frameCount);
 
-#pragma warning(push)
-#pragma warning(disable: 4254)
         return GetFrameAtIndex(frameCount - 1)->callInfo.InlineeStartOffset;
-#pragma warning(pop)
     }
 
     Js::JavascriptFunction *InlinedFrameWalker::GetBottomMostFunctionObject() const

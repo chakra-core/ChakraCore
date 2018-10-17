@@ -106,7 +106,7 @@ namespace Js
         Var* m_inParams;                // Range of 'in' parameters
         Var* m_outParams;               // Range of 'out' parameters (offset in m_localSlots)
         Var* m_outSp;                   // Stack pointer for next outparam
-        Var* m_outSpCached;             // Stack pointer for caching previos SP (in order to assist in try..finally)
+        Var* m_outSpCached;             // Stack pointer for caching previous SP (in order to assist in try..finally)
         Var  m_arguments;               // Dedicated location for this frame's arguments object
         StackScriptFunction * stackNestedFunctions;
         FrameDisplay * localFrameDisplay;
@@ -344,11 +344,7 @@ namespace Js
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
         static void * GetAsmJsInterpreterEntryPoint(AsmJsCallStackLayout* stack);
-
-        static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
-
         static __m128 AsmJsInterpreterSimdJs(AsmJsCallStackLayout* func);
-
 #endif
 
 #ifdef ASMJS_PLAT
@@ -357,6 +353,7 @@ namespace Js
 #endif
 
 #if DYNAMIC_INTERPRETER_THUNK
+        static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
         _NOINLINE static Var InterpreterThunk(JavascriptCallStackLayout* layout);
         _NOINLINE static Var StaticInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -368,6 +365,9 @@ namespace Js
         static InterpreterStackFrame* CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile);
 
         void InitializeClosures();
+
+        static void OP_StPropIdArrFromVar(Var instance, uint32 index, Var value, ScriptContext* scriptContext);
+        static Js::PropertyIdArray * OP_NewPropIdArrForCompProps(uint32 size, ScriptContext* scriptContext);
 
     private:
 #if DYNAMIC_INTERPRETER_THUNK
@@ -632,8 +632,10 @@ namespace Js
         template <class T> void OP_ProfiledNewScArray_NoProfile(const unaligned OpLayoutDynamicProfile<T> * playout)  { ProfiledNewScArray<false, T>(playout); }
         void OP_NewScIntArray(const unaligned OpLayoutAuxiliary * playout);
         void OP_NewScFltArray(const unaligned OpLayoutAuxiliary * playout);
-        void OP_ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout);
-        void OP_ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout);
+        template <bool Profiled> void ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout);
+        template <bool Profiled> void ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout);
+        void OP_ProfiledNewScIntArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout) { ProfiledNewScIntArray<true>(playout); }
+        void OP_ProfiledNewScFltArray(const unaligned OpLayoutDynamicProfile<OpLayoutAuxiliary> * playout) { ProfiledNewScFltArray<true>(playout); }
 
         template <class T> void OP_LdArrayHeadSegment(const unaligned T* playout);
 
@@ -654,6 +656,7 @@ namespace Js
 
         void OP_EnsureNoRootProperty(uint propertyIdIndex);
         void OP_EnsureNoRootRedeclProperty(uint propertyIdIndex);
+        void OP_EnsureCanDeclGloFunc(uint propertyIdIndex);
         void OP_ScopedEnsureNoRedeclProperty(Var aValue, uint propertyIdIndex, Var aValue2);
         Var OP_InitUndecl();
         void OP_InitUndeclSlot(Var aValue, int32 slot);
@@ -734,19 +737,21 @@ namespace Js
         template <bool Profile, bool JITLoopBody> void ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
         void OP_RecordImplicitCall(uint loopNumber);
         template <class T, bool Profiled, bool ICIndex> void OP_NewScObject_Impl(const unaligned T* playout, InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices = nullptr);
-        template <class T, bool Profiled> void OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices = nullptr);
+        template <class T, bool Profiled, bool ICIndex> void OP_ProfiledNewScObject_Impl(const unaligned T* playout, InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices = nullptr) { OP_NewScObject_Impl<T, Profiled, ICIndex>(playout, inlineCacheIndex, spreadIndices); }
+        template <class T, bool Profiled> void OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices = nullptr) { OP_NewScObject_Impl<T, Profiled, false>(playout, Js::Constants::NoInlineCacheIndex, spreadIndices); }
+        template <class T, bool Profiled> void OP_ProfiledNewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         template <class T> void OP_NewScObject(const unaligned T* playout) { OP_NewScObject_Impl<T, false, false>(playout); }
         template <class T> void OP_NewScObjectNoCtorFull(const unaligned T* playout);
         template <class T> void OP_NewScObjectSpread(const unaligned T* playout) { OP_NewScObject_Impl<T, false, false>(playout, Js::Constants::NoInlineCacheIndex, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
         template <class T> void OP_NewScObjArray(const unaligned T* playout) { OP_NewScObjArray_Impl<T, false>(playout); }
         template <class T> void OP_NewScObjArraySpread(const unaligned T* playout) { OP_NewScObjArray_Impl<T, false>(playout, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
-        template <class T> void OP_ProfiledNewScObject(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_NewScObject_Impl<T, true, false>(playout); }
-        template <class T> void OP_ProfiledNewScObjectSpread(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_NewScObject_Impl<T, true, false>(playout, Js::Constants::NoInlineCacheIndex, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
-        template <class T> void OP_ProfiledNewScObjectWithICIndex(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_NewScObject_Impl<T, true, true>(playout, playout->inlineCacheIndex); }
-        template <class T> void OP_ProfiledNewScObjArray(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_NewScObjArray_Impl<T, true>(playout); }
-        template <class T> void OP_ProfiledNewScObjArray_NoProfile(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_NewScObjArray_Impl<T, false>(playout); }
-        template <class T> void OP_ProfiledNewScObjArraySpread(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_NewScObjArray_Impl<T, true>(playout, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
-        template <class T> void OP_ProfiledNewScObjArraySpread_NoProfile(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_NewScObjArray_Impl<T, true>(playout, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
+        template <class T> void OP_ProfiledNewScObject(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_ProfiledNewScObject_Impl<T, true, false>(playout); }
+        template <class T> void OP_ProfiledNewScObjectSpread(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_ProfiledNewScObject_Impl<T, true, false>(playout, Js::Constants::NoInlineCacheIndex, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
+        template <class T> void OP_ProfiledNewScObjectWithICIndex(const unaligned OpLayoutDynamicProfile<T>* playout) { OP_ProfiledNewScObject_Impl<T, true, true>(playout, playout->inlineCacheIndex); }
+        template <class T> void OP_ProfiledNewScObjArray(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_ProfiledNewScObjArray_Impl<T, true>(playout); }
+        template <class T> void OP_ProfiledNewScObjArray_NoProfile(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_ProfiledNewScObjArray_Impl<T, false>(playout); }
+        template <class T> void OP_ProfiledNewScObjArraySpread(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_ProfiledNewScObjArray_Impl<T, true>(playout, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
+        template <class T> void OP_ProfiledNewScObjArraySpread_NoProfile(const unaligned OpLayoutDynamicProfile2<T>* playout) { OP_ProfiledNewScObjArray_Impl<T, false>(playout, m_reader.ReadAuxArray<uint32>(playout->SpreadAuxOffset, this->GetFunctionBody())); }
         Var NewScObject_Helper(Var target, ArgSlot ArgCount, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         Var ProfiledNewScObject_Helper(Var target, ArgSlot ArgCount, ProfileId profileId, InlineCacheIndex inlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         template <class T, bool Profiled, bool ICIndex> Var OP_NewScObjectNoArg_Impl(const unaligned T *playout, InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex);

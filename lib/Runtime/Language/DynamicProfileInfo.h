@@ -464,6 +464,7 @@ namespace Js
         static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
         FunctionInfo * GetCallbackInfo(FunctionBody * functionBody, ProfileId callSiteId);
+        bool MayHaveNonBuiltinCallee(ProfileId callSiteId);
         FunctionInfo * GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall);
         CallSiteInfo * GetCallSiteInfo() const { return callSiteInfo; }
         uint16 GetConstantArgInfo(ProfileId callSiteId);
@@ -607,6 +608,8 @@ namespace Js
         Field(bool) persistsAcrossScriptContexts;
 #endif
 
+        static CriticalSection callSiteInfoCS;
+
         static JavascriptMethod EnsureDynamicProfileInfo(Js::ScriptFunction * function);
 #if DBG_DUMP
         static void DumpList(DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator);
@@ -629,6 +632,7 @@ namespace Js
         void ResetPolymorphicCallSiteInfo(ProfileId callSiteId, Js::LocalFunctionId functionId);
         void SetFunctionIdSlotForNewPolymorphicCall(ProfileId callSiteId, Js::LocalFunctionId curFunctionId, Js::SourceId curSourceId, Js::FunctionBody *inliner);
         void RecordPolymorphicCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo);
+
 #ifdef RUNTIME_DATA_COLLECTION
         static CriticalSection s_csOutput;
         template <typename T>

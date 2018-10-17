@@ -25,10 +25,6 @@ namespace Js
     public:
         JavascriptVariantDate(const double val, StaticType * type) : value(val), RecyclableObject(type) { }
 
-        static bool Is(Var aValue);
-        static JavascriptVariantDate* FromVar(Var aValue);
-        static JavascriptVariantDate* UnsafeFromVar(Var aValue);
-
         // Used for making function calls to external objects requiring string params.
         JavascriptString* GetValueString(ScriptContext* scriptContext);
 
@@ -55,4 +51,9 @@ namespace Js
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
         virtual RecyclableObject* ToObject(ScriptContext* requestContext) override;
     };
+
+    template <> inline bool VarIsImpl<JavascriptVariantDate>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_VariantDate;
+    }
 }

@@ -83,4 +83,16 @@
       <baseline>toString.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>CanDeclareGlobalFunction.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CanDeclareGlobalFunctionNonEval.js</files>
+      <baseline>CanDeclareGlobalFunctionNonEval.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

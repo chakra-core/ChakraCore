@@ -62,13 +62,12 @@ namespace Js
 
 namespace JsUtil
 {
-    template <typename TPropertyIndex>
-    class ValueEntry<Js::SimpleDictionaryPropertyDescriptor<TPropertyIndex> >: public BaseValueEntry<Js::SimpleDictionaryPropertyDescriptor<TPropertyIndex>>
+    template <class TPropertyIndex>
+    struct ClearValue<Js::SimpleDictionaryPropertyDescriptor<TPropertyIndex>>
     {
-    public:
-        void Clear()
+        static inline void Clear(Js::SimpleDictionaryPropertyDescriptor<TPropertyIndex>* value)
         {
-            this->value = 0;
+            *value = 0;
         }
     };
 }

@@ -167,7 +167,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
         case Js::TypeIds_Boolean:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetBooleanTypeDisplayString(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptBoolean::FromVar(varValue)->GetValue() == TRUE ? true : false, scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::VarTo<Js::JavascriptBoolean>(varValue)->GetValue() == TRUE ? true : false, scriptContext);
             break;
 
         case Js::TypeIds_Integer:
@@ -192,17 +192,17 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         }
         case Js::TypeIds_Int64Number:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::JavascriptInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::VarTo<Js::JavascriptInt64Number>(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_UInt64Number:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetNumberTypeDisplayString(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::JavascriptUInt64Number::FromVar(varValue)->GetValue(), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, (double)Js::VarTo<Js::JavascriptUInt64Number>(varValue)->GetValue(), scriptContext);
             break;
 
         case Js::TypeIds_String:
             JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::type, scriptContext->GetLibrary()->GetStringTypeDisplayString(), scriptContext);
-            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::JavascriptString::FromVar(varValue), scriptContext);
+            JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::value, Js::VarTo<Js::JavascriptString>(varValue), scriptContext);
             break;
 
         case Js::TypeIds_Symbol:

@@ -5,6 +5,8 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+let suppressFormatEqualityCheck = false;
+
 function format() {
     let locale = "en-US", options, n;
     assert.isTrue(arguments.length > 0);
@@ -22,7 +24,7 @@ function format() {
     const localeString = n.toLocaleString(locale, options);
 
     assert.isTrue(format === localeString, `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match toLocaleString`);
-    if (WScript.Platform.INTL_LIBRARY === "icu") {
+    if (WScript.Platform.INTL_LIBRARY === "icu" && !suppressFormatEqualityCheck) {
         assert.isTrue(format === nf.formatToParts(n).map((part) => part.value).join(""), `[locale = ${JSON.stringify(locale)}, options = ${JSON.stringify(options)}] format does not match formatToParts`);
     }
 
@@ -141,7 +143,12 @@ const tests = [
             assert.areEqual("$1.50", formatCurrency({ currencyDisplay: "symbol" }, 1.504), "Currency display: symbol");
             assert.areEqual("$1.51", formatCurrency({ currencyDisplay: "symbol" }, 1.505), "Currency display: symbol");
             // ICU has a proper "name" currency display, while WinGlob falls back to "code"
+            if (WScript.Platform.ICU_VERSION === 62) {
+                // In ICU 62, there is a mismatch between "1.00 US dollar" and "1.00 US dollars"
+                suppressFormatEqualityCheck = true;
+            }
             assert.matches(/(?:USD[\x20\u00a0]?1.00|1.00 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1), "Currency display: name");
+            suppressFormatEqualityCheck = false;
             assert.matches(/(?:USD[\x20\u00a0]?1.50|1.50 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1.504), "Currency display: name");
             assert.matches(/(?:USD[\x20\u00a0]?1.51|1.51 US dollars)/, formatCurrency({ currencyDisplay: "name" }, 1.505), "Currency display: name");
         }
@@ -155,15 +162,19 @@ const tests = [
         }
     },
     {
-        name: "Negative 0",
+        name: "Negative 0 (https://github.com/tc39/ecma402/issues/219)",
         body() {
             assert.areEqual(
                 0,
                 new Intl.NumberFormat(undefined, { minimumFractionDigits: -0 }).resolvedOptions().minimumFractionDigits,
                 "Passing -0 for minimumFractionDigits should get normalized to 0 by DefaultNumberOption"
             );
-            // This assert may need to change in the future, pending any decision made on https://github.com/tc39/ecma402/issues/219
-            assert.areEqual("0", (-0).toLocaleString(), "-0 should be formatted as 0");
+
+            assert.areEqual("-0", (-0).toLocaleString(), "-0 should be treated as a negative number (toLocaleString)");
+            assert.areEqual("-0", new Intl.NumberFormat().format(-0), "-0 should be treated as a negative number (NumberFormat.prototype.format)");
+            if (WScript.Platform.INTL_LIBRARY === "icu") {
+                assert.areEqual("-0", new Intl.NumberFormat().formatToParts(-0).map(v => v.value).join(""), "-0 should be treated as a negative number (NumberFormat.prototype.formatToParts)");
+            }
         }
     },
     {
@@ -190,7 +201,7 @@ const tests = [
                     // real formatToParts support was only added with ICU 61
                     assert.areEqual(1, actualParts.length, `formatToParts(${n}) stub implementation should return only one part`);
                     const literal = actualParts[0];
-                    assert.areEqual("literal", literal.type, `formatToParts(${n}) stub implementation should return a literal part`);
+                    assert.areEqual("unknown", literal.type, `formatToParts(${n}) stub implementation should return an unknown part`);
                     assert.areEqual(nf.format(n), literal.value, `formatToParts(${n}) stub implementation should return one part whose value matches the fully formatted number`);
                     return;
                 }
@@ -207,7 +218,15 @@ const tests = [
                 { type: "group", value: "," },
                 { type: "integer", value: "000" }
             ]);
-            assertParts("en-US", undefined, NaN, [{ type: "nan", value: "NaN" }]);
+            assertParts("en-US", undefined, -1000, [
+                { type: "minusSign", value: "-" },
+                { type: "integer" , value: "1" },
+                { type: "group", value: "," },
+                { type: "integer", value: "000" }
+            ]);
+            if (WScript.Platform.ICU_VERSION !== 62) {
+                assertParts("en-US", undefined, NaN, [{ type: "nan", value: "NaN" }]);
+            }
             assertParts("en-US", undefined, Infinity, [{ type: "infinity", value: "∞" }]);
             assertParts("en-US", undefined, 1000.3423, [
                 { type: "integer", value: "1" },

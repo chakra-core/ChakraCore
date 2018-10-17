@@ -53,7 +53,7 @@ namespace Js
         {
             RecyclableObject* pNew = scriptContext->GetLibrary()->CreateBooleanObject(value);
             return isCtorSuperCall ?
-                JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
+                JavascriptOperators::OrdinaryCreateFromConstructor(VarTo<RecyclableObject>(newTarget), pNew, nullptr, scriptContext) :
                 pNew;
         }
 
@@ -70,13 +70,13 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        if(JavascriptBoolean::Is(args[0]))
+        if(VarIs<JavascriptBoolean>(args[0]))
         {
             return args[0];
         }
-        else if (JavascriptBooleanObject::Is(args[0]))
+        else if (VarIs<JavascriptBooleanObject>(args[0]))
         {
-            JavascriptBooleanObject* booleanObject = JavascriptBooleanObject::FromVar(args[0]);
+            JavascriptBooleanObject* booleanObject = VarTo<JavascriptBooleanObject>(args[0]);
             return scriptContext->GetLibrary()->CreateBoolean(booleanObject->GetValue());
         }
         else
@@ -98,13 +98,13 @@ namespace Js
 
         BOOL bval;
         Var aValue = args[0];
-        if(JavascriptBoolean::Is(aValue))
+        if(VarIs<JavascriptBoolean>(aValue))
         {
-            bval = JavascriptBoolean::FromVar(aValue)->GetValue();
+            bval = VarTo<JavascriptBoolean>(aValue)->GetValue();
         }
-        else if (JavascriptBooleanObject::Is(aValue))
+        else if (VarIs<JavascriptBooleanObject>(aValue))
         {
-            JavascriptBooleanObject* booleanObject = JavascriptBooleanObject::FromVar(aValue);
+            JavascriptBooleanObject* booleanObject = VarTo<JavascriptBooleanObject>(aValue);
             bval = booleanObject->GetValue();
         }
         else
@@ -129,7 +129,7 @@ namespace Js
         if (JavascriptOperators::GetTypeId(args[0]) == TypeIds_HostDispatch)
         {
             Var result;
-            if (RecyclableObject::FromVar(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
+            if (VarTo<RecyclableObject>(args[0])->InvokeBuiltInOperationRemotely(entryPoint, args, &result))
             {
                 return result;
             }
@@ -161,13 +161,13 @@ namespace Js
             *value = left->GetValue() ? JavascriptNumber::GetValue(right) == 1.0 : JavascriptNumber::GetValue(right) == 0.0;
             break;
         case TypeIds_Int64Number:
-            *value = left->GetValue() ? JavascriptInt64Number::FromVar(right)->GetValue() == 1 : JavascriptInt64Number::FromVar(right)->GetValue() == 0;
+            *value = left->GetValue() ? VarTo<JavascriptInt64Number>(right)->GetValue() == 1 : VarTo<JavascriptInt64Number>(right)->GetValue() == 0;
             break;
         case TypeIds_UInt64Number:
-            *value = left->GetValue() ? JavascriptUInt64Number::FromVar(right)->GetValue() == 1 : JavascriptUInt64Number::FromVar(right)->GetValue() == 0;
+            *value = left->GetValue() ? VarTo<JavascriptUInt64Number>(right)->GetValue() == 1 : VarTo<JavascriptUInt64Number>(right)->GetValue() == 0;
             break;
         case TypeIds_Boolean:
-            *value = left->GetValue() == JavascriptBoolean::FromVar(right)->GetValue();
+            *value = left->GetValue() == VarTo<JavascriptBoolean>(right)->GetValue();
             break;
         case TypeIds_String:
             *value = left->GetValue() ? JavascriptConversion::ToNumber(right, requestContext) == 1.0 : JavascriptConversion::ToNumber(right, requestContext) == 0.0;

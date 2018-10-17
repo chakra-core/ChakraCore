@@ -108,7 +108,8 @@ void RemoveEscapes(const TextVector& texts, OutputIter out) {
 class BinaryErrorHandlerModule : public ErrorHandler {
  public:
   BinaryErrorHandlerModule(Location* loc, WastParser* parser);
-  bool OnError(const Location&,
+  bool OnError(ErrorLevel,
+               const Location&,
                const std::string& error,
                const std::string& source_line,
                size_t source_line_column_offset) override;
@@ -125,10 +126,12 @@ BinaryErrorHandlerModule::BinaryErrorHandlerModule(Location* loc,
                                                    WastParser* parser)
     : ErrorHandler(Location::Type::Binary), loc_(loc), parser_(parser) {}
 
-bool BinaryErrorHandlerModule::OnError(const Location& binary_loc,
+bool BinaryErrorHandlerModule::OnError(ErrorLevel error_level,
+                                       const Location& binary_loc,
                                        const std::string& error,
                                        const std::string& source_line,
                                        size_t source_line_column_offset) {
+  assert(error_level == ErrorLevel::Error);
   if (binary_loc.offset == kInvalidOffset) {
     parser_->Error(*loc_, "error in binary module: %s", error.c_str());
   } else {
@@ -162,8 +165,8 @@ bool IsPlainInstr(TokenType token_type) {
     case TokenType::Binary:
     case TokenType::Compare:
     case TokenType::Convert:
-    case TokenType::CurrentMemory:
-    case TokenType::GrowMemory:
+    case TokenType::MemorySize:
+    case TokenType::MemoryGrow:
     case TokenType::Throw:
     case TokenType::Rethrow:
     case TokenType::AtomicLoad:
@@ -284,6 +287,37 @@ class ResolveFuncTypesExprVisitorDelegate : public ExprVisitor::DelegateNop {
  public:
   explicit ResolveFuncTypesExprVisitorDelegate(Module* module)
       : module_(module) {}
+
+  void ResolveBlockDeclaration(const Location& loc, BlockDeclaration* decl) {
+    if (decl->GetNumParams() != 0 || decl->GetNumResults() > 1) {
+      ResolveFuncType(loc, module_, decl);
+    }
+  }
+
+  Result BeginBlockExpr(BlockExpr* expr) override {
+    ResolveBlockDeclaration(expr->loc, &expr->block.decl);
+    return Result::Ok;
+  }
+
+  Result BeginIfExpr(IfExpr* expr) override {
+    ResolveBlockDeclaration(expr->loc, &expr->true_.decl);
+    return Result::Ok;
+  }
+
+  Result BeginIfExceptExpr(IfExceptExpr* expr) override {
+    ResolveBlockDeclaration(expr->loc, &expr->true_.decl);
+    return Result::Ok;
+  }
+
+  Result BeginLoopExpr(LoopExpr* expr) override {
+    ResolveBlockDeclaration(expr->loc, &expr->block.decl);
+    return Result::Ok;
+  }
+
+  Result BeginTryExpr(TryExpr* expr) override {
+    ResolveBlockDeclaration(expr->loc, &expr->block.decl);
+    return Result::Ok;
+  }
 
   Result OnCallIndirectExpr(CallIndirectExpr* expr) override {
     ResolveFuncType(expr->loc, module_, &expr->decl);
@@ -1423,14 +1457,14 @@ Result WastParser::ParsePlainInstr(std::unique_ptr<Expr>* out_expr) {
       break;
     }
 
-    case TokenType::CurrentMemory:
+    case TokenType::MemorySize:
       Consume();
-      out_expr->reset(new CurrentMemoryExpr(loc));
+      out_expr->reset(new MemorySizeExpr(loc));
       break;
 
-    case TokenType::GrowMemory:
+    case TokenType::MemoryGrow:
       Consume();
-      out_expr->reset(new GrowMemoryExpr(loc));
+      out_expr->reset(new MemoryGrowExpr(loc));
       break;
 
     case TokenType::Throw:
@@ -1707,6 +1741,7 @@ Result WastParser::ParseBlockInstr(std::unique_ptr<Expr>* out_expr) {
       if (Match(TokenType::Else)) {
         CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
         CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
+        expr->false_end_loc = GetLocation();
       }
       EXPECT(End);
       CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
@@ -1719,9 +1754,11 @@ Result WastParser::ParseBlockInstr(std::unique_ptr<Expr>* out_expr) {
       auto expr = MakeUnique<IfExceptExpr>(loc);
       CHECK_RESULT(ParseIfExceptHeader(expr.get()));
       CHECK_RESULT(ParseInstrList(&expr->true_.exprs));
+      expr->true_.end_loc = GetLocation();
       if (Match(TokenType::Else)) {
         CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
         CHECK_RESULT(ParseTerminatingInstrList(&expr->false_));
+        expr->false_end_loc = GetLocation();
       }
       EXPECT(End);
       CHECK_RESULT(ParseEndLabelOpt(expr->true_.label));
@@ -1778,10 +1815,22 @@ Result WastParser::ParseEndLabelOpt(const std::string& begin_label) {
   return Result::Ok;
 }
 
+Result WastParser::ParseBlockDeclaration(BlockDeclaration* decl) {
+  WABT_TRACE(ParseBlockDeclaration);
+  FuncDeclaration func_decl;
+  CHECK_RESULT(ParseTypeUseOpt(&func_decl));
+  CHECK_RESULT(ParseUnboundFuncSignature(&func_decl.sig));
+  decl->has_func_type = func_decl.has_func_type;
+  decl->type_var = func_decl.type_var;
+  decl->sig = func_decl.sig;
+  return Result::Ok;
+}
+
 Result WastParser::ParseBlock(Block* block) {
   WABT_TRACE(ParseBlock);
-  CHECK_RESULT(ParseResultList(&block->sig));
+  CHECK_RESULT(ParseBlockDeclaration(&block->decl));
   CHECK_RESULT(ParseInstrList(&block->exprs));
+  block->end_loc = GetLocation();
   return Result::Ok;
 }
 
@@ -1798,22 +1847,33 @@ Result WastParser::ParseIfExceptHeader(IfExceptExpr* expr) {
   //     3. if_except $label $except/<num> ...
   //     4. if_except (result...) $except/<num> ...
   //     5. if_except $label (result...) $except/<num> ...
+  //
+  // With the multi-value proposal, `block_type` can be (param...) (result...),
+  // so there are more forms:
+  //
+  //     6. if_except (param...) $except/<num> ...
+  //     7. if_except (param...) (result...) $except/<num> ...
+  //     8. if_except $label (param...) $except/<num> ...
+  //     9. if_except $label (param...) (result...) $except/<num> ...
+  //
+  // This case is handled by ParseBlockDeclaration, but it means we also need
+  // to check for the `param` token here.
 
-  if (PeekMatchLpar(TokenType::Result)) {
-    // Case 4.
-    CHECK_RESULT(ParseResultList(&expr->true_.sig));
+  if (PeekMatchLpar(TokenType::Result) || PeekMatchLpar(TokenType::Param)) {
+    // Cases 4, 6, 7.
+    CHECK_RESULT(ParseBlockDeclaration(&expr->true_.decl));
     CHECK_RESULT(ParseVar(&expr->except_var));
   } else if (PeekMatch(TokenType::Nat)) {
     // Case 1.
     CHECK_RESULT(ParseVar(&expr->except_var));
   } else if (PeekMatch(TokenType::Var)) {
-    // Cases 2, 3, 5.
+    // Cases 2, 3, 5, 8, 9.
     Var var;
     CHECK_RESULT(ParseVar(&var));
-    if (PeekMatchLpar(TokenType::Result)) {
-      // Case 5.
+    if (PeekMatchLpar(TokenType::Result) || PeekMatchLpar(TokenType::Param)) {
+      // Cases 5, 8, 9.
       expr->true_.label = var.name();
-      CHECK_RESULT(ParseResultList(&expr->true_.sig));
+      CHECK_RESULT(ParseBlockDeclaration(&expr->true_.decl));
       CHECK_RESULT(ParseVar(&expr->except_var));
     } else if (ParseVarOpt(&expr->except_var, Var())) {
       // Case 3.
@@ -1886,7 +1946,7 @@ Result WastParser::ParseExpr(ExprList* exprs) {
         auto expr = MakeUnique<IfExpr>(loc);
 
         CHECK_RESULT(ParseLabelOpt(&expr->true_.label));
-        CHECK_RESULT(ParseResultList(&expr->true_.sig));
+        CHECK_RESULT(ParseBlockDeclaration(&expr->true_.decl));
 
         if (PeekMatchExpr()) {
           ExprList cond;
@@ -1961,8 +2021,9 @@ Result WastParser::ParseExpr(ExprList* exprs) {
 
         auto expr = MakeUnique<TryExpr>(loc);
         CHECK_RESULT(ParseLabelOpt(&expr->block.label));
-        CHECK_RESULT(ParseResultList(&expr->block.sig));
+        CHECK_RESULT(ParseBlockDeclaration(&expr->block.decl));
         CHECK_RESULT(ParseInstrList(&expr->block.exprs));
+        expr->block.end_loc = GetLocation();
         EXPECT(Lpar);
         EXPECT(Catch);
         CHECK_RESULT(ParseTerminatingInstrList(&expr->catch_));

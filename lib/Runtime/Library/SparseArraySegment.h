@@ -89,6 +89,7 @@ namespace Js
         static SparseArraySegment<T>* CopySegment(Recycler *recycler, SparseArraySegment<T>* dst, uint32 dstIndex, SparseArraySegment<T>* src, uint32 srcIndex, uint32 inputLen);
 
         static T GetMissingItem();
+        static Var GetMissingItemVar();
         static bool IsMissingItem(const T* value);
 
         template <class S>
@@ -131,20 +132,27 @@ namespace Js
     template<>
     inline int32 SparseArraySegment<int32>::GetMissingItem()
     {
-        return 0x80000002;
+        return IntMissingItemPattern;
     }
 
     template<>
     inline double SparseArraySegment<double>::GetMissingItem()
     {
-        uint64 u = 0x8000000280000002;
-        return *(double*)&u;
+        return *(double*)&FloatMissingItemPattern;
     }
+
+    template<typename T>
+    Var SparseArraySegment<T>::GetMissingItemVar()
+    {
+        return JavascriptArray::MissingItem;
+    }
+    template<>
+    Var SparseArraySegment<int32>::GetMissingItemVar();
 
     template<>
     inline bool SparseArraySegment<double>::IsMissingItem(const double* value)
     {
-        return *(uint64*)value == 0x8000000280000002ull;
+        return *(uint64*)value == FloatMissingItemPattern;
     }
 
     template<typename T>

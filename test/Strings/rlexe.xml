@@ -123,6 +123,12 @@
       <baseline>trim.baseline</baseline>
     </default>
   </test>
+   <test>
+    <default>
+      <files>trimStart_trimEnd.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
   <test>
     <default>
       <files>lastindexof.js</files>
