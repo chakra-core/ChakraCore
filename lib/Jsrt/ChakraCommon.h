@@ -718,26 +718,6 @@ typedef unsigned short uint16_t;
     typedef void (CHAKRA_CALLBACK *JsTraceCallback)(_In_opt_ void *data);
 
     /// <summary>
-    ///     A structure containing information about interceptors.
-    /// </summary>
-    typedef struct JsGetterSetterInterceptor {
-        JsValueRef getTrap;
-        JsValueRef setTrap;
-        JsValueRef deletePropertyTrap;
-        JsValueRef enumerateTrap;
-        JsValueRef ownKeysTrap;
-        JsValueRef hasTrap;
-        JsValueRef getOwnPropertyDescriptorTrap;
-        JsValueRef definePropertyTrap;
-
-        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
-
-        JsGetterSetterInterceptor();
-
-        bool AreInterceptorsRequired();
-    } JsGetterSetterInterceptor;
-
-    /// <summary>
     ///     A finalizer callback.
     /// </summary>
     /// <param name="data">
@@ -772,6 +752,41 @@ typedef unsigned short uint16_t;
     /// <param name="task">The task, represented as a JavaScript function.</param>
     /// <param name="callbackState">The data argument to be passed to the callback.</param>
     typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     A structure containing information about interceptors.
+    /// </summary>
+    typedef struct JsGetterSetterInterceptor {
+        JsValueRef getTrap;
+        JsValueRef setTrap;
+        JsValueRef deletePropertyTrap;
+        JsValueRef enumerateTrap;
+        JsValueRef ownKeysTrap;
+        JsValueRef hasTrap;
+        JsValueRef getOwnPropertyDescriptorTrap;
+        JsValueRef definePropertyTrap;
+
+        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
+
+        JsGetterSetterInterceptor();
+
+        bool AreInterceptorsRequired();
+    } JsGetterSetterInterceptor;
+
+    /// <summary>
+    ///     A callback for tracing references back from Chakra to DOM wrappers.
+    /// </summary>
+    typedef void (CHAKRA_CALLBACK *JsDOMWrapperTracingCallback)(_In_opt_ void *data);
+
+    /// <summary>
+    ///     A callback for checking whether tracing from Chakra to DOM wrappers has completed.
+    /// </summary>
+    typedef bool (CHAKRA_CALLBACK *JsDOMWrapperTracingDoneCallback)(_In_opt_ void *data);
+
+    /// <summary>
+    ///     A callback for entering final pause for tracing DOM wrappers.
+    /// </summary>
+    typedef void(*JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new runtime.

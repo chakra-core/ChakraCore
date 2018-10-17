@@ -6141,6 +6141,31 @@ CHAKRA_API JsSetRuntimeBeforeSweepCallback(_In_ JsRuntimeHandle runtimeHandle, _
     });
 }
 
+CHAKRA_API
+JsSetRuntimeDomWrapperTracingCallbacks(
+    _In_ JsRuntimeHandle runtimeHandle,
+    _In_ JsRef wrapperTracingState,
+    _In_ JsDOMWrapperTracingCallback wrapperTracingCallback,
+    _In_ JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback,
+    _In_ JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback)
+{
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        VALIDATE_INCOMING_RUNTIME_HANDLE(runtimeHandle);
+
+        ThreadContext * threadContext = JsrtRuntime::FromHandle(runtimeHandle)->GetThreadContext();
+        ThreadContextScope scope(threadContext);
+
+        if (!scope.IsValid())
+        {
+            return JsErrorWrongThread;
+        }
+
+        Recycler * recycler = threadContext->GetRecycler();
+        recycler->SetDOMWrapperTracingCallback(wrapperTracingState, reinterpret_cast<DOMWrapperTracingCallback>(wrapperTracingCallback), reinterpret_cast<DOMWrapperTracingDoneCallback>(wrapperTracingDoneCallback), reinterpret_cast<DOMWrapperTracingEnterFinalPauseCallback>(enterFinalPauseCallback));
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsTraceExternalReference(_In_ JsRuntimeHandle runtimeHandle, _In_ JsValueRef value)
 {
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {

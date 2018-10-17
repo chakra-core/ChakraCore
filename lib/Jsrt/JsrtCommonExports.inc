@@ -1,4 +1,5 @@
     JsSetObjectBeforeCollectCallback
+    JsSetRuntimeDomWrapperTracingCallbacks
     JsCreateRuntime
     JsCollectGarbage
     JsDisposeRuntime

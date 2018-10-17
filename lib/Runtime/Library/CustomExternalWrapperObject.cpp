@@ -219,6 +219,7 @@ BOOL CustomExternalWrapperObject::StrictEquals(__in Var other, __out BOOL* value
 
 void CustomExternalWrapperObject::Mark(Recycler * recycler)
 {
+    recycler->SetNeedExternalWrapperTracing();
     JsTraceCallback traceCallback = this->GetExternalType()->GetJsTraceCallback();
     Assert(nullptr != traceCallback);
     traceCallback(this->GetSlotData());

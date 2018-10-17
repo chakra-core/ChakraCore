@@ -1566,6 +1566,14 @@ CHAKRA_API
         _In_ JsBeforeSweepCallback beforeSweepCallback);
 
 CHAKRA_API
+JsSetRuntimeDomWrapperTracingCallbacks(
+    _In_ JsRuntimeHandle runtimeHandle,
+    _In_ JsRef wrapperTracingState,
+    _In_ JsDOMWrapperTracingCallback wrapperTracingCallback,
+    _In_ JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback,
+    _In_ JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
+
+CHAKRA_API
     JsTraceExternalReference(
         _In_ JsRuntimeHandle runtimeHandle,
         _In_ JsValueRef value
