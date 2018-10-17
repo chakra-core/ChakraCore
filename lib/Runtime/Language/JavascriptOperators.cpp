@@ -1002,52 +1002,52 @@ CommonNumber:
         {
             return FALSE;
         }
-            RecyclableObject* object = RecyclableObject::UnsafeFromVar(instance);
+        RecyclableObject* object = RecyclableObject::UnsafeFromVar(instance);
 
-            if (JavascriptProxy::Is(instance))
-            {
-                PropertyDescriptor desc;
-                return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
-            }
+        if (JavascriptProxy::Is(instance))
+        {
+            PropertyDescriptor desc;
+            return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
+        }
 
         // If we have a PropertyString, attempt to shortcut the lookup by using its caches
-                if (propString != nullptr)
+        if (propString != nullptr)
+        {
+            PropertyCacheOperationInfo info;
+            if (propString->GetLdElemInlineCache()->PretendTryGetProperty(object->GetType(), &info))
+            {
+                switch (info.cacheType)
                 {
-                    PropertyCacheOperationInfo info;
-                    if (propString->GetLdElemInlineCache()->PretendTryGetProperty(object->GetType(), &info))
-                    {
-                        switch (info.cacheType)
-                        {
-                            case CacheType_Local:
-                                Assert(object->HasOwnProperty(propertyId));
-                                return TRUE;
-                            case CacheType_Proto:
-                                Assert(!object->HasOwnProperty(propertyId));
-                                return FALSE;
-                            default:
+                case CacheType_Local:
+                    Assert(object->HasOwnProperty(propertyId));
+                    return TRUE;
+                case CacheType_Proto:
+                    Assert(!object->HasOwnProperty(propertyId));
+                    return FALSE;
+                default:
                     // We had a cache hit, but cache doesn't tell us if we have an own property
-                                break;
-                        }
-                    }
-                    if (propString->GetStElemInlineCache()->PretendTrySetProperty(object->GetType(), object->GetType(), &info))
-                    {
-                        switch (info.cacheType)
-                        {
-                        case CacheType_Local:
-                            Assert(object->HasOwnProperty(propertyId));
-                            return TRUE;
-                        case CacheType_LocalWithoutProperty:
-                            Assert(!object->HasOwnProperty(propertyId));
-                            return FALSE;
-                        default:
-                    // We had a cache hit, but cache doesn't tell us if we have an own property
-                            break;
-                        }
-                    }
+                    break;
                 }
-
-                return object && object->HasOwnProperty(propertyId);
             }
+            if (propString->GetStElemInlineCache()->PretendTrySetProperty(object->GetType(), object->GetType(), &info))
+            {
+                switch (info.cacheType)
+                {
+                case CacheType_Local:
+                    Assert(object->HasOwnProperty(propertyId));
+                    return TRUE;
+                case CacheType_LocalWithoutProperty:
+                    Assert(!object->HasOwnProperty(propertyId));
+                    return FALSE;
+                default:
+                    // We had a cache hit, but cache doesn't tell us if we have an own property
+                    break;
+                }
+            }
+        }
+
+        return object && object->HasOwnProperty(propertyId);
+    }
 
     BOOL JavascriptOperators::GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
     {
@@ -2518,7 +2518,7 @@ CommonNumber:
         bool isRoot,
         bool allowUndecInConsoleScope,
         BOOL *result)
-        {
+    {
         *result = FALSE;
         Var setterValueOrProxy = nullptr;
         DescriptorFlags flags = None;

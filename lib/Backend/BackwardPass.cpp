@@ -4013,7 +4013,7 @@ bool
 BackwardPass::IsFormalParamSym(Func * func, Sym * sym) const
 {
     Assert(sym);
-    
+
     if (sym->IsPropertySym())
     {
         //If the sym is a propertySym, then see if the propertyId is within the range of the formals 
@@ -4034,9 +4034,9 @@ BackwardPass::IsFormalParamSym(Func * func, Sym * sym) const
 struct BvToDump
 {
     const BVSparse<JitArenaAllocator>* bv;
-    char16* tag;
+    const char16* tag;
     size_t tagLen;
-    BvToDump(const BVSparse<JitArenaAllocator>* bv, char16* tag) :
+    BvToDump(const BVSparse<JitArenaAllocator>* bv, const char16* tag) :
         bv(bv),
         tag(tag),
         tagLen(bv ? wcslen(tag) : 0)
@@ -4090,7 +4090,7 @@ BackwardPass::TraceInstrUses(BasicBlock * block, IR::Instr* instr, bool isStart)
 {
     if ((!IsCollectionPass() || tag == Js::CaptureByteCodeRegUsePhase) && IsTraceEnabled() && Js::Configuration::Global.flags.Verbose)
     {
-        char16* tagName = 
+        const char16* tagName = 
             tag == Js::CaptureByteCodeRegUsePhase ? _u("CAPTURE BYTECODE REGISTER") : (
             tag == Js::BackwardPhase ? _u("BACKWARD") : (
             tag == Js::DeadStorePhase ? _u("DEADSTORE") :
@@ -5139,8 +5139,8 @@ bool
 BackwardPass::ProcessSymUse(Sym * sym, bool isRegOpndUse, BOOLEAN isNonByteCodeUse)
 {
     BasicBlock * block = this->currentBlock;
-    
-    if (CanDeadStoreInstrForScopeObjRemoval(sym))   
+
+    if (CanDeadStoreInstrForScopeObjRemoval(sym))
     {
         return false;
     }
@@ -5412,7 +5412,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                     }
                     bucket->SetMonoGuardType(nullptr);
                 }
-                
+
                 if (!opnd->IsTypeAvailable())
                 {
                     // Stop tracking the guarded properties if there's not another type check upstream.
@@ -6560,7 +6560,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
                     break;
                 }
-                
+
                 // -0 + -0 == -0. As long as one src is guaranteed to not be -0, -0 does not matter for the other src. Pick a
                 // src for which to ignore negative zero, based on which sym is last-use. If both syms are last-use, src2 is
                 // picked arbitrarily.
@@ -7650,9 +7650,9 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
         tempBv.Copy(this->currentBlock->byteCodeUpwardExposedUsed);
 #endif
         PropertySym *unusedPropertySym = nullptr;
-        
+
         GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
-        
+
 #if DBG
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
         tempBv2.Copy(this->currentBlock->byteCodeUpwardExposedUsed);
@@ -7690,7 +7690,7 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
     }
 #endif
 
-    
+
     if (instr->m_opcode == Js::OpCode::ArgIn_A)
     {
         //Ignore tracking ArgIn for "this", as argInsCount only tracks other params - unless it is a asmjs function(which doesn't have a "this").
@@ -7702,7 +7702,7 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
     }
 
     TraceDeadStoreOfInstrsForScopeObjectRemoval();
-    
+
     block->RemoveInstr(instr);
     return true;
 }
