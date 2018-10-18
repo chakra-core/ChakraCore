@@ -513,7 +513,7 @@ LSlowPath:
         size_t destWriteMaxBytes = cbDest - 1; // leave room for null terminator
         size_t result = EncodeIntoImpl<encoding>(dest, destWriteMaxBytes, source, cchSource);
         dest[result] = 0;
-        return result + 1;
+        return result;
     }
 
     template
