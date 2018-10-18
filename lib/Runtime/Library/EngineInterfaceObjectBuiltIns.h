@@ -56,8 +56,6 @@ GlobalBuiltInConstructor(Symbol)
 
 GlobalMathBuiltIn(Abs)
 GlobalMathBuiltIn(Floor)
-GlobalMathBuiltIn(Max)
-GlobalMathBuiltIn(Min)
 GlobalMathBuiltIn(Pow)
 
 GlobalBuiltIn(JavascriptObject, DefineProperty)
@@ -90,8 +88,6 @@ GlobalBuiltIn(JavascriptString, Split)
 GlobalBuiltIn(JavascriptString, Substring)
 GlobalBuiltIn(JavascriptString, Repeat)
 GlobalBuiltIn(JavascriptString, IndexOf)
-
-GlobalBuiltIn(JavascriptNumber, IsNaN)
 
 GlobalBuiltIn(GlobalObject, IsFinite) // TODO(jahorto): consider switching to Number.isFinite
 GlobalBuiltIn(GlobalObject, IsNaN) // TODO(jahorto): consider switching to Number.isNaN

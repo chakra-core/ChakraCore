@@ -40,28 +40,35 @@
     } \
 
 #define FUNCTIONKIND_VALUES(VALUE) \
-VALUE(Array, values, false, Prototype) \
-VALUE(Array, keys, false, Prototype) \
-VALUE(Array, entries, false,  Prototype) \
-VALUE(Array, indexOf, false, Prototype) \
-VALUE(Array, filter, false, Prototype) \
-VALUE(Array, flat, false, Prototype) \
-VALUE(Array, flatMap, false, Prototype) \
-VALUE(Array, forEach, false, Prototype) \
-VALUE(Array, some, false, Prototype) \
-VALUE(Array, every, false, Prototype) \
-VALUE(Array, includes, false, Prototype) \
-VALUE(Array, reduce, false, Prototype) \
-VALUE(Object, fromEntries, true, Constructor) \
-VALUE(Math, max, true, Object) \
-VALUE(Math, min, true, Object)
+VALUE(Array, values, Prototype) \
+VALUE(Array, keys, Prototype) \
+VALUE(Array, entries, Prototype) \
+VALUE(Array, indexOf, Prototype) \
+VALUE(Array, filter, Prototype) \
+VALUE(Array, flat, Prototype) \
+VALUE(Array, flatMap, Prototype) \
+VALUE(Array, forEach, Prototype) \
+VALUE(Array, some, Prototype) \
+VALUE(Array, every, Prototype) \
+VALUE(Array, includes, Prototype) \
+VALUE(Array, reduce, Prototype) \
+VALUE(Object, fromEntries, Constructor) \
+VALUE(Math, max, Object) \
+VALUE(Math, min, Object)
 
 enum class FunctionKind
 {
-#define VALUE(ClassName, methodName, isStatic, propertyType) ClassName##_##methodName,
+#define VALUE(ClassName, methodName, propertyType) ClassName##_##methodName,
     FUNCTIONKIND_VALUES(VALUE) 
 #undef VALUE
     Max
+};
+
+enum class IsPropertyTypeStatic : bool
+{
+    Prototype = false,
+    Constructor = true,
+    Object = true
 };
 
 namespace Js
@@ -200,7 +207,7 @@ namespace Js
 
     bool JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        int initSlotCapacity = 4; // for register{ChakraLibrary}Function, FunctionKind, and GetIteratorPrototype
+        int initSlotCapacity = 6; // for register{ChakraLibrary}Function, FunctionKind, POSITIVE_INFINITY, NEGATIVE_INFINITY, and GetIteratorPrototype
 
         typeHandler->Convert(builtInNativeInterfaces, mode, initSlotCapacity);
 
@@ -209,7 +216,7 @@ namespace Js
 
         DynamicObject * functionKindObj = library->CreateObject();
 
-#define VALUE(ClassName, methodName, isStatic, propertyType) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
+#define VALUE(ClassName, methodName, propertyType) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
         FUNCTIONKIND_VALUES(VALUE)
 #undef VALUE
 
@@ -305,9 +312,9 @@ namespace Js
         JavascriptString *dot = library->GetDotString();
         switch (funcKind)
         {
-#define VALUE(ClassName, methodName, _isStatic, propertyType) \
-            case FunctionKind::ClassName##_##methodName: \
-            isStatic = _isStatic; \
+#define VALUE(ClassName, methodName, propertyType) \
+        case FunctionKind::ClassName##_##methodName: \
+            isStatic = static_cast<bool>(IsPropertyTypeStatic::##propertyType); \
             installTarget = library->Get##ClassName##propertyType##(); \
             methodPropID = PropertyIds::methodName; \
             methodPropString = scriptContext->GetPropertyString(methodPropID); \
@@ -376,9 +383,11 @@ FUNCTIONKIND_VALUES(VALUE)
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
             break;
         case FunctionKind::Math_max:
+            library->mathMax = func;
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMax, func);
             break;
         case FunctionKind::Math_min:
+            library->mathMin = func;
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMin, func);
             break;
         // FunctionKinds with no entry functions

@@ -670,6 +670,8 @@ ENTRY(builtInJavascriptArrayEntryIndexOf)
 ENTRY(builtInJavascriptArrayEntrySome)
 ENTRY(builtInJavascriptArrayEntryEvery)
 ENTRY(builtInJavascriptArrayEntryIncludes)
+ENTRY(builtInMathMin)
+ENTRY(builtInMathMax)
 ENTRY(EngineInterface)
 ENTRY(builtInCallInstanceFunction)
 

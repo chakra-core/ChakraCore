@@ -341,5 +341,13 @@ namespace Js
 #ifdef EDIT_AND_CONTINUE
         Field(JavascriptFunction*) editSource;
 #endif
+        Field(JavascriptFunction*) mathMin;
+        Field(JavascriptFunction*) mathMax;
+
+#ifdef ENABLE_JS_BUILTINS
+    public:
+        JavascriptFunction* GetMathMinFunction() const { return mathMin; }
+        JavascriptFunction* GetMathMaxFunction() const { return mathMax; }
+#endif
     };
 }
