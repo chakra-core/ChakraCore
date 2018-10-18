@@ -40,26 +40,35 @@
     } \
 
 #define FUNCTIONKIND_VALUES(VALUE) \
-VALUE(Array, values, false) \
-VALUE(Array, keys, false) \
-VALUE(Array, entries, false) \
-VALUE(Array, indexOf, false) \
-VALUE(Array, filter, false) \
-VALUE(Array, flat, false) \
-VALUE(Array, flatMap, false) \
-VALUE(Array, forEach, false) \
-VALUE(Array, some, false) \
-VALUE(Array, every, false) \
-VALUE(Array, includes, false) \
-VALUE(Array, reduce, false) \
-VALUE(Object, fromEntries, true)
+VALUE(Array, values, Prototype) \
+VALUE(Array, keys, Prototype) \
+VALUE(Array, entries, Prototype) \
+VALUE(Array, indexOf, Prototype) \
+VALUE(Array, filter, Prototype) \
+VALUE(Array, flat, Prototype) \
+VALUE(Array, flatMap, Prototype) \
+VALUE(Array, forEach, Prototype) \
+VALUE(Array, some, Prototype) \
+VALUE(Array, every, Prototype) \
+VALUE(Array, includes, Prototype) \
+VALUE(Array, reduce, Prototype) \
+VALUE(Object, fromEntries, Constructor) \
+VALUE(Math, max, Object) \
+VALUE(Math, min, Object)
 
 enum class FunctionKind
 {
-#define VALUE(ClassName, methodName, isStatic) ClassName##_##methodName,
-    FUNCTIONKIND_VALUES(VALUE)
+#define VALUE(ClassName, methodName, propertyType) ClassName##_##methodName,
+    FUNCTIONKIND_VALUES(VALUE) 
 #undef VALUE
     Max
+};
+
+enum class IsPropertyTypeStatic : bool
+{
+    Prototype = false,
+    Constructor = true,
+    Object = true
 };
 
 namespace Js
@@ -198,7 +207,7 @@ namespace Js
 
     bool JsBuiltInEngineInterfaceExtensionObject::InitializeJsBuiltInNativeInterfaces(DynamicObject * builtInNativeInterfaces, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        int initSlotCapacity = 4; // for register{ChakraLibrary}Function, FunctionKind, and GetIteratorPrototype
+        int initSlotCapacity = 6; // for register{ChakraLibrary}Function, FunctionKind, POSITIVE_INFINITY, NEGATIVE_INFINITY, and GetIteratorPrototype
 
         typeHandler->Convert(builtInNativeInterfaces, mode, initSlotCapacity);
 
@@ -207,11 +216,13 @@ namespace Js
 
         DynamicObject * functionKindObj = library->CreateObject();
 
-#define VALUE(ClassName, methodName, isStatic) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
+#define VALUE(ClassName, methodName, propertyType) library->AddMember(functionKindObj, PropertyIds::ClassName##_##methodName, JavascriptNumber::ToVar((int)FunctionKind::ClassName##_##methodName, scriptContext));
         FUNCTIONKIND_VALUES(VALUE)
 #undef VALUE
 
         library->AddMember(builtInNativeInterfaces, PropertyIds::FunctionKind, functionKindObj);
+        library->AddMember(builtInNativeInterfaces, PropertyIds::POSITIVE_INFINITY, library->GetPositiveInfinite());
+        library->AddMember(builtInNativeInterfaces, PropertyIds::NEGATIVE_INFINITY, library->GetNegativeInfinite());
 
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerChakraLibraryFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterChakraLibraryFunction, 2);
         library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &JsBuiltInEngineInterfaceExtensionObject::EntryInfo::JsBuiltIn_RegisterFunction, 2);
@@ -297,12 +308,14 @@ namespace Js
         PropertyId methodPropID = PropertyIds::_none;
         PropertyString *methodPropString = nullptr;
         PropertyString *classPropString = nullptr;
+        JavascriptString *fullName = nullptr;
+        JavascriptString *dot = library->GetDotString();
         switch (funcKind)
         {
-#define VALUE(ClassName, methodName, _isStatic) \
+#define VALUE(ClassName, methodName, propertyType) \
         case FunctionKind::ClassName##_##methodName: \
-            isStatic = _isStatic; \
-            installTarget = _isStatic ? library->Get##ClassName##Constructor() : library->Get##ClassName##Prototype(); \
+            isStatic = static_cast<bool>(IsPropertyTypeStatic::##propertyType); \
+            installTarget = library->Get##ClassName##propertyType##(); \
             methodPropID = PropertyIds::methodName; \
             methodPropString = scriptContext->GetPropertyString(methodPropID); \
             classPropString = scriptContext->GetPropertyString(PropertyIds::ClassName); \
@@ -312,10 +325,9 @@ FUNCTIONKIND_VALUES(VALUE)
         default:
             AssertOrFailFastMsg(false, "funcKind should never be outside the range of projected values");
         }
+
         Assert(methodPropString && classPropString && installTarget && methodPropID != PropertyIds::_none);
 
-        JavascriptString *fullName = nullptr;
-        JavascriptString *dot = library->GetDotString();
         if (isStatic)
         {
             fullName = JavascriptString::Concat3(classPropString, dot, methodPropString);
@@ -369,6 +381,14 @@ FUNCTIONKIND_VALUES(VALUE)
             break;
         case FunctionKind::Array_reduce:
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInJavascriptArrayEntryReduce, func);
+            break;
+        case FunctionKind::Math_max:
+            library->mathMax = func;
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMax, func);
+            break;
+        case FunctionKind::Math_min:
+            library->mathMin = func;
+            library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMin, func);
             break;
         // FunctionKinds with no entry functions
         case FunctionKind::Array_flat:

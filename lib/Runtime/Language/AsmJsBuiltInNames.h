@@ -4,6 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 
 // Default all macros to nothing
+
+#ifndef ASMJS_JSBUILTIN_MATH_FUNC_NAMES
+#define ASMJS_JSBUILTIN_MATH_FUNC_NAMES(propertyId, funcName)
+#endif
+
 #ifndef ASMJS_MATH_FUNC_NAMES
 #define ASMJS_MATH_FUNC_NAMES(name, propertyName, funcInfo)
 #endif
@@ -22,6 +27,11 @@
 
 #ifndef ASMJS_TYPED_ARRAY_NAMES
 #define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) ASMJS_ARRAY_NAMES(name, propertyName)
+#endif
+
+#ifdef ENABLE_JS_BUILTINS
+ASMJS_JSBUILTIN_MATH_FUNC_NAMES(Js::PropertyIds::min,   Min     )
+ASMJS_JSBUILTIN_MATH_FUNC_NAMES(Js::PropertyIds::max,   Max     )
 #endif
 
 ASMJS_MATH_FUNC_NAMES(sin,      sin,    Math::EntryInfo::Sin    )
@@ -66,6 +76,7 @@ ASMJS_TYPED_ARRAY_NAMES(Float64Array, Float64Array)
 ASMJS_ARRAY_NAMES(byteLength,   byteLength)
 
 // help the caller to undefine all the macros
+#undef ASMJS_JSBUILTIN_MATH_FUNC_NAMES
 #undef ASMJS_MATH_FUNC_NAMES
 #undef ASMJS_MATH_CONST_NAMES
 #undef ASMJS_MATH_DOUBLE_CONST_NAMES

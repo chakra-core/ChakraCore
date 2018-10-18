@@ -3,8 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
-// This file was generated with tools\update_bytecode_version.ps1
 
-// {9FAAF688-ACBA-4092-BA5B-77D97D3CD53A}
+// {D8913E7E-E430-4B28-81DD-EDD3EE5F263B}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x9FAAF688, 0xACBA, 0x4092, { 0xBA, 0x5B, 0x77, 0xD9, 0x7D, 0x3C, 0xD5, 0x3A } };
+{ 0xD8913E7E, 0xE430, 0x4B28, { 0x81, 0xDD, 0xED, 0xD3, 0xEE, 0x5F, 0x26, 0x3B } };
