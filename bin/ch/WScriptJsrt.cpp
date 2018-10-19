@@ -299,21 +299,18 @@ public:
 
     virtual void ThrowDataCloneError(void *message)
     {
-
+        // TBD
     }
 
     virtual bool WriteHostObject(JsValueRef data)
     {
+        // Not implemented
         return true;
     }
 
-    virtual uint GetSharedArrayBufferId(JsValueRef shared_array_buffer)
+    virtual uint GetSharedArrayBufferId(JsValueRef sharedArrayBuffer)
     {
-        return 0;
-    }
-
-    virtual uint GetWasmModuleTransferId(JsValueRef module)
-    {
+        // Not implemented
         return 0;
     }
 

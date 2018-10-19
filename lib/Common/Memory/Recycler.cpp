@@ -8962,7 +8962,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
     if (objectBeforeCollectCallbackList == nullptr)
     {
         if (callback == nullptr) return;
-        objectBeforeCollectCallbackList = HeapNew(ObjectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
+        objectBeforeCollectCallbackList = Anew(&this->objectBeforeCollectCallbackArena, ObjectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
     }
 
     // only allow 1 callback per object
