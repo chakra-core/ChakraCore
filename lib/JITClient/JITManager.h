@@ -133,7 +133,7 @@ private:
         __in UUID* connectionUuid,
         __out RPC_BINDING_HANDLE* bindingHandle);
 
-    HRESULT ConnectProcess();
+    HRESULT ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle);
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     UUID m_jitConnectionId;

@@ -357,7 +357,7 @@ namespace Js
             {
                 auto tempInput = JavascriptConversion::ToString(value, this->GetScriptContext());
                 // Above toString call can cause user code to be called, which may call .match to invalidate our state, ensure that we have proper values in case that happens.
-                EnsureValues();  // The last match info relies on the last input. Use it before it is changed.
+                EnsureValues(); // The last match info relies on the last input. Use it before it is changed.
                 this->lastInput = tempInput;
             }
             *result = true;

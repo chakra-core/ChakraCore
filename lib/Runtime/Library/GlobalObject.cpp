@@ -816,10 +816,10 @@ using namespace Js;
             ArenaAllocator tempAlloc(_u("ValidateSyntaxArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Throw::OutOfMemory);
 
             size_t cchSource = sourceLength;
-            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(sourceLength);
+            size_t cbUtf8Buffer = UInt32Math::MulAdd<3, 1>(sourceLength);
             LPUTF8 utf8Source = AnewArray(&tempAlloc, utf8char_t, cbUtf8Buffer);
             Assert(cchSource < MAXLONG);
-            size_t cbSource = utf8::EncodeIntoAndNullTerminate(utf8Source, source, static_cast< charcount_t >(cchSource));
+            size_t cbSource = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8Source, cbUtf8Buffer, source, static_cast<charcount_t>(cchSource));
             utf8Source = reinterpret_cast< LPUTF8 >( tempAlloc.Realloc(utf8Source, cbUtf8Buffer, cbSource + 1) );
 
             Parser parser(scriptContext);
@@ -888,13 +888,13 @@ using namespace Js;
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
             uint cchSource = sourceLength;
-            size_t cbUtf8Buffer = UInt32Math::AddMul<1, 3>(cchSource);
+            size_t cbUtf8Buffer = UInt32Math::MulAdd<3, 1>(cchSource);
 
             ArenaAllocator tempArena(_u("EvalHelperArena"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
             LPUTF8 utf8Source = AnewArray(&tempArena, utf8char_t, cbUtf8Buffer);
 
             Assert(cchSource < MAXLONG);
-            size_t cbSource = utf8::EncodeIntoAndNullTerminate(utf8Source, source, static_cast< charcount_t >(cchSource));
+            size_t cbSource = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8Source, cbUtf8Buffer, source, static_cast<charcount_t>(cchSource));
             Assert(cbSource + 1 <= cbUtf8Buffer);
 
             SRCINFO const * pSrcInfo = scriptContext->GetModuleSrcInfo(moduleID);

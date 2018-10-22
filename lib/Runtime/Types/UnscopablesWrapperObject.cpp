@@ -6,56 +6,56 @@
 
 namespace Js
 {
-    bool WithScopeObject::Is(Var aValue)
+    bool UnscopablesWrapperObject::Is(Var aValue)
     {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_WithScopeObject;
+        return JavascriptOperators::GetTypeId(aValue) == TypeIds_UnscopablesWrapperObject;
     }
 
-    WithScopeObject* WithScopeObject::FromVar(Var aValue)
+    UnscopablesWrapperObject* UnscopablesWrapperObject::FromVar(Var aValue)
     {
-        AssertOrFailFast(WithScopeObject::Is(aValue));
-        return static_cast<WithScopeObject*>(aValue);
+        AssertOrFailFast(UnscopablesWrapperObject::Is(aValue));
+        return static_cast<UnscopablesWrapperObject*>(aValue);
     }
 
-    WithScopeObject* WithScopeObject::UnsafeFromVar(Var aValue)
+    UnscopablesWrapperObject* UnscopablesWrapperObject::UnsafeFromVar(Var aValue)
     {
-        Assert(WithScopeObject::Is(aValue));
-        return static_cast<WithScopeObject*>(aValue);
+        Assert(UnscopablesWrapperObject::Is(aValue));
+        return static_cast<UnscopablesWrapperObject*>(aValue);
     }
 
-    PropertyQueryFlags WithScopeObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
+    PropertyQueryFlags UnscopablesWrapperObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));
     }
 
-    BOOL WithScopeObject::HasOwnProperty(PropertyId propertyId)
+    BOOL UnscopablesWrapperObject::HasOwnProperty(PropertyId propertyId)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
         return HasProperty(propertyId);
     }
 
-    BOOL WithScopeObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
+    BOOL UnscopablesWrapperObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         return JavascriptOperators::SetPropertyUnscopable(wrappedObject, wrappedObject, propertyId, value, info, wrappedObject->GetScriptContext());
     }
 
-    PropertyQueryFlags WithScopeObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags UnscopablesWrapperObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::GetPropertyUnscopable(wrappedObject, wrappedObject, propertyId, value, requestContext, info));
     }
 
 
-    BOOL WithScopeObject::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
+    BOOL UnscopablesWrapperObject::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
     {
         return JavascriptOperators::DeletePropertyUnscopables(wrappedObject, propertyId, flags);
     }
 
-    DescriptorFlags WithScopeObject::GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    DescriptorFlags UnscopablesWrapperObject::GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         return JavascriptOperators::GetterSetterUnscopable(wrappedObject, propertyId, setterValue, info, requestContext);
     }
 
-    PropertyQueryFlags WithScopeObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags UnscopablesWrapperObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         RecyclableObject* copyState = wrappedObject;
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::PropertyReferenceWalkUnscopable(wrappedObject, &copyState, propertyId, value, info, requestContext));

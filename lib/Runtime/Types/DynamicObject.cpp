@@ -907,7 +907,7 @@ namespace Js
         }
 #endif
 
-        if (PHASE_OFF1(ObjectCopyPhase))
+        if (!PHASE_ON1(ObjectCopyPhase))
         {
             return false;
         }

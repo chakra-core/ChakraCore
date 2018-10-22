@@ -20,9 +20,9 @@ public:
         MemoryFailure = 2,
         MemoryMax = 2,
     };
-typedef bool (__stdcall * PageAllocatorMemoryAllocationCallback)(__in LPVOID context,
-    __in AllocationPolicyManager::MemoryAllocateEvent allocationEvent,
-    __in size_t allocationSize);
+    typedef bool (__stdcall * PageAllocatorMemoryAllocationCallback)(__in LPVOID context,
+        __in AllocationPolicyManager::MemoryAllocateEvent allocationEvent,
+        __in size_t allocationSize);
 
 
 private:
@@ -50,9 +50,7 @@ public:
 
     ~AllocationPolicyManager()
     {
-        // TODO: https://github.com/Microsoft/ChakraCore/issues/5191
-        //       enable the assert when the offending code is fixed.
-        // Assert(currentMemory == 0);
+        Assert(currentMemory == 0);
     }
 
     size_t GetUsage()
@@ -134,7 +132,7 @@ private:
         if (newCurrentMemory < currentMemory ||
             newCurrentMemory > memoryLimit ||
             (memoryAllocationCallback != NULL && !memoryAllocationCallback(context, MemoryAllocateEvent::MemoryAllocate, byteCount)))
-        {            
+        {
             // oopjit number allocator allocated pages, we can't stop it from allocating so just increase the usage number
             if (externalAlloc)
             {
@@ -158,9 +156,7 @@ private:
 
     inline void ReportFreeImpl(MemoryAllocateEvent allocationEvent, size_t byteCount)
     {
-        // TODO: https://github.com/Microsoft/ChakraCore/issues/5191
-        //       enable the assert when the offending code is fixed.
-        // Assert(currentMemory >= byteCount);
+        Assert(currentMemory >= byteCount);
         byteCount = min(byteCount, currentMemory);
 
         currentMemory = currentMemory - byteCount;

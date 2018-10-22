@@ -110,6 +110,7 @@ PHASE(All)
         PHASE(GlobOpt)
             PHASE(PathDepBranchFolding)
             PHASE(OptimizeTryCatch)
+            PHASE_DEFAULT_ON(CaptureByteCodeRegUse)
             PHASE(Backward)
                 PHASE(TrackIntUsage)
                 PHASE(TrackNegativeZero)
@@ -275,6 +276,7 @@ PHASE(All)
             PHASE(FastIndirectEval)
         PHASE(IdleDecommit)
         PHASE(IdleCollect)
+        PHASE(Marshal)
         PHASE(MemoryAllocation)
 #ifdef RECYCLER_PAGE_HEAP
             PHASE(PageHeap)
@@ -529,6 +531,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_PoisonIntArrayStore (true)
 #define DEFAULT_CONFIG_PoisonFloatArrayStore (true)
 #define DEFAULT_CONFIG_PoisonTypedArrayStore (true)
+#define DEFAULT_CONFIG_PoisonStringStore (true)
 #define DEFAULT_CONFIG_PoisonObjectsForStores (true)
 
 #ifdef RECYCLER_PAGE_HEAP
@@ -1104,7 +1107,7 @@ FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpr
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
 
 #ifndef COMPILE_DISABLE_ESDynamicImport
-    #define COMPILE_DISABLE_ESDynamicImport 0
+#define COMPILE_DISABLE_ESDynamicImport 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ESDynamicImport        , "Enable dynamic import"                                    , DEFAULT_CONFIG_ESDynamicImport)
 
@@ -1297,13 +1300,14 @@ FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayLoad, "Poison loads from Int arra
 FLAGPR(Boolean, MitigateSpectre, PoisonFloatArrayLoad, "Poison loads from Float arrays", DEFAULT_CONFIG_PoisonFloatArrayLoad)
 FLAGPR(Boolean, MitigateSpectre, PoisonTypedArrayLoad, "Poison loads from TypedArrays", DEFAULT_CONFIG_PoisonTypedArrayLoad)
 FLAGPR(Boolean, MitigateSpectre, PoisonStringLoad, "Poison indexed loads from strings", DEFAULT_CONFIG_PoisonStringLoad)
-FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForLoads, "Poison objects after type checks", DEFAULT_CONFIG_PoisonObjectsForLoads)
+FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForLoads, "Poison objects after type checks for loads", DEFAULT_CONFIG_PoisonObjectsForLoads)
 
-FLAGPR(Boolean, MitigateSpectre, PoisonVarArrayStore, "Poison stores from Var arrays", DEFAULT_CONFIG_PoisonVarArrayStore)
-FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayStore, "Poison stores from Int arrays", DEFAULT_CONFIG_PoisonIntArrayStore)
-FLAGPR(Boolean, MitigateSpectre, PoisonFloatArrayStore, "Poison stores from Float arrays", DEFAULT_CONFIG_PoisonFloatArrayStore)
-FLAGPR(Boolean, MitigateSpectre, PoisonTypedArrayStore, "Poison stores from TypedArrays", DEFAULT_CONFIG_PoisonTypedArrayStore)
-FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForStores, "Poison objects after type checks", DEFAULT_CONFIG_PoisonObjectsForStores)
+FLAGPR(Boolean, MitigateSpectre, PoisonVarArrayStore, "Poison stores to Var arrays", DEFAULT_CONFIG_PoisonVarArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayStore, "Poison stores to Int arrays", DEFAULT_CONFIG_PoisonIntArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonFloatArrayStore, "Poison stores to Float arrays", DEFAULT_CONFIG_PoisonFloatArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonTypedArrayStore, "Poison stores to TypedArrays", DEFAULT_CONFIG_PoisonTypedArrayStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonStringStore, "Poison indexed stores to strings", DEFAULT_CONFIG_PoisonStringStore)
+FLAGPR(Boolean, MitigateSpectre, PoisonObjectsForStores, "Poison objects after type checks for stores", DEFAULT_CONFIG_PoisonObjectsForStores)
 
 FLAGNR(Number,  MinInterpretCount     , "Minimum number of times a function must be interpreted", 0)
 FLAGNR(Number,  MinSimpleJitRunCount  , "Minimum number of times a function must be run in simple jit", 0)

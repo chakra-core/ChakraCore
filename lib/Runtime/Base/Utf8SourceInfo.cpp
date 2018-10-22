@@ -20,14 +20,12 @@ namespace Js
         ScriptContext* scriptContext, bool isLibraryCode, Js::Var scriptSource):
         sourceHolder(mappableSource),
         m_cchLength(cchLength),
-        m_pHostBuffer(nullptr),
         m_srcInfo(srcInfo),
         m_secondaryHostSourceContext(secondaryHostSourceContext),
 #ifdef ENABLE_SCRIPT_DEBUGGING
         m_debugDocument(nullptr),
 #endif
         m_sourceInfoId(scriptContext->GetThreadContext()->NewSourceInfoNumber()),
-        m_hasHostBuffer(false),
         m_isCesu8(false),
         m_isLibraryCode(isLibraryCode),
         m_isXDomain(false),
@@ -102,22 +100,8 @@ namespace Js
 #ifndef NTBUILD
         this->sourceRef = nullptr;
 #endif
-        if (this->m_hasHostBuffer)
-        {
-            PERF_COUNTER_DEC(Basic, ScriptCodeBufferCount);
-            HeapFree(GetProcessHeap(), 0 , m_pHostBuffer);
-            m_pHostBuffer = nullptr;
-        }
     };
 
-    void
-    Utf8SourceInfo::SetHostBuffer(BYTE * pcszCode)
-    {
-        Assert(!this->m_hasHostBuffer);
-        Assert(this->m_pHostBuffer == nullptr);
-        this->m_hasHostBuffer = true;
-        this->m_pHostBuffer = pcszCode;
-    }
     enum
     {
         fsiHostManaged = 0x01,

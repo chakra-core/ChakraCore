@@ -197,6 +197,9 @@ GlobOpt::Optimize()
         // isn't available for some of the symbols created during the backward pass, or the forward pass.
         // Keep track of the last symbol for which we're guaranteed to have data.
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
+#if DBG
+        this->BackwardPass(Js::CaptureByteCodeRegUsePhase);
+#endif
         this->BackwardPass(Js::BackwardPhase);
         this->ForwardPass();
         this->BackwardPass(Js::DeadStorePhase);
@@ -454,7 +457,7 @@ GlobOpt::OptBlock(BasicBlock *block)
             {
                 loop->fieldPRESymStores->Or(loop->parent->fieldPRESymStores);
             }
-            
+
             if (!this->IsLoopPrePass() && DoFieldPRE(loop))
             {
                 // Note: !IsLoopPrePass means this was a root loop pre-pass. FieldPre() is called once per loop.
@@ -483,7 +486,7 @@ GlobOpt::OptBlock(BasicBlock *block)
     {
         this->KillAllFields(CurrentBlockData()->liveFields);
     }
-    
+
     this->tempAlloc->Reset();
 
     if(loop && block->isLoopHeader)
@@ -964,7 +967,7 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
             // We'll have to add a def instruction for the object sym in the landing pad, and then we can continue
             // pre-loading the current PRE candidate.
             // Case in point:
-            // $L1            
+            // $L1
             //                value|symStore
             //      t1 = o.x    (v1|t3)
             //      t2 = t1.y   (v2|t4) <-- t1 is not live in the loop landing pad
@@ -1009,6 +1012,7 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
 
     IR::Instr * ldInstrInLoop = this->globOpt->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
     Assert(ldInstrInLoop);
+    Assert(ldInstrInLoop->GetDst() == nullptr);
 
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstrInLoop->m_opcode));
@@ -1029,9 +1033,9 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     objPtrCopyPropSym = objPtrCopyPropSym ? objPtrCopyPropSym : objPtrValue ? landingPad->globOptData.GetCopyPropSym(objPtrSym, objPtrValue) : nullptr;
     if (objPtrCopyPropSym)
     {
-        // If we inserted T4 = T1.y, and T3 is the copy prop sym for T1 in the landing pad, we need T3.y 
-        // to be live on back edges to have the merge produce a value for T3.y. Having a value for T1.y 
-        // produced from the merge is not enough as the T1.y in the loop will get obj-ptr-copy-propped to 
+        // If we inserted T4 = T1.y, and T3 is the copy prop sym for T1 in the landing pad, we need T3.y
+        // to be live on back edges to have the merge produce a value for T3.y. Having a value for T1.y
+        // produced from the merge is not enough as the T1.y in the loop will get obj-ptr-copy-propped to
         // T3.y
 
         // T3.y
@@ -2372,8 +2376,11 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         CurrentBlockData()->KillStateForGeneratorYield();
     }
 
-    // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld.
-    this->TryReplaceLdLen(instr);
+    if (!IsLoopPrePass())
+    {
+        // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld.
+        this->TryReplaceLdLen(instr);
+    }
 
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
@@ -3048,7 +3055,7 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     Value *landingPadObjPtrVal, *currentObjPtrVal;
     landingPadObjPtrVal = loop->landingPad->globOptData.FindValue(objectSym);
     currentObjPtrVal = CurrentBlockData()->FindValue(objectSym);
-    
+
     auto CanSetInitialValue = [&]() -> bool {
         if (!currentObjPtrVal)
         {
@@ -3253,7 +3260,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         opnd->AsSymOpnd()->SetPropertyOwnerValueType(
             objectValue ? objectValue->GetValueInfo()->Type() : ValueType::Uninitialized);
 
-        
+
         sym = this->CopyPropPropertySymObj(opnd->AsSymOpnd(), instr);
 
         if (!DoFieldCopyProp())
@@ -3303,7 +3310,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 }
             }
         }
-        break; 
+        break;
     }
     case IR::OpndKindReg:
         // Clear the opnd's value type up-front, so that this code cannot accidentally use the value type set from a previous
@@ -3439,7 +3446,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
             if (profiledArrayType.IsLikelyObject())
             {
                 // Ideally we want to use the most specialized type seen by this path, but when that causes bailouts use the least specialized type instead.
-                if (useAggressiveSpecialization && 
+                if (useAggressiveSpecialization &&
                     profiledArrayType.GetObjectType() == valueType.GetObjectType() &&
                     !valueType.IsLikelyNativeIntArray() &&
                     (
@@ -3450,7 +3457,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     valueType = profiledArrayType.SetHasNoMissingValues(valueType.HasNoMissingValues());
                     ChangeValueType(this->currentBlock, CurrentBlockData()->FindValue(opnd->AsRegOpnd()->m_sym), valueType, false);
                 }
-                else if (!useAggressiveSpecialization && 
+                else if (!useAggressiveSpecialization &&
                     (profiledArrayType.GetObjectType() != valueType.GetObjectType() ||
                         (
                             valueType.IsLikelyNativeArray() &&
@@ -3796,6 +3803,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     StackSym *copySym = CurrentBlockData()->GetCopyPropSym(opndSym, val);
     if (copySym != nullptr)
     {
+        Assert(!opndSym->IsStackSym() || copySym->GetSymSize() == opndSym->AsStackSym()->GetSymSize());
         // Copy prop.
         return CopyPropReplaceOpnd(instr, opnd, copySym, parentIndirOpnd);
     }
@@ -5537,7 +5545,7 @@ GlobOpt::SafeToCopyPropInPrepass(StackSym * const originalSym, StackSym * const 
     Assert(this->currentBlock->globOptData.GetCopyPropSym(originalSym, value) == copySym);
 
     // In the following example, to copy-prop s2 into s1, it is not enough to check if s1 and s2 are safe to transfer.
-    // In fact, both s1 and s2 are safe to transfer, but it is not legal to copy prop s2 into s1. 
+    // In fact, both s1 and s2 are safe to transfer, but it is not legal to copy prop s2 into s1.
     //
     // s1 = s2
     // $Loop:
@@ -5548,7 +5556,7 @@ GlobOpt::SafeToCopyPropInPrepass(StackSym * const originalSym, StackSym * const 
     // In general, requirements for copy-propping in prepass are more restricted than those for transferring values.
     // For copy prop in prepass, if the original sym is live on back-edge, then the copy-prop sym should not be written to
     // in the loop (or its parents)
-    
+
     ValueInfo* const valueInfo = value->GetValueInfo();
     return IsSafeToTransferInPrepass(originalSym, valueInfo) &&
         IsSafeToTransferInPrepass(copySym, valueInfo) &&
@@ -5735,7 +5743,7 @@ GlobOpt::ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const sr
     // for aggressive int type spec.
     bool isSafeToTransferInPrepass = false;
     isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Val, nullptr, &isSafeToTransferInPrepass);
-    
+
     const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, isValueInfoPrecise));
     if(isValueInfoPrecise || isSafeToTransferInPrepass)
     {
@@ -9212,7 +9220,7 @@ GlobOpt::TypeSpecializeBinary(IR::Instr **pInstr, Value **pSrc1Val, Value **pSrc
                 bool isConservativeMulInt = !DoAggressiveMulIntTypeSpec() || !DoAggressiveIntTypeSpec();
 
                 // Be conservative about predicting Mul overflow in prepass.
-                // Operands that are live on back edge may be denied lossless-conversion to int32 and 
+                // Operands that are live on back edge may be denied lossless-conversion to int32 and
                 // trigger rejit with AggressiveIntTypeSpec off.
                 // Besides multiplying a variable in a loop can overflow in just a few iterations even in simple cases like v *= 2
                 // So, make sure we definitely know the source max/min values, otherwise assume the full range.
@@ -10380,10 +10388,16 @@ GlobOpt::TypeSpecializeLdLen(
                 Assert(lengthValue);
                 src1Value = lengthValue;
                 ValueInfo *const lengthValueInfo = lengthValue->GetValueInfo();
-                Assert(lengthValueInfo->GetSymStore() != lengthSym);
                 IntConstantBounds lengthConstantBounds;
                 AssertVerify(lengthValueInfo->TryGetIntConstantBounds(&lengthConstantBounds));
                 Assert(lengthConstantBounds.LowerBound() >= 0);
+
+                if (lengthValueInfo->GetSymStore() == lengthSym)
+                {
+                    // When type specializing the dst below, we will end up inserting lengthSym.u32 as symstore for a var
+                    // Clear the symstore here, so that we dont end up with problems with copyprop later on
+                    lengthValueInfo->SetSymStore(nullptr);
+                }
 
                 // Int-specialize, and transfer the value to the dst
                 TypeSpecializeIntDst(
@@ -10929,7 +10943,7 @@ GlobOpt::ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val)
     return instr;
 }
 
-IR::Instr * 
+IR::Instr *
 GlobOpt::ToTypeSpecIndex(IR::Instr * instr, IR::RegOpnd * indexOpnd, IR::IndirOpnd * indirOpnd)
 {
     Assert(indirOpnd != nullptr || indexOpnd == instr->GetSrc1());
@@ -12542,7 +12556,7 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
             return;
         }
 
-        if(valueInfo->HasNoMissingValues() && !DoArrayMissingValueCheckHoist())
+        if(isJsArray && valueInfo->HasNoMissingValues() && !DoArrayMissingValueCheckHoist())
         {
             valueInfo->Type() = valueInfo->Type().SetHasNoMissingValues(false);
         }
@@ -13413,7 +13427,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
                 kills.SetKillsNativeArrays();
             }
             break;
-        }            
+        }
 
         case Js::OpCode::InitClass:
             Assert(instr->GetSrc1());
@@ -14489,6 +14503,8 @@ GlobOpt::OptHoistUpdateValueType(
                 // Replace above will free srcOpnd, so reassign it
                 *srcOpndPtr = srcOpnd = reinterpret_cast<IR::Opnd *>(strOpnd);
 
+                // We add ConvPrim_Str in the landingpad, and since this instruction doesn't go through the checks in OptInstr, the bailout is never added
+                // As we expand hoisting of instructions to new opcode, we need a better framework to handle such cases
                 if (IsImplicitCallBailOutCurrentlyNeeded(convPrimStrInstr, opndValueInLandingPad, nullptr, landingPad, landingPad->globOptData.liveFields->IsEmpty(), true, true))
                 {
                     EnsureBailTarget(loop);
@@ -15121,6 +15137,11 @@ InvariantBlockBackwardIterator::MoveNext()
         {
             Assert(previouslyIteratedBlock == inclusiveEndBlock);
             break;
+        }
+
+        if (!this->UpdatePredBlockBV())
+        {
+            continue;
         }
 
         if (!this->UpdatePredBlockBV())
@@ -17193,7 +17214,7 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
 
             BasicBlock* loopTail = loop->GetAnyTailBlock();
             Value * valueOnBackEdge = loopTail->globOptData.FindValue(propSym);
-            
+
             // If o.x is not invariant in the loop, we can't use the preloaded value of o.x.y in the landing pad
             Value * valueInLandingPad = loop->landingPad->globOptData.FindValue(propSym);
             if (valueOnBackEdge->GetValueNumber() != valueInLandingPad->GetValueNumber())
@@ -17216,7 +17237,7 @@ GlobOpt::PRE::InsertSymDefinitionInLandingPad(StackSym * sym, Loop * loop, Sym *
                 Assert(loop->landingPad->globOptData.IsLive(valueOnBackEdge->GetValueInfo()->GetSymStore()));
 
                 // Inserted T3 = o.x
-                // Now, we want to 
+                // Now, we want to
                 // 1. Insert T1 = o.x
                 // 2. Insert T4 = T1.y
                 // 3. Indentify T3 as the objptr copy prop sym for T1, and make T3.y live on the back-edges
@@ -17387,7 +17408,7 @@ void GlobOpt::PRE::RemoveOverlyOptimisticInitialValues(Loop * loop)
     BasicBlock * landingPad = loop->landingPad;
 
     // For a property sym whose obj ptr sym wasn't live in the landing pad, we can optmistically (if the obj ptr sym was
-    // single def) insert an initial value in the landing pad, with the hope that PRE could make the obj ptr sym live. 
+    // single def) insert an initial value in the landing pad, with the hope that PRE could make the obj ptr sym live.
     // But, if PRE couldn't make the obj ptr sym live, we need to clear the value for the property sym from the landing pad
 
     for (auto it = loop->initialValueFieldMap.GetIteratorWithRemovalSupport(); it.IsValid(); it.MoveNext())

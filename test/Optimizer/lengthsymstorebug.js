@@ -2,18 +2,30 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-#pragma once
 
-#include "CommonMin.h"
+var c = [];
+function foo(b) {
+  var g;
+  if (!b) {
+    for (g = c.length;--g >= 0;) {
+      if (c) {
+        break;
+      }
+    }
+  } else {
+    for (g = c.length;--g >= 0;) {
+    }
+  }
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#if defined(PROFILE_RECYCLER_ALLOC) || defined(HEAP_TRACK_ALLOC) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-#ifdef _UCRT
-#include <typeinfo>
-#else
-#include <typeinfo.h>
-#endif
-#endif
-#pragma warning(pop)
-#endif
+  if (0 > g) {
+  
+    return;
+  }
+
+  for (var i = c.length; --i > g;) {
+  }
+}
+
+foo();
+foo();
+print("Passed");

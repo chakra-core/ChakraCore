@@ -17,7 +17,7 @@ LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD
         return nullptr;
     }
     size_t dwSize = pageCount * AutoSystemInfo::PageSize;
-    
+
     LPVOID address = nullptr;
 
 #if defined(ENABLE_JIT_CLAMP)
@@ -270,7 +270,6 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 *   -   Returns an Allocated memory region within this preReserved region with the specified protectFlags.
 *   -   Tracks the committed pages
 */
-
 LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount,  DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation)
 {
     if (pageCount > AutoSystemInfo::MaxPageCount)
@@ -278,7 +277,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
         return nullptr;
     }
     size_t dwSize = pageCount * AutoSystemInfo::PageSize;
-    
+
     AssertMsg(isCustomHeapAllocation, "PreReservation used for allocations other than CustomHeap?");
 
     Assert(dwSize != 0);
@@ -321,7 +320,7 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
             //Check if the region is not already in MEM_COMMIT state.
             MEMORY_BASIC_INFORMATION memBasicInfo;
             size_t bytes = VirtualQuery(addressToReserve, &memBasicInfo, sizeof(memBasicInfo));
-            if (bytes == 0) 
+            if (bytes == 0)
             {
                 MemoryOperationLastError::RecordLastError();
             }

@@ -543,11 +543,7 @@ ServerNewInterpreterThunkBlock(
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
-            BYTE* callTarget = runtimeAddress;
-#ifdef _M_ARM
-            callTarget = (BYTE*)((uintptr_t)callTarget | 0x1); // Thumb-tag buffer to get actual callable value
-#endif
-            threadContext->SetValidCallTargetForCFG(callTarget);
+            emitBufferManager->SetValidCallTarget(alloc, runtimeAddress, true);
         }
 
         thunkOutput->thunkCount = thunkCount;

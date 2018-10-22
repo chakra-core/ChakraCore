@@ -146,8 +146,7 @@ namespace Js
     {
         return JavascriptArray::MissingItem;
     }
-    template<>
-    Var SparseArraySegment<int32>::GetMissingItemVar();
+    template<> Var SparseArraySegment<int32>::GetMissingItemVar();
 
     template<>
     inline bool SparseArraySegment<double>::IsMissingItem(const double* value)

@@ -26,6 +26,7 @@ public:
     BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize) { return lpAddress; }
     BOOL    FreeLocal(LPVOID lpAddress) { return true; }
+    bool    GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress) { return true; }
 
     static VirtualAllocWrapper Instance;  // single instance
 private:
@@ -59,6 +60,7 @@ public:
     BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType);
     LPVOID  AllocLocal(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize) { return lpAddress; }
     BOOL    FreeLocal(LPVOID lpAddress) { return true; }
+    bool    GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress) { return true; }
 
     bool        IsInRange(void * address);
     static bool IsInRange(void * regionStart, void * address);

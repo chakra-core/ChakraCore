@@ -235,6 +235,7 @@ namespace Js
         // Fill the segment buffer using gp-register-sized stores. Avoid using the FPU for the sake
         // of perf (especially x86).
         Var fill = (Var)SparseArraySegment<T>::GetMissingItemVar();
+
         if (sizeof(Var) > sizeof(T))
         {
             // Pointer size is greater than the element (int32 buffer on x64).

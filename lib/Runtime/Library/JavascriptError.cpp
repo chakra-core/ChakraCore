@@ -738,6 +738,26 @@ namespace Js
         return false;
     }
 
+    bool JavascriptError::ShouldTypeofErrorBeReThrown(Var errorObject)
+    {
+        HRESULT hr = (errorObject != nullptr && Js::JavascriptError::Is(errorObject))
+            ? Js::JavascriptError::GetRuntimeError(Js::RecyclableObject::FromVar(errorObject), nullptr)
+            : S_OK;
+
+        return JavascriptError::GetErrorNumberFromResourceID(JSERR_UndefVariable) != (int32)hr
+#ifdef ENABLE_PROJECTION
+            // WinRT projected objects can return TYPE_E_ELEMENTNOTFOUND for missing properties
+            // which is not the same code as JSERR_UndefVariable. However, the meaning of the
+            // two error codes is morally equivalent in typeof scenario. Special case this here
+            // because we do not want typeof to leak these exceptions.
+            && !(errorObject != nullptr
+                && Js::JavascriptError::Is(errorObject)
+                && Js::JavascriptError::FromVar(errorObject)->GetErrorType() == kjstWinRTError
+                && hr == TYPE_E_ELEMENTNOTFOUND)
+#endif
+            ;
+    }
+
     // Gets the error number associated with the resource ID for an error message.
     // When 'errorNumSource' is 0 (the default case), the resource ID is used as the error number.
     int32 JavascriptError::GetErrorNumberFromResourceID(int32 resourceId)

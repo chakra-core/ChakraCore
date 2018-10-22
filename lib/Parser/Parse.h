@@ -233,7 +233,7 @@ public:
     void SetIsInParsingArgList(bool set) { m_isInParsingArgList = set; }
 
     bool GetHasDestructuringPattern() const { return m_hasDestructuringPattern; }
-    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }    
+    void SetHasDestructuringPattern(bool set) { m_hasDestructuringPattern = set; }
 
     ParseNode* CopyPnode(ParseNode* pnode);
 
@@ -448,7 +448,7 @@ private:
     ParseNodePtr * m_ppnodeScope;  // function list tail
     ParseNodePtr * m_ppnodeExprScope; // function expression list tail
     ParseNodePtr * m_ppnodeVar;  // variable list tail
-    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node  
+    bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_reparsingLambdaParams;
     bool m_disallowImportExportStmt;
     bool m_isInParsingArgList;
@@ -1116,17 +1116,17 @@ private:
 
     enum FncDeclFlag : ushort
     {
-        fFncNoFlgs                  = 0,
-        fFncDeclaration             = 1 << 0,
-        fFncNoArg                   = 1 << 1,
-        fFncOneArg                  = 1 << 2, //Force exactly one argument.
-        fFncNoName                  = 1 << 3,
-        fFncLambda                  = 1 << 4,
-        fFncMethod                  = 1 << 5,
-        fFncClassMember             = 1 << 6,
-        fFncGenerator               = 1 << 7,
-        fFncAsync                   = 1 << 8,
-        fFncModule                  = 1 << 9,
+        fFncNoFlgs      = 0,
+        fFncDeclaration = 1 << 0,
+        fFncNoArg       = 1 << 1,
+        fFncOneArg      = 1 << 2, //Force exactly one argument.
+        fFncNoName      = 1 << 3,
+        fFncLambda      = 1 << 4,
+        fFncMethod      = 1 << 5,
+        fFncClassMember = 1 << 6,
+        fFncGenerator   = 1 << 7,
+        fFncAsync       = 1 << 8,
+        fFncModule      = 1 << 9,
         fFncClassConstructor        = 1 << 10,
         fFncBaseClassConstructor    = 1 << 11,
     };
