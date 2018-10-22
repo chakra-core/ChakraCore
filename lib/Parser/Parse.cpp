@@ -12874,6 +12874,9 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
 {
     ParseNodeUni * pnode = nullptr;
     Assert(IsPossiblePatternStart());
+
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
+
     if (m_token.tk == tkLCurly)
     {
         pnode = ParseDestructuredObjectLiteral<buildAST>(declarationType, isDecl, topLevel);

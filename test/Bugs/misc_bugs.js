@@ -189,6 +189,28 @@ var tests = [
         });
       }
   },
+  {
+    name: "destructuring : testing recursion",
+    body: function () {
+      try {
+        eval(`
+            var ${'['.repeat(6631)}
+          `);
+          assert.fail();
+        }
+        catch (e) {
+        }
+        
+        try {
+            eval(`
+               var {${'a:{'.repeat(6631)}
+            `);
+            assert.fail();
+        }
+        catch (e) {
+        }
+      }
+  }
 
 ];
 
