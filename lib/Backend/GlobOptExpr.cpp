@@ -844,6 +844,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
             case IR::HelperArray_Shift:
             case IR::HelperArray_Unshift:
             case IR::HelperArray_Splice:
+            case IR::HelperArray_Concat:
                 this->currentBlock->globOptData.liveArrayValues->ClearAll();
                 break;
         }
