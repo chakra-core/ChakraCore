@@ -192,6 +192,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     inDisposeWrapper(false),
     hasDisposableObject(false),
     hasNativeGCHost(false),
+    needExternalWrapperTracing(false),
     tickCountNextDispose(0),
     transientPinnedObject(nullptr),
     pinnedObjectMap(1024, HeapAllocator::GetNoMemProtectInstance()),
@@ -949,6 +950,18 @@ void
 Recycler::SetHasNativeGCHost()
 {
     this->hasNativeGCHost = true;
+}
+
+void
+Recycler::SetNeedExternalWrapperTracing()
+{
+    this->needExternalWrapperTracing = true;
+}
+
+void
+Recycler::ClearNeedExternalWrapperTracing()
+{
+    this->needExternalWrapperTracing = false;
 }
 
 bool
@@ -2534,6 +2547,7 @@ Recycler::DoParallelMark()
     if (actualSplitCount == 0)
     {
         this->ProcessMark(false);
+
         return;
     }
 
@@ -2779,6 +2793,23 @@ Recycler::EndMarkCheckOOMRescan()
     return oomRescan;
 }
 
+void
+Recycler::FinishWrapperObjectTracing()
+{
+    //TODO:akatti:Add ETW event for this.
+    // Tracing would have generated more work for mark and marking might generate more work for tracing.
+    // We continue until we find no more pending tracing work.
+    do
+    {
+        this->collectionWrapper->EndMarkDomWrapperTracingCallback();
+        this->ProcessMark(false);
+    } while (!this->collectionWrapper->EndMarkDomWrapperTracingDoneCallback());
+
+    // This is just to wait until tracing has finished.
+    this->collectionWrapper->EndMarkDomWrapperTracingCallback();
+    this->ClearNeedExternalWrapperTracing();
+}
+
 bool
 Recycler::EndMark()
 {
@@ -2792,6 +2823,12 @@ Recycler::EndMark()
     {
         // We have finished marking
         AUTO_NO_EXCEPTION_REGION;
+        if (this->needExternalWrapperTracing)
+        {
+            this->collectionWrapper->EndMarkDomWrapperTracingEnterFinalPauseCallback();
+            this->FinishWrapperObjectTracing();
+        }
+
         collectionWrapper->EndMarkCallback();
     }
 
@@ -2894,8 +2931,15 @@ Recycler::EndMarkOnLowMemory()
         }
 #endif
 
-        // Drain the mark stack
-        ProcessMark(false);
+        // Drain the mark stack along with any required DOM wrapper tracing.
+        if (this->needExternalWrapperTracing)
+        {
+            this->FinishWrapperObjectTracing();
+        }
+        else
+        {
+            this->ProcessMark(false);
+        }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         iterations++;
@@ -2943,7 +2987,14 @@ Recycler::PostHeapEnumScan(PostHeapEnumScanCallback callback, void *data)
     this->postHeapEnunScanData = data;
 
     FindRoots();
-    ProcessMark(false);
+    if (this->needExternalWrapperTracing)
+    {
+        this->FinishWrapperObjectTracing();
+    }
+    else
+    {
+        this->ProcessMark(false);
+    }
 
     this->pfPostHeapEnumScanCallback = NULL;
     this->postHeapEnunScanData = NULL;
@@ -8973,6 +9024,25 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
         this->ScanMemory<false>(&object, sizeof(object));
         this->ProcessMark(/*background*/false);
     }
+}
+
+void Recycler::SetDOMWrapperTracingCallback(void * state, DOMWrapperTracingCallback tracingCallback, DOMWrapperTracingDoneCallback tracingDoneCallback, DOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback)
+{
+    Assert(state);
+    Assert(tracingCallback);
+    Assert(enterFinalPauseCallback);
+    this->collectionWrapper->SetWrapperTracingCallbackState(state);
+    this->collectionWrapper->SetDOMWrapperTracingCallback(tracingCallback);
+    this->collectionWrapper->SetDOMWrapperTracingDoneCallback(tracingDoneCallback);
+    this->collectionWrapper->SetDOMWrapperTracingEnterFinalPauseCallback(enterFinalPauseCallback);
+}
+
+void Recycler::ClearDOMWrapperTracingCallback()
+{
+    this->collectionWrapper->SetWrapperTracingCallbackState(nullptr);
+    this->collectionWrapper->SetDOMWrapperTracingCallback(nullptr);
+    this->collectionWrapper->SetDOMWrapperTracingDoneCallback(nullptr);
+    this->collectionWrapper->SetDOMWrapperTracingEnterFinalPauseCallback(nullptr);
 }
 
 bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)

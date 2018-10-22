@@ -80,6 +80,7 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, 
 
 void JsrtExternalObject::Mark(Recycler * recycler) 
 {
+    recycler->SetNeedExternalWrapperTracing();
     JsTraceCallback traceCallback = this->GetExternalType()->GetJsTraceCallback();
     Assert(nullptr != traceCallback);
     JsrtCallbackState scope(nullptr);

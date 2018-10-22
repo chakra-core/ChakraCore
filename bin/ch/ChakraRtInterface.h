@@ -9,6 +9,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCreateRuntimePtr)(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
     typedef JsErrorCode (WINAPI *JsrtSetObjectBeforeCollectCallbackPtr)(JsRef ref, void* callbackState, JsObjectBeforeCollectCallback objectBeforeCollectCallback);
+    typedef JsErrorCode(WINAPI *JsrtSetRuntimeDomWrapperTracingCallbacksPtr)(JsRuntimeHandle runtime, JsRef wrapperTracingState, JsDOMWrapperTracingCallback wrapperTracingCallback, JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback, JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
     typedef JsErrorCode (WINAPI *JsrtSetRuntimeMemoryLimitPtr)(JsRuntimeHandle runtime, size_t memoryLimit);
     typedef JsErrorCode (WINAPI *JsrtSetCurrentContextPtr)(JsContextRef context);
     typedef JsErrorCode (WINAPI *JsrtGetCurrentContextPtr)(JsContextRef* context);
@@ -118,6 +119,7 @@ struct JsAPIHooks
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetObjectBeforeCollectCallbackPtr pfJsrtSetObjectBeforeCollectCallback;
+    JsrtSetRuntimeDomWrapperTracingCallbacksPtr pfJsrtSetRuntimeDomWrapperTracingCallbacks;
     JsrtSetRuntimeMemoryLimitPtr pfJsrtSetRuntimeMemoryLimit;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
     JsrtGetCurrentContextPtr pfJsrtGetCurrentContext;
@@ -341,6 +343,7 @@ public:
     static JsErrorCode WINAPI JsCreateRuntime(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return HOOK_JS_API(CreateRuntime(attributes, threadService, runtime)); }
     static JsErrorCode WINAPI JsCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return HOOK_JS_API(CreateContext(runtime, newContext)); }
     static JsErrorCode WINAPI JsSetObjectBeforeCollectCallback(JsRef ref, void* callbackState, JsObjectBeforeCollectCallback objectBeforeCollectCallback) { return HOOK_JS_API(SetObjectBeforeCollectCallback(ref, callbackState, objectBeforeCollectCallback)); }
+    static JsErrorCode WINAPI JsSetRuntimeDomWrapperTracingCallbacks(JsRuntimeHandle runtime, JsRef wrapperTracingState, JsDOMWrapperTracingCallback wrapperTracingCallback, JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback, JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback) { return HOOK_JS_API(SetRuntimeDomWrapperTracingCallbacks(runtime, wrapperTracingState, wrapperTracingCallback, wrapperTracingDoneCallback, enterFinalPauseCallback)); }
     static JsErrorCode WINAPI JsSetRuntimeMemoryLimit(JsRuntimeHandle runtime, size_t memory) { return HOOK_JS_API(SetRuntimeMemoryLimit(runtime, memory)); }
     static JsErrorCode WINAPI JsSetCurrentContext(JsContextRef context) { return HOOK_JS_API(SetCurrentContext(context)); }
     static JsErrorCode WINAPI JsGetCurrentContext(JsContextRef* context) { return HOOK_JS_API(GetCurrentContext(context)); }
