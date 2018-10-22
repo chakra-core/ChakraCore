@@ -326,6 +326,7 @@ CommonNumber:
         case TypeIds_Number:
         case TypeIds_String:
         case TypeIds_Symbol:
+        case TypeIds_BigInt:
             return aValue;
 
         case TypeIds_VariantDate:

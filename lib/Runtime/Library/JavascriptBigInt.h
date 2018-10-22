@@ -37,10 +37,13 @@ namespace Js
         static bool LessThan(Var aLeft, Var aRight);
         static bool Equals(Var aLeft, Var aRight);
         static Var Increment(Var aRight);
+        static Var Add(Var aLeft, Var aRight);
+        static Var Sub(Var aLeft, Var aRight);
         static Var Decrement(Var aRight);
 
         inline BOOL isNegative() { return m_isNegative; }
 
+        static JavascriptBigInt * CreateZero(ScriptContext * scriptContext);
         static JavascriptBigInt * Create(const char16 * content, charcount_t cchUseLength, bool isNegative, ScriptContext * scriptContext);
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
@@ -70,9 +73,14 @@ namespace Js
         static void AbsoluteDecrement(JavascriptBigInt * pbi);
         static void Increment(JavascriptBigInt * aValue);
         static void Decrement(JavascriptBigInt * pbi);
+        static JavascriptBigInt * Add(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
+        static void AddAbsolute(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
+        static JavascriptBigInt * Sub(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
+        static void SubAbsolute(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
         int Compare(JavascriptBigInt * pbi);
+        int CompareAbsolute(JavascriptBigInt * pbi);
         static BOOL Equals(JavascriptBigInt* left, Var right, BOOL* value, ScriptContext * requestContext);
-        bool Resize(digit_t length);
+        void Resize(digit_t length);
 
         static JavascriptBigInt * New(JavascriptBigInt * pbi, ScriptContext * scriptContext);
     };
