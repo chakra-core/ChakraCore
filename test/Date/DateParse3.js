@@ -24,6 +24,9 @@ runTest("2011-11-08 19:48:43.100", "2011-11-08T19:48:43.100");
 runTest("2011-11-08 19:48:43.1000", "2011-11-08T19:48:43.100");
 runTest("2011-11-08 19:48:43.12345", "2011-11-08T19:48:43.123");
 
+runTest("2011-11-08Z", null); // zone designators (and offsets) must follow a time
+runTest("2011-11-08+01:00", null); // previously the '+' or '-' would be skipped and the offset interpreted as a time
+
 function runTest(dateToTest, isoDate)
 {
     if (isoDate === null) {
