@@ -19,6 +19,13 @@ int LogicalStringCompareImpl(const char16* p1, int p1size, const char16* p2, int
 }
 }
 
+namespace Js
+{
+    static digit_t AddDigit(digit_t a, digit_t b, digit_t * carry);
+    static digit_t SubtractDigit(digit_t a, digit_t b, digit_t * borrow);
+    static digit_t MulDigit(digit_t a, digit_t b, digit_t * high);
+}
+
 #ifdef ENABLE_TEST_HOOKS
 
 HRESULT __stdcall SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags)
@@ -167,6 +174,11 @@ HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
         SetAssertToConsoleFlag,
         SetEnableCheckMemoryLeakOutput,
         PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl,
+
+        //BigInt hooks
+        Js::JavascriptBigInt::AddDigit,
+        Js::JavascriptBigInt::SubDigit,
+        Js::JavascriptBigInt::MulDigit,
 
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAGINCLUDE(name) \

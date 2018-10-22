@@ -11,6 +11,23 @@ namespace Js
         return RecyclerNew(scriptContext->GetRecycler(), JavascriptBigInt, content, cchUseLength, isNegative, scriptContext->GetLibrary()->GetBigIntTypeStatic());
     }
 
+    JavascriptBigInt * JavascriptBigInt::New(JavascriptBigInt * pbi, ScriptContext * scriptContext)
+    {
+        JavascriptBigInt * bigintNew = RecyclerNew(scriptContext->GetRecycler(), JavascriptBigInt, scriptContext->GetLibrary()->GetBigIntTypeStatic());
+        bigintNew->m_length = pbi->m_length;
+        bigintNew->m_maxLength = pbi->m_maxLength;
+        bigintNew->m_isNegative = pbi->m_isNegative;
+        bigintNew->m_digits = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), digit_t, pbi->m_length);
+        js_memcpy_s(bigintNew->m_digits, bigintNew->m_length * sizeof(digit_t), pbi->m_digits, bigintNew->m_length * sizeof(digit_t));
+ 
+        return bigintNew;
+    }
+
+    RecyclableObject * JavascriptBigInt::CloneToScriptContext(ScriptContext* requestContext)
+    {
+        return JavascriptBigInt::New(this, requestContext);
+    }
+
     Var JavascriptBigInt::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -71,21 +88,52 @@ namespace Js
         return true;
     }
 
+    bool JavascriptBigInt::Resize(digit_t length)
+    {
+        digit_t *digits;
+
+        if (length <= m_maxLength)
+        {
+            return true;
+        }
+
+        length += length;// double size
+        if (SIZE_MAX / sizeof(digit_t) < length) // overflow 
+        {
+            return false;
+        }
+
+        digits = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), digit_t, length);
+        if (NULL == digits)
+        {
+            return false;
+        }
+
+        if (0 < m_length) // in this case, we need to copy old data over
+        {
+            js_memcpy_s(digits, length * sizeof(digit_t), m_digits, m_length * sizeof(digit_t));
+        }
+
+        m_digits = digits;
+        m_maxLength = length;
+
+        return true;
+    }
+
     template <typename EncodedChar>
     void JavascriptBigInt::InitFromCharDigits(const EncodedChar *pChar, uint32 charLength, bool isNegative)
     {
         Assert(charLength >= 0);
         Assert(pChar != 0);
-        AssertMsg(charLength <= MaxStringLength, "do not support BigInt out of the range");
 
         const EncodedChar *pCharLimit = pChar + charLength - 1;//'n' at the end
 
         m_length = 0;
-        m_digits = m_reservedDigitsInit;
+        m_digits = RecyclerNewArrayLeaf(this->GetScriptContext()->GetRecycler(), digit_t, m_maxLength);
         m_isNegative = isNegative;
 
-        uint32 digitMul = 1;
-        uint32 digitAdd = 0;
+        digit_t digitMul = 1;
+        digit_t digitAdd = 0;
         bool check = true;
         for (; pChar < pCharLimit; pChar++)
         {
@@ -113,26 +161,177 @@ namespace Js
         }
     }
 
-    bool JavascriptBigInt::MulThenAdd(uint32 digitMul, uint32 digitAdd)
+    // return low(a+b) and out carry
+    digit_t JavascriptBigInt::AddDigit(digit_t a, digit_t b, digit_t* carry)
+    {
+        digit_t result = a + b;
+        if (result < a)
+        {
+            *carry += 1;
+        }
+        return result;
+    }
+
+    // return low(a+b) and out carry
+    digit_t JavascriptBigInt::SubDigit(digit_t a, digit_t b, digit_t* borrow)
+    {
+        digit_t result = a - b;
+        if (result > a)
+        {
+            *borrow += 1;
+        }
+        return result;
+    }
+
+    bool JavascriptBigInt::IsZero(JavascriptBigInt * pbi)
+    {
+        return (pbi->m_length == 1 && pbi->m_digits[0] == 0);
+    }
+
+    void JavascriptBigInt::AbsoluteIncrement(JavascriptBigInt * pbi)
+    {
+        JavascriptBigInt* result = pbi;
+        digit_t carry = 1;
+        for (digit_t i = 0; i < result->m_length && carry > 0; i++)
+        {
+            digit_t tempCarry = 0;
+            result->m_digits[i] = JavascriptBigInt::AddDigit(result->m_digits[i], carry, &tempCarry);
+            carry = tempCarry;
+        }
+        if (carry > 0) //increase length
+        {
+            if (result->m_length >= result->m_maxLength && !result->Resize(result->m_length + 1))
+            {
+                AssertOrFailFastMsg(false, "AbsoluteIncrement overflow");
+            }
+            result->m_digits[result->m_length++] = carry;
+        }
+    }
+
+    void JavascriptBigInt::AbsoluteDecrement(JavascriptBigInt * pbi)
+    {
+        JavascriptBigInt* result = pbi;
+        Assert(!JavascriptBigInt::IsZero(result));
+        digit_t borrow = 1;
+        for (digit_t i = 0; i < result->m_length && borrow > 0; i++)
+        {
+            digit_t tempBorrow = 0;
+            result->m_digits[i] = JavascriptBigInt::SubDigit(result->m_digits[i], borrow, &tempBorrow);
+            borrow = tempBorrow;
+        }
+        Assert(borrow == 0);
+        // remove trailing zero
+        if (result->m_digits[result->m_length-1] == 0)
+        {
+            result->m_length--;
+        }
+    }
+
+    void JavascriptBigInt::Increment(JavascriptBigInt * pbi)
+    {
+        if (pbi->m_isNegative)
+        {
+            // return 0n for -1n
+            if (pbi->m_length == 1 && pbi->m_digits[0] == 1)
+            {
+                JavascriptBigInt* result = pbi;
+                result->m_digits[0] = 0;
+                result->m_isNegative = false;
+                return;
+            }
+            return JavascriptBigInt::AbsoluteDecrement(pbi);
+        }
+        return JavascriptBigInt::AbsoluteIncrement(pbi);
+    }
+
+    void JavascriptBigInt::Decrement(JavascriptBigInt * pbi)
+    {
+        if (pbi->m_isNegative)
+        {
+            return JavascriptBigInt::AbsoluteIncrement(pbi);
+        }
+        if (JavascriptBigInt::IsZero(pbi)) // return -1n for 0n
+        {
+            JavascriptBigInt* result = pbi;
+            result->m_digits[0] = 1;
+            result->m_isNegative = true;
+            return;
+        }
+        return JavascriptBigInt::AbsoluteDecrement(pbi);
+    }
+
+    Var JavascriptBigInt::Increment(Var aRight)
+    {
+        JavascriptBigInt* rightBigInt = VarTo<JavascriptBigInt>(aRight);
+        JavascriptBigInt* newBigInt = JavascriptBigInt::New(rightBigInt, rightBigInt->GetScriptContext());
+        JavascriptBigInt::Increment(newBigInt);
+        return newBigInt;
+    }
+
+    Var JavascriptBigInt::Decrement(Var aRight)
+    {
+        JavascriptBigInt* rightBigInt = VarTo<JavascriptBigInt>(aRight);
+        JavascriptBigInt* newBigInt = JavascriptBigInt::New(rightBigInt, rightBigInt->GetScriptContext());
+        JavascriptBigInt::Decrement(newBigInt);
+        return newBigInt;
+    }
+
+    // return low(a*b) and out high
+    digit_t JavascriptBigInt::MulDigit(digit_t a, digit_t b, digit_t* resultHigh)
+    {
+        // Multiply is performed in half chuck favor.
+        // For inputs [AH AL]*[BH BL], the result is:
+        //
+        //            [AL*BL]  // rLow
+        //    +    [AL*BH]     // rMid1
+        //    +    [AH*BL]     // rMid2
+        //    + [AH*BH]        // rHigh
+        //    = [R1 R2 R3 R4]  // high = [R1 R2], low = [R3 R4]
+        //
+
+        digit_t kHalfDigitBits = sizeof(digit_t) * 4;
+        digit_t kHalfDigitMask = ((digit_t)1 << kHalfDigitBits) - 1;
+
+        digit_t aLow = a & kHalfDigitMask;
+        digit_t aHigh = a >> kHalfDigitBits;
+        digit_t bLow = b & kHalfDigitMask;
+        digit_t bHigh = b >> kHalfDigitBits;
+
+        digit_t rLow = aLow * bLow;
+        digit_t rMid1 = aLow * bHigh;
+        digit_t rMid2 = aHigh * bLow;
+        digit_t rHigh = aHigh * bHigh;
+
+        digit_t carry = 0;
+        digit_t resultLow = JavascriptBigInt::AddDigit(rLow, rMid1 << kHalfDigitBits, &carry);
+        resultLow = JavascriptBigInt::AddDigit(resultLow, rMid2 << kHalfDigitBits, &carry);
+        *resultHigh = (rMid1 >> kHalfDigitBits) + (rMid2 >> kHalfDigitBits) + rHigh + carry;
+        return resultLow;
+    }
+
+    bool JavascriptBigInt::MulThenAdd(digit_t digitMul, digit_t digitAdd)
     {
         Assert(digitMul != 0);
 
-        uint32 carryDigit = 0;
-        uint32 *pDigit = m_digits;
-        uint32 *pDigitLimit = pDigit + m_length;
+        digit_t carryDigit = 0;
+        digit_t *pDigit = m_digits;
+        digit_t *pDigitLimit = pDigit + m_length;
 
         for (; pDigit < pDigitLimit; pDigit++)
         {
-            *pDigit = NumberUtilities::MulLu(*pDigit, digitMul, &carryDigit);// return low Digit to digit, hight Digit to carry
+            *pDigit = JavascriptBigInt::MulDigit(*pDigit, digitMul, &carryDigit);// return low Digit to digit, hight Digit to carry
             if (digitAdd > 0)
             {
-                carryDigit += NumberUtilities::AddLu(pDigit, digitAdd);// add carry to result
+                *pDigit = JavascriptBigInt::AddDigit(*pDigit, digitAdd, &carryDigit);// add carry to result
             }
             digitAdd = carryDigit;
         }
         if (0 < digitAdd) // length increase by 1
         {
-            AssertOrFailFast(m_length < MaxDigitLength);// check out of bound
+            if (m_length >= m_maxLength && !Resize(m_length + 1))
+            {
+                return false;
+            }
             m_digits[m_length++] = digitAdd;
         }
         return true;
@@ -152,7 +351,7 @@ namespace Js
             }
         }
 
-        uint32 index;
+        digit_t index;
         int sign = m_isNegative ? -1 : 1;
 
         if (m_length > pbi->m_length)
@@ -181,7 +380,7 @@ namespace Js
 
     bool JavascriptBigInt::LessThan(Var aLeft, Var aRight)
     {
-        AssertMsg(VarIs<JavascriptBigInt>(aLeft) && VarIs<JavascriptBigInt>(aRight), "BigInt Equals");
+        AssertMsg(VarIs<JavascriptBigInt>(aLeft) && VarIs<JavascriptBigInt>(aRight), "BigInt LessThan");
 
         JavascriptBigInt *leftBigInt = VarTo<JavascriptBigInt>(aLeft);
         JavascriptBigInt *rightBigInt = VarTo<JavascriptBigInt>(aRight);
@@ -192,14 +391,10 @@ namespace Js
     bool JavascriptBigInt::Equals(Var aLeft, Var aRight)
     {
         AssertMsg(VarIs<JavascriptBigInt>(aLeft) && VarIs<JavascriptBigInt>(aRight), "BigInt Equals");
-
         JavascriptBigInt *leftBigInt = VarTo<JavascriptBigInt>(aLeft);
         JavascriptBigInt *rightBigInt = VarTo<JavascriptBigInt>(aRight);
 
         return (leftBigInt->Compare(rightBigInt) == 0);
     }
-
-    template void JavascriptBigInt::InitFromCharDigits<char16>(const char16 *pChar, uint32 charLength, bool isNegative);
-    template void JavascriptBigInt::InitFromCharDigits<utf8char_t>(const utf8char_t *pChar, uint32 charLength, bool isNegative);
 
 } // namespace Js

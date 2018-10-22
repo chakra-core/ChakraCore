@@ -72,6 +72,32 @@ var tests = [
             assert.isFalse(x > y);
         }
     },
+    {
+        name: "Out of 64 bit range",
+        body: function () {
+            var x = 1234567890123456789012345678901234567890n;
+            var y = BigInt(1234567890123456789012345678901234567891n);
+            assert.isFalse(x == y);
+            assert.isTrue(x < y);
+            assert.isTrue(x <= y);
+            assert.isTrue(x == x);
+            assert.isFalse(x >= y);
+            assert.isFalse(x > y);
+        }
+    },
+    {
+        name: "Very big BigInt, test resize",
+        body: function () {
+            var x = eval('1234567890'.repeat(20) + 'n');
+            var y = eval('1234567891'.repeat(20) + 'n');
+            assert.isFalse(x == y);
+            assert.isTrue(x < y);
+            assert.isTrue(x <= y);
+            assert.isTrue(x == x);
+            assert.isFalse(x >= y);
+            assert.isFalse(x > y);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
