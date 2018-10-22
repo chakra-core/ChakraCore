@@ -272,6 +272,10 @@ namespace Js
         this->Data = (descriptor.Data == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Data;
         this->Getter = (descriptor.Getter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Getter;
         this->Setter = (descriptor.Setter == DictionaryPropertyDescriptor<TPropertyIndexFrom>::NoSlots) ? NoSlots : descriptor.Setter;
+
+        // Not strictly required, PreventFalseReference must always be 1
+        this->PreventFalseReference = descriptor.PreventFalseReference;
+        this->IsShadowed = descriptor.IsShadowed;
         this->IsAccessor = descriptor.IsAccessor;
 
         // Not strictly required, PreventFalseReference must always be 1

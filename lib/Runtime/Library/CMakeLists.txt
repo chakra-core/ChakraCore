@@ -24,6 +24,7 @@ endif()
 set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
+    DelayFreeArrayBufferHelper.cpp
     ArrayBuffer.cpp
     AtomicsOperations.cpp
     AtomicsObject.cpp

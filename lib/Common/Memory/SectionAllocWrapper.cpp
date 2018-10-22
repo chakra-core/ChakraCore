@@ -625,6 +625,20 @@ FailureCleanup:
     return nullptr;
 }
 
+bool
+SectionAllocWrapper::GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress)
+{
+    SectionInfo* sectionInfo = sections.GetSection(address);
+    if (!sectionInfo)
+    {
+        return false;
+    }
+
+    *fileHandle = sectionInfo->handle;
+    *baseAddress = sectionInfo->runtimeBaseAddress;
+    return true;
+}
+
 LPVOID
 SectionAllocWrapper::AllocLocal(LPVOID requestAddress, size_t dwSize)
 {
@@ -991,6 +1005,18 @@ PreReservedSectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
     return TRUE;
 }
 
+bool
+PreReservedSectionAllocWrapper::GetFileInfo(LPVOID address, HANDLE* fileHandle, PVOID* baseAddress)
+{
+    if (!this->IsPreReservedRegionPresent())
+    {
+        return false;
+    }
+
+    *fileHandle = this->section;
+    *baseAddress = this->preReservedStartAddress;
+    return true;
+}
 
 LPVOID
 PreReservedSectionAllocWrapper::AllocLocal(LPVOID requestAddress, size_t dwSize)

@@ -476,7 +476,7 @@ CHAKRA_API JsPrivateDetachArrayBuffer(_In_ JsValueRef ref, _Out_ void** detached
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
     {
         VALIDATE_JSREF(ref);
-        *detachedState = Js::JavascriptOperators::DetachVarAndGetState(ref);
+        *detachedState = Js::JavascriptOperators::DetachVarAndGetState(ref, false /*queueForDelayFree*/);
         return JsNoError;
     });
 }

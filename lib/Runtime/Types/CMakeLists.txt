@@ -25,7 +25,7 @@ add_library (Chakra.Runtime.Types OBJECT
     TypeHandler.cpp
     TypePath.cpp
     TypePropertyCache.cpp
-    WithScopeObject.cpp
+    UnscopablesWrapperObject.cpp
     )
 
 target_include_directories (

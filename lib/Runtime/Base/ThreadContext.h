@@ -14,6 +14,7 @@ namespace Js
     struct ReturnedValue;
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 #endif
+    class DelayedFreeArrayBuffer;
 }
 
 typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
@@ -619,7 +620,7 @@ private:
     bool isThreadBound;
     bool hasThrownPendingException;
     bool * hasBailedOutBitPtr;
-    bool callDispose;
+
 #if ENABLE_JS_REENTRANCY_CHECK
     bool noJsReentrancy;
 #endif
@@ -627,7 +628,7 @@ private:
     bool reentrancySafeOrHandled;
     bool isInReentrancySafeRegion;
 
-    AllocationPolicyManager * allocationPolicyManager; 
+    AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
 #if ENABLE_NATIVE_CODEGEN
@@ -642,6 +643,10 @@ private:
 #endif
     IdleDecommitPageAllocator pageAllocator;
     Recycler* recycler;
+
+    // This instance holds list of delay-free array buffer - this will be used in 
+    // scanning the stack in order to release any delay-free buffer.
+    Js::DelayedFreeArrayBuffer delayFreeCallback;
 
     // Fake RecyclerWeakReference for built-in properties
     class StaticPropertyRecordReference : public RecyclerWeakReference<const Js::PropertyRecord>
@@ -816,7 +821,7 @@ private:
     bool isScriptActive;
 
     // When ETW rundown in background thread which needs to walk scriptContext/functionBody/entryPoint lists,
-    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of
+    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of 
     // functionBody/entrypoints, or expanding the auxPtrs
     CriticalSection csFunctionBody;
 
@@ -928,6 +933,11 @@ public:
 
     Js::NoSpecialPropertyThreadRegistry* GetNoSpecialPropertyRegistry() { return &this->noSpecialPropertyRegistry; }
     Js::OnlyWritablePropertyThreadRegistry* GetOnlyWritablePropertyRegistry() { return &this->onlyWritablePropertyRegistry; }
+
+    Js::DelayedFreeArrayBuffer * GetScanStackCallback()
+    {
+        return &this->delayFreeCallback;
+    }
 
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     DirectCallTelemetry directCallTelemetry;
@@ -1690,6 +1700,8 @@ public:
 
     virtual uint GetRandomNumber() override;
     virtual bool DoSpecialMarkOnScanStack() override { return this->DoRedeferFunctionBodies(); }
+    virtual void OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount) override;
+
     virtual void PostSweepRedeferralCallBack() override;
 
     // DefaultCollectWrapper
@@ -1713,6 +1725,7 @@ public:
     int numExpirableObjects;
     int expirableCollectModeGcCount;
     bool disableExpiration;
+    bool callDispose;
 
     bool InExpirableCollectMode();
     void TryEnterExpirableCollectMode();

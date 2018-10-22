@@ -389,7 +389,7 @@ Recycler::LogMemProtectHeapSize(bool fromGC)
 #ifdef ENABLE_JS_ETW
     if (IS_JS_ETW(EventEnabledMEMPROTECT_GC_HEAP_SIZE()))
     {
-       
+
         size_t usedBytes = autoHeap.GetUsedBytes();
         size_t reservedBytes = autoHeap.GetReservedBytes();
         size_t committedBytes = autoHeap.GetCommittedBytes();
@@ -1076,7 +1076,7 @@ Recycler::LeaveIdleDecommit()
 #ifdef IDLE_DECOMMIT_ENABLED
     bool allowTimer = (this->concurrentIdleDecommitEvent != nullptr);
     IdleDecommitSignal idleDecommitSignal = autoHeap.LeaveIdleDecommit(allowTimer);
-    
+
     if (idleDecommitSignal != IdleDecommitSignal_None)
     {
         Assert(allowTimer);
@@ -1688,6 +1688,8 @@ Recycler::ScanStack()
         Output::Print(_u("Scanning Stack %p(%8d): "), stackTop, (char *)stackStart - (char *)stackTop);
     }
 #endif
+
+    collectionWrapper->OnScanStackCallback((void**)stackTop, stackScanned, this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
 
     bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
 
@@ -3553,6 +3555,8 @@ template BOOL Recycler::CollectNow<CollectNowConcurrentPartial>();
 template BOOL Recycler::CollectNow<CollectNowForceInThread>();
 template BOOL Recycler::CollectNow<CollectNowForceInThreadExternal>();
 template BOOL Recycler::CollectNow<CollectNowForceInThreadExternalNoStack>();
+template BOOL Recycler::CollectNow<CollectNowForceInThreadExternalExhaustive>();
+template BOOL Recycler::CollectNow<CollectNowForceInThreadExternalExhaustiveNoStack>();
 template BOOL Recycler::CollectNow<CollectOnRecoverFromOutOfMemory>();
 template BOOL Recycler::CollectNow<CollectNowDefault>();
 template BOOL Recycler::CollectNow<CollectOnSuspendCleanup>();
@@ -6138,7 +6142,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     }
     else if (this->IsConcurrentMarkState())
     {
-        RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark ?
+        RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
         GCETW_INTERNAL(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         GCETW_INTERNAL(GC_START2, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState), this->collectionStartReason, this->collectionStartFlags));
@@ -6179,7 +6183,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
         };
         GCETW_INTERNAL(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         GCETW_INTERNAL(GC_STOP2, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState), this->collectionStartReason, this->collectionStartFlags));
-        RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark ?
+        RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
 
         this->SetCollectionState(CollectionStateRescanWait);
@@ -6474,7 +6478,7 @@ Recycler::DoTwoPassConcurrentSweepPreCheck()
     if (CONFIG_FLAG_RELEASE(EnableConcurrentSweepAlloc))
     {
         // We will do two pass sweep only when BOTH of the following conditions are met:
-        //      1. GC was triggered while we are in script, as this is the only case when we will make use of the blocks in the 
+        //      1. GC was triggered while we are in script, as this is the only case when we will make use of the blocks in the
         //         SLIST during concurrent sweep.
         //      2. We are not in a Partial GC.
         //      3. At-least one heap bucket exceeds the RecyclerHeuristic::AllocDuringConcurrentSweepHeapBlockThreshold.
@@ -7745,7 +7749,7 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectI
         if (heapBlock->IsLargeHeapBlock())
         {
             LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode() 
+            if (largeHeapBlock->InPageHeapMode()
 #ifdef RECYCLER_NO_PAGE_REUSE
                 && !largeHeapBlock->GetPageAllocator(largeHeapBlock->heapInfo)->IsPageReuseDisabled()
 #endif

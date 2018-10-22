@@ -12,7 +12,8 @@ enum HelperMethodAttribute : BYTE
     AttrNone = 0x00,
     AttrCanThrow = 0x01,     // Can throw non-OOM / non-SO exceptions. Under debugger / Fast F12, these helpers are wrapped with try-catch wrapper.
     AttrInVariant = 0x02,     // The method is "const" method that can be hoisted.
-    AttrCanNotBeReentrant = 0x4
+    AttrCanNotBeReentrant = 0x4,
+    AttrTempObjectProducing = 0x8
 };
 
 #if defined(DBG) && ENABLE_NATIVE_CODEGEN

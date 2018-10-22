@@ -446,7 +446,7 @@
   <test>
     <default>
       <files>assign.js</files>
-      <compile-flags>-args summary -endargs -trace:ObjectCopy</compile-flags>
+      <compile-flags>-args summary -endargs -on:ObjectCopy -trace:ObjectCopy</compile-flags>
       <baseline>assign.baseline</baseline>
     </default>
   </test>

@@ -106,6 +106,13 @@
   </test>
   <test>
     <default>
+      <files>exportBindingLoader.js</files>
+      <compile-flags>-ES6Module -args summary -endargs</compile-flags>
+      <tags>exclude_dynapogo,exclude_sanitize_address</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>test_bug_2645.js</files>
       <compile-flags>-ES6Module</compile-flags>
       <tags>exclude_sanitize_address</tags>

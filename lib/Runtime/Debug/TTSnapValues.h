@@ -36,7 +36,7 @@ namespace TTD
         //return true if the Var is a tagged number (inline)
         bool IsVarTaggedInline(Js::Var v);
 
-        //return true if the Var is a ptr var value 
+        //return true if the Var is a ptr var value
         bool IsVarPtrValued(Js::Var v);
 
         //return true if the Var is a primitive value (string, number, symbol, etc.)
@@ -50,7 +50,7 @@ namespace TTD
         bool AreInlineVarsEquiv(Js::Var v1, Js::Var v2);
 #endif
 
-        //Ensure a function is fully parsed/deserialized 
+        //Ensure a function is fully parsed/deserialized
         Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi);
 
         void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint32 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
@@ -77,7 +77,7 @@ namespace TTD
         //de-serialize the TTDVar
         TTDVar ParseTTDVar(bool readSeparator, FileReader* reader);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         bool CheckSnapEquivTTDDouble(double d1, double d2);
         void AssertSnapEquivTTDVar_Helper(const TTDVar v1, const TTDVar v2, TTDCompareMap& compareMap, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next);
 
@@ -121,7 +121,7 @@ namespace TTD
         void EmitSnapPrimitiveValue(const SnapPrimitiveValue* snapValue, FileWriter* writer, NSTokens::Separator separator);
         void ParseSnapPrimitiveValue(SnapPrimitiveValue* snapValue, bool readSeparator, FileReader* reader, SlabAllocator& alloc, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& ptrIdToTypeMap);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapPrimitiveValue* v1, const SnapPrimitiveValue* v2, TTDCompareMap& compareMap);
 #endif
 
@@ -130,7 +130,7 @@ namespace TTD
         //If a scope is a slot array this class encodes the slot information and original address of the slot array
         struct SlotArrayInfo
         {
-            //The unique id for the slot array scope entry 
+            //The unique id for the slot array scope entry
             TTD_PTR_ID SlotId;
 
             //The tag of the script context that this slot array is associated with
@@ -158,7 +158,7 @@ namespace TTD
         void EmitSlotArrayInfo(const SlotArrayInfo* slotInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParseSlotArrayInfo(SlotArrayInfo* slotInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SlotArrayInfo* sai1, const SlotArrayInfo* sai2, TTDCompareMap& compareMap);
 #endif
 
@@ -194,7 +194,7 @@ namespace TTD
         void EmitScriptFunctionScopeInfo(const ScriptFunctionScopeInfo* funcScopeInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParseScriptFunctionScopeInfo(ScriptFunctionScopeInfo* funcScopeInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const ScriptFunctionScopeInfo* funcScopeInfo1, const ScriptFunctionScopeInfo* funcScopeInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -216,7 +216,7 @@ namespace TTD
         void EmitPromiseCapabilityInfo(const SnapPromiseCapabilityInfo* capabilityInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParsePromiseCapabilityInfo(SnapPromiseCapabilityInfo* capabilityInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapPromiseCapabilityInfo* capabilityInfo1, const SnapPromiseCapabilityInfo* capabilityInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -235,7 +235,7 @@ namespace TTD
         void EmitPromiseReactionInfo(const SnapPromiseReactionInfo* reactionInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParsePromiseReactionInfo(SnapPromiseReactionInfo* reactionInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapPromiseReactionInfo* reactionInfo1, const SnapPromiseReactionInfo* reactionInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -256,7 +256,7 @@ namespace TTD
         void EmitSnapFunctionBodyScopeChain(const SnapFunctionBodyScopeChain& scopeChain, FileWriter* writer);
         void ParseSnapFunctionBodyScopeChain(SnapFunctionBodyScopeChain& scopeChain, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapFunctionBodyScopeChain& chain1, const SnapFunctionBodyScopeChain& chain2, TTDCompareMap& compareMap);
 #endif
 
@@ -299,7 +299,7 @@ namespace TTD
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeparator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelCommonBodyResolveInfo* fbInfo1, const TopLevelCommonBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -319,7 +319,7 @@ namespace TTD
         void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo1, const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -336,7 +336,7 @@ namespace TTD
         void EmitTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelNewFunctionBodyResolveInfo* fbInfo1, const TopLevelNewFunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -349,7 +349,7 @@ namespace TTD
             //Additional data for handling the eval
             uint64 EvalFlags;
             bool RegisterDocument;
-            bool IsIndirect; 
+            bool IsIndirect;
             bool IsStrictMode;
         };
 
@@ -359,7 +359,7 @@ namespace TTD
         void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, bool readSeparator, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const TopLevelEvalFunctionBodyResolveInfo* fbInfo1, const TopLevelEvalFunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -397,7 +397,7 @@ namespace TTD
         void EmitFunctionBodyInfo(const FunctionBodyResolveInfo* fbInfo, FileWriter* writer, NSTokens::Separator separator);
         void ParseFunctionBodyInfo(FunctionBodyResolveInfo* fbInfo, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const FunctionBodyResolveInfo* fbInfo1, const FunctionBodyResolveInfo* fbInfo2, TTDCompareMap& compareMap);
 #endif
 
@@ -405,7 +405,7 @@ namespace TTD
 
         struct SnapRootInfoEntry
         {
-            //The log id value 
+            //The log id value
             TTD_LOG_PTR_ID LogId;
 
             //The object that this log id is mapped to
@@ -417,7 +417,7 @@ namespace TTD
 
         struct SnapPendingAsyncBufferModification
         {
-            //The log id value 
+            //The log id value
             TTD_LOG_PTR_ID LogId;
 
             //The index value associated with this modification
@@ -465,7 +465,7 @@ namespace TTD
         void EmitSnapContext(const SnapContext* snapCtx, FileWriter* writer, NSTokens::Separator separator);
         void ParseSnapContext(SnapContext* intoCtx, bool readSeparator, FileReader* reader, SlabAllocator& alloc);
 
-#if ENABLE_SNAPSHOT_COMPARE 
+#if ENABLE_SNAPSHOT_COMPARE
         void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator>& allRootMap1, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, NSSnapValues::SnapRootInfoEntry*, HeapAllocator>& allRootMap2, TTDCompareMap& compareMap);
 #endif
     }

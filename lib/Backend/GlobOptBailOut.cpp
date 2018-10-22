@@ -201,7 +201,7 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
     NEXT_BITSET_IN_SPARSEBV
 
     // If, after going over the set of changed syms since the last time we captured values,
-    // there are remaining unprocessed entries in the current captured values set, 
+    // there are remaining unprocessed entries in the current captured values set,
     // they can simply be copied over to the new bailout info.
     while (hasConstValue)
     {
@@ -272,7 +272,7 @@ GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<Ji
     bailOutInfo->capturedValues->copyPropSyms.Clear(this->func->m_alloc);
     bailOutCopySymsIter.SetNext(&bailOutInfo->capturedValues->copyPropSyms);
     bailOutInfo->capturedValues->copyPropSyms = capturedValues.copyPropSyms;
-    
+
     // In pre-pass only bailout info created should be for the loop header, and that doesn't take into account the back edge.
     // Don't use the captured values on that bailout for incremental capturing of values.
     if (!PHASE_OFF(Js::IncrementalBailoutPhase, func) && !this->IsLoopPrePass())
@@ -1164,7 +1164,7 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val)
     case IR::OpndKindReg:
         // Only need implicit call if the operation will call ToPrimitive and we haven't prove
         // that it is already a primitive
-        return 
+        return
             !(val && val->GetValueInfo()->IsPrimitive()) &&
             !opnd->AsRegOpnd()->GetValueType().IsPrimitive() &&
             !opnd->AsRegOpnd()->m_sym->IsInt32() &&

@@ -1167,7 +1167,7 @@ namespace Js
         if (GetTypeId() == source->GetTypeId() ||
             (GetBytesPerElement() == source->GetBytesPerElement()
              && !((Uint8ClampedArray::Is(this) || Uint8ClampedVirtualArray::Is(this)) && (Int8Array::Is(source) || Int8VirtualArray::Is(source)))
-             && !Float32Array::Is(this) && !Float32Array::Is(source)
+             && !Float32Array::Is(this) && !Float32Array::Is(source) 
              && !Float32VirtualArray::Is(this) && !Float32VirtualArray::Is(source)
              && !Float64Array::Is(this) && !Float64Array::Is(source)
              && !Float64VirtualArray::Is(this) && !Float64VirtualArray::Is(source)))
@@ -1302,7 +1302,11 @@ namespace Js
         AssertMsg(IsDetachedBuffer(), "Array buffer should be detached if we're calling this method");
 
         this->length = 0;
+#if INT32VAR
+        this->buffer = (BYTE*)TaggedInt::ToVarUnchecked(0);
+#else
         this->buffer = nullptr;
+#endif
     }
 
     Var TypedArrayBase::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2990,7 +2994,7 @@ namespace Js
     DIRECT_GET_VAR_CHECK_NO_DETACH_CHECK(Float64VirtualArray);
 
 #define TypedArrayBeginStub(TypedArrayName) \
-        Assert(GetArrayBuffer() || GetArrayBuffer()->GetBuffer()); \
+        Assert(GetArrayBuffer() && GetArrayBuffer()->GetBuffer()); \
         Assert(accessIndex < GetLength()); \
         ScriptContext *scriptContext = GetScriptContext(); \
         typedef TypedArrayName::TypedArrayType type; \

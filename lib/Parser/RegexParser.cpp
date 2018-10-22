@@ -2236,7 +2236,7 @@ namespace UnifiedRegex
                         Assert(!unicodeFlagPresent);
                         Fail(JSERR_RegExpBadRange);
                     }
-                    
+
                     codePointSet.SetRange(ctAllocator, pendingRangeStart, pendingCodePoint);
                     pendingRangeStart = pendingCodePoint = INVALID_CODEPOINT;
                 }
@@ -2500,7 +2500,7 @@ namespace UnifiedRegex
                 }
                 else
                 {
-                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term 
+                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term
 
                     if (!IsEOF())
                     {
@@ -2642,7 +2642,7 @@ namespace UnifiedRegex
                 else
                 {
                     // If the lookahead is a non-alphanumeric and not an underscore ('_'), then treat '\' and 'c' separately.
-                    //#sec-regular-expression-patterns-semantics 
+                    //#sec-regular-expression-patterns-semantics
                     ECRevert(1); //Put cursor back at 'c' and treat it as a non-escaped character.
                     deferredCharNode->cs[0] = '\\';
                     return deferredCharNode;

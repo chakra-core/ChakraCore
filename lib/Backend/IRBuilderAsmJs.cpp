@@ -732,10 +732,15 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset, bool isFirstLoad)
             // ArrayBuffer
             // GrowMemory can change the ArrayBuffer, we have to reload it
             AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::WasmMemoryReg, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, DoReload);
-            // ArrayBuffer.buffer
+
             // The buffer doesn't change when using Fast Virtual buffer even if we grow the memory
             ShouldReload shouldReloadBufferPointer = m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer() ? DontReload : DoReload;
-            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), TyVar, shouldReloadBufferPointer);
+
+            // ArrayBuffer.bufferContent
+            AddLoadField(AsmJsRegSlots::RefCountedBuffer, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferContentsOffset(), TyVar, DoReload);
+
+            // RefCountedBuffer.buffer
+            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::RefCountedBuffer, Js::RefCountedBuffer::GetBufferOffset(), TyVar, shouldReloadBufferPointer);
             // ArrayBuffer.length
             AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), TyUint32, DoReload);
         }
@@ -758,8 +763,10 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset, bool isFirstLoad)
         // ArrayBuffer
         // The ArrayBuffer can be changed on the environment, if it is detached, we'll throw
         AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::ModuleMemReg, (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, DontReload);
-        // ArrayBuffer.buffer
-        AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), TyVar, DontReload);
+        // ArrayBuffer.bufferContent
+        AddLoadField(AsmJsRegSlots::RefCountedBuffer, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferContentsOffset(), TyVar, DontReload);
+        // RefCountedBuffer.buffer
+        AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::RefCountedBuffer, Js::RefCountedBuffer::GetBufferOffset(), TyVar, DontReload);
         // ArrayBuffer.length
         AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), TyUint32, DontReload);
     }
@@ -1446,7 +1453,7 @@ void
 IRBuilderAsmJs::InitializeMemAccessTypeInfo(Js::ArrayBufferView::ViewType viewType, _Out_ MemAccessTypeInfo * typeInfo)
 {
     AssertOrFailFast(typeInfo);
-    
+
     switch (viewType)
     {
 #define ARRAYBUFFER_VIEW(name, align, RegType, MemType, irSuffix) \
@@ -1873,9 +1880,9 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 #ifdef ENABLE_WASM
     // heap buffer can change for wasm
     if (m_asmFuncInfo->UsesHeapBuffer() && m_func->GetJITFunctionBody()->IsWasmFunction())
-        {
-            BuildHeapBufferReload(offset);
-        }
+    {
+        BuildHeapBufferReload(offset);
+    }
 #endif
 }
 

@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="$(MsBuildThisFileDirectory)ArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)BufferStringBuilder.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
@@ -108,6 +109,7 @@
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
+    <ClInclude Include="DelayFreeArrayBufferHelper.h" />
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />

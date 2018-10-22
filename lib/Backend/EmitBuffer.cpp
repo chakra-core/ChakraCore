@@ -194,6 +194,40 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::NewAllocation(size_t b
 }
 
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
+void
+EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::SetValidCallTarget(TEmitBufferAllocation* allocation, void* callTarget, bool isValid)
+{
+#if _M_ARM
+    callTarget = (void*)((uintptr_t)callTarget | 0x1); // add the thumb bit back, so we CFG-unregister the actual call target
+#endif
+    if (!JITManager::GetJITManager()->IsJITServer())
+    {
+        this->threadContext->SetValidCallTargetForCFG(callTarget, isValid);
+    }
+#if ENABLE_OOP_NATIVE_CODEGEN
+    else if (CONFIG_FLAG(OOPCFGRegistration))
+    {
+        void* segment = allocation->allocation->IsLargeAllocation()
+            ? allocation->allocation->largeObjectAllocation.segment
+            : allocation->allocation->page->segment;
+        HANDLE fileHandle = nullptr;
+        PVOID baseAddress = nullptr;
+        bool found = false;
+        if (this->allocationHeap.IsPreReservedSegment(segment))
+        {
+            found = ((SegmentBase<TPreReservedAlloc>*)segment)->GetAllocator()->GetVirtualAllocator()->GetFileInfo(callTarget, &fileHandle, &baseAddress);
+        }
+        else
+        {
+            found = ((SegmentBase<TAlloc>*)segment)->GetAllocator()->GetVirtualAllocator()->GetFileInfo(callTarget, &fileHandle, &baseAddress);
+        }
+        AssertOrFailFast(found);
+        this->threadContext->SetValidCallTargetFile(callTarget, fileHandle, baseAddress, isValid);
+    }
+#endif
+}
+
+template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool
 EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* address)
 {
@@ -241,14 +275,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::FreeAllocation(void* a
             else
 #endif
             {
-                if (!JITManager::GetJITManager()->IsJITServer() || CONFIG_FLAG(OOPCFGRegistration))
-                {
-                    void* callTarget = address;
-#if _M_ARM
-                    callTarget = (void*)((uintptr_t)callTarget | 0x1); // add the thumb bit back, so we CFG-unregister the actual call target
-#endif
-                    threadContext->SetValidCallTargetForCFG(callTarget, false);
-                }
+                SetValidCallTarget(allocation, address, false);
             }
             VerboseHeapTrace(_u("Freeing 0x%p, allocation: 0x%p\n"), address, allocation->allocation->address);
 
