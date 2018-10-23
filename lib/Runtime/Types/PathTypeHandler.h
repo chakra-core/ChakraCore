@@ -189,6 +189,8 @@ namespace Js
 
         virtual void SetIsPrototype(DynamicObject* instance) override;
 
+        PathTypeHandlerBase * BuildPathTypeFromNewRoot(DynamicObject * instance, DynamicType ** type);
+
         BOOL FindNextPropertyHelper(ScriptContext* scriptContext, ObjectSlotAttributes * objectAttributes, PropertyIndex& index, JavascriptString** propertyString,
             PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info);
         BOOL SetAttributesAtIndex(DynamicObject* instance, PropertyId propertyId, PropertyIndex index, PropertyAttributes attributes);

@@ -583,7 +583,7 @@ namespace Js
         functionWithPrototypeTypeHandler->SetHasKnownSlot0();
 
         externalFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/);
-        externalFunctionWithLengthAndDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/, /* isLengthAvailable */ true);
+        externalFunctionWithLengthAndDeferredPrototypeType = CreateDeferredLengthPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::ExternalFunctionThunk, true /*isShared*/);
         wrappedFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::WrappedFunctionThunk, true /*isShared*/);
         stdCallFunctionWithDeferredPrototypeType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptExternalFunction::StdCallExternalFunctionThunk, true /*isShared*/);
         idMappedFunctionWithPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptExternalFunction::ExternalFunctionThunk,
@@ -595,6 +595,8 @@ namespace Js
 
         boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
             GetDeferredFunctionTypeHandler(), true, true);
+        crossSiteDeferredFunctionType = CreateDeferredFunctionTypeNoProfileThunk(
+            scriptContext->CurrentCrossSiteThunk, true /*isShared*/);
         crossSiteDeferredPrototypeFunctionType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(
             scriptContext->CurrentCrossSiteThunk, true /*isShared*/);
         crossSiteIdMappedFunctionWithPrototypeType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, scriptContext->CurrentCrossSiteThunk,
@@ -1022,20 +1024,51 @@ namespace Js
             isAnonymousFunction ? GetDeferredAnonymousPrototypeAsyncFunctionTypeHandler() : GetDeferredPrototypeAsyncFunctionTypeHandler(scriptContext), isShared, isShared);
     }
 
+    DynamicType * JavascriptLibrary::CreateDeferredFunctionType(JavascriptMethod entrypoint)
+    {
+        return CreateDeferredFunctionTypeNoProfileThunk(this->inDispatchProfileMode ? ProfileEntryThunk : entrypoint);
+    }
+
     DynamicType * JavascriptLibrary::CreateDeferredPrototypeFunctionType(JavascriptMethod entrypoint)
     {
         return CreateDeferredPrototypeFunctionTypeNoProfileThunk(this->inDispatchProfileMode ? ProfileEntryThunk : entrypoint);
     }
 
-    DynamicType * JavascriptLibrary::CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared, bool isLengthAvailable)
+    DynamicType * JavascriptLibrary::CreateDeferredFunctionTypeNoProfileThunk(JavascriptMethod entryPoint, bool isShared)
+    {
+        return CreateDeferredFunctionTypeNoProfileThunk_Internal<false, false>(entryPoint, isShared);
+    }
+
+    DynamicType * JavascriptLibrary::CreateDeferredLengthFunctionTypeNoProfileThunk(JavascriptMethod entryPoint, bool isShared)
+    {
+        return CreateDeferredFunctionTypeNoProfileThunk_Internal<true, false>(entryPoint, isShared);
+    }
+
+    DynamicType * JavascriptLibrary::CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entryPoint, bool isShared)
+    {
+        return CreateDeferredFunctionTypeNoProfileThunk_Internal<false, true>(entryPoint, isShared);
+    }
+
+    DynamicType * JavascriptLibrary::CreateDeferredLengthPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entryPoint, bool isShared)
+    {
+        return CreateDeferredFunctionTypeNoProfileThunk_Internal<true, true>(entryPoint, isShared);
+    }
+
+    template<bool isLengthAvailable, bool isPrototypeAvailable>
+    DynamicType * JavascriptLibrary::CreateDeferredFunctionTypeNoProfileThunk_Internal(JavascriptMethod entrypoint, bool isShared)
     {
         // Note: the lack of TypeHandler switching here based on the isAnonymousFunction flag is intentional.
         // We can't switch shared typeHandlers and RuntimeFunctions do not produce script code for us to know if a function is Anonymous.
         // As a result we may have an issue where hasProperty would say you have a name property but getProperty returns undefined
-        return DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entrypoint,
-            isLengthAvailable ? GetDeferredPrototypeFunctionWithLengthTypeHandler(scriptContext) : GetDeferredPrototypeFunctionTypeHandler(scriptContext),
-            isShared, isShared);
+        DynamicTypeHandler * typeHandler = 
+            isLengthAvailable ?
+                (isPrototypeAvailable ?
+                    GetDeferredPrototypeFunctionWithLengthTypeHandler(scriptContext) : GetDeferredFunctionWithLengthTypeHandler()) :
+                (isPrototypeAvailable ?
+                    GetDeferredPrototypeFunctionTypeHandler(scriptContext) : GetDeferredFunctionTypeHandler());
+        return DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entrypoint, typeHandler, isShared, isShared);
     }
+
     DynamicType * JavascriptLibrary::CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype)
     {
         if (prototype == nullptr)
@@ -5243,11 +5276,7 @@ namespace Js
     {
         Assert(function->GetDynamicType()->GetIsLocked());
 
-        if (VarIs<ScriptFunction>(function))
-        {
-            this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
-        }
-        else if (VarIs<BoundFunction>(function))
+        if (VarIs<ScriptFunction>(function) || VarIs<BoundFunction>(function))
         {
             this->SetCrossSiteForLockedNonBuiltInFunctionType(function);
         }
@@ -5258,6 +5287,11 @@ namespace Js
                 || typeHandler == JavascriptLibrary::GetDeferredPrototypeFunctionWithLengthTypeHandler(this->GetScriptContext()))
             {
                 function->ReplaceType(crossSiteDeferredPrototypeFunctionType);
+            }
+            else if (typeHandler == JavascriptLibrary::GetDeferredFunctionTypeHandler()
+                || typeHandler == JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler())
+            {
+                function->ReplaceType(crossSiteDeferredFunctionType);
             }
             else if (typeHandler == Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredConstructorInitializer>::GetDefaultInstance())
             {
@@ -5276,16 +5310,58 @@ namespace Js
 
     void JavascriptLibrary::SetCrossSiteForLockedNonBuiltInFunctionType(JavascriptFunction * function)
     {
+        FunctionProxy * functionProxy = function->GetFunctionProxy();
         DynamicTypeHandler *typeHandler = function->GetTypeHandler();
-        if (typeHandler->IsPathTypeHandler())
+        if (typeHandler->IsDeferredTypeHandler())
         {
-            PathTypeHandlerBase::FromTypeHandler(typeHandler)->ConvertToNonShareableTypeHandler(function);
+            if (functionProxy && functionProxy->GetCrossSiteDeferredFunctionType())
+            {
+                function->ReplaceType(functionProxy->GetCrossSiteDeferredFunctionType());
+            }
+            else
+            {
+                function->ChangeType();
+                function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
+                if (functionProxy && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
+                {
+                    function->ShareType();
+                    functionProxy->SetCrossSiteDeferredFunctionType(UnsafeVarTo<ScriptFunction>(function)->GetScriptFunctionType());
+                }
+            }
         }
-        else
+        else 
         {
-            function->ChangeType();
+            if (functionProxy && functionProxy->GetCrossSiteUndeferredFunctionType())
+            {
+                function->ReplaceType(functionProxy->GetCrossSiteUndeferredFunctionType());
+            }
+            else
+            {
+                if (typeHandler->IsPathTypeHandler())
+                {
+                    if (!PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
+                    {
+                        DynamicType *type = function->DuplicateType();
+                        PathTypeHandlerBase::FromTypeHandler(typeHandler)->BuildPathTypeFromNewRoot(function, &type);
+                        function->ReplaceType(type);
+                    }
+                    else
+                    {
+                        PathTypeHandlerBase::FromTypeHandler(typeHandler)->ConvertToNonShareableTypeHandler(function);
+                    }
+                }
+                else
+                {
+                    function->ChangeType();
+                }
+                function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
+                if (functionProxy && function->GetTypeHandler()->GetMayBecomeShared() && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
+                {
+                    function->ShareType();
+                    functionProxy->SetCrossSiteUndeferredFunctionType(UnsafeVarTo<ScriptFunction>(function)->GetScriptFunctionType());
+                }
+            }
         }
-        function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
     }
 
     JavascriptExternalFunction*
