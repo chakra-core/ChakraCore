@@ -1055,6 +1055,10 @@ ValueType ValueType::MergeWithObject(const ValueType other) const
         {
             // Any two different specific object types (excludes UninitializedObject and Object, which don't indicate any
             // specific type of object) merge to Object since the resulting type is not guaranteed to indicate any specific type
+            if (IsArrayOrObjectWithArray() || other.IsArrayOrObjectWithArray())
+            {
+                return Verify(GetObject(ObjectType::Object).ToLikely());
+            }
             merged.SetObjectType(ObjectType::Object);
             return Verify(merged);
         }
@@ -1945,13 +1949,18 @@ void ValueType::RunUnitTests()
                 ));
 
             if(!(
-                    t0.IsObject() && t1.IsObject() &&                                                       // both are objects
+                    t0.IsObject() && t1.IsObject() &&                                                             // both are objects
                     (
-                        t0.GetObjectType() == ObjectType::UninitializedObject ||
-                        t1.GetObjectType() == ObjectType::UninitializedObject
-                    ) &&                                                                                    // one has an uninitialized object type
-                    (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)    // one has a specific object type
-                ))                                                                                          // then the resulting object type is not guaranteed
+                        (
+                            (
+                                t0.GetObjectType() == ObjectType::UninitializedObject ||
+                                t1.GetObjectType() == ObjectType::UninitializedObject
+                            ) &&                                                                                  // one has an uninitialized object type
+                            (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)  // one has a specific object type
+                        ) ||
+                        (t0.IsArrayOrObjectWithArray() || t1.IsArrayOrObjectWithArray()) // or one was an array or an object with array
+                    )
+                ))                                                                                                // then the resulting object type is not guaranteed
             {
                 Assert(m.IsNotInt() == (t0.IsNotInt() && t1.IsNotInt()));
             }
@@ -1990,13 +1999,18 @@ void ValueType::RunUnitTests()
             Assert(m.IsLikelyString() == (t0.IsLikelyString() && t1.IsLikelyString()));
 
             if(!(
-                    t0.IsObject() && t1.IsObject() &&                                                       // both are objects
+                    t0.IsObject() && t1.IsObject() &&                                                             // both are objects
                     (
-                        t0.GetObjectType() == ObjectType::UninitializedObject ||
-                        t1.GetObjectType() == ObjectType::UninitializedObject
-                    ) &&                                                                                    // one has an uninitialized object type
-                    (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)    // one has a specific object type
-                ))                                                                                          // then the resulting object type is not guaranteed
+                        (
+                            (
+                                t0.GetObjectType() == ObjectType::UninitializedObject ||
+                                t1.GetObjectType() == ObjectType::UninitializedObject
+                            ) &&                                                                                  // one has an uninitialized object type
+                            (t0.GetObjectType() > ObjectType::Object || t1.GetObjectType() > ObjectType::Object)  // one has a specific object type
+                        ) ||
+                        (t0.IsArrayOrObjectWithArray() || t1.IsArrayOrObjectWithArray()) // or one was an array or an object with array
+                    )
+                ))                                                                                                // then the resulting object type is not guaranteed
             {
                 Assert(m.IsObject() == (t0.IsObject() && t1.IsObject()));
             }
