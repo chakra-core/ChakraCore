@@ -67,7 +67,9 @@ private:
     void CollectCloneStrCandidate(IR::Opnd *opnd);
     void InvalidateCloneStrCandidate(IR::Opnd *opnd);
 #if DBG_DUMP
-    void DumpBlockData(BasicBlock * block);
+    void DumpBlockData(BasicBlock * block, IR::Instr* instr = nullptr);
+    void TraceInstrUses(BasicBlock * block, IR::Instr* instr, bool isStart);
+    void TraceBlockUses(BasicBlock * block, bool isStart);
     void DumpMarkTemp();
 #endif
 
@@ -108,6 +110,7 @@ private:
     bool ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block);
 
     bool DoByteCodeUpwardExposedUsed() const;
+    bool DoCaptureByteCodeUpwardExposedUsed() const;
     void DoSetDead(IR::Opnd * opnd, bool isDead) const;
     bool DoMarkTempObjects() const;
     bool DoMarkTempNumbers() const;
@@ -150,7 +153,11 @@ private:
     bool FoldCmBool(IR::Instr *instr);
     void SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region * tryRegion);
     bool CheckWriteThroughSymInRegion(Region * region, StackSym * sym);
-
+#if DBG
+    void VerifyByteCodeUpwardExposed(BasicBlock* block, Func* func, BVSparse<JitArenaAllocator>* trackingByteCodeUpwardExposedUsed, IR::Instr* instr, uint32 bytecodeOffset);
+    void CaptureByteCodeUpwardExposed(BasicBlock* block, Func* func, Js::OpCode opcode, uint32 offset);
+    BVSparse<JitArenaAllocator>* GetByteCodeRegisterUpwardExposed(BasicBlock* block, Func* func, JitArenaAllocator* alloc);
+#endif
 private:
     // Javascript number values (64-bit floats) have 53 bits excluding the sign bit to precisely represent integers. If we have
     // compounded uses in add/sub, such as:
@@ -233,7 +240,7 @@ private:
     };
 
     typedef JsUtil::BaseDictionary<SymID, FloatSymEquivalenceClass *, JitArenaAllocator> FloatSymEquivalenceMap;
-    FloatSymEquivalenceMap *floatSymEquivalenceMap;
+    FloatSymEquivalenceMap *floatSymEquivalenceMap = nullptr;
 
     // Use by numberTemp to keep track of the property sym  that is used to represent a property, since we don't trace aliasing
     typedef JsUtil::BaseDictionary<Js::PropertyId, SymID, JitArenaAllocator> NumberTempRepresentativePropertySymMap;

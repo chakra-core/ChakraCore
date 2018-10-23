@@ -108,6 +108,7 @@ namespace Js
         isPerformingNonreentrantWork(false),
         isDiagnosticsScriptContext(false),
         m_enumerateNonUserFunctionsOnly(false),
+        scriptContextPrivilegeLevel(ScriptContextPrivilegeLevel::Low),
         recycler(threadContext->EnsureRecycler()),
         CurrentThunk(DefaultEntryThunk),
         CurrentCrossSiteThunk(CrossSite::DefaultThunk),
@@ -1952,17 +1953,18 @@ namespace Js
                 Js::Throw::OutOfMemory();
             }
             Assert(length < MAXLONG);
+            charcount_t ccLength = static_cast<charcount_t>(length);
 
             // Allocate memory for the UTF8 output buffer.
             // We need at most 3 bytes for each Unicode code point.
             // The + 1 is to include the terminating NUL.
             // Nit:  Technically, we know that the NUL only needs 1 byte instead of
             // 3, but that's difficult to express in a SAL annotation for "EncodeInto".
-            size_t cbUtf8Buffer = AllocSizeMath::Mul(AllocSizeMath::Add(length, 1), 3);
+            size_t cbUtf8Buffer = UInt32Math::MulAdd<3, 1>(ccLength);
 
             utf8Script = RecyclerNewArrayLeafTrace(this->GetRecycler(), utf8char_t, cbUtf8Buffer);
 
-            cbNeeded = utf8::EncodeIntoAndNullTerminate(utf8Script, (const char16*)script, static_cast<charcount_t>(length));
+            cbNeeded = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::Cesu8>(utf8Script, cbUtf8Buffer, (const char16*)script, ccLength);
 
 #if DBG_DUMP && defined(PROFILE_MEM)
             if (Js::Configuration::Global.flags.TraceMemory.IsEnabled(Js::ParsePhase) && Configuration::Global.flags.Verbose)
@@ -6414,6 +6416,18 @@ ScriptContext::GetJitFuncRangeCache()
         return true;
     }
 
+    void ScriptContext::SetIsDiagnosticsScriptContext(bool set)
+    {
+        this->isDiagnosticsScriptContext = set;
+        if (this->isDiagnosticsScriptContext)
+        {
+            this->scriptContextPrivilegeLevel = ScriptContextPrivilegeLevel::Medium;
+        }
+        else
+        {
+            this->scriptContextPrivilegeLevel = ScriptContextPrivilegeLevel::Low;
+        }
+    }
 
     bool ScriptContext::IsScriptContextInDebugMode() const
     {

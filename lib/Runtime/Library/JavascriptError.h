@@ -142,6 +142,7 @@ namespace Js
         static DWORD GetAdjustedResourceStringHr(DWORD hr, bool isFormatString);
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
+        static bool ShouldTypeofErrorBeReThrown(Var errorObject);
 
         virtual JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);

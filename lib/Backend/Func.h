@@ -755,6 +755,15 @@ public:
     bool                isPostLayout:1;
     bool                isPostFinalLower:1;
 
+    struct InstrByteCodeRegisterUses
+    {
+        Js::OpCode capturingOpCode;
+        BVSparse<JitArenaAllocator>* bv;
+    };
+    typedef JsUtil::BaseDictionary<uint32, InstrByteCodeRegisterUses, JitArenaAllocator> ByteCodeRegisterUses;
+    ByteCodeRegisterUses* byteCodeRegisterUses = nullptr;
+    BVSparse<JitArenaAllocator>* GetByteCodeOffsetUses(uint offset) const;
+
     typedef JsUtil::Stack<Js::Phase> CurrentPhasesStack;
     CurrentPhasesStack  currentPhases;
 

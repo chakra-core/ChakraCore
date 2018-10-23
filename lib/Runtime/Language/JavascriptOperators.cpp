@@ -6,7 +6,7 @@
 
 #include "Types/PathTypeHandler.h"
 #include "Types/PropertyIndexRanges.h"
-#include "Types/WithScopeObject.h"
+#include "Types/UnscopablesWrapperObject.h"
 #include "Types/SpreadArgument.h"
 #include "Library/JavascriptPromise.h"
 #include "Library/JavascriptRegularExpression.h"
@@ -801,6 +801,9 @@ using namespace Js;
 
     BOOL JavascriptOperators::StrictEqualString(Var aLeft, JavascriptString* aRight)
     {
+        JIT_HELPER_REENTRANT_HEADER(Op_StrictEqualString);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_StrictEqualString, Op_StrictEqual);
+
         JavascriptString* leftStr = TryFromVar<JavascriptString>(aLeft);
         if (!leftStr)
         {
@@ -1774,7 +1777,7 @@ CommonNumber:
             // Don't cache the information if the value is undecl block var
             // REVIEW: We might want to only check this if we need to (For LdRootFld or ScopedLdFld)
             //         Also we might want to throw here instead of checking it again in the caller
-            if (value && !requestContext->IsUndeclBlockVar(*value) && !VarIs<WithScopeObject>(object))
+            if (value && !requestContext->IsUndeclBlockVar(*value) && !VarIs<UnscopablesWrapperObject>(object))
             {
                 CacheOperators::CachePropertyRead(propertyObject, object, isRoot, propertyId, false, info, requestContext);
             }
@@ -1887,7 +1890,7 @@ CommonNumber:
 
             if (result != PropertyQueryFlags::Property_NotFound)
             {
-                if (!VarIs<WithScopeObject>(object) && info->GetPropertyRecordUsageCache())
+                if (!VarIs<UnscopablesWrapperObject>(object) && info->GetPropertyRecordUsageCache())
                 {
                     PropertyId propertyId = info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId();
                     CacheOperators::CachePropertyRead(instance, object, false, propertyId, false, info, requestContext);
@@ -2077,7 +2080,7 @@ CommonNumber:
 
             if (JavascriptOperators::HasProperty(obj, propertyId))
             {
-                // HasProperty will call WithObjects HasProperty which will do the filtering
+                // HasProperty will call UnscopablesWrapperObject's HasProperty which will do the filtering
                 // All we have to do here is unwrap the object hence the api call
 
                 *thisVar = obj->GetThisObjectOrUnWrap();
@@ -2328,7 +2331,7 @@ CommonNumber:
                     }
                     if (setterValueOrProxy)
                     {
-                        if (!VarIs<WithScopeObject>(receiver) && info->GetPropertyRecordUsageCache() && !JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
+                        if (!VarIs<UnscopablesWrapperObject>(receiver) && info->GetPropertyRecordUsageCache() && !JavascriptOperators::IsUndefinedAccessor(setterValueOrProxy, requestContext))
                         {
                             CacheOperators::CachePropertyWrite(VarTo<RecyclableObject>(receiver), false, object->GetType(), info->GetPropertyRecordUsageCache()->GetPropertyRecord()->GetPropertyId(), info, requestContext);
                         }
@@ -2546,7 +2549,7 @@ CommonNumber:
                     RecyclableObject* func = VarTo<RecyclableObject>(setterValueOrProxy);
                     Assert(!info || info->GetFlags() == InlineCacheSetterFlag || info->GetPropertyIndex() == Constants::NoSlot);
 
-                    if (VarIs<WithScopeObject>(receiver))
+                    if (VarIs<UnscopablesWrapperObject>(receiver))
                     {
                         receiver = (VarTo<RecyclableObject>(receiver))->GetThisObjectOrUnWrap();
                     }
@@ -5547,12 +5550,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(OP_CmGe_A);
     }
 
-    DetachedStateBase* JavascriptOperators::DetachVarAndGetState(Var var)
+    DetachedStateBase* JavascriptOperators::DetachVarAndGetState(Var var, bool queueForDelayFree/* = true*/)
     {
         switch (GetTypeId(var))
         {
         case TypeIds_ArrayBuffer:
-            return Js::VarTo<Js::ArrayBuffer>(var)->DetachAndGetState();
+            return Js::VarTo<Js::ArrayBuffer>(var)->DetachAndGetState(queueForDelayFree);
         default:
             if (!Js::VarTo<Js::RecyclableObject>(var)->IsExternal())
             {
@@ -6711,8 +6714,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     void JavascriptOperators::BuildHandlerScope(Var argThis, RecyclableObject * hostObject, FrameDisplay * pDisplay, ScriptContext * scriptContext)
     {
+        // Event handlers need implicit lookups of @@unscopables on parent scopes.
+        // We can intercept the property accesses by wrapping the object with the unscopables handler.
+        // WebIDL: https://heycam.github.io/webidl/#ref-for-Unscopable
+
         Assert(argThis != nullptr);
-        pDisplay->SetItem(0, TaggedNumber::Is(argThis) ? scriptContext->GetLibrary()->CreateNumberObject(argThis) : argThis);
+        pDisplay->SetItem(0, TaggedNumber::Is(argThis) ? scriptContext->GetLibrary()->CreateNumberObject(argThis) : ToUnscopablesWrapperObject(argThis, scriptContext));
         uint16 i = 1;
 
         Var aChild = argThis;
@@ -6736,7 +6743,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 js_memcpy_s((char*)tmp + tmp->GetOffsetOfScopes(), tmp->GetLength() * sizeof(void *), (char*)pDisplay + pDisplay->GetOffsetOfScopes(), pDisplay->GetLength() * sizeof(void*));
                 pDisplay = tmp;
             }
-            pDisplay->SetItem(i, aParent);
+
+            Var aParentWrapped = ToUnscopablesWrapperObject(aParent, scriptContext);
+            pDisplay->SetItem(i, aParentWrapped);
+
             aChild = aParent;
             i++;
         }
@@ -9725,7 +9735,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     void JavascriptOperators::OP_SetHomeObj(Var method, Var homeObj)
     {
         ScriptFunctionBase *scriptFunction = VarTo<ScriptFunctionBase>(method);
+        JIT_HELPER_NOT_REENTRANT_HEADER(SetHomeObj, reentrancylock, scriptFunction->GetScriptContext()->GetThreadContext());
         scriptFunction->SetHomeObj(homeObj);
+        JIT_HELPER_END(SetHomeObj);
     }
 
     Var JavascriptOperators::OP_LdHomeObj(Var scriptFunction, ScriptContext * scriptContext)
@@ -9804,7 +9816,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     Var JavascriptOperators::OP_ImportCall(__in JavascriptFunction *function, __in Var specifier, __in ScriptContext* scriptContext)
     {
-        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(ImportCall);
+        JIT_HELPER_REENTRANT_HEADER(ImportCall);
         ModuleRecordBase *moduleRecordBase = nullptr;
         SourceTextModuleRecord *moduleRecord = nullptr;
 
@@ -10614,14 +10626,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(Op_ConvObject);
     }
 
-    Var JavascriptOperators::ToWithObject(Var aRight, ScriptContext* scriptContext)
+    Var JavascriptOperators::ToUnscopablesWrapperObject(Var aRight, ScriptContext* scriptContext)
     {
-        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewWithObject, reentrancylock, scriptContext->GetThreadContext());
+        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewUnscopablesWrapperObject, reentrancylock, scriptContext->GetThreadContext());
         RecyclableObject* object = VarTo<RecyclableObject>(aRight);
 
-        WithScopeObject* withWrapper = RecyclerNew(scriptContext->GetRecycler(), WithScopeObject, object, scriptContext->GetLibrary()->GetWithType());
+        UnscopablesWrapperObject* withWrapper = RecyclerNew(scriptContext->GetRecycler(), UnscopablesWrapperObject, object, scriptContext->GetLibrary()->GetWithType());
         return withWrapper;
-        JIT_HELPER_END(Op_NewWithObject);
+        JIT_HELPER_END(Op_NewUnscopablesWrapperObject);
     }
 
     Var JavascriptOperators::ToNumber(Var aRight, ScriptContext* scriptContext)

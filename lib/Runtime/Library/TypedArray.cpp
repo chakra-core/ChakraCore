@@ -1027,7 +1027,11 @@ namespace Js
         AssertMsg(IsDetachedBuffer(), "Array buffer should be detached if we're calling this method");
 
         this->length = 0;
+#if INT32VAR
+        this->buffer = (BYTE*)TaggedInt::ToVarUnchecked(0);
+#else
         this->buffer = nullptr;
+#endif
     }
 
     Var TypedArrayBase::EntryGetterBuffer(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2715,7 +2719,7 @@ namespace Js
     DIRECT_GET_VAR_CHECK_NO_DETACH_CHECK(Float64VirtualArray);
 
 #define TypedArrayBeginStub(TypedArrayName) \
-        Assert(GetArrayBuffer() || GetArrayBuffer()->GetBuffer()); \
+        Assert(GetArrayBuffer() && GetArrayBuffer()->GetBuffer()); \
         Assert(accessIndex < GetLength()); \
         ScriptContext *scriptContext = GetScriptContext(); \
         typedef TypedArrayName::TypedArrayType type; \

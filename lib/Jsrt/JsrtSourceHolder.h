@@ -52,7 +52,7 @@ namespace Js
             sourceContext(sourceContext),
 #ifndef NTBUILD
             mappedScriptValue(nullptr),
-            mappedSerializedScriptValue(serializedScriptValue == nullptr ? nullptr : serializedScriptValue->DetachAndGetState()),
+            mappedSerializedScriptValue(serializedScriptValue == nullptr ? nullptr : serializedScriptValue->DetachAndGetState(false /*queueForDelayFree*/)),
 #endif
             mappedSourceByteLength(0),
             mappedSource(nullptr)
@@ -103,6 +103,8 @@ namespace Js
         virtual void Mark(Recycler * recycler) override
         {
         }
+
+        virtual void Unload() override;
 
         virtual bool Equals(ISourceHolder* other) override
         {

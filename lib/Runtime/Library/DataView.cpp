@@ -654,7 +654,11 @@ namespace Js
         AssertMsg(this->GetArrayBuffer()->IsDetached(), "Array buffer should be detached if we're calling this method");
 
         this->length = 0;
+#if INT32VAR
+        this->buffer = (BYTE*)TaggedInt::ToVarUnchecked(0);
+#else
         this->buffer = nullptr;
+#endif
     }
 
 #ifdef _M_ARM

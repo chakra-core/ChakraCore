@@ -324,9 +324,9 @@ namespace Js
     }
     RecyclableObject* RecyclableObject::GetThisObjectOrUnWrap()
     {
-        if (VarIs<WithScopeObject>(this))
+        if (VarIs<UnscopablesWrapperObject>(this))
         {
-            return VarTo<WithScopeObject>(this)->GetWrappedObject();
+            return VarTo<UnscopablesWrapperObject>(this)->GetWrappedObject();
         }
         return this;
     }

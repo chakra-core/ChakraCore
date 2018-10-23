@@ -71,7 +71,7 @@ HELPERCALLCHK(Op_EnsureNoRedeclPropertyScoped, Js::JavascriptOperators::OP_Scope
 
 HELPERCALLCHK(Op_ToSpreadedFunctionArgument, Js::JavascriptOperators::OP_LdCustomSpreadIteratorList, AttrCanThrow)
 HELPERCALLCHK(Op_ConvObject, Js::JavascriptOperators::ToObject, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALLCHK(Op_NewWithObject, Js::JavascriptOperators::ToWithObject, AttrCanThrow | AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_NewUnscopablesWrapperObject, Js::JavascriptOperators::ToUnscopablesWrapperObject, AttrCanThrow | AttrCanNotBeReentrant)
 HELPERCALLCHK(SetComputedNameVar, Js::JavascriptOperators::OP_SetComputedNameVar, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_UnwrapWithObj, Js::JavascriptOperators::OP_UnwrapWithObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_ConvNumber_Full, Js::JavascriptOperators::ToNumber, AttrCanThrow)
@@ -385,7 +385,6 @@ HELPERCALL(ProbeCurrentStack2, ThreadContext::ProbeCurrentStack2, AttrCanNotBeRe
 
 HELPERCALLCHK(AdjustSlots, Js::DynamicTypeHandler::AdjustSlots_Jit, AttrCanNotBeReentrant)
 HELPERCALLCHK(InvalidateProtoCaches, Js::JavascriptOperators::OP_InvalidateProtoCaches, AttrCanNotBeReentrant)
-HELPERCALL(CheckProtoHasNonWritable, Js::JavascriptOperators::CheckIfPrototypeChainHasOnlyWritableDataProperties, 0)
 
 HELPERCALLCHK(GetStringForChar, (Js::JavascriptString * (*)(Js::CharStringCache *, char16))&Js::CharStringCache::GetStringForChar, AttrCanNotBeReentrant)
 HELPERCALLCHK(GetStringForCharCodePoint, (Js::JavascriptString * (*)(Js::CharStringCache *, codepoint_t))&Js::CharStringCache::GetStringForCharCodePoint, AttrCanNotBeReentrant)
@@ -473,8 +472,8 @@ HELPERCALL(String_IndexOf, Js::JavascriptString::EntryIndexOf, 0)
 HELPERCALL(String_LastIndexOf, Js::JavascriptString::EntryLastIndexOf, 0)
 HELPERCALL(String_Link, Js::JavascriptString::EntryLink, 0)
 HELPERCALL(String_LocaleCompare, Js::JavascriptString::EntryLocaleCompare, 0)
-HELPERCALL(String_Match, Js::JavascriptString::EntryMatch, 0)
-HELPERCALL(String_Replace, Js::JavascriptString::EntryReplace, 0)
+HELPERCALL(String_Match, Js::JavascriptString::EntryMatch, AttrTempObjectProducing)
+HELPERCALL(String_Replace, Js::JavascriptString::EntryReplace, AttrTempObjectProducing)
 HELPERCALL(String_Search, Js::JavascriptString::EntrySearch, 0)
 HELPERCALL(String_Slice, Js::JavascriptString::EntrySlice, 0)
 HELPERCALL(String_Split, Js::JavascriptString::EntrySplit, 0)
@@ -499,7 +498,7 @@ HELPERCALL(RegExp_SplitResultNotUsed, Js::RegexHelper::RegexSplitResultNotUsed, 
 HELPERCALL(RegExp_MatchResultUsed, Js::RegexHelper::RegexMatchResultUsed, 0)
 HELPERCALL(RegExp_MatchResultUsedAndMayBeTemp, Js::RegexHelper::RegexMatchResultUsedAndMayBeTemp, 0)
 HELPERCALL(RegExp_MatchResultNotUsed, Js::RegexHelper::RegexMatchResultNotUsed, 0)
-HELPERCALL(RegExp_Exec, Js::JavascriptRegExp::EntryExec, 0)
+HELPERCALL(RegExp_Exec, Js::JavascriptRegExp::EntryExec, AttrTempObjectProducing)
 HELPERCALL(RegExp_ExecResultUsed, Js::RegexHelper::RegexExecResultUsed, 0)
 HELPERCALL(RegExp_ExecResultUsedAndMayBeTemp, Js::RegexHelper::RegexExecResultUsedAndMayBeTemp, 0)
 HELPERCALL(RegExp_ExecResultNotUsed, Js::RegexHelper::RegexExecResultNotUsed, 0)
@@ -521,10 +520,11 @@ HELPERCALL(StPropIdArrFromVar, Js::InterpreterStackFrame::OP_StPropIdArrFromVar,
 
 HELPERCALLCHK(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)
 HELPERCALLCHK(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(ImportCall,          Js::JavascriptOperators::OP_ImportCall, AttrCanNotBeReentrant)
+HELPERCALLCHK(ImportCall,          Js::JavascriptOperators::OP_ImportCall, 0)
 
 HELPERCALLCHK(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield, AttrCanThrow)
 
@@ -566,20 +566,21 @@ HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<floa
 HELPERCALL(PopCnt32, Math::PopCnt32, AttrCanNotBeReentrant)
 HELPERCALL(PopCnt64, (int64(*)(int64)) Wasm::WasmMath::PopCnt<int64>, AttrCanNotBeReentrant)
 
-HELPERCALL(F32ToI64, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<false /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F32ToU64, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<false /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F64ToI64, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<false /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F64ToU64, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<false /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
+HELPERCALL(F32ToI64, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<false /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F32ToU64, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<false /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F64ToI64, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<false /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F64ToU64, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<false /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
 
-HELPERCALL(F32ToI64Sat, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<true /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F32ToU64Sat, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<true /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F64ToI64Sat, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<true /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
-HELPERCALL(F64ToU64Sat, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<true /* saturating */>, AttrCanThrow | AttrCanNotBeReentrant)
+HELPERCALL(F32ToI64Sat, (int64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToI64<true /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F32ToU64Sat, (uint64(*)(float, Js::ScriptContext*)) Wasm::WasmMath::F32ToU64<true /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F64ToI64Sat, (int64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToI64<true /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
+HELPERCALL(F64ToU64Sat, (uint64(*)(double, Js::ScriptContext*)) Wasm::WasmMath::F64ToU64<true /* saturating */>, AttrCanThrow|AttrCanNotBeReentrant)
 
-HELPERCALL(I64TOF64,        Js::JavascriptConversion::LongToDouble,   AttrCanNotBeReentrant)
-HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,  AttrCanNotBeReentrant)
-HELPERCALL(I64TOF32,        Js::JavascriptConversion::LongToFloat,    AttrCanNotBeReentrant)
-HELPERCALL(UI64TOF32,       Js::JavascriptConversion::ULongToFloat,   AttrCanNotBeReentrant)
+
+HELPERCALL(I64TOF64,  Js::JavascriptConversion::LongToDouble, AttrCanNotBeReentrant)
+HELPERCALL(UI64TOF64, Js::JavascriptConversion::ULongToDouble, AttrCanNotBeReentrant)
+HELPERCALL(I64TOF32,  Js::JavascriptConversion::LongToFloat, AttrCanNotBeReentrant)
+HELPERCALL(UI64TOF32, Js::JavascriptConversion::ULongToFloat, AttrCanNotBeReentrant)
 
 HELPERCALLCRT(DirectMath_Acos, AttrCanNotBeReentrant)
 HELPERCALLCRT(DirectMath_Asin, AttrCanNotBeReentrant)

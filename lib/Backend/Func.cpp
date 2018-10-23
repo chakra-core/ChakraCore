@@ -1228,6 +1228,17 @@ Func::NumberInstrs()
     NEXT_INSTR_IN_FUNC;
 }
 
+#if DBG
+BVSparse<JitArenaAllocator>* Func::GetByteCodeOffsetUses(uint offset) const
+{
+    InstrByteCodeRegisterUses uses;
+    if (byteCodeRegisterUses->TryGetValue(offset, &uses))
+    {
+        return uses.bv;
+    }
+    return nullptr;
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Func::IsInPhase
@@ -1235,7 +1246,6 @@ Func::NumberInstrs()
 /// Determines whether the function is currently in the provided phase
 ///
 ///----------------------------------------------------------------------------
-#if DBG
 bool
 Func::IsInPhase(Js::Phase tag)
 {

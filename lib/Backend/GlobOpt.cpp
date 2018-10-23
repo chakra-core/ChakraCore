@@ -198,6 +198,9 @@ GlobOpt::Optimize()
         // isn't available for some of the symbols created during the backward pass, or the forward pass.
         // Keep track of the last symbol for which we're guaranteed to have data.
         this->maxInitialSymID = this->func->m_symTable->GetMaxSymID();
+#if DBG
+        this->BackwardPass(Js::CaptureByteCodeRegUsePhase);
+#endif
         this->BackwardPass(Js::BackwardPhase);
         this->ForwardPass();
         this->BackwardPass(Js::DeadStorePhase);
@@ -1013,6 +1016,7 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
 
     IR::Instr * ldInstrInLoop = this->globOpt->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
     Assert(ldInstrInLoop);
+    Assert(ldInstrInLoop->GetDst() == nullptr);
 
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstrInLoop->m_opcode));
@@ -2379,8 +2383,11 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         CurrentBlockData()->KillStateForGeneratorYield();
     }
 
-    // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld.
-    this->TryReplaceLdLen(instr);
+    if (!IsLoopPrePass())
+    {
+        // Change LdLen on objects other than arrays, strings, and 'arguments' to LdFld.
+        this->TryReplaceLdLen(instr);
+    }
 
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
@@ -3804,6 +3811,7 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     StackSym *copySym = CurrentBlockData()->GetCopyPropSym(opndSym, val);
     if (copySym != nullptr)
     {
+        Assert(!opndSym->IsStackSym() || copySym->GetSymSize() == opndSym->AsStackSym()->GetSymSize());
         // Copy prop.
         return CopyPropReplaceOpnd(instr, opnd, copySym, parentIndirOpnd);
     }
@@ -10509,10 +10517,16 @@ GlobOpt::TypeSpecializeLdLen(
                 Assert(lengthValue);
                 src1Value = lengthValue;
                 ValueInfo *const lengthValueInfo = lengthValue->GetValueInfo();
-                Assert(lengthValueInfo->GetSymStore() != lengthSym);
                 IntConstantBounds lengthConstantBounds;
                 AssertVerify(lengthValueInfo->TryGetIntConstantBounds(&lengthConstantBounds));
                 Assert(lengthConstantBounds.LowerBound() >= 0);
+
+                if (lengthValueInfo->GetSymStore() == lengthSym)
+                {
+                    // When type specializing the dst below, we will end up inserting lengthSym.u32 as symstore for a var
+                    // Clear the symstore here, so that we dont end up with problems with copyprop later on
+                    lengthValueInfo->SetSymStore(nullptr);
+                }
 
                 // Int-specialize, and transfer the value to the dst
                 TypeSpecializeIntDst(
@@ -12708,7 +12722,7 @@ GlobOpt::DoTrackNewValueForKills(Value *const value)
             return;
         }
 
-        if(valueInfo->HasNoMissingValues() && !DoArrayMissingValueCheckHoist())
+        if(isJsArray && valueInfo->HasNoMissingValues() && !DoArrayMissingValueCheckHoist())
         {
             valueInfo->Type() = valueInfo->Type().SetHasNoMissingValues(false);
         }
@@ -14739,6 +14753,8 @@ GlobOpt::OptHoistUpdateValueType(
                 // Replace above will free srcOpnd, so reassign it
                 *srcOpndPtr = srcOpnd = reinterpret_cast<IR::Opnd *>(strOpnd);
 
+                // We add ConvPrim_Str in the landingpad, and since this instruction doesn't go through the checks in OptInstr, the bailout is never added
+                // As we expand hoisting of instructions to new opcode, we need a better framework to handle such cases
                 if (IsImplicitCallBailOutCurrentlyNeeded(convPrimStrInstr, opndValueInLandingPad, nullptr, landingPad, landingPad->globOptData.liveFields->IsEmpty(), true, true))
                 {
                     EnsureBailTarget(loop);
@@ -15371,6 +15387,11 @@ InvariantBlockBackwardIterator::MoveNext()
         {
             Assert(previouslyIteratedBlock == inclusiveEndBlock);
             break;
+        }
+
+        if (!this->UpdatePredBlockBV())
+        {
+            continue;
         }
 
         if (!this->UpdatePredBlockBV())

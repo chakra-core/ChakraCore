@@ -2431,7 +2431,7 @@ IR::Instr* Inline::InsertInlineeBuiltInStartEndTags(IR::Instr* callInstr, uint a
     IR::Instr* inlineBuiltInEndInstr = IR::Instr::New(Js::OpCode::InlineBuiltInEnd, callInstr->m_func);
     inlineBuiltInEndInstr->SetSrc1(IR::IntConstOpnd::New(actualCount, TyInt32, callInstr->m_func));
     inlineBuiltInEndInstr->SetSrc2(callInstr->GetSrc2());
-    inlineBuiltInEndInstr->SetByteCodeOffset(callInstr->GetNextRealInstrOrLabel());
+    inlineBuiltInEndInstr->SetByteCodeOffset(callInstr);
     callInstr->InsertAfter(inlineBuiltInEndInstr);
     return inlineBuiltInEndInstr;
 }
@@ -2659,7 +2659,15 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     }
     // Fixed function/function object checks for target built-in
     callInstr->ReplaceSrc1(applyTargetLdInstr->GetDst());
-    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+    {
+        IR::ByteCodeUsesInstr * useCallTargetInstr =
+            EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+        if (useCallTargetInstr)
+        {
+            // The applyTarget dst already has a use in the argout, this bytecode use is not valid
+            useCallTargetInstr->Remove();
+        }
+    }
 
     // Fixed function/function object checks for .apply
     callInstr->m_opcode = originalCallOpcode;

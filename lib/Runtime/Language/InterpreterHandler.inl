@@ -95,7 +95,7 @@ EXDEF2    (BRPROP,                  BrOnHasProperty,            OP_BrOnHasProper
   
 EXDEF2_WMS(A1toA1Mem,               Conv_Str,                   JavascriptConversion::ToString)
   DEF2_WMS(A1toA1Mem,               Conv_Obj,                   JavascriptOperators::ToObject)
-EXDEF2_WMS(A1toA1Mem,               NewWithObject,              JavascriptOperators::ToWithObject)
+EXDEF2_WMS(A1toA1Mem,               NewUnscopablesWrapperObject,JavascriptOperators::ToUnscopablesWrapperObject)
   DEF2_WMS(A1toA1Mem,               Conv_Num,                   JavascriptOperators::ToNumber)
   DEF2_WMS(A1toA1Mem,               Incr_A,                     JavascriptMath::Increment)
   DEF2_WMS(A1toA1Mem,               Decr_A,                     JavascriptMath::Decrement)

@@ -36,15 +36,16 @@ namespace CodexTest
     //
     TEST_CASE("CodexTest_EncodeTrueUtf8_SingleSurrogates", "[CodexTest]")
     {
-        const charcount_t charCount = 1;
-        utf8char_t encodedBuffer[(charCount + 1) * 3]; // +1 since the buffer will be null-terminated
+        const size_t charCount = 1;
+        constexpr size_t cbEncodedBuffer = charCount * 3 + 1; // +1 since the buffer will be null-terminated
+        utf8char_t encodedBuffer[cbEncodedBuffer];
 
         char16 testValues[] = { 0xD800, 0xDB7F, 0xDB80, 0xDBFF, 0xDC00, 0xDF80, 0xDFFF };
         const int numTestCases = _countof(testValues);
 
         for (int i = 0; i < numTestCases; i++)
         {
-            size_t numEncodedBytes = utf8::EncodeTrueUtf8IntoAndNullTerminate(encodedBuffer, &testValues[i], charCount);
+            size_t numEncodedBytes = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>(encodedBuffer, cbEncodedBuffer, &testValues[i], charCount);
             CHECK(numEncodedBytes == 3);
             CheckIsUnicodeReplacementChar(encodedBuffer);
         }
@@ -62,11 +63,12 @@ namespace CodexTest
         const int numTestCases = _countof(testCases);
         const charcount_t charCount = _countof(testCases[0].surrogatePair);
         const charcount_t maxEncodedByteCount = _countof(testCases[0].utf8Encoding);
-        utf8char_t encodedBuffer[maxEncodedByteCount + 1]; // +1 in case a null-terminating func is passed in
+        const size_t encodedBufferSize = maxEncodedByteCount + 1; // +1 in case a null-terminating func is passed in
+        utf8char_t encodedBuffer[encodedBufferSize];
 
         for (int i = 0; i < numTestCases; i++)
         {
-            size_t numEncodedBytes = func(encodedBuffer, testCases[i].surrogatePair, charCount);
+            size_t numEncodedBytes = func(encodedBuffer, encodedBufferSize, testCases[i].surrogatePair, charCount);
             CHECK(numEncodedBytes <= maxEncodedByteCount);
             for (size_t j = 0; j < numEncodedBytes; j++)
             {
@@ -106,7 +108,7 @@ namespace CodexTest
             { { 0xDBFF, 0xDFFF }, { 0xED, 0xAF, 0xBF, 0xED, 0xBF, 0xBF } }  //  U+10FFFF
         };
 
-        RunUtf8EncodingTestCase(testCases, static_cast<size_t (*)(utf8char_t*, const char16*, charcount_t)>(utf8::EncodeInto));
+        RunUtf8EncodingTestCase(testCases, static_cast<size_t (*)(utf8char_t*, size_t, const char16*, charcount_t)>(utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>));
     }
 
     TEST_CASE("CodexTest_EncodeUtf8_PairedSurrogates", "[CodexTest]")
@@ -132,7 +134,7 @@ namespace CodexTest
             { { 0xDBFF, 0xDFFF }, { 0xF4, 0x8F, 0xBF, 0xBF } }  //  U+10FFFF
         };
 
-        RunUtf8EncodingTestCase(testCases, utf8::EncodeTrueUtf8IntoAndNullTerminate);
+        RunUtf8EncodingTestCase(testCases, utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>);
     }
 
     TEST_CASE("CodexTest_EncodeUtf8_NonCharacters", "[CodexTest]")
@@ -151,7 +153,7 @@ namespace CodexTest
             { { 0xFFFF }, { 0xEF, 0xBF, 0xBF } }  //  U+FFFF
         };
 
-        RunUtf8EncodingTestCase(testCases, utf8::EncodeTrueUtf8IntoAndNullTerminate);
+        RunUtf8EncodingTestCase(testCases, utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>);
     }
 
     TEST_CASE("CodexTest_EncodeUtf8_BoundaryChars", "[CodexTest]")
@@ -180,8 +182,8 @@ namespace CodexTest
             { { 0xDBFF, 0xDFFF }, { 0xF4, 0x8F, 0xBF, 0xBF } } //  U+10FFFF
         };
 
-        RunUtf8EncodingTestCase(testCases, utf8::EncodeTrueUtf8IntoAndNullTerminate);
-        RunUtf8EncodingTestCase(testCases2, utf8::EncodeTrueUtf8IntoAndNullTerminate);
+        RunUtf8EncodingTestCase(testCases, utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>);
+        RunUtf8EncodingTestCase(testCases2, utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>);
     }
 
     TEST_CASE("CodexTest_EncodeUtf8_SimpleCharacters", "[CodexTest]")
@@ -201,15 +203,16 @@ namespace CodexTest
             { { 0x20AC }, { 0xE2, 0x82, 0xAC } }   //  U+20AC - Euro symbol
         };
 
-        RunUtf8EncodingTestCase(testCases, utf8::EncodeTrueUtf8IntoAndNullTerminate);
+        RunUtf8EncodingTestCase(testCases, utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>);
     }
 
     TEST_CASE("CodexTest_EncodeTrueUtf8_SimpleString", "[CodexTest]")
     {
         const charcount_t charCount = 3;
-        utf8char_t encodedBuffer[(charCount + 1) * 3]; // +1 since the buffer will be null terminated
+        constexpr size_t cbEncodedBuffer = charCount * 3 + 1; // +1 since the buffer will be null terminated
+        utf8char_t encodedBuffer[cbEncodedBuffer];
         const char16* sourceBuffer = L"abc";
-        size_t numEncodedBytes = utf8::EncodeTrueUtf8IntoAndNullTerminate(encodedBuffer, sourceBuffer, charCount);
+        size_t numEncodedBytes = utf8::EncodeIntoAndNullTerminate<utf8::Utf8EncodingKind::TrueUtf8>(encodedBuffer, cbEncodedBuffer, sourceBuffer, charCount);
         CHECK(numEncodedBytes == charCount);
         for (int i = 0; i < charCount; i++)
         {

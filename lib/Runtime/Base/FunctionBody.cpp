@@ -1639,8 +1639,8 @@ namespace Js
       m_tag21(true),
       m_isMethod(false)
 #if DBG
-        ,m_wasEverAsmjsMode(false)
-        ,scopeObjectSize(0)
+      ,m_wasEverAsmjsMode(false)
+      ,scopeObjectSize(0)
 #endif
     {
         this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
@@ -3761,10 +3761,12 @@ namespace Js
                 Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk);
             }
             else
-#endif
             {
                 Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterThunk);
             }
+#else
+            Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterThunk);
+#endif
         }
 #endif
     }
@@ -5103,7 +5105,7 @@ namespace Js
                 NEXT_SLISTBASE_ENTRY_EDITING;
             }
 #endif
-            this->dynamicProfileInfo = nullptr;
+        this->dynamicProfileInfo = nullptr;
         }
 #endif
         this->hasExecutionDynamicProfileInfo = false;

@@ -134,7 +134,11 @@ namespace Js
                 }
                 else
                 {
-                    args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(newTarget, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        args.Values[0] = newVarInstance = JavascriptOperators::CreateFromConstructor(newTarget, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                 }
             }
             else if (!VarIs<JavascriptProxy>(targetFunction))
@@ -170,7 +174,6 @@ namespace Js
             }
 
             Field(Var) *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), newArgCount);
-
             uint index = 0;
 
             //

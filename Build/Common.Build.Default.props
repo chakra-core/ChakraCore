@@ -6,6 +6,7 @@
     <NtTargetVersion_Win8 >0x602</NtTargetVersion_Win8>
     <NtTargetVersion_WinBlue>0x603</NtTargetVersion_WinBlue>
     <NtTargetVersion_Win10>0xA00</NtTargetVersion_Win10>
+    <NtTargetVersion_Latest>$(NtTargetVersion_Win10)</NtTargetVersion_Latest>
   </PropertyGroup>
 
   <!-- Auto tool set selection -->

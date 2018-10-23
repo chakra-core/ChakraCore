@@ -863,8 +863,9 @@ namespace TTD
     {
         this->RecordGetInitializedEvent_DataOnly<NSLogEvents::ExplicitLogWriteEventLogEntry, NSLogEvents::EventKind::ExplicitLogWriteTag>();
 
-        AutoArrayPtr<char> uri(HeapNewArrayZ(char, uriString->GetLength() * 3), uriString->GetLength() * 3);
-        size_t uriLength = utf8::EncodeInto((LPUTF8)((char*)uri), uriString->GetString(), uriString->GetLength());
+        size_t cbUri = UInt32Math::Mul<3>(uriString->GetLength());
+        AutoArrayPtr<char> uri(HeapNewArrayZ(char, cbUri), cbUri);
+        size_t uriLength = utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>((LPUTF8)((char*)uri), cbUri, uriString->GetString(), uriString->GetLength());
 
         this->EmitLog(uri, uriLength);
     }

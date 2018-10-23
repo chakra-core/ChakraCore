@@ -46,6 +46,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)ArrayBuffer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DelayFreeArrayBufferHelper.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BoundFunction.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)BufferStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonExternalApiImpl.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="JSONStringifier.h" />
     <ClInclude Include="LazyJSONString.h" />
     <ClInclude Include="SharedArrayBuffer.h" />
+    <ClInclude Include="DelayFreeArrayBufferHelper.h" />
     <ClInclude Include="ArrayBuffer.h" />
     <ClInclude Include="BoundFunction.h" />
     <ClInclude Include="BufferStringBuilder.h" />
