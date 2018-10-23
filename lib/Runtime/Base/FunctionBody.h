@@ -1022,6 +1022,7 @@ namespace Js
         void SetEnclosedByGlobalFunc();
         bool CanBeDeferred() const;
         BOOL IsDeferredDeserializeFunction() const;
+        BOOL HasParseableInfo() const;
         BOOL IsDeferredParseFunction() const;
         FunctionInfo::Attributes GetAttributes() const;
         void SetAttributes(FunctionInfo::Attributes attributes);
@@ -1057,6 +1058,10 @@ namespace Js
         ScriptFunctionType * EnsureDeferredPrototypeType();
         ScriptFunctionType * GetUndeferredFunctionType() const;
         void SetUndeferredFunctionType(ScriptFunctionType * type);
+        ScriptFunctionType * GetCrossSiteDeferredFunctionType() const;
+        void SetCrossSiteDeferredFunctionType(ScriptFunctionType * type);
+        ScriptFunctionType * GetCrossSiteUndeferredFunctionType() const;
+        void SetCrossSiteUndeferredFunctionType(ScriptFunctionType * type);
         JavascriptMethod GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const;
 
         // Function object type list methods
@@ -1300,6 +1305,13 @@ namespace Js
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
         return GetFunctionInfo()->IsDeferredDeserializeFunction();
+    }
+
+    inline BOOL FunctionProxy::HasParseableInfo() const
+    {
+        Assert(GetFunctionInfo());
+        Assert(GetFunctionInfo()->GetFunctionProxy() == this);
+        return GetFunctionInfo()->HasParseableInfo();
     }
 
     inline BOOL FunctionProxy::IsDeferredParseFunction() const
@@ -1578,6 +1590,11 @@ namespace Js
         uint32 GetGrfscr() const;
         void SetGrfscr(uint32 grfscr);
 
+        ScriptFunctionType * GetCrossSiteDeferredFunctionType() const { return crossSiteDeferredFunctionType; }
+        void SetCrossSiteDeferredFunctionType(ScriptFunctionType * type) { Assert(!crossSiteDeferredFunctionType); crossSiteDeferredFunctionType = type; }
+        ScriptFunctionType * GetCrossSiteUndeferredFunctionType() const { return crossSiteUndeferredFunctionType; }
+        void SetCrossSiteUndeferredFunctionType(ScriptFunctionType * type) { Assert(!crossSiteUndeferredFunctionType); crossSiteUndeferredFunctionType = type; }
+
         ///----------------------------------------------------------------------------
         ///
         /// ParseableFunctionInfo::GetInParamsCount
@@ -1807,6 +1824,9 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
 #endif
+        FieldWithBarrier(ScriptFunctionType*) crossSiteDeferredFunctionType;
+        FieldWithBarrier(ScriptFunctionType*) crossSiteUndeferredFunctionType;
+
         FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
                                                         // This is generally the same as m_cchStartOffset unless the buffer has a BOM or other non-ascii characters
         FieldWithBarrier(uint) m_cbStartPrintOffset;    // pUtf8Source is this many bytes from the start of the toString-relevant part of the scriptContext's source buffer.

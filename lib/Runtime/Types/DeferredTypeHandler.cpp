@@ -20,30 +20,44 @@ namespace Js
         // also responsible for populating PropertyTypes to indicate whether there are any read-only
         // properties unknown to the type handler.
 
-        BOOL isProto = this->GetIsPrototype();
+        bool isProto = this->GetIsPrototype();
+        bool isCrossSite = CrossSite::IsThunk(instance->GetType()->GetEntryPoint()); 
 
         ScriptContext* scriptContext = instance->GetScriptContext();
         instance->EnsureSlots(0, typeHandler->GetSlotCapacity(), scriptContext, typeHandler);
 
         FunctionProxy * functionProxy = instance->GetFunctionProxy();
+
         ScriptFunctionType * undeferredFunctionType = nullptr;
         if (functionProxy)
         {
-            undeferredFunctionType = functionProxy->GetUndeferredFunctionType();
+            undeferredFunctionType = isCrossSite ? functionProxy->GetCrossSiteUndeferredFunctionType() : functionProxy->GetUndeferredFunctionType();
         }
-        if (undeferredFunctionType && !isProto && !instance->IsCrossSiteObject())
+
+        if (undeferredFunctionType && !isProto)
         {
             Assert(undeferredFunctionType->GetIsShared());
-            Assert(!CrossSite::IsThunk(undeferredFunctionType->GetEntryPoint()));
             instance->ReplaceType(undeferredFunctionType);
         }
         else
         {
             typeHandler->SetInstanceTypeHandler(instance);
-            if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
+            if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !PHASE_OFF1(ShareFuncTypesPhase))
             {
-                Assert(!functionProxy->GetUndeferredFunctionType());
-                functionProxy->SetUndeferredFunctionType(UnsafeVarTo<ScriptFunction>(instance)->GetScriptFunctionType());
+                ScriptFunctionType *newType = UnsafeVarTo<ScriptFunction>(instance)->GetScriptFunctionType();
+                if (isCrossSite)
+                {
+                    if (functionProxy->HasParseableInfo())
+                    {
+                        Assert(!functionProxy->GetParseableFunctionInfo()->GetCrossSiteUndeferredFunctionType());
+                        functionProxy->GetParseableFunctionInfo()->SetCrossSiteUndeferredFunctionType(newType);
+                    }
+                }
+                else
+                {
+                    Assert(!functionProxy->GetUndeferredFunctionType());
+                    functionProxy->SetUndeferredFunctionType(newType);
+                }
                 instance->ShareType();
             }
         }

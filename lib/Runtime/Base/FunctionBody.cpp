@@ -1484,6 +1484,8 @@ namespace Js
 
 #define CopyDeferParseField(field) other->field = this->field;
         CopyDeferParseField(flags);
+        CopyDeferParseField(crossSiteDeferredFunctionType);
+        CopyDeferParseField(crossSiteUndeferredFunctionType);
         CopyDeferParseField(m_isDeclaration);
         CopyDeferParseField(m_isAccessor);
         CopyDeferParseField(m_isStrictMode);
@@ -1598,6 +1600,8 @@ namespace Js
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, ScriptContext* scriptContext, uint functionNumber,
         const char16* displayName, uint displayNameLength, uint displayShortNameOffset, FunctionInfo::Attributes attributes, FunctionBodyFlags flags) :
       FunctionProxy(scriptContext, sourceInfo, functionNumber),
+      crossSiteDeferredFunctionType(nullptr),
+      crossSiteUndeferredFunctionType(nullptr),
 #if DYNAMIC_INTERPRETER_THUNK
       m_dynamicInterpreterThunk(nullptr),
 #endif
@@ -2083,6 +2087,28 @@ namespace Js
     void FunctionProxy::SetUndeferredFunctionType(ScriptFunctionType * type)
     {
         undeferredFunctionType = type;
+    }
+
+    ScriptFunctionType * FunctionProxy::GetCrossSiteDeferredFunctionType() const
+    {
+        return HasParseableInfo() ? GetParseableFunctionInfo()->GetCrossSiteDeferredFunctionType() : nullptr;
+    }
+
+    void FunctionProxy::SetCrossSiteDeferredFunctionType(ScriptFunctionType * type)
+    {
+        Assert(HasParseableInfo());
+        GetParseableFunctionInfo()->SetCrossSiteDeferredFunctionType(type);
+    }
+
+    ScriptFunctionType * FunctionProxy::GetCrossSiteUndeferredFunctionType() const
+    {
+        return HasParseableInfo() ? GetParseableFunctionInfo()->GetCrossSiteUndeferredFunctionType() : nullptr;
+    }
+
+    void FunctionProxy::SetCrossSiteUndeferredFunctionType(ScriptFunctionType * type)
+    {
+        Assert(HasParseableInfo());
+        GetParseableFunctionInfo()->SetCrossSiteUndeferredFunctionType(type);
     }
 
     JavascriptMethod FunctionProxy::GetDirectEntryPoint(ProxyEntryPointInfo* entryPoint) const
@@ -4975,6 +5001,14 @@ namespace Js
             this->undeferredFunctionType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->undeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
+        if (this->crossSiteDeferredFunctionType)
+        {
+            this->crossSiteDeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
+        if (this->crossSiteUndeferredFunctionType)
+        {
+            this->crossSiteUndeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
 
 #if DBG
         if (!this->HasValidEntryPoint())
@@ -5266,7 +5300,7 @@ namespace Js
         if (this->deferredPrototypeType)
         {
             // Update old entry points on the deferred prototype type,
-            // as they may point to old native code gen regions which age gone now.
+            // as they may point to old native code gen regions which are gone now.
             this->deferredPrototypeType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->deferredPrototypeType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
@@ -5274,6 +5308,14 @@ namespace Js
         {
             this->undeferredFunctionType->SetEntryPoint(this->GetDefaultEntryPointInfo()->jsMethod);
             this->undeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
+        if (this->crossSiteDeferredFunctionType)
+        {
+            this->crossSiteDeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
+        }
+        if (this->crossSiteUndeferredFunctionType)
+        {
+            this->crossSiteUndeferredFunctionType->SetEntryPointInfo(this->GetDefaultEntryPointInfo());
         }
         ReinitializeExecutionModeAndLimits();
     }
