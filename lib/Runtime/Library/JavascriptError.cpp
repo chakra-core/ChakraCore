@@ -773,8 +773,8 @@ namespace Js
             // two error codes is morally equivalent in typeof scenario. Special case this here
             // because we do not want typeof to leak these exceptions.
             && !(errorObject != nullptr
-                && Js::JavascriptError::Is(errorObject)
-                && Js::JavascriptError::FromVar(errorObject)->GetErrorType() == kjstWinRTError
+                && Js::VarIs<Js::JavascriptError>(errorObject)
+                && Js::VarTo<Js::JavascriptError>(errorObject)->GetErrorType() == kjstWinRTError
                 && hr == TYPE_E_ELEMENTNOTFOUND)
 #endif
             ;

@@ -6,23 +6,6 @@
 
 namespace Js
 {
-    bool UnscopablesWrapperObject::Is(Var aValue)
-    {
-        return JavascriptOperators::GetTypeId(aValue) == TypeIds_UnscopablesWrapperObject;
-    }
-
-    UnscopablesWrapperObject* UnscopablesWrapperObject::FromVar(Var aValue)
-    {
-        AssertOrFailFast(UnscopablesWrapperObject::Is(aValue));
-        return static_cast<UnscopablesWrapperObject*>(aValue);
-    }
-
-    UnscopablesWrapperObject* UnscopablesWrapperObject::UnsafeFromVar(Var aValue)
-    {
-        Assert(UnscopablesWrapperObject::Is(aValue));
-        return static_cast<UnscopablesWrapperObject*>(aValue);
-    }
-
     PropertyQueryFlags UnscopablesWrapperObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));

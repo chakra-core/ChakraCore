@@ -128,10 +128,10 @@ namespace Js
         for (uint16 i = 0; i < length; i++)
         {
             Var value = display->GetItem(i);
-            if (UnscopablesWrapperObject::Is(value))
+            if (Js::VarIs<UnscopablesWrapperObject>(value))
             {
                 // Here we are marshalling the wrappedObject and then ReWrapping th object in the new context.
-                RecyclableObject* wrappedObject = UnscopablesWrapperObject::FromVar(value)->GetWrappedObject();
+                RecyclableObject* wrappedObject = Js::VarTo<UnscopablesWrapperObject>(value)->GetWrappedObject();
                 ScriptContext* wrappedObjectScriptContext = wrappedObject->GetScriptContext();
                 value = JavascriptOperators::ToUnscopablesWrapperObject(CrossSite::MarshalVar(scriptContext,
                   wrappedObject, wrappedObjectScriptContext), scriptContext);
