@@ -851,6 +851,11 @@ varDeclEnd:
 
             if( member )
             {
+                if (!(member->Grfnop() & fnopBin))
+                {
+                    return m.Fail(node, _u("Return object member must be an assignment expression"));
+                }
+
                 ParseNode* field = ParserWrapper::GetBinaryLeft( member );
                 ParseNode* value = ParserWrapper::GetBinaryRight( member );
                 if( !ParserWrapper::IsNameDeclaration( field ) || !ParserWrapper::IsNameDeclaration( value ) )
