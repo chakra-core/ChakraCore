@@ -229,6 +229,12 @@ namespace Js
         return JavascriptArray::IntMissingItemVar;
     }
 
+    template<>
+    inline Var SparseArraySegment<double>::GetMissingItemVar()
+    {
+        return (Var)FloatMissingItemPattern;
+    }
+
     template<typename T>
     void SparseArraySegment<T>::FillSegmentBuffer(uint32 start, uint32 size)
     {
