@@ -327,6 +327,8 @@
     <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_sanitize_address</tags>
   </default>
 </dir>
+
+<!-- Disabled due to 19389588
 <dir>
   <default>
     <files>TTExecuteBasic</files>
@@ -338,7 +340,8 @@
     <files>TTBasic</files>
     <tags>sequential,exclude_dynapogo,exclude_jshost,exclude_snap,exclude_serialized,require_debugger,exclude_sanitize_address</tags>
   </default>
-</dir>
+</dir> -->
+
 <dir>
   <default>
     <files>Scanner</files>
