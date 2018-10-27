@@ -990,24 +990,31 @@ namespace Js
         Assert(this->errorObject == nullptr);
         SetWasEvaluated();
 
-        if (childrenModuleSet != nullptr)
-        {
-            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
-            {
-                if (!childModuleRecord->WasEvaluated())
-                {
-                    childModuleRecord->ModuleEvaluation();
-                }
-            });
-        }
-        CleanupBeforeExecution();
-
-        Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
-
-        Var ret = nullptr;
         JavascriptExceptionObject *exception = nullptr;
+        Var ret = nullptr;
+
         try
         {
+            if (childrenModuleSet != nullptr)
+            {
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+                {
+                    if (!childModuleRecord->WasEvaluated())
+                    {
+                        childModuleRecord->ModuleEvaluation();
+                    }
+                    // if child module was evaluated before and threw need to re-throw now
+                    // if child module has been dynamically imported and has exception need to throw
+                    if (childModuleRecord->GetErrorObject() != nullptr)
+                    {
+                        JavascriptExceptionOperators::Throw(childModuleRecord->GetErrorObject(), this->scriptContext);
+                    }
+                });
+            }
+            CleanupBeforeExecution();
+
+            Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
+
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
             ENTER_SCRIPT_IF(scriptContext, true, false, false, !scriptContext->GetThreadContext()->IsScriptActive(),
             {
