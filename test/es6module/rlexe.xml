@@ -137,7 +137,7 @@
       <files>bug_issue_3257.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
-      <tags>exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address,exclude_jshost</tags>
     </default>
   </test>
   <test>
