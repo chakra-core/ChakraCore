@@ -5,6 +5,13 @@
 #pragma once
 #include <list>
 
+enum ModuleState
+{
+    RootModule,
+    ImportedModule,
+    ErroredModule
+};
+
 class WScriptJsrt
 {
 public:
@@ -141,5 +148,6 @@ private:
     static DWORD_PTR sourceContext;
     static std::map<std::string, JsModuleRecord> moduleRecordMap;
     static std::map<JsModuleRecord, std::string> moduleDirMap;
+    static std::map<JsModuleRecord, ModuleState> moduleErrMap;
     static std::map<DWORD_PTR, std::string> scriptDirMap;
 };

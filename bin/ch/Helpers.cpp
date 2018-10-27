@@ -155,7 +155,7 @@ uint ConcatPath(LPCSTR filenameLeft, uint posPathSep, LPCSTR filenameRight, char
     return totalLength;
 }
 
-HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/, std::string* fullPath /*= nullptr*/)
+HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/, std::string* fullPath /*= nullptr*/, bool shouldMute /*=false */)
 {
     static char sHostApplicationPathBuffer[MAX_URI_LENGTH];
     static uint sHostApplicationPathBufferLength = (uint) -1;
@@ -216,7 +216,7 @@ HRESULT Helpers::LoadScriptFromFile(LPCSTR filenameToLoad, LPCSTR& contents, UIN
         // etc.
         if (fopen_s(&file, filename, "rb") != 0)
         {
-            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled)
+            if (!HostConfigFlags::flags.MuteHostErrorMsgIsEnabled && !shouldMute)
             {
 #ifdef _WIN32
                 DWORD lastError = GetLastError();

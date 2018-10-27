@@ -955,16 +955,6 @@ namespace Js
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleEvaluation(%s)\n"), this->GetSpecifierSz());
 
-#if DBG
-        if (childrenModuleSet != nullptr)
-        {
-            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
-            {
-                AssertMsg(childModuleRecord->WasParsed(), "child module needs to have been parsed");
-                AssertMsg(childModuleRecord->WasDeclarationInitialized(), "child module needs to have been initialized.");
-            });
-        }
-#endif
         if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
         {
             return nullptr;
@@ -985,6 +975,17 @@ namespace Js
                 JavascriptExceptionOperators::Throw(errorObject, this->scriptContext);
             }
         }
+
+#if DBG
+        if (childrenModuleSet != nullptr)
+        {
+            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+            {
+                AssertMsg(childModuleRecord->WasParsed(), "child module needs to have been parsed");
+                AssertMsg(childModuleRecord->WasDeclarationInitialized(), "child module needs to have been initialized.");
+            });
+        }
+#endif
 
         Assert(this->errorObject == nullptr);
         SetWasEvaluated();
