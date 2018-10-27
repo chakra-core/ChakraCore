@@ -400,7 +400,13 @@ var tests = [
 			//note exclusion of testScript case intentional - running the code from a script loads the module
 			//then the test from Module uses the one loaded by the script - do not add testScript here
         }
-	},
+    },
+    {
+        name : "Test 'new import()' throws - Bug Issue 5797",
+        body: function() {
+            assert.throws(()=>{eval('new import("ModuleSimpleExport.js")')}, SyntaxError);
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

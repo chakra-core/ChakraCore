@@ -3624,6 +3624,10 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     case tkIMPORT:
         if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
+            if (!fAllowCall)
+            {
+                Error(ERRTokenAfter, _u("import"), _u("new"));
+            }
             this->GetScanner()->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);
             pnode = ParseImportCall<buildAST>();
