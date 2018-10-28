@@ -202,7 +202,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
             // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
@@ -307,7 +307,7 @@ namespace Js
                 {
                     // Cleanup in case of error.
                     this->ReleaseParserResources();
-                    SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this);
+                    SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this, false);
                 }
                 else
                 {
@@ -342,7 +342,7 @@ namespace Js
             }
         }
 
-        return this->promise;
+        return JavascriptPromise::CreatePassThroughPromise(this->promise, scriptContext);
     }
 
     HRESULT SourceTextModuleRecord::PrepareForModuleDeclarationInitialization()
@@ -401,7 +401,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
             if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
@@ -967,7 +967,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
                 return scriptContext->GetLibrary()->GetUndefined();
             }
             else
@@ -1029,7 +1029,7 @@ namespace Js
             this->errorObject = errorObject;
             if (this->promise != nullptr)
             {
-                ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext, this);
+                ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext, this, false);
                 return scriptContext->GetLibrary()->GetUndefined();
             }
         }
@@ -1041,7 +1041,7 @@ namespace Js
 
         if (this->promise != nullptr)
         {
-            SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(true, this->GetNamespace(), this->GetScriptContext(), this);
+            SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(true, this->GetNamespace(), this->GetScriptContext(), this, false);
         }
 
         return ret;
@@ -1268,7 +1268,7 @@ namespace Js
     }
 
     // static
-    Var SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(bool isResolve, Var value, ScriptContext *scriptContext, SourceTextModuleRecord *moduleRecord)
+    Var SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(bool isResolve, Var value, ScriptContext *scriptContext, SourceTextModuleRecord *moduleRecord, bool useReturn)
     {
         bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
         JavascriptPromise *promise = nullptr;
@@ -1297,8 +1297,11 @@ namespace Js
         if (moduleRecord != nullptr)
         {
             moduleRecord->SetPromise(nullptr);
+            if (useReturn)
+            {
+                return JavascriptPromise::CreatePassThroughPromise(promise, scriptContext);
+            }
         }
-
         return promise;
     }
 }
