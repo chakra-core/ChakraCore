@@ -84,6 +84,19 @@ var tests = [
             assert.isTrue(x == y);
         }
     },
+    {
+        name: "Very big",
+        body: function () {
+            var x = eval('1234567890'.repeat(20)+'0n');
+            var y = BigInt(eval('1234567890'.repeat(20)+'1n'));
+            assert.isFalse(x == y);
+            x++;
+            ++y;
+            assert.isTrue(x < y);
+            ++x;
+            assert.isTrue(x == y);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -41,6 +41,22 @@ var tests = [
             assert.isTrue(y == 124n);
         }
     },
+    {
+        name: "Value change with add and sub",
+        body: function () {
+            var x = BigInt(123n);
+            var y = x;
+            assert.isTrue(x == 123n);
+            assert.isTrue(y == 123n);
+            x = x + 2n;
+            assert.isTrue(x == 125n);
+            assert.isTrue(y == 123n);
+            y = x;
+            x = x - 2n;
+            assert.isTrue(x == 123n);
+            assert.isTrue(y == 125n);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
