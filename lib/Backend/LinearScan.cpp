@@ -1417,7 +1417,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     memset(state.registerSaveSyms, 0, sizeof(state.registerSaveSyms));
 
     // Fill in the constants
-    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues, constantValuesIterator)
+    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues->constantValues, constantValuesIterator)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "constant prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = value.Key();
@@ -1460,7 +1460,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     NEXT_SLISTBASE_ENTRY_EDITING;
 
     // Fill in the copy prop syms
-    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues.copyPropSyms, copyPropSymsIter)
+    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues->copyPropSyms, copyPropSymsIter)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "copy prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = copyPropSyms.Key();
@@ -1513,9 +1513,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     }
     NEXT_BITSET_IN_SPARSEBV;
 
-    if (bailOutInfo->usedCapturedValues.argObjSyms)
+    if (bailOutInfo->usedCapturedValues->argObjSyms)
     {
-        FOREACH_BITSET_IN_SPARSEBV(id, bailOutInfo->usedCapturedValues.argObjSyms)
+        FOREACH_BITSET_IN_SPARSEBV(id, bailOutInfo->usedCapturedValues->argObjSyms)
         {
             StackSym * stackSym = this->func->m_symTable->FindStackSym(id);
             Assert(stackSym != nullptr);
@@ -1705,7 +1705,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 uint outParamOffsetIndex = outParamStart + argSlot;
                 if (!sym->m_isBailOutReferenced && !sym->IsArgSlotSym())
                 {
-                    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, constantValue, &bailOutInfo->usedCapturedValues.constantValues, iterator)
+                    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, constantValue, &bailOutInfo->usedCapturedValues->constantValues, iterator)
                     {
                         if (constantValue.Key()->m_id == sym->m_id)
                         {
@@ -1731,13 +1731,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         continue;
                     }
 
-                    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSym, &bailOutInfo->usedCapturedValues.copyPropSyms, iter)
+                    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSym, &bailOutInfo->usedCapturedValues->copyPropSyms, iter)
                     {
                         if (copyPropSym.Key()->m_id == sym->m_id)
                         {
                             StackSym * copyStackSym = copyPropSym.Value();
 
-                            BVSparse<JitArenaAllocator>* argObjSyms = bailOutInfo->usedCapturedValues.argObjSyms;
+                            BVSparse<JitArenaAllocator>* argObjSyms = bailOutInfo->usedCapturedValues->argObjSyms;
                             if (argObjSyms && argObjSyms->Test(copyStackSym->m_id))
                             {
                                 outParamOffsets[outParamOffsetIndex] = BailOutRecord::GetArgumentsObjectOffset();
@@ -1845,7 +1845,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                     Assert(LowererMD::IsAssign(instrDef));
                                 }
 
-                                if (bailOutInfo->usedCapturedValues.argObjSyms && bailOutInfo->usedCapturedValues.argObjSyms->Test(sym->m_id))
+                                if (bailOutInfo->usedCapturedValues->argObjSyms && bailOutInfo->usedCapturedValues->argObjSyms->Test(sym->m_id))
                                 {
                                     //foo.apply(this,arguments) case and we bailout when the apply is overridden. We need to restore the arguments object.
                                     outParamOffsets[outParamOffsetIndex] = BailOutRecord::GetArgumentsObjectOffset();

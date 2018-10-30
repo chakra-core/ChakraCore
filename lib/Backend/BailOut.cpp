@@ -30,8 +30,21 @@ BailOutInfo::Clear(JitArenaAllocator * allocator)
 
         JitAdelete(allocator, this->capturedValues);
     }
-    this->usedCapturedValues.constantValues.Clear(allocator);
-    this->usedCapturedValues.copyPropSyms.Clear(allocator);
+
+    if (this->usedCapturedValues)
+    {
+        Assert(this->usedCapturedValues->refCount == 0);
+        this->usedCapturedValues->constantValues.Clear(allocator);
+        this->usedCapturedValues->copyPropSyms.Clear(allocator);
+
+        if (this->usedCapturedValues->argObjSyms)
+        {
+            JitAdelete(allocator, this->usedCapturedValues->argObjSyms);
+        }
+
+        JitAdelete(allocator, this->usedCapturedValues);
+    }
+
     if (byteCodeUpwardExposedUsed)
     {
         JitAdelete(allocator, byteCodeUpwardExposedUsed);

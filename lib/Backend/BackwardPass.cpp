@@ -1716,19 +1716,19 @@ BackwardPass::ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaA
         {
             if (byteCodeUpwardExposedUsed->TestAndClear(symId))
             {
-                if (bailOutInfo->usedCapturedValues.argObjSyms == nullptr)
+                if (bailOutInfo->usedCapturedValues->argObjSyms == nullptr)
                 {
-                    bailOutInfo->usedCapturedValues.argObjSyms = JitAnew(this->func->m_alloc,
+                    bailOutInfo->usedCapturedValues->argObjSyms = JitAnew(this->func->m_alloc,
                         BVSparse<JitArenaAllocator>, this->func->m_alloc);
                 }
-                bailOutInfo->usedCapturedValues.argObjSyms->Set(symId);
+                bailOutInfo->usedCapturedValues->argObjSyms->Set(symId);
             }
         }
         NEXT_BITSET_IN_SPARSEBV;
     }
-    if (bailOutInfo->usedCapturedValues.argObjSyms)
+    if (bailOutInfo->usedCapturedValues->argObjSyms)
     {
-        byteCodeUpwardExposedUsed->Minus(bailOutInfo->usedCapturedValues.argObjSyms);
+        byteCodeUpwardExposedUsed->Minus(bailOutInfo->usedCapturedValues->argObjSyms);
     }
 }
 
@@ -1738,7 +1738,7 @@ BackwardPass::ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitAre
     Assert(this->tag != Js::BackwardPhase);
 
     // Remove constants that we are already going to restore
-    SListBase<ConstantStackSymValue> * usedConstantValues = &bailOutInfo->usedCapturedValues.constantValues;
+    SListBase<ConstantStackSymValue> * usedConstantValues = &bailOutInfo->usedCapturedValues->constantValues;
     FOREACH_SLISTBASE_ENTRY(ConstantStackSymValue, value, usedConstantValues)
     {
         byteCodeUpwardExposedUsed->Clear(value.Key()->m_id);
@@ -1770,7 +1770,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
     Assert(!this->func->GetJITFunctionBody()->IsAsmJsMode());
 
     // Remove copy prop that we were already going to restore
-    SListBase<CopyPropSyms> * usedCopyPropSyms = &bailOutInfo->usedCapturedValues.copyPropSyms;
+    SListBase<CopyPropSyms> * usedCopyPropSyms = &bailOutInfo->usedCapturedValues->copyPropSyms;
     FOREACH_SLISTBASE_ENTRY(CopyPropSyms, copyPropSyms, usedCopyPropSyms)
     {
         byteCodeUpwardExposedUsed->Clear(copyPropSyms.Key()->m_id);
@@ -2602,7 +2602,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             tempBv->And(this->func->m_nonTempLocalVars, bailOutInfo->liveVarSyms);
 
             // Remove syms that are restored in other ways than byteCodeUpwardExposedUsed.
-            FOREACH_SLIST_ENTRY(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues)
+            FOREACH_SLIST_ENTRY(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues->constantValues)
             {
                 Assert(value.Key()->HasByteCodeRegSlot() || value.Key()->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture);
                 if (value.Key()->HasByteCodeRegSlot())
@@ -2611,7 +2611,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 }
             }
             NEXT_SLIST_ENTRY;
-            FOREACH_SLIST_ENTRY(CopyPropSyms, value, &bailOutInfo->usedCapturedValues.copyPropSyms)
+            FOREACH_SLIST_ENTRY(CopyPropSyms, value, &bailOutInfo->usedCapturedValues->copyPropSyms)
             {
                 Assert(value.Key()->HasByteCodeRegSlot() || value.Key()->GetInstrDef()->m_opcode == Js::OpCode::BytecodeArgOutCapture);
                 if (value.Key()->HasByteCodeRegSlot())
@@ -2620,9 +2620,9 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 }
             }
             NEXT_SLIST_ENTRY;
-            if (bailOutInfo->usedCapturedValues.argObjSyms)
+            if (bailOutInfo->usedCapturedValues->argObjSyms)
             {
-                tempBv->Minus(bailOutInfo->usedCapturedValues.argObjSyms);
+                tempBv->Minus(bailOutInfo->usedCapturedValues->argObjSyms);
             }
 
             byteCodeUpwardExposedUsed->Or(tempBv);
@@ -8326,7 +8326,7 @@ BackwardPass::ReverseCopyProp(IR::Instr *instr)
             FOREACH_SLISTBASE_ENTRY(
                 CopyPropSyms,
                 usedCopyPropSym,
-                &instrPrev->GetBailOutInfo()->usedCapturedValues.copyPropSyms)
+                &instrPrev->GetBailOutInfo()->usedCapturedValues->copyPropSyms)
             {
                 if(dstSym == usedCopyPropSym.Value())
                 {
