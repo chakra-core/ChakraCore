@@ -390,7 +390,7 @@ namespace Js
         // Constructor
         AsmJsModuleArg(PropertyName name, ArgType type) : AsmJsSymbol(name, symbolType), mArgType(type) { }
         // Accessor
-        inline const ArgType GetArgType()const { return mArgType; }
+        inline ArgType GetArgType()const { return mArgType; }
 
         // AsmJsSymbol interface
     public:

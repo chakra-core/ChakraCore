@@ -776,11 +776,11 @@ private:
         throw ParseExceptionObject(hr);
     }
 
-    const EncodedCharPtr PchBase(void) const
+    EncodedCharPtr PchBase(void) const
     {
         return m_pchBase;
     }
-    const EncodedCharPtr PchMinTok(void)
+    EncodedCharPtr PchMinTok(void)
     {
         return m_pchMinTok;
     }

@@ -57,7 +57,7 @@ namespace Js
         ForInObjectEnumerator * GetForInObjectEnumeratorArrayAtOffset(int offset) const;
 
         static JavascriptCallStackLayout *FromFramePointer(void *const framePointer);
-        static void* const ToFramePointer(JavascriptCallStackLayout* callstackLayout);
+        static void* ToFramePointer(JavascriptCallStackLayout* callstackLayout);
     private:
         JavascriptCallStackLayout() : callInfo(0) {};
     };
@@ -137,12 +137,12 @@ namespace Js
         };
 
     public:
-        InlinedFrame *const     GetFrameAtIndex(signed index) const;
+        InlinedFrame *GetFrameAtIndex(signed index) const;
 
     private:
         void Initialize(int32 frameCount, __in_ecount(frameCount) InlinedFrame **frames, Js::ScriptFunction *parent);
         void MoveNext();
-        InlinedFrame *const GetCurrentFrame() const;
+        InlinedFrame *GetCurrentFrame() const;
 
         Js::ScriptFunction *parentFunction;
         InlinedFrame          **frames;

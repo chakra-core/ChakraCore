@@ -811,7 +811,7 @@ private:
     inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectInfoBits attributes);
 #else
-    inline const bool IsPageHeapEnabled() const { return false; }
+    inline bool IsPageHeapEnabled() const { return false; }
     inline bool ShouldCapturePageHeapAllocStack() const { return false; }
 #endif
 

@@ -67,8 +67,8 @@ namespace Js
         ConstructorCache();
         ConstructorCache(ConstructorCache const * other);
 
-        static size_t const GetOffsetOfGuardValue() { return PropertyGuard::GetOffsetOfValue(); }
-        static size_t const GetSizeOfGuardValue() { return PropertyGuard::GetSizeOfValue(); }
+        static size_t GetOffsetOfGuardValue() { return PropertyGuard::GetOffsetOfValue(); }
+        static size_t GetSizeOfGuardValue() { return PropertyGuard::GetSizeOfValue(); }
 
         void Populate(DynamicType* type, ScriptContext* scriptContext, bool ctorHasNoExplicitReturnValue, bool updateAfterCtor);
         void PopulateForSkipDefaultNewObject(ScriptContext* scriptContext);

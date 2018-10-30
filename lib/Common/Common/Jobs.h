@@ -442,7 +442,7 @@ namespace JsUtil
 
         ParallelThreadData(AllocationPolicyManager* policyManager);
 
-        PageAllocator* const GetPageAllocator() { return &backgroundPageAllocator; }
+        PageAllocator* GetPageAllocator() { return &backgroundPageAllocator; }
         bool CanDecommit() const { return canDecommit; }
     };
 

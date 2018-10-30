@@ -229,13 +229,13 @@ public:
     BYTE *          GetRelocBufferAddress(EncodeRelocAndLabels * reloc);
 
 private:
-    const BYTE      GetOpcodeByte2(IR::Instr *instr);
+    BYTE            GetOpcodeByte2(IR::Instr *instr);
     const BYTE *    GetFormTemplate(IR::Instr *instr);
     static Forms    GetInstrForm(IR::Instr *instr);
     const BYTE *    GetOpbyte(IR::Instr *instr);
-    const BYTE      GetRegEncode(IR::RegOpnd *regOpnd);
-    const uint32    GetLeadIn(IR::Instr * instr);
-    static const uint32 GetOpdope(IR::Instr *instr);
+    BYTE            GetRegEncode(IR::RegOpnd *regOpnd);
+    uint32          GetLeadIn(IR::Instr * instr);
+    static uint32   GetOpdope(IR::Instr *instr);
     void            EmitModRM(IR::Instr * instr, IR::Opnd *opnd, BYTE reg1);
     void            EmitConst(size_t val, int size);
     int             EmitImmed(IR::Opnd * opnd, int opSize, int sbit);

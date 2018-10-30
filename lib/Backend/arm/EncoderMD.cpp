@@ -34,19 +34,19 @@ EncoderMD::Init(Encoder *encoder)
 ///
 ///----------------------------------------------------------------------------
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(IR::RegOpnd *regOpnd)
 {
     return GetRegEncode(regOpnd->GetReg());
 }
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(RegNum reg)
 {
     return RegEncode[reg];
 }
 
-const BYTE
+BYTE
 EncoderMD::GetFloatRegEncode(IR::RegOpnd *regOpnd)
 {
     //Each double register holds two single precision registers.

@@ -119,11 +119,11 @@ public:
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
         Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
 public:
-    void * const GetCodeGenAllocators()
+    void * GetCodeGenAllocators()
     {
         return this->GetTopFunc()->m_codeGenAllocators;
     }
-    InProcCodeGenAllocators * const GetInProcCodeGenAllocators()
+    InProcCodeGenAllocators * GetInProcCodeGenAllocators()
     {
         Assert(!JITManager::GetJITManager()->IsJITServer());
         return reinterpret_cast<InProcCodeGenAllocators*>(this->GetTopFunc()->m_codeGenAllocators);
@@ -274,7 +274,7 @@ public:
         return &m_output;
     }
 
-    const JITTimeFunctionBody * const GetJITFunctionBody() const
+    const JITTimeFunctionBody * GetJITFunctionBody() const
     {
         return m_workItem->GetJITFunctionBody();
     }

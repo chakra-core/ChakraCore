@@ -20,7 +20,7 @@ public:
     }
 
 private:
-    static const uint32 BitMask(const uint index)
+    static uint32 BitMask(const uint index)
     {
         return 1u << index;
     }

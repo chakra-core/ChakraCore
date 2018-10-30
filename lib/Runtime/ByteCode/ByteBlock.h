@@ -46,7 +46,7 @@ namespace Js
         uint GetLength() const;
         byte* GetBuffer();
         const byte* GetBuffer() const;
-        const byte operator[](uint itemIndex) const;
+        byte operator[](uint itemIndex) const;
         byte& operator[] (uint itemIndex);
     };
 } // namespace Js

@@ -54,7 +54,7 @@ namespace Wasm
         WasmOp ReadOpCode();
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
-        virtual const uint32 EstimateCurrentFunctionBytecodeSize() const override;
+        virtual uint32 EstimateCurrentFunctionBytecodeSize() const override;
 #if DBG_DUMP
         void PrintOps();
 #endif
