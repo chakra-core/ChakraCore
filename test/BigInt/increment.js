@@ -97,6 +97,18 @@ var tests = [
             assert.isTrue(x == y);
         }
     },
+    {
+        name: "With assign",
+        body: function () {
+            var x = 3n;
+            var y = x++;
+            assert.isTrue(x == 4n);
+            assert.isTrue(y == 3n);
+            y = ++x;            
+            assert.isTrue(x == 5n);
+            assert.isTrue(y == 5n);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

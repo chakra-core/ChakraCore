@@ -126,6 +126,8 @@ namespace Js
         static Var OP_LdCustomSpreadIteratorList(Var aRight, ScriptContext* scriptContext);
         static Var ToNumber(Var aRight,ScriptContext* scriptContext);
         static Var ToNumberInPlace(Var aRight,ScriptContext* scriptContext, JavascriptNumber* result);
+        static Var ToNumeric(Var aRight, ScriptContext* scriptContext);
+        static Var ToNumericInPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result);
 #ifdef _M_IX86
         static Var Int32ToVar(int32 value, ScriptContext* scriptContext);
         static Var Int32ToVarInPlace(int32 value, ScriptContext* scriptContext, JavascriptNumber *result);

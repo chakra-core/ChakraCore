@@ -125,6 +125,24 @@ using namespace Js;
         }
         JIT_HELPER_TEMPLATE(Op_Decrement_Full, Op_Decrement)
 
+        Var JavascriptMath::Increment_Numeric(Var aRight, ScriptContext* scriptContext)
+        {
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Increment(aRight);
+            }
+            return JavascriptMath::Add(aRight, TaggedInt::ToVarUnchecked(1), scriptContext);
+        }
+
+        Var JavascriptMath::Decrement_Numeric(Var aRight, ScriptContext* scriptContext)
+        {
+            if (VarIs<JavascriptBigInt>(aRight))
+            {
+                return JavascriptBigInt::Decrement(aRight);
+            }
+            return JavascriptMath::Subtract(aRight, TaggedInt::ToVarUnchecked(1), scriptContext);
+        }
+            
         Var JavascriptMath::And_Full(Var aLeft, Var aRight, ScriptContext* scriptContext)
         {
             JIT_HELPER_REENTRANT_HEADER(Op_And_Full);
