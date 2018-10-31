@@ -1036,6 +1036,9 @@ class ParseNodeCatch : public ParseNodeStmt
 public:
     ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
 
+    bool HasPatternParam() { return pnodeParam != nullptr && pnodeParam->nop == knopParamPattern; }
+    bool HasParam() { return pnodeParam != nullptr;  }
+
     ParseNodePtr GetParam() { return pnodeParam; }
     void SetParam(ParseNodeName * pnode) { pnodeParam = pnode;  }
     void SetParam(ParseNodeParamPattern * pnode) { pnodeParam = pnode; }    

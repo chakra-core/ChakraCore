@@ -4014,13 +4014,13 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
         scope->SetIsObject();
     }
 
-    ParseNode * pnodeParam = pnodeCatch->GetParam();
-    if (pnodeParam->nop == knopParamPattern)
+    if (pnodeCatch->HasPatternParam())
     {
+        ParseNode *pnode1 = pnodeCatch->GetParam()->AsParseNodeParamPattern()->pnode1;
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval());
         scope->SetMustInstantiate(scope->Count() > 0 && (scope->GetMustInstantiate() || scope->GetCapturesAll() || funcInfo->IsGlobalFunction()));
 
-        Parser::MapBindIdentifier(pnodeParam->AsParseNodeParamPattern()->pnode1, [&](ParseNodePtr item)
+        Parser::MapBindIdentifier(pnode1, [&](ParseNodePtr item)
         {
             Symbol *sym = item->AsParseNodeVar()->sym;
             if (funcInfo->IsGlobalFunction())
@@ -4034,13 +4034,10 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
                 sym->EnsureScopeSlot(this, funcInfo);
             }
         });
-
-        // In the case of pattern we will always going to push the scope.
-        PushScope(scope);
     }
-    else
+    else if (pnodeCatch->HasParam())
     {
-        Symbol *sym = pnodeParam->AsParseNodeName()->sym;
+        Symbol *sym = pnodeCatch->GetParam()->AsParseNodeName()->sym;
 
         // Catch object is stored in the catch scope if there may be an ambiguous lookup or a var declaration that hides it.
         scope->SetCapturesAll(funcInfo->GetCallsEval() || funcInfo->GetChildCallsEval() || sym->GetHasNonLocalReference());
@@ -4061,9 +4058,9 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
                 sym->EnsureScopeSlot(this, funcInfo);
             }
         }
-
-        PushScope(scope);
     }
+
+    PushScope(scope);
 }
 
 void ByteCodeGenerator::EndEmitCatch(ParseNodeCatch *pnodeCatch)
@@ -11614,33 +11611,27 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         byteCodeGenerator->Writer()->Empty(Js::OpCode::Leave);
         byteCodeGenerator->Writer()->Br(pnodeTryCatch->breakLabel);
         byteCodeGenerator->Writer()->MarkLabel(catchLabel);
-        
-        ParseNode *pnodeObj = pnodeCatch->GetParam();
-        Assert(pnodeObj);
 
-        Js::RegSlot location;
-
-        bool acquiredTempLocation = false;
-
+        Js::RegSlot location = Js::Constants::NoRegister;
         Js::DebuggerScope *debuggerScope = nullptr;
         Js::DebuggerScopePropertyFlags debuggerPropertyFlags = Js::DebuggerScopePropertyFlags_CatchObject;
+        ParseNode *tempLocationNode = nullptr;
 
-        bool isPattern = pnodeObj->nop == knopParamPattern;
-
-        if (isPattern)
+        if (pnodeCatch->HasPatternParam())
         {
-            location = pnodeObj->AsParseNodeParamPattern()->location;
+            location = pnodeCatch->GetParam()->AsParseNodeParamPattern()->location;
         }
-        else
+        else if (pnodeCatch->HasParam())
         {
-            location = pnodeObj->AsParseNodeName()->sym->GetLocation();
+            location = pnodeCatch->GetParam()->AsParseNodeName()->sym->GetLocation();
         }
 
         if (location == Js::Constants::NoRegister)
         {
-            location = funcInfo->AcquireLoc(pnodeObj);
-            acquiredTempLocation = true;
+            tempLocationNode = pnodeCatch->HasParam() ? pnodeCatch->GetParam() : pnodeCatch;
+            location = funcInfo->AcquireLoc(tempLocationNode);
         }
+
         byteCodeGenerator->Writer()->Reg1(Js::OpCode::Catch, location);
 
         Scope *scope = pnodeCatch->scope;
@@ -11656,7 +11647,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             }
             else
             {
-
                 int index = Js::DebuggerScope::InvalidScopeIndex;
                 debuggerScope = byteCodeGenerator->RecordStartScopeObject(pnodeTryCatch, Js::DiagCatchScopeInSlot, funcInfo->InnerScopeToRegSlot(scope), &index);
                 byteCodeGenerator->Writer()->Num3(Js::OpCode::NewInnerScopeSlots, scope->GetInnerScopeIndex(), scope->GetScopeSlotCount() + Js::ScopeSlots::FirstSlotIndex, index);
@@ -11714,9 +11704,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         };
 
         ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
-        if (isPattern)
+        if (pnodeCatch->HasPatternParam())
         {
-            Parser::MapBindIdentifier(pnodeObj->AsParseNodeParamPattern()->pnode1, [&](ParseNodePtr item)
+            ParseNode *pnode1 = pnodeCatch->GetParam()->AsParseNodeParamPattern()->pnode1;
+            Parser::MapBindIdentifier(pnode1, [&](ParseNodePtr item)
             {
                 Js::RegSlot itemLocation = item->AsParseNodeVar()->sym->GetLocation();
                 if (itemLocation == Js::Constants::NoRegister)
@@ -11731,7 +11722,6 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
             // Now emitting bytecode for destructuring pattern
             byteCodeGenerator->StartStatement(pnodeCatch);
-            ParseNodePtr pnode1 = pnodeObj->AsParseNodeParamPattern()->pnode1;
             Assert(pnode1->IsPattern());
 
             if (funcInfo->byteCodeFunction->IsCoroutine())
@@ -11742,12 +11732,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             EmitAssignment(nullptr, pnode1, location, byteCodeGenerator, funcInfo);
             byteCodeGenerator->EndStatement(pnodeCatch);
         }
-        else
+        else if (pnodeCatch->HasParam())
         {
-            ParamTrackAndInitialization(pnodeObj->AsParseNodeName()->sym, true /*initializeParam*/, location);
+            Symbol *sym = pnodeCatch->GetParam()->AsParseNodeName()->sym;
+            ParamTrackAndInitialization(sym, true /*initializeParam*/, location);
             if (scope->GetMustInstantiate())
             {
-                pnodeObj->AsParseNodeName()->sym->SetIsGlobalCatch(true);
+                sym->SetIsGlobalCatch(true);
             }
             byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
 
@@ -11769,14 +11760,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         }
 
         byteCodeGenerator->PopScope();
-
         byteCodeGenerator->RecordEndScopeObject(pnodeTryCatch);
 
         funcInfo->ReleaseLoc(pnodeCatch->pnodeBody);
 
-        if (acquiredTempLocation)
+        if (tempLocationNode != nullptr)
         {
-            funcInfo->ReleaseLoc(pnodeObj);
+            funcInfo->ReleaseLoc(tempLocationNode);
         }
 
         byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(false);
