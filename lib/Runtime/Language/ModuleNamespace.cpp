@@ -109,12 +109,16 @@ namespace Js
                 if (moduleNameRecord->module == moduleRecord)
                 {
                     // skip local exports as they are covered in the localExportSlots.
+                    // have to check the property map to avoid filtering out aliased local re-exports
+                    // which are not covered in localExportSlots
+                    if (propertyMap->ContainsKey(scriptContext->GetThreadContext()->GetPropertyName(propertyId)))
+                    {
 #if DBG
-                    localExportCount++;
+                        localExportCount++;
 #endif
-                    return;
+                        return;
+                    }
                 }
-                Assert(moduleNameRecord->module != moduleRecord);
                 this->AddUnambiguousNonLocalExport(propertyId, moduleNameRecord);
             });
         }
