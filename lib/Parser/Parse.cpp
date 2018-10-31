@@ -2366,12 +2366,12 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             // If we are parsing an import statement, the token after 'as' must be a BindingIdentifier.
             if (!isExportClause)
             {
-                ChkCurTokNoScan(tkID, ERRsyntax);
+                ChkCurTokNoScan(tkID, ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
             }
 
             if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
             {
-                Error(ERRsyntax);
+                Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
             }
 
             identifierAs = m_token.GetIdentifier(this->GetHashTbl());
@@ -2496,7 +2496,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
 {
     if (importOrExportEntry->exportName != nullptr)
     {
-        CheckForDuplicateExportEntry(importOrExportEntryList, importOrExportEntry->exportName);
+        CheckForDuplicateExportEntry(importOrExportEntry->exportName);
     }
 
     importOrExportEntryList->Prepend(*importOrExportEntry);
@@ -2526,6 +2526,19 @@ void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
     AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
 }
 
+void Parser::CheckForDuplicateExportEntry(IdentPtr exportName)
+{
+    if (m_currentNodeProg->AsParseNodeModule()->indirectExportEntries != nullptr)
+    {
+        CheckForDuplicateExportEntry(m_currentNodeProg->AsParseNodeModule()->indirectExportEntries, exportName);
+    }
+
+    if (m_currentNodeProg->AsParseNodeModule()->localExportEntries != nullptr)
+    {
+       CheckForDuplicateExportEntry(m_currentNodeProg->AsParseNodeModule()->localExportEntries, exportName);
+    }
+}
+
 void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName)
 {
     ModuleImportOrExportEntry* findResult = exportEntryList->Find([&](ModuleImportOrExportEntry exportEntry)
@@ -2539,7 +2552,7 @@ void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportE
 
     if (findResult != nullptr)
     {
-        Error(ERRsyntax);
+        Error(ERRDuplicateExport, exportName->Psz());
     }
 }
 
@@ -2927,7 +2940,34 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
     switch (m_token.tk)
     {
     case tkStar:
+    {
         this->GetScanner()->Scan();
+        IdentPtr exportName = nullptr;
+
+        if (m_scriptContext->GetConfig()->IsESExportNsAsEnabled())
+        {
+            // export * as name
+            if (m_token.tk == tkID)
+            {
+                // check for 'as'
+                if (wellKnownPropertyPids.as == m_token.GetIdentifier(this->GetHashTbl()))
+                {
+                    // scan to the next token
+                    this->GetScanner()->Scan();
+
+                    // token after as must be an identifier
+                    if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+                    {
+                        Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
+                    }
+
+                    exportName = m_token.GetIdentifier(this->GetHashTbl());
+                    
+                    // scan to next token
+                    this->GetScanner()->Scan();
+                }
+            }
+        }
 
         // A star token in an export declaration must be followed by a from clause which begins with a token 'from'.
         moduleIdentifier = ParseImportOrExportFromClause<buildAST>(true);
@@ -2937,9 +2977,16 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
             Assert(moduleIdentifier != nullptr);
 
             AddModuleSpecifier(moduleIdentifier);
-            IdentPtr importName = wellKnownPropertyPids._star;
 
-            AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
+            if (!exportName)
+            {
+                AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), wellKnownPropertyPids._star, nullptr, nullptr, moduleIdentifier);
+            }
+            else
+            {
+                CheckForDuplicateExportEntry(exportName);
+                AddModuleImportOrExportEntry(EnsureModuleIndirectExportEntryList(), wellKnownPropertyPids._star, nullptr, exportName, moduleIdentifier);
+            }
         }
 
         if (needTerminator != nullptr)
@@ -2948,6 +2995,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
         }
 
         break;
+    }
 
     case tkLCurly:
     {

@@ -634,22 +634,25 @@ namespace Js
                 {
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_CannotResolveModule, exportEntry.moduleRequest->Psz());
                 }
-                else
+
+                if (exportEntry.importName->GetPropertyId() == PropertyIds::star_)
                 {
-                    isAmbiguous = !childModuleRecord->ResolveExport(importNameId, resolveSet, exportRecord);
-                    if (isAmbiguous)
-                    {
-                        // ambiguous; don't need to search further
-                        return true;
-                    }
-                    else
-                    {
-                        // found a resolution. done;
-                        if (*exportRecord != nullptr)
-                        {
-                            return true;
-                        }
-                    }
+                    // export * as someName from "foo"
+                    *exportRecord = childModuleRecord->GetNamespaceNameRecord();
+                    return true;
+                }
+
+                isAmbiguous = !childModuleRecord->ResolveExport(importNameId, resolveSet, exportRecord);
+                if (isAmbiguous)
+                {
+                    // ambiguous; don't need to search further
+                    return true;
+                }
+
+                // found a resolution. done;
+                if (*exportRecord != nullptr)
+                {
+                    return true;
                 }
                 return false;
             });
@@ -1211,8 +1214,9 @@ namespace Js
                     this->errorObject = errorObj;
                     return;
                 }
-                if (!childModuleRecord->ResolveExport(propertyId, nullptr, &exportRecord) ||
-                    (exportRecord == nullptr))
+                if (propertyId != PropertyIds::star_ &&
+                    (!childModuleRecord->ResolveExport(propertyId, nullptr, &exportRecord) ||
+                    (exportRecord == nullptr)))
                 {
                     JavascriptError* errorObj = scriptContext->GetLibrary()->CreateSyntaxError();
                     JavascriptError::SetErrorMessage(errorObj, JSERR_ModuleResolveExport, exportEntry.exportName->Psz(), scriptContext);
