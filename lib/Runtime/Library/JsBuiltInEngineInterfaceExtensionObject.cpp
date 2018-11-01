@@ -49,6 +49,7 @@ VALUE(Array, flat, Prototype) \
 VALUE(Array, flatMap, Prototype) \
 VALUE(Array, forEach, Prototype) \
 VALUE(Array, some, Prototype) \
+VALUE(Array, sort, Prototype) \
 VALUE(Array, every, Prototype) \
 VALUE(Array, includes, Prototype) \
 VALUE(Array, reduce, Prototype) \
@@ -391,6 +392,7 @@ FUNCTIONKIND_VALUES(VALUE)
             library->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), PropertyIds::builtInMathMin, func);
             break;
         // FunctionKinds with no entry functions
+        case FunctionKind::Array_sort:
         case FunctionKind::Array_flat:
         case FunctionKind::Array_flatMap:
         case FunctionKind::Object_fromEntries:
