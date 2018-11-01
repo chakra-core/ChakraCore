@@ -5911,20 +5911,8 @@ namespace Js
 
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
-        Var functionNameOrId = name;
-        if (VarIs<JavascriptString>(name))
-        {
-            JavascriptString * functionName = VarTo<JavascriptString>(name);
-            const char16 * functionNameBuffer = functionName->GetString();
-            int functionNameBufferLength = functionName->GetLengthAsSignedInt();
-
-            PropertyId functionNamePropertyId = scriptContext->GetOrAddPropertyIdTracked(functionNameBuffer, functionNameBufferLength);
-            functionNameOrId = TaggedInt::ToVarUnchecked(functionNamePropertyId);
-        }
-
-        AssertOrFailFast(TaggedInt::Is(functionNameOrId));
         JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
-        function->SetFunctionNameId(functionNameOrId);
+        function->SetFunctionNameId(name);
         function->SetCallbackState(callbackState);
         return function;
     }

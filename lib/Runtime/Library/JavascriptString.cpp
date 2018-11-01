@@ -733,7 +733,9 @@ case_2:
         Var value;
         if (pThis->GetItemAt(idxPosition, &value))
         {
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
             value = BreakSpeculation(value);
+#endif
             return value;
         }
         else
@@ -782,7 +784,11 @@ case_2:
             return scriptContext->GetLibrary()->GetNaN();
         }
 
-        return BreakSpeculation(TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition)));
+        Var charCode = TaggedInt::ToVarUnchecked(pThis->GetItem(idxPosition));
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+        charCode = BreakSpeculation(charCode);
+#endif
+        return charCode;
     }
 
     Var JavascriptString::EntryCodePointAt(RecyclableObject* function, CallInfo callInfo, ...)
@@ -1837,7 +1843,9 @@ case_2:
             idxEnd = idxStart;
         }
 
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
 
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
@@ -1958,7 +1966,9 @@ case_2:
             return pThis;
         }
 
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
 
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
     }
@@ -2016,7 +2026,9 @@ case_2:
             return pThis;
         }
 
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         pThis = (JavascriptString*)BreakSpeculation(pThis);
+#endif
 
         Assert(0 <= idxStart && idxStart <= idxEnd && idxEnd <= len);
         return SubstringCore(pThis, idxStart, idxEnd - idxStart, scriptContext);
