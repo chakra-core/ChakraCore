@@ -27,6 +27,10 @@ set MSBUILD_VERSION=15.0
 set "MSBUILD_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\Preview\Enterprise\MSBuild\15.0\Bin"
 
 if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%VSINSTALLDIR%MSBuild\%MSBUILD_VERSION%\Bin"
+)
+
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
     set "MSBUILD_PATH=%ProgramFiles%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin\x86"
 )
 
