@@ -202,7 +202,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
             // Notify host if current module is dynamically-loaded module, or is root module and the host hasn't been notified
@@ -307,7 +307,7 @@ namespace Js
                 {
                     // Cleanup in case of error.
                     this->ReleaseParserResources();
-                    SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this);
+                    SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this, false);
                 }
                 else
                 {
@@ -342,7 +342,7 @@ namespace Js
             }
         }
 
-        return this->promise;
+        return JavascriptPromise::CreatePassThroughPromise(this->promise, scriptContext);
     }
 
     HRESULT SourceTextModuleRecord::PrepareForModuleDeclarationInitialization()
@@ -401,7 +401,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
             }
 
             if (this->promise != nullptr || (isRootModule && !hadNotifyHostReady))
@@ -955,16 +955,6 @@ namespace Js
     {
         OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleEvaluation(%s)\n"), this->GetSpecifierSz());
 
-#if DBG
-        if (childrenModuleSet != nullptr)
-        {
-            childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
-            {
-                AssertMsg(childModuleRecord->WasParsed(), "child module needs to have been parsed");
-                AssertMsg(childModuleRecord->WasDeclarationInitialized(), "child module needs to have been initialized.");
-            });
-        }
-#endif
         if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
         {
             return nullptr;
@@ -977,7 +967,7 @@ namespace Js
 
             if (this->promise != nullptr)
             {
-                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this);
+                SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
                 return scriptContext->GetLibrary()->GetUndefined();
             }
             else
@@ -986,27 +976,45 @@ namespace Js
             }
         }
 
-        Assert(this->errorObject == nullptr);
-        SetWasEvaluated();
-
+#if DBG
         if (childrenModuleSet != nullptr)
         {
             childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
             {
-                if (!childModuleRecord->WasEvaluated())
-                {
-                    childModuleRecord->ModuleEvaluation();
-                }
+                AssertMsg(childModuleRecord->WasParsed(), "child module needs to have been parsed");
+                AssertMsg(childModuleRecord->WasDeclarationInitialized(), "child module needs to have been initialized.");
             });
         }
-        CleanupBeforeExecution();
+#endif
 
-        Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
+        Assert(this->errorObject == nullptr);
+        SetWasEvaluated();
 
-        Var ret = nullptr;
         JavascriptExceptionObject *exception = nullptr;
+        Var ret = nullptr;
+
         try
         {
+            if (childrenModuleSet != nullptr)
+            {
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+                {
+                    if (!childModuleRecord->WasEvaluated())
+                    {
+                        childModuleRecord->ModuleEvaluation();
+                    }
+                    // if child module was evaluated before and threw need to re-throw now
+                    // if child module has been dynamically imported and has exception need to throw
+                    if (childModuleRecord->GetErrorObject() != nullptr)
+                    {
+                        JavascriptExceptionOperators::Throw(childModuleRecord->GetErrorObject(), this->scriptContext);
+                    }
+                });
+            }
+            CleanupBeforeExecution();
+
+            Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
+
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
             ENTER_SCRIPT_IF(scriptContext, true, false, false, !scriptContext->GetThreadContext()->IsScriptActive(),
             {
@@ -1021,7 +1029,7 @@ namespace Js
             this->errorObject = errorObject;
             if (this->promise != nullptr)
             {
-                ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext, this);
+                ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext, this, false);
                 return scriptContext->GetLibrary()->GetUndefined();
             }
         }
@@ -1033,7 +1041,7 @@ namespace Js
 
         if (this->promise != nullptr)
         {
-            SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(true, this->GetNamespace(), this->GetScriptContext(), this);
+            SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(true, this->GetNamespace(), this->GetScriptContext(), this, false);
         }
 
         return ret;
@@ -1260,7 +1268,7 @@ namespace Js
     }
 
     // static
-    Var SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(bool isResolve, Var value, ScriptContext *scriptContext, SourceTextModuleRecord *moduleRecord)
+    Var SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(bool isResolve, Var value, ScriptContext *scriptContext, SourceTextModuleRecord *moduleRecord, bool useReturn)
     {
         bool isScriptActive = scriptContext->GetThreadContext()->IsScriptActive();
         JavascriptPromise *promise = nullptr;
@@ -1289,8 +1297,11 @@ namespace Js
         if (moduleRecord != nullptr)
         {
             moduleRecord->SetPromise(nullptr);
+            if (useReturn)
+            {
+                return JavascriptPromise::CreatePassThroughPromise(promise, scriptContext);
+            }
         }
-
         return promise;
     }
 }

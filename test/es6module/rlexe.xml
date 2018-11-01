@@ -71,6 +71,13 @@
   </test>
   <test>
     <default>
+      <files>dynamic_import_promises_5796.js</files>
+      <compile-flags>-ESDynamicImport</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>module-syntax.js</files>
       <compile-flags>-MuteHostErrorMsg -ES6Module -force:deferparse -args summary -endargs</compile-flags>
       <tags>exclude_sanitize_address</tags>
@@ -137,7 +144,7 @@
       <files>bug_issue_3257.js</files>
       <compile-flags>-ESDynamicImport</compile-flags>
       <baseline>bug_issue_3257.baseline</baseline>
-      <tags>exclude_sanitize_address</tags>
+      <tags>exclude_sanitize_address,exclude_jshost</tags>
     </default>
   </test>
   <test>
