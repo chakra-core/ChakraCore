@@ -3631,6 +3631,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsWasmFunction()
         && !block->isDead
         && !block->isDeleted
+        && CONFIG_FLAG_RELEASE(AddMaskingBlocks)
         )
     {
         FOREACH_PREDECESSOR_BLOCK(blockPred, block)
