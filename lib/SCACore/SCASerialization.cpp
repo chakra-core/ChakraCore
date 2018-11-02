@@ -247,9 +247,11 @@ namespace Js
             }
 #endif
 
+#if ENABLE_COPYONACCESS_ARRAY
             case TypeIds_CopyOnAccessNativeIntArray:
                 Assert(false);
                 // fall-through
+#endif
 
             default:
                 if (IsTypedArray(typeId))

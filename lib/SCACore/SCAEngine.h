@@ -48,7 +48,9 @@ namespace Js
         {
             PROBE_STACK(m_cloner->GetScriptContext(), Constants::MinStackDefault);
 
+#if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Src>(src);
+#endif
 
             typename Cloner::SrcTypeId typeId = m_cloner->GetTypeId(src);
 
