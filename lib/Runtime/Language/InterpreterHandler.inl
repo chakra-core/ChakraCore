@@ -402,6 +402,9 @@ EXDEF2_WMS(A2A2NonVartoXXMem,       Restify,                    JavascriptObject
 EXDEF2_WMS(SET_ELEM_SLOTMem,        StPropIdArrFromVar,         OP_StPropIdArrFromVar)
 EXDEF2_WMS(SIZEtoA1MemNonVar,       NewPropIdArrForCompProps,   OP_NewPropIdArrForCompProps)
 
+EXDEF2_WMS(A1toA1Mem, Conv_Numeric, JavascriptOperators::ToNumeric)
+EXDEF2_WMS(A1toA1Mem, Incr_Num_A, JavascriptMath::Increment_Numeric)
+EXDEF2_WMS(A1toA1Mem, Decr_Num_A, JavascriptMath::Decrement_Numeric)
 
 #endif
 

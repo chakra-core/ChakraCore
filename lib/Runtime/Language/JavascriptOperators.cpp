@@ -308,6 +308,15 @@ using namespace Js;
         JIT_HELPER_END(Op_ConvNumberInPlace);
     }
 
+    Var JavascriptOperators::ToNumericInPlace(Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
+    {
+        if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+        {
+            return aRight;
+        }
+        return JavascriptOperators::ToNumberInPlace(aRight, scriptContext, result);
+    }
+
     Var JavascriptOperators::Typeof(Var var, ScriptContext* scriptContext)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_Typeof);
@@ -10646,6 +10655,15 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
         return JavascriptNumber::ToVarIntCheck(JavascriptConversion::ToNumber_Full(aRight, scriptContext), scriptContext);
         JIT_HELPER_END(Op_ConvNumber_Full);
+    }
+
+    Var JavascriptOperators::ToNumeric(Var aRight, ScriptContext* scriptContext)
+    {
+        if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+        {
+            return aRight;
+        }
+        return JavascriptOperators::ToNumber(aRight, scriptContext);
     }
 
     BOOL JavascriptOperators::IsObject(_In_ RecyclableObject* instance)

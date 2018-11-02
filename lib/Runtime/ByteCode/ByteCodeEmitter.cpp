@@ -10438,7 +10438,16 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         if (pnode->isUsed || fReturnValue)
         {
             byteCodeGenerator->StartStatement(pnode);
-            const Js::OpCode op = (pnode->nop == knopDecPost) ? Js::OpCode::Sub_A : Js::OpCode::Add_A;
+            bool isESBigIntEnabled = byteCodeGenerator->GetScriptContext()->GetConfig()->IsESBigIntEnabled();
+            Js::OpCode op1;
+            if (isESBigIntEnabled)
+            {
+                op1 = (pnode->nop == knopDecPost) ? Js::OpCode::Decr_Num_A : Js::OpCode::Incr_Num_A;
+            }
+            else
+            {
+                op1 = (pnode->nop == knopDecPost) ? Js::OpCode::Sub_A : Js::OpCode::Add_A;
+            }
             ParseNode* pnode1 = pnode->AsParseNodeUni()->pnode1;
 
             // Grab a register for the expression result.
@@ -10446,7 +10455,8 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
             // Load the initial value, convert it (this is the expression result), and increment it.
             EmitLoad(pnode1, byteCodeGenerator, funcInfo);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Num, pnode->location, pnode1->location);
+            const Js::OpCode op2 = isESBigIntEnabled ? Js::OpCode::Conv_Numeric : Js::OpCode::Conv_Num;
+            byteCodeGenerator->Writer()->Reg2(op2, pnode->location, pnode1->location);
 
             // Use temporary register if lhs cannot be assigned
             Js::RegSlot incDecResult = pnode1->location;
@@ -10455,10 +10465,17 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             {
                 incDecResult = funcInfo->AcquireTmpRegister();
             }
-
-            Js::RegSlot oneReg = funcInfo->constantToRegister.LookupWithKey(1, Js::Constants::NoRegister);
-            Assert(oneReg != Js::Constants::NoRegister);
-            byteCodeGenerator->Writer()->Reg3(op, incDecResult, pnode->location, oneReg);
+            
+            if (isESBigIntEnabled)
+            {
+                byteCodeGenerator->Writer()->Reg2(op1, incDecResult, pnode->location);
+            }
+            else
+            {
+                Js::RegSlot oneReg = funcInfo->constantToRegister.LookupWithKey(1, Js::Constants::NoRegister);
+                Assert(oneReg != Js::Constants::NoRegister);
+                byteCodeGenerator->Writer()->Reg3(op1, incDecResult, pnode->location, oneReg);
+            }
 
             // Store the incremented value.
             EmitAssignment(nullptr, pnode1, incDecResult, byteCodeGenerator, funcInfo);

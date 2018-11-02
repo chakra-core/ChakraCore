@@ -988,10 +988,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerUnaryHelperMem(instr, IR::HelperOp_ToSpreadedFunctionArgument);
             break;
 
+        case Js::OpCode::Conv_Numeric:
         case Js::OpCode::Conv_Num:
             this->LowerConvNum(instr, noMathFastPath);
             break;
 
+        case Js::OpCode::Incr_Num_A:
         case Js::OpCode::Incr_A:
             if (PHASE_OFF(Js::MathFastPathPhase, this->m_func) || noMathFastPath)
             {
@@ -1006,6 +1008,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
 
+        case Js::OpCode::Decr_Num_A:
         case Js::OpCode::Decr_A:
             if (PHASE_OFF(Js::MathFastPathPhase, this->m_func) || noMathFastPath)
             {
