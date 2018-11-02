@@ -119,7 +119,7 @@ namespace Js
         }
 
         ES5HeapArgumentsObject* ConvertToUnmappedArgumentsObject(bool overwriteArgsUsingFrameObject = true);
-        const ActivationObject* const GetFrameObject() { return frameObject; }
+        const ActivationObject* GetFrameObject() { return frameObject; }
         void SetFrameObject(ActivationObject * value)
         {
             AssertMsg(frameObject == nullptr, "Setting the frame object again?");

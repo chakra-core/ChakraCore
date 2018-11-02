@@ -202,14 +202,14 @@ public:
     void            AddLabelReloc(BYTE* relocAddress);
 
 private:
-    const BYTE      GetOpcodeByte2(IR::Instr *instr);
+    BYTE            GetOpcodeByte2(IR::Instr *instr);
     static Forms    GetInstrForm(IR::Instr *instr);
     const BYTE *    GetFormTemplate(IR::Instr *instr);
     const BYTE *    GetOpbyte(IR::Instr *instr);
-    const BYTE      GetRegEncode(IR::RegOpnd *regOpnd);
-    const BYTE      GetRegEncode(RegNum reg);
-    static const uint32 GetOpdope(IR::Instr *instr);
-    const uint32    GetLeadIn(IR::Instr * instr);
+    BYTE            GetRegEncode(IR::RegOpnd *regOpnd);
+    BYTE            GetRegEncode(RegNum reg);
+    static uint32   GetOpdope(IR::Instr *instr);
+    uint32          GetLeadIn(IR::Instr * instr);
     BYTE            EmitModRM(IR::Instr * instr, IR::Opnd *opnd, BYTE reg1);
     void            EmitConst(size_t val, int size, bool allowImm64 = false);
     BYTE            EmitImmed(IR::Opnd * opnd, int opSize, int sbit, bool allowImm64 = false);

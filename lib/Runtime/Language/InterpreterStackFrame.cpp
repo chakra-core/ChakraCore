@@ -1776,7 +1776,7 @@ skipThunk:
 #pragma optimize("", on)
 #endif
 
-    const bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
+    bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
     {
 #if ENABLE_PROFILE_INFO
         const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||

@@ -103,7 +103,7 @@ EncoderMD::Init(Encoder *encoder)
 ///
 ///----------------------------------------------------------------------------
 
-const BYTE
+BYTE
 EncoderMD::GetOpcodeByte2(IR::Instr *instr)
 {
     return OpcodeByte2[instr->m_opcode - (Js::OpCode::MDStart+1)];
@@ -161,13 +161,13 @@ EncoderMD::GetOpbyte(IR::Instr *instr)
 ///
 ///----------------------------------------------------------------------------
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(IR::RegOpnd *regOpnd)
 {
     return this->GetRegEncode(regOpnd->GetReg());
 }
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(RegNum reg)
 {
     AssertMsg(reg != RegNOREG, "should have valid reg in encoder");
@@ -189,7 +189,7 @@ EncoderMD::GetRegEncode(RegNum reg)
 ///
 ///----------------------------------------------------------------------------
 
-const uint32
+uint32
 EncoderMD::GetOpdope(IR::Instr *instr)
 {
     return Opdope[instr->m_opcode - (Js::OpCode::MDStart+1)];
@@ -203,7 +203,7 @@ EncoderMD::GetOpdope(IR::Instr *instr)
 ///
 ///----------------------------------------------------------------------------
 
-const uint32
+uint32
 EncoderMD::GetLeadIn(IR::Instr * instr)
 {
     return OpcodeLeadIn[instr->m_opcode - (Js::OpCode::MDStart+1)];

@@ -1293,7 +1293,7 @@ void LowererMD::ChangeToIMul(IR::Instr *const instr, bool hasOverflowCheck)
         EmitInt4Instr(instr); // IMUL2
 }
 
-const uint16
+uint16
 LowererMD::GetFormalParamOffset()
 {
     //In x86\x64 formal params were offset from EBP by the EBP chain, return address, and the 2 non-user params

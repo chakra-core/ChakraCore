@@ -28,10 +28,10 @@ namespace JsUtil
         {}
 
         TKey Key() { return key; }
-        const TKey Key() const { return key; }
+        TKey Key() const { return key; }
 
         TValue Value() { return value; }
-        const TValue Value() const { return value; }
+        TValue Value() const { return value; }
     };
 
 }

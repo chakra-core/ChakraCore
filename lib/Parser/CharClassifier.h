@@ -179,7 +179,7 @@ namespace Js
             return FBigChar(ch) ? IsIdContinueFast<true>(ch) : IsIdContinueFast<false>(ch);
         }
 
-        const size_t SkipBiDirectionalChars(_In_z_bytecount_(2 * length) LPCOLESTR psz, _In_ size_t startIndex, _In_ size_t length) const
+        size_t SkipBiDirectionalChars(_In_z_bytecount_(2 * length) LPCOLESTR psz, _In_ size_t startIndex, _In_ size_t length) const
         {
             size_t count = 0;
             while (startIndex < length)
@@ -195,7 +195,7 @@ namespace Js
             return count;
         }
 
-        const char16 SkipBiDirectionalChars(_In_z_ char16* &pszRef) const
+        char16 SkipBiDirectionalChars(_In_z_ char16* &pszRef) const
         {
             while (*pszRef != '\0')
             {
@@ -249,7 +249,7 @@ namespace Js
             return skipIdentifierFunc(psz, this);
         }
 
-        const LPCUTF8 SkipIdentifier(LPCUTF8 psz, LPCUTF8 end) const
+        LPCUTF8 SkipIdentifier(LPCUTF8 psz, LPCUTF8 end) const
         {
             return skipIdentifierStartEndFunc(psz, end, this);
         }

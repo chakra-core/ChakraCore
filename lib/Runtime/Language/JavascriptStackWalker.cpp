@@ -82,7 +82,7 @@ namespace Js
     }
 
 
-    void* const JavascriptCallStackLayout::ToFramePointer(JavascriptCallStackLayout* callstackLayout)
+    void* JavascriptCallStackLayout::ToFramePointer(JavascriptCallStackLayout* callstackLayout)
     {
         return
             reinterpret_cast<void * const>(
@@ -1484,12 +1484,12 @@ namespace Js
         return GetFrameAtIndex(frameCount - 1)->function;
     }
 
-    InlinedFrameWalker::InlinedFrame *const InlinedFrameWalker::GetCurrentFrame() const
+    InlinedFrameWalker::InlinedFrame *InlinedFrameWalker::GetCurrentFrame() const
     {
         return GetFrameAtIndex(currentIndex);
     }
 
-    InlinedFrameWalker::InlinedFrame *const InlinedFrameWalker::GetFrameAtIndex(signed index) const
+    InlinedFrameWalker::InlinedFrame *InlinedFrameWalker::GetFrameAtIndex(signed index) const
     {
         Assert(frames);
         Assert(frameCount);

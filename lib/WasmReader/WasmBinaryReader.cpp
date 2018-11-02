@@ -329,7 +329,7 @@ bool WasmBinaryReader::IsCurrentFunctionCompleted() const
 }
 
 
-const uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
+uint32 WasmBinaryReader::EstimateCurrentFunctionBytecodeSize() const
 {
     if (m_readerState != READER_STATE_FUNCTION)
     {
