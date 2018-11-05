@@ -405,7 +405,6 @@ namespace Js
 
     bool JavascriptBigInt::Equals(Var aLeft, Var aRight)
     {
-        AssertMsg(VarIs<JavascriptBigInt>(aLeft) && VarIs<JavascriptBigInt>(aRight), "BigInt Equals");
         JavascriptBigInt *leftBigInt = VarTo<JavascriptBigInt>(aLeft);
         JavascriptBigInt *rightBigInt = VarTo<JavascriptBigInt>(aRight);
 

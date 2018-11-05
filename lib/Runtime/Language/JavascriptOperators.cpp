@@ -937,6 +937,14 @@ CommonNumber:
                 return FEqualDbl(dblLeft, dblRight);
             }
             return FALSE;
+
+        case TypeIds_BigInt:
+            switch (rightType)
+            {
+            case TypeIds_BigInt:
+                return JavascriptBigInt::Equals(aLeft, aRight);
+            }
+            return FALSE;
         case TypeIds_Boolean:
             switch (rightType)
             {
