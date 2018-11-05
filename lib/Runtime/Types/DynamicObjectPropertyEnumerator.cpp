@@ -73,7 +73,7 @@ namespace Js
             Assert(data != nullptr);
             Assert(data->scriptContext == this->scriptContext); // The cache data script context should be the same as request context
 
-            if (data->enumNonEnumerable == GetEnumNonEnumerable())
+            if (data->enumNonEnumerable == GetEnumNonEnumerable() && data->enumSymbols == GetEnumSymbols())
             {
                 Initialize(type, data, data->propertyCount);
                 return true;

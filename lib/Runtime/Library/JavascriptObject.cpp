@@ -1209,7 +1209,7 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
     AssertMsg(includeStringProperties || includeSymbolProperties, "Should either get string or symbol properties.");
 
     JavascriptStaticEnumerator enumerator;
-    EnumeratorFlags flags = EnumeratorFlags::UseCache;
+    EnumeratorFlags flags = EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache;
     JavascriptArray* newArr = scriptContext->GetLibrary()->CreateArray(0);
     if (includeNonEnumerable)
     {
