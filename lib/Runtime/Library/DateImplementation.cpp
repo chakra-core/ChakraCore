@@ -1118,19 +1118,13 @@ Error:
                     continue;
                 }
                 case '+':
-                {
-                    if (lwNil != lwTime)
-                    {
-                        ss = ssAddOffset;
-                    }
-                    continue;
-                }
                 case '-':
                 {
-                    if (lwNil != lwTime)
+                    if (lwNil == lwTime)
                     {
-                        ss = ssSubOffset;
+                        goto LError;
                     }
+                    ss = (ch == '+') ? ssAddOffset : ssSubOffset;
                     continue;
                 }
             }
@@ -1300,7 +1294,7 @@ Error:
                 {
                     AssertMsg(isNextFieldDateNegativeVersion5 == false, "isNextFieldDateNegativeVersion5 == false");
 
-                    if (lwNil != lwOffset)
+                    if (lwNil != lwOffset || lwNil == lwTime)
                         goto LError;
                     // convert into minutes, e.g. 730 -> 7*60+30
                     lwOffset = lwT < 24 ? lwT * 60 :
