@@ -46,7 +46,8 @@ using namespace CorUnix;
 SET_DEFAULT_DEBUG_CHANNEL(VIRTUAL);
 
 CRITICAL_SECTION virtual_critsec PAL_GLOBAL;
-CRITICAL_SECTION virtual_realloc PAL_GLOBAL;
+
+static const ushort VIRTUAL_ALLOC_SPIN_COUNT_BEFORE_YIELD = 10;
 
 #if MMAP_IGNORES_HINT
 typedef struct FREE_BLOCK {
@@ -124,7 +125,6 @@ VIRTUALInitialize( void )
     TRACE( "Initializing the Virtual Critical Sections. \n" );
 
     InternalInitializeCriticalSection(&virtual_critsec);
-    InternalInitializeCriticalSection(&virtual_realloc);
 
     pVirtualMemory = NULL;
     pVirtualMemoryLastFound = NULL;
@@ -1717,7 +1717,10 @@ VirtualAlloc(
     if (reserve || commit)
     {
         char *address = (char*) VirtualAlloc_(nullptr, dwSize, MEM_RESERVE, flProtect);
-        if (!address) return nullptr;
+        if (!address)
+        {
+            return nullptr;
+        }
 
         if (reserve)
         {
@@ -1727,28 +1730,47 @@ VirtualAlloc(
         SIZE_T diff = ((ULONG_PTR)address % KB64);
         if ( diff != 0 )
         {
-            VirtualFree(address, 0, MEM_RELEASE);
-            char *addr64 = address + (KB64 - diff);
+            CPalThread *pthrCurrent = InternalGetCurrentThread();
 
+            char *addr64 = address + (KB64 - diff);
+            // We need to make sure these VirtualFree and VirtualAlloc_ calls happen under the lock to ensure we don't
+            // lose the region we are interested in to another thread and end up returning nullptr.
+            InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
+            VirtualFree(address, 0, MEM_RELEASE);
             // try reserving from the same address space
             address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
+            InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
 
-            if (!address)
-            {   // looks like ``pushed new address + dwSize`` is not available
+            ushort spinCount = 0;
+            while (!address)
+            {
+                // looks like ``pushed new address + dwSize`` is not available
                 // try on a bigger surface
                 address = (char*) VirtualAlloc_(nullptr, dwSize + KB64, MEM_RESERVE, flProtect);
-                if (!address) return nullptr;
+                if (!address)
+                {
+                    // This is an actual OOM.
+                    return nullptr;
+                }
 
                 diff = ((ULONG_PTR)address % KB64);
                 addr64 = address + (KB64 - diff);
 
-                CPalThread *pthrCurrent = InternalGetCurrentThread();
-                InternalEnterCriticalSection(pthrCurrent, &virtual_realloc);
+                // We need to make sure these VirtualFree and VirtualAlloc_ calls happen under the lock to ensure we don't
+                // lose the region we are interested in to another thread and end up returning nullptr.
+                InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
                 VirtualFree(address, 0, MEM_RELEASE);
                 address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
-                InternalLeaveCriticalSection(pthrCurrent, &virtual_realloc);
+                InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
 
-                if (!address) return nullptr;
+                // We will spin until we hit a real OOM.
+                spinCount++;
+                if (spinCount > VIRTUAL_ALLOC_SPIN_COUNT_BEFORE_YIELD)
+                {
+                    // Yield occassionally to avoid a live-lock situation.
+                    spinCount = 0;
+                    sched_yield();
+                }
             }
         }
 
