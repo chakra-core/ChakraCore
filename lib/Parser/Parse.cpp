@@ -10037,14 +10037,38 @@ LRestart:
         }
 
         Assert(pnode != nullptr);
-        ParseNodeFnc* pNodeFnc = (ParseNodeFnc*)pnode;
+
         if (labelledStatement)
         {
             if (IsStrictMode())
             {
                 Error(ERRFunctionAfterLabelInStrict);
             }
-            else if (pNodeFnc->IsAsync())
+            // #sec-with-statement-static-semantics-early-errors states that the Statement of
+            // a WithStatement throws a Syntax Error if the Statement is a LabelledFunction.
+            else if (m_pstmtCur && m_pstmtCur->pnodeStmt && m_pstmtCur->pnodeStmt->nop == knopWith)
+            {
+                Error(ERRStmtOfWithIsLabelledFunc);
+            }
+
+            ParseNodeFnc* pNodeFnc = nullptr;
+
+            // pnode can be a knopBlock due to ParseFncDeclCheckScope, which
+            // can return a ParseNodeBlock that contains a ParseNodeFnc.
+            if (pnode->nop == knopBlock)
+            {
+                ParseNodeBlock* pNodeBlock = pnode->AsParseNodeBlock();
+                if (pNodeBlock->pnodeStmt && pNodeBlock->pnodeStmt->nop == knopFncDecl)
+                {
+                    pNodeFnc = pNodeBlock->pnodeStmt->AsParseNodeFnc();
+                }
+            }
+            if (pNodeFnc == nullptr)
+            {
+                pNodeFnc = pnode->AsParseNodeFnc();
+            }
+
+            if (pNodeFnc->IsAsync())
             {
                 Error(ERRLabelBeforeAsyncFncDeclaration);
             }
