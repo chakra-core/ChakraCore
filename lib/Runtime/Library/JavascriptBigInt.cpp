@@ -23,6 +23,13 @@ namespace Js
         return bigintNew;
     }
 
+    JavascriptBigInt * JavascriptBigInt::CreateOne(ScriptContext * scriptContext)
+    {
+        JavascriptBigInt * bigintNew = JavascriptBigInt::CreateZero(scriptContext);
+        bigintNew->m_digits[0] = 1;
+        return bigintNew;
+    }
+
     JavascriptBigInt * JavascriptBigInt::New(JavascriptBigInt * pbi, ScriptContext * scriptContext)
     {
         JavascriptBigInt * bigintNew = RecyclerNew(scriptContext->GetRecycler(), JavascriptBigInt, scriptContext->GetLibrary()->GetBigIntTypeStatic());
@@ -284,6 +291,32 @@ namespace Js
         JavascriptBigInt* newBigInt = JavascriptBigInt::New(rightBigInt, rightBigInt->GetScriptContext());
         JavascriptBigInt::Decrement(newBigInt);
         return newBigInt;
+    }
+
+    Var JavascriptBigInt::Not(Var aRight)
+    {
+        JavascriptBigInt* rightBigInt = VarTo<JavascriptBigInt>(aRight);
+        JavascriptBigInt* newBigInt = JavascriptBigInt::New(rightBigInt, rightBigInt->GetScriptContext());
+        JavascriptBigInt::Negate(newBigInt);
+        JavascriptBigInt * bigintOne = JavascriptBigInt::CreateOne(rightBigInt->GetScriptContext());
+        return JavascriptBigInt::Sub(newBigInt, bigintOne);
+    }
+
+    Var JavascriptBigInt::Negate(Var aRight)
+    {
+        JavascriptBigInt* rightBigInt = VarTo<JavascriptBigInt>(aRight);
+        JavascriptBigInt* newBigInt = JavascriptBigInt::New(rightBigInt, rightBigInt->GetScriptContext());
+        JavascriptBigInt::Negate(newBigInt);
+        return newBigInt;
+    }
+
+    void JavascriptBigInt::Negate(JavascriptBigInt * pbi)
+    {
+        if (JavascriptBigInt::IsZero(pbi))
+        {
+            return;
+        }
+        pbi->m_isNegative = !pbi->m_isNegative;
     }
 
     // return low(a*b) and out high
