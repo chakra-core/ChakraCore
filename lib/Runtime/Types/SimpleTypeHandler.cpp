@@ -64,7 +64,7 @@ namespace Js
     template<size_t size>
     bool SimpleTypeHandler<size>::DoConvertToPathType(DynamicType* type)
     {
-        if (CrossSite::IsThunk(type->GetEntryPoint()) || type->GetTypeHandler()->GetIsPrototype())
+        if ((PHASE_ON1(ShareCrossSiteFuncTypesPhase) && CrossSite::IsThunk(type->GetEntryPoint())) || type->GetTypeHandler()->GetIsPrototype())
         {
             return false;
         }
@@ -157,8 +157,6 @@ namespace Js
     template<size_t size>
     PathTypeHandlerBase* SimpleTypeHandler<size>::ConvertToPathType(DynamicObject* instance)
     {
-        Assert(!CrossSite::IsThunk(instance->GetType()->GetEntryPoint()));
-
         ScriptContext *scriptContext = instance->GetScriptContext();
         PathTypeHandlerBase* newTypeHandler =
             PathTypeHandlerNoAttr::New(

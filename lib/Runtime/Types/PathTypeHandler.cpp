@@ -2674,6 +2674,39 @@ namespace Js
         return clonedTypeHandler;
     }
 
+    PathTypeHandlerBase *
+    PathTypeHandlerBase::BuildPathTypeFromNewRoot(DynamicObject * instance, DynamicType ** typeRef)
+    {
+        Assert(typeRef);
+        DynamicType * type = *typeRef;
+        ScriptContext * scriptContext = type->GetScriptContext();
+
+        PathTypeHandlerBase* newTypeHandler = PathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), GetIsLocked(), GetIsShared());
+        newTypeHandler->SetFlags(MayBecomeSharedFlag, GetFlags());
+        type->typeHandler = newTypeHandler;
+
+        // Promote type based on existing properties to get new type which will be cached and shared
+        ObjectSlotAttributes * attributes = this->GetAttributeArray();
+        for (PropertyIndex propertyIndex = 0; propertyIndex < GetPathLength(); propertyIndex++)
+        {
+            Js::PropertyId propertyId = GetPropertyId(scriptContext, propertyIndex);
+            ObjectSlotAttributes attr = attributes ? attributes[propertyIndex] : ObjectSlotAttr_Default;
+            type = newTypeHandler->PromoteType<false>(type, PathTypeSuccessorKey(propertyId, attr), true, scriptContext, instance, &propertyIndex);
+            newTypeHandler = PathTypeHandlerBase::FromTypeHandler(type->GetTypeHandler());
+            if (attr == ObjectSlotAttr_Setter)
+            {
+                newTypeHandler->SetSetterSlot(newTypeHandler->GetTypePath()->LookupInline(propertyId, newTypeHandler->GetPathLength()), (PathTypeSetterSlotIndex)(newTypeHandler->GetPathLength() - 1));
+            }
+        }
+        Assert(newTypeHandler->GetPathLength() == GetPathLength());
+        Assert(newTypeHandler->GetPropertyCount() == GetPropertyCount());
+        Assert(newTypeHandler->GetSetterCount() == GetSetterCount());
+
+        *typeRef = type;
+
+        return newTypeHandler;
+    }
+
     void PathTypeHandlerBase::SetPrototype(DynamicObject* instance, RecyclableObject* newPrototype)
     {
         // No typesharing for ExternalType
@@ -2749,39 +2782,16 @@ namespace Js
 
         if (cachedDynamicType == nullptr)
         {
-            PathTypeHandlerBase* newTypeHandler = PathTypeHandlerNoAttr::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), GetIsLocked(), GetIsShared());
-            newTypeHandler->SetFlags(MayBecomeSharedFlag, GetFlags());
-
             cachedDynamicType = instance->DuplicateType();
             cachedDynamicType->SetPrototype(newPrototype);
-            cachedDynamicType->typeHandler = newTypeHandler;
+            this->BuildPathTypeFromNewRoot(instance, &cachedDynamicType);
 
-            // Make type locked, shared only if we are using cache
             if (useCache)
             {
+                // Make type locked, shared only if we are using cache
                 cachedDynamicType->LockType();
                 cachedDynamicType->ShareType();
-            }
 
-            // Promote type based on existing properties to get new type which will be cached and shared
-            ObjectSlotAttributes * attributes = this->GetAttributeArray();
-            for (PropertyIndex propertyIndex = 0; propertyIndex < GetPathLength(); propertyIndex++)
-            {
-                Js::PropertyId propertyId = GetPropertyId(scriptContext, propertyIndex);
-                ObjectSlotAttributes attr = attributes ? attributes[propertyIndex] : ObjectSlotAttr_Default;
-                cachedDynamicType = newTypeHandler->PromoteType<false>(cachedDynamicType, PathTypeSuccessorKey(propertyId, attr), true, scriptContext, instance, &propertyIndex);
-                newTypeHandler = PathTypeHandlerBase::FromTypeHandler(cachedDynamicType->GetTypeHandler());
-                if (attr == ObjectSlotAttr_Setter)
-                {
-                    newTypeHandler->SetSetterSlot(newTypeHandler->GetTypePath()->LookupInline(propertyId, newTypeHandler->GetPathLength()), (PathTypeSetterSlotIndex)(newTypeHandler->GetPathLength() - 1));
-                }
-            }
-            Assert(newTypeHandler->GetPathLength() == GetPathLength());
-            Assert(newTypeHandler->GetPropertyCount() == GetPropertyCount());
-            Assert(newTypeHandler->GetSetterCount() == GetSetterCount());
-
-            if (useCache)
-            {
                 if (oldTypeToPromotedTypeMap == nullptr)
                 {
                     oldTypeToPromotedTypeMap = RecyclerNew(instance->GetRecycler(), TypeTransitionMap, instance->GetRecycler(), 2);

@@ -300,6 +300,7 @@ namespace Js
         Field(DynamicType *) defaultExternalConstructorFunctionWithDeferredPrototypeType;
         Field(DynamicType *) boundFunctionType;
         Field(DynamicType *) regexConstructorType;
+        Field(DynamicType *) crossSiteDeferredFunctionType;
         Field(DynamicType *) crossSiteDeferredPrototypeFunctionType;
         Field(DynamicType *) crossSiteIdMappedFunctionWithPrototypeType;
         Field(DynamicType *) crossSiteExternalConstructFunctionWithPrototypeType;
@@ -912,8 +913,13 @@ namespace Js
         template<bool isNameAvailable>
         static DynamicTypeHandler * GetDeferredAsyncFunctionTypeHandlerBase();
 
+        DynamicType * CreateDeferredFunctionType(JavascriptMethod entrypoint);
         DynamicType * CreateDeferredPrototypeFunctionType(JavascriptMethod entrypoint);
-        DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false, bool isLengthAvailable = false);
+        DynamicType * CreateDeferredPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
+        DynamicType * CreateDeferredFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
+        DynamicType * CreateDeferredLengthPrototypeFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
+        DynamicType * CreateDeferredLengthFunctionTypeNoProfileThunk(JavascriptMethod entrypoint, bool isShared = false);
+        template<bool isLengthAvailable, bool isPrototypeAvailable> DynamicType * CreateDeferredFunctionTypeNoProfileThunk_Internal(JavascriptMethod entrypoint, bool isShared);
         DynamicType * CreateFunctionType(JavascriptMethod entrypoint, RecyclableObject* prototype = nullptr);
         DynamicType * CreateFunctionWithConfigurableLengthType(FunctionInfo * functionInfo);
         DynamicType * CreateFunctionWithLengthType(FunctionInfo * functionInfo);
