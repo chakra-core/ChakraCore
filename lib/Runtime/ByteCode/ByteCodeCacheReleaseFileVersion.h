@@ -5,6 +5,6 @@
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 // This file was generated with tools\update_bytecode_version.ps1
 
-// {67AFB5DE-5B86-43E8-B3B5-CFD25FEA8FC3}
+// {26894CEE-B780-4CD4-B793-7B0972AEEDD9}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x67AFB5DE, 0x5B86, 0x43E8, { 0xB3, 0xB5, 0xCF, 0xD2, 0x5F, 0xEA, 0x8F, 0xC3 } };
+{ 0x26894CEE, 0xB780, 0x4CD4, { 0xB7, 0x93, 0x7B, 0x09, 0x72, 0xAE, 0xED, 0xD9 } };
