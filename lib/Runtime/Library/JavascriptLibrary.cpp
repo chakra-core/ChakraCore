@@ -5322,7 +5322,7 @@ namespace Js
             {
                 function->ChangeType();
                 function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
-                if (functionProxy && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
+                if (functionProxy && functionProxy->HasParseableInfo() && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
                 {
                     function->ShareType();
                     functionProxy->SetCrossSiteDeferredFunctionType(UnsafeVarTo<ScriptFunction>(function)->GetScriptFunctionType());
@@ -5355,7 +5355,7 @@ namespace Js
                     function->ChangeType();
                 }
                 function->SetEntryPoint(scriptContext->CurrentCrossSiteThunk);
-                if (functionProxy && function->GetTypeHandler()->GetMayBecomeShared() && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
+                if (functionProxy && functionProxy->HasParseableInfo() && function->GetTypeHandler()->GetMayBecomeShared() && !PHASE_OFF1(ShareCrossSiteFuncTypesPhase))
                 {
                     function->ShareType();
                     functionProxy->SetCrossSiteUndeferredFunctionType(UnsafeVarTo<ScriptFunction>(function)->GetScriptFunctionType());
