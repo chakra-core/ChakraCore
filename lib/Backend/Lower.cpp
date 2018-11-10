@@ -24326,113 +24326,122 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
 
         if (typeOfDst && instrSrc1 && instrSrc2)
         {
-            IR::RegOpnd *typeOpnd = nullptr;
-            IR::RegOpnd *idOpnd = nullptr;
-            if (instrSrc1->m_sym == typeOfDst->m_sym)
+            do
             {
-                typeOpnd = instrSrc1;
-                idOpnd = instrSrc2;
-            }
-            else if (instrSrc2->m_sym == typeOfDst->m_sym)
-            {
-                typeOpnd = instrSrc2;
-                idOpnd = instrSrc1;
-            }
-            else
-            {
-                // Neither source turned out to be the typeOpnd
-                return false;
-            }
-
-            if (!typeOpnd->m_isTempLastUse)
-            {
-                return false;
-            }
-
-            if (!(idOpnd->m_sym->m_isSingleDef && idOpnd->m_sym->m_isStrConst))
-            {
-                return false;
-            }
-
-            // The second argument to [Cm|Br]TypeOf is the typeid.
-            IR::IntConstOpnd *typeIdOpnd = nullptr;
-
-            Assert(idOpnd->m_sym->m_isSingleDef);
-            Assert(idOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
-
-            // We can't optimize non-javascript type strings.
-            JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(idOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
-            const char16        *typeName         = typeNameJsString->GetString();
-
-            Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
-            if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::UndefinedTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Undefined, TyInt32, instr->m_func);
-            }
-            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::ObjectTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Object, TyInt32, instr->m_func);
-            }
-            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::BooleanTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Boolean, TyInt32, instr->m_func);
-            }
-            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::NumberTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Number, TyInt32, instr->m_func);
-            }
-            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::StringTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_String, TyInt32, instr->m_func);
-            }
-            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::FunctionTypeNameString))
-            {
-                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, instr->m_func);
-            }
-            else
-            {
-                return false;
-            }
-
-            if (skippedLoads)
-            {
-                //validate none of dst of Ld_A overlaps with typeof src or dst
-                IR::Opnd* typeOfSrc = typeOf->GetSrc1();
-                instrLd = typeOf->GetNextRealInstr();
-                while (instrLd != instr)
+                IR::RegOpnd *typeOpnd = nullptr;
+                IR::RegOpnd *idOpnd = nullptr;
+                if (instrSrc1->m_sym == typeOfDst->m_sym)
                 {
-                    if (instrLd->GetDst()->IsEqual(typeOfDst) || instrLd->GetDst()->IsEqual(typeOfSrc))
-                    {
-                        return false;
-                    }
-                    instrLd = instrLd->GetNextRealInstr();
+                    typeOpnd = instrSrc1;
+                    idOpnd = instrSrc2;
                 }
-                typeOf->Unlink();
-                instr->InsertBefore(typeOf);
-            }
-            // The first argument to [Cm|Br]TypeOf is the first arg to the TypeOf instruction.
-            IR::Opnd *objectOpnd = typeOf->GetSrc1();
-            Assert(objectOpnd->IsRegOpnd());
+                else if (instrSrc2->m_sym == typeOfDst->m_sym)
+                {
+                    typeOpnd = instrSrc2;
+                    idOpnd = instrSrc1;
+                }
+                else
+                {
+                    // Neither source turned out to be the typeOpnd
+                    break;
+                }
 
-            // Now emit this instruction and remove the ldstr and typeOf.
-            *prev = typeOf->m_prev;
-            *pfNoLower = false;
-            if (instr->IsBranchInstr())
-            {
-                GenerateFastBrTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
-            }
-            else
-            {
-                GenerateFastCmTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
-            }
+                if (!typeOpnd->m_isTempLastUse)
+                {
+                    break;
+                }
 
-            return true;
+                if (!(idOpnd->m_sym->m_isSingleDef && idOpnd->m_sym->m_isStrConst))
+                {
+                    return false;
+                }
+
+                // The second argument to [Cm|Br]TypeOf is the typeid.
+                IR::IntConstOpnd *typeIdOpnd = nullptr;
+
+                Assert(idOpnd->m_sym->m_isSingleDef);
+                Assert(idOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
+
+                // We can't optimize non-javascript type strings.
+                JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(idOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
+                const char16        *typeName = typeNameJsString->GetString();
+
+                Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
+                if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::UndefinedTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Undefined, TyInt32, instr->m_func);
+                }
+                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::ObjectTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Object, TyInt32, instr->m_func);
+                }
+                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::BooleanTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Boolean, TyInt32, instr->m_func);
+                }
+                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::NumberTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Number, TyInt32, instr->m_func);
+                }
+                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::StringTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_String, TyInt32, instr->m_func);
+                }
+                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::FunctionTypeNameString))
+                {
+                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, instr->m_func);
+                }
+                else
+                {
+                    return false;
+                }
+
+                if (skippedLoads)
+                {
+                    //validate none of dst of Ld_A overlaps with typeof src or dst
+                    IR::Opnd* typeOfSrc = typeOf->GetSrc1();
+                    instrLd = typeOf->GetNextRealInstr();
+                    while (instrLd != instr)
+                    {
+                        if (instrLd->GetDst()->IsEqual(typeOfDst) || instrLd->GetDst()->IsEqual(typeOfSrc))
+                        {
+                            return false;
+                        }
+                        instrLd = instrLd->GetNextRealInstr();
+                    }
+                    typeOf->Unlink();
+                    instr->InsertBefore(typeOf);
+                }
+                // The first argument to [Cm|Br]TypeOf is the first arg to the TypeOf instruction.
+                IR::Opnd *objectOpnd = typeOf->GetSrc1();
+                Assert(objectOpnd->IsRegOpnd());
+
+                // Now emit this instruction and remove the ldstr and typeOf.
+                *prev = typeOf->m_prev;
+                *pfNoLower = false;
+                if (instr->IsBranchInstr())
+                {
+                    GenerateFastBrTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
+                }
+                else
+                {
+                    GenerateFastCmTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
+                }
+
+                return true;
+            } while (false);
         }
     }
 
     if (instrSrc1 && instrSrc1->GetStackSym()->IsSingleDef() && instrSrc2 && instrSrc2->GetStackSym()->IsSingleDef() &&
-        instrSrc1->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof &&
-        instrSrc2->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof)
+        (
+            ((instrSrc1->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof) &&
+                ((instrSrc2->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof) || instrSrc2->GetStackSym()->GetIsStrConst()))
+            ||
+            ((instrSrc2->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof) &&
+                ((instrSrc1->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::Typeof) || instrSrc1->GetStackSym()->GetIsStrConst()))
+            )
+        )
     {
         *pfNoLower = true;
         if (instr->IsBranchInstr())

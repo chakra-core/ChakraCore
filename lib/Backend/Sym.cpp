@@ -381,6 +381,12 @@ StackSym::SetIsStrConst()
     this->m_isNotNumber = true;
 }
 
+bool
+StackSym::GetIsStrConst()
+{
+    return this->m_isStrConst;
+}
+
 Js::RegSlot
 StackSym::GetByteCodeRegSlot() const
 {
