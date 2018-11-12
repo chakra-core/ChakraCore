@@ -13,6 +13,11 @@ using namespace Js;
                 return scriptContext->GetLibrary()->GetNegativeZero();
             }
 
+            if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+            {
+                return JavascriptBigInt::Negate(aRight);
+            }
+
             double value = Negate_Helper(aRight, scriptContext);
             return JavascriptNumber::ToVarIntCheck(value, scriptContext);
             JIT_HELPER_END(Op_Negate_Full);
@@ -28,6 +33,11 @@ using namespace Js;
                 return scriptContext->GetLibrary()->GetNegativeZero();
             }
 
+            if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+            {
+                return JavascriptBigInt::Negate(aRight);
+            }
+
             double value = Negate_Helper(aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(value, scriptContext, result);
             JIT_HELPER_END(Op_NegateInPlace);
@@ -39,6 +49,11 @@ using namespace Js;
 #if _M_IX86
             AssertMsg(!TaggedInt::Is(aRight), "Should be detected");
 #endif
+            if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+            {
+                return JavascriptBigInt::Not(aRight);
+            }
+
             int nValue = JavascriptConversion::ToInt32(aRight, scriptContext);
             return JavascriptNumber::ToVar(~nValue, scriptContext);
             JIT_HELPER_END(Op_Not_Full);
@@ -49,6 +64,11 @@ using namespace Js;
         {
             JIT_HELPER_REENTRANT_HEADER(Op_NotInPlace);
             AssertMsg(!TaggedInt::Is(aRight), "Should be detected");
+
+            if (JavascriptOperators::GetTypeId(aRight) == TypeIds_BigInt)
+            {
+                return JavascriptBigInt::Not(aRight);
+            }
 
             int nValue = JavascriptConversion::ToInt32(aRight, scriptContext);
             return JavascriptNumber::ToVarInPlace(~nValue, scriptContext, result);
