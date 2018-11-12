@@ -5741,8 +5741,6 @@ CHAKRA_API RunScriptWithParserStateCore(
         LoadScriptFlag loadScriptFlag;
 
         JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
-        if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
-
         if (errorCode != JsNoError)
         {
             return errorCode;
@@ -5803,12 +5801,12 @@ CHAKRA_API RunScriptWithParserStateCore(
     byte* buffer = nullptr;
     if (dwBgParseCookie == 0)
     {
-    if (!Js::VarIs<Js::ArrayBuffer>(parserState))
+        if (!Js::VarIs<Js::ArrayBuffer>(parserState))
         {
             return JsErrorInvalidArgument;
         }
 
-    Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(parserState);
+        arrayBuffer = Js::VarTo<Js::ArrayBuffer>(parserState);
         buffer = arrayBuffer->GetBuffer();
     }
 
@@ -5829,7 +5827,7 @@ CHAKRA_API JsRunScriptWithParserState(
     _Out_ JsValueRef *result)
 {
     WCHAR *url = nullptr;
-    if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
+    if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
     {
         url = const_cast<WCHAR*>(((Js::JavascriptString*)(sourceUrl))->GetSz());
         return RunScriptWithParserStateCore(0, script, sourceContext, url, parseAttributes, parserState, result);
