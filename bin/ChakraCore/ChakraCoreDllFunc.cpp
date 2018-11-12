@@ -153,6 +153,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
         else
         {
+            ThreadBoundThreadContextManager::DestroyAllContexts();
             ThreadContext::ReportAndCheckLeaksOnProcessDetach();
         }
 #endif
