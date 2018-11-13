@@ -1324,7 +1324,7 @@ GlobOpt::MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Va
         return
             !(
                 baseValueType.IsString() ||
-                (baseValueType.IsAnyArray() && baseValueType.GetObjectType() != ObjectType::ObjectWithArray) ||
+                baseValueType.IsArray() ||
                 (instr->HasBailOutInfo() && instr->GetBailOutKindNoBits() == IR::BailOutOnIrregularLength) // guarantees no implicit calls
             );
     }
