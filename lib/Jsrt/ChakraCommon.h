@@ -2434,21 +2434,59 @@ typedef unsigned short uint16_t;
             _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Starts a request for background script parsing on another thread
+    /// </summary>
+    /// <param name="contents">ScriptContents struct with data needed to start parsing</param>
+    /// <param name="dwBgParseCookie">Identifier for subsequent BGParse operations</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
     CHAKRA_API
-        JsQueueBackgroundParse(JsScriptContents* contents, DWORD* dwBgParseCookie);
+        JsQueueBackgroundParse_Experimental(
+            _In_ JsScriptContents* contents,
+            _Out_ DWORD* dwBgParseCookie);
 
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Appropriately frees resources associated with a previously queued background parse
+    /// </summary>
+    /// <param name="dwBgParseCookie">Identifier for BGParse operation</param>
+    /// <param name="buffer">Pointer to script source buffer, used for validation</param>
+    /// <param name="callerOwnsBuffer">When <c>true</c>, caller is responsible for freeing buffer</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
     CHAKRA_API
-        JsDiscardBackgroundParse(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer);
+        JsDiscardBackgroundParse_Experimental(
+            _In_ DWORD dwBgParseCookie,
+            _In_ void* buffer,
+            _Out_ bool* callerOwnsBuffer);
 
+    /// <summary>
+    ///     Note: Experimental API
+    ///     Executes the background parsed script
+    /// </summary>
+    /// <param name="dwBgParseCookie">Identifier for subsequent BGParse operations</param>
+    /// <param name="script">Pointer to script source</param>
+    /// <param name="sourceContext">JsSourceContext identifier</param>
+    /// <param name="url">Path to the parsed script</param>
+    /// <param name="parseAttributes"></param>
+    /// <param name="parserState">[May not be needed]</param>
+    /// <param name="result">Result of script execution</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
     CHAKRA_API
-        JsExecuteBackgroundParse(_In_ DWORD dwBgParseCookie,
+        JsExecuteBackgroundParse_Experimental(
+            _In_ DWORD dwBgParseCookie,
             _In_ JsValueRef script,
             _In_ JsSourceContext sourceContext,
             _In_ WCHAR *url,
             _In_ JsParseScriptAttributes parseAttributes,
             _In_ JsValueRef parserState,
             _Out_ JsValueRef *result);
-
 
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"

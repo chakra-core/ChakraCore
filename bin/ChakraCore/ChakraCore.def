@@ -71,6 +71,6 @@ JsRunScriptWithParserState
 JsGetPromiseState
 JsGetPromiseResult
 
-JsQueueBackgroundParse
-JsDiscardBackgroundParse
-JsExecuteBackgroundParse
+JsQueueBackgroundParse_Experimental
+JsDiscardBackgroundParse_Experimental
+JsExecuteBackgroundParse_Experimental
