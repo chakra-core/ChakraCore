@@ -27,16 +27,7 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
-#ifndef NTBUILD
-    status = RpcServerRegisterIf2(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL);
-#else
+#if (NTDDI_VERSION >= NTDDI_WIN8)
     status = RpcServerRegisterIf3(
         ServerIChakraJIT_v0_0_s_ifspec,
         NULL,
@@ -46,6 +37,15 @@ HRESULT JsInitializeJITServer(
         (ULONG)-1,
         NULL,
         securityDescriptor);
+#else
+    status = RpcServerRegisterIf2(
+        ServerIChakraJIT_v0_0_s_ifspec,
+        NULL,
+        NULL,
+        RPC_IF_AUTOLISTEN,
+        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+        (ULONG)-1,
+        NULL);
 #endif
     if (status != RPC_S_OK)
     {

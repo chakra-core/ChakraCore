@@ -1271,5 +1271,10 @@ CHAKRA_API
         _In_ JsValueRef parserState,
         _Out_ JsValueRef * result);
 
+
+#ifdef _WIN32
+#include "ChakraCoreWindows.h"
+#endif // _WIN32
+
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

@@ -114,6 +114,7 @@
     JsParseSerialized
     JsRunSerialized
     JsCreatePropertyId
+    JsConnectJITProcess
     JsCopyPropertyId
     JsCreatePromise
     JsCreateWeakReference

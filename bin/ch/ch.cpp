@@ -1298,7 +1298,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);
-            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
+            ChakraRTInterface::JsConnectJITProcess(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
         }
 #endif
         HANDLE threadHandle;

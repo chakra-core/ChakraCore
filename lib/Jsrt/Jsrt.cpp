@@ -4176,9 +4176,6 @@ CHAKRA_API JsTTDStart()
 
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     TTDAssert(scriptContext->IsTTDRecordOrReplayModeEnabled(), "Need to create in TTD Record Mode.");
-#if ENABLE_NATIVE_CODEGEN
-    TTDAssert(JITManager::GetJITManager() == nullptr || !JITManager::GetJITManager()->IsOOPJITEnabled(), "TTD cannot run with OOP JIT yet!!!");
-#endif
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
     {
         if(scriptContext->IsTTDRecordModeEnabled())
@@ -5907,5 +5904,17 @@ JsExecuteBackgroundParse_Experimental(
         return JsErrorFatal;
     }
 }
+
+#ifdef _WIN32
+CHAKRA_API
+JsConnectJITProcess(_In_ HANDLE processHandle, _In_opt_ void* serverSecurityDescriptor, _In_ UUID connectionId)
+{
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    JITManager::GetJITManager()->EnableOOPJIT();
+    ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
+#endif
+    return JsNoError;
+}
+#endif
 
 #endif // _CHAKRACOREBUILD
