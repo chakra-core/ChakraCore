@@ -66,6 +66,7 @@ public:
     int GetInlineSlotSize() const;
     void* GetInlineSlots() const;
 
+    Field(bool) initialized = true;
 private:
     enum class SlotType {
         Inline,

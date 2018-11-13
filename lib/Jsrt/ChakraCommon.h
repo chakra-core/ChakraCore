@@ -765,6 +765,7 @@ typedef unsigned short uint16_t;
         JsValueRef hasTrap;
         JsValueRef getOwnPropertyDescriptorTrap;
         JsValueRef definePropertyTrap;
+        JsValueRef initializerTrap;
 
         explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 

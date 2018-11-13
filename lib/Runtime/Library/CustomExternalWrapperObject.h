@@ -18,6 +18,7 @@ namespace Js
         void * hasTrap;
         void * getOwnPropertyDescriptorTrap;
         void * definePropertyTrap;
+        void * initializeTrap;
 
         explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 
@@ -59,8 +60,10 @@ namespace Js
         } SetPropertyTrapKind;
 
         enum KeysTrapKind {
+            GetOwnEnumerablePropertyNamesKind,
             GetOwnPropertyNamesKind,
             GetOwnPropertySymbolKind,
+            EnumerableKeysKind,
             KeysKind
         };
 
@@ -77,11 +80,14 @@ namespace Js
 
         CustomExternalWrapperType * GetExternalType() const { return (CustomExternalWrapperType *)this->GetType(); }
 
+        BOOL EnsureInitialized(ScriptContext* requestContext);
+
         void Mark(Recycler * recycler) override;
         void Finalize(bool isShutdown) override;
         void Dispose(bool isShutdown) override;
 
         bool HasReadOnlyPropertiesInvisibleToTypeHandler() override { return true; }
+        bool IsInitialized() const { return this->initialized; }
 
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var * value, PropertyValueInfo * info, ScriptContext * requestContext) override;
         virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var * value, PropertyValueInfo * info, ScriptContext * requestContext) override;
@@ -89,8 +95,8 @@ namespace Js
         virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo * info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo * info) override;
-        virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo * info) override;
         virtual BOOL EnsureNoRedeclProperty(PropertyId propertyId) override;
+        virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = nullptr) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
@@ -108,8 +114,8 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        template <class GetPropertyNameFunc>
-        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck = FALSE);
+        template <class Fn, class GetPropertyNameFunc>
+        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn);
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, JavascriptString * propertyString, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags);
 
         JavascriptArray * PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext * requestContext);
@@ -119,12 +125,43 @@ namespace Js
         int GetInlineSlotSize() const;
         void* GetInlineSlots() const;
 
+        virtual PropertyId GetPropertyId(PropertyIndex index) override { if (!EnsureInitialized(GetScriptContext())) { return Constants::NoProperty; } return DynamicObject::GetPropertyId(index); }
+        virtual PropertyId GetPropertyId(BigPropertyIndex index) override { if (!EnsureInitialized(GetScriptContext())) { return Constants::NoProperty; } return DynamicObject::GetPropertyId(index); }
+        virtual BOOL HasOwnProperty(PropertyId propertyId) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::HasOwnProperty(propertyId); }
+        virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override { if (!EnsureInitialized(GetScriptContext())) { return None; }  return DynamicObject::GetSetter(propertyId, setterValue, info, requestContext); }
+        virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override { if (!EnsureInitialized(GetScriptContext())) { return None; }  return DynamicObject::GetSetter(propertyNameString, setterValue, info, requestContext); }
+        virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects); }
+#if ENABLE_FIXED_FIELDS
+        virtual BOOL IsFixedProperty(PropertyId propertyId) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::IsFixedProperty(propertyId); }
+#endif
+        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { if (!EnsureInitialized(GetScriptContext())) { return None; } return DynamicObject::GetItemSetter(index, setterValue, requestContext); }
+        virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::ToPrimitive(hint, result, requestContext); }
+        virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetAccessors(propertyId, getter, setter, flags); }
+        _Check_return_ _Success_(return) virtual BOOL GetAccessors(PropertyId propertyId, _Outptr_result_maybenull_ Var* getter, _Outptr_result_maybenull_ Var* setter, ScriptContext* requestContext) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::GetAccessors(propertyId, getter, setter, requestContext); }
+        virtual BOOL IsWritable(PropertyId propertyId) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::IsWritable(propertyId); }
+        virtual BOOL IsConfigurable(PropertyId propertyId) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::IsConfigurable(propertyId); }
+        virtual BOOL IsEnumerable(PropertyId propertyId) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::IsEnumerable(propertyId); }
+        virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetEnumerable(propertyId, value); }
+        virtual BOOL SetWritable(PropertyId propertyId, BOOL value) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetWritable(propertyId, value); }
+        virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetConfigurable(propertyId, value); }
+        virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::SetAttributes(propertyId, attributes); }
+        virtual BOOL Seal() override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::Seal(); }
+        virtual BOOL Freeze() override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::Freeze(); }
+
+#if DBG
+        virtual bool CanStorePropertyValueDirectly(PropertyId propertyId, bool allowLetConst) override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::CanStorePropertyValueDirectly(propertyId, allowLetConst); }
+#endif
+
+        virtual void RemoveFromPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override { if (!EnsureInitialized(GetScriptContext())) { return; } return DynamicObject::RemoveFromPrototype(requestContext, allProtoCachesInvalidated); }
+        virtual void AddToPrototype(ScriptContext * requestContext, bool * allProtoCachesInvalidated) override { if (!EnsureInitialized(GetScriptContext())) { return; } return DynamicObject::AddToPrototype(requestContext, allProtoCachesInvalidated); }
+        virtual bool ClearProtoCachesWereInvalidated() override { if (!EnsureInitialized(GetScriptContext())) { return FALSE; } return DynamicObject::ClearProtoCachesWereInvalidated(); }
     private:
         enum class SlotType {
             Inline,
             External
         };
 
+        Field(bool) initialized = false;
         Field(SlotType) slotType;
         union
         {
