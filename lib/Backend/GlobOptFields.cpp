@@ -1900,20 +1900,8 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
         switch (typeId)
         {
         default:
-            if (typeId > Js::TypeIds_LastStaticType)
-            {
-                Assert(typeId != Js::TypeIds_Proxy);
-                if (objValueType.IsLikelyArrayOrObjectWithArray())
-                {
-                    // If we have likely object with array before, we can't make it definite object with array
-                    // since we have only proved that it is an object.
-                    // Keep the likely array or object with array.
-                }
-                else
-                {
-                    newValueType = ValueType::GetObject(ObjectType::Object);
-                }
-            }
+            // Can't mark as definite object because it may actually be object-with-array.
+            // Consider: a value type that subsumes object, array, and object-with-array.
             break;
         case Js::TypeIds_NativeIntArray:
         case Js::TypeIds_NativeFloatArray:

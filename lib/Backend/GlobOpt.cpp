@@ -13375,6 +13375,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
                     case IR::HelperArray_Shift:
                     case IR::HelperArray_Splice:
                     case IR::HelperArray_Unshift:
+                    case IR::HelperArray_Concat:
                         kills.SetKillsArrayHeadSegments();
                         kills.SetKillsArrayHeadSegmentLengths();
                         break;
@@ -13404,6 +13405,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
                     //case IR::HelperArray_Sort:
                     case IR::HelperArray_Splice:
                     case IR::HelperArray_Unshift:
+                    case IR::HelperArray_Concat:
                         kills.SetKillsNativeArrays();
                         break;
                 }

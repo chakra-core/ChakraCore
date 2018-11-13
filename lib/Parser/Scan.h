@@ -780,7 +780,7 @@ private:
 
     void ScanNewLine(uint ch);
     void NotifyScannedNewLine();
-    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last);
+    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last, size_t* cb);
 
     tokens ScanIdentifier(bool identifyKwds, EncodedCharPtr *pp);
     BOOL FastIdentifierContinue(EncodedCharPtr&p, EncodedCharPtr last);
