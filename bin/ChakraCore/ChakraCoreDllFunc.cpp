@@ -154,6 +154,7 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         else
         {
             ThreadBoundThreadContextManager::DestroyAllContexts();
+            DetachProcess();
             ThreadContext::ReportAndCheckLeaksOnProcessDetach();
         }
 #endif

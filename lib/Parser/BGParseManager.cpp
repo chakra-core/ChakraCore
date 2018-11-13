@@ -590,7 +590,7 @@ HRESULT BGParseWorkItem::DeserializeParseResults(
         {
             scriptContextUI->MakeUtf8SourceInfo(
                 this->script,
-                this->parseSourceLength,
+                this->cb,
                 pSrcInfo,
                 &utf8SourceInfo,
                 LoadScriptFlag_Utf8Source,

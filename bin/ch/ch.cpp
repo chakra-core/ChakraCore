@@ -39,6 +39,8 @@ UINT32 snapHistoryLength = MAXUINT32;
 LPCWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
+HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileName);
+
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 {
@@ -462,8 +464,9 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
             IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
                 (unsigned int)fileLength,
                 fileContentsFinalizeCallback, (void*)fileContents, &scriptSource));
+
 #if ENABLE_TTD
-            if(doTTRecord)
+            if (doTTRecord)
             {
                 JsPropertyIdRef ttProperty = nullptr;
                 JsValueRef ttString = nullptr;
@@ -769,8 +772,7 @@ HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileNa
     for (int i = 0; i < fileNameLength; i++)
     {
         fileNameWide[i] = fileName[i];
-    }   
-
+    }
 
     JsScriptContents scriptContents = { 0 };
     scriptContents.container = (LPVOID)fileContents;
@@ -793,9 +795,8 @@ HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileNa
         nullptr,//_In_ JsValueRef parserState,
         &bgResult
     );
-    Assert(e == JsErrorCode::JsNoError);
 
-    return S_OK;
+    return e;
 }
 
 HRESULT ExecuteTest(const char* fileName)
