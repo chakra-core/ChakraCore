@@ -312,11 +312,6 @@ namespace JsRTApiTest
         JsGetterSetterInterceptor * interceptor3 = nullptr;
         JsValueRef prototype2 = JS_INVALID_REFERENCE;
         REQUIRE(JsCreateTracedCustomExternalObjectWithPrototype((void *)0xdeadbeef, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor3, prototype2, &object3) == JsNoError);
-
-        JsValueRef object4 = JS_INVALID_REFERENCE;
-        JsGetterSetterInterceptor * interceptor4 = nullptr;
-        JsValueRef prototype4 = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateTracedCustomExternalObjectWithPrototypeAndSlots((void *)0xdeadbeef, 92, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor4, prototype4, &object4) == JsNoError);
     }
 
     TEST_CASE("ApiTest_CrossContextSetPropertyTest", "[ApiTest]")
