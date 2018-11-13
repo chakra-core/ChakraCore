@@ -5146,6 +5146,10 @@ Inline::MapFormals(Func *inlinee,
                 else
                 {
                     instr->SetSrc1(funcObjOpnd);
+
+                    // This usage doesn't correspond with any byte code register, since interpreter stack frames
+                    // get their function reference via this->function rather than from a register.
+                    instr->GetSrc1()->SetIsJITOptimizedReg(true);
                 }
             }
             else

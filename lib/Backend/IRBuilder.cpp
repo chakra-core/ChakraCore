@@ -3749,7 +3749,7 @@ NewScFuncCommon:
 IR::Opnd*
 IRBuilder::GetEnvironmentOperand(uint32 offset)
 {
-    SymID symID;
+    StackSym* sym = nullptr;
     // The byte code doesn't refer directly to a closure environment. Get the implicit one
     // that's pointed to by the function body.
     if (m_func->DoStackFrameDisplay() && m_func->GetLocalFrameDisplaySym())
@@ -3760,19 +3760,35 @@ IRBuilder::GetEnvironmentOperand(uint32 offset)
         this->AddInstr(
             IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func),
             offset);
-        symID = regOpnd->m_sym->m_id;
+        sym = regOpnd->m_sym;
     }
     else
     {
+        SymID symID;
         symID = this->GetEnvRegForInnerFrameDisplay();
         Assert(symID != Js::Constants::NoRegister);
         if (IsLoopBody() && !RegIsConstant(symID))
         {
             this->EnsureLoopBodyLoadSlot(symID);
         }
+
+        if (m_func->DoStackNestedFunc() && symID == GetEnvReg())
+        {
+            // Environment is not guaranteed constant during this function because it could become boxed during execution,
+            // so load the environment every time you need it.
+            IR::RegOpnd *regOpnd = IR::RegOpnd::New(TyVar, m_func);
+            this->AddInstr(
+                IR::Instr::New(Js::OpCode::LdEnv, regOpnd, m_func),
+                offset);
+            sym = regOpnd->m_sym;
+        }
+        else
+        {
+            sym = StackSym::FindOrCreate(symID, (Js::RegSlot)symID, m_func);
+        }
     }
 
-    return IR::RegOpnd::New(StackSym::FindOrCreate(symID, (Js::RegSlot)symID, m_func), TyVar, m_func);
+    return IR::RegOpnd::New(sym, TyVar, m_func);
 }
 
 template <typename SizePolicy>

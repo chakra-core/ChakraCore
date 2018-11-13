@@ -3765,13 +3765,11 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
         // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
-        uint const missingItemCount = size * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
-        i = i * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
-        for (; i < missingItemCount; i++)
+        for (; i < size; i++)
         {
             GenerateMemInit(
-                headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                headOpnd, offsetStart + i * sizeof(double),
+                GetMissingItemOpndForAssignment(TyFloat64, m_func),
                 instr, isZeroed);
         }
     }
@@ -3788,7 +3786,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         {
             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::Var),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                GetMissingItemOpndForAssignment(TyVar, m_func),
                 instr, isZeroed);
         }
     }
@@ -4111,12 +4109,11 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 
         // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
-        uint const missingItemCount = size * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
-        for (uint i = 0; i < missingItemCount; i++)
+        for (uint i = 0; i < size; i++)
         {
             GenerateMemInit(
-                headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                headOpnd, offsetStart + i * sizeof(double),
+                GetMissingItemOpndForAssignment(TyFloat64, m_func),
                 instr, isZeroed);
         }
     }
@@ -4126,9 +4123,9 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
         headOpnd = GenerateArrayObjectsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed, isNoArgs);
         for (uint i = 0; i < size; i++)
         {
-            GenerateMemInit(
+             GenerateMemInit(
                 headOpnd, offsetStart + i * sizeof(Js::Var),
-                IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true),
+                GetMissingItemOpndForAssignment(TyVar, m_func),
                 instr, isZeroed);
         }
     }
@@ -4159,8 +4156,8 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     uint allocationBucketsCount = ArrayType::AllocationBucketsCount;
     uint(*allocationBuckets)[Js::JavascriptArray::AllocationBucketsInfoSize];
     allocationBuckets = ArrayType::allocationBuckets;
-    uint sizeFactor = 1;
-    IRType missingItemType = (arrayInfo && arrayInfo->IsNativeIntArray()) ? IRType::TyInt32 : IRType::TyVar;
+    
+    IRType missingItemType = (arrayInfo ? arrayInfo->IsNativeIntArray() ? IRType::TyInt32 : arrayInfo->IsNativeFloatArray() ? IRType::TyFloat64 : IRType::TyVar : IRType::TyVar);
     IR::LabelInstr * arrayInitDone = IR::LabelInstr::New(Js::OpCode::Label, func);
 
     bool isNativeArray = arrayInfo && (arrayInfo->IsNativeIntArray() || arrayInfo->IsNativeFloatArray());
@@ -4172,9 +4169,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     }
     else if (arrayInfo && arrayInfo->IsNativeFloatArray())
     {
-        // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
-        sizeFactor = sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
-        sizeOfElement = sizeof(Js::JavascriptArray::MissingItem);
+        sizeOfElement = sizeof(double);
         GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
     }
     else
@@ -4204,7 +4199,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
 
     for (uint8 i = 0;i < allocationBucketsCount;i++)
     {
-        missingItemCount = allocationBuckets[i][Js::JavascriptArray::MissingElementsCountIndex] * sizeFactor;
+        missingItemCount = allocationBuckets[i][Js::JavascriptArray::MissingElementsCountIndex];
 
         if (i > 0)
         {
@@ -4235,7 +4230,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     // Ensure no. of missingItems written are same
     Assert(missingItemIndex == missingItemInitializedSoFar);
     // Ensure no. of missingItems match what present in allocationBuckets
-    Assert(missingItemIndex == allocationBuckets[allocationBucketsCount - 1][Js::JavascriptArray::MissingElementsCountIndex] * sizeFactor);
+    Assert(missingItemIndex == allocationBuckets[allocationBucketsCount - 1][Js::JavascriptArray::MissingElementsCountIndex]);
 
     instr->InsertBefore(arrayInitDone);
 
@@ -4363,11 +4358,11 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
 
     // Js::JavascriptArray::MissingItem is a Var, so it may be 32-bit or 64 bit.
     uint const offsetStart = sizeof(Js::SparseArraySegmentBase) + doubles->count * sizeof(double);
-    uint const missingItem = (size - doubles->count) * sizeof(double) / sizeof(Js::JavascriptArray::MissingItem);
+    uint const missingItem = (size - doubles->count);
     for (uint i = 0; i < missingItem; i++)
     {
-        GenerateMemInit(headOpnd, offsetStart + i * sizeof(Js::JavascriptArray::MissingItem),
-            IR::AddrOpnd::New(Js::JavascriptArray::MissingItem, IR::AddrOpndKindConstantAddress, m_func, true), instr, isHeadSegmentZeroed);
+        GenerateMemInit(headOpnd, offsetStart + i * sizeof(double),
+            GetMissingItemOpndForAssignment(TyFloat64, m_func), instr, isHeadSegmentZeroed);
     }
     // Skip pass the helper call
     IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, func);

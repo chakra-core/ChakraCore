@@ -28,7 +28,7 @@ using namespace Js;
         { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
     };
 
-    const Var JavascriptArray::MissingItem = (Var)FloatMissingItemPattern;
+    const Var JavascriptArray::MissingItem = (Var)VarMissingItemPattern;
 
 #if defined(TARGET_64)
     const Var JavascriptArray::IntMissingItemVar = (Var)(((uint64)IntMissingItemPattern << 32) | (uint32)IntMissingItemPattern);
@@ -2048,6 +2048,8 @@ using namespace Js;
                     {
                         ((SparseArraySegment<Var>*)seg)->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
                     }
+                    SparseArraySegment<Var>* newSeg = (SparseArraySegment<Var>*)seg;
+                    newSeg->FillSegmentBuffer(seg->length, seg->size);
                 }
                 prevSeg = seg;
             }
@@ -2243,7 +2245,7 @@ using namespace Js;
                     }
                 }
             }
-            if (seg == newSeg && shrinkFactor != 1)
+            if (seg == newSeg)
             {
                 // Fill the remaining slots.
                 newSeg->FillSegmentBuffer(i, seg->size);
