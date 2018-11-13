@@ -265,11 +265,12 @@ namespace Js
         {
             // Clone static exception object early in case finally block overwrites it
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
-
+#if ENABLE_NATIVE_CODEGEN
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
+#endif
         }
 
         finallyContinuation = amd64_CallWithFakeFrame(finallyAddr, frame, spillSize, argsSize);
@@ -280,10 +281,12 @@ namespace Js
 
         if (exception)
         {
+#if ENABLE_NATIVE_CODEGEN
             if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
             }
+#endif
             JavascriptExceptionOperators::DoThrow(exception, scriptContext);
         }
 
@@ -401,12 +404,12 @@ namespace Js
         {
             // Clone static exception object early in case finally block overwrites it
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
-
+#if ENABLE_NATIVE_CODEGEN
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
-
+#endif
             bool hasBailedOut = *(bool*)((char*)localsPtr + hasBailedOutOffset); // stack offsets are sp relative
             if (hasBailedOut)
             {
@@ -467,10 +470,12 @@ namespace Js
             // Clone static exception object early in case finally block overwrites it
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
 
+#if ENABLE_NATIVE_CODEGEN
             if (exception->GetExceptionContext() && exception->GetExceptionContext()->ThrowingFunction())
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr /* start stackwalk from the current frame */, tryHandlerAddrOfReturnAddr);
             }
+#endif
         }
 
 #if defined(_M_ARM)
@@ -486,10 +491,12 @@ namespace Js
 
         if (exception)
         {
+#if ENABLE_NATIVE_CODEGEN
             if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
             }
+#endif
             JavascriptExceptionOperators::DoThrow(exception, scriptContext);
         }
 
@@ -976,10 +983,12 @@ namespace Js
 
         if (pExceptionObject)
         {
+#if ENABLE_NATIVE_CODEGEN
             if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
             {
                 WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
             }
+#endif
             JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
 
