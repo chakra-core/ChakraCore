@@ -819,12 +819,12 @@ HRESULT ExecuteTest(const char* fileName)
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
 
+            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
+
 #if ENABLE_TTD
             //We need this here since this context is created in record
             IfJsErrorFailLog(ChakraRTInterface::JsSetObjectBeforeCollectCallback(context, nullptr, WScriptJsrt::JsContextBeforeCollectCallback));
 #endif
-
-            IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
         else
         {
