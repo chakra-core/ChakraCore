@@ -1727,53 +1727,6 @@ VirtualAlloc(
             flAllocationType &= ~MEM_RESERVE;
         }
 
-        SIZE_T diff = ((ULONG_PTR)address % KB64);
-        if ( diff != 0 )
-        {
-            CPalThread *pthrCurrent = InternalGetCurrentThread();
-
-            char *addr64 = address + (KB64 - diff);
-            // We need to make sure these VirtualFree and VirtualAlloc_ calls happen under the lock to ensure we don't
-            // lose the region we are interested in to another thread and end up returning nullptr.
-            InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
-            VirtualFree(address, 0, MEM_RELEASE);
-            // try reserving from the same address space
-            address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
-            InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
-
-            ushort spinCount = 0;
-            while (!address)
-            {
-                // looks like ``pushed new address + dwSize`` is not available
-                // try on a bigger surface
-                address = (char*) VirtualAlloc_(nullptr, dwSize + KB64, MEM_RESERVE, flProtect);
-                if (!address)
-                {
-                    // This is an actual OOM.
-                    return nullptr;
-                }
-
-                diff = ((ULONG_PTR)address % KB64);
-                addr64 = address + (KB64 - diff);
-
-                // We need to make sure these VirtualFree and VirtualAlloc_ calls happen under the lock to ensure we don't
-                // lose the region we are interested in to another thread and end up returning nullptr.
-                InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
-                VirtualFree(address, 0, MEM_RELEASE);
-                address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
-                InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
-
-                // We will spin until we hit a real OOM.
-                spinCount++;
-                if (spinCount > VIRTUAL_ALLOC_SPIN_COUNT_BEFORE_YIELD)
-                {
-                    // Yield occassionally to avoid a live-lock situation.
-                    spinCount = 0;
-                    sched_yield();
-                }
-            }
-        }
-
         if (flAllocationType == 0) return address;
         lpAddress = address;
     }

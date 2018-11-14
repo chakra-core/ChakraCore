@@ -131,7 +131,9 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return false;
     }
 
+#ifdef _WIN32
     Assert( ((ULONG_PTR)this->address % (64 * 1024)) == 0 );
+#endif
 
     originalAddress = this->address;
     bool committed = (allocFlags & MEM_COMMIT) != 0;
