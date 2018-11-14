@@ -95,4 +95,10 @@
       <tags>exclude_jshost</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>symboldescription.js</files>
+      <compile-flags>-ESSymbolDescription -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

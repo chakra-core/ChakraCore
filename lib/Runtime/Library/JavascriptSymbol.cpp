@@ -202,6 +202,35 @@ namespace Js
         }
     }
 
+    // Symbol.prototype.description
+    Var JavascriptSymbol::EntryDescription(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        AssertMsg(args.Info.Count, "Should always have implicit 'this'.");
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        const PropertyRecord* val;
+        Var aValue = args[0];
+        if (VarIs<JavascriptSymbol>(aValue))
+        {
+            val = VarTo<JavascriptSymbol>(aValue)->GetValue();
+        }
+        else if (VarIs<JavascriptSymbolObject>(aValue))
+        {
+            val = VarTo<JavascriptSymbolObject>(aValue)->GetValue();
+        }
+        else
+        {
+            return TryInvokeRemotelyOrThrow(EntryDescription, scriptContext, args, JSERR_This_NeedSymbol, _u("Symbol.prototype.description"));
+        }
+
+        return scriptContext->GetPropertyString(val->GetPropertyId());
+    }
+
     RecyclableObject * JavascriptSymbol::CloneToScriptContext(ScriptContext* requestContext)
     {
         // PropertyRecords are per-ThreadContext so we can just create a new primitive wrapper
