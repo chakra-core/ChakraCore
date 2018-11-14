@@ -1840,6 +1840,10 @@ GlobOpt::IsAllowedForMemOpt(IR::Instr* instr, bool isMemset, IR::RegOpnd *baseOp
             return false;
         }
     }
+    else
+    {
+        return false;
+    }
 
     if (!baseValueType.IsTypedArray())
     {
