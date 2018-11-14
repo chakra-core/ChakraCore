@@ -16854,6 +16854,9 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     memopInstr->SetSrc2(sizeOpnd);
     insertBeforeInstr->InsertBefore(memopInstr);
 
+
+    loop->memOpInfo->instr = memopInstr;
+
 #if DBG_DUMP
     if (DO_MEMOP_TRACE())
     {

@@ -694,6 +694,7 @@ public:
         // Temporary map to reuse existing startIndexOpnd while emitting
         // 0 = !increment & !alreadyChanged, 1 = !increment & alreadyChanged, 2 = increment & !alreadyChanged, 3 = increment & alreadyChanged
         IR::RegOpnd* startIndexOpndCache[4];
+        IR::Instr* instr;
     } MemOpInfo;
 
     bool doMemOp : 1;
