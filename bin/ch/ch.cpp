@@ -458,6 +458,11 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
         {
             runScript = WScriptJsrt::ModuleEntryPoint(fileName, fileContents, fullPath);
         }
+        else if (HostConfigFlags::flags.ExecuteWithBgParse && !HostConfigFlags::flags.DebugLaunch)
+        {
+            unsigned int lengthBytes = (unsigned int) fileLength;
+            runScript = (JsErrorCode)RunBgParseSync(fileContents, lengthBytes, fileName);
+        }
         else // bufferValue == nullptr && parserStateCache == nullptr
         {
             JsValueRef scriptSource;
@@ -955,10 +960,6 @@ HRESULT ExecuteTest(const char* fileName)
         else if (HostConfigFlags::flags.UseParserStateCacheIsEnabled)
         {
             CreateParserStateAndRunScript(fileName, fileContents, lengthBytes, WScriptJsrt::FinalizeFree, fullPath);
-        }
-        else if (HostConfigFlags::flags.ExecuteWithBgParse)
-        {
-            RunBgParseSync(fileContents, lengthBytes, fileName);
         }
         else
         {

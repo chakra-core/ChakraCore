@@ -89,6 +89,8 @@ public:
             return _u("FatalError");
         case (JsErrorCode::JsErrorInExceptionState) :
             return _u("ErrorInExceptionState");
+        case (JsErrorCode::JsErrorBadSerializedScript):
+            return _u("ErrorBadSerializedScript ");
         default:
             AssertMsg(false, "Unexpected JsErrorCode");
             return nullptr;
