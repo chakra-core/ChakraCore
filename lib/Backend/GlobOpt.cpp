@@ -599,6 +599,11 @@ GlobOpt::OptBlock(BasicBlock *block)
                     this->tempBv->And(liveOnBackEdge);
                     this->ToFloat64(this->tempBv, block->loop->landingPad);
 
+                    if (block->loop->symsRequiringCompensationToMergedValueInfoMap)
+                    {
+                        InsertValueCompensation(block, block->loop->symsRequiringCompensationToMergedValueInfoMap);
+                    }
+
                     // Now that we're done with the liveFields within this loop, trim the set to those syms
                     // that the backward pass told us were live out of the loop.
                     // This assumes we have no further need of the liveFields within the loop.
@@ -1151,10 +1156,10 @@ void GlobOpt::FieldPRE(Loop *loop)
 
 void GlobOpt::InsertValueCompensation(
     BasicBlock *const predecessor,
-    const SymToValueInfoMap &symsRequiringCompensationToMergedValueInfoMap)
+    const SymToValueInfoMap *symsRequiringCompensationToMergedValueInfoMap)
 {
     Assert(predecessor);
-    Assert(symsRequiringCompensationToMergedValueInfoMap.Count() != 0);
+    Assert(symsRequiringCompensationToMergedValueInfoMap->Count() != 0);
 
     IR::Instr *insertBeforeInstr = predecessor->GetLastInstr();
     Func *const func = insertBeforeInstr->m_func;
@@ -1193,7 +1198,7 @@ void GlobOpt::InsertValueCompensation(
         }
     };
     JsUtil::List<DelayChangeValueInfo, ArenaAllocator> delayChangeValueInfo(alloc);
-    for(auto it = symsRequiringCompensationToMergedValueInfoMap.GetIterator(); it.IsValid(); it.MoveNext())
+    for(auto it = symsRequiringCompensationToMergedValueInfoMap->GetIterator(); it.IsValid(); it.MoveNext())
     {
         const auto &entry = it.Current();
         Sym *const sym = entry.Key();

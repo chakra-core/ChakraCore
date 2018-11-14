@@ -575,6 +575,7 @@ public:
     BVSparse<JitArenaAllocator> *lossyInt32SymsOnEntry; // see GlobOptData::liveLossyInt32Syms
     BVSparse<JitArenaAllocator> *float64SymsOnEntry;
     BVSparse<JitArenaAllocator> *liveFieldsOnEntry;
+    SymToValueInfoMap           *symsRequiringCompensationToMergedValueInfoMap;
 
     BVSparse<JitArenaAllocator> *symsUsedBeforeDefined;                // stack syms that are live in the landing pad, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyIntSymsUsedBeforeDefined;       // stack syms that are live in the landing pad with a likely-int value, and used before they are defined in the loop
@@ -742,7 +743,8 @@ public:
         allFieldsKilled(false),
         isLeaf(true),
         isProcessed(false),
-        initialValueFieldMap(alloc)
+        initialValueFieldMap(alloc),
+        symsRequiringCompensationToMergedValueInfoMap(nullptr)
     {
         this->loopNumber = ++func->loopCount;
     }
