@@ -787,11 +787,11 @@ HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileNa
     scriptContents.fullPath = fileNameWide;
 
     DWORD cookie = 0;
-    e = ChakraRTInterface::JsQueueBackgroundParse(&scriptContents, &cookie);
+    e = ChakraRTInterface::JsQueueBackgroundParse_Experimental(&scriptContents, &cookie);
     Assert(e == JsErrorCode::JsNoError);
 
     JsValueRef bgResult = nullptr;
-    e = ChakraRTInterface::JsExecuteBackgroundParse(
+    e = ChakraRTInterface::JsExecuteBackgroundParse_Experimental(
         cookie,
         scriptSource,
         WScriptJsrt::GetNextSourceContext(),

@@ -5839,7 +5839,9 @@ CHAKRA_API JsRunScriptWithParserState(
 }
 
 CHAKRA_API
-JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParseCookie)
+JsQueueBackgroundParse_Experimental(
+    _In_ JsScriptContents* contents,
+    _Out_ DWORD* dwBgParseCookie)
 {
     HRESULT hr;
     if (Js::Configuration::Global.flags.BgParse && !CONFIG_FLAG(ForceDiagnosticsMode)
@@ -5862,7 +5864,10 @@ JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParse
 }
 
 CHAKRA_API
-JsDiscardBackgroundParse_Experimental(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer)
+JsDiscardBackgroundParse_Experimental(
+    _In_ DWORD dwBgParseCookie,
+    _In_ void* buffer,
+    _Out_ bool* callerOwnsBuffer)
 {
     (*callerOwnsBuffer) = BGParseManager::GetBGParseManager()->DiscardParseResults(dwBgParseCookie, buffer);
     return JsNoError;
@@ -5873,11 +5878,10 @@ JsExecuteBackgroundParse_Experimental(
     _In_ DWORD dwBgParseCookie,
     _In_ JsValueRef script,
     _In_ JsSourceContext sourceContext,
-    _In_ WCHAR *url, // remove
+    _In_ WCHAR *url,
     _In_ JsParseScriptAttributes parseAttributes,
     _In_ JsValueRef parserState,
-    _Out_ JsValueRef *result
-)
+    _Out_ JsValueRef *result)
 {
     HRESULT hr = BGParseManager::GetBGParseManager()->GetInputFromCookie(dwBgParseCookie, nullptr, nullptr, &url);
     if (hr == S_OK)

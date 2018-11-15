@@ -638,12 +638,12 @@ typedef unsigned short uint16_t;
 
     typedef struct _JsScriptContents
     {
-        LPVOID container;
+        void * container;
         JsScriptEncodingType encodingType;
         JsScriptContainerType containerType;
-        DWORD_PTR sourceContext;
+        JsSourceContext sourceContext;
         size_t contentLengthInBytes;
-        LPCWSTR fullPath;
+        WCHAR * fullPath;
     } JsScriptContents;
 
     /// <summary>
