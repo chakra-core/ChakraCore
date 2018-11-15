@@ -3328,6 +3328,7 @@ Lowerer::TryGenerateFastCmSrXx(IR::Instr * instr)
     return false;
 }
 
+// Generate fast path for StrictEquals when one of the sources are undefined, null, boolean
 bool
 Lowerer::TryGenerateFastBrSrXx(IR::Instr * instr, IR::RegOpnd * srcReg1, IR::RegOpnd * srcReg2, IR::Instr ** pInstrPrev, bool noMathFastPath)
 {
@@ -10375,6 +10376,7 @@ Lowerer::LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper)
     return instrPrev;
 }
 
+// Generate fast path for StrictEquals for objects that are not GlobalObject, HostDispatch or External to be pointer comparison
 IR::Instr *
 Lowerer::LowerStrictBrOrCm(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool noMathFastPath, bool isBranch, bool isHelper)
 {
@@ -23521,6 +23523,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper, bool i
     return true;
 }
 
+// Generate fast path for StrictEquals when one of the source have a definite valuetype
 bool Lowerer::GenerateFastBrOrCmEqDefinite(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool *pNeedHelper, bool isBranch, bool isInHelper)
 {
     IR::Opnd *src1 = instr->GetSrc1();
@@ -23625,6 +23628,7 @@ bool Lowerer::GenerateFastBrOrCmEqDefinite(IR::Instr * instr, IR::JnHelperMethod
     return true;
 }
 
+// Generate fast path for Strict Equals when both sources are likely boolean/likely object/likely symbol
 bool Lowerer::GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper, bool isInHelper)
 {
     IR::Opnd *src1 = instrBranch->GetSrc1();
