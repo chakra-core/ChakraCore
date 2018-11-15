@@ -2852,12 +2852,6 @@ GlobOpt::OptDst(
         {
             this->FinishOptPropOp(instr, opnd->AsPropertySymOpnd());
         }
-        else if (instr->m_opcode == Js::OpCode::StElemI_A ||
-                 instr->m_opcode == Js::OpCode::StElemI_A_Strict ||
-                 instr->m_opcode == Js::OpCode::InitComputedProperty)
-        {
-            this->KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
-        }
 
         if (opnd->IsIndirOpnd() && !this->IsLoopPrePass())
         {
