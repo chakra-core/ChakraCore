@@ -3980,7 +3980,7 @@ JsErrorCode RunSerializedScriptCore(
                 bgParseCookie,
                 nullptr, // pszSrc
                 hsi,
-                (Js::ParseableFunctionInfo**)(&functionBody),
+                (Field(Js::ParseableFunctionInfo**))(&functionBody),
                 nullptr, // pse
                 srcLength,
                 nullptr, // utf8sourceinfo
