@@ -774,7 +774,7 @@ HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileNa
     // What's the preferred way of doing this?
     WCHAR fileNameWide[MAX_PATH] = { 0 };
     size_t fileNameLength = strlen(fileName);
-    for (int i = 0; i < fileNameLength; i++)
+    for (size_t i = 0; i < fileNameLength; i++)
     {
         fileNameWide[i] = fileName[i];
     }
