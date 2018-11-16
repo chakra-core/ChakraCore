@@ -1851,13 +1851,9 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
                         bool shouldOptimize = CompareCurrentTypesWithExpectedTypes(newValueInfo, propertySymOpnd);
                         if (!shouldOptimize)
                         {
-                            // Force a new type check here. We used to disable optimization for this symbol, but that's
-                            // no longer necessary now that inline caches are not shared.
-                            BVSparse<JitArenaAllocator> *liveFields = this->currentBlock->globOptData.liveFields;
-                            if (liveFields)
-                            {
-                                liveFields->Clear(newTypeSym->m_id);
-                            }
+                            // We would like just to force a new type check here and keep optimizing, but downstream
+                            // objtypespecfldinfo may have slot indices based on the old type.
+                            propertySymOpnd->SetTypeCheckSeqCandidate(false);
                         }
                     }
 
