@@ -23580,13 +23580,13 @@ bool Lowerer::GenerateFastBrOrCmEqDefinite(IR::Instr * instr, IR::JnHelperMethod
         instr->InsertBefore(branch);
         *pNeedHelper = false;
     }
-    else if (definiteSrc->GetValueType().IsObject())
+    else if (definiteSrc->GetValueType().IsObject() && !CONFIG_FLAG(ESBigInt))
     {
         InsertCompareBranch(src1, src2, Js::OpCode::BrEq_A, labelBranchSuccess, instr);
-        m_lowererMD.GenerateObjectTest(likelySrc->AsRegOpnd(), instr, labelBranchFailure);
 
         if (!likelySrc->GetValueType().IsDefinite())
         {
+            m_lowererMD.GenerateObjectTest(likelySrc->AsRegOpnd(), instr, labelBranchFailure);
             IR::RegOpnd * likelyTypeReg = IR::RegOpnd::New(TyMachReg, this->m_func);
             IR::IndirOpnd * likelyType = IR::IndirOpnd::New(likelySrc->AsRegOpnd(), Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func);
             Lowerer::InsertMove(likelyTypeReg, likelyType, instr);
