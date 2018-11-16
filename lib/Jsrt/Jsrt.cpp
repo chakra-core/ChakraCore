@@ -25,6 +25,16 @@
 #include "TestHooksRt.h"
 #endif
 
+CHAKRA_API RunScriptWithParserStateCore(
+    _In_ DWORD dwBgParseCookie,
+    _In_ JsValueRef script,
+    _In_ JsSourceContext sourceContext,
+    _In_ WCHAR *url,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _In_ JsValueRef parserState,
+    _Out_ JsValueRef *result
+);
+
 struct CodexHeapAllocatorInterface
 {
 public:
@@ -3497,7 +3507,7 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
         }
 
         const int chsize = (loadScriptFlag & LoadScriptFlag_Utf8Source) ?
-                            sizeof(utf8char_t) : sizeof(WCHAR);
+            sizeof(utf8char_t) : sizeof(WCHAR);
 
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,
@@ -3528,11 +3538,11 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
 
 #if ENABLE_TTD
         TTD::NSLogEvents::EventLogEntry* parseEvent = nullptr;
-        if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
+        if (PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext))
         {
             parseEvent = scriptContext->GetThreadContext()->TTDLog->RecordJsRTCodeParse(_actionEntryPopper,
-              loadScriptFlag, ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source),
-              script, (uint32)cb, sourceContext, sourceUrl);
+                loadScriptFlag, ((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source),
+                script, (uint32)cb, sourceContext, sourceUrl);
         }
 #endif
 
@@ -3878,25 +3888,37 @@ JsErrorCode RunSerializedScriptCore(
     JsSourceContext scriptLoadSourceContext, // only used by scriptLoadCallback
     unsigned char *buffer, Js::ArrayBuffer* bufferVal,
     JsSourceContext sourceContext, const WCHAR *sourceUrl,
+    DWORD bgParseCookie,
     bool parseOnly, bool useParserStateCache, JsValueRef *result,
     uint sourceIndex)
 {
     Js::JavascriptFunction *function;
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
         if (result != nullptr)
         {
             *result = nullptr;
         }
 
-        PARAM_NOT_NULL(buffer);
+        if (bgParseCookie == 0)
+        {
+            PARAM_NOT_NULL(buffer);
+        }
+        else
+        {
+            Assert(buffer == nullptr);
+        }
+
         PARAM_NOT_NULL(sourceUrl);
         Js::ISourceHolder *sourceHolder = nullptr;
         SRCINFO *hsi = nullptr;
+
         PARAM_NOT_NULL(scriptLoadCallback);
         PARAM_NOT_NULL(scriptUnloadCallback);
         typedef Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback> TSourceHolder;
 
-        if (!useParserStateCache)
+
+        if (!useParserStateCache || bgParseCookie != 0)
         {
             sourceIndex = Js::Constants::InvalidSourceIndex;
 
@@ -3934,19 +3956,43 @@ JsErrorCode RunSerializedScriptCore(
 
         Field(Js::FunctionBody*) functionBody = nullptr;
 
-        uint32 flags = 0;
-
-        if (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling())
+        if (bgParseCookie == 0)
         {
-            flags = fscrAllowFunctionProxy;
-        }
-        if (useParserStateCache && !CONFIG_FLAG(ForceSerialized))
-        {
-            flags |= fscrCreateParserState;
-        }
+            uint32 flags = 0;
 
-        hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, sourceHolder,
-            hsi, buffer, nullptr, &functionBody, sourceIndex);
+            if (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling())
+            {
+                flags = fscrAllowFunctionProxy;
+            }
+            if (useParserStateCache && !CONFIG_FLAG(ForceSerialized))
+            {
+                flags |= fscrCreateParserState;
+            }
+
+            hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, sourceHolder,
+                hsi, buffer, nullptr, &functionBody, sourceIndex);
+        }
+        else
+        {
+            size_t srcLength = 0;
+            Js::FunctionBody* functionBodyLocal = nullptr;
+            hr = BGParseManager::GetBGParseManager()->GetParseResults(
+                scriptContext,
+                bgParseCookie,
+                nullptr, // pszSrc
+                hsi,
+                &functionBodyLocal,
+                nullptr, // pse
+                srcLength,
+                nullptr, // utf8sourceinfo
+                sourceIndex
+            );
+            
+            if (hr == S_OK)
+            {
+                functionBody = functionBodyLocal;
+            }
+        }
 
         if (FAILED(hr))
         {
@@ -4005,7 +4051,7 @@ CHAKRA_API JsParseSerializedScript(_In_z_ const WCHAR * script, _In_ unsigned ch
     return RunSerializedScriptCore(
         DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
         reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
-        buffer, nullptr, sourceContext, sourceUrl, true, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, nullptr, sourceContext, sourceUrl, 0, true, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsRunSerializedScript(_In_z_ const WCHAR * script, _In_ unsigned char *buffer,
@@ -4016,7 +4062,7 @@ CHAKRA_API JsRunSerializedScript(_In_z_ const WCHAR * script, _In_ unsigned char
     return RunSerializedScriptCore(
         DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
         reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
-        buffer, nullptr, sourceContext, sourceUrl, false, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, nullptr, sourceContext, sourceUrl, 0, false, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
@@ -4027,7 +4073,7 @@ CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSource
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, nullptr, sourceContext, sourceUrl, true, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, nullptr, sourceContext, sourceUrl, 0, true, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
@@ -4038,7 +4084,7 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, nullptr, sourceContext, sourceUrl, false, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, nullptr, sourceContext, sourceUrl, 0, false, false, result, Js::Constants::InvalidSourceIndex);
 }
 #endif // _WIN32
 
@@ -5154,7 +5200,7 @@ CHAKRA_API JsParseSerialized(
     return RunSerializedScriptCore(
       scriptLoadCallback, DummyScriptUnloadCallback,
       sourceContext,// use the same user provided sourceContext as scriptLoadSourceContext
-      buffer, arrayBuffer, sourceContext, url, true, false, result, Js::Constants::InvalidSourceIndex);
+      buffer, arrayBuffer, sourceContext, url, 0, true, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsRunSerialized(
@@ -5188,7 +5234,7 @@ CHAKRA_API JsRunSerialized(
     return RunSerializedScriptCore(
         scriptLoadCallback, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, arrayBuffer, sourceContext, url, false, false, result, Js::Constants::InvalidSourceIndex);
+        buffer, arrayBuffer, sourceContext, url, 0, false, false, result, Js::Constants::InvalidSourceIndex);
 }
 
 CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
@@ -5676,18 +5722,23 @@ static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallbackForRunScriptWithParserS
     return true;
 }
 
-CHAKRA_API JsRunScriptWithParserState(
+CHAKRA_API RunScriptWithParserStateCore(
+    _In_ DWORD dwBgParseCookie,
     _In_ JsValueRef script,
     _In_ JsSourceContext sourceContext,
-    _In_ JsValueRef sourceUrl,
+    _In_ WCHAR *url,
     _In_ JsParseScriptAttributes parseAttributes,
     _In_ JsValueRef parserState,
-    _Out_ JsValueRef *result)
+    _Out_ JsValueRef *result
+)
 {
     PARAM_NOT_NULL(script);
-    PARAM_NOT_NULL(parserState);
 
-    const WCHAR *url = nullptr;
+    if (dwBgParseCookie == 0)
+    {
+        PARAM_NOT_NULL(parserState);
+    }
+
     uint sourceIndex = 0;
 
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
@@ -5696,16 +5747,6 @@ CHAKRA_API JsRunScriptWithParserState(
         LoadScriptFlag loadScriptFlag;
 
         JsErrorCode errorCode = GetScriptBufferDetails(script, parseAttributes, &loadScriptFlag, &cb, &bytes);
-
-        if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
-        {
-            url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
-        }
-        else
-        {
-            return JsErrorInvalidArgument;
-        }
-
         if (errorCode != JsNoError)
         {
             return errorCode;
@@ -5762,19 +5803,109 @@ CHAKRA_API JsRunScriptWithParserState(
         return errorCode;
     }
 
-    if (!Js::VarIs<Js::ArrayBuffer>(parserState))
+    Js::ArrayBuffer* arrayBuffer = nullptr;
+    byte* buffer = nullptr;
+    if (dwBgParseCookie == 0)
     {
-        return JsErrorInvalidArgument;
+        if (!Js::VarIs<Js::ArrayBuffer>(parserState))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        arrayBuffer = Js::VarTo<Js::ArrayBuffer>(parserState);
+        buffer = arrayBuffer->GetBuffer();
     }
 
-    Js::ArrayBuffer* arrayBuffer = Js::VarTo<Js::ArrayBuffer>(parserState);
-    byte* buffer = arrayBuffer->GetBuffer();
     JsSerializedLoadScriptCallback dummy = DummyScriptLoadSourceCallbackForRunScriptWithParserState;
 
     return RunSerializedScriptCore(
         dummy, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, arrayBuffer, sourceContext, url, false, true, result, sourceIndex);
+        buffer, arrayBuffer, sourceContext, url, dwBgParseCookie, false, true, result, sourceIndex);
+}
+
+CHAKRA_API JsRunScriptWithParserState(
+    _In_ JsValueRef script,
+    _In_ JsSourceContext sourceContext,
+    _In_ JsValueRef sourceUrl,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _In_ JsValueRef parserState,
+    _Out_ JsValueRef *result)
+{
+    WCHAR *url = nullptr;
+    if (sourceUrl && Js::VarIs<Js::JavascriptString>(sourceUrl))
+    {
+        url = const_cast<WCHAR*>(((Js::JavascriptString*)(sourceUrl))->GetSz());
+        return RunScriptWithParserStateCore(0, script, sourceContext, url, parseAttributes, parserState, result);
+    }
+    else
+    {
+        return JsErrorInvalidArgument;
+    }
+}
+
+CHAKRA_API
+JsQueueBackgroundParse_Experimental(
+    _In_ JsScriptContents* contents,
+    _Out_ DWORD* dwBgParseCookie)
+{
+    HRESULT hr;
+    if (Js::Configuration::Global.flags.BgParse && !CONFIG_FLAG(ForceDiagnosticsMode)
+        // For now, only UTF8 buffers are supported for BGParse
+        && contents->encodingType == JsScriptEncodingType::Utf8
+        && contents->containerType == JsScriptContainerType::HeapAllocatedBuffer
+        // SourceContext not needed for BGParse
+        && contents->sourceContext == 0)
+    {
+        hr = BGParseManager::GetBGParseManager()->QueueBackgroundParse((LPUTF8)contents->container, contents->contentLengthInBytes, (char16*)contents->fullPath, dwBgParseCookie);
+    }
+    else
+    {
+        hr = E_NOTIMPL;
+    }
+
+    JsErrorCode res = (hr == S_OK) ? JsNoError : JsErrorFatal;
+
+    return res;
+}
+
+CHAKRA_API
+JsDiscardBackgroundParse_Experimental(
+    _In_ DWORD dwBgParseCookie,
+    _In_ void* buffer,
+    _Out_ bool* callerOwnsBuffer)
+{
+    (*callerOwnsBuffer) = BGParseManager::GetBGParseManager()->DiscardParseResults(dwBgParseCookie, buffer);
+    return JsNoError;
+}
+
+CHAKRA_API
+JsExecuteBackgroundParse_Experimental(
+    _In_ DWORD dwBgParseCookie,
+    _In_ JsValueRef script,
+    _In_ JsSourceContext sourceContext,
+    _In_ WCHAR *url,
+    _In_ JsParseScriptAttributes parseAttributes,
+    _In_ JsValueRef parserState,
+    _Out_ JsValueRef *result)
+{
+    HRESULT hr = BGParseManager::GetBGParseManager()->GetInputFromCookie(dwBgParseCookie, nullptr, nullptr, &url);
+    if (hr == S_OK)
+    {
+        return RunScriptWithParserStateCore(
+            dwBgParseCookie,
+            script,
+            sourceContext,
+            url,
+            parseAttributes,
+            parserState,
+            result
+        );
+    }
+    else
+    {
+        return JsErrorFatal;
+    }
 }
 
 #endif // _CHAKRACOREBUILD

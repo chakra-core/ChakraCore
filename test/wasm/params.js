@@ -71,38 +71,37 @@ const [forceTest] = WScript.Arguments;
 if (forceTest !== undefined) {
   const res = test(forceTest);
   print(res ? "Module is valid" : "Module is invalid");
-  WScript.Quit(0);
-}
+} else {
+    let nParams = 9000;
+    let inc = 1000;
+    let direction = true;
 
-let nParams = 9000;
-let inc = 1000;
-let direction = true;
+    while (inc !== 0) {
+      if (test(nParams)) {
+        if (direction) {
+          nParams += inc;
+        } else {
+          direction = true;
+          inc >>= 1;
+          nParams += inc;
+        }
+      } else {
+        if (!direction) {
+          nParams -= inc;
+        } else {
+          direction = false;
+          inc >>= 1;
+          // make sure the last test is a passing one
+          inc = inc || 1;
+          nParams -= inc;
+        }
+      }
 
-while (inc !== 0) {
-  if (test(nParams)) {
-    if (direction) {
-      nParams += inc;
-    } else {
-      direction = true;
-      inc >>= 1;
-      nParams += inc;
+      if (nParams > 100000 || nParams < 0) {
+        print(`FAILED. Params reached ${nParams} long. Expected an error by now`);
+        break;
+      }
     }
-  } else {
-    if (!direction) {
-      nParams -= inc;
-    } else {
-      direction = false;
-      inc >>= 1;
-      // make sure the last test is a passing one
-      inc = inc || 1;
-      nParams -= inc;
-    }
-  }
 
-  if (nParams > 100000 || nParams < 0) {
-    print(`FAILED. Params reached ${nParams} long. Expected an error by now`);
-    break;
-  }
+    print(`Support at most ${nParams} params`);
 }
-
-print(`Support at most ${nParams} params`);

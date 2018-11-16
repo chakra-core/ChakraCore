@@ -160,6 +160,10 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtSerializeParserState = (JsAPIHooks::JsrtSerializeParserState)GetChakraCoreSymbol(library, "JsSerializeParserState");
     m_jsApiHooks.pfJsrtRunScriptWithParserState = (JsAPIHooks::JsrtRunScriptWithParserState)GetChakraCoreSymbol(library, "JsRunScriptWithParserState");
 
+    m_jsApiHooks.pfJsrtQueueBackgroundParse_Experimental = (JsAPIHooks::JsrtQueueBackgroundParse_Experimental)GetChakraCoreSymbol(library, "JsQueueBackgroundParse_Experimental");
+    m_jsApiHooks.pfJsrtDiscardBackgroundParse_Experimental = (JsAPIHooks::JsrtDiscardBackgroundParse_Experimental)GetChakraCoreSymbol(library, "JsDiscardBackgroundParse_Experimental");
+    m_jsApiHooks.pfJsrtExecuteBackgroundParse_Experimental = (JsAPIHooks::JsrtExecuteBackgroundParse_Experimental)GetChakraCoreSymbol(library, "JsExecuteBackgroundParse_Experimental");
+
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateRecordRuntime");
     m_jsApiHooks.pfJsrtTTDCreateReplayRuntime = (JsAPIHooks::JsrtTTDCreateReplayRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateReplayRuntime");
     m_jsApiHooks.pfJsrtTTDCreateContext = (JsAPIHooks::JsrtTTDCreateContextPtr)GetChakraCoreSymbol(library, "JsTTDCreateContext");
