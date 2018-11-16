@@ -3975,17 +3975,23 @@ JsErrorCode RunSerializedScriptCore(
         else
         {
             size_t srcLength = 0;
+            Js::FunctionBody* functionBodyLocal = nullptr;
             hr = BGParseManager::GetBGParseManager()->GetParseResults(
                 scriptContext,
                 bgParseCookie,
                 nullptr, // pszSrc
                 hsi,
-                (Field(Js::ParseableFunctionInfo**))(&functionBody),
+                &functionBodyLocal,
                 nullptr, // pse
                 srcLength,
                 nullptr, // utf8sourceinfo
                 sourceIndex
             );
+            
+            if (hr == S_OK)
+            {
+                functionBody = functionBodyLocal;
+            }
         }
 
         if (FAILED(hr))

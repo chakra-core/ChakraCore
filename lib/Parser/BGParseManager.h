@@ -58,7 +58,7 @@ public:
         DWORD cookie,
         LPCUTF8 pszSrc,
         SRCINFO const * pSrcInfo,
-        Js::ParseableFunctionInfo** ppFunc,
+        Js::FunctionBody** ppFunc,
         CompileScriptException* pse,
         size_t& srcLength,
         Js::Utf8SourceInfo* utf8SourceInfo,
