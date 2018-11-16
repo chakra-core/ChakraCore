@@ -70,3 +70,4 @@ JsSerializeParserState
 JsRunScriptWithParserState
 JsGetPromiseState
 JsGetPromiseResult
+JsNumberToInt64

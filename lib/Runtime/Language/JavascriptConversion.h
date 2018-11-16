@@ -49,6 +49,7 @@ namespace Js {
         static int32 ToInt32(Var aValue, ScriptContext* scriptContext);
         static __int64 ToInt64(Var aValue, ScriptContext* scriptContext);
         static int32 ToInt32(double value);
+        static __int64 ToInt64(double value);
         static int32 ToInt32_Full(Var aValue, ScriptContext* scriptContext);
 
         static int8 ToInt8(Var aValue, ScriptContext* scriptContext);
