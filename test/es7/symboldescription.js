@@ -29,6 +29,9 @@ var tests = [
             assert.areEqual('', Symbol('').description);
             assert.areEqual('null', Symbol(null).description);
             
+            // Symbol().description === undefined;
+            // Should be true but we have a limitation in ChakraCore right now.
+            // See ##5833
             assert.areEqual('', Symbol().description);
             assert.areEqual('', Symbol(undefined).description);
         }
