@@ -277,6 +277,7 @@ BUILTIN(JavascriptSymbol, ToString, EntryToString, FunctionInfo::ErrorOnNew | Fu
 BUILTIN(JavascriptSymbol, For, EntryFor, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptSymbol, KeyFor, EntryKeyFor, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptSymbol, SymbolToPrimitive, EntrySymbolToPrimitive, FunctionInfo::ErrorOnNew)
+BUILTIN(JavascriptSymbol, Description, EntryDescription, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect | FunctionInfo::CanBeHoisted)
 BUILTIN(JavascriptProxy, Revocable, EntryRevocable, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptProxy, Revoke, EntryRevoke, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptProxy, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)

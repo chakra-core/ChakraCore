@@ -2399,7 +2399,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeSymbolPrototype(DynamicObject* symbolPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolPrototype, mode, 5);
+        typeHandler->Convert(symbolPrototype, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolPrototype->GetLibrary();
@@ -2423,6 +2423,12 @@ namespace Js
                 &JavascriptSymbol::EntryInfo::SymbolToPrimitive, 1));
             symbolPrototype->SetWritable(PropertyIds::_symbolToPrimitive, false);
         }
+
+        if (scriptContext->GetConfig()->IsESSymbolDescriptionEnabled())
+        {
+            library->AddAccessorsToLibraryObject(symbolPrototype, PropertyIds::description, &JavascriptSymbol::EntryInfo::Description, nullptr);
+        }
+
         symbolPrototype->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -7441,6 +7447,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptSymbol::EntryToString);
         REG_OBJECTS_LIB_FUNC2(for_, _u("for"), JavascriptSymbol::EntryFor);
         REG_OBJECTS_LIB_FUNC(keyFor, JavascriptSymbol::EntryKeyFor);
+        REG_OBJECTS_LIB_FUNC(description, JavascriptSymbol::EntryDescription);
 
         return hr;
     }

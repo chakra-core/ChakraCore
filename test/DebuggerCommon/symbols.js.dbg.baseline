@@ -108,7 +108,8 @@
                 "Symbol.toStringTag": "string Symbol",
                 "valueOf": "function <large string>",
                 "toString": "function <large string>",
-                "Symbol.toPrimitive": "function <large string>"
+                "Symbol.toPrimitive": "function <large string>",
+                "description": "Error <large string>"
               },
               "name": "string Symbol",
               "hasInstance": "symbol <large string>",
@@ -180,7 +181,8 @@
               },
               "length": "number 1",
               "name": "string <large string>"
-            }
+            },
+            "description": "string symobject"
           }
         },
         "short symbol name": "symbol Symbol(s)",

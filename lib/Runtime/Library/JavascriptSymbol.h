@@ -36,6 +36,7 @@ namespace Js
             static FunctionInfo ToString;
             static FunctionInfo For;
             static FunctionInfo KeyFor;
+            static FunctionInfo Description;
 
             static FunctionInfo SymbolToPrimitive;
         };
@@ -46,6 +47,7 @@ namespace Js
         static Var EntryFor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryKeyFor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySymbolToPrimitive(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryDescription(RecyclableObject* function, CallInfo callInfo, ...);
 
         virtual BOOL Equals(Var other, BOOL* value, ScriptContext * requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
