@@ -54,9 +54,15 @@
       <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
     </default>
   </test>
-    <test>
+  <test>
     <default>
       <files>bitwise_not.js</files>
+      <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>multiply.js</files>
       <compile-flags>-args summary -endargs -ESBigInt</compile-flags>
     </default>
   </test>
