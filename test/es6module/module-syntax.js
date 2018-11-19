@@ -115,6 +115,8 @@ var tests = [
             testModuleScript(`do export default null
                                 while (false);`, 'Syntax error export in while', true);
             testModuleScript('function () { export default null; }', 'Syntax error export in function', true);
+            testModuleScript('export {foo}', 'Syntax error undefined export', true);
+            testModuleScript('export {Array}', 'Syntax error exporting a global name with no local definition', true);
         }
     },
     {
