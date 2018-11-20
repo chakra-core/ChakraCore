@@ -1163,7 +1163,7 @@ CommonNumber:
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
             if (wrapper)
             {
-                JavascriptArray* wrapperResult = wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
+                JavascriptArray* wrapperResult = wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnEnumerablePropertyNamesKind, scriptContext);
                 JavascriptArray* wrapperResultToReturn = scriptContext->GetLibrary()->CreateArray(0);
                 if (wrapperResult != nullptr)
                 {
@@ -1209,7 +1209,7 @@ CommonNumber:
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
             if (wrapper)
             {
-                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::KeysKind, scriptContext);
+                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::EnumerableKeysKind, scriptContext);
             }
         }
 

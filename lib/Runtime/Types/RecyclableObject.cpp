@@ -195,7 +195,8 @@ namespace Js
         {
             DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasOnlyWritableDataProperties() &&
-                (!obj->HasObjectArray() || obj->GetObjectArrayOrFlagsAsArray()->HasOnlyWritableDataProperties());
+                (!obj->HasObjectArray() || obj->GetObjectArrayOrFlagsAsArray()->HasOnlyWritableDataProperties()) &&
+                (!VarIs<CustomExternalWrapperObject>(obj) || UnsafeVarTo<CustomExternalWrapperObject>(obj)->IsInitialized());
         }
 
         return true;
@@ -207,7 +208,8 @@ namespace Js
         {
             DynamicObject* obj = UnsafeVarTo<DynamicObject>(this);
             return obj->GetTypeHandler()->GetHasSpecialProperties() ||
-                (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->HasAnySpecialProperties());
+                (obj->HasObjectArray() && obj->GetObjectArrayOrFlagsAsArray()->HasAnySpecialProperties()) ||
+                (VarIs<CustomExternalWrapperObject>(obj) && !UnsafeVarTo<CustomExternalWrapperObject>(obj)->IsInitialized());
         }
 
         return true;
