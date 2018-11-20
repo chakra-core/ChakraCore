@@ -112,6 +112,10 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime);
     typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, int64_t* rootEventTime);
 
+#ifdef _WIN32
+    typedef JsErrorCode(WINAPI *JsrtConnectJITProcess)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+#endif
+
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetObjectBeforeCollectCallbackPtr pfJsrtSetObjectBeforeCollectCallback;
@@ -217,6 +221,10 @@ struct JsAPIHooks
     JsrtTTDGetSnapTimeTopLevelEventMovePtr pfJsrtTTDGetSnapTimeTopLevelEventMove;
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
+
+#ifdef _WIN32
+    JsrtConnectJITProcess pfJsrtConnectJITProcess;
+#endif
 };
 
 #ifdef _WIN32
@@ -306,18 +314,6 @@ public:
         return E_UNEXPECTED;
 #endif
     }
-
-#ifdef _WIN32
-#if ENABLE_NATIVE_CODEGEN
-    static void ConnectJITServer(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
-    {
-        if (m_testHooksSetup && m_testHooks.pfnConnectJITServer != NULL)
-        {
-            m_testHooks.pfnConnectJITServer(processHandle, serverSecurityDescriptor, connectionId);
-        }
-    }
-#endif
-#endif
 
     static void NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
     {
@@ -442,6 +438,9 @@ public:
     static JsErrorCode WINAPI JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParseCookie) { return HOOK_JS_API(QueueBackgroundParse_Experimental)(contents, dwBgParseCookie);  }
     static JsErrorCode WINAPI JsDiscardBackgroundParse_Experimental(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer) { return HOOK_JS_API(DiscardBackgroundParse_Experimental(dwBgParseCookie, buffer, callerOwnsBuffer)); }
     static JsErrorCode WINAPI JsExecuteBackgroundParse_Experimental(DWORD dwBgParseCookie, JsValueRef script, JsSourceContext sourceContext, WCHAR *url, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result) { return HOOK_JS_API(ExecuteBackgroundParse_Experimental(dwBgParseCookie, script, sourceContext, url, parseAttributes, parserState, result)); }
+#ifdef _WIN32
+    static JsErrorCode WINAPI JsConnectJITProcess(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId) { return HOOK_JS_API(ConnectJITProcess(processHandle, serverSecurityDescriptor, connectionId)); }
+#endif
 };
 
 class AutoRestoreContext
