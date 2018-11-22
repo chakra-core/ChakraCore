@@ -1086,7 +1086,7 @@ IR::Instr * Inline::TryGetCallbackDefInstr(StackSym * callbackSym)
 
             defInstr = nullptr;
 
-            // find the appropraite argOut from the call site.
+            // find the appropriate argOut from the call site.
             callingInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
                 StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
                 if (argSym->GetArgSlotNum() - 1 == argIndex)
