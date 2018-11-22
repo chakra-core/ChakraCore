@@ -8872,7 +8872,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         if (isSetAccessorsSuccess)
                         {
                             tempDescriptor.SetAttributes(preserveFromObject, PropertyConfigurable | PropertyEnumerable);
-                            forceSetAttributes = true;  // use SetAttrbiutes with 'force' as default attributes in type system are different from ES5.
+                            forceSetAttributes = true;  // use SetAttributes with 'force' as default attributes in type system are different from ES5.
                             mergeDescriptors = true;
                         }
                     }
