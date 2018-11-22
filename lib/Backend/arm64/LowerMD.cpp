@@ -1032,7 +1032,7 @@ public:
     BitVector SavedRegisters() const { return m_savedRegisters; }
     BitVector SavedDoubles() const { return m_savedDoubles; }
 
-    // Locals area sits right after space allocated for argments
+    // Locals area sits right after space allocated for arguments
     ULONG LocalsOffset() const { return this->m_argSlotCount * MachRegInt; }
     ULONG LocalsSize() const { return this->m_localsArea; }
 
