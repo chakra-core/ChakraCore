@@ -112,6 +112,7 @@ LSC_ERROR_MSG(1096, ERRAwaitAsLabelInAsync, "Use of 'await' as label in async fu
 LSC_ERROR_MSG(1097, ERRExperimental, "Use of disabled experimental feature")
 LSC_ERROR_MSG(1098, ERRDuplicateExport, "Duplicate export of name '%s'")
 LSC_ERROR_MSG(1099, ERRStmtOfWithIsLabelledFunc, "The statement of a 'with' statement cannot be a labelled function.")
+LSC_ERROR_MSG(1100, ERRUndeclaredExportName, "Export of name '%s' which has no local definition.")
 //1100-1199 available for future use
 
 // Generic errors intended to be re-usable

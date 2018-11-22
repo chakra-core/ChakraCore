@@ -335,10 +335,10 @@ void Parser::Error(HRESULT hr, ParseNodePtr pnode)
     }
 }
 
-void Parser::Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim)
+void Parser::Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne, LPCWSTR stringTwo)
 {
     this->GetScanner()->SetErrorPosition(ichMin, ichLim);
-    Error(hr);
+    Error(hr, stringOne, stringTwo);
 }
 
 void Parser::IdentifierExpectedError(const Token& token)
@@ -2350,6 +2350,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 
         IdentPtr identifierName = m_token.GetIdentifier(this->GetHashTbl());
         IdentPtr identifierAs = identifierName;
+        charcount_t offsetForError = this->GetScanner()->IchMinTok();
 
         this->GetScanner()->Scan();
 
@@ -2392,19 +2393,16 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             this->GetScanner()->Scan();
         }
 
-        if (buildAST)
+        if (isExportClause)
+        {
+            identifierName->SetIsModuleExport();
+            AddModuleImportOrExportEntry(importOrExportEntryList, nullptr, identifierName, identifierAs, nullptr, offsetForError);
+        }
+        else if (buildAST)
         {
             // The name we will use 'as' this import/export is a binding identifier in import statements.
-            if (!isExportClause)
-            {
-                CreateModuleImportDeclNode(identifierAs);
-                AddModuleImportOrExportEntry(importOrExportEntryList, identifierName, identifierAs, nullptr, nullptr);
-            }
-            else
-            {
-                identifierName->SetIsModuleExport();
-                AddModuleImportOrExportEntry(importOrExportEntryList, nullptr, identifierName, identifierAs, nullptr);
-            }
+            CreateModuleImportDeclNode(identifierAs);
+            AddModuleImportOrExportEntry(importOrExportEntryList, identifierName, identifierAs, nullptr, nullptr);
         }
     }
 
@@ -2415,6 +2413,23 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 IdentPtrList* Parser::GetRequestedModulesList()
 {
     return m_currentNodeProg->AsParseNodeModule()->requestedModules;
+}
+
+void Parser::VerifyModuleLocalExportEntries()
+{
+    ModuleImportOrExportEntryList* localExportRecordList = GetModuleLocalExportEntryList();
+    if (localExportRecordList != nullptr)
+    {
+        localExportRecordList->Map([=](ModuleImportOrExportEntry exportEntry) {
+            if (exportEntry.pidRefStack!=nullptr)
+            {
+                if (exportEntry.pidRefStack->GetSym() == nullptr)
+                {
+                    Error(ERRUndeclaredExportName, exportEntry.offset, exportEntry.localName->Cch(), exportEntry.localName->Psz());
+                }
+            }
+        });
+    }
 }
 
 ModuleImportOrExportEntryList* Parser::GetModuleImportEntryList()
@@ -2504,7 +2519,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
     return importOrExportEntry;
 }
 
-ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
+ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest, charcount_t offsetForError)
 {
     ModuleImportOrExportEntry* importOrExportEntry = Anew(&m_nodeAllocator, ModuleImportOrExportEntry);
 
@@ -2512,6 +2527,8 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
     importOrExportEntry->localName = localName;
     importOrExportEntry->exportName = exportName;
     importOrExportEntry->moduleRequest = moduleRequest;
+    importOrExportEntry->pidRefStack = offsetForError == 0 ? nullptr : PushPidRef(localName);
+    importOrExportEntry->offset = offsetForError;
 
     return AddModuleImportOrExportEntry(importOrExportEntryList, importOrExportEntry);
 }
@@ -12002,6 +12019,13 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
     }
+
+    if (isModuleSource)
+    {
+        // verify that any local module exports are defined
+        VerifyModuleLocalExportEntries();
+    }
+
     return pnodeProg;
 }
 
