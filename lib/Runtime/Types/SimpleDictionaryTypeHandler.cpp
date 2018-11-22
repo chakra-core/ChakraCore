@@ -2501,7 +2501,7 @@ namespace Js
         if (IsNotExtensibleSupported)
         {
             // When adding a new property && we are not extensible:
-            // - if (!objectArray) => do not even get into creating new objectArrray
+            // - if (!objectArray) => do not even get into creating new objectArray
             //   (anyhow, if we were to create one, we would need one supporting non-extensible, i.e. ES5Array).
             // - else the array was created earlier and will handle the operation
             //   (it would be non-extensible ES5 array as array must match object's IsExtensible).
