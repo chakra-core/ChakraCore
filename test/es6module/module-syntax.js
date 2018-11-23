@@ -164,6 +164,8 @@ var tests = [
             testModuleScript(`do import { default } from "module"
                                 while (false);`, 'Syntax error export in while', true);
             testModuleScript('function () { import { default } from "module"; }', 'Syntax error export in function', true);
+            testModuleScript('import { default } from "module" ++ }', 'Syntax error assignment to import statement', true);
+            testModuleScript('import "module" ++ }', 'Syntax error assignment to import statement', true);
         }
     },
     {

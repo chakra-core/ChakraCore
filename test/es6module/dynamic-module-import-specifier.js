@@ -96,6 +96,26 @@ var tests = [
         }
     },
     {
+        name: "Reference errors for assignments to import() call",
+        body: function () {
+                let functionBody =
+                    `
+                    assert.throws(function () { eval("import('') ++"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') += 5"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') -= 5"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') --"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') = 2"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') <<= 2"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') >>= 2"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') >>>= 2"); }, ReferenceError);
+                    assert.throws(function () { eval("import('') **= 2"); }, ReferenceError);
+                    `;
+
+                testScript(functionBody, "Test reference errors for assignment to import()");
+                testModuleScript(functionBody, "Test reference errors for assignment to import()");
+        }
+    },
+    {
         name: "Module specifier that are not string",
         body: function () {
             var testNonStringSpecifier = function (specifier, expectedType, expectedErrMsg, message) {

@@ -2688,7 +2688,7 @@ template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
 }
 
 template<bool buildAST>
-ParseNodePtr Parser::ParseImport()
+ParseNodePtr Parser::ParseImport(BOOL *pfCanAssign)
 {
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkIMPORT);
@@ -2706,9 +2706,9 @@ ParseNodePtr Parser::ParseImport()
         }
 
         ParseNodePtr pnode = ParseImportCall<buildAST>();
-        BOOL fCanAssign;
         IdentToken token;
-        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, TRUE, &fCanAssign, &token);
+        *pfCanAssign = FALSE;
+        return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, TRUE, pfCanAssign, &token);
     }
 
     this->GetScanner()->SeekTo(parsedImport);
@@ -9977,7 +9977,7 @@ ParseNodePtr Parser::ParseStatement()
     StmtNest stmt;
     StmtNest *pstmt;
     BOOL fForInOrOfOkay;
-    BOOL fCanAssign;
+    BOOL fCanAssign = TRUE;
     IdentPtr pid;
     uint fnop;
     bool expressionStmt = false;
@@ -11003,7 +11003,7 @@ LRestart:
         goto LNeedTerminator;
 
     case tkIMPORT:
-        pnode = ParseImport<buildAST>();
+        pnode = ParseImport<buildAST>(&fCanAssign);
 
         goto LNeedTerminator;
 
@@ -11093,6 +11093,13 @@ LNeedTerminator:
     default:
         if (!this->GetScanner()->FHadNewLine())
         {
+            if (fCanAssign == FALSE && !PHASE_OFF1(Js::EarlyReferenceErrorsPhase))
+            {
+                if ((m_token.tk >= tkAsg && m_token.tk <= tkAsgRs2) || m_token.tk == tkInc || m_token.tk == tkDec)
+                {
+                    Error(JSERR_CantAssignTo);
+                }
+            }
             Error(ERRnoSemic);
         }
         else

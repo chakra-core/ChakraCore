@@ -965,7 +965,7 @@ private:
     bool IsImportOrExportStatementValidHere();
     bool IsTopLevelModuleFunc();
 
-    template<bool buildAST> ParseNodePtr ParseImport();
+    template<bool buildAST> ParseNodePtr ParseImport(BOOL *pfCanAssign);
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
     template<bool buildAST> ParseNodePtr ParseImportCall();
 
