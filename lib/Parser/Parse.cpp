@@ -10063,7 +10063,7 @@ LRestart:
             }
             // #sec-with-statement-static-semantics-early-errors states that the Statement of
             // a WithStatement throws a Syntax Error if the Statement is a LabelledFunction.
-            else if (m_pstmtCur && m_pstmtCur->pnodeStmt && m_pstmtCur->pnodeStmt->nop == knopWith)
+            else if (m_pstmtCur && m_pstmtCur->pnodeStmt && m_pstmtCur->GetNop() == knopWith)
             {
                 Error(ERRStmtOfWithIsLabelledFunc);
             }
