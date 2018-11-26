@@ -945,6 +945,17 @@ StringCommon:
             Assert(aRight != nullptr);
             Assert(scriptContext != nullptr);
 
+            Js::TypeId typeLeft = JavascriptOperators::GetTypeId(aLeft);
+            Js::TypeId typeRight = JavascriptOperators::GetTypeId(aRight);
+            if (typeLeft == TypeIds_BigInt || typeRight == TypeIds_BigInt)
+            {
+                if (typeRight != typeLeft)
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, VBSERR_TypeMismatch, _u("Multiply BigInt"));
+                }
+                return JavascriptBigInt::Mul(aLeft, aRight);
+            }
+
             if(JavascriptNumber::Is(aLeft))
             {
                 if(JavascriptNumber::Is(aRight))
@@ -979,6 +990,18 @@ StringCommon:
         Var JavascriptMath::Multiply_InPlace(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber* result)
         {
             JIT_HELPER_REENTRANT_HEADER(Op_MultiplyInPlace);
+
+            Js::TypeId typeLeft = JavascriptOperators::GetTypeId(aLeft);
+            Js::TypeId typeRight = JavascriptOperators::GetTypeId(aRight);
+            if (typeLeft == TypeIds_BigInt || typeRight == TypeIds_BigInt)
+            {
+                if (typeRight != typeLeft)
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, VBSERR_TypeMismatch, _u("Multiply BigInt"));
+                }
+                return JavascriptBigInt::Mul(aLeft, aRight);
+            }
+
             if(JavascriptNumber::Is(aLeft))
             {
                 if(JavascriptNumber::Is(aRight))
@@ -1004,7 +1027,6 @@ StringCommon:
             {
                 return TaggedInt::MultiplyInPlace(aLeft, aRight, scriptContext, result);
             }
-
             double product = Multiply_Helper(aLeft, aRight, scriptContext);
             return JavascriptNumber::InPlaceNew(product, scriptContext, result);
             JIT_HELPER_END(Op_MultiplyInPlace);

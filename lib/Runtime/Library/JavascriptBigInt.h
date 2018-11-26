@@ -39,6 +39,7 @@ namespace Js
         static Var Increment(Var aRight);
         static Var Add(Var aLeft, Var aRight);
         static Var Sub(Var aLeft, Var aRight);
+        static Var Mul(Var aLeft, Var aRight);
         static Var Decrement(Var aRight);
         static Var Not(Var aRight);
         static Var Negate(Var aRight);
@@ -46,6 +47,7 @@ namespace Js
         inline BOOL isNegative() { return m_isNegative; }
 
         static JavascriptBigInt * CreateZero(ScriptContext * scriptContext);
+        static JavascriptBigInt * CreateZeroWithLength(digit_t length, ScriptContext * scriptContext);
         static JavascriptBigInt * CreateOne(ScriptContext * scriptContext);
         static JavascriptBigInt * Create(const char16 * content, charcount_t cchUseLength, bool isNegative, ScriptContext * scriptContext);
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
@@ -70,7 +72,7 @@ namespace Js
         template <typename EncodedChar>
         void InitFromCharDigits(const EncodedChar *prgch, uint32 cch, bool isNegative); // init from char of digits
 
-        bool MulThenAdd(digit_t luMul, digit_t luAdd);
+        void MulThenAdd(digit_t luMul, digit_t luAdd);
         static bool IsZero(JavascriptBigInt * pbi);
         static void AbsoluteIncrement(JavascriptBigInt * pbi);
         static void AbsoluteDecrement(JavascriptBigInt * pbi);
@@ -81,6 +83,8 @@ namespace Js
         static void AddAbsolute(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
         static JavascriptBigInt * Sub(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
         static void SubAbsolute(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
+        static JavascriptBigInt * Mul(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
+        static JavascriptBigInt * MulAbsolute(JavascriptBigInt * pbi1, JavascriptBigInt * pbi2);
         int Compare(JavascriptBigInt * pbi);
         int CompareAbsolute(JavascriptBigInt * pbi);
         static BOOL Equals(JavascriptBigInt* left, Var right, BOOL* value, ScriptContext * requestContext);

@@ -10,12 +10,14 @@ if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
 
 var tests = [
     {
-        name: "With add, sub",
+        name: "With add, sub, mul",
         body: function () {
             assert.throws(() => {var x = 2n + 3;}, TypeError);
             assert.throws(() => {var x = 2 + 3n;}, TypeError);
             assert.throws(() => {var x = 2n - 3;}, TypeError);
             assert.throws(() => {var x = 2 - 3n;}, TypeError);
+            assert.throws(() => {var x = 2n * 3;}, TypeError);
+            assert.throws(() => {var x = 2 * 3n;}, TypeError);
         }
     },
 ];
