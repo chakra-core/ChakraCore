@@ -6512,7 +6512,7 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
         else if (valueInfo->IsFloat())
         {
             IR::Instr * defInstr = opnd->AsRegOpnd()->m_sym->GetInstrDef();
-            if (defInstr->m_opcode == Js::OpCode::LdC_F8_R8 && defInstr->GetSrc1()->IsFloatConstOpnd())
+            if ((defInstr->m_opcode == Js::OpCode::LdC_F8_R8 || defInstr->m_opcode == Js::OpCode::LdC_A_R8) && defInstr->GetSrc1()->IsFloatConstOpnd())
             {
                 return Js::JavascriptNumber::ToVar(defInstr->GetSrc1()->AsFloatConstOpnd()->m_value);
             }

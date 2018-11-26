@@ -2369,21 +2369,21 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instr)
 ///----------------------------------------------------------------------------
 
 bool
-LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
+LowererMD::GenerateFastCmSrXxConst(IR::Instr *instr)
 {
     //
     // Given:
-    // s1 = CmSrEq_A s2, s3
+    // s1 = CmSrXX_A s2, s3
     // where either s2 or s3 is 'null', 'true' or 'false'
     //
     // Generate:
     //
     //     CMP s2, s3
-    //     JEQ $mov_true
-    //     MOV s1, Library.GetFalse()
+    //     JEQ $mov_res
+    //     MOV s1, eq ? Library.GetFalse() : Library.GetTrue();
     //     JMP $done
-    // $mov_true:
-    //     MOV s1, Library.GetTrue()
+    // $mov_res:
+    //     MOV s1, eq ? Library.GetTrue() : Library.GetFalse()
     // $done:
     //
 
@@ -2391,8 +2391,9 @@ LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
 
     IR::Opnd       *opnd         = instr->GetSrc1();
     IR::RegOpnd    *opndReg      = instr->GetSrc2()->AsRegOpnd();
-    IR::LabelInstr *labelMovTrue = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    IR::LabelInstr *labelMovRes = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     IR::LabelInstr *labelDone    = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    bool            isEqual = !instr->IsNeq();
 
     if (!opnd->IsRegOpnd())
     {
@@ -2406,13 +2407,13 @@ LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
     Assert(opnd->IsRegOpnd());
 
     // CMP s2, s3
-    // JEQ $mov_true
-    this->m_lowerer->InsertCompareBranch(opnd, opndReg->m_sym->GetConstOpnd(), Js::OpCode::BrEq_A, labelMovTrue, instr);
+    // JEQ $mov_res
+    this->m_lowerer->InsertCompareBranch(opnd, m_lowerer->GetConstRegOpnd(opndReg, instr), Js::OpCode::BrEq_A, labelMovRes, instr);
 
-    // MOV s1, 'false'
+    // MOV s1, eq ? Library.GetFalse() : Library.GetTrue();
     IR::Instr *instrMov = IR::Instr::New(Js::OpCode::MOV,
                                          instr->GetDst(),
-                                         m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse),
+                                         m_lowerer->LoadLibraryValueOpnd(instr, isEqual ? LibraryValue::ValueFalse : LibraryValue::ValueTrue),
                                          m_func);
     instr->InsertBefore(instrMov);
 
@@ -2420,14 +2421,14 @@ LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
     IR::BranchInstr *jmp = IR::BranchInstr::New(Js::OpCode::JMP, labelDone, this->m_func);
     instr->InsertBefore(jmp);
 
-    // $mov_true:
-    instr->InsertBefore(labelMovTrue);
+    // $mov_res:
+    instr->InsertBefore(labelMovRes);
 
-    // MOV s1, 'true'
+    // MOV s1, eq ? Library.GetTrue() : Library.GetFalse();
     instr->m_opcode = Js::OpCode::MOV;
     instr->UnlinkSrc1();
     instr->UnlinkSrc2();
-    instr->SetSrc1(m_lowerer->LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue));
+    instr->SetSrc1(m_lowerer->LoadLibraryValueOpnd(instr, isEqual ? LibraryValue::ValueTrue : LibraryValue::ValueFalse));
     instr->ClearBailOutInfo();
     Legalize(instr);
 
