@@ -1212,10 +1212,10 @@ IRBuilder::BuildIndirOpnd(IR::RegOpnd *baseReg, uint32 offset, const char16 *des
 #endif
 
 IR::SymOpnd *
-IRBuilder::BuildFieldOpnd(Js::OpCode newOpcode, Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, PropertyKind propertyKind, uint inlineCacheIndex)
+IRBuilder::BuildFieldOpnd(Js::OpCode newOpcode, Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, PropertyKind propertyKind, uint inlineCacheIndex, bool stableSlotSym)
 {
     AssertOrFailFast(inlineCacheIndex < m_func->GetJITFunctionBody()->GetInlineCacheCount() || inlineCacheIndex == Js::Constants::NoInlineCacheIndex);
-    PropertySym * propertySym = BuildFieldSym(reg, propertyId, propertyIdIndex, inlineCacheIndex, propertyKind);
+    PropertySym * propertySym = BuildFieldSym(reg, propertyId, propertyIdIndex, inlineCacheIndex, propertyKind, stableSlotSym);
     IR::SymOpnd * symOpnd;
 
     // If we plan to apply object type optimization to this instruction or if we intend to emit a fast path using an inline
@@ -1243,14 +1243,14 @@ IRBuilder::BuildFieldOpnd(Js::OpCode newOpcode, Js::RegSlot reg, Js::PropertyId 
 }
 
 PropertySym *
-IRBuilder::BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, uint inlineCacheIndex, PropertyKind propertyKind)
+IRBuilder::BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, uint inlineCacheIndex, PropertyKind propertyKind, bool stableSlotSym)
 {
     PropertySym * propertySym;
     SymID         symId = this->BuildSrcStackSymID(reg);
 
     AssertMsg(m_func->m_symTable->FindStackSym(symId), "Tried to use an undefined stacksym?");
 
-    propertySym = PropertySym::FindOrCreate(symId, propertyId, propertyIdIndex, inlineCacheIndex, propertyKind, m_func);
+    propertySym = PropertySym::FindOrCreate(symId, propertyId, propertyIdIndex, inlineCacheIndex, propertyKind, m_func, stableSlotSym);
 
     return propertySym;
 }
@@ -3882,6 +3882,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     IR::Instr   *instr;
     PropertySym *fieldSym;
     bool isLdSlotThatWasNotProfiled = false;
+    bool stableSlots = false;
 
     switch (newOpcode)
     {
@@ -3916,13 +3917,18 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
         }
 
         case Js::OpCode::LdEnvSlot:
-        case Js::OpCode::LdEnvObjSlot:
         case Js::OpCode::StEnvSlot:
         case Js::OpCode::StEnvSlotChkUndecl:
+            stableSlots = true;
+            goto SlotsCommon;
+
+        case Js::OpCode::LdEnvObjSlot:
         case Js::OpCode::StEnvObjSlot:
         case Js::OpCode::StEnvObjSlotChkUndecl:
+            stableSlots = false;
 
-            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, this->GetEnvReg(), slotId1, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
+SlotsCommon:
+            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, this->GetEnvReg(), slotId1, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray, (uint)-1, stableSlots);
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);

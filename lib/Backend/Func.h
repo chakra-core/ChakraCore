@@ -442,6 +442,10 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     StackSym *GetLocalFrameDisplaySym() const { return m_localFrameDisplaySym; }
     void SetLocalFrameDisplaySym(StackSym *sym) { m_localFrameDisplaySym = sym; }
 
+    void AddStableSlotSym(PropertySym *sym);
+    bool IsStableSlotSym(PropertySym *sym) const;
+    BVSparse<JitArenaAllocator> *GetStableSlotSyms() const;
+    
     intptr_t GetJittedLoopIterationsSinceLastBailoutAddress() const;
     void EnsurePinnedTypeRefs();
     void PinTypeRef(void* typeRef);
@@ -724,6 +728,7 @@ public:
     BitVector           m_regsUsed;
     StackSym *          tempSymDouble;
     StackSym *          tempSymBool;
+    BVSparse<JitArenaAllocator> * bvStableSlotSyms;
     uint32              loopCount;
     uint32              unoptimizableArgumentsObjReference;
     Js::ProfileId       callSiteIdInParentFunc;
