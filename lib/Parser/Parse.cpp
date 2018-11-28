@@ -6175,6 +6175,11 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
 
         this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
 
+        // If we already incremented m_nextFunctionId when we saw some functions in the parameter scope
+        // (in default argument assignment, for example), we want to remove the count of those so the
+        // function ids following the one we are skipping right now are correct.
+        *m_nextFunctionId -= pnodeFnc->nestedCount;
+
         for (uint i = 0; i < stub->capturedNameCount; i++)
         {
             int stringId = stub->capturedNameSerializedIds[i];
