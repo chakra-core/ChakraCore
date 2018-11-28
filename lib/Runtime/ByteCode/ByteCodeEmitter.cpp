@@ -11749,17 +11749,20 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             EmitAssignment(nullptr, pnode1, location, byteCodeGenerator, funcInfo);
             byteCodeGenerator->EndStatement(pnodeCatch);
         }
-        else if (pnodeCatch->HasParam())
+        else
         {
-            Symbol *sym = pnodeCatch->GetParam()->AsParseNodeName()->sym;
-            ParamTrackAndInitialization(sym, true /*initializeParam*/, location);
-            if (scope->GetMustInstantiate())
+            if (pnodeCatch->HasParam())
             {
-                sym->SetIsGlobalCatch(true);
+                Symbol *sym = pnodeCatch->GetParam()->AsParseNodeName()->sym;
+                ParamTrackAndInitialization(sym, true /*initializeParam*/, location);
+                if (scope->GetMustInstantiate())
+                {
+                    sym->SetIsGlobalCatch(true);
+                }
+                byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
             }
-            byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
 
-            // Allow a debugger to stop on the 'catch (e)'
+            // Allow a debugger to stop on the 'catch'
             byteCodeGenerator->StartStatement(pnodeCatch);
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Nop);
             byteCodeGenerator->EndStatement(pnodeCatch);

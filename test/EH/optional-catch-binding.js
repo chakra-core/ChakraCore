@@ -106,6 +106,24 @@ var tests = [
       assert.areEqual(f()(), 2);
     },
   },
+  {
+    name: "Async function with catch block with no binding",
+    body: function() {
+        async function foo() {
+            try { throw "anything" } catch { await 5;}
+        }
+        assert.isTrue(foo() instanceof Promise, "await returns a promise");
+    }
+  },
+  {
+    name: "Async function with catch block with no binding",
+    body: function() {
+        function* foo() {
+            try { throw "anything" } catch { yield 5;}
+        }
+        assert.areEqual(5, foo().next().value, "generator returns an object with yielded value");
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
