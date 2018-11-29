@@ -5265,7 +5265,7 @@ namespace Js
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
 
-        this->UnlockCounters(); // asuming background jit is stopped and allow the counter setters access again
+        this->UnlockCounters(); // assuming background jit is stopped and allow the counter setters access again
 #endif
     }
 #endif

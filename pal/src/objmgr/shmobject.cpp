@@ -195,7 +195,7 @@ CSharedMemoryObject::InitializeFromExistingSharedData(
     // When we're being called on the duplicate handle path the passed
     // in object attributes likely won't have an object name in it.
     // If there is an object name in the shared data place that in the
-    // object attributs so that the constructed object has a local copy
+    // object attributes so that the constructed object has a local copy
     // of the name
     //
 
