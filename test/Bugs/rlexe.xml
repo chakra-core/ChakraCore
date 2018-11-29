@@ -553,6 +553,13 @@
   </test>
   <test>
     <default>
+      <files>function_id_destructured_reparse.js</files>
+      <compile-flags>-useparserstatecache -parserstatecache -force:deferparse</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug_5585.js</files>
       <compile-flags>-esdynamicimport -mutehosterrormsg -args summary -endargs</compile-flags>
     </default>

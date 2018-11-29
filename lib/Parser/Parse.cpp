@@ -1741,7 +1741,7 @@ ParseNodeVar * Parser::CreateSpecialVarDeclIfNeeded(ParseNodeFnc * pnodeFnc, Ide
     PidRefStack* ref = pid->GetTopRef();
 
     // If the function has a reference to pid or we set forceCreate, make a special var decl
-    if (forceCreate || (ref && ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->blockId))
+    if (forceCreate || (ref && (ref->GetScopeId() >= m_currentBlockInfo->pnodeBlock->blockId && ref->GetFuncScopeId() >= pnodeFnc->functionId)))
     {
         return this->CreateSpecialVarDeclNode(pnodeFnc, pid);
     }
