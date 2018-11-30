@@ -881,17 +881,23 @@ namespace Js
         switch (op)
         {
             case OpCode::StLocalSlot:
+            case OpCode::StStableLocalSlot:
             case OpCode::StParamSlot:
+            case OpCode::StStableParamSlot:
             case OpCode::StLocalObjSlot:
             case OpCode::StParamObjSlot:
             case OpCode::StLocalSlotChkUndecl:
+            case OpCode::StStableLocalSlotChkUndecl:
             case OpCode::StParamSlotChkUndecl:
+            case OpCode::StStableParamSlotChkUndecl:
             case OpCode::StLocalObjSlotChkUndecl:
             case OpCode::StParamObjSlotChkUndecl:
                 Output::Print(_u(" [%d] = R%d "),data->SlotIndex, data->Value);
                 break;
             case OpCode::LdLocalSlot:
+            case OpCode::LdStableLocalSlot:
             case OpCode::LdParamSlot:
+            case OpCode::LdStableParamSlot:
             case OpCode::LdEnvObj:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
@@ -920,7 +926,9 @@ namespace Js
         switch (op)
         {
             case OpCode::StInnerSlot:
+            case OpCode::StStableInnerSlot:
             case OpCode::StInnerSlotChkUndecl:
+            case OpCode::StStableInnerSlotChkUndecl:
             case OpCode::StInnerObjSlot:
             case OpCode::StInnerObjSlotChkUndecl:
             case OpCode::StEnvSlot:
@@ -931,8 +939,10 @@ namespace Js
                 Output::Print(_u(" [%d][%d] = R%d "),data->SlotIndex1, data->SlotIndex2, data->Value);
                 break;
             case OpCode::LdInnerSlot:
+            case OpCode::LdStableInnerSlot:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
+            case OpCode::LdStableEnvSlot:
             case OpCode::LdEnvObjSlot:
             case OpCode::LdModuleSlot:
                 Output::Print(_u(" R%d = [%d][%d] "),data->Value, data->SlotIndex1, data->SlotIndex2);

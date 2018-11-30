@@ -31,6 +31,7 @@ namespace Js
             this->SetSymbolId(scopeSlot, propertyId);
             this->SetSymbolType(scopeSlot, sym->GetSymbolType());
             this->SetHasFuncAssignment(scopeSlot, sym->GetHasFuncAssignment());
+            this->SetHasNonLocalAssignment(scopeSlot, sym->HasNonLocalAssignment());
             this->SetIsBlockVariable(scopeSlot, sym->GetIsBlockVar());
             this->SetIsConst(scopeSlot, sym->GetIsConst());
             this->SetIsFuncExpr(scopeSlot, sym->GetIsFuncExpr());
@@ -241,6 +242,10 @@ namespace Js
                 sym->SetIsFuncExpr(GetIsFuncExpr(i));
                 sym->SetIsModuleExportStorage(GetIsModuleExportStorage(i));
                 sym->SetIsModuleImport(GetIsModuleImport(i));
+                if (GetHasNonLocalAssignment(i))
+                {
+                    sym->SetHasNonLocalAssignment();
+                }
                 if (GetHasFuncAssignment(i))
                 {
                     sym->RestoreHasFuncAssignment();

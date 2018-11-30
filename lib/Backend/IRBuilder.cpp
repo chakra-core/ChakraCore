@@ -3528,19 +3528,34 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     StackSym *   stackFuncPtrSym = nullptr;
     SymID        symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
     bool isLdSlotThatWasNotProfiled = false;
+    bool stableSlot = false;
     StackSym* closureSym = m_func->GetLocalClosureSym();
 
     uint scopeSlotSize = this->IsParamScopeDone() ? m_func->GetJITFunctionBody()->GetScopeSlotArraySize() : m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
 
     switch (newOpcode)
     {
+        case Js::OpCode::LdStableParamSlot:
+            stableSlot = true;
+            goto ParamSlotCommon;
+
         case Js::OpCode::LdParamSlot:
+            stableSlot = false;
+
+ParamSlotCommon:
             scopeSlotSize = m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
             closureSym = m_func->GetParamClosureSym();
             symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
-            // Fall through
+            goto LocalSlotCommon;
+
+        case Js::OpCode::LdStableLocalSlot:
+            stableSlot = true;
+            goto LocalSlotCommon;
 
         case Js::OpCode::LdLocalSlot:
+            stableSlot = false;
+
+LocalSlotCommon:
             if (!PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
             {
                 if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
@@ -3580,7 +3595,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 this->EnsureLoopBodyLoadSlot(symID);
             }
 
-            fieldSym = PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldSym = PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func, stableSlot);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
             regOpnd = this->BuildDstOpnd(regSlot);
             instr = nullptr;
@@ -3637,16 +3652,32 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             this->AddInstr(instr, offset);
             break;
 
+        case Js::OpCode::StStableParamSlot:
+        case Js::OpCode::StStableParamSlotChkUndecl:
+            stableSlot = true;
+            goto StParamSlotCommon;
+
         case Js::OpCode::StParamSlot:
         case Js::OpCode::StParamSlotChkUndecl:
+            stableSlot = false;
+
+StParamSlotCommon:
             scopeSlotSize = m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
             closureSym = m_func->GetParamClosureSym();
             symID = m_func->GetJITFunctionBody()->GetParamClosureReg();
-            newOpcode = newOpcode == Js::OpCode::StParamSlot ? Js::OpCode::StLocalSlot : Js::OpCode::StLocalSlotChkUndecl;
-            // Fall through
+            newOpcode = newOpcode == Js::OpCode::StParamSlot || newOpcode == Js::OpCode::StStableParamSlot ? Js::OpCode::StLocalSlot : Js::OpCode::StLocalSlotChkUndecl;
+            goto StLocalSlotCommon;
+
+        case Js::OpCode::StStableLocalSlot:
+        case Js::OpCode::StStableLocalSlotChkUndecl:
+            stableSlot = true;
+            goto StLocalSlotCommon;
 
         case Js::OpCode::StLocalSlot:
         case Js::OpCode::StLocalSlotChkUndecl:
+            stableSlot = false;
+
+StLocalSlotCommon:
             if (!PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
             {
                 if ((uint32)slotId >= scopeSlotSize + Js::ScopeSlots::FirstSlotIndex)
@@ -3662,7 +3693,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 this->AddInstr(byteCodeUse, offset);
             }
 
-            newOpcode = newOpcode == Js::OpCode::StLocalSlot ? Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
+            newOpcode = newOpcode == Js::OpCode::StLocalSlot || newOpcode == Js::OpCode::StStableLocalSlot ? Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
             if (m_func->DoStackFrameDisplay())
             {
                 regOpnd = IR::RegOpnd::New(TyVar, m_func);
@@ -3687,7 +3718,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                     this->EnsureLoopBodyLoadSlot(symID);
                 }
             }
-            fieldSym = PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldSym = PropertySym::FindOrCreate(symID, slotId, (uint32)-1, (uint)-1, PropertyKindSlots, m_func, stableSlot);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
             regOpnd = this->BuildSrcOpnd(regSlot);
             instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
@@ -3882,7 +3913,8 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     IR::Instr   *instr;
     PropertySym *fieldSym;
     bool isLdSlotThatWasNotProfiled = false;
-    bool stableSlots = false;
+    bool stableSlotArray = false;
+    bool stableSlot = false;
 
     switch (newOpcode)
     {
@@ -3916,19 +3948,26 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             break;
         }
 
+        case Js::OpCode::LdStableEnvSlot:
+            stableSlotArray = true;
+            stableSlot = true;
+            goto EnvSlotCommon;
+
         case Js::OpCode::LdEnvSlot:
         case Js::OpCode::StEnvSlot:
         case Js::OpCode::StEnvSlotChkUndecl:
-            stableSlots = true;
-            goto SlotsCommon;
+            stableSlotArray = true;
+            stableSlot = false;
+            goto EnvSlotCommon;
 
         case Js::OpCode::LdEnvObjSlot:
         case Js::OpCode::StEnvObjSlot:
         case Js::OpCode::StEnvObjSlotChkUndecl:
-            stableSlots = false;
+            stableSlotArray = false;
+            stableSlot = false;
 
-SlotsCommon:
-            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, this->GetEnvReg(), slotId1, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray, (uint)-1, stableSlots);
+EnvSlotCommon:
+            fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, this->GetEnvReg(), slotId1, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray, (uint)-1, stableSlotArray);
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);
@@ -3953,12 +3992,13 @@ SlotsCommon:
                     break;
             }
 
-            fieldSym = PropertySym::New(regOpnd->m_sym, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func);
+            fieldSym = PropertySym::New(regOpnd->m_sym, slotId2, (uint32)-1, (uint)-1, PropertyKindSlots, m_func, stableSlot);
             fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
 
             switch (newOpcode)
             {
                 case Js::OpCode::LdEnvSlot:
+                case Js::OpCode::LdStableEnvSlot:
                 case Js::OpCode::LdEnvObjSlot:
                     newOpcode = Js::OpCode::LdSlot;
                     regOpnd = this->BuildDstOpnd(regSlot);
@@ -3992,10 +4032,18 @@ SlotsCommon:
             }
             break;
 
+        case Js::OpCode::StStableInnerSlot:
+        case Js::OpCode::StStableInnerSlotChkUndecl:
+            stableSlot = true;
+            goto StInnerSlotCommon;
+
         case Js::OpCode::StInnerObjSlot:
         case Js::OpCode::StInnerObjSlotChkUndecl:
         case Js::OpCode::StInnerSlot:
         case Js::OpCode::StInnerSlotChkUndecl:
+            stableSlot = false;
+
+StInnerSlotCommon:
             if ((uint)slotId1 >= m_func->GetJITFunctionBody()->GetInnerScopeCount())
             {
                 Js::Throw::FatalInternalError();
@@ -4018,7 +4066,7 @@ SlotsCommon:
             }
             else
             {
-                fieldOpnd = this->BuildFieldOpnd(Js::OpCode::StSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots);
+                fieldOpnd = this->BuildFieldOpnd(Js::OpCode::StSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots, (uint)-1, stableSlot);
                 if (!this->DoSlotArrayCheck(fieldOpnd, IsLoopBody()))
                 {
                     // Need a dynamic check on the size of the local slot array.
@@ -4026,7 +4074,7 @@ SlotsCommon:
                 }
             }
             newOpcode = 
-                newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot ?
+                newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot || newOpcode == Js::OpCode::StStableInnerSlot ?
                 Js::OpCode::StSlot : Js::OpCode::StSlotChkUndecl;
             instr = IR::Instr::New(newOpcode, fieldOpnd, regOpnd, m_func);
             if (newOpcode == Js::OpCode::StSlotChkUndecl)
@@ -4038,8 +4086,15 @@ SlotsCommon:
 
             break;
 
+        case Js::OpCode::LdStableInnerSlot:
+            stableSlot = true;
+            goto LdInnerSlotCommon;
+
         case Js::OpCode::LdInnerSlot:
         case Js::OpCode::LdInnerObjSlot:
+            stableSlot = false;
+
+LdInnerSlotCommon:
             if ((uint)slotId1 >= m_func->GetJITFunctionBody()->GetInnerScopeCount())
             {
                 Js::Throw::FatalInternalError();
@@ -4061,7 +4116,7 @@ SlotsCommon:
             }
             else
             {
-                fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots);
+                fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots, (uint)-1, stableSlot);
                 if (!this->DoSlotArrayCheck(fieldOpnd, IsLoopBody()))
                 {
                     // Need a dynamic check on the size of the local slot array.

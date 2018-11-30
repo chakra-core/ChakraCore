@@ -35,6 +35,7 @@ namespace Js {
             };
             Field(SymbolType) symbolType;
             Field(bool) hasFuncAssignment : 1;
+            Field(bool) hasNonLocalAssignment : 1;
             Field(bool) isBlockVariable : 1;
             Field(bool) isConst : 1;
             Field(bool) isFuncExpr : 1;
@@ -86,6 +87,13 @@ namespace Js {
             Assert(!areNamesCached);
             Assert(i >= 0 && i < symbolCount);
             symbols[i].hasFuncAssignment = has;
+        }
+
+        void SetHasNonLocalAssignment(int i, bool has)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].hasNonLocalAssignment = has;
         }
 
         void SetIsBlockVariable(int i, bool is)
@@ -147,6 +155,12 @@ namespace Js {
         {
             Assert(i >= 0 && i < symbolCount);
             return symbols[i].hasFuncAssignment;
+        }
+
+        bool GetHasNonLocalAssignment(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].hasNonLocalAssignment;
         }
 
         bool GetIsModuleExportStorage(int i)
