@@ -136,7 +136,6 @@ BOOL CustomExternalWrapperObject::EnsureInitialized(ScriptContext* requestContex
     {
         return TRUE;
     }
-    this->initialized = true;
     void* initializeTrap = this->GetExternalType()->GetJsGetterSetterInterceptor()->initializeTrap;
     if (initializeTrap == nullptr)
     {
@@ -147,6 +146,8 @@ BOOL CustomExternalWrapperObject::EnsureInitialized(ScriptContext* requestContex
         threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
         return FALSE;
     }
+
+    this->initialized = true;
     JavascriptFunction * initializeMethod = Js::VarTo<JavascriptFunction>(initializeTrap);
 
     Js::RecyclableObject * targetObj = this;
