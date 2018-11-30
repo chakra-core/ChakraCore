@@ -35,6 +35,13 @@
     JsCreateCustomExternalObjectWithPrototype
     JsCreateTracedCustomExternalObjectWithPrototype
     JsCreateTracedCustomExternalObjectWithPrototypeAndSlots
+    JsGetArrayForEachFunction
+    JsGetArrayKeysFunction
+    JsGetArrayValuesFunction
+    JsGetArrayEntriesFunction
+    JsGetPropertyIdSymbolIterator
+    JsGetErrorPrototype
+    JsGetIteratorPrototype
     JsConvertValueToObject
     JsGetPrototype
     JsSetPrototype

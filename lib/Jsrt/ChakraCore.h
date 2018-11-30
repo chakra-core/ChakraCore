@@ -1148,6 +1148,55 @@ JsCreateTracedCustomExternalObjectWithPrototype(
     _Out_ JsValueRef * object);
 
 /// <summary>
+///     Returns a reference to the Array.Prototype.forEach function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.forEach function.</param>
+CHAKRA_API
+JsGetArrayForEachFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.keys function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.keys function.</param>
+CHAKRA_API
+JsGetArrayKeysFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.values function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.values function.</param>
+CHAKRA_API
+JsGetArrayValuesFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.entries function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.entries function.</param>
+CHAKRA_API
+JsGetArrayEntriesFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns the property id of the Symbol.iterator property.
+/// </summary>
+/// <param name="propertyId">The property id of the Symbol.iterator property.</param>
+CHAKRA_API
+JsGetPropertyIdSymbolIterator(_Out_ JsPropertyIdRef * propertyId);
+
+/// <summary>
+///     Returns a reference to the Javascript error prototype object.
+/// </summary>
+/// <param name="result">A reference to the Javascript error prototype object.</param>
+CHAKRA_API
+JsGetErrorPrototype(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Javascript iterator prototype object.
+/// </summary>
+/// <param name="result">A reference to the Javascript iterator prototype object.</param>
+CHAKRA_API
+JsGetIteratorPrototype(_Out_ JsValueRef * result);
+
+/// <summary>
 ///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
 /// </summary>
 /// <remarks>
@@ -1574,7 +1623,7 @@ JsSetRuntimeDomWrapperTracingCallbacks(
     _In_ JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
 
 CHAKRA_API
-    JsTraceExternalReference(
+JsTraceExternalReference(
         _In_ JsRuntimeHandle runtimeHandle,
         _In_ JsValueRef value
     );
