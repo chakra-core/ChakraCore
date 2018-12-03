@@ -86,6 +86,13 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtCreateObject = (JsAPIHooks::JsrtCreateObjectPtr)GetChakraCoreSymbol(library, "JsCreateObject");
     m_jsApiHooks.pfJsrtCreateExternalObject = (JsAPIHooks::JsrtCreateExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateExternalObject");
     m_jsApiHooks.pfJsrtCreateCustomExternalObject = (JsAPIHooks::JsrtCreateCustomExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateCustomExternalObject");
+    m_jsApiHooks.pfJsrtGetArrayForEachFunction = (JsAPIHooks::JsrtGetArrayForEachFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayForEachFunction");;
+    m_jsApiHooks.pfJsrtGetArrayKeysFunction = (JsAPIHooks::JsrtGetArrayKeysFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayKeysFunction");;
+    m_jsApiHooks.pfJsrtGetArrayValuesFunction = (JsAPIHooks::JsrtGetArrayValuesFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayValuesFunction");;
+    m_jsApiHooks.pfJsrtGetArrayEntriesFunction = (JsAPIHooks::JsrtGetArrayEntriesFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayEntriesFunction");;
+    m_jsApiHooks.pfJsrtGetPropertyIdSymbolIterator = (JsAPIHooks::JsrtGetPropertyIdSymbolIteratorPtr)GetChakraCoreSymbol(library, "JsGetPropertyIdSymbolIterator");;
+    m_jsApiHooks.pfJsrtGetErrorPrototype = (JsAPIHooks::JsrtGetErrorPrototypePtr)GetChakraCoreSymbol(library, "JsGetErrorPrototype");;
+    m_jsApiHooks.pfJsrtGetIteratorPrototype = (JsAPIHooks::JsrtGetIteratorPrototypePtr)GetChakraCoreSymbol(library, "JsGetIteratorPrototype");;
     m_jsApiHooks.pfJsrtCreateFunction = (JsAPIHooks::JsrtCreateFunctionPtr)GetChakraCoreSymbol(library, "JsCreateFunction");
     m_jsApiHooks.pfJsrtCreateNamedFunction = (JsAPIHooks::JsCreateNamedFunctionPtr)GetChakraCoreSymbol(library, "JsCreateNamedFunction");
     m_jsApiHooks.pfJsrtSetProperty = (JsAPIHooks::JsrtSetPropertyPtr)GetChakraCoreSymbol(library, "JsSetProperty");

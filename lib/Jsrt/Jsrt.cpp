@@ -1824,10 +1824,17 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
     {
         return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
     }
-    else
+    else if (typeId == Js::TypeIds_Object)
     {
-        return ContextAPINoScriptWrapper(internalHasProperty);
+        // CEOs can also have traps so we would want the Enter/Leave semantics for those.
+        Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(object);
+        if (externalWrapper)
+        {
+            return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+        }
     }
+
+    return ContextAPINoScriptWrapper(internalHasProperty);
 }
 
 #ifdef _CHAKRACOREBUILD
@@ -1870,10 +1877,17 @@ CHAKRA_API JsObjectHasProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
     {
         return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
     }
-    else
+    else if (typeId == Js::TypeIds_Object)
     {
-        return ContextAPINoScriptWrapper(internalHasProperty);
+        // CEOs can also have traps so we would want the Enter/Leave semantics for those.
+        Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(object);
+        if (externalWrapper)
+        {
+            return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+        }
     }
+
+    return ContextAPINoScriptWrapper(internalHasProperty);
 }
 #endif
 
@@ -6164,6 +6178,106 @@ JsSetRuntimeDomWrapperTracingCallbacks(
         recycler->SetDOMWrapperTracingCallback(wrapperTracingState, reinterpret_cast<DOMWrapperTracingCallback>(wrapperTracingCallback), reinterpret_cast<DOMWrapperTracingDoneCallback>(wrapperTracingDoneCallback), reinterpret_cast<DOMWrapperTracingEnterFinalPauseCallback>(enterFinalPauseCallback));
         return JsNoError;
     });
+}
+
+CHAKRA_API
+JsGetArrayForEachFunction(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+            *result = scriptContext->GetLibrary()->EnsureArrayPrototypeForEachFunction();
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetArrayKeysFunction(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+        *result = scriptContext->GetLibrary()->EnsureArrayPrototypeKeysFunction();
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetArrayValuesFunction(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+        *result = scriptContext->GetLibrary()->EnsureArrayPrototypeValuesFunction();
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetArrayEntriesFunction(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+        *result = scriptContext->GetLibrary()->EnsureArrayPrototypeEntriesFunction();
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetPropertyIdSymbolIterator(_Out_ JsPropertyIdRef * propertyId)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(propertyId);
+
+        Js::PropertyId symbolIteratorPropertyId = scriptContext->GetLibrary()->GetPropertyIdSymbolIterator();
+        *propertyId = Js::JavascriptNumber::ToVar(symbolIteratorPropertyId, scriptContext);
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetErrorPrototype(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+        *result = scriptContext->GetLibrary()->GetErrorPrototype();
+        if (*result == JS_INVALID_REFERENCE)
+        {
+            return JsErrorFatal;
+        }
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
+}
+
+CHAKRA_API
+JsGetIteratorPrototype(_Out_ JsValueRef * result)
+{
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        PARAM_NOT_NULL(result);
+
+        *result = scriptContext->GetLibrary()->GetIteratorPrototype();
+        if (*result == JS_INVALID_REFERENCE)
+        {
+            return JsErrorFatal;
+        }
+
+        return JsNoError;
+    },
+        /*allowInObjectBeforeCollectCallback*/true);
 }
 
 CHAKRA_API JsTraceExternalReference(_In_ JsRuntimeHandle runtimeHandle, _In_ JsValueRef value)

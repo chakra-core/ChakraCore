@@ -17,6 +17,13 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCreateObjectPtr)(JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtCreateExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtCreateCustomExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef *object);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayForEachFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayKeysFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayValuesFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayEntriesFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetPropertyIdSymbolIteratorPtr)(JsPropertyIdRef *propertyId);
+    typedef JsErrorCode (WINAPI *JsrtGetErrorPrototypePtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetIteratorPrototypePtr)(JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateFunctionPtr)(JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function);
     typedef JsErrorCode (WINAPI *JsrtCreateEnhancedFunctionPtr)(JsEnhancedNativeFunction nativeFunction, JsValueRef metadata, void *callbackState, JsValueRef *function);
     typedef JsErrorCode (WINAPI *JsCreateNamedFunctionPtr)(JsValueRef name, JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function);
@@ -127,6 +134,14 @@ struct JsAPIHooks
     JsrtCreateObjectPtr pfJsrtCreateObject;
     JsrtCreateExternalObjectPtr pfJsrtCreateExternalObject;
     JsrtCreateCustomExternalObjectPtr pfJsrtCreateCustomExternalObject;
+    JsrtGetArrayForEachFunctionPtr pfJsrtGetArrayForEachFunction;
+    JsrtGetArrayKeysFunctionPtr pfJsrtGetArrayKeysFunction;
+    JsrtGetArrayValuesFunctionPtr pfJsrtGetArrayValuesFunction;
+    JsrtGetArrayEntriesFunctionPtr pfJsrtGetArrayEntriesFunction;
+    JsrtGetPropertyIdSymbolIteratorPtr pfJsrtGetPropertyIdSymbolIterator;
+    JsrtGetErrorPrototypePtr pfJsrtGetErrorPrototype;
+    JsrtGetIteratorPrototypePtr pfJsrtGetIteratorPrototype;
+
     JsrtCreateFunctionPtr pfJsrtCreateFunction;
     JsrtCreateEnhancedFunctionPtr pfJsrtCreateEnhancedFunction;
     JsCreateNamedFunctionPtr pfJsrtCreateNamedFunction;
@@ -351,6 +366,13 @@ public:
     static JsErrorCode WINAPI JsCreateObject(JsValueRef *object) { return HOOK_JS_API(CreateObject(object)); }
     static JsErrorCode WINAPI JsCreateExternalObject(void *data, JsFinalizeCallback callback, JsValueRef *object) { return HOOK_JS_API(CreateExternalObject(data, callback, object)); }
     static JsErrorCode WINAPI JsCreateCustomExternalObject(void *data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef * object) { return HOOK_JS_API(CreateCustomExternalObject(data, callback, getterSetterInterceptor, object)); }
+    static JsErrorCode WINAPI JsGetArrayForEachFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayForEachFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayKeysFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayKeysFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayValuesFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayValuesFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayEntriesFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayEntriesFunction(result)); }
+    static JsErrorCode WINAPI JsGetPropertyIdSymbolIterator(JsPropertyIdRef * propertyId) { return HOOK_JS_API(GetPropertyIdSymbolIterator(propertyId)); }
+    static JsErrorCode WINAPI JsGetErrorPrototype(JsValueRef * result) { return HOOK_JS_API(GetErrorPrototype(result)); }
+    static JsErrorCode WINAPI JsGetIteratorPrototype(JsValueRef * result) { return HOOK_JS_API(GetIteratorPrototype(result)); }
     static JsErrorCode WINAPI JsCreateFunction(JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateFunction(nativeFunction, callbackState, function)); }
     static JsErrorCode WINAPI JsCreateEnhancedFunction(JsEnhancedNativeFunction nativeFunction, JsValueRef metadata, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateEnhancedFunction(nativeFunction, metadata, callbackState, function)); }
     static JsErrorCode WINAPI JsCreateNamedFunction(JsValueRef name, JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateNamedFunction(name, nativeFunction, callbackState, function)); }
