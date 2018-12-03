@@ -18,7 +18,7 @@ rm -f $ERRFILE
 rm -f $ERRFILETEMP
 
 echo "Check Copyright > Begin Checking..."
-git diff --name-only `git merge-base origin/$ghprbTargetBranch HEAD` HEAD |
+git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.git.*' |
     grep -v -E '\.xml$' |
     grep -v -E '\.props$' |
