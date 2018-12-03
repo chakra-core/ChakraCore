@@ -1,5 +1,7 @@
 # ChakraCore
 
+[![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/wyrichte.ChakraCore)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=14)
+
 [![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 
