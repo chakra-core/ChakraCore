@@ -3297,6 +3297,9 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         // Super call needs to reference 'new.target'
         if (pid == wellKnownPropertyPids._superConstructor)
         {
+            // super() will write to "this", so track the assignment.
+            PidRefStack *thisRef = wellKnownPropertyPids._this->GetTopRef();
+            thisRef->isAsg = true;
             ReferenceSpecialName(wellKnownPropertyPids._newTarget, ichMin, ichLim);
         }
 
@@ -10287,7 +10290,9 @@ LRestart:
             }
             else
             {
-                pnodeT = ParseExpr<buildAST>(koplNo, &fCanAssign, /*fAllowIn = */FALSE);
+                IdentToken token;
+                pnodeT = ParseExpr<buildAST>(koplNo, &fCanAssign, /*fAllowIn = */FALSE, FALSE, NULL, nullptr, nullptr, &token);
+                TrackAssignment<buildAST>(pnodeT, &token);
             }
 
             // We would veryfiy the grammar as destructuring grammar only when  for..in/of case. As in the native for loop case the above ParseExpr call
@@ -12848,10 +12853,6 @@ ParseNodePtr Parser::ConvertArrayToArrayPattern(ParseNodePtr pnode)
         {
             *itemRef = ConvertObjectToObjectPattern(item);
         }
-        else if (item->nop == knopName)
-        {
-            TrackAssignment<true>(item, nullptr);
-        }
     });
 
     return pnode;
@@ -12888,11 +12889,7 @@ ParseNodePtr Parser::GetRightSideNodeFromPattern(ParseNodePtr pnode)
     else
     {
         rightNode = pnode;
-        if (op == knopName)
-        {
-            TrackAssignment<true>(pnode, nullptr);
-        }
-        else if (op == knopAsg)
+        if (op == knopAsg)
         {
             TrackAssignment<true>(pnode->AsParseNodeBin()->pnode1, nullptr);
         }
@@ -13199,6 +13196,8 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             {
                 Error(ERRInvalidAssignmentTarget);
             }
+
+            TrackAssignment<buildAST>(pnodeElem, &token);
 
             if (buildAST)
             {
