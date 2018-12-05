@@ -19,6 +19,7 @@ struct InlineCacheUnit
 };
 
 typedef JsUtil::BaseDictionary<ParseNode*, SList<Symbol*>*, ArenaAllocator, PowerOf2SizePolicy> CapturedSymMap;
+typedef JsUtil::BaseDictionary<Js::ProfileId, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy> CallSiteToCallApplyCallSiteMap;
 
 class FuncInfo
 {
@@ -168,6 +169,7 @@ public:
     RootObjectInlineCacheIdMap * rootObjectStoreInlineCacheMap;
     InlineCacheMap * inlineCacheMap;
     ReferencedPropertyIdMap * referencedPropertyIdToMapIndex;
+    CallSiteToCallApplyCallSiteMap * callSiteToCallApplyCallSiteMap;
     SListBase<uint> valueOfStoreCacheIds;
     SListBase<uint> toStringStoreCacheIds;
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
@@ -794,6 +796,7 @@ public:
     void OnEndVisitScope(Scope *scope, bool isMergedScope = false);
     void AddCapturedSym(Symbol *sym);
     CapturedSymMap *EnsureCapturedSymMap();
+    CallSiteToCallApplyCallSiteMap * EnsureCallSiteToCallApplyCallSiteMap();
 
 #if DBG_DUMP
     void Dump();

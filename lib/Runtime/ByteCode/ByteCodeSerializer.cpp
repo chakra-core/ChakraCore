@@ -65,6 +65,8 @@ namespace Js
     const int magicEndOfPropIdsOfFormals = *(int*)"]pif";
     const int magicStartOfSlotIdToNestedIndexArray = *(int*)"sni[";
     const int magicEndOfSlotIdToNestedIndexArray = *(int*)"]sni";
+    const int magicStartOfCallSiteToCallApplyCallSiteArray = *(int*)"cca[";
+    const int magicEndOfCallSiteToCallApplyCallSiteArray = *(int*)"]cca";
 #endif
 
     // Serialized files are architecture specific
@@ -137,6 +139,7 @@ struct SerializedFieldList {
     bool has_auxiliary : 1;
     bool has_propertyIdOfFormals: 1;
     bool has_slotIdInCachedScopeToNestedIndexArray : 1;
+    bool has_callSiteToCallApplyCallSiteArray : 1;
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
     bool has_scopeInfo : 1;
@@ -1691,6 +1694,27 @@ public:
         return size;
     }
 
+#if ENABLE_NATIVE_CODEGEN
+    uint32 AddCallSiteToCallApplyCallSiteArray(BufferBuilderList& builder, FunctionBody * functionBody)
+    {
+        uint32 size = 0;
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("Start CallSiteToCallApplyCallSiteArray"), magicStartOfCallSiteToCallApplyCallSiteArray);
+#endif
+        Js::ProfileId * callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArray();
+        for (Js::ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); i++)
+        {
+            size += PrependInt16(builder, _u(".call/.apply call site id for call site id"), callSiteToCallApplyCallSiteArray[i]);
+        }
+
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        size += PrependInt32(builder, _u("End CallSiteToCallApplyCallSiteArray"), magicEndOfCallSiteToCallApplyCallSiteArray);
+#endif
+        return size;
+    }
+#endif
+
     // Gets the number of debugger slot array scopes there are in the function body's scope chain list.
     uint32 GetDebuggerScopeSlotArrayCount(FunctionBody * function)
     {
@@ -2158,6 +2182,20 @@ public:
                 definedFields.has_slotIdInCachedScopeToNestedIndexArray = true;
                 AddSlotIdInCachedScopeToNestedIndexArray(builder, function);
             }
+
+#if ENABLE_NATIVE_CODEGEN
+            if (function->GetCallSiteToCallApplyCallSiteArray() == nullptr)
+            {
+                definedFields.has_callSiteToCallApplyCallSiteArray = false;
+            }
+            else
+            {
+                definedFields.has_callSiteToCallApplyCallSiteArray = true;
+                AddCallSiteToCallApplyCallSiteArray(builder, function);
+            }
+#else
+            definedFields.has_callSiteToCallApplyCallSiteArray = false;
+#endif
 
             uint debuggerScopeSlotArraySize = GetDebuggerScopeSlotArrayCount(function);
             if (debuggerScopeSlotArraySize != 0)
@@ -3433,7 +3471,31 @@ public:
 
         return current;
     }
+    
+#if ENABLE_NATIVE_CODEGEN
+    const byte * ReadCallSiteToCallApplyCallSiteArray(const byte * current, FunctionBody * functionBody)
+    {
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        int constant;
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicStartOfCallSiteToCallApplyCallSiteArray);
+#endif
+        Js::ProfileId * callSiteToCallApplyCallSiteArray = functionBody->CreateCallSiteToCallApplyCallSiteArray();
 
+        Js::ProfileId value;
+        for (Js::ProfileId i = 0; i < functionBody->GetProfiledCallSiteCount(); i++)
+        {
+            current = ReadUInt16(current, &value);
+            callSiteToCallApplyCallSiteArray[i] = value;
+        }
+#ifdef BYTE_CODE_MAGIC_CONSTANTS
+        current = ReadInt32(current, &constant);
+        Assert(constant == magicEndOfCallSiteToCallApplyCallSiteArray);
+#endif
+
+        return current;
+    }
+#endif
 
     const byte * ReadSlotArrayDebuggerScopeProperties(const byte * current, FunctionBody* function, DebuggerScope* debuggerScope, uint propertyCount)
     {
@@ -4261,6 +4323,13 @@ public:
             {
                 current = ReadSlotIdInCachedScopeToNestedIndexArray(current, *functionBody);
             }
+
+#if ENABLE_NATIVE_CODEGEN
+            if (definedFields->has_callSiteToCallApplyCallSiteArray)
+            {
+                current = ReadCallSiteToCallApplyCallSiteArray(current, *functionBody);
+            }
+#endif
 
             if (definedFields->has_debuggerScopeSlotArray)
             {

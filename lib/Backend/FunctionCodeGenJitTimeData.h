@@ -32,6 +32,8 @@ namespace Js
         Field(Field(FunctionCodeGenJitTimeData*)*) inlinees;
         Field(Field(FunctionCodeGenJitTimeData*)*) ldFldInlinees;
         Field(Field(FunctionCodeGenJitTimeData*)*) callbackInlinees;
+        Field(Field(FunctionCodeGenJitTimeData*)*) callApplyTargetInlinees;
+        
         Field(RecyclerWeakReference<FunctionBody>*) weakFuncRef;
 
         Field(PolymorphicInlineCacheInfoIDL*) inlineeInfo;
@@ -92,6 +94,7 @@ namespace Js
         const FunctionCodeGenJitTimeData *GetInlinee(const ProfileId profiledCallSiteId) const;
         const FunctionCodeGenJitTimeData *GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const;
         const FunctionCodeGenJitTimeData * GetCallbackInlinee(const ProfileId profiledCallSiteId) const;
+        const FunctionCodeGenJitTimeData * GetCallApplyTargetInlinee(const ProfileId callApplyCallSiteId) const;
         FunctionCodeGenJitTimeData *AddInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
@@ -123,6 +126,12 @@ namespace Js
         FunctionCodeGenJitTimeData * AddCallbackInlinee(
             Recycler *const recycler,
             const ProfileId profiledCallSiteId,
+            FunctionInfo *const inlinee);
+
+        FunctionCodeGenJitTimeData * AddCallApplyTargetInlinee(
+            Recycler *const recycler,
+            const ProfileId profiledCallSiteId,
+            const ProfileId callApplyCallSiteId,
             FunctionInfo *const inlinee);
 
         bool IsPolymorphicCallSite(const ProfileId profiledCallSiteId) const;

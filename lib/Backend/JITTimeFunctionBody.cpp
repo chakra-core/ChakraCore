@@ -174,6 +174,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     }
     jitBody->envDepth = functionBody->GetEnvDepth();
     jitBody->profiledCallSiteCount = functionBody->GetProfiledCallSiteCount();
+    jitBody->profiledCallApplyCallSiteCount = functionBody->GetProfiledCallApplyCallSiteCount();
     jitBody->inParamCount = functionBody->GetInParamsCount();
     jitBody->thisRegisterForEventHandler = functionBody->GetThisRegisterForEventHandler();
     jitBody->funcExprScopeRegister = functionBody->GetFuncExprScopeRegister();
@@ -251,6 +252,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->functionSlotsInCachedScopeCount = slotIdInCachedScopeToNestedIndexArray->count;
         jitBody->slotIdInCachedScopeToNestedIndexArray = slotIdInCachedScopeToNestedIndexArray->elements;
     }
+    jitBody->callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArrayWithLock();
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -1050,6 +1052,16 @@ bool
 JITTimeFunctionBody::HasPropIdToFormalsMap() const
 {
     return m_bodyData.propertyIdsForRegSlotsCount > 0 && GetFormalsPropIdArray() != nullptr;
+}
+
+Js::ProfileId
+JITTimeFunctionBody::GetCallApplyCallSiteIdForCallSiteId(Js::ProfileId callSiteId) const
+{
+    AssertOrFailFast(callSiteId < m_bodyData.profiledCallSiteCount);
+    Js::ProfileId callApplyId = m_bodyData.callSiteToCallApplyCallSiteArray[callSiteId];
+    AssertOrFailFast(callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
+    
+    return callApplyId;
 }
 
 bool

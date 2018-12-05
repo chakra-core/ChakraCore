@@ -136,6 +136,16 @@ namespace Js
         return EnsureInlineeCommon(recycler, profiledCallSiteId, inlinee, callbackInlinees);
     }
 
+    
+    FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::EnsureCallApplyTargetInlinee(
+        Recycler *const recycler,
+        const ProfileId callApplyCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+        return EnsureInlineeCommon(recycler, callApplyCallSiteId, inlinee, callApplyTargetInlinees);
+    }
+
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetLdFldInlinee(const InlineCacheIndex inlineCacheIndex) const
     {
         Assert(inlineCacheIndex < functionBody->GetInlineCacheCount());
@@ -180,5 +190,12 @@ namespace Js
         Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
 
         return callbackInlinees ? callbackInlinees[profiledCallSiteId] : nullptr;
+    }
+    
+    const FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::GetCallApplyTargetInlinee(const ProfileId callApplyCallSiteId) const
+    {
+        Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+
+        return callApplyTargetInlinees ? callApplyTargetInlinees[callApplyCallSiteId] : nullptr;
     }
 }

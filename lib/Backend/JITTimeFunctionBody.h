@@ -177,6 +177,7 @@ public:
     bool HasProfileInfo() const;
     bool IsRegSlotFormal(Js::RegSlot reg) const;
     bool HasPropIdToFormalsMap() const;
+    Js::ProfileId GetCallApplyCallSiteIdForCallSiteId(Js::ProfileId callSiteId) const;
 
     static bool LoopContains(const JITLoopHeaderIDL * loop1, const JITLoopHeaderIDL * loop2);
 
