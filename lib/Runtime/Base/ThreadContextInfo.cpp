@@ -393,41 +393,15 @@ ThreadContextInfo::ResetIsAllJITCodeInPreReservedRegion()
 }
 
 #ifdef ENABLE_GLOBALIZATION
-
-#if defined(_CONTROL_FLOW_GUARD)
+# if defined(_CONTROL_FLOW_GUARD)
 Js::DelayLoadWinCoreProcessThreads *
 ThreadContextInfo::GetWinCoreProcessThreads()
 {
     m_delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
     return &m_delayLoadWinCoreProcessThreads;
 }
-
-Js::DelayLoadWinCoreMemory *
-ThreadContextInfo::GetWinCoreMemoryLibrary()
-{
-    m_delayLoadWinCoreMemoryLibrary.EnsureFromSystemDirOnly();
-    return &m_delayLoadWinCoreMemoryLibrary;
-}
+# endif
 #endif
-
-bool
-ThreadContextInfo::IsCFGEnabled()
-{
-#if defined(_CONTROL_FLOW_GUARD)
-    PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY CfgPolicy;
-    m_delayLoadWinCoreProcessThreads.EnsureFromSystemDirOnly();
-    BOOL isGetMitigationPolicySucceeded = m_delayLoadWinCoreProcessThreads.GetMitigationPolicyForProcess(
-        GetCurrentProcess(),
-        ProcessControlFlowGuardPolicy,
-        &CfgPolicy,
-        sizeof(CfgPolicy));
-    Assert(isGetMitigationPolicySucceeded || !AutoSystemInfo::Data.IsCFGEnabled());
-    return CfgPolicy.EnableControlFlowGuard && AutoSystemInfo::Data.IsCFGEnabled();
-#else
-    return false;
-#endif // _CONTROL_FLOW_GUARD
-}
-#endif // ENABLE_GLOBALIZATION
 
 //Masking bits according to AutoSystemInfo::PageSize
 #define PAGE_START_ADDR(address) ((size_t)(address) & ~(size_t)(AutoSystemInfo::PageSize - 1))
@@ -445,7 +419,7 @@ ThreadContextInfo::SetValidCallTargetInternal(
     AnalysisAssert(!useFileAPI || fileHandle);
     AnalysisAssert(!useFileAPI || viewBase);
 #ifdef _CONTROL_FLOW_GUARD
-    if (IsCFGEnabled())
+    if (GlobalSecurityPolicy::IsCFGEnabled())
     {
 #ifdef _M_ARM
         AssertMsg(((uintptr_t)callTargetAddress & 0x1) != 0, "on ARM we expect the thumb bit to be set on anything we use as a call target");
@@ -505,7 +479,7 @@ ThreadContextInfo::SetValidCallTargetInternal(
             AssertMsg((size_t)callTargetAddress - (size_t)startAddressOfPage <= AutoSystemInfo::PageSize - 1, "Only last bits corresponding to PageSize should be masked");
             AssertMsg((size_t)startAddressOfPage + (size_t)codeOffset == (size_t)callTargetAddress, "Wrong masking of address?");
 
-            isCallTargetRegistrationSucceed = GetWinCoreMemoryLibrary()->SetProcessCallTargets(GetProcessHandle(), startAddressOfPage, AutoSystemInfo::PageSize, 1, callTargetInfo);
+            isCallTargetRegistrationSucceed = GlobalSecurityPolicy::SetProcessValidCallTargets(GetProcessHandle(), startAddressOfPage, AutoSystemInfo::PageSize, 1, callTargetInfo);
         }
         if (!isCallTargetRegistrationSucceed)
         {
@@ -529,7 +503,7 @@ ThreadContextInfo::SetValidCallTargetInternal(
 #if DBG
         if (isSetValid && !JITManager::GetJITManager()->IsOOPJITEnabled())
         {
-            _GUARD_CHECK_ICALL((uintptr_t)callTargetAddress);
+            _guard_check_icall((uintptr_t)callTargetAddress);
         }
 
         if (PHASE_TRACE1(Js::CFGPhase))

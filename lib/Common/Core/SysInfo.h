@@ -15,7 +15,6 @@ public:
     uint GetAllocationGranularityPageSize() const;
 
     bool DisableDebugScopeCapture() const { return this->disableDebugScopeCapture; }
-    bool IsCFGEnabled();
     bool IsWin8OrLater();
 #if defined(_CONTROL_FLOW_GUARD)
     bool IsWinThresholdOrLater();
