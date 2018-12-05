@@ -12,6 +12,10 @@
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
 
+// CFG was never enabled for ARM32 and requires WIN10 SDK
+#if !defined(_M_ARM) && defined(_WIN32) && defined(NTDDI_WIN10)
+#define _CONTROL_FLOW_GUARD 1
+#endif
 
 //----------------------------------------------------------------------------------------------------
 // Default debug/fretest/release flags values
@@ -316,7 +320,9 @@
 #endif
 
 // Other features
-// #define CHAKRA_CORE_DOWN_COMPAT 1
+#if defined(_CHAKRACOREBUILD)
+# define CHAKRA_CORE_DOWN_COMPAT 1
+#endif
 
 // todo:: Enable vectorcall on NTBUILD. OS#13609380
 #if defined(_WIN32) && !defined(NTBUILD) && defined(_M_IX86)

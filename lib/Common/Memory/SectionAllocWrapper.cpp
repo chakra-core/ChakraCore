@@ -99,7 +99,7 @@ PVOID MapView(HANDLE process, HANDLE sectionHandle, size_t size, size_t offset, 
         {
             return nullptr;
         }
-        flags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
+        flags = GlobalSecurityPolicy::IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE_READ;
     }
 
 #if USEFILEMAP2
@@ -860,7 +860,7 @@ LPVOID PreReservedSectionAllocWrapper::EnsurePreReservedRegionInternal()
 #endif // _M_IX86
 #endif
 
-    if (AutoSystemInfo::Data.IsCFGEnabled() && supportPreReservedRegion)
+    if (GlobalSecurityPolicy::IsCFGEnabled() && supportPreReservedRegion)
     {
         HANDLE sectionHandle = CreateSection(bytes, false);
         if (sectionHandle == nullptr)

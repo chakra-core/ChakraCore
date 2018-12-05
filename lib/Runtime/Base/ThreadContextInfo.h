@@ -114,14 +114,10 @@ public:
 
     bool CanBeFalsy(Js::TypeId typeId) { return typeId == this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection]; }
 
-    bool IsCFGEnabled();
     bool IsClosed();
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
-    Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
-
-    Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 

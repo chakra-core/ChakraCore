@@ -2665,7 +2665,7 @@ HeapPageAllocator<T>::ProtectPages(__in char* address, size_t pageCount, __in vo
 
     /*Verify if we always pass the PAGE_TARGETS_NO_UPDATE flag, if the protect flag is EXECUTE*/
 #if defined(_CONTROL_FLOW_GUARD)
-    if (AutoSystemInfo::Data.IsCFGEnabled() &&
+    if (GlobalSecurityPolicy::IsCFGEnabled() &&
         (dwVirtualProtectFlags & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)) &&
         ((dwVirtualProtectFlags & PAGE_TARGETS_NO_UPDATE) == 0))
     {
