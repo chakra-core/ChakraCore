@@ -787,7 +787,7 @@ typedef unsigned short uint16_t;
     /// <summary>
     ///     A callback for entering final pause for tracing DOM wrappers.
     /// </summary>
-    typedef void(*JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
+    typedef void(CHAKRA_CALLBACK *JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new runtime.
