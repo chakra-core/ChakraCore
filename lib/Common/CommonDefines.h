@@ -12,7 +12,8 @@
 #include "Warnings.h"
 #include "ChakraCoreVersion.h"
 
-#if !defined(_M_ARM)
+// CFG was never enabled for ARM32 and requires WIN10 SDK
+#if !defined(_M_ARM) && defined(_WIN32) && defined(NTDDI_WIN10)
 #define _CONTROL_FLOW_GUARD 1
 #endif
 
