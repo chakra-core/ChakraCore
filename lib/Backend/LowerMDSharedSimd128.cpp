@@ -932,7 +932,8 @@ IR::Instr* LowererMD::Simd128LowerNeg(IR::Instr *instr)
     IR::Opnd* dst = instr->GetDst();
     IR::Opnd* src1 = instr->GetSrc1();
     Js::OpCode addOpcode = Js::OpCode::PADDD;
-    void * allOnes = (void*)&X86_ALL_ONES_I4;
+    ThreadContextInfo* threadContextInfo = m_func->GetThreadContextInfo();
+    intptr_t allOnes = threadContextInfo->GetX86AllOnesI4Addr();
 
     Assert(dst->IsRegOpnd() && dst->IsSimd128());
     Assert(src1->IsRegOpnd() && src1->IsSimd128());
@@ -946,12 +947,12 @@ IR::Instr* LowererMD::Simd128LowerNeg(IR::Instr *instr)
     case Js::OpCode::Simd128_Neg_I8:
     case Js::OpCode::Simd128_Neg_U8:
         addOpcode = Js::OpCode::PADDW;
-        allOnes = (void*)&X86_ALL_ONES_I8;
+        allOnes = threadContextInfo->GetX86AllOnesI8Addr();
         break;
     case Js::OpCode::Simd128_Neg_I16:
     case Js::OpCode::Simd128_Neg_U16:
         addOpcode = Js::OpCode::PADDB;
-        allOnes = (void*)&X86_ALL_ONES_I16;
+        allOnes = threadContextInfo->GetX86AllOnesI16Addr();
         break;
     default:
         Assert(UNREACHED);
@@ -962,7 +963,7 @@ IR::Instr* LowererMD::Simd128LowerNeg(IR::Instr *instr)
     instr->InsertBefore(pInstr);
 
     // PANDN dst, dst, 0xfff...f
-    pInstr = IR::Instr::New(Js::OpCode::PANDN, dst, dst, IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetX86AllNegOnesAddr(), src1->GetType(), m_func), m_func);
+    pInstr = IR::Instr::New(Js::OpCode::PANDN, dst, dst, IR::MemRefOpnd::New(threadContextInfo->GetX86AllNegOnesAddr(), src1->GetType(), m_func), m_func);
     instr->InsertBefore(pInstr);
     Legalize(pInstr);
 
