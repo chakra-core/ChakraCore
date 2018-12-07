@@ -565,6 +565,7 @@ private:
     IR::Instr *     LowerBailOnNotPolymorphicInlinee(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotStackArgs(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotObject(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
+    IR::Instr *     LowerCheckIsFuncObj(IR::Instr *instr, bool checkFuncInfo = false);
     IR::Instr *     LowerBailOnTrue(IR::Instr *instr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotBuiltIn(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotInteger(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
@@ -799,6 +800,11 @@ private:
 
     IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
     IR::Instr *     AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * bailoutInfo, IR::BailOutKind  bailoutKind, IR::Instr * primaryBailoutInstr);
+
+    IR::Instr* InsertObjectCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+    IR::Instr* InsertFunctionTypeIdCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+    IR::Instr* InsertFunctionInfoCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::AddrOpnd *inlinedFuncInfo, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+
 public:
     static IRType   GetImplicitCallFlagsType()
     {

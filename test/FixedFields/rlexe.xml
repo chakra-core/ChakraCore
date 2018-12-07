@@ -2,6 +2,19 @@
 <regress-exe>
   <test>
     <default>
+      <files>NonFixedFieldHoist.js</files>
+      <baseline>NonFixedFieldHoist.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -bgjit- -off:simplejit</compile-flags>
+    </default>
+  </test>
+    <test>
+    <default>
+      <files>NonFixedFieldHoist.js</files>
+      <baseline>NonFixedFieldHoist.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>FixedFieldsOnSingletons.js</files>
       <baseline>FixedFieldsOnSingletons.baseline</baseline>
     </default>
