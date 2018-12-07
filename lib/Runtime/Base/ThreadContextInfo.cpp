@@ -277,6 +277,24 @@ ThreadContextInfo::GetX86AllOnesF4Addr() const
 }
 
 intptr_t
+ThreadContextInfo::GetX86AllOnesI4Addr() const
+{
+    return ShiftAddr(this, &X86_ALL_ONES_I4);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllOnesI8Addr() const
+{
+    return ShiftAddr(this, &X86_ALL_ONES_I8);
+}
+
+intptr_t
+ThreadContextInfo::GetX86AllOnesI16Addr() const
+{
+    return ShiftAddr(this, &X86_ALL_ONES_I16);
+}
+
+intptr_t
 ThreadContextInfo::GetX86LowBytesMaskAddr() const
 {
     return ShiftAddr(this, &X86_LOWBYTES_MASK);

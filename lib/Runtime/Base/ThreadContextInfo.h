@@ -68,6 +68,9 @@ public:
     intptr_t GetX86AllNegOnesF4Addr() const;
     intptr_t GetX86AllZerosAddr() const;
     intptr_t GetX86AllOnesF4Addr() const;
+    intptr_t GetX86AllOnesI4Addr() const;
+    intptr_t GetX86AllOnesI8Addr() const;
+    intptr_t GetX86AllOnesI16Addr() const;
     intptr_t GetX86LowBytesMaskAddr() const;
     intptr_t GetX86HighBytesMaskAddr() const;
     intptr_t GetX86DoubleWordSignBitsAddr() const;
