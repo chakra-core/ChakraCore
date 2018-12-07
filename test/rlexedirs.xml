@@ -67,11 +67,7 @@
     <files>Strings</files>
   </default>
 </dir>
-<dir>
-  <default>
-    <files>Date</files>
-  </default>
-</dir>
+
 <dir>
   <default>
     <files>Intl</files>
@@ -169,21 +165,13 @@
     <files>RWC</files>
   </default>
 </dir>
-<dir>
-  <default>
-    <files>VT_DATE</files>
-  </default>
-</dir>
+
 <dir>
   <default>
     <files>Lib</files>
   </default>
 </dir>
-<dir>
-  <default>
-    <files>JSON</files>
-  </default>
-</dir>
+
 <dir>
   <default>
     <files>Bugs</files>
