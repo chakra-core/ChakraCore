@@ -1044,7 +1044,7 @@ BOOL GlobOpt::PRE::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
 
         // T3.y
         PropertySym *newPropSym = PropertySym::FindOrCreate(
-            objPtrCopyPropSym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->globOpt->func);
+            objPtrCopyPropSym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->globOpt->func, this->globOpt->func->IsStableSlotSym(propertySym));
 
         if (!landingPad->globOptData.FindValue(newPropSym))
         {

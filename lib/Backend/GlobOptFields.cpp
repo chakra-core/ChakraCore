@@ -242,7 +242,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
 void
 GlobOpt::KillAllFields(BVSparse<JitArenaAllocator> * bv)
 {
-    bv->ClearAll();
+    bv->And(func->GetStableSlotSyms());
     if (this->IsLoopPrePass())
     {
         for (Loop * loop = this->rootLoopPrePass; loop != nullptr; loop = loop->parent)
@@ -447,9 +447,8 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
 void
 GlobOpt::ProcessFieldKills(IR::Instr * instr)
 {
-    if (!this->DoFieldCopyProp() && !this->DoFieldRefOpts() && !DoCSE())
+    if (this->currentBlock->globOptData.liveFields->IsEmpty())
     {
-        Assert(this->currentBlock->globOptData.liveFields->IsEmpty());
         return;
     }
 
@@ -1808,7 +1807,7 @@ GlobOpt::CopyPropPropertySymObj(IR::SymOpnd *symOpnd, IR::Instr *instr)
         if (copySym != nullptr)
         {
             PropertySym *newProp = PropertySym::FindOrCreate(
-                copySym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->func);
+                copySym->m_id, propertySym->m_propertyId, propertySym->GetPropertyIdIndex(), propertySym->GetInlineCacheIndex(), propertySym->m_fieldKind, this->func, this->func->IsStableSlotSym(propertySym));
 
             if (!this->IsLoopPrePass() || SafeToCopyPropInPrepass(objSym, copySym, val))
             {

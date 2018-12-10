@@ -271,11 +271,20 @@ Js::OpCode ByteCodeGenerator::ToChkUndeclOp(Js::OpCode op) const
     case Js::OpCode::StLocalSlot:
         return Js::OpCode::StLocalSlotChkUndecl;
 
+    case Js::OpCode::StStableLocalSlot:
+        return Js::OpCode::StStableLocalSlotChkUndecl;
+
     case Js::OpCode::StParamSlot:
         return Js::OpCode::StParamSlotChkUndecl;
 
+    case Js::OpCode::StStableParamSlot:
+        return Js::OpCode::StStableParamSlotChkUndecl;
+
     case Js::OpCode::StInnerSlot:
         return Js::OpCode::StInnerSlotChkUndecl;
+
+    case Js::OpCode::StStableInnerSlot:
+        return Js::OpCode::StStableInnerSlotChkUndecl;
 
     case Js::OpCode::StEnvSlot:
         return Js::OpCode::StEnvSlotChkUndecl;
@@ -2108,7 +2117,7 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
                 else
                 {
                     Assert(sym->HasScopeSlot());
-                    this->m_writer.SlotI1(Js::OpCode::StLocalSlot, sym->GetLocation(),
+                    this->m_writer.SlotI1(Js::OpCode::StStableLocalSlot, sym->GetLocation(),
                                           sym->GetScopeSlot() + Js::ScopeSlots::FirstSlotIndex);
                 }
             }
@@ -3100,7 +3109,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
                             Js::RegSlot tempReg = funcInfo->AcquireTmpRegister();
                             Js::PropertyId slot = param->EnsureScopeSlot(this, funcInfo);
                             Js::ProfileId profileId = funcInfo->FindOrAddSlotProfileId(paramScope, slot);
-                            Js::OpCode op = paramScope->GetIsObject() ? Js::OpCode::LdParamObjSlot : Js::OpCode::LdParamSlot;
+                            Js::OpCode op = paramScope->GetIsObject() ? Js::OpCode::LdParamObjSlot : param->HasNonLocalAssignment() ? Js::OpCode::LdParamSlot : Js::OpCode::LdStableParamSlot;
                             slot = slot + (paramScope->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
 
                             this->m_writer.SlotI1(op, tempReg, slot, profileId);
@@ -4474,7 +4483,7 @@ void ByteCodeGenerator::EmitLocalPropInit(Js::RegSlot rhsLocation, Symbol *sym, 
             Js::PropertyId slot = sym->EnsureScopeSlot(this, funcInfo);
             Js::RegSlot slotReg = scope->GetCanMerge() ? funcInfo->frameSlotsRegister : scope->GetLocation();
             // Now store the property to its slot.
-            Js::OpCode op = this->GetStSlotOp(scope, -1, slotReg, false, funcInfo);
+            Js::OpCode op = this->GetStSlotOp(sym, scope, -1, slotReg, false, funcInfo);
 
             if (slotReg != Js::Constants::NoRegister && slotReg == funcInfo->frameSlotsRegister)
             {
@@ -4493,12 +4502,13 @@ void ByteCodeGenerator::EmitLocalPropInit(Js::RegSlot rhsLocation, Symbol *sym, 
 }
 
 Js::OpCode
-ByteCodeGenerator::GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo)
+ByteCodeGenerator::GetStSlotOp(Symbol *sym, Scope *scope, int envIndex, Js::RegSlot scopeLocation, bool chkBlockVar, FuncInfo *funcInfo)
 {
     Js::OpCode op;
 
     if (envIndex != -1)
     {
+        Assert(sym->HasNonLocalAssignment());
         if (scope->GetIsObject())
         {
             op = Js::OpCode::StEnvObjSlot;
@@ -4516,11 +4526,11 @@ ByteCodeGenerator::GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
             // Symbol is from the param scope of a split scope function and we are emitting the body.
             // We should use the param scope's bytecode now.
             Assert(!funcInfo->IsBodyAndParamScopeMerged());
-            op = Js::OpCode::StParamSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::StParamSlot : Js::OpCode::StStableParamSlot;
         }
         else
         {
-            op = Js::OpCode::StLocalSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::StLocalSlot : Js::OpCode::StStableLocalSlot;
         }
     }
     else if (scopeLocation != Js::Constants::NoRegister &&
@@ -4547,7 +4557,7 @@ ByteCodeGenerator::GetStSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
         }
         else
         {
-            op = Js::OpCode::StInnerSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::StInnerSlot : Js::OpCode::StStableInnerSlot;
         }
     }
 
@@ -4782,7 +4792,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         bool chkBlockVar = !isLetDecl && !isConstDecl && NeedCheckBlockVar(sym, scope, funcInfo);
 
         // The property is in memory rather than register. We'll have to load it from the slots.
-        op = this->GetStSlotOp(scope, envIndex, scopeLocation, chkBlockVar, funcInfo);
+        op = this->GetStSlotOp(sym, scope, envIndex, scopeLocation, chkBlockVar, funcInfo);
 
         if (envIndex != -1)
         {
@@ -4848,7 +4858,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
 }
 
 Js::OpCode
-ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo)
+ByteCodeGenerator::GetLdSlotOp(Symbol *sym, Scope *scope, int envIndex, Js::RegSlot scopeLocation, FuncInfo *funcInfo)
 {
     Js::OpCode op;
 
@@ -4860,7 +4870,7 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
         }
         else
         {
-            op = Js::OpCode::LdEnvSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::LdEnvSlot : Js::OpCode::LdStableEnvSlot;
         }
     }
     else if (scopeLocation != Js::Constants::NoRegister &&
@@ -4871,11 +4881,11 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
             // Symbol is from the param scope of a split scope function and we are emitting the body.
             // We should use the param scope's bytecode now.
             Assert(!funcInfo->IsBodyAndParamScopeMerged());
-            op = Js::OpCode::LdParamSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::LdParamSlot : Js::OpCode::LdStableParamSlot;
         }
         else
         {
-            op = Js::OpCode::LdLocalSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::LdLocalSlot : Js::OpCode::LdStableLocalSlot;
         }
     }
     else if (scopeLocation != Js::Constants::NoRegister &&
@@ -4901,7 +4911,7 @@ ByteCodeGenerator::GetLdSlotOp(Scope *scope, int envIndex, Js::RegSlot scopeLoca
         }
         else
         {
-            op = Js::OpCode::LdInnerSlot;
+            op = sym->HasNonLocalAssignment() ? Js::OpCode::LdInnerSlot : Js::OpCode::LdStableInnerSlot;
         }
     }
     else
@@ -5174,7 +5184,7 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         Js::OpCode op;
 
         // Now get the property from its slot.
-        op = this->GetLdSlotOp(scope, envIndex, scopeLocation, funcInfo);
+        op = this->GetLdSlotOp(sym, scope, envIndex, scopeLocation, funcInfo);
         slot = slot + (sym->GetScope()->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
 
         if (envIndex != -1)
@@ -5543,7 +5553,7 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         bool chkBlockVar = NeedCheckBlockVar(sym, scope, funcInfo);
         Js::OpCode op;
 
-        op = this->GetLdSlotOp(scope, envIndex, scopeLocation, funcInfo);
+        op = this->GetLdSlotOp(sym, scope, envIndex, scopeLocation, funcInfo);
         slot = slot + (sym->GetScope()->GetIsObject() ? 0 : Js::ScopeSlots::FirstSlotIndex);
 
         if (envIndex != -1)

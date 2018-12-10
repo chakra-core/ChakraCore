@@ -446,13 +446,17 @@ MACRO_WMS(              ScopedStFld,                ElementP,       OpSideEffect
 MACRO_EXTEND_WMS(       ConsoleScopedStFld,         ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_WMS(              ScopedStFldStrict,          ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack
 MACRO_EXTEND_WMS(       ConsoleScopedStFldStrict,   ElementP,       OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Store to function's scope stack in strict mode for console scope
-MACRO_WMS(              ScopedDeleteFld,            ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes
-MACRO_WMS(              ScopedDeleteFldStrict,      ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes in strict mode
+MACRO_EXTEND_WMS(       ScopedDeleteFld,            ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes
+MACRO_EXTEND_WMS(       ScopedDeleteFldStrict,      ElementScopedC, OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)                  // Remove a property through a stack of scopes in strict mode
 MACRO_WMS_PROFILED(     LdSlot,                     ElementSlot,    OpTempNumberSources)
 MACRO_WMS_PROFILED(     LdEnvSlot,                  ElementSlotI2,  OpTempNumberSources)
-MACRO_WMS_PROFILED(     LdInnerSlot,                ElementSlotI2,  OpTempNumberSources)
+MACRO_WMS_PROFILED(     LdStableEnvSlot,            ElementSlotI2,  OpTempNumberSources)
+MACRO_EXTEND_WMS_AND_PROFILED(LdInnerSlot,          ElementSlotI2,  OpTempNumberSources)
+MACRO_EXTEND_WMS_AND_PROFILED(LdStableInnerSlot,    ElementSlotI2,  OpTempNumberSources)
 MACRO_WMS_PROFILED(     LdLocalSlot,                ElementSlotI1,  OpTempNumberSources)
+MACRO_WMS_PROFILED(     LdStableLocalSlot,          ElementSlotI1,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdParamSlot,          ElementSlotI1,  OpTempNumberSources)
+MACRO_EXTEND_WMS_AND_PROFILED(LdStableParamSlot,    ElementSlotI1,  OpTempNumberSources)
 MACRO_BACKEND_ONLY(     LdSlotArr,                  ElementSlot,    OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdInnerObjSlot,       ElementSlotI2,  OpTempNumberSources)
 MACRO_EXTEND_WMS_AND_PROFILED(LdObjSlot,            ElementSlot,    None)
@@ -462,14 +466,20 @@ MACRO_EXTEND_WMS_AND_PROFILED(LdEnvObjSlot,         ElementSlotI2,  None)
 MACRO_EXTEND_WMS_AND_PROFILED(LdModuleSlot,         ElementSlotI2,  None)
 MACRO_BACKEND_ONLY(     StSlot,                     ElementSlot,    None)
 MACRO_WMS(              StEnvSlot,                  ElementSlotI2,  None)
-MACRO_WMS(              StInnerSlot,                ElementSlotI2,  None)
+MACRO_EXTEND_WMS(       StInnerSlot,                ElementSlotI2,  None)
+MACRO_EXTEND_WMS(       StStableInnerSlot,          ElementSlotI2,  None)
 MACRO_WMS(              StLocalSlot,                ElementSlotI1,  None)
+MACRO_WMS(              StStableLocalSlot,          ElementSlotI1,  None)
 MACRO_EXTEND_WMS(       StParamSlot,                ElementSlotI1,  None)
+MACRO_EXTEND_WMS(       StStableParamSlot,          ElementSlotI1,  None)
 MACRO_BACKEND_ONLY(     StSlotChkUndecl,            ElementSlot,    OpSideEffect)
 MACRO_EXTEND_WMS(       StEnvSlotChkUndecl,         ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StInnerSlotChkUndecl,       ElementSlotI2,  OpSideEffect)
+MACRO_EXTEND_WMS(       StStableInnerSlotChkUndecl, ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StLocalSlotChkUndecl,       ElementSlotI1,  OpSideEffect)
+MACRO_EXTEND_WMS(       StStableLocalSlotChkUndecl, ElementSlotI1,  OpSideEffect)
 MACRO_EXTEND_WMS(       StParamSlotChkUndecl,       ElementSlotI1,  OpSideEffect)
+MACRO_EXTEND_WMS(       StStableParamSlotChkUndecl, ElementSlotI1,  OpSideEffect)
 MACRO_EXTEND_WMS(       StObjSlot,                  ElementSlot,    OpSideEffect)
 MACRO_EXTEND_WMS(       StInnerObjSlot,             ElementSlotI2,  OpSideEffect)
 MACRO_EXTEND_WMS(       StLocalObjSlot,             ElementSlotI1,  OpSideEffect)

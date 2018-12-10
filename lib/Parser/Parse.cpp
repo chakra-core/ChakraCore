@@ -1938,6 +1938,10 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             {
                 sym->SetNeedsScopeObject();
             }
+            if (ref->IsAssignment())
+            {
+                sym->SetHasNonLocalAssignment();
+            }
         }
 
         if (ref->IsFuncAssignment())

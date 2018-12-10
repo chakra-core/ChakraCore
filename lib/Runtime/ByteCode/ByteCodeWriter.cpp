@@ -1595,11 +1595,15 @@ StoreCommon:
         {
             case OpCode::LdEnvObj:
             case OpCode::StLocalSlot:
+            case OpCode::StStableLocalSlot:
             case OpCode::StParamSlot:
+            case OpCode::StStableParamSlot:
             case OpCode::StLocalObjSlot:
             case OpCode::StParamObjSlot:
             case OpCode::StLocalSlotChkUndecl:
+            case OpCode::StStableLocalSlotChkUndecl:
             case OpCode::StParamSlotChkUndecl:
+            case OpCode::StStableParamSlotChkUndecl:
             case OpCode::StLocalObjSlotChkUndecl:
             case OpCode::StParamObjSlotChkUndecl:
             {
@@ -1628,7 +1632,9 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdLocalSlot:
+            case OpCode::LdStableLocalSlot:
             case OpCode::LdParamSlot:
+            case OpCode::LdStableParamSlot:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&
@@ -1677,7 +1683,9 @@ StoreCommon:
         switch (op)
         {
             case OpCode::StInnerSlot:
+            case OpCode::StStableInnerSlot:
             case OpCode::StInnerSlotChkUndecl:
+            case OpCode::StStableInnerSlotChkUndecl:
             case OpCode::StInnerObjSlot:
             case OpCode::StInnerObjSlotChkUndecl:
             case OpCode::StEnvSlot:
@@ -1712,8 +1720,10 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdInnerSlot:
+            case OpCode::LdStableInnerSlot:
             case OpCode::LdInnerObjSlot:
             case OpCode::LdEnvSlot:
+            case OpCode::LdStableEnvSlot:
             case OpCode::LdEnvObjSlot:
             case OpCode::LdModuleSlot:
                 if ((DoDynamicProfileOpcode(AggressiveIntTypeSpecPhase) || DoDynamicProfileOpcode(FloatTypeSpecPhase)) &&

@@ -33,6 +33,7 @@ private:
     BYTE isConst : 1;
     BYTE isGlobal : 1;
     BYTE hasNonLocalReference : 1;  // if true, then this symbol needs to be heap-allocated
+    BYTE hasNonLocalAssignment : 1; // symbol is/isn't written to in a child function.
     BYTE isFuncExpr : 1;              // if true, then this symbol is allocated on it's on activation object
     BYTE isCatch : 1;               // if true then this a catch identifier
     BYTE hasInit : 1;
@@ -76,6 +77,7 @@ public:
         isConst(false),
         isGlobal(false),
         hasNonLocalReference(false),
+        hasNonLocalAssignment(false),
         isFuncExpr(false),
         isCatch(false),
         hasInit(false),
@@ -141,6 +143,16 @@ public:
     bool GetHasNonLocalReference() const
     {
         return hasNonLocalReference;
+    }
+
+    void SetHasNonLocalAssignment()
+    {
+        hasNonLocalAssignment = true;
+    }
+
+    bool HasNonLocalAssignment() const
+    {
+        return hasNonLocalAssignment;
     }
 
     void SetIsFuncExpr(bool b)

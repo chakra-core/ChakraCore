@@ -126,6 +126,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 #endif
     , m_funcStartLabel(nullptr)
     , m_funcEndLabel(nullptr)
+    , bvStableSlotSyms(nullptr)
 #if DBG
     , hasCalledSetDoFastPaths(false)
     , allowRemoveBailOutArgInstr(false)
@@ -172,6 +173,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
         outputData->hasJittedStackClosure = false;
         outputData->localVarSlotsOffset = m_localVarSlotsOffset;
         outputData->localVarChangedOffset = m_hasLocalVarChangedOffset;
+
+        this->bvStableSlotSyms =  Anew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
     }
 
     if (this->IsInlined())
@@ -806,6 +809,21 @@ void Func::OnAddSym(Sym* sym)
         Assert(m_nonTempLocalVars);
         m_nonTempLocalVars->Set(sym->m_id);
     }
+}
+
+void Func::AddStableSlotSym(PropertySym *sym)
+{
+    this->GetTopFunc()->bvStableSlotSyms->Set(sym->m_id);
+}
+
+bool Func::IsStableSlotSym(PropertySym *sym) const
+{
+    return this->GetTopFunc()->bvStableSlotSyms->Test(sym->m_id);
+}
+
+BVSparse<JitArenaAllocator> *Func::GetStableSlotSyms() const
+{
+    return this->GetTopFunc()->bvStableSlotSyms;
 }
 
 ///
