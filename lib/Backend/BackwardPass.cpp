@@ -8685,18 +8685,27 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
         }
         Func *localFunc = loop->GetFunc();
         StackSym *sym = localFunc->m_symTable->FindStackSym(symId)->GetInt32EquivSym(localFunc);
-
+        
         IR::Opnd *inductionVariableOpnd = IR::RegOpnd::New(sym, IRType::TyInt32, localFunc);
+        IR::Opnd *tempInductionVariableOpnd = IR::RegOpnd::New(IRType::TyInt32, localFunc);
         IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll);
-        IR::Instr* restoreInductionVarInstr = IR::Instr::New(opCode, inductionVariableOpnd, inductionVariableOpnd, sizeOpnd, loop->GetFunc());
+
+        // The induction variable is restored to a temp register before the MemOp occurs. Once the MemOp is
+        // complete, the induction variable's register is set to the value of the temp register. This is done
+        // in order to avoid overwriting the induction variable's value after a bailout on the MemOp.
+        IR::Instr* restoreInductionVarToTemp = IR::Instr::New(opCode, tempInductionVariableOpnd, inductionVariableOpnd, sizeOpnd, loop->GetFunc());
+        IR::Instr* restoreInductionVar = IR::Instr::New(Js::OpCode::Ld_A, inductionVariableOpnd, tempInductionVariableOpnd, loop->GetFunc());
 
         // The IR that restores the induction variable's value is placed before the MemOp. Since this IR can
         // bailout to the loop's landing pad, placing this IR before the MemOp avoids performing the MemOp,
         // bailing out because of this IR, and then performing the effects of the loop again.
-        loop->landingPad->InsertInstrBefore(restoreInductionVarInstr, loop->memOpInfo->instr);
+        loop->landingPad->InsertInstrBefore(restoreInductionVarToTemp, loop->memOpInfo->instr);
 
         // If restoring an induction variable results in an overflow, bailout to the loop's landing pad.
-        restoreInductionVarInstr->ConvertToBailOutInstr(loop->bailOutInfo, IR::BailOutOnOverflow);
+        restoreInductionVarToTemp->ConvertToBailOutInstr(loop->bailOutInfo, IR::BailOutOnOverflow);
+
+        // Restore the induction variable's actual register once all bailouts have been passed.
+        loop->landingPad->InsertAfter(restoreInductionVar);
     };
 
     for (auto it = loop->memOpInfo->inductionVariableChangeInfoMap->GetIterator(); it.IsValid(); it.MoveNext())
