@@ -328,10 +328,20 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         Assert(dstOpnd != nullptr);
         KillLiveFields(this->lengthEquivBv, bv);
         KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::InitComputedProperty:
+    case Js::OpCode::InitGetElemI:
+    case Js::OpCode::InitSetElemI:
         KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::DeleteElemI_A:
@@ -394,6 +404,10 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
         KillLiveFields(this->lengthEquivBv, bv);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::InlineeStart:
@@ -410,10 +424,18 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         fnHelper = instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper;
 
         // Kill length field for built-ins that can update it.
-        if(nullptr != this->lengthEquivBv && (fnHelper == IR::JnHelperMethod::HelperArray_Shift || fnHelper == IR::JnHelperMethod::HelperArray_Splice
-            || fnHelper == IR::JnHelperMethod::HelperArray_Unshift))
+        if(fnHelper == IR::JnHelperMethod::HelperArray_Shift 
+           || fnHelper == IR::JnHelperMethod::HelperArray_Splice
+           || fnHelper == IR::JnHelperMethod::HelperArray_Unshift)
         {
-            KillLiveFields(this->lengthEquivBv, bv);
+            if (nullptr != this->lengthEquivBv)
+            {
+                KillLiveFields(this->lengthEquivBv, bv);
+            }
+            if (inGlobOpt)
+            {
+                KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            }
         }
 
         if ((fnHelper == IR::JnHelperMethod::HelperRegExp_Exec)

@@ -1822,11 +1822,16 @@ void GlobOpt::GenerateLoopCountPlusOne(Loop *const loop, LoopCount *const loopCo
         IR::RegOpnd *loopCountOpnd = IR::RegOpnd::New(type, func);
         IR::RegOpnd *minusOneOpnd = IR::RegOpnd::New(loopCount->LoopCountMinusOneSym(), type, func);
         minusOneOpnd->SetIsJITOptimizedReg(true);
-        insertBeforeInstr->InsertBefore(IR::Instr::New(Js::OpCode::Add_I4,
-                                                       loopCountOpnd,
-                                                       minusOneOpnd,
-                                                       IR::IntConstOpnd::New(1, type, func, true),
-                                                       func));
+        IR::Instr* incrInstr = IR::Instr::New(Js::OpCode::Add_I4,
+            loopCountOpnd,
+            minusOneOpnd,
+            IR::IntConstOpnd::New(1, type, func, true),
+            func);
+
+        insertBeforeInstr->InsertBefore(incrInstr);
+
+        // Incrementing to 1 can overflow - add a bounds check bailout here
+        incrInstr->ConvertToBailOutInstr(bailOutInfo, IR::BailOutOnFailedHoistedLoopCountBasedBoundCheck);
         loopCount->SetLoopCountSym(loopCountOpnd->GetStackSym());
     }
 }
