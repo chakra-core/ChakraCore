@@ -5266,7 +5266,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             }
             if(symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
             {
-                globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
+                globOpt->InsertValueCompensation(pred, &symsRequiringCompensationToMergedValueInfoMap);
             }
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
@@ -5325,6 +5325,12 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);
 
+        if (symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
+        {
+            loop->symsRequiringCompensationToMergedValueInfoMap = JitAnew(globOpt->alloc, SymToValueInfoMap, globOpt->alloc);
+            loop->symsRequiringCompensationToMergedValueInfoMap->Copy(&symsRequiringCompensationToMergedValueInfoMap);
+        }
+        
         if(globOpt->DoBoundCheckHoist() && loop->inductionVariables)
         {
             globOpt->FinalizeInductionVariables(loop, &blockData);
