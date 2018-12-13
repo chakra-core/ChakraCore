@@ -822,6 +822,10 @@ namespace Js
             {
                 this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData, callSiteData->GetCallbackInlinees(), this->GetProfiledCallSiteCount());
             }
+            if (callSiteData->GetCallApplyTargetInlinees())
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData, callSiteData->GetCallApplyTargetInlinees(), this->GetProfiledCallApplyCallSiteCount());
+            }
         }
 
         // Now walk the top-level data, but only do it once, since it's always the same.
@@ -850,6 +854,15 @@ namespace Js
             {
                 this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
             }
+        }
+        {
+#if ENABLE_NATIVE_CODEGEN
+            Field(FunctionCodeGenRuntimeData*)* data = this->GetCodeGenCallApplyTargetRuntimeData();
+            if (data != nullptr)
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallApplyCallSiteCount());
+            }
+#endif
         }
     }
 
@@ -5093,6 +5106,9 @@ namespace Js
         this->cacheIdToPropertyIdMap = nullptr;
         this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
+#if ENABLE_NATIVE_CODEGEN
+        this->SetCallSiteToCallApplyCallSiteArray(nullptr);
+#endif
         this->SetLiteralRegexs(nullptr);
         this->SetSlotIdInCachedScopeToNestedIndexArray(nullptr);
         this->SetStatementMaps(nullptr);
@@ -6540,6 +6556,23 @@ namespace Js
         return slotIdToNestedIndexArray;
     }
 
+#if ENABLE_NATIVE_CODEGEN
+    ProfileId* FunctionBody::CreateCallSiteToCallApplyCallSiteArray()
+    {
+        Assert(this->GetCallSiteToCallApplyCallSiteArray() == nullptr);
+        uint count = this->GetProfiledCallSiteCount();
+        if (count != 0)
+        {
+            this->SetCallSiteToCallApplyCallSiteArray(RecyclerNewArrayLeaf(this->m_scriptContext->GetRecycler(), ProfileId, count));
+            for (uint i = 0; i < count; i++)
+            {
+                this->GetCallSiteToCallApplyCallSiteArray()[i] = Js::Constants::NoProfileId;
+            }
+        }
+        return this->GetCallSiteToCallApplyCallSiteArray();
+    }
+#endif
+
     void FunctionBody::ResetProfileIds()
     {
 #if ENABLE_PROFILE_INFO
@@ -6697,6 +6730,23 @@ namespace Js
         return EnsureCodeGenRuntimeDataCommon<AuxPointerType::CodeGenCallbackRuntimeData>(recycler, profiledCallSiteId, inlinee);
     }
 
+    const FunctionCodeGenRuntimeData * FunctionBody::GetCallApplyTargetInlineeCodeGenRuntimeData(const ProfileId callApplyCallSiteId) const
+    {
+        Assert(callApplyCallSiteId < GetProfiledCallApplyCallSiteCount());
+
+        Field(FunctionCodeGenRuntimeData*)* codeGenRuntimeData = this->GetCodeGenCallApplyTargetRuntimeDataWithLock();
+        return codeGenRuntimeData ? codeGenRuntimeData[callApplyCallSiteId] : nullptr;
+    }
+
+    FunctionCodeGenRuntimeData * FunctionBody::EnsureCallApplyTargetInlineeCodeGenRuntimeData(
+        Recycler *const recycler,
+        const ProfileId callApplyCallSiteId,
+        FunctionBody *const inlinee)
+    {
+        Assert(callApplyCallSiteId < this->GetProfiledCallApplyCallSiteCount());
+        return EnsureCodeGenRuntimeDataCommon<AuxPointerType::CodeGenCallApplyTargetRuntimeData>(recycler, callApplyCallSiteId, inlinee);
+    }
+    
     const FunctionCodeGenRuntimeData *FunctionBody::GetLdFldInlineeCodeGenRuntimeData(const InlineCacheIndex inlineCacheIndex) const
     {
         Assert(inlineCacheIndex < this->GetInlineCacheCount());

@@ -33,6 +33,7 @@ private:
     uint dynamicScopeCount;
     uint loopDepth;
     uint16 m_callSiteId;
+    uint16 m_callApplyCallSiteCount;
     bool isBinding;
     bool trackEnvDepth;
     bool funcEscapes;
@@ -151,6 +152,18 @@ public:
     }
     Js::ProfileId GetCurrentCallSiteId() { return m_callSiteId; }
 
+    Js::ProfileId GetNextCallApplyCallSiteId(Js::OpCode op)
+    {
+        if (m_writer.ShouldIncrementCallSiteId(op))
+        {
+            if (m_callApplyCallSiteCount != Js::Constants::NoProfileId)
+            {
+                return m_callApplyCallSiteCount++;
+            }
+        }
+        return m_callApplyCallSiteCount;
+    }
+
     Js::RegSlot NextVarRegister();
     Js::RegSlot NextConstRegister();
     FuncInfo *TopFuncInfo() const;
@@ -223,6 +236,9 @@ public:
     void AssignPropertyIds(Js::ParseableFunctionInfo* functionInfo);
     void MapCacheIdsToPropertyIds(FuncInfo *funcInfo);
     void MapReferencedPropertyIds(FuncInfo *funcInfo);
+#if ENABLE_NATIVE_CODEGEN
+    void MapCallSiteToCallApplyCallSiteMap(FuncInfo * funcInfo);
+#endif
     FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNodeFnc *pnodeFnc, Js::ParseableFunctionInfo * reuseNestedFunc);
     void EndBindFunction(bool funcExprWithName);
     void StartBindCatch(ParseNode *pnode);

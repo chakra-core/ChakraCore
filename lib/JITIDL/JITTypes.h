@@ -232,6 +232,17 @@ typedef struct CallSiteIDL
     unsigned int functionId;
 } CallSiteIDL;
 
+typedef struct CallApplyCallSiteIDL
+{
+    unsigned short bitFields;
+    unsigned short returnType;
+    unsigned int ldFldInlineCacheId;
+    unsigned int sourceId;
+    unsigned int functionId;
+    unsigned short callSiteId;
+    IDL_PAD2(0)
+} CallApplyCallSiteIDL;
+
 typedef struct ThisIDL
 {
     unsigned short valueType;
@@ -557,7 +568,8 @@ typedef struct FunctionBodyDataIDL
     unsigned short inParamCount;
     unsigned short argUsedForBranch;
     unsigned short profiledCallSiteCount;
-    IDL_PAD2(0)
+    unsigned short callSiteToCallApplyCallSiteArrayCount;
+    unsigned short profiledCallApplyCallSiteCount;
     unsigned int funcNumber;
     unsigned int sourceContextId;
     unsigned int nestedCount;
@@ -623,6 +635,8 @@ typedef struct FunctionBodyDataIDL
 
     IDL_DEF([size_is(functionSlotsInCachedScopeCount)]) unsigned int * slotIdInCachedScopeToNestedIndexArray;
 
+    IDL_DEF([size_is(callSiteToCallApplyCallSiteArrayCount)]) unsigned short * callSiteToCallApplyCallSiteArray;
+
     ProfileDataIDL * profileData;
 
     AsmJsDataIDL * asmJsData;
@@ -667,9 +681,11 @@ typedef struct FunctionJITTimeDataIDL
 
     IDL_DEF([size_is(ldFldInlineeCount)]) struct FunctionJITTimeDataIDL ** ldFldInlinees;
 
-    IDL_DEF([size_is(callbackInlineeCount)]) struct FunctionJITTimeDataIDL ** callbackInlinees;
+    IDL_DEF([size_is(inlineeCount)]) struct FunctionJITTimeDataIDL ** callbackInlinees;
 
-    unsigned int callbackInlineeCount;
+    unsigned int callApplyTargetInlineeCount;
+    IDL_DEF([size_is(callApplyTargetInlineeCount)]) struct FunctionJITTimeDataIDL ** callApplyTargetInlinees;
+
     unsigned int objTypeSpecFldInfoCount;
     IDL_DEF([size_is(objTypeSpecFldInfoCount)]) ObjTypeSpecFldIDL ** objTypeSpecFldInfoArray;
 

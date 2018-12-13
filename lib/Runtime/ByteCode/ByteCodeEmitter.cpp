@@ -2882,7 +2882,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
                 funcInfo->SetApplyEnclosesArgs(applyEnclosesArgs);
             }
         }
-        
+
         InitScopeSlotArray(funcInfo);
         FinalizeRegisters(funcInfo, byteCodeFunction);
         DebugOnly(Js::RegSlot firstTmpReg = funcInfo->varRegsCount);
@@ -2923,6 +2923,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 
         byteCodeFunction->AllocateLiteralRegexArray();
         m_callSiteId = 0;
+        m_callApplyCallSiteCount = 0;
         m_writer.Begin(byteCodeFunction, alloc, this->DoJitLoopBodies(funcInfo), funcInfo->hasLoop, this->IsInDebugMode());
         this->PushFuncInfo(_u("EmitOneFunction"), funcInfo);
 
@@ -3208,6 +3209,13 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         Assert(this->TopFuncInfo() == funcInfo);
         PopFuncInfo(_u("EmitOneFunction"));
         m_writer.SetCallSiteCount(m_callSiteId);
+        m_writer.SetCallApplyCallsiteCount(m_callApplyCallSiteCount);
+#if ENABLE_NATIVE_CODEGEN
+        if (funcInfo->callSiteToCallApplyCallSiteMap)
+        {
+            this->MapCallSiteToCallApplyCallSiteMap(funcInfo);
+        }
+#endif
 #ifdef LOG_BYTECODE_AST_RATIO
         m_writer.End(funcInfo->root->astSize, this->maxAstSize);
 #else
@@ -3384,6 +3392,21 @@ void ByteCodeGenerator::MapReferencedPropertyIds(FuncInfo * funcInfo)
     functionBody->VerifyReferencedPropertyIdMap();
 #endif
 }
+
+#if ENABLE_NATIVE_CODEGEN
+void ByteCodeGenerator::MapCallSiteToCallApplyCallSiteMap(FuncInfo * funcInfo)
+{
+    Js::FunctionBody * functionBody = funcInfo->GetParsedFunctionBody();
+    
+    if (functionBody->CreateCallSiteToCallApplyCallSiteArray())
+    {
+        funcInfo->callSiteToCallApplyCallSiteMap->Map([functionBody](Js::ProfileId callSiteId, Js::ProfileId callApplyCallSiteId)
+        {
+            functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId] = callApplyCallSiteId;
+        });
+    }
+}
+#endif
 
 void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodyScopeNode)
 {
@@ -7744,7 +7767,8 @@ void EmitCallTarget(
     bool *releaseThisLocation,
     Js::RegSlot *callObjLocation,
     ByteCodeGenerator *byteCodeGenerator,
-    FuncInfo *funcInfo)
+    FuncInfo *funcInfo,
+    Js::ProfileId * callApplyCallSiteId)
 {
     // - emit target
     //    - assign this
@@ -7775,6 +7799,9 @@ void EmitCallTarget(
         Assert(pnodeBinTarget->pnode2->nop == knopName);
         if ((pnodeBinTarget->pnode2->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::apply) || (pnodeTarget->AsParseNodeBin()->pnode2->AsParseNodeName()->PropertyIdFromNameNode() == Js::PropertyIds::call))
         {
+            funcInfo->EnsureCallSiteToCallApplyCallSiteMap();
+            
+            *callApplyCallSiteId = byteCodeGenerator->GetNextCallApplyCallSiteId(Js::OpCode::CallI);
             pnodeBinTarget->pnode1->SetIsCallApplyTargetLoad();
         }
 
@@ -8259,6 +8286,7 @@ void EmitCall(
     bool releaseThisLocation = true;
 
     // We already emit the call target for super calls in EmitSuperCall
+    Js::ProfileId callApplyCallSiteId = Js::Constants::NoProfileId;
     if (!fIsSuperCall)
     {
         if (!fEvaluateComponents)
@@ -8267,7 +8295,7 @@ void EmitCall(
         }
         else
         {
-            EmitCallTarget(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo);
+            EmitCallTarget(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo, &callApplyCallSiteId);
         }
     }
 
@@ -8284,6 +8312,10 @@ void EmitCall(
     funcInfo->StartRecordingOutArgs(argCount);
 
     Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(Js::OpCode::CallI);
+    if (callApplyCallSiteId != Js::Constants::NoProfileId)
+    {
+        funcInfo->callSiteToCallApplyCallSiteMap->AddNew(callSiteId, callApplyCallSiteId);
+    }
 
     // Only emit profiled argouts if we're going to allocate callSiteInfo (on the DynamicProfileInfo) for this call.
     bool emitProfiledArgouts = callSiteId != byteCodeGenerator->GetCurrentCallSiteId();

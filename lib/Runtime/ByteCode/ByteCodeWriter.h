@@ -361,6 +361,7 @@ namespace Js
         void SetCurrent(uint offset, DataChunk * chunk) { m_byteCodeData.SetCurrent(offset, chunk); }
         bool ShouldIncrementCallSiteId(OpCode op);
         inline void SetCallSiteCount(Js::ProfileId callSiteId) { this->m_functionWrite->SetProfiledCallSiteCount(callSiteId); }
+        inline void SetCallApplyCallsiteCount(Js::ProfileId count) { this->m_functionWrite->SetProfiledCallApplyCallSiteCount(count); }
 
         // Debugger methods.
         DebuggerScope* RecordStartScopeObject(DiagExtraScopesType scopeType, RegSlot scopeLocation = Js::Constants::NoRegister, int* index = nullptr);
