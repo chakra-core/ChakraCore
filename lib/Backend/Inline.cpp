@@ -1028,6 +1028,10 @@ IR::Instr * Inline::TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr)
 IR::Instr * Inline::TryGetCallbackDefInstrForCallApplyTarget(IR::Instr * callApplyLdInstr)
 {
     // Try to find a function argument that could be inlined.
+    if (!callApplyLdInstr->GetSrc1()->IsSymOpnd() || !callApplyLdInstr->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
+    {
+        return nullptr;
+    }
     StackSym * callbackSym = callApplyLdInstr->GetSrc1()->AsPropertySymOpnd()->GetObjectSym();
     Assert(callbackSym != nullptr);
     return TryGetCallbackDefInstr(callbackSym);
