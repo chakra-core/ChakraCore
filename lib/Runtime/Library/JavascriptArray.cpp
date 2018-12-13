@@ -982,14 +982,13 @@ using namespace Js;
     Var JavascriptArray::OP_NewScIntArray(AuxArray<int32> *ints, ScriptContext* scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(ScrArr_OP_NewScIntArray, reentrancylock, scriptContext->GetThreadContext());
-        uint32 count = ints->count;
-        JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
-        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
-        Assert(count > 0 && count == head->length);
-        for (uint i = 0; i < count; i++)
-        {
-            head->elements[i] = JavascriptNumber::ToVar(ints->elements[i], scriptContext);
-        }
+
+        JavascriptNativeIntArray *arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(ints->count);
+
+        SparseArraySegment<int32> * segment = (SparseArraySegment<int32>*)arr->GetHead();
+
+        JavascriptOperators::AddIntsToArraySegment(segment, ints);
+
         return arr;
         JIT_HELPER_END(ScrArr_OP_NewScIntArray);
     }
@@ -1042,7 +1041,16 @@ using namespace Js;
             return arr;
         }
 
-        return OP_NewScIntArray(ints, scriptContext);
+        JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
+        Assert(count > 0 && count == head->length);
+
+        for (uint i = 0; i < count; i++)
+        {
+            head->elements[i] = JavascriptNumber::ToVar(ints->elements[i], scriptContext);
+        }
+
+        return arr;
         JIT_HELPER_END(ScrArr_ProfiledNewScIntArray);
     }
 #endif
@@ -1050,23 +1058,13 @@ using namespace Js;
     Var JavascriptArray::OP_NewScFltArray(AuxArray<double> *doubles, ScriptContext* scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_HEADER(ScrArr_OP_NewScFltArray, reentrancylock, scriptContext->GetThreadContext());
-        uint32 count = doubles->count;
-        JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
-        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
-        Assert(count > 0 && count == head->length);
-        for (uint i = 0; i < count; i++)
-        {
-            double dval = doubles->elements[i];
-            int32 ival;
-            if (JavascriptNumber::TryGetInt32Value(dval, &ival) && !TaggedInt::IsOverflow(ival))
-            {
-                head->elements[i] = TaggedInt::ToVarUnchecked(ival);
-            }
-            else
-            {
-                head->elements[i] = JavascriptNumber::ToVarNoCheck(dval, scriptContext);
-            }
-        }
+
+        JavascriptNativeFloatArray *arr = scriptContext->GetLibrary()->CreateNativeFloatArrayLiteral(doubles->count);
+
+        SparseArraySegment<double> * segment = (SparseArraySegment<double>*)arr->GetHead();
+
+        JavascriptOperators::AddFloatsToArraySegment(segment, doubles);
+
         return arr;
         JIT_HELPER_END(ScrArr_OP_NewScFltArray);
     }
@@ -1089,7 +1087,26 @@ using namespace Js;
             return arr;
         }
 
-        return OP_NewScFltArray(doubles, scriptContext);
+        uint32 count = doubles->count;
+        JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
+        Assert(count > 0 && count == head->length);
+
+        for (uint i = 0; i < count; i++)
+        {
+            double dval = doubles->elements[i];
+            int32 ival;
+            if (JavascriptNumber::TryGetInt32Value(dval, &ival) && !TaggedInt::IsOverflow(ival))
+            {
+                head->elements[i] = TaggedInt::ToVarUnchecked(ival);
+            }
+            else
+            {
+                head->elements[i] = JavascriptNumber::ToVarNoCheck(dval, scriptContext);
+            }
+        }
+
+        return arr;
         JIT_HELPER_END(ScrArr_ProfiledNewScFltArray);
     }
 
