@@ -1169,15 +1169,20 @@ namespace Js
         Assert(callSiteId < callSiteCount);
         Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
 
-        Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
-        Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-        
-        if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+        if (functionBody->GetCallSiteToCallApplyCallSiteArray())
         {
-            return nullptr;
+            Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
+            Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+
+            if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+            {
+                return nullptr;
+            }
+
+            return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
         }
 
-        return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
+        return nullptr;
     }
 
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)

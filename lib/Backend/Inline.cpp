@@ -2844,14 +2844,15 @@ bool Inline::TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_res
     IR::Opnd* applyOpnd = callInstr->GetSrc1();
     Assert(applyOpnd->IsRegOpnd());
     StackSym* applySym =  applyOpnd->AsRegOpnd()->m_sym->AsStackSym();
-    if (!applySym->IsSingleDef())
+    if (!applySym->IsSingleDef() ||
+        !applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() || 
+        !applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
     {
         *applyLdInstr = nullptr;
         *applyTargetLdInstr = nullptr;
         return false;
     }
 
-    Assert(applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() && applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd());
     StackSym * targetSym = applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->AsPropertySymOpnd()->GetObjectSym();
     if (!targetSym->IsSingleDef())
     {

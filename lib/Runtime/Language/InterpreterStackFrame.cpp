@@ -3905,11 +3905,15 @@ skipThunk:
         {
             if ((functionInfo->IsBuiltInApplyFunction() || functionInfo->IsBuiltInCallFunction()) && targetFunction)
             {
-                Js::ProfileId callApplyCallSiteId = this->m_functionBody->GetCallSiteToCallApplyCallSiteArray()[profileId];
-                Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-                if (callApplyCallSiteId != Js::Constants::NoProfileId)
+                Js::ProfileId * callSiteToCallApplyCallSiteMap = this->m_functionBody->GetCallSiteToCallApplyCallSiteArray();
+                if (callSiteToCallApplyCallSiteMap)
                 {
-                    dynamicProfileInfo->RecordCallApplyTargetInfo(functionBody, callApplyCallSiteId, targetFunction->GetFunctionInfo(), targetFunction);
+                    Js::ProfileId callApplyCallSiteId = callSiteToCallApplyCallSiteMap[profileId];
+                    Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+                    if (callApplyCallSiteId != Js::Constants::NoProfileId)
+                    {
+                        dynamicProfileInfo->RecordCallApplyTargetInfo(functionBody, callApplyCallSiteId, targetFunction->GetFunctionInfo(), targetFunction);
+                    }
                 }
             }
         }
