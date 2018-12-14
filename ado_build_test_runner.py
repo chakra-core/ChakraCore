@@ -61,8 +61,11 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
 
     testScript = "bash test/runtests.sh "+icuLibFlag+" \""+testVariant+"\""
 
+    printToADO("----- INFO SCRIPT -----")
     exeBashStr(infoScript)
+    printToADO("----- BUILD SCRIPT -----")
     exeBashStr(buildScript, "-j=`"+numConcurrentCommand+"`")
+    printToADO("----- TEST SCRIPT -----")
     exeBashStr(testScript)
 
 def exeBashStr(bashStr, j=None):
@@ -70,9 +73,11 @@ def exeBashStr(bashStr, j=None):
     bashStrList = filter(lambda a: a != "", bashStrList)
     if j:
         bashStrList.append(j)
-    print(bashStrList)
+    printToADO(bashStrList)
     subprocess.call(bashStrList)
 
+def printToADO(str):
+    subprocess.call(["echo", str])
 
 # Linux build tasks:
 if os == "Linux":
@@ -90,6 +95,9 @@ elif os == "OSX":
 
 else:
     print("incorrect OS string value: " + os)
+
+
+
 
 '''
 def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
