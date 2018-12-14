@@ -155,6 +155,9 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     , m_lowerer(nullptr)
 #endif
+    , m_lazyBailOutRecordArgSlot(nullptr)
+    , hasLazyBailOut(false)
+    , lazyBailOutThunkLabel(nullptr)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -1345,6 +1348,10 @@ Func::EndPhase(Js::Phase tag, bool dump)
     {
         Assert(!this->isPostLower);
         this->isPostLower = true;
+#ifndef _M_ARM    // Need to verify ARM is clean.
+        DbCheckPostLower dbCheck(this);
+        dbCheck.CheckNestedHelperCalls();
+#endif
     }
     else if (tag == Js::RegAllocPhase)
     {
@@ -2066,6 +2073,78 @@ Func::GetForInEnumeratorArrayOffset() const
     Assert(this->m_forInLoopBaseDepth + this->GetJITFunctionBody()->GetForInLoopDepth() <= topFunc->m_forInLoopMaxDepth);
     return topFunc->m_forInEnumeratorArrayOffset
         + this->m_forInLoopBaseDepth * sizeof(Js::ForInObjectEnumerator);
+}
+
+void
+Func::SetLazyBailOutThunkLabel(IR::LabelInstr *label)
+{
+    Assert(label != nullptr &&
+        label->m_opcode == Js::OpCode::LazyBailOutThunkLabel &&
+        this->lazyBailOutThunkLabel == nullptr &&
+        this->IsInPhase(Js::Phase::FinalLowerPhase));
+
+    this->lazyBailOutThunkLabel = label;
+}
+
+IR::LabelInstr *
+Func::GetLazyBailOutThunkLabel() const
+{
+    Assert(this->lazyBailOutThunkLabel != nullptr);
+    return this->lazyBailOutThunkLabel;
+}
+
+void
+Func::SetHasLazyBailOut()
+{
+    this->hasLazyBailOut = true;
+}
+
+bool
+Func::HasLazyBailOut() const
+{
+    AssertMsg(
+        this->isPostRegAlloc,
+        "We don't know whether a function has lazy bailout until after RegAlloc"
+    );
+    return this->hasLazyBailOut;
+}
+
+void
+Func::AllocateLazyBailOutRecordArgSlotIfNeeded()
+{
+    if (this->m_lazyBailOutRecordArgSlot == nullptr)
+    {
+        this->m_lazyBailOutRecordArgSlot = StackSym::New(TyMachPtr, this);
+        this->StackAllocate(this->m_lazyBailOutRecordArgSlot, MachPtr);
+    }
+}
+
+StackSym *
+Func::GetLazyBailOutRecordArgSlot() const
+{
+    Assert(this->m_lazyBailOutRecordArgSlot != nullptr);
+    return this->m_lazyBailOutRecordArgSlot;
+}
+
+bool
+Func::ShouldDoLazyBailOut() const
+{
+#if defined(_M_X64)
+    if (PHASE_OFF1(Js::LazyBailoutPhase) ||
+        this->GetJITFunctionBody()->IsAsmJsMode() || // don't have bailouts in asm.js
+        this->HasTry() ||                            // lazy bailout in function with try/catch not supported for now
+                                                     // `EHBailoutPatchUp` set a `hasBailedOut` bit to rethrow the exception in the interpreter
+                                                     // if the instruction has ANY bailout. In the future, to implement lazy bailout with try/catch,
+                                                     // we would need to change how this bit is generated.
+        this->IsLoopBody())                          // don't do lazy bailout on jit'd loop body either
+    {
+        return false;
+    }
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 #if DBG_DUMP

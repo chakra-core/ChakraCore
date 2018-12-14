@@ -318,12 +318,20 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
         this->linearScan->RecordUse(stackSym->scratch.linearScan.lifetime, firstInstr, nullptr, true);
     }
 
+
+
+
     // Load the bailout target into rax
     //     mov  rax, BailOut
     //     call rax
-    Assert(instr->GetSrc1()->IsHelperCallOpnd());
-    Lowerer::InsertMove(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func), instr->GetSrc1(), instr);
-    instr->ReplaceSrc1(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func));
+
+    // TODO: This only applies for current BailOutHelperCall
+    if (!instr->HasLazyBailOut())
+    {
+        Assert(instr->GetSrc1()->IsHelperCallOpnd());
+        Lowerer::InsertMove(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func), instr->GetSrc1(), instr);
+        instr->ReplaceSrc1(IR::RegOpnd::New(nullptr, RegRAX, TyMachPtr, func));
+    }
 }
 
 // Gets the InterpreterStackFrame pointer into RAX.

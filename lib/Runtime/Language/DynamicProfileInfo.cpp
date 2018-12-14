@@ -2899,7 +2899,13 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
         kind ^= BailOutMarkTempObject;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
+    ++offset;
 
+    if (kind & LazyBailOut)
+    {
+        kind ^= LazyBailOut;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
     ++offset;
     // BailOutKindBits
 

@@ -1374,33 +1374,61 @@ EncoderMD::FixRelocListEntry(uint32 index, int32 totalBytesSaved, BYTE *buffStar
 ///
 ///----------------------------------------------------------------------------
 void
-EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, uint32 *inlineeFrameRecordsIndex, uint32 *inlineeFrameMapIndex,  uint32 *pragmaInstToRecordOffsetIndex, uint32 *offsetBuffIndex)
+EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, FixUpMapIndex *mapIndices)
 
 {
-    InlineeFrameRecords *recList = m_encoder->m_inlineeFrameRecords;
-    ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
-    PragmaInstrList *pInstrList = m_encoder->m_pragmaInstrToRecordOffset;
     int32 i;
-    for (i = *inlineeFrameRecordsIndex; i < recList->Count() && recList->Item(i)->inlineeStartOffset <= brOffset; i++)
-        recList->Item(i)->inlineeStartOffset -= bytesSaved;
 
-    *inlineeFrameRecordsIndex = i;
+    {
+        InlineeFrameRecords *recList = m_encoder->m_inlineeFrameRecords;
+        for (i = mapIndices->inlineeFrameRecordsIndex; i < recList->Count() && recList->Item(i)->inlineeStartOffset <= brOffset; i++)
+        {
+            recList->Item(i)->inlineeStartOffset -= bytesSaved;
+        }
 
-    for (i = *inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).offset <= brOffset; i++)
+        mapIndices->inlineeFrameRecordsIndex = i;
+    }
+
+    {
+        ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
+        for (i = mapIndices->inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).offset <= brOffset; i++)
+        {
             mapList->Item(i).offset -= bytesSaved;
+        }
 
-    *inlineeFrameMapIndex = i;
+        mapIndices->inlineeFrameMapIndex = i;
+    }
 
-    for (i = *pragmaInstToRecordOffsetIndex; i < pInstrList->Count() && pInstrList->Item(i)->m_offsetInBuffer <= brOffset; i++)
-        pInstrList->Item(i)->m_offsetInBuffer -= bytesSaved;
+    {
+        PragmaInstrList *pInstrList = m_encoder->m_pragmaInstrToRecordOffset;
+        for (i = mapIndices->pragmaInstToRecordOffsetIndex; i < pInstrList->Count() && pInstrList->Item(i)->m_offsetInBuffer <= brOffset; i++)
+        {
+            pInstrList->Item(i)->m_offsetInBuffer -= bytesSaved;
+        }
 
-    *pragmaInstToRecordOffsetIndex = i;
+        mapIndices->pragmaInstToRecordOffsetIndex = i;
+    }
+
+
+    {
+        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailoutRecordList;
+        for (i = mapIndices->lazyBailOutRecordListIndex; i < lazyBailOutRecordList->Count() && lazyBailOutRecordList->Item(i).offset <= brOffset; i++)
+        {
+            lazyBailOutRecordList->Item(i).offset -= bytesSaved;
+        }
+
+        mapIndices->lazyBailOutRecordListIndex = i;
+    }
 
 #if DBG_DUMP
-    for (i = *offsetBuffIndex; (uint)i < m_encoder->m_instrNumber && m_encoder->m_offsetBuffer[i] <= brOffset; i++)
-        m_encoder->m_offsetBuffer[i] -= bytesSaved;
+    {
+        for (i = mapIndices->offsetBuffIndex; (uint)i < m_encoder->m_instrNumber && m_encoder->m_offsetBuffer[i] <= brOffset; i++)
+        {
+            m_encoder->m_offsetBuffer[i] -= bytesSaved;
+        }
 
-    *offsetBuffIndex = i;
+        mapIndices->offsetBuffIndex = i;
+    }
 #endif
 }
 

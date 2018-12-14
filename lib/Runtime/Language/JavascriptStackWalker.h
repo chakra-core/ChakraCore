@@ -305,6 +305,11 @@ namespace Js
             return this->currentFrame.GetInstructionPointer();
         }
 
+        void* GetFramePointer() const
+        {
+            return this->currentFrame.GetFrame();
+        }
+
         bool GetCurrentFrameFromBailout() const
         {
             return previousInterpreterFrameIsFromBailout;

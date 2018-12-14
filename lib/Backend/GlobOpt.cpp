@@ -2682,6 +2682,13 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
+#if defined(_M_X64)
+    if (this->IsLazyBailOutCurrentlyNeeded(instr, src1Val, src2Val, isHoisted))
+    {
+        this->GenerateLazyBailOut(instr);
+    }
+#endif
+
     if (CurrentBlockData()->capturedValuesCandidate && !this->IsLoopPrePass())
     {
         this->CommitCapturedValuesCandidate();
@@ -2697,6 +2704,15 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 #endif
     return instrNext;
+}
+
+bool
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+{
+    return opnd && (
+        opnd->m_sym->m_isNotNumber ||
+        (inGlobOpt && !opnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(opnd->m_sym))
+    );
 }
 
 bool
@@ -3260,7 +3276,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         }
         originalPropertySym = sym->AsPropertySym();
 
-        // Dont give a vale to 'arguments' property sym to prevent field copy prop of 'arguments'
+        // Dont give a value to 'arguments' property sym to prevent field copy prop of 'arguments'
         if (originalPropertySym->AsPropertySym()->m_propertyId == Js::PropertyIds::arguments &&
             originalPropertySym->AsPropertySym()->m_fieldKind == PropertyKindData)
         {

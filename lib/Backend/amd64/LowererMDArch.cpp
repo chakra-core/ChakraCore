@@ -980,15 +980,36 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
     // Also skip this for relocatable helper calls. These will be turned into indirect
     // calls in lower.
 
-    if (callInstr->GetSrc1()->IsHelperCallOpnd() && !callInstr->HasBailOutInfo())
+    if (callInstr->GetSrc1()->IsHelperCallOpnd())
     {
-        IR::RegOpnd *targetOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr,m_func), RegRAX, TyMachPtr, this->m_func);
-        IR::Instr   *movInstr   = IR::Instr::New(Js::OpCode::MOV, targetOpnd, callInstr->GetSrc1(),  this->m_func);
-        targetOpnd->m_isCallArg = true;
+        // Helper calls previously do not have bailouts except for bailout call. However with LazyBailOut, they can now have
+        // bailouts as well. Handle them the same way as before.
+        if (!callInstr->HasBailOutInfo() || callInstr->OnlyHasLazyBailOut())
+        {
+            IR::RegOpnd *targetOpnd = IR::RegOpnd::New(StackSym::New(TyMachPtr, m_func), RegRAX, TyMachPtr, this->m_func);
+            IR::Instr   *movInstr = IR::Instr::New(Js::OpCode::MOV, targetOpnd, callInstr->GetSrc1(), this->m_func);
+            targetOpnd->m_isCallArg = true;
 
-        callInstr->UnlinkSrc1();
-        callInstr->SetSrc1(targetOpnd);
-        callInstr->InsertBefore(movInstr);
+            callInstr->UnlinkSrc1();
+            callInstr->SetSrc1(targetOpnd);
+            callInstr->InsertBefore(movInstr);
+        }
+    }
+
+    if (callInstr->HasLazyBailOut())
+    {
+        BailOutInfo *bailOutInfo = callInstr->GetBailOutInfo();
+        if (bailOutInfo->bailOutRecord == nullptr)
+        {
+            bailOutInfo->bailOutRecord = NativeCodeDataNewZ(
+                this->m_func->GetNativeCodeDataAllocator(),
+                BailOutRecord,
+                bailOutInfo->bailOutOffset,
+                bailOutInfo->polymorphicCacheIndex,
+                callInstr->GetBailOutKind(),
+                bailOutInfo->bailOutFunc
+            );
+        }
     }
 
     //
@@ -3377,6 +3398,16 @@ LowererMDArch::FinalLower()
             // Get rid of the deps and srcs
             instr->FreeDst();
             instr->FreeSrc2();
+            break;
+        default:
+            if (instr->HasLazyBailOut())
+            {
+                // Since Lowerer and Peeps might have removed instructions with lazy bailout
+                // if we attach them to helper calls, FinalLower is the first phase that
+                // we can know if the function has any lazy bailouts at all.
+                this->m_func->SetHasLazyBailOut();
+            }
+
             break;
         }
     } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;

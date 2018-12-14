@@ -2029,7 +2029,8 @@ void GlobOpt::ArraySrcOpt::Optimize()
         const IR::BailOutKind bailOutKind = instr->GetBailOutKind();
         Assert(
             !(bailOutKind & ~IR::BailOutKindBits) ||
-            (bailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp);
+            (bailOutKind & ~IR::BailOutKindBits) == IR::BailOutOnImplicitCallsPreOp ||
+            (bailOutKind & ~IR::BailOutKindBits) == IR::LazyBailOut);
         instr->SetBailOutKind(bailOutKind & IR::BailOutKindBits | IR::BailOutOnArrayAccessHelperCall);
     }
     else

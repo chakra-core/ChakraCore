@@ -578,7 +578,12 @@ namespace Js
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees();
-        void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
+
+#if DBG
+        void DoLazyBailout(Js::FunctionBody *functionBody, BYTE **addressOfInstructionPointer, BYTE *framePointer, const PropertyRecord *propertyRecord);
+#else
+        void DoLazyBailout(Js::FunctionBody *functionBody, BYTE **addressOfInstructionPointer, BYTE *framePointer);
+#endif
 
         void CleanupNativeCode(ScriptContext * scriptContext);
 #if DBG_DUMP

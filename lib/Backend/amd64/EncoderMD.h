@@ -174,6 +174,8 @@ enum Forms : BYTE;
 typedef JsUtil::List<EncodeRelocAndLabels, ArenaAllocator> RelocList;
 typedef JsUtil::List<InlineeFrameRecord*, ArenaAllocator> InlineeFrameRecords;
 
+struct FixUpMapIndex;
+
 class EncoderMD
 {
 public:
@@ -194,7 +196,7 @@ public:
     RelocList*      GetRelocList() const { return m_relocList; }
     int             AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr *label= nullptr);
     int             FixRelocListEntry(uint32 index, int totalBytesSaved, BYTE *buffStart, BYTE* buffEnd);
-    void            FixMaps(uint32 brOffset, uint32 bytesSaved, uint32 *inlineeFrameRecordsIndex, uint32 *inlineeFrameMapIndex,  uint32 *pragmaInstToRecordOffsetIndex, uint32 *offsetBuffIndex);
+    void            FixMaps(uint32 brOffset, uint32 bytesSaved, FixUpMapIndex *mapIndices);
     void            UpdateRelocListWithNewBuffer(RelocList * relocList, BYTE * newBuffer, BYTE * oldBufferStart, BYTE * oldBufferEnd);
 #ifdef DBG
     void            VerifyRelocList(BYTE *buffStart, BYTE *buffEnd);

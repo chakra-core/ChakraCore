@@ -210,8 +210,6 @@ void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BV
 void
 GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func)
 {
-    IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
-
     // obj.x = 10;
     // obj["x"] = ...;   // This needs to kill obj.x...  We need to kill all fields...
     //
@@ -225,14 +223,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
     // - We check the type specialization status for the sym as well. For the purpose of doing kills, we can assume that
     //   if type specialization happened, that fields don't need to be killed. Note that they may be killed in the next
     //   pass based on the value.
-    if (func->GetThisOrParentInlinerHasArguments() ||
-        (
-            indexOpnd &&
-            (
-                indexOpnd->m_sym->m_isNotNumber ||
-                (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(indexOpnd->m_sym))
-            )
-        ))
+    if (func->GetThisOrParentInlinerHasArguments() || this->IsNonNumericRegOpnd(indirOpnd->GetIndexOpnd(), inGlobOpt))
     {
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
