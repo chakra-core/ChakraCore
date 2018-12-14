@@ -1,10 +1,14 @@
 import subprocess
-
-# setup vars
-branch = "master"
+import sys
 
 #os = "Linux"
 os = "OSX"
+
+if len(sys.argv) >= 2:
+    os = sys.argv[1]
+
+# setup vars
+branch = "master"
 
 def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, extraBuildParams):
     isPRArr = {True, False}
@@ -67,7 +71,7 @@ def exeBashStr(bashStr, j=None):
 
 
 # Linux build tasks:
-if os is "Linux":
+if os == "Linux":
     osString = 'Ubuntu16.04'
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, None, "")
 
@@ -76,12 +80,12 @@ if os is "Linux":
         CreateXPlatBuildTask(isPR, "debug", True, osString, "linux", "ubuntu", branch, None, "--no-icu", "--not-tag exclude_noicu", "")
 
 # OSX build tasks:
-elif os is "OSX":
+elif os == "OSX":
     osString = 'OSX.1011.Amd64.Chakra.Open'
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, None, "")
 
 else:
-    print("incorrect OS string value")
+    print("incorrect OS string value: " + os)
 
 '''
 def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
