@@ -1,5 +1,5 @@
 import subprocess
-  
+
 # setup vars
 branch = "master"
 
@@ -45,7 +45,7 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
 
     compilerPaths = "" if platform is "osx" else "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
 
-    buildScript = "bash ./build.sh "+staticFlag+" -j=`"+numConcurrentCommand+"` "+buildFlag+" "+swbCheckFlag+" "+compilerPaths+" "+icuFlag+" "+customOption+" "+extraBuildParams
+    buildScript = "bash ./build.sh "+staticFlag+" "+buildFlag+" "+swbCheckFlag+" "+compilerPaths+" "+icuFlag+" "+customOption+" "+extraBuildParams
 
     # todo: icuLibFlag = "--iculib=/Users/DDITLABS/homebrew/opt/icu4c" if platform == "osx" else ""
     # temp replacement:
@@ -54,12 +54,14 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     testScript = "bash test/runtests.sh "+icuLibFlag+" \""+testVariant+"\""
 
     exeBashStr(infoScript)
-    exeBashStr(buildScript)
+    exeBashStr(buildScript, "-j=`"+numConcurrentCommand+"`")
     exeBashStr(testScript)
 
-def exeBashStr(bashStr):
+def exeBashStr(bashStr, j=None):
     bashStrList = bashStr.split(" ")
     bashStrList = filter(lambda a: a != "", bashStrList)
+    if j:
+        bashStrList.append(j)
     print(bashStrList)
     subprocess.call(bashStrList)
 
@@ -80,7 +82,7 @@ elif os is "OSX":
 
 else:
     print("incorrect OS string value")
-    
+
 '''
 def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
     xplatBranch, nonDefaultTaskSetup, customOption, testVariant, extraBuildParams ->
