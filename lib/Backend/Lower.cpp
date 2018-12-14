@@ -2715,6 +2715,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerBailOnNotObject(instr);
             break;
 
+        case Js::OpCode::CheckIsFuncObj:
+            instrPrev = this->LowerCheckIsFuncObj(instr);
+            break;
+
+        case Js::OpCode::CheckFuncInfo:
+            instrPrev = this->LowerCheckIsFuncObj(instr, true);
+            break;
+
         case Js::OpCode::BailOnNotBuiltIn:
             instrPrev = this->LowerBailOnNotBuiltIn(instr);
             break;
@@ -12510,7 +12518,52 @@ Lowerer::LowerBailOnNotObject(IR::Instr       *instr,
     return prevInstr;
 }
 
-IR::Instr *
+IR::Instr*
+Lowerer::LowerCheckIsFuncObj(IR::Instr *instr, bool checkFuncInfo)
+{
+    // The CheckIsFuncObj instr and CheckFuncInfo instr (checkFuncInfo = true) are used to
+    // generate bailout instrs that type check a function (and can also check the func info).
+    // Rather than creating these bailout instrs in Inline, they are created in Lower because 
+    // CheckIsFuncObj and CheckFuncInfo instrs can be hoisted outside of loops and thus the
+    // bailout instrs created can exist outside of loops.
+
+    IR::RegOpnd *funcOpnd = instr->GetSrc1()->AsRegOpnd();
+    IR::BailOutKind bailOutKind = instr->GetBailOutKind();
+    BailOutInfo *bailOutInfo = instr->GetBailOutInfo();
+
+    // Check that the property is an object.
+    InsertObjectCheck(funcOpnd, instr, bailOutKind, bailOutInfo);
+
+    // Check that the object is a function with the correct type ID.
+    IR::Instr *lastInstr = InsertFunctionTypeIdCheck(funcOpnd, instr, bailOutKind, bailOutInfo);
+
+    if (checkFuncInfo)
+    {
+        // Check that the function body matches the func info.
+        lastInstr = InsertFunctionInfoCheck(
+            funcOpnd, instr, instr->GetSrc2()->AsAddrOpnd(), bailOutKind, bailOutInfo);
+        lastInstr->SetByteCodeOffset(instr);
+    }
+
+    if (bailOutInfo->bailOutInstr == instr)
+    {
+        // bailOutInstr is currently instr. By changing bailOutInstr to point to lastInstr, the next
+        // instruction to be lowered (lastInstr) will create the bailout target. This is necessary in
+        // cases where instr does not have a shared bailout (ex: instr was not hoisted outside of a loop).
+        bailOutInfo->bailOutInstr = lastInstr;
+    }
+
+    // the CheckFunctionEntryPoint instr exists in order to create the instrs above. It does not have
+    // any other purpose and thus it is removed. The instr's BailOutInfo continues to be used and thus
+    // must not be deleted. Flags are turned off to stop Remove() from deleting instr's BailOutInfo.
+    instr->hasBailOutInfo = false;
+    instr->hasAuxBailOut = false;
+    instr->Remove();
+
+    return lastInstr;
+}
+
+IR::Instr*
 Lowerer::LowerBailOnTrue(IR::Instr* instr, IR::LabelInstr* labelBailOut /*nullptr*/)
 {
     IR::Instr* instrPrev = instr->m_prev;
@@ -28590,6 +28643,62 @@ Lowerer::InsertAndLegalize(IR::Instr * instr, IR::Instr* insertBeforeInstr)
 {
     insertBeforeInstr->InsertBefore(instr);
     LowererMD::Legalize(instr);
+}
+
+IR::Instr*
+Lowerer::InsertObjectCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo)
+{
+    IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject, bailOutKind, bailOutInfo, bailOutInfo->bailOutFunc);
+
+    // Bailout when funcOpnd is not an object.
+    bailOutIfNotObject->SetSrc1(funcOpnd);
+    bailOutIfNotObject->SetByteCodeOffset(insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(bailOutIfNotObject);
+
+    return bailOutIfNotObject;
+}
+
+IR::Instr*
+Lowerer::InsertFunctionTypeIdCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo)
+{
+    IR::Instr *bailOutIfNotFunction = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, bailOutInfo, bailOutInfo->bailOutFunc);
+
+    // functionTypeRegOpnd = Ld functionRegOpnd->type
+    IR::IndirOpnd *functionTypeIndirOpnd = IR::IndirOpnd::New(funcOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, insertBeforeInstr->m_func);
+    IR::RegOpnd *functionTypeRegOpnd = IR::RegOpnd::New(TyVar, insertBeforeInstr->m_func->GetTopFunc());
+    IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_A, functionTypeRegOpnd, functionTypeIndirOpnd, insertBeforeInstr->m_func);
+    if (instr->m_func->HasByteCodeOffset())
+    {
+        instr->SetByteCodeOffset(insertBeforeInstr);
+    }
+    insertBeforeInstr->InsertBefore(instr);
+
+    CompileAssert(sizeof(Js::TypeId) == sizeof(int32));
+    // if (functionTypeRegOpnd->typeId != TypeIds_Function) goto $noInlineLabel
+    // BrNeq_I4 $noInlineLabel, functionTypeRegOpnd->typeId, TypeIds_Function
+    IR::IndirOpnd *functionTypeIdIndirOpnd = IR::IndirOpnd::New(functionTypeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, insertBeforeInstr->m_func);
+    IR::IntConstOpnd *typeIdFunctionConstOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, insertBeforeInstr->m_func);
+    bailOutIfNotFunction->SetSrc1(functionTypeIdIndirOpnd);
+    bailOutIfNotFunction->SetSrc2(typeIdFunctionConstOpnd);
+    insertBeforeInstr->InsertBefore(bailOutIfNotFunction);
+
+    return bailOutIfNotFunction;
+}
+
+IR::Instr*
+Lowerer::InsertFunctionInfoCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::AddrOpnd* inlinedFuncInfo, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo)
+{
+    IR::Instr *bailOutIfWrongFuncInfo = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, bailOutInfo, bailOutInfo->bailOutFunc);
+
+    // if (VarTo<JavascriptFunction>(r1)->functionInfo != funcInfo) goto noInlineLabel
+    // BrNeq_A noInlineLabel, r1->functionInfo, funcInfo
+    IR::IndirOpnd* opndFuncInfo = IR::IndirOpnd::New(funcOpnd, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, insertBeforeInstr->m_func);
+    bailOutIfWrongFuncInfo->SetSrc1(opndFuncInfo);
+    bailOutIfWrongFuncInfo->SetSrc2(inlinedFuncInfo);
+
+    insertBeforeInstr->InsertBefore(bailOutIfWrongFuncInfo);
+
+    return bailOutIfWrongFuncInfo;
 }
 
 #if DBG

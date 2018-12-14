@@ -771,6 +771,8 @@ MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInli
 
 MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
 MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
+MACRO_BACKEND_ONLY(     CheckIsFuncObj,      Empty,          OpCanCSE | OpBailOutRec)
+MACRO_BACKEND_ONLY(     CheckFuncInfo,       Empty,          OpCanCSE | OpBailOutRec)
 MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
 MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)

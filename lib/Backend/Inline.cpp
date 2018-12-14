@@ -4592,35 +4592,14 @@ Inline::SplitConstructorCallCommon(
 }
 
 void
-Inline::InsertObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutIfNotObject)
+Inline::InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
 {
-    // Bailout if 'functionRegOpnd' is not an object.
-    bailOutIfNotObject->SetSrc1(funcOpnd);
-    bailOutIfNotObject->SetByteCodeOffset(insertBeforeInstr);
-    insertBeforeInstr->InsertBefore(bailOutIfNotObject);
-}
+    Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
+    AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
 
-void
-Inline::InsertFunctionTypeIdCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr* bailOutIfNotJsFunction)
-{
-    // functionTypeRegOpnd = Ld functionRegOpnd->type
-    IR::IndirOpnd *functionTypeIndirOpnd = IR::IndirOpnd::New(funcOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, insertBeforeInstr->m_func);
-    IR::RegOpnd *functionTypeRegOpnd = IR::RegOpnd::New(TyVar, this->topFunc);
-    IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_A, functionTypeRegOpnd, functionTypeIndirOpnd, insertBeforeInstr->m_func);
-    if(instr->m_func->HasByteCodeOffset())
-    {
-        instr->SetByteCodeOffset(insertBeforeInstr);
-    }
-    insertBeforeInstr->InsertBefore(instr);
-
-    CompileAssert(sizeof(Js::TypeId) == sizeof(int32));
-    // if (functionTypeRegOpnd->typeId != TypeIds_Function) goto $noInlineLabel
-    // BrNeq_I4 $noInlineLabel, functionTypeRegOpnd->typeId, TypeIds_Function
-    IR::IndirOpnd *functionTypeIdIndirOpnd = IR::IndirOpnd::New(functionTypeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, insertBeforeInstr->m_func);
-    IR::IntConstOpnd *typeIdFunctionConstOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, insertBeforeInstr->m_func);
-    bailOutIfNotJsFunction->SetSrc1(functionTypeIdIndirOpnd);
-    bailOutIfNotJsFunction->SetSrc2(typeIdFunctionConstOpnd);
-    insertBeforeInstr->InsertBefore(bailOutIfNotJsFunction);
+    bailOutInstr->SetSrc1(funcOpnd);
+    bailOutInstr->SetSrc2(IR::IntConstOpnd::New(index, TyInt32, insertBeforeInstr->m_func));
+    insertBeforeInstr->InsertBefore(bailOutInstr);
 }
 
 void
@@ -4629,44 +4608,15 @@ Inline::InsertJsFunctionCheck(IR::Instr * callInstr, IR::Instr *insertBeforeInst
     // This function only inserts bailout for tagged int & TypeIds_Function.
     // As of now this is only used for polymorphic inlining.
     Assert(bailOutKind == IR::BailOutOnPolymorphicInlineFunction);
-
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
 
-    IR::RegOpnd * funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
-
-    // bailOutIfNotFunction is primary bailout instruction
-    IR::Instr* bailOutIfNotFunction = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
-
-    IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject, bailOutKind, bailOutIfNotFunction->GetBailOutInfo(), callInstr->m_func);
-    InsertObjectCheck(funcOpnd, insertBeforeInstr, bailOutIfNotObject);
-
-    InsertFunctionTypeIdCheck(funcOpnd, insertBeforeInstr, bailOutIfNotFunction);
-
-}
-
-void
-Inline::InsertFunctionInfoCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo)
-{
-    // if (VarTo<JavascriptFunction>(r1)->functionInfo != funcInfo) goto noInlineLabel
-    // BrNeq_I4 noInlineLabel, r1->functionInfo, funcInfo
-    IR::IndirOpnd* opndFuncInfo = IR::IndirOpnd::New(funcOpnd, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, insertBeforeInstr->m_func);
-    IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
-    bailoutInstr->SetSrc1(opndFuncInfo);
-    bailoutInstr->SetSrc2(inlinedFuncInfo);
-
-    insertBeforeInstr->InsertBefore(bailoutInstr);
-}
-
-void
-Inline::InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
-{
-     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
-    AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
-
-    bailOutInstr->SetSrc1(funcOpnd);
-    bailOutInstr->SetSrc2(IR::IntConstOpnd::New(index, TyInt32, insertBeforeInstr->m_func));
-    insertBeforeInstr->InsertBefore(bailOutInstr);
+    // Two bailout checks, an object check followed by a function type ID check, are required. These bailout instructions are created
+    // when lowering checkFunctionEntryPoint rather than being created here as checkFunctionEntryPoint can be hoisted outside of a loop.
+    IR::Instr *checkIsFuncObj = IR::BailOutInstr::New(Js::OpCode::CheckIsFuncObj, bailOutKind, insertBeforeInstr, callInstr->m_func);
+    checkIsFuncObj->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
+    checkIsFuncObj->SetByteCodeOffset(insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(checkIsFuncObj);
 }
 
 IR::Instr *
@@ -4674,29 +4624,17 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
 {
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
-    IR::BailOutKind bailOutKind = IR::BailOutOnInlineFunction;
 
-    IR::RegOpnd * funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
+    IR::Instr *checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
+    checkFuncInfo->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
 
-    // FunctionBody check is the primary bailout instruction, create it first
-    IR::BailOutInstr* primaryBailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
-    primaryBailOutInstr->SetByteCodeOffset(insertBeforeInstr);
+    IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
+    checkFuncInfo->SetSrc2(inlinedFuncInfo);
 
-    // 1. Bailout if function object is not an object.
-    IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject,
-                                                          bailOutKind,
-                                                          primaryBailOutInstr->GetBailOutInfo(),
-                                                          callInstr->m_func);
-    InsertObjectCheck(funcOpnd, insertBeforeInstr, bailOutIfNotObject);
+    checkFuncInfo->SetByteCodeOffset(insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(checkFuncInfo);
 
-    // 2. Bailout if function object is not a TypeId_Function
-    IR::Instr* bailOutIfNotJsFunction = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, primaryBailOutInstr->GetBailOutInfo(), callInstr->m_func);
-    InsertFunctionTypeIdCheck(funcOpnd, insertBeforeInstr, bailOutIfNotJsFunction);
-
-    // 3. Bailout if function body doesn't match funcInfo
-    InsertFunctionInfoCheck(funcOpnd, insertBeforeInstr, primaryBailOutInstr, funcInfo);
-
-    return primaryBailOutInstr;
+    return checkFuncInfo;
 }
 
 IR::ByteCodeUsesInstr*
