@@ -31,6 +31,23 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+cur_dir=`pwd -P`
+echo "current dir:"
+echo $cur_dir
+
+echo "test_path:"
+echo $test_path
+
+cd ..
+echo "files in ..:"
+dotdotFiles=`ls`
+echo $dotdotFiles
+
+cd out
+echo "files in out:"
+outFiles=`ls`
+echo $outFiles 
+
 if [[ -f "$test_path/../out/Debug/ch" ]]; then
     echo "Warning: Debug build was found"
     binary_path="Debug";
