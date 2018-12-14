@@ -78,7 +78,7 @@ elif os is "OSX":
     osString = 'OSX.1011.Amd64.Chakra.Open'
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, None, "")
 
-else
+else:
     print("incorrect OS string value")
     
 '''
