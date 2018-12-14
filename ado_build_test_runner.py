@@ -51,7 +51,9 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     # temp replacement:
     icuFlag = "--system-icu" if platform == "osx" else ""
 
-    compilerPaths = "" if platform is "osx" else "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
+    # todo: compilerPaths = "" if platform is "osx" else "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
+    # temp replacement:
+    compilerPaths = ""
 
     buildScript = "bash ./build.sh "+staticFlag+" "+buildFlag+" "+swbCheckFlag+" "+compilerPaths+" "+icuFlag+" "+customOption+" "+extraBuildParams
 
