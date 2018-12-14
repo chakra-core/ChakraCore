@@ -76,8 +76,8 @@ def exeBashStr(bashStr, j=None):
     printToADO(bashStrList)
     subprocess.call(bashStrList)
 
-def printToADO(str):
-    subprocess.call(["echo", str])
+def printToADO(v):
+    subprocess.call(["echo", str(v)])
 
 # Linux build tasks:
 if os == "Linux":
