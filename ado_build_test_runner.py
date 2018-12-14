@@ -3,7 +3,7 @@ import sys
 
 #os = "Linux"
 os = "OSX"
- 
+
 if len(sys.argv) >= 2:
     os = sys.argv[1]
 
@@ -27,8 +27,12 @@ def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultT
 
 def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, customOption, testVariant, extraBuildParams):
     config = "osx_"+buildType if platform is "osx" else "linux_"+buildType
-    numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
     
+    # todo: numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
+    # temp replacement:
+    numConcurrentCommand = "nproc"
+
+
     config = config if configTag is None else configTag + "_" + config
     config = "static_"+config if staticBuild else "shared"+config
     # todo: config = customOption.replaceAll(/[-]+/, "_") + "_" + config if customOption else config
