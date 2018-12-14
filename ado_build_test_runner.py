@@ -59,20 +59,22 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     # temp replacement:
     icuLibFlag = ""
 
-    testScript = "bash test/runtests.sh "+icuLibFlag+" \""+testVariant+"\""
+    testScript = "bash test/runtests.sh "+icuLibFlag
 
     printToADO("----- INFO SCRIPT -----")
     exeBashStr(infoScript)
     printToADO("----- BUILD SCRIPT -----")
     exeBashStr(buildScript, "-j=`"+numConcurrentCommand+"`")
     printToADO("----- TEST SCRIPT -----")
-    exeBashStr(testScript)
+    exeBashStr(testScript, None, testVariant)
 
-def exeBashStr(bashStr, j=None):
+def exeBashStr(bashStr, j=None, testVariant=None):
     bashStrList = bashStr.split(" ")
     bashStrList = filter(lambda a: a != "", bashStrList)
     if j:
         bashStrList.append(j)
+    if testVariant:
+        bashStrList.append("\""+testVariant+"\"")
     printToADO(bashStrList)
     subprocess.call(bashStrList)
 
