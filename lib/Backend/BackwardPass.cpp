@@ -2489,7 +2489,7 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
         // We decided that BailOutOnImplicitCall is needed. So lazy bailout is unnecessary
         // because we are already protected from potential side effects unless the operation
         // itself can change fields' values (StFld/StElem).
-        if (needsLazyBailOut && !instr->CanChangeValueWithoutImplicitCall())
+        if (needsLazyBailOut && !instr->CanChangeFieldValueWithoutImplicitCall())
         {
             instr->ClearLazyBailOut();
         }

@@ -87,7 +87,10 @@ void BailOutInfo::PartialDeepCopyTo(BailOutInfo * const other) const
 void
 BailOutInfo::Clear(JitArenaAllocator * allocator)
 {
-    // Currently, we don't have a case where we delete bailout info after we allocated the bailout record
+    // Previously, we don't have a case where we delete bailout info after we allocated the bailout record.
+    // However, since lazy bailouts can now be attached on helper call instructions, and those instructions
+    // might sometimes be removed in Peeps, we will hit those cases. Make sure that in such cases, lazy bailout
+    // is the only bailout reason we have.
     Assert(bailOutRecord == nullptr || BailOutInfo::OnlyHasLazyBailOut(bailOutRecord->bailOutKind));
     if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
     {

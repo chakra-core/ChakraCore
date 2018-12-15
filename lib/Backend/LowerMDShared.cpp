@@ -690,8 +690,8 @@ LowererMD::ChangeToHelperCall(IR::Instr *callInstr, IR::JnHelperMethod helperMet
     // 
     //      b) We will have to change our BailOutKind bit validation because some of the
     //         kinds don't currently expect to go together with BailOnImplicitCall. This
-    //         is probably less of a problem and more of just find those cases and add
-    //         allowed bits.
+    //         is probably less of a problem and more of just finding those cases and
+    //         adding allowed bit combinations.
     //
     // 2. Just attach the lazy bailout bit onto the BailOutKind and use this opportunity
     //    to also lower an additional BailOnImplicitCallPreOp. The problem is we aren't

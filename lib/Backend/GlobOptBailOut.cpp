@@ -1214,10 +1214,12 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val)
 bool
 GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, bool isHoisted) const
 {
+#ifdef _M_X64
+
     if (!this->func->ShouldDoLazyBailOut() ||
         this->IsLoopPrePass() ||
-        isHoisted ||
-        this->func->HasTry())
+        isHoisted
+    )
     {
         return false;
     }
@@ -1246,7 +1248,7 @@ GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, 
     }
 
     // We decided to do StackArgs optimization, which means that this instruction
-    // could only either be LoadElement or LoadTypeOf, and that it does not have
+    // could only either be LdElemI_A or TypeofElem, and that it does not have
     // an implicit call. So no need for lazy bailout.
     if (instr->HasBailOutInfo() && instr->GetBailOutKind() == IR::BailOnStackArgsOutOfActualsRange)
     {
@@ -1267,6 +1269,12 @@ GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, 
     // need lazy bailout of we think there might be implicit calls
     // or if there aren't any bailouts that prevent them from happening.
     return this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val);
+
+#else // _M_X64
+
+    return false;
+
+#endif
 }
 
 void

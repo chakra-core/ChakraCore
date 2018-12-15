@@ -580,9 +580,9 @@ namespace Js
         bool HasInlinees();
 
 #if DBG
-        void DoLazyBailout(Js::FunctionBody *functionBody, BYTE **addressOfInstructionPointer, BYTE *framePointer, const PropertyRecord *propertyRecord);
+        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer, Js::FunctionBody *functionBody, const PropertyRecord *propertyRecord);
 #else
-        void DoLazyBailout(Js::FunctionBody *functionBody, BYTE **addressOfInstructionPointer, BYTE *framePointer);
+        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer);
 #endif
 
         void CleanupNativeCode(ScriptContext * scriptContext);

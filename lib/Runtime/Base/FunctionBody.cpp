@@ -8724,10 +8724,10 @@ namespace Js
     }
 
     void EntryPointInfo::DoLazyBailout(
-        Js::FunctionBody *functionBody,
         BYTE **addressOfInstructionPointer,
         BYTE *framePointer
 #if DBG
+        , Js::FunctionBody *functionBody
         , const PropertyRecord *propertyRecord
 #endif
     )
@@ -8762,15 +8762,16 @@ namespace Js
         {
             auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
             const LazyBailOutRecord& record = bailOutRecordList->Item(found);
-
             const uint32 lazyBailOutThunkOffset = inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
             BYTE * const lazyBailOutThunkAddress = (BYTE *) nativeAddress + lazyBailOutThunkOffset;
 
+            // Change the instruction pointer of the frame to our thunk so that
+            // when execution returns back to this frame, we will execute the thunk instead
             *addressOfInstructionPointer = lazyBailOutThunkAddress;
 
-            BYTE *addressOfLazyBailOutRecordArgSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordArgSlotOffset();
-
-            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordArgSlot)) = reinterpret_cast<intptr_t>(record.bailOutRecord);
+            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
+            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
+            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record.bailOutRecord);
             
             if (PHASE_TRACE1(Js::LazyBailoutPhase))
             {

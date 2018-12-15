@@ -1103,17 +1103,13 @@ public:
     // Lazy bailout
 private:
     bool                hasLazyBailOut : 1;
-    IR::LabelInstr*     lazyBailOutThunkLabel;
-    StackSym *          m_lazyBailOutRecordArgSlot;
+    StackSym *          m_lazyBailOutRecordSlot;
 
 public:
-    void AllocateLazyBailOutRecordArgSlotIfNeeded();
-    StackSym *GetLazyBailOutRecordArgSlot() const;
+    void EnsureLazyBailOutRecordSlot();
+    StackSym *GetLazyBailOutRecordSlot() const;
     void SetHasLazyBailOut();
     bool HasLazyBailOut() const;
-
-    void SetLazyBailOutThunkLabel(IR::LabelInstr *label);
-    IR::LabelInstr *GetLazyBailOutThunkLabel() const;
     bool ShouldDoLazyBailOut() const;
 };
 

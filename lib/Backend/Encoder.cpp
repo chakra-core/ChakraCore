@@ -1691,11 +1691,11 @@ Encoder::SaveLazyBailOutJitTransferData()
     {
         Assert(this->m_sortedLazyBailoutRecordList->Count() > 0);
         Assert(this->m_lazyBailOutThunkOffset != 0);
-        Assert(this->m_func->GetLazyBailOutRecordArgSlot() != nullptr);
+        Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
 
         auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
         nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailoutRecordList);
-        nativeEntryPointData->SetLazyBailOutRecordArgSlotOffset(this->m_func->GetLazyBailOutRecordArgSlot()->m_offset);
+        nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
         nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
     }
 

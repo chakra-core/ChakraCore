@@ -75,7 +75,6 @@ struct CapturedValues
         }
 
         // Ignore refCount because other objects might still reference it
-        other->refCount;
     }
 };
 
@@ -341,7 +340,7 @@ public:
     bool            AreAllOpndsTypeSpecialized() const;
     bool            IsStFldVariant() const;
     bool            IsStElemVariant() const;
-    bool            CanChangeValueWithoutImplicitCall() const;
+    bool            CanChangeFieldValueWithoutImplicitCall() const;
     void            ClearLazyBailOut();
     bool            OnlyHasLazyBailOut() const;
     bool            HasLazyBailOut() const;

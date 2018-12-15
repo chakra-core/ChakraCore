@@ -1046,7 +1046,7 @@ bool IR::Instr::IsStElemVariant() const
         this->m_opcode == Js::OpCode::StElemC;
 }
 
-bool IR::Instr::CanChangeValueWithoutImplicitCall() const
+bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
 {
     // TODO: Why is InitFld necessary?
     return this->IsStFldVariant() || this->IsStElemVariant();

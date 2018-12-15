@@ -161,8 +161,8 @@ public:
     NativeLazyBailOutRecordList * GetSortedLazyBailOutRecordList() const;
     void SetSortedLazyBailOutRecordList(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* sortedLazyBailOutRecordList);
 
-    void SetLazyBailOutRecordArgSlotOffset(int32 argSlotOffset);
-    int32 GetLazyBailOutRecordArgSlotOffset() const;
+    void SetLazyBailOutRecordSlotOffset(int32 argSlotOffset);
+    int32 GetLazyBailOutRecordSlotOffset() const;
 
     void SetLazyBailOutThunkOffset(uint32 thunkOffset);
     uint32 GetLazyBailOutThunkOffset() const;
@@ -179,7 +179,7 @@ private:
     FieldNoBarrier(NativeCodeData *) nativeCodeData;
     FieldNoBarrier(InlineeFrameMap *) inlineeFrameMap;
     FieldNoBarrier(NativeLazyBailOutRecordList *) sortedLazyBailoutRecordList;
-    FieldNoBarrier(int32) lazyBailOutRecordArgSlotOffset;
+    FieldNoBarrier(int32) lazyBailOutRecordSlotOffset;
     FieldNoBarrier(uint32) lazyBailOutThunkOffset;
 #if !FLOATVAR
     Field(CodeGenNumberChunk*) numberChunks;

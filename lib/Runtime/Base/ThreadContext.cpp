@@ -3713,10 +3713,10 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
                     if (entry->entryPoints->TryGetValue(functionEntryPoint, &dummy))
                     {
                         functionEntryPoint->DoLazyBailout(
-                            caller->GetFunctionBody(),
                             stackWalker.GetCurrentAddressOfInstructionPointer(),
                             static_cast<BYTE*>(stackWalker.GetFramePointer())
 #if DBG
+                            , caller->GetFunctionBody()
                             , propertyRecord
 #endif
                         );

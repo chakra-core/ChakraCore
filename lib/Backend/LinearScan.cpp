@@ -217,18 +217,21 @@ LinearScan::RegAlloc()
         // missed allocating bailout records for them. Additionally, some instructions might
         // end up being lowered differently, so the lazy bailout is not on a CALL instruction
         // anymore. Use this opportunity to detect them.
-        // Note that this needs to be run with -ForcePostLowerGlobOptInstrString
+        // Note that the dump for the instruction will also be printed with -ForcePostLowerGlobOptInstrString
         if (instr->HasBailOutInfo() && instr->GetBailOutInfo()->bailOutRecord == nullptr)
         {
-            // The instruction has already been lowered, find the start to get the globopt dump
-            IR::Instr *curr = instr;
-            while (curr->globOptInstrString == nullptr)
+            if (CONFIG_FLAG(ForcePostLowerGlobOptInstrString))
             {
-                curr = curr->m_prev;
-            }
+                // The instruction has already been lowered, find the start to get the globopt dump
+                IR::Instr *curr = instr;
+                while (curr->globOptInstrString == nullptr)
+                {
+                    curr = curr->m_prev;
+                }
 
-            instr->Dump();
-            curr->DumpGlobOptInstrString();
+                instr->Dump();
+                curr->DumpGlobOptInstrString();
+            }
 
             AssertMsg(false, "Lazy bailout: bailOutRecord not allocated");
         }
@@ -4873,7 +4876,7 @@ LinearScan::ProcessLazyBailOut(IR::Instr *instr)
         // No lazy bailout for function with try/catch for now
         Assert(!this->func->HasTry());
 
-        this->func->AllocateLazyBailOutRecordArgSlotIfNeeded();
+        this->func->EnsureLazyBailOutRecordSlot();
 
         if (instr->GetBailOutInfo()->NeedsToRestoreUseOfDst())
         {

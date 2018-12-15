@@ -2682,12 +2682,10 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         }
     }
 
-#if defined(_M_X64)
     if (this->IsLazyBailOutCurrentlyNeeded(instr, src1Val, src2Val, isHoisted))
     {
         this->GenerateLazyBailOut(instr);
     }
-#endif
 
     if (CurrentBlockData()->capturedValuesCandidate && !this->IsLoopPrePass())
     {

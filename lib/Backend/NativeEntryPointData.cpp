@@ -393,7 +393,7 @@ NativeEntryPointData::Cleanup(ScriptContext * scriptContext, bool isShutdown, bo
 
 InProcNativeEntryPointData::InProcNativeEntryPointData() :
     nativeCodeData(nullptr), inlineeFrameMap(nullptr), sortedLazyBailoutRecordList(nullptr),
-    lazyBailOutRecordArgSlotOffset{0}, lazyBailOutThunkOffset{0}
+    lazyBailOutRecordSlotOffset{0}, lazyBailOutThunkOffset{0}
 #if !FLOATVAR
     , numberChunks(nullptr)
 #endif
@@ -465,17 +465,17 @@ InProcNativeEntryPointData::SetSortedLazyBailOutRecordList(JsUtil::List<LazyBail
 }
 
 int32
-InProcNativeEntryPointData::GetLazyBailOutRecordArgSlotOffset() const
+InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset() const
 {
-    Assert(this->lazyBailOutRecordArgSlotOffset != 0);
-    return this->lazyBailOutRecordArgSlotOffset;
+    Assert(this->lazyBailOutRecordSlotOffset != 0);
+    return this->lazyBailOutRecordSlotOffset;
 }
 
 void
-InProcNativeEntryPointData::SetLazyBailOutRecordArgSlotOffset(int32 argSlotOffset)
+InProcNativeEntryPointData::SetLazyBailOutRecordSlotOffset(int32 argSlotOffset)
 {
-    Assert(this->lazyBailOutRecordArgSlotOffset == 0 && argSlotOffset != 0);
-    this->lazyBailOutRecordArgSlotOffset = argSlotOffset;
+    Assert(this->lazyBailOutRecordSlotOffset == 0 && argSlotOffset != 0);
+    this->lazyBailOutRecordSlotOffset = argSlotOffset;
 }
 
 uint32

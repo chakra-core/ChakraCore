@@ -133,7 +133,7 @@ SCCLiveness::Build()
         // Do not count call to bailout (e.g: call SaveAllRegistersAndBailOut) which exits anyways.
         // However, for calls with LazyBailOut, we still need to process them since they are not guaranteed
         // to exit.
-        if (LowererMD::IsCall(instr) && (!instr->HasBailOutInfo() || instr->HasLazyBailOut()))
+        if (LowererMD::IsCall(instr) && (!instr->HasBailOutInfo() || instr->OnlyHasLazyBailOut()))
         {
             if (this->lastOpHelperLabel == nullptr)
             {

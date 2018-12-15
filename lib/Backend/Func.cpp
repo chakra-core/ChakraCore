@@ -155,9 +155,8 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     , m_lowerer(nullptr)
 #endif
-    , m_lazyBailOutRecordArgSlot(nullptr)
+    , m_lazyBailOutRecordSlot(nullptr)
     , hasLazyBailOut(false)
-    , lazyBailOutThunkLabel(nullptr)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -2076,24 +2075,6 @@ Func::GetForInEnumeratorArrayOffset() const
 }
 
 void
-Func::SetLazyBailOutThunkLabel(IR::LabelInstr *label)
-{
-    Assert(label != nullptr &&
-        label->m_opcode == Js::OpCode::LazyBailOutThunkLabel &&
-        this->lazyBailOutThunkLabel == nullptr &&
-        this->IsInPhase(Js::Phase::FinalLowerPhase));
-
-    this->lazyBailOutThunkLabel = label;
-}
-
-IR::LabelInstr *
-Func::GetLazyBailOutThunkLabel() const
-{
-    Assert(this->lazyBailOutThunkLabel != nullptr);
-    return this->lazyBailOutThunkLabel;
-}
-
-void
 Func::SetHasLazyBailOut()
 {
     this->hasLazyBailOut = true;
@@ -2110,27 +2091,27 @@ Func::HasLazyBailOut() const
 }
 
 void
-Func::AllocateLazyBailOutRecordArgSlotIfNeeded()
+Func::EnsureLazyBailOutRecordSlot()
 {
-    if (this->m_lazyBailOutRecordArgSlot == nullptr)
+    if (this->m_lazyBailOutRecordSlot == nullptr)
     {
-        this->m_lazyBailOutRecordArgSlot = StackSym::New(TyMachPtr, this);
-        this->StackAllocate(this->m_lazyBailOutRecordArgSlot, MachPtr);
+        this->m_lazyBailOutRecordSlot = StackSym::New(TyMachPtr, this);
+        this->StackAllocate(this->m_lazyBailOutRecordSlot, MachPtr);
     }
 }
 
 StackSym *
-Func::GetLazyBailOutRecordArgSlot() const
+Func::GetLazyBailOutRecordSlot() const
 {
-    Assert(this->m_lazyBailOutRecordArgSlot != nullptr);
-    return this->m_lazyBailOutRecordArgSlot;
+    Assert(this->m_lazyBailOutRecordSlot != nullptr);
+    return this->m_lazyBailOutRecordSlot;
 }
 
 bool
 Func::ShouldDoLazyBailOut() const
 {
 #if defined(_M_X64)
-    if (PHASE_OFF1(Js::LazyBailoutPhase) ||
+    if (PHASE_ON1(Js::LazyBailoutPhase) ||
         this->GetJITFunctionBody()->IsAsmJsMode() || // don't have bailouts in asm.js
         this->HasTry() ||                            // lazy bailout in function with try/catch not supported for now
                                                      // `EHBailoutPatchUp` set a `hasBailedOut` bit to rethrow the exception in the interpreter

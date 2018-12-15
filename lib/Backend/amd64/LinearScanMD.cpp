@@ -325,7 +325,9 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
     //     mov  rax, BailOut
     //     call rax
 
-    // TODO: This only applies for current BailOutHelperCall
+    // TODO: Before lazy bailout, this is done unconditionally.
+    //       Need to verify if this is the right check in order
+    //       to keep the same behaviour as before.
     if (!instr->HasLazyBailOut())
     {
         Assert(instr->GetSrc1()->IsHelperCallOpnd());

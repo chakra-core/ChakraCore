@@ -22115,7 +22115,7 @@ Lowerer::InsertLazyBailOutThunk()
         return;
     }
 
-    Assert(this->m_func->GetLazyBailOutRecordArgSlot() != nullptr);
+    Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
 
     IR::Instr *tailInstr = this->m_func->m_tailInstr;
 
@@ -22124,7 +22124,6 @@ Lowerer::InsertLazyBailOutThunk()
     lazyBailOutLabel->m_hasNonBranchRef = true; // Make sure that this label isn't removed
     LABELNAMESET(lazyBailOutLabel, "LazyBailOutThunk");
     tailInstr->InsertBefore(lazyBailOutLabel);
-    this->m_func->SetLazyBailOutThunkLabel(lazyBailOutLabel);
 
 #ifdef _M_X64
     // 1. Save registers used for parameters, and rax, if necessary, into the shadow space allocated for register parameters:
@@ -22161,7 +22160,7 @@ Lowerer::InsertLazyBailOutThunk()
     // registers assigned to them. We force them to be rcx (because they are going
     // to be replaced anyway).
     // TODO: This hack doesn't work with ARM/ARM64
-    // Will need to revisit this if we decide to do lazy bailout on those platforms
+    //       Will need to revisit this if we decide to do lazy bailout on those platforms
     IR::Instr *moveInstr = Lowerer::InsertMove(
         disableImplicitCallFlagAddress,
         IR::IntConstOpnd::New(DisableImplicitNoFlag, TyInt8, this->m_func, true),
@@ -22189,12 +22188,12 @@ Lowerer::InsertLazyBailOutThunk()
 #ifdef _M_X64
     // 3. mov rcx, [rbp + offset] ; for bailout record
     IR::RegOpnd *arg0 = IR::RegOpnd::New(nullptr, RegArg0, TyMachPtr, this->m_func);
-    IR::SymOpnd *bailOutRecordAddr = IR::SymOpnd::New(this->m_func->GetLazyBailOutRecordArgSlot(), TyMachPtr, this->m_func);
+    IR::SymOpnd *bailOutRecordAddr = IR::SymOpnd::New(this->m_func->GetLazyBailOutRecordSlot(), TyMachPtr, this->m_func);
     Lowerer::InsertMove(arg0, bailOutRecordAddr, tailInstr, false /* generateWriteBarrier */);
 #else
     // 3. Put the BailOutRecord on the stack for x86
     IR::Instr *const newInstr = IR::Instr::New(Js::OpCode::PUSH, this->m_func);
-    IR::SymOpnd *bailOutRecordAddr = IR::SymOpnd::New(this->m_func->GetLazyBailOutRecordArgSlot(), TyMachPtr, this->m_func);
+    IR::SymOpnd *bailOutRecordAddr = IR::SymOpnd::New(this->m_func->GetLazyBailOutRecordSlot(), TyMachPtr, this->m_func);
     newInstr->SetSrc1(bailOutRecordAddr);
     tailInstr->InsertBefore(newInstr);
 #endif
