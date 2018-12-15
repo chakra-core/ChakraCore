@@ -23,12 +23,12 @@
 #include <string>
 #include <vector>
 
-#include "src/binary-reader-interp.h"
 #include "src/binary-reader.h"
 #include "src/cast.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
-#include "src/interp.h"
+#include "src/interp/binary-reader-interp.h"
+#include "src/interp/interp.h"
 #include "src/literal.h"
 #include "src/option-parser.h"
 #include "src/resolve-names.h"
@@ -118,6 +118,9 @@ static void RunAllExports(interp::Module* module,
   TypedValues args;
   TypedValues results;
   for (const interp::Export& export_ : module->exports) {
+    if (export_.kind != ExternalKind::Func) {
+      continue;
+    }
     ExecResult exec_result = executor->RunExport(&export_, args);
     if (verbose == RunVerbosity::Verbose) {
       WriteCall(s_stdout_stream.get(), string_view(), export_.name, args,
@@ -128,7 +131,7 @@ static void RunAllExports(interp::Module* module,
 
 static wabt::Result ReadModule(const char* module_filename,
                                Environment* env,
-                               ErrorHandler* error_handler,
+                               Errors* errors,
                                DefinedModule** out_module) {
   wabt::Result result;
   std::vector<uint8_t> file_data;
@@ -142,8 +145,8 @@ static wabt::Result ReadModule(const char* module_filename,
     const bool kFailOnCustomSectionError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(), kReadDebugNames,
                               kStopOnFirstError, kFailOnCustomSectionError);
-    result = ReadBinaryInterp(env, file_data.data(), file_data.size(),
-                              &options, error_handler, out_module);
+    result = ReadBinaryInterp(env, file_data.data(), file_data.size(), options,
+                              errors, out_module);
 
     if (Succeeded(result)) {
       if (s_verbose) {
@@ -154,77 +157,30 @@ static wabt::Result ReadModule(const char* module_filename,
   return result;
 }
 
-#define PRIimport "\"" PRIstringview "." PRIstringview "\""
-#define PRINTF_IMPORT_ARG(x)                   \
-  WABT_PRINTF_STRING_VIEW_ARG((x).module_name) \
-  , WABT_PRINTF_STRING_VIEW_ARG((x).field_name)
-
-class WasmInterpHostImportDelegate : public HostImportDelegate {
- public:
-  wabt::Result ImportFunc(interp::FuncImport* import,
-                          interp::Func* func,
-                          interp::FuncSignature* func_sig,
-                          const ErrorCallback& callback) override {
-    if (import->field_name == "print") {
-      cast<HostFunc>(func)->callback = PrintCallback;
-      return wabt::Result::Ok;
-    } else {
-      PrintError(callback, "unknown host function import " PRIimport,
-                 PRINTF_IMPORT_ARG(*import));
-      return wabt::Result::Error;
-    }
-  }
-
-  wabt::Result ImportTable(interp::TableImport* import,
-                           interp::Table* table,
-                           const ErrorCallback& callback) override {
-    return wabt::Result::Error;
-  }
-
-  wabt::Result ImportMemory(interp::MemoryImport* import,
-                            interp::Memory* memory,
-                            const ErrorCallback& callback) override {
-    return wabt::Result::Error;
-  }
-
-  wabt::Result ImportGlobal(interp::GlobalImport* import,
-                            interp::Global* global,
-                            const ErrorCallback& callback) override {
-    return wabt::Result::Error;
-  }
-
- private:
-  static interp::Result PrintCallback(const HostFunc* func,
-                                      const interp::FuncSignature* sig,
-                                      Index num_args,
-                                      TypedValue* args,
-                                      Index num_results,
-                                      TypedValue* out_results,
-                                      void* user_data) {
-    memset(static_cast<void*>(out_results), 0,
-                              sizeof(TypedValue) * num_results);
-    for (Index i = 0; i < num_results; ++i)
-      out_results[i].type = sig->result_types[i];
-
-    TypedValues vec_args(args, args + num_args);
-    TypedValues vec_results(out_results, out_results + num_results);
-
-    printf("called host ");
-    WriteCall(s_stdout_stream.get(), func->module_name, func->field_name,
-              vec_args, vec_results, interp::Result::Ok);
-    return interp::Result::Ok;
-  }
-
-  void PrintError(const ErrorCallback& callback, const char* format, ...) {
-    WABT_SNPRINTF_ALLOCA(buffer, length, format);
-    callback(buffer);
-  }
-};
+static interp::Result PrintCallback(const HostFunc* func,
+                                    const interp::FuncSignature* sig,
+                                    const TypedValues& args,
+                                    TypedValues& results) {
+  printf("called host ");
+  WriteCall(s_stdout_stream.get(), func->module_name, func->field_name, args,
+            results, interp::Result::Ok);
+  return interp::Result::Ok;
+}
 
 static void InitEnvironment(Environment* env) {
   if (s_host_print) {
     HostModule* host_module = env->AppendHostModule("host");
-    host_module->import_delegate.reset(new WasmInterpHostImportDelegate());
+    host_module->on_unknown_func_export =
+        [](Environment* env, HostModule* host_module, string_view name,
+           Index sig_index) -> Index {
+      if (name != "print") {
+        return kInvalidIndex;
+      }
+
+      std::pair<HostFunc*, Index> pair =
+          host_module->AppendFuncExport(name, sig_index, PrintCallback);
+      return pair.second;
+    };
   }
 }
 
@@ -233,9 +189,10 @@ static wabt::Result ReadAndRunModule(const char* module_filename) {
   Environment env;
   InitEnvironment(&env);
 
-  ErrorHandlerFile error_handler(Location::Type::Binary);
+  Errors errors;
   DefinedModule* module = nullptr;
-  result = ReadModule(module_filename, &env, &error_handler, &module);
+  result = ReadModule(module_filename, &env, &errors, &module);
+  FormatErrorsToFile(errors, Location::Type::Binary);
   if (Succeeded(result)) {
     Executor executor(&env, s_trace_stream, s_thread_options);
     ExecResult exec_result = executor.RunStartFunction(module);

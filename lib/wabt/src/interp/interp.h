@@ -20,7 +20,9 @@
 #include <stdint.h>
 
 #include <functional>
+#include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "src/binding-hash.h"
@@ -80,21 +82,9 @@ enum class Result {
 typedef uint32_t IstreamOffset;
 static const IstreamOffset kInvalidIstreamOffset = ~0;
 
-// A table entry has the following packed layout:
-//
-//   struct {
-//     IstreamOffset offset;
-//     uint32_t drop_count;
-//     uint32_t keep_count;
-//   };
-#define WABT_TABLE_ENTRY_SIZE \
-  (sizeof(IstreamOffset) + sizeof(uint32_t) + sizeof(uint32_t))
-#define WABT_TABLE_ENTRY_OFFSET_OFFSET 0
-#define WABT_TABLE_ENTRY_DROP_OFFSET sizeof(IstreamOffset)
-#define WABT_TABLE_ENTRY_KEEP_OFFSET (sizeof(IstreamOffset) + sizeof(uint32_t))
-
 struct FuncSignature {
   FuncSignature() = default;
+  FuncSignature(std::vector<Type> param_types, std::vector<Type> result_types);
   FuncSignature(Index param_count,
                 Type* param_types,
                 Index result_count,
@@ -149,6 +139,25 @@ struct TypedValue {
   TypedValue() {}
   explicit TypedValue(Type type) : type(type) {}
   TypedValue(Type type, const Value& value) : type(type), value(value) {}
+
+  void SetZero() { ZeroMemory(value); }
+  void set_i32(uint32_t x) { value.i32 = x; }
+  void set_i64(uint64_t x) { value.i64 = x; }
+  void set_f32(float x) { memcpy(&value.f32_bits, &x, sizeof(x)); }
+  void set_f64(double x) { memcpy(&value.f64_bits, &x, sizeof(x)); }
+
+  uint32_t get_i32() const { return value.i32; }
+  uint64_t get_i64() const { return value.i64; }
+  float get_f32() const {
+    float x;
+    memcpy(&x, &value.f32_bits, sizeof(x));
+    return x;
+  }
+  double get_f64() const {
+    double x;
+    memcpy(&x, &value.f64_bits, sizeof(x));
+    return x;
+  }
 
   Type type;
   Value value;
@@ -219,14 +228,6 @@ struct ExceptImport : Import {
 
 struct Func;
 
-typedef Result (*HostFuncCallback)(const struct HostFunc* func,
-                                   const FuncSignature* sig,
-                                   Index num_args,
-                                   TypedValue* args,
-                                   Index num_results,
-                                   TypedValue* out_results,
-                                   void* user_data);
-
 struct Func {
   WABT_DISALLOW_COPY_AND_ASSIGN(Func);
   Func(Index sig_index, bool is_host)
@@ -253,17 +254,25 @@ struct DefinedFunc : Func {
 };
 
 struct HostFunc : Func {
-  HostFunc(string_view module_name, string_view field_name, Index sig_index)
+  using Callback = std::function<Result(const HostFunc*,
+                                        const FuncSignature*,
+                                        const TypedValues& args,
+                                        TypedValues& results)>;
+
+  HostFunc(string_view module_name,
+           string_view field_name,
+           Index sig_index,
+           Callback callback)
       : Func(sig_index, true),
         module_name(module_name.to_string()),
-        field_name(field_name.to_string()) {}
+        field_name(field_name.to_string()),
+        callback(callback) {}
 
   static bool classof(const Func* func) { return func->is_host; }
 
   std::string module_name;
   std::string field_name;
-  HostFuncCallback callback;
-  void* user_data;
+  Callback callback;
 };
 
 struct Export {
@@ -275,25 +284,9 @@ struct Export {
   Index index;
 };
 
-class HostImportDelegate {
- public:
-  typedef std::function<void(const char* msg)> ErrorCallback;
-
-  virtual ~HostImportDelegate() {}
-  virtual wabt::Result ImportFunc(FuncImport*,
-                                  Func*,
-                                  FuncSignature*,
-                                  const ErrorCallback&) = 0;
-  virtual wabt::Result ImportTable(TableImport*,
-                                   Table*,
-                                   const ErrorCallback&) = 0;
-  virtual wabt::Result ImportMemory(MemoryImport*,
-                                    Memory*,
-                                    const ErrorCallback&) = 0;
-  virtual wabt::Result ImportGlobal(GlobalImport*,
-                                    Global*,
-                                    const ErrorCallback&) = 0;
-};
+class Environment;
+struct DefinedModule;
+struct HostModule;
 
 struct Module {
   WABT_DISALLOW_COPY_AND_ASSIGN(Module);
@@ -301,7 +294,14 @@ struct Module {
   Module(string_view name, bool is_host);
   virtual ~Module() = default;
 
+  // Function exports are special-cased to allow for overloading functions by
+  // name.
+  Export* GetFuncExport(Environment*, string_view name, Index sig_index);
   Export* GetExport(string_view name);
+  virtual Index OnUnknownFuncExport(string_view name, Index sig_index) = 0;
+
+  // Returns export index.
+  Index AppendExport(ExternalKind kind, Index item_index, string_view name);
 
   std::string name;
   std::vector<Export> exports;
@@ -315,6 +315,10 @@ struct DefinedModule : Module {
   DefinedModule();
   static bool classof(const Module* module) { return !module->is_host; }
 
+  Index OnUnknownFuncExport(string_view name, Index sig_index) override {
+    return kInvalidIndex;
+  }
+
   std::vector<FuncImport> func_imports;
   std::vector<TableImport> table_imports;
   std::vector<MemoryImport> memory_imports;
@@ -326,10 +330,45 @@ struct DefinedModule : Module {
 };
 
 struct HostModule : Module {
-  explicit HostModule(string_view name);
+  HostModule(Environment* env, string_view name);
   static bool classof(const Module* module) { return module->is_host; }
 
-  std::unique_ptr<HostImportDelegate> import_delegate;
+  Index OnUnknownFuncExport(string_view name, Index sig_index) override;
+
+  std::pair<HostFunc*, Index> AppendFuncExport(string_view name,
+                                               const FuncSignature&,
+                                               HostFunc::Callback);
+  std::pair<HostFunc*, Index> AppendFuncExport(string_view name,
+                                               Index sig_index,
+                                               HostFunc::Callback);
+  std::pair<Table*, Index> AppendTableExport(string_view name, const Limits&);
+  std::pair<Memory*, Index> AppendMemoryExport(string_view name, const Limits&);
+  std::pair<Global*, Index> AppendGlobalExport(string_view name,
+                                               Type,
+                                               bool mutable_);
+
+  // Convenience functions.
+  std::pair<Global*, Index> AppendGlobalExport(string_view name,
+                                               bool mutable_,
+                                               uint32_t);
+  std::pair<Global*, Index> AppendGlobalExport(string_view name,
+                                               bool mutable_,
+                                               uint64_t);
+  std::pair<Global*, Index> AppendGlobalExport(string_view name,
+                                               bool mutable_,
+                                               float);
+  std::pair<Global*, Index> AppendGlobalExport(string_view name,
+                                               bool mutable_,
+                                               double);
+
+  // Should return an Export index if a new function was created via
+  // AppendFuncExport, or kInvalidIndex if no function was created.
+  std::function<
+      Index(Environment*, HostModule*, string_view name, Index sig_index)>
+      on_unknown_func_export;
+
+ private:
+  Environment* env_;
 };
 
 class Environment {

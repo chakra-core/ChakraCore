@@ -30,7 +30,7 @@ struct WriteWatOptions {
   bool inline_import = false;
 };
 
-Result WriteWat(Stream*, const Module*, const WriteWatOptions*);
+Result WriteWat(Stream*, const Module*, const WriteWatOptions&);
 
 }  // namespace wabt
 

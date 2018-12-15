@@ -83,6 +83,17 @@ Offset WriteU32Leb128At(Stream* stream,
   return length;
 }
 
+Offset WriteU32Leb128Raw(uint8_t* dest, uint8_t* dest_end, uint32_t value) {
+  uint8_t data[MAX_U32_LEB128_BYTES];
+  Offset length = 0;
+  LEB128_LOOP_UNTIL(value == 0);
+  if (static_cast<Offset>(dest_end - dest) < length) {
+    return 0;
+  }
+  memcpy(dest, data, length);
+  return length;
+}
+
 Offset WriteFixedU32Leb128Raw(uint8_t* data, uint8_t* end, uint32_t value) {
   if (end - data < MAX_U32_LEB128_BYTES) {
     return 0;

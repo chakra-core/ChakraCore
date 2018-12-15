@@ -18,7 +18,6 @@
 
 #include <memory>
 
-#include "src/error-handler.h"
 #include "src/wast-lexer.h"
 #include "src/wast-parser.h"
 
@@ -34,16 +33,14 @@ std::string repeat(std::string s, size_t count) {
   return result;
 }
 
-std::string ParseInvalidModule(std::string text) {
+Errors ParseInvalidModule(std::string text) {
   auto lexer = WastLexer::CreateBufferLexer("test", text.c_str(), text.size());
-  const size_t source_line_max_length = 80;
-  ErrorHandlerBuffer error_handler(Location::Type::Text,
-                                   source_line_max_length);
+  Errors errors;
   std::unique_ptr<Module> module;
-  Result result = ParseWatModule(lexer.get(), &module, &error_handler);
+  Result result = ParseWatModule(lexer.get(), &module, &errors);
   EXPECT_EQ(Result::Error, result);
 
-  return error_handler.buffer();
+  return errors;
 }
 
 }  // end of anonymous namespace
@@ -56,15 +53,15 @@ TEST(WastParser, LongToken) {
   text += repeat("a", 0x10000);
   text += "\"))";
 
-  std::string output = ParseInvalidModule(text);
+  Errors errors = ParseInvalidModule(text);
+  ASSERT_EQ(1u, errors.size());
 
-  const char expected[] =
-      R"(test:1:15: error: unexpected token ""aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...", expected an offset expr (e.g. (i32.const 123)).
-(module (data "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-)";
-
-  ASSERT_STREQ(expected, output.c_str());
+  ASSERT_EQ(ErrorLevel::Error, errors[0].error_level);
+  ASSERT_EQ(1, errors[0].loc.line);
+  ASSERT_EQ(15, errors[0].loc.first_column);
+  ASSERT_STREQ(
+      R"(unexpected token ""aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...", expected an offset expr (e.g. (i32.const 123)).)",
+      errors[0].message.c_str());
 }
 
 TEST(WastParser, LongTokenSpace) {
@@ -73,16 +70,18 @@ TEST(WastParser, LongTokenSpace) {
   text += repeat(" ", 0x10000);
   text += "notmodule";
 
-  std::string output = ParseInvalidModule(text);
+  Errors errors = ParseInvalidModule(text);
+  ASSERT_EQ(2u, errors.size());
 
-  const char expected[] =
-      R"(test:1:1: error: unexpected token "notparen", expected a module field or a module.
-notparen                                                                     ...
-^^^^^^^^
-test:1:65545: error: unexpected token notmodule, expected EOF.
-...                                                                    notmodule
-                                                                       ^^^^^^^^^
-)";
+  ASSERT_EQ(ErrorLevel::Error, errors[0].error_level);
+  ASSERT_EQ(1, errors[0].loc.line);
+  ASSERT_EQ(1, errors[0].loc.first_column);
+  ASSERT_STREQ(
+      R"(unexpected token "notparen", expected a module field or a module.)",
+      errors[0].message.c_str());
 
-  ASSERT_STREQ(expected, output.c_str());
+  ASSERT_EQ(1, errors[1].loc.line);
+  ASSERT_EQ(65545, errors[1].loc.first_column);
+  ASSERT_STREQ(R"(unexpected token notmodule, expected EOF.)",
+               errors[1].message.c_str());
 }

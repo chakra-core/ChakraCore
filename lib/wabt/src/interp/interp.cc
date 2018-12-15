@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "src/interp.h"
+#include "src/interp/interp.h"
 
 #include <algorithm>
 #include <cassert>
@@ -23,6 +23,8 @@
 #include <limits>
 #include <type_traits>
 #include <vector>
+
+#include "src/interp/interp-internal.h"
 
 #include "src/cast.h"
 #include "src/stream.h"
@@ -54,21 +56,17 @@ namespace interp {
 std::string TypedValueToString(const TypedValue& tv) {
   switch (tv.type) {
     case Type::I32:
-      return StringPrintf("i32:%u", tv.value.i32);
+      return StringPrintf("i32:%u", tv.get_i32());
 
     case Type::I64:
-      return StringPrintf("i64:%" PRIu64, tv.value.i64);
+      return StringPrintf("i64:%" PRIu64, tv.get_i64());
 
     case Type::F32: {
-      float value;
-      memcpy(&value, &tv.value.f32_bits, sizeof(float));
-      return StringPrintf("f32:%f", value);
+      return StringPrintf("f32:%f", tv.get_f32());
     }
 
     case Type::F64: {
-      double value;
-      memcpy(&value, &tv.value.f64_bits, sizeof(double));
-      return StringPrintf("f64:%f", value);
+      return StringPrintf("f64:%f", tv.get_f64());
     }
 
     case Type::V128:
@@ -161,6 +159,10 @@ Thread::Thread(Environment* env, const Options& options)
       value_stack_(options.value_stack_size),
       call_stack_(options.call_stack_size) {}
 
+FuncSignature::FuncSignature(std::vector<Type> param_types,
+                             std::vector<Type> result_types)
+    : param_types(param_types), result_types(result_types) {}
+
 FuncSignature::FuncSignature(Index param_count,
                              Type* param_types,
                              Index result_count,
@@ -179,6 +181,36 @@ Module::Module(string_view name, bool is_host)
       table_index(kInvalidIndex),
       is_host(is_host) {}
 
+Export* Module::GetFuncExport(Environment* env,
+                              string_view name,
+                              Index sig_index) {
+  auto range = export_bindings.equal_range(name.to_string());
+  for (auto iter = range.first; iter != range.second; ++iter) {
+    const Binding& binding = iter->second;
+    Export* export_ = &exports[binding.index];
+    if (export_->kind == ExternalKind::Func) {
+      const Func* func = env->GetFunc(export_->index);
+      if (env->FuncSignaturesAreEqual(sig_index, func->sig_index)) {
+        return export_;
+      }
+    }
+  }
+
+  // No match; check whether the module wants to spontaneously create a
+  // function of this name and signature.
+  Index index = OnUnknownFuncExport(name, sig_index);
+  if (index != kInvalidIndex) {
+    Export* export_ = &exports[index];
+    assert(export_->kind == ExternalKind::Func);
+    const Func* func = env->GetFunc(export_->index);
+    WABT_USE(func);
+    assert(env->FuncSignaturesAreEqual(sig_index, func->sig_index));
+    return export_;
+  }
+
+  return nullptr;
+}
+
 Export* Module::GetExport(string_view name) {
   int field_index = export_bindings.FindIndex(name);
   if (field_index < 0) {
@@ -187,13 +219,114 @@ Export* Module::GetExport(string_view name) {
   return &exports[field_index];
 }
 
+Index Module::AppendExport(ExternalKind kind,
+                           Index item_index,
+                           string_view name) {
+  exports.emplace_back(name, kind, item_index);
+  Export* export_ = &exports.back();
+  export_bindings.emplace(export_->name, Binding(exports.size() - 1));
+  return exports.size() - 1;
+}
+
 DefinedModule::DefinedModule()
     : Module(false),
       start_func_index(kInvalidIndex),
       istream_start(kInvalidIstreamOffset),
       istream_end(kInvalidIstreamOffset) {}
 
-HostModule::HostModule(string_view name) : Module(name, true) {}
+HostModule::HostModule(Environment* env, string_view name)
+    : Module(name, true), env_(env) {}
+
+Index HostModule::OnUnknownFuncExport(string_view name, Index sig_index) {
+  if (on_unknown_func_export) {
+    return on_unknown_func_export(env_, this, name, sig_index);
+  }
+  return kInvalidIndex;
+}
+
+std::pair<HostFunc*, Index> HostModule::AppendFuncExport(
+    string_view name,
+    const FuncSignature& sig,
+    HostFunc::Callback callback) {
+  // TODO(binji): dedupe signature?
+  env_->EmplaceBackFuncSignature(sig);
+  Index sig_index = env_->GetFuncSignatureCount() - 1;
+  return AppendFuncExport(name, sig_index, callback);
+}
+
+std::pair<HostFunc*, Index> HostModule::AppendFuncExport(
+    string_view name,
+    Index sig_index,
+    HostFunc::Callback callback) {
+  auto* host_func = new HostFunc(this->name, name, sig_index, callback);
+  env_->EmplaceBackFunc(host_func);
+  Index func_env_index = env_->GetFuncCount() - 1;
+  Index export_index = AppendExport(ExternalKind::Func, func_env_index, name);
+  return {host_func, export_index};
+}
+
+std::pair<Table*, Index> HostModule::AppendTableExport(string_view name,
+                                                       const Limits& limits) {
+  Table* table = env_->EmplaceBackTable(limits);
+  Index table_env_index = env_->GetTableCount() - 1;
+  Index export_index = AppendExport(ExternalKind::Table, table_env_index, name);
+  return {table, export_index};
+}
+
+std::pair<Memory*, Index> HostModule::AppendMemoryExport(string_view name,
+                                                         const Limits& limits) {
+  Memory* memory = env_->EmplaceBackMemory(limits);
+  Index memory_env_index = env_->GetMemoryCount() - 1;
+  Index export_index =
+      AppendExport(ExternalKind::Memory, memory_env_index, name);
+  return {memory, export_index};
+}
+
+std::pair<Global*, Index> HostModule::AppendGlobalExport(string_view name,
+                                                         Type type,
+                                                         bool mutable_) {
+  Global* global = env_->EmplaceBackGlobal(TypedValue(type), mutable_);
+  Index global_env_index = env_->GetGlobalCount() - 1;
+  Index export_index =
+      AppendExport(ExternalKind::Global, global_env_index, name);
+  return {global, export_index};
+}
+
+std::pair<Global*, Index> HostModule::AppendGlobalExport(string_view name,
+                                             bool mutable_,
+                                             uint32_t value) {
+  std::pair<Global*, Index> pair =
+      AppendGlobalExport(name, Type::I32, mutable_);
+  pair.first->typed_value.set_i32(value);
+  return pair;
+}
+
+std::pair<Global*, Index> HostModule::AppendGlobalExport(string_view name,
+                                             bool mutable_,
+                                             uint64_t value) {
+  std::pair<Global*, Index> pair =
+      AppendGlobalExport(name, Type::I64, mutable_);
+  pair.first->typed_value.set_i64(value);
+  return pair;
+}
+
+std::pair<Global*, Index> HostModule::AppendGlobalExport(string_view name,
+                                             bool mutable_,
+                                             float value) {
+  std::pair<Global*, Index> pair =
+      AppendGlobalExport(name, Type::F32, mutable_);
+  pair.first->typed_value.set_f32(value);
+  return pair;
+}
+
+std::pair<Global*, Index> HostModule::AppendGlobalExport(string_view name,
+                                             bool mutable_,
+                                             double value) {
+  std::pair<Global*, Index> pair =
+      AppendGlobalExport(name, Type::F64, mutable_);
+  pair.first->typed_value.set_f64(value);
+  return pair;
+}
 
 Environment::MarkPoint Environment::Mark() {
   MarkPoint mark;
@@ -237,7 +370,7 @@ void Environment::ResetToMarkPoint(const MarkPoint& mark) {
 }
 
 HostModule* Environment::AppendHostModule(string_view name) {
-  HostModule* module = new HostModule(name);
+  HostModule* module = new HostModule(this, name);
   modules_.emplace_back(module);
   registered_module_bindings_.emplace(name.to_string(),
                                       Binding(modules_.size() - 1));
@@ -584,75 +717,6 @@ template<> v128 GetValue<v128>(Value v) { return v.v128_bits; }
 
 #define GOTO(offset) pc = &istream[offset]
 
-template <typename T>
-inline T ReadUxAt(const uint8_t* pc) {
-  T result;
-  memcpy(&result, pc, sizeof(T));
-  return result;
-}
-
-template <typename T>
-inline T ReadUx(const uint8_t** pc) {
-  T result = ReadUxAt<T>(*pc);
-  *pc += sizeof(T);
-  return result;
-}
-
-inline uint8_t ReadU8At(const uint8_t* pc) {
-  return ReadUxAt<uint8_t>(pc);
-}
-
-inline uint8_t ReadU8(const uint8_t** pc) {
-  return ReadUx<uint8_t>(pc);
-}
-
-inline uint32_t ReadU32At(const uint8_t* pc) {
-  return ReadUxAt<uint32_t>(pc);
-}
-
-inline uint32_t ReadU32(const uint8_t** pc) {
-  return ReadUx<uint32_t>(pc);
-}
-
-inline uint64_t ReadU64At(const uint8_t* pc) {
-  return ReadUxAt<uint64_t>(pc);
-}
-
-inline uint64_t ReadU64(const uint8_t** pc) {
-  return ReadUx<uint64_t>(pc);
-}
-
-inline v128 ReadV128At(const uint8_t* pc) {
-  return ReadUxAt<v128>(pc);
-}
-
-inline v128 ReadV128(const uint8_t** pc) {
-  return ReadUx<v128>(pc);
-}
-
-inline Opcode ReadOpcode(const uint8_t** pc) {
-  uint8_t value = ReadU8(pc);
-  if (Opcode::IsPrefixByte(value)) {
-    // For now, assume all instructions are encoded with just one extra byte
-    // so we don't have to decode LEB128 here.
-    uint32_t code = ReadU8(pc);
-    return Opcode::FromCode(value, code);
-  } else {
-    // TODO(binji): Optimize if needed; Opcode::FromCode does a log2(n) lookup
-    // from the encoding.
-    return Opcode::FromCode(value);
-  }
-}
-
-inline void read_table_entry_at(const uint8_t* pc,
-                                IstreamOffset* out_offset,
-                                uint32_t* out_drop,
-                                uint32_t* out_keep) {
-  *out_offset = ReadU32At(pc + WABT_TABLE_ENTRY_OFFSET_OFFSET);
-  *out_drop = ReadU32At(pc + WABT_TABLE_ENTRY_DROP_OFFSET);
-  *out_keep = ReadU32At(pc + WABT_TABLE_ENTRY_KEEP_OFFSET);
-}
-
 Memory* Thread::ReadMemory(const uint8_t** pc) {
   Index memory_index = ReadU32(pc);
   return &env_->memories_[memory_index];
@@ -729,8 +793,9 @@ ValueTypeRep<T> Thread::PopRep() {
 }
 
 void Thread::DropKeep(uint32_t drop_count, uint32_t keep_count) {
-  for (uint32_t i = 0; i < keep_count; ++i) {
-    Pick(drop_count + i + 1) = Pick(i + 1);
+  // Copy backward to avoid clobbering when the regions overlap.
+  for (uint32_t i = keep_count; i > 0; --i) {
+    Pick(drop_count + i) = Pick(i);
   }
   value_stack_top_ -= drop_count;
 }
@@ -1412,21 +1477,23 @@ Result Thread::CallHost(HostFunc* func) {
 
   size_t num_params = sig->param_types.size();
   size_t num_results = sig->result_types.size();
-  // + 1 is a workaround for using data() below; UBSAN doesn't like calling
-  // data() with an empty vector.
-  TypedValues params(num_params + 1);
-  TypedValues results(num_results + 1);
+  TypedValues params(num_params);
+  TypedValues results(num_results);
 
   for (size_t i = num_params; i > 0; --i) {
     params[i - 1].value = Pop();
     params[i - 1].type = sig->param_types[i - 1];
   }
 
-  Result call_result =
-      func->callback(func, sig, num_params, params.data(), num_results,
-                     results.data(), func->user_data);
+  for (size_t i = 0; i < num_results; ++i) {
+    results[i].type = sig->result_types[i];
+    results[i].SetZero();
+  }
+
+  Result call_result = func->callback(func, sig, params, results);
   TRAP_IF(call_result != Result::Ok, HostTrapped);
 
+  TRAP_IF(results.size() != num_results, HostResultTypeMismatch);
   for (size_t i = 0; i < num_results; ++i) {
     TRAP_IF(results[i].type != sig->result_types[i], HostResultTypeMismatch);
     CHECK_TRAP(Push(results[i].value));
@@ -1474,7 +1541,7 @@ Result Thread::Run(int num_instructions) {
         IstreamOffset new_pc;
         uint32_t drop_count;
         uint32_t keep_count;
-        read_table_entry_at(entry, &new_pc, &drop_count, &keep_count);
+        ReadTableEntryAt(entry, &new_pc, &drop_count, &keep_count);
         DropKeep(drop_count, keep_count);
         GOTO(new_pc);
         break;
@@ -1557,7 +1624,7 @@ Result Thread::Run(int num_instructions) {
         TRAP_UNLESS(env_->FuncSignaturesAreEqual(func->sig_index, sig_index),
                     IndirectCallSignatureMismatch);
         if (func->is_host) {
-          CallHost(cast<HostFunc>(func));
+          CHECK_TRAP(CallHost(cast<HostFunc>(func)));
         } else {
           CHECK_TRAP(PushCall(pc));
           GOTO(cast<DefinedFunc>(func)->offset);
@@ -1567,7 +1634,38 @@ Result Thread::Run(int num_instructions) {
 
       case Opcode::InterpCallHost: {
         Index func_index = ReadU32(&pc);
-        CallHost(cast<HostFunc>(env_->funcs_[func_index].get()));
+        CHECK_TRAP(CallHost(cast<HostFunc>(env_->funcs_[func_index].get())));
+        break;
+      }
+
+      case Opcode::ReturnCall: {
+        IstreamOffset offset = ReadU32(&pc);
+        GOTO(offset);
+
+        break;
+      }
+
+      case Opcode::ReturnCallIndirect:{
+        Index table_index = ReadU32(&pc);
+        Table* table = &env_->tables_[table_index];
+        Index sig_index = ReadU32(&pc);
+        Index entry_index = Pop<uint32_t>();
+        TRAP_IF(entry_index >= table->func_indexes.size(), UndefinedTableIndex);
+        Index func_index = table->func_indexes[entry_index];
+        TRAP_IF(func_index == kInvalidIndex, UninitializedTableElement);
+        Func* func = env_->funcs_[func_index].get();
+        TRAP_UNLESS(env_->FuncSignaturesAreEqual(func->sig_index, sig_index),
+                    IndirectCallSignatureMismatch);
+        if (func->is_host) { // Emulate a call/return for imported functions
+          CHECK_TRAP(CallHost(cast<HostFunc>(func)));
+          if (call_stack_top_ == 0) {
+            result = Result::Returned;
+            goto exit_loop;
+          }
+          GOTO(PopCall());
+        } else {
+          GOTO(cast<DefinedFunc>(func)->offset);
+        }
         break;
       }
 
@@ -3141,6 +3239,35 @@ Result Thread::Run(int num_instructions) {
       case Opcode::I64X2TruncUF64X2Sat:
         CHECK_TRAP(SimdUnop<v128, uint64_t>(IntTruncSat<uint64_t, double>));
         break;
+
+      case Opcode::MemoryInit:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::MemoryDrop:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::MemoryCopy:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::MemoryFill:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::TableInit:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::TableDrop:
+        WABT_UNREACHABLE;
+        break;
+
+      case Opcode::TableCopy:
+        WABT_UNREACHABLE;
+        break;
+
       // The following opcodes are either never generated or should never be
       // executed.
       case Opcode::Block:
@@ -3165,1269 +3292,6 @@ exit_loop:
   return result;
 }
 
-void Thread::Trace(Stream* stream) {
-  const uint8_t* istream = GetIstream();
-  const uint8_t* pc = &istream[pc_];
-
-  stream->Writef("#%u. %4" PRIzd ": V:%-3u| ", call_stack_top_, pc - istream,
-                 value_stack_top_);
-
-  Opcode opcode = ReadOpcode(&pc);
-  assert(!opcode.IsInvalid());
-  switch (opcode) {
-    case Opcode::Select:
-      // TODO(binji): We don't know the type here so we can't display the value
-      // to the user. This used to display the full 64-bit value, but that
-      // will potentially display garbage if the value is 32-bit.
-      stream->Writef("%s %u, %%[-2], %%[-1]\n", opcode.GetName(), Pick(3).i32);
-      break;
-
-    case Opcode::Br:
-      stream->Writef("%s @%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::BrIf:
-      stream->Writef("%s @%u, %u\n", opcode.GetName(), ReadU32At(pc),
-                     Top().i32);
-      break;
-
-    case Opcode::BrTable: {
-      Index num_targets = ReadU32At(pc);
-      IstreamOffset table_offset = ReadU32At(pc + 4);
-      uint32_t key = Top().i32;
-      stream->Writef("%s %u, $#%" PRIindex ", table:$%u\n", opcode.GetName(),
-                     key, num_targets, table_offset);
-      break;
-    }
-
-    case Opcode::Nop:
-    case Opcode::Return:
-    case Opcode::Unreachable:
-    case Opcode::Drop:
-      stream->Writef("%s\n", opcode.GetName());
-      break;
-
-    case Opcode::MemorySize: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
-      break;
-    }
-
-    case Opcode::I32Const:
-      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::I64Const:
-      stream->Writef("%s $%" PRIu64 "\n", opcode.GetName(), ReadU64At(pc));
-      break;
-
-    case Opcode::F32Const:
-      stream->Writef("%s $%g\n", opcode.GetName(),
-                     Bitcast<float>(ReadU32At(pc)));
-      break;
-
-    case Opcode::F64Const:
-      stream->Writef("%s $%g\n", opcode.GetName(),
-                     Bitcast<double>(ReadU64At(pc)));
-      break;
-
-    case Opcode::GetLocal:
-    case Opcode::GetGlobal:
-      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::SetLocal:
-    case Opcode::SetGlobal:
-    case Opcode::TeeLocal:
-      stream->Writef("%s $%u, %u\n", opcode.GetName(), ReadU32At(pc),
-                     Top().i32);
-      break;
-
-    case Opcode::Call:
-      stream->Writef("%s @%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::CallIndirect:
-      stream->Writef("%s $%u, %u\n", opcode.GetName(), ReadU32At(pc),
-                     Top().i32);
-      break;
-
-    case Opcode::InterpCallHost:
-      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::I32AtomicLoad8U:
-    case Opcode::I32AtomicLoad16U:
-    case Opcode::I32AtomicLoad:
-    case Opcode::I64AtomicLoad8U:
-    case Opcode::I64AtomicLoad16U:
-    case Opcode::I64AtomicLoad32U:
-    case Opcode::I64AtomicLoad:
-    case Opcode::I32Load8S:
-    case Opcode::I32Load8U:
-    case Opcode::I32Load16S:
-    case Opcode::I32Load16U:
-    case Opcode::I64Load8S:
-    case Opcode::I64Load8U:
-    case Opcode::I64Load16S:
-    case Opcode::I64Load16U:
-    case Opcode::I64Load32S:
-    case Opcode::I64Load32U:
-    case Opcode::I32Load:
-    case Opcode::I64Load:
-    case Opcode::F32Load:
-    case Opcode::F64Load:
-    case Opcode::V128Load: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u\n", opcode.GetName(),
-                     memory_index, Top().i32, ReadU32At(pc));
-      break;
-    }
-
-    case Opcode::AtomicWake:
-    case Opcode::I32AtomicStore:
-    case Opcode::I32AtomicStore8:
-    case Opcode::I32AtomicStore16:
-    case Opcode::I32AtomicRmw8UAdd:
-    case Opcode::I32AtomicRmw16UAdd:
-    case Opcode::I32AtomicRmwAdd:
-    case Opcode::I32AtomicRmw8USub:
-    case Opcode::I32AtomicRmw16USub:
-    case Opcode::I32AtomicRmwSub:
-    case Opcode::I32AtomicRmw8UAnd:
-    case Opcode::I32AtomicRmw16UAnd:
-    case Opcode::I32AtomicRmwAnd:
-    case Opcode::I32AtomicRmw8UOr:
-    case Opcode::I32AtomicRmw16UOr:
-    case Opcode::I32AtomicRmwOr:
-    case Opcode::I32AtomicRmw8UXor:
-    case Opcode::I32AtomicRmw16UXor:
-    case Opcode::I32AtomicRmwXor:
-    case Opcode::I32AtomicRmw8UXchg:
-    case Opcode::I32AtomicRmw16UXchg:
-    case Opcode::I32AtomicRmwXchg:
-    case Opcode::I32Store8:
-    case Opcode::I32Store16:
-    case Opcode::I32Store: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %u\n", opcode.GetName(),
-                     memory_index, Pick(2).i32, ReadU32At(pc), Pick(1).i32);
-      break;
-    }
-
-    case Opcode::I32AtomicRmwCmpxchg:
-    case Opcode::I32AtomicRmw8UCmpxchg:
-    case Opcode::I32AtomicRmw16UCmpxchg: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %u, %u\n", opcode.GetName(),
-                     memory_index, Pick(3).i32, ReadU32At(pc), Pick(2).i32,
-                     Pick(1).i32);
-      break;
-    }
-
-    case Opcode::I64AtomicStore8:
-    case Opcode::I64AtomicStore16:
-    case Opcode::I64AtomicStore32:
-    case Opcode::I64AtomicStore:
-    case Opcode::I64AtomicRmw8UAdd:
-    case Opcode::I64AtomicRmw16UAdd:
-    case Opcode::I64AtomicRmw32UAdd:
-    case Opcode::I64AtomicRmwAdd:
-    case Opcode::I64AtomicRmw8USub:
-    case Opcode::I64AtomicRmw16USub:
-    case Opcode::I64AtomicRmw32USub:
-    case Opcode::I64AtomicRmwSub:
-    case Opcode::I64AtomicRmw8UAnd:
-    case Opcode::I64AtomicRmw16UAnd:
-    case Opcode::I64AtomicRmw32UAnd:
-    case Opcode::I64AtomicRmwAnd:
-    case Opcode::I64AtomicRmw8UOr:
-    case Opcode::I64AtomicRmw16UOr:
-    case Opcode::I64AtomicRmw32UOr:
-    case Opcode::I64AtomicRmwOr:
-    case Opcode::I64AtomicRmw8UXor:
-    case Opcode::I64AtomicRmw16UXor:
-    case Opcode::I64AtomicRmw32UXor:
-    case Opcode::I64AtomicRmwXor:
-    case Opcode::I64AtomicRmw8UXchg:
-    case Opcode::I64AtomicRmw16UXchg:
-    case Opcode::I64AtomicRmw32UXchg:
-    case Opcode::I64AtomicRmwXchg:
-    case Opcode::I64Store8:
-    case Opcode::I64Store16:
-    case Opcode::I64Store32:
-    case Opcode::I64Store: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 "\n",
-                     opcode.GetName(), memory_index, Pick(2).i32, ReadU32At(pc),
-                     Pick(1).i64);
-      break;
-    }
-
-    case Opcode::I32AtomicWait: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %u, %" PRIu64 "\n",
-                     opcode.GetName(), memory_index, Pick(3).i32, ReadU32At(pc),
-                     Pick(2).i32, Pick(1).i64);
-      break;
-    }
-
-    case Opcode::I64AtomicWait:
-    case Opcode::I64AtomicRmwCmpxchg:
-    case Opcode::I64AtomicRmw8UCmpxchg:
-    case Opcode::I64AtomicRmw16UCmpxchg:
-    case Opcode::I64AtomicRmw32UCmpxchg: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %" PRIu64 ", %" PRIu64 "\n",
-                     opcode.GetName(), memory_index, Pick(3).i32, ReadU32At(pc),
-                     Pick(2).i64, Pick(1).i64);
-      break;
-    }
-
-    case Opcode::F32Store: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", opcode.GetName(),
-                     memory_index, Pick(2).i32, ReadU32At(pc),
-                     Bitcast<float>(Pick(1).f32_bits));
-      break;
-    }
-
-    case Opcode::F64Store: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, %g\n", opcode.GetName(),
-                     memory_index, Pick(2).i32, ReadU32At(pc),
-                     Bitcast<double>(Pick(1).f64_bits));
-      break;
-    }
-
-    case Opcode::V128Store: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u+$%u, $0x%08x 0x%08x 0x%08x 0x%08x\n",
-                     opcode.GetName(), memory_index, Pick(2).i32, ReadU32At(pc),
-                     Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
-                     Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3]);
-      break;
-    }
-
-    case Opcode::MemoryGrow: {
-      Index memory_index = ReadU32(&pc);
-      stream->Writef("%s $%" PRIindex ":%u\n", opcode.GetName(), memory_index,
-                     Top().i32);
-      break;
-    }
-
-    case Opcode::I32Add:
-    case Opcode::I32Sub:
-    case Opcode::I32Mul:
-    case Opcode::I32DivS:
-    case Opcode::I32DivU:
-    case Opcode::I32RemS:
-    case Opcode::I32RemU:
-    case Opcode::I32And:
-    case Opcode::I32Or:
-    case Opcode::I32Xor:
-    case Opcode::I32Shl:
-    case Opcode::I32ShrU:
-    case Opcode::I32ShrS:
-    case Opcode::I32Eq:
-    case Opcode::I32Ne:
-    case Opcode::I32LtS:
-    case Opcode::I32LeS:
-    case Opcode::I32LtU:
-    case Opcode::I32LeU:
-    case Opcode::I32GtS:
-    case Opcode::I32GeS:
-    case Opcode::I32GtU:
-    case Opcode::I32GeU:
-    case Opcode::I32Rotr:
-    case Opcode::I32Rotl:
-      stream->Writef("%s %u, %u\n", opcode.GetName(), Pick(2).i32, Pick(1).i32);
-      break;
-
-    case Opcode::I32Clz:
-    case Opcode::I32Ctz:
-    case Opcode::I32Popcnt:
-    case Opcode::I32Eqz:
-    case Opcode::I32Extend16S:
-    case Opcode::I32Extend8S:
-    case Opcode::I8X16Splat:
-    case Opcode::I16X8Splat:
-    case Opcode::I32X4Splat:
-      stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
-      break;
-
-    case Opcode::I64Add:
-    case Opcode::I64Sub:
-    case Opcode::I64Mul:
-    case Opcode::I64DivS:
-    case Opcode::I64DivU:
-    case Opcode::I64RemS:
-    case Opcode::I64RemU:
-    case Opcode::I64And:
-    case Opcode::I64Or:
-    case Opcode::I64Xor:
-    case Opcode::I64Shl:
-    case Opcode::I64ShrU:
-    case Opcode::I64ShrS:
-    case Opcode::I64Eq:
-    case Opcode::I64Ne:
-    case Opcode::I64LtS:
-    case Opcode::I64LeS:
-    case Opcode::I64LtU:
-    case Opcode::I64LeU:
-    case Opcode::I64GtS:
-    case Opcode::I64GeS:
-    case Opcode::I64GtU:
-    case Opcode::I64GeU:
-    case Opcode::I64Rotr:
-    case Opcode::I64Rotl:
-      stream->Writef("%s %" PRIu64 ", %" PRIu64 "\n", opcode.GetName(),
-                     Pick(2).i64, Pick(1).i64);
-      break;
-
-    case Opcode::I64Clz:
-    case Opcode::I64Ctz:
-    case Opcode::I64Popcnt:
-    case Opcode::I64Eqz:
-    case Opcode::I64Extend16S:
-    case Opcode::I64Extend32S:
-    case Opcode::I64Extend8S:
-    case Opcode::I64X2Splat:
-      stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
-      break;
-
-    case Opcode::F32Add:
-    case Opcode::F32Sub:
-    case Opcode::F32Mul:
-    case Opcode::F32Div:
-    case Opcode::F32Min:
-    case Opcode::F32Max:
-    case Opcode::F32Copysign:
-    case Opcode::F32Eq:
-    case Opcode::F32Ne:
-    case Opcode::F32Lt:
-    case Opcode::F32Le:
-    case Opcode::F32Gt:
-    case Opcode::F32Ge:
-      stream->Writef("%s %g, %g\n", opcode.GetName(),
-                     Bitcast<float>(Pick(2).i32), Bitcast<float>(Pick(1).i32));
-      break;
-
-    case Opcode::F32Abs:
-    case Opcode::F32Neg:
-    case Opcode::F32Ceil:
-    case Opcode::F32Floor:
-    case Opcode::F32Trunc:
-    case Opcode::F32Nearest:
-    case Opcode::F32Sqrt:
-    case Opcode::F32X4Splat:
-      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<float>(Top().i32));
-      break;
-
-    case Opcode::F64Add:
-    case Opcode::F64Sub:
-    case Opcode::F64Mul:
-    case Opcode::F64Div:
-    case Opcode::F64Min:
-    case Opcode::F64Max:
-    case Opcode::F64Copysign:
-    case Opcode::F64Eq:
-    case Opcode::F64Ne:
-    case Opcode::F64Lt:
-    case Opcode::F64Le:
-    case Opcode::F64Gt:
-    case Opcode::F64Ge:
-      stream->Writef("%s %g, %g\n", opcode.GetName(),
-                     Bitcast<double>(Pick(2).i64),
-                     Bitcast<double>(Pick(1).i64));
-      break;
-
-    case Opcode::F64Abs:
-    case Opcode::F64Neg:
-    case Opcode::F64Ceil:
-    case Opcode::F64Floor:
-    case Opcode::F64Trunc:
-    case Opcode::F64Nearest:
-    case Opcode::F64Sqrt:
-    case Opcode::F64X2Splat:
-      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<double>(Top().i64));
-      break;
-
-    case Opcode::I32TruncSF32:
-    case Opcode::I32TruncUF32:
-    case Opcode::I64TruncSF32:
-    case Opcode::I64TruncUF32:
-    case Opcode::F64PromoteF32:
-    case Opcode::I32ReinterpretF32:
-    case Opcode::I32TruncSSatF32:
-    case Opcode::I32TruncUSatF32:
-    case Opcode::I64TruncSSatF32:
-    case Opcode::I64TruncUSatF32:
-      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<float>(Top().i32));
-      break;
-
-    case Opcode::I32TruncSF64:
-    case Opcode::I32TruncUF64:
-    case Opcode::I64TruncSF64:
-    case Opcode::I64TruncUF64:
-    case Opcode::F32DemoteF64:
-    case Opcode::I64ReinterpretF64:
-    case Opcode::I32TruncSSatF64:
-    case Opcode::I32TruncUSatF64:
-    case Opcode::I64TruncSSatF64:
-    case Opcode::I64TruncUSatF64:
-      stream->Writef("%s %g\n", opcode.GetName(), Bitcast<double>(Top().i64));
-      break;
-
-    case Opcode::I32WrapI64:
-    case Opcode::F32ConvertSI64:
-    case Opcode::F32ConvertUI64:
-    case Opcode::F64ConvertSI64:
-    case Opcode::F64ConvertUI64:
-    case Opcode::F64ReinterpretI64:
-      stream->Writef("%s %" PRIu64 "\n", opcode.GetName(), Top().i64);
-      break;
-
-    case Opcode::I64ExtendSI32:
-    case Opcode::I64ExtendUI32:
-    case Opcode::F32ConvertSI32:
-    case Opcode::F32ConvertUI32:
-    case Opcode::F32ReinterpretI32:
-    case Opcode::F64ConvertSI32:
-    case Opcode::F64ConvertUI32:
-      stream->Writef("%s %u\n", opcode.GetName(), Top().i32);
-      break;
-
-    case Opcode::InterpAlloca:
-      stream->Writef("%s $%u\n", opcode.GetName(), ReadU32At(pc));
-      break;
-
-    case Opcode::InterpBrUnless:
-      stream->Writef("%s @%u, %u\n", opcode.GetName(), ReadU32At(pc),
-                     Top().i32);
-      break;
-
-    case Opcode::InterpDropKeep:
-      stream->Writef("%s $%u $%u\n", opcode.GetName(), ReadU32At(pc),
-                     ReadU32At(pc + 4));
-      break;
-
-    case Opcode::V128Const: {
-      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
-                     ReadU32At(pc), ReadU32At(pc + 4), ReadU32At(pc + 8),
-                     ReadU32At(pc + 12));
-      break;
-    }
-
-    case Opcode::I8X16Neg:
-    case Opcode::I16X8Neg:
-    case Opcode::I32X4Neg:
-    case Opcode::I64X2Neg:
-    case Opcode::V128Not:
-    case Opcode::I8X16AnyTrue:
-    case Opcode::I16X8AnyTrue:
-    case Opcode::I32X4AnyTrue:
-    case Opcode::I64X2AnyTrue:
-    case Opcode::I8X16AllTrue:
-    case Opcode::I16X8AllTrue:
-    case Opcode::I32X4AllTrue:
-    case Opcode::I64X2AllTrue:
-    case Opcode::F32X4Neg:
-    case Opcode::F64X2Neg:
-    case Opcode::F32X4Abs:
-    case Opcode::F64X2Abs:
-    case Opcode::F32X4Sqrt:
-    case Opcode::F64X2Sqrt:
-    case Opcode::F32X4ConvertSI32X4:
-    case Opcode::F32X4ConvertUI32X4:
-    case Opcode::F64X2ConvertSI64X2:
-    case Opcode::F64X2ConvertUI64X2:
-    case Opcode::I32X4TruncSF32X4Sat:
-    case Opcode::I32X4TruncUF32X4Sat:
-    case Opcode::I64X2TruncSF64X2Sat:
-    case Opcode::I64X2TruncUF64X2Sat: {
-      stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
-                     Top().v128_bits.v[0], Top().v128_bits.v[1],
-                     Top().v128_bits.v[2], Top().v128_bits.v[3]);
-      break;
-    }
-
-    case Opcode::V128BitSelect:
-      stream->Writef(
-          "%s $0x%08x %08x %08x %08x $0x%08x %08x %08x %08x $0x%08x %08x %08x "
-          "%08x\n",
-          opcode.GetName(), Pick(3).v128_bits.v[0], Pick(3).v128_bits.v[1],
-          Pick(3).v128_bits.v[2], Pick(3).v128_bits.v[3],
-          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
-          Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
-          Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3]);
-      break;
-
-    case Opcode::I8X16ExtractLaneS:
-    case Opcode::I8X16ExtractLaneU:
-    case Opcode::I16X8ExtractLaneS:
-    case Opcode::I16X8ExtractLaneU:
-    case Opcode::I32X4ExtractLane:
-    case Opcode::I64X2ExtractLane:
-    case Opcode::F32X4ExtractLane:
-    case Opcode::F64X2ExtractLane: {
-      stream->Writef("%s : LaneIdx %d From $0x%08x 0x%08x 0x%08x 0x%08x\n",
-                     opcode.GetName(), ReadU8At(pc), Top().v128_bits.v[0],
-                     Top().v128_bits.v[1], Top().v128_bits.v[2],
-                     Top().v128_bits.v[3]);
-      break;
-    }
-
-    case Opcode::I8X16ReplaceLane:
-    case Opcode::I16X8ReplaceLane:
-    case Opcode::I32X4ReplaceLane: {
-      stream->Writef(
-          "%s : Set %u to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
-          opcode.GetName(), Pick(1).i32, ReadU8At(pc), Pick(2).v128_bits.v[0],
-          Pick(2).v128_bits.v[1], Pick(2).v128_bits.v[2],
-          Pick(2).v128_bits.v[3]);
-      break;
-    }
-    case Opcode::I64X2ReplaceLane: {
-      stream->Writef("%s : Set %" PRIu64
-                     " to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
-                     opcode.GetName(), Pick(1).i64, ReadU8At(pc),
-                     Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-                     Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
-      break;
-    }
-    case Opcode::F32X4ReplaceLane: {
-      stream->Writef(
-          "%s : Set %g to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
-          opcode.GetName(), Bitcast<float>(Pick(1).f32_bits), ReadU8At(pc),
-          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
-
-      break;
-    }
-    case Opcode::F64X2ReplaceLane: {
-      stream->Writef(
-          "%s : Set %g to LaneIdx %d In $0x%08x 0x%08x 0x%08x 0x%08x\n",
-          opcode.GetName(), Bitcast<double>(Pick(1).f64_bits), ReadU8At(pc),
-          Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3]);
-      break;
-    }
-
-    case Opcode::V8X16Shuffle:
-      stream->Writef(
-          "%s $0x%08x %08x %08x %08x $0x%08x %08x %08x %08x : with lane imm: "
-          "$0x%08x %08x %08x %08x\n",
-          opcode.GetName(), Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-          Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
-          Pick(1).v128_bits.v[0], Pick(1).v128_bits.v[1],
-          Pick(1).v128_bits.v[2], Pick(1).v128_bits.v[3], ReadU32At(pc),
-          ReadU32At(pc + 4), ReadU32At(pc + 8), ReadU32At(pc + 12));
-      break;
-
-    case Opcode::I8X16Add:
-    case Opcode::I16X8Add:
-    case Opcode::I32X4Add:
-    case Opcode::I64X2Add:
-    case Opcode::I8X16Sub:
-    case Opcode::I16X8Sub:
-    case Opcode::I32X4Sub:
-    case Opcode::I64X2Sub:
-    case Opcode::I8X16Mul:
-    case Opcode::I16X8Mul:
-    case Opcode::I32X4Mul:
-    case Opcode::I8X16AddSaturateS:
-    case Opcode::I8X16AddSaturateU:
-    case Opcode::I16X8AddSaturateS:
-    case Opcode::I16X8AddSaturateU:
-    case Opcode::I8X16SubSaturateS:
-    case Opcode::I8X16SubSaturateU:
-    case Opcode::I16X8SubSaturateS:
-    case Opcode::I16X8SubSaturateU:
-    case Opcode::V128And:
-    case Opcode::V128Or:
-    case Opcode::V128Xor:
-    case Opcode::I8X16Eq:
-    case Opcode::I16X8Eq:
-    case Opcode::I32X4Eq:
-    case Opcode::F32X4Eq:
-    case Opcode::F64X2Eq:
-    case Opcode::I8X16Ne:
-    case Opcode::I16X8Ne:
-    case Opcode::I32X4Ne:
-    case Opcode::F32X4Ne:
-    case Opcode::F64X2Ne:
-    case Opcode::I8X16LtS:
-    case Opcode::I8X16LtU:
-    case Opcode::I16X8LtS:
-    case Opcode::I16X8LtU:
-    case Opcode::I32X4LtS:
-    case Opcode::I32X4LtU:
-    case Opcode::F32X4Lt:
-    case Opcode::F64X2Lt:
-    case Opcode::I8X16LeS:
-    case Opcode::I8X16LeU:
-    case Opcode::I16X8LeS:
-    case Opcode::I16X8LeU:
-    case Opcode::I32X4LeS:
-    case Opcode::I32X4LeU:
-    case Opcode::F32X4Le:
-    case Opcode::F64X2Le:
-    case Opcode::I8X16GtS:
-    case Opcode::I8X16GtU:
-    case Opcode::I16X8GtS:
-    case Opcode::I16X8GtU:
-    case Opcode::I32X4GtS:
-    case Opcode::I32X4GtU:
-    case Opcode::F32X4Gt:
-    case Opcode::F64X2Gt:
-    case Opcode::I8X16GeS:
-    case Opcode::I8X16GeU:
-    case Opcode::I16X8GeS:
-    case Opcode::I16X8GeU:
-    case Opcode::I32X4GeS:
-    case Opcode::I32X4GeU:
-    case Opcode::F32X4Ge:
-    case Opcode::F64X2Ge:
-    case Opcode::F32X4Min:
-    case Opcode::F64X2Min:
-    case Opcode::F32X4Max:
-    case Opcode::F64X2Max:
-    case Opcode::F32X4Add:
-    case Opcode::F64X2Add:
-    case Opcode::F32X4Sub:
-    case Opcode::F64X2Sub:
-    case Opcode::F32X4Div:
-    case Opcode::F64X2Div:
-    case Opcode::F32X4Mul:
-    case Opcode::F64X2Mul: {
-      stream->Writef("%s $0x%08x %08x %08x %08x  $0x%08x %08x %08x %08x\n",
-                     opcode.GetName(), Pick(2).v128_bits.v[0],
-                     Pick(2).v128_bits.v[1], Pick(2).v128_bits.v[2],
-                     Pick(2).v128_bits.v[3], Pick(1).v128_bits.v[0],
-                     Pick(1).v128_bits.v[1], Pick(1).v128_bits.v[2],
-                     Pick(1).v128_bits.v[3]);
-      break;
-    }
-
-    case Opcode::I8X16Shl:
-    case Opcode::I16X8Shl:
-    case Opcode::I32X4Shl:
-    case Opcode::I64X2Shl:
-    case Opcode::I8X16ShrS:
-    case Opcode::I8X16ShrU:
-    case Opcode::I16X8ShrS:
-    case Opcode::I16X8ShrU:
-    case Opcode::I32X4ShrS:
-    case Opcode::I32X4ShrU:
-    case Opcode::I64X2ShrS:
-    case Opcode::I64X2ShrU: {
-      stream->Writef("%s $0x%08x %08x %08x %08x  $0x%08x\n", opcode.GetName(),
-                     Pick(2).v128_bits.v[0], Pick(2).v128_bits.v[1],
-                     Pick(2).v128_bits.v[2], Pick(2).v128_bits.v[3],
-                     Pick(1).i32);
-      break;
-    }
-
-    // The following opcodes are either never generated or should never be
-    // executed.
-    case Opcode::Block:
-    case Opcode::Catch:
-    case Opcode::Else:
-    case Opcode::End:
-    case Opcode::If:
-    case Opcode::IfExcept:
-    case Opcode::InterpData:
-    case Opcode::Invalid:
-    case Opcode::Loop:
-    case Opcode::Rethrow:
-    case Opcode::Throw:
-    case Opcode::Try:
-      WABT_UNREACHABLE;
-      break;
-  }
-}
-
-void Environment::Disassemble(Stream* stream,
-                              IstreamOffset from,
-                              IstreamOffset to) {
-  /* TODO(binji): mark function entries */
-  /* TODO(binji): track value stack size */
-  if (from >= istream_->data.size()) {
-    return;
-  }
-  to = std::min<IstreamOffset>(to, istream_->data.size());
-  const uint8_t* istream = istream_->data.data();
-  const uint8_t* pc = &istream[from];
-
-  while (static_cast<IstreamOffset>(pc - istream) < to) {
-    stream->Writef("%4" PRIzd "| ", pc - istream);
-
-    Opcode opcode = ReadOpcode(&pc);
-    assert(!opcode.IsInvalid());
-    switch (opcode) {
-      case Opcode::Select:
-      case Opcode::V128BitSelect:
-        stream->Writef("%s %%[-3], %%[-2], %%[-1]\n", opcode.GetName());
-        break;
-
-      case Opcode::Br:
-        stream->Writef("%s @%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::BrIf:
-        stream->Writef("%s @%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::BrTable: {
-        Index num_targets = ReadU32(&pc);
-        IstreamOffset table_offset = ReadU32(&pc);
-        stream->Writef("%s %%[-1], $#%" PRIindex ", table:$%u\n",
-                       opcode.GetName(), num_targets, table_offset);
-        break;
-      }
-
-      case Opcode::Nop:
-      case Opcode::Return:
-      case Opcode::Unreachable:
-      case Opcode::Drop:
-        stream->Writef("%s\n", opcode.GetName());
-        break;
-
-      case Opcode::MemorySize: {
-        Index memory_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex "\n", opcode.GetName(), memory_index);
-        break;
-      }
-
-      case Opcode::I32Const:
-        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::I64Const:
-        stream->Writef("%s $%" PRIu64 "\n", opcode.GetName(), ReadU64(&pc));
-        break;
-
-      case Opcode::F32Const:
-        stream->Writef("%s $%g\n", opcode.GetName(),
-                       Bitcast<float>(ReadU32(&pc)));
-        break;
-
-      case Opcode::F64Const:
-        stream->Writef("%s $%g\n", opcode.GetName(),
-                       Bitcast<double>(ReadU64(&pc)));
-        break;
-
-      case Opcode::GetLocal:
-      case Opcode::GetGlobal:
-        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::SetLocal:
-      case Opcode::SetGlobal:
-      case Opcode::TeeLocal:
-        stream->Writef("%s $%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::Call:
-        stream->Writef("%s @%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::CallIndirect: {
-        Index table_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex ":%u, %%[-1]\n", opcode.GetName(),
-                       table_index, ReadU32(&pc));
-        break;
-      }
-
-      case Opcode::InterpCallHost:
-        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::I32AtomicLoad:
-      case Opcode::I64AtomicLoad:
-      case Opcode::I32AtomicLoad8U:
-      case Opcode::I32AtomicLoad16U:
-      case Opcode::I64AtomicLoad8U:
-      case Opcode::I64AtomicLoad16U:
-      case Opcode::I64AtomicLoad32U:
-      case Opcode::I32Load8S:
-      case Opcode::I32Load8U:
-      case Opcode::I32Load16S:
-      case Opcode::I32Load16U:
-      case Opcode::I64Load8S:
-      case Opcode::I64Load8U:
-      case Opcode::I64Load16S:
-      case Opcode::I64Load16U:
-      case Opcode::I64Load32S:
-      case Opcode::I64Load32U:
-      case Opcode::I32Load:
-      case Opcode::I64Load:
-      case Opcode::F32Load:
-      case Opcode::F64Load:
-      case Opcode::V128Load: {
-        Index memory_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]+$%u\n", opcode.GetName(),
-                       memory_index, ReadU32(&pc));
-        break;
-      }
-
-      case Opcode::AtomicWake:
-      case Opcode::I32AtomicStore:
-      case Opcode::I64AtomicStore:
-      case Opcode::I32AtomicStore8:
-      case Opcode::I32AtomicStore16:
-      case Opcode::I64AtomicStore8:
-      case Opcode::I64AtomicStore16:
-      case Opcode::I64AtomicStore32:
-      case Opcode::I32AtomicRmwAdd:
-      case Opcode::I64AtomicRmwAdd:
-      case Opcode::I32AtomicRmw8UAdd:
-      case Opcode::I32AtomicRmw16UAdd:
-      case Opcode::I64AtomicRmw8UAdd:
-      case Opcode::I64AtomicRmw16UAdd:
-      case Opcode::I64AtomicRmw32UAdd:
-      case Opcode::I32AtomicRmwSub:
-      case Opcode::I64AtomicRmwSub:
-      case Opcode::I32AtomicRmw8USub:
-      case Opcode::I32AtomicRmw16USub:
-      case Opcode::I64AtomicRmw8USub:
-      case Opcode::I64AtomicRmw16USub:
-      case Opcode::I64AtomicRmw32USub:
-      case Opcode::I32AtomicRmwAnd:
-      case Opcode::I64AtomicRmwAnd:
-      case Opcode::I32AtomicRmw8UAnd:
-      case Opcode::I32AtomicRmw16UAnd:
-      case Opcode::I64AtomicRmw8UAnd:
-      case Opcode::I64AtomicRmw16UAnd:
-      case Opcode::I64AtomicRmw32UAnd:
-      case Opcode::I32AtomicRmwOr:
-      case Opcode::I64AtomicRmwOr:
-      case Opcode::I32AtomicRmw8UOr:
-      case Opcode::I32AtomicRmw16UOr:
-      case Opcode::I64AtomicRmw8UOr:
-      case Opcode::I64AtomicRmw16UOr:
-      case Opcode::I64AtomicRmw32UOr:
-      case Opcode::I32AtomicRmwXor:
-      case Opcode::I64AtomicRmwXor:
-      case Opcode::I32AtomicRmw8UXor:
-      case Opcode::I32AtomicRmw16UXor:
-      case Opcode::I64AtomicRmw8UXor:
-      case Opcode::I64AtomicRmw16UXor:
-      case Opcode::I64AtomicRmw32UXor:
-      case Opcode::I32AtomicRmwXchg:
-      case Opcode::I64AtomicRmwXchg:
-      case Opcode::I32AtomicRmw8UXchg:
-      case Opcode::I32AtomicRmw16UXchg:
-      case Opcode::I64AtomicRmw8UXchg:
-      case Opcode::I64AtomicRmw16UXchg:
-      case Opcode::I64AtomicRmw32UXchg:
-      case Opcode::I32Store8:
-      case Opcode::I32Store16:
-      case Opcode::I32Store:
-      case Opcode::I64Store8:
-      case Opcode::I64Store16:
-      case Opcode::I64Store32:
-      case Opcode::I64Store:
-      case Opcode::F32Store:
-      case Opcode::F64Store:
-      case Opcode::V128Store: {
-        Index memory_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-2]+$%u, %%[-1]\n",
-                       opcode.GetName(), memory_index, ReadU32(&pc));
-        break;
-      }
-
-      case Opcode::I32AtomicWait:
-      case Opcode::I64AtomicWait:
-      case Opcode::I32AtomicRmwCmpxchg:
-      case Opcode::I64AtomicRmwCmpxchg:
-      case Opcode::I32AtomicRmw8UCmpxchg:
-      case Opcode::I32AtomicRmw16UCmpxchg:
-      case Opcode::I64AtomicRmw8UCmpxchg:
-      case Opcode::I64AtomicRmw16UCmpxchg:
-      case Opcode::I64AtomicRmw32UCmpxchg: {
-        Index memory_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-3]+$%u, %%[-2], %%[-1]\n",
-                       opcode.GetName(), memory_index, ReadU32(&pc));
-        break;
-      }
-
-      case Opcode::I32Add:
-      case Opcode::I32Sub:
-      case Opcode::I32Mul:
-      case Opcode::I32DivS:
-      case Opcode::I32DivU:
-      case Opcode::I32RemS:
-      case Opcode::I32RemU:
-      case Opcode::I32And:
-      case Opcode::I32Or:
-      case Opcode::I32Xor:
-      case Opcode::I32Shl:
-      case Opcode::I32ShrU:
-      case Opcode::I32ShrS:
-      case Opcode::I32Eq:
-      case Opcode::I32Ne:
-      case Opcode::I32LtS:
-      case Opcode::I32LeS:
-      case Opcode::I32LtU:
-      case Opcode::I32LeU:
-      case Opcode::I32GtS:
-      case Opcode::I32GeS:
-      case Opcode::I32GtU:
-      case Opcode::I32GeU:
-      case Opcode::I32Rotr:
-      case Opcode::I32Rotl:
-      case Opcode::F32Add:
-      case Opcode::F32Sub:
-      case Opcode::F32Mul:
-      case Opcode::F32Div:
-      case Opcode::F32Min:
-      case Opcode::F32Max:
-      case Opcode::F32Copysign:
-      case Opcode::F32Eq:
-      case Opcode::F32Ne:
-      case Opcode::F32Lt:
-      case Opcode::F32Le:
-      case Opcode::F32Gt:
-      case Opcode::F32Ge:
-      case Opcode::I64Add:
-      case Opcode::I64Sub:
-      case Opcode::I64Mul:
-      case Opcode::I64DivS:
-      case Opcode::I64DivU:
-      case Opcode::I64RemS:
-      case Opcode::I64RemU:
-      case Opcode::I64And:
-      case Opcode::I64Or:
-      case Opcode::I64Xor:
-      case Opcode::I64Shl:
-      case Opcode::I64ShrU:
-      case Opcode::I64ShrS:
-      case Opcode::I64Eq:
-      case Opcode::I64Ne:
-      case Opcode::I64LtS:
-      case Opcode::I64LeS:
-      case Opcode::I64LtU:
-      case Opcode::I64LeU:
-      case Opcode::I64GtS:
-      case Opcode::I64GeS:
-      case Opcode::I64GtU:
-      case Opcode::I64GeU:
-      case Opcode::I64Rotr:
-      case Opcode::I64Rotl:
-      case Opcode::F64Add:
-      case Opcode::F64Sub:
-      case Opcode::F64Mul:
-      case Opcode::F64Div:
-      case Opcode::F64Min:
-      case Opcode::F64Max:
-      case Opcode::F64Copysign:
-      case Opcode::F64Eq:
-      case Opcode::F64Ne:
-      case Opcode::F64Lt:
-      case Opcode::F64Le:
-      case Opcode::F64Gt:
-      case Opcode::F64Ge:
-      case Opcode::I8X16Add:
-      case Opcode::I16X8Add:
-      case Opcode::I32X4Add:
-      case Opcode::I64X2Add:
-      case Opcode::I8X16Sub:
-      case Opcode::I16X8Sub:
-      case Opcode::I32X4Sub:
-      case Opcode::I64X2Sub:
-      case Opcode::I8X16Mul:
-      case Opcode::I16X8Mul:
-      case Opcode::I32X4Mul:
-      case Opcode::I8X16AddSaturateS:
-      case Opcode::I8X16AddSaturateU:
-      case Opcode::I16X8AddSaturateS:
-      case Opcode::I16X8AddSaturateU:
-      case Opcode::I8X16SubSaturateS:
-      case Opcode::I8X16SubSaturateU:
-      case Opcode::I16X8SubSaturateS:
-      case Opcode::I16X8SubSaturateU:
-      case Opcode::I8X16Shl:
-      case Opcode::I16X8Shl:
-      case Opcode::I32X4Shl:
-      case Opcode::I64X2Shl:
-      case Opcode::I8X16ShrS:
-      case Opcode::I8X16ShrU:
-      case Opcode::I16X8ShrS:
-      case Opcode::I16X8ShrU:
-      case Opcode::I32X4ShrS:
-      case Opcode::I32X4ShrU:
-      case Opcode::I64X2ShrS:
-      case Opcode::I64X2ShrU:
-      case Opcode::V128And:
-      case Opcode::V128Or:
-      case Opcode::V128Xor:
-      case Opcode::I8X16Eq:
-      case Opcode::I16X8Eq:
-      case Opcode::I32X4Eq:
-      case Opcode::F32X4Eq:
-      case Opcode::F64X2Eq:
-      case Opcode::I8X16Ne:
-      case Opcode::I16X8Ne:
-      case Opcode::I32X4Ne:
-      case Opcode::F32X4Ne:
-      case Opcode::F64X2Ne:
-      case Opcode::I8X16LtS:
-      case Opcode::I8X16LtU:
-      case Opcode::I16X8LtS:
-      case Opcode::I16X8LtU:
-      case Opcode::I32X4LtS:
-      case Opcode::I32X4LtU:
-      case Opcode::F32X4Lt:
-      case Opcode::F64X2Lt:
-      case Opcode::I8X16LeS:
-      case Opcode::I8X16LeU:
-      case Opcode::I16X8LeS:
-      case Opcode::I16X8LeU:
-      case Opcode::I32X4LeS:
-      case Opcode::I32X4LeU:
-      case Opcode::F32X4Le:
-      case Opcode::F64X2Le:
-      case Opcode::I8X16GtS:
-      case Opcode::I8X16GtU:
-      case Opcode::I16X8GtS:
-      case Opcode::I16X8GtU:
-      case Opcode::I32X4GtS:
-      case Opcode::I32X4GtU:
-      case Opcode::F32X4Gt:
-      case Opcode::F64X2Gt:
-      case Opcode::I8X16GeS:
-      case Opcode::I8X16GeU:
-      case Opcode::I16X8GeS:
-      case Opcode::I16X8GeU:
-      case Opcode::I32X4GeS:
-      case Opcode::I32X4GeU:
-      case Opcode::F32X4Ge:
-      case Opcode::F64X2Ge:
-      case Opcode::F32X4Min:
-      case Opcode::F64X2Min:
-      case Opcode::F32X4Max:
-      case Opcode::F64X2Max:
-      case Opcode::F32X4Add:
-      case Opcode::F64X2Add:
-      case Opcode::F32X4Sub:
-      case Opcode::F64X2Sub:
-      case Opcode::F32X4Div:
-      case Opcode::F64X2Div:
-      case Opcode::F32X4Mul:
-      case Opcode::F64X2Mul:
-        stream->Writef("%s %%[-2], %%[-1]\n", opcode.GetName());
-        break;
-
-      case Opcode::I32Clz:
-      case Opcode::I32Ctz:
-      case Opcode::I32Popcnt:
-      case Opcode::I32Eqz:
-      case Opcode::I64Clz:
-      case Opcode::I64Ctz:
-      case Opcode::I64Popcnt:
-      case Opcode::I64Eqz:
-      case Opcode::F32Abs:
-      case Opcode::F32Neg:
-      case Opcode::F32Ceil:
-      case Opcode::F32Floor:
-      case Opcode::F32Trunc:
-      case Opcode::F32Nearest:
-      case Opcode::F32Sqrt:
-      case Opcode::F64Abs:
-      case Opcode::F64Neg:
-      case Opcode::F64Ceil:
-      case Opcode::F64Floor:
-      case Opcode::F64Trunc:
-      case Opcode::F64Nearest:
-      case Opcode::F64Sqrt:
-      case Opcode::I32TruncSF32:
-      case Opcode::I32TruncUF32:
-      case Opcode::I64TruncSF32:
-      case Opcode::I64TruncUF32:
-      case Opcode::F64PromoteF32:
-      case Opcode::I32ReinterpretF32:
-      case Opcode::I32TruncSF64:
-      case Opcode::I32TruncUF64:
-      case Opcode::I64TruncSF64:
-      case Opcode::I64TruncUF64:
-      case Opcode::F32DemoteF64:
-      case Opcode::I64ReinterpretF64:
-      case Opcode::I32WrapI64:
-      case Opcode::F32ConvertSI64:
-      case Opcode::F32ConvertUI64:
-      case Opcode::F64ConvertSI64:
-      case Opcode::F64ConvertUI64:
-      case Opcode::F64ReinterpretI64:
-      case Opcode::I64ExtendSI32:
-      case Opcode::I64ExtendUI32:
-      case Opcode::F32ConvertSI32:
-      case Opcode::F32ConvertUI32:
-      case Opcode::F32ReinterpretI32:
-      case Opcode::F64ConvertSI32:
-      case Opcode::F64ConvertUI32:
-      case Opcode::I32TruncSSatF32:
-      case Opcode::I32TruncUSatF32:
-      case Opcode::I64TruncSSatF32:
-      case Opcode::I64TruncUSatF32:
-      case Opcode::I32TruncSSatF64:
-      case Opcode::I32TruncUSatF64:
-      case Opcode::I64TruncSSatF64:
-      case Opcode::I64TruncUSatF64:
-      case Opcode::I32Extend16S:
-      case Opcode::I32Extend8S:
-      case Opcode::I64Extend16S:
-      case Opcode::I64Extend32S:
-      case Opcode::I64Extend8S:
-      case Opcode::I8X16Splat:
-      case Opcode::I16X8Splat:
-      case Opcode::I32X4Splat:
-      case Opcode::I64X2Splat:
-      case Opcode::F32X4Splat:
-      case Opcode::F64X2Splat:
-      case Opcode::I8X16Neg:
-      case Opcode::I16X8Neg:
-      case Opcode::I32X4Neg:
-      case Opcode::I64X2Neg:
-      case Opcode::V128Not:
-      case Opcode::I8X16AnyTrue:
-      case Opcode::I16X8AnyTrue:
-      case Opcode::I32X4AnyTrue:
-      case Opcode::I64X2AnyTrue:
-      case Opcode::I8X16AllTrue:
-      case Opcode::I16X8AllTrue:
-      case Opcode::I32X4AllTrue:
-      case Opcode::I64X2AllTrue:
-      case Opcode::F32X4Neg:
-      case Opcode::F64X2Neg:
-      case Opcode::F32X4Abs:
-      case Opcode::F64X2Abs:
-      case Opcode::F32X4Sqrt:
-      case Opcode::F64X2Sqrt:
-      case Opcode::F32X4ConvertSI32X4:
-      case Opcode::F32X4ConvertUI32X4:
-      case Opcode::F64X2ConvertSI64X2:
-      case Opcode::F64X2ConvertUI64X2:
-      case Opcode::I32X4TruncSF32X4Sat:
-      case Opcode::I32X4TruncUF32X4Sat:
-      case Opcode::I64X2TruncSF64X2Sat:
-      case Opcode::I64X2TruncUF64X2Sat:
-        stream->Writef("%s %%[-1]\n", opcode.GetName());
-        break;
-
-      case Opcode::I8X16ExtractLaneS:
-      case Opcode::I8X16ExtractLaneU:
-      case Opcode::I16X8ExtractLaneS:
-      case Opcode::I16X8ExtractLaneU:
-      case Opcode::I32X4ExtractLane:
-      case Opcode::I64X2ExtractLane:
-      case Opcode::F32X4ExtractLane:
-      case Opcode::F64X2ExtractLane: {
-        stream->Writef("%s %%[-1] : (Lane imm: %d)\n", opcode.GetName(),
-                       ReadU8(&pc));
-        break;
-      }
-
-      case Opcode::I8X16ReplaceLane:
-      case Opcode::I16X8ReplaceLane:
-      case Opcode::I32X4ReplaceLane:
-      case Opcode::I64X2ReplaceLane:
-      case Opcode::F32X4ReplaceLane:
-      case Opcode::F64X2ReplaceLane: {
-        stream->Writef("%s %%[-1], %%[-2] : (Lane imm: %d)\n",
-                       opcode.GetName(), ReadU8(&pc));
-        break;
-      }
-
-      case Opcode::V8X16Shuffle:
-        stream->Writef(
-            "%s %%[-2], %%[-1] : (Lane imm: $0x%08x 0x%08x 0x%08x 0x%08x )\n",
-            opcode.GetName(), ReadU32(&pc), ReadU32(&pc), ReadU32(&pc),
-            ReadU32(&pc));
-        break;
-
-      case Opcode::MemoryGrow: {
-        Index memory_index = ReadU32(&pc);
-        stream->Writef("%s $%" PRIindex ":%%[-1]\n", opcode.GetName(),
-                       memory_index);
-        break;
-      }
-
-      case Opcode::InterpAlloca:
-        stream->Writef("%s $%u\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::InterpBrUnless:
-        stream->Writef("%s @%u, %%[-1]\n", opcode.GetName(), ReadU32(&pc));
-        break;
-
-      case Opcode::InterpDropKeep: {
-        uint32_t drop = ReadU32(&pc);
-        uint32_t keep = ReadU32(&pc);
-        stream->Writef("%s $%u $%u\n", opcode.GetName(), drop, keep);
-        break;
-      }
-
-      case Opcode::InterpData: {
-        uint32_t num_bytes = ReadU32(&pc);
-        stream->Writef("%s $%u\n", opcode.GetName(), num_bytes);
-        /* for now, the only reason this is emitted is for br_table, so display
-         * it as a list of table entries */
-        if (num_bytes % WABT_TABLE_ENTRY_SIZE == 0) {
-          Index num_entries = num_bytes / WABT_TABLE_ENTRY_SIZE;
-          for (Index i = 0; i < num_entries; ++i) {
-            stream->Writef("%4" PRIzd "| ", pc - istream);
-            IstreamOffset offset;
-            uint32_t drop;
-            uint32_t keep;
-            read_table_entry_at(pc, &offset, &drop, &keep);
-            stream->Writef("  entry %" PRIindex
-                           ": offset: %u drop: %u keep: %u\n",
-                           i, offset, drop, keep);
-            pc += WABT_TABLE_ENTRY_SIZE;
-          }
-        } else {
-          /* just skip those data bytes */
-          pc += num_bytes;
-        }
-
-        break;
-      }
-
-      case Opcode::V128Const: {
-        stream->Writef("%s $0x%08x 0x%08x 0x%08x 0x%08x\n", opcode.GetName(),
-                       ReadU32(&pc), ReadU32(&pc), ReadU32(&pc), ReadU32(&pc));
-
-        break;
-      }
-      // The following opcodes are either never generated or should never be
-      // executed.
-      case Opcode::Block:
-      case Opcode::Catch:
-      case Opcode::Else:
-      case Opcode::End:
-      case Opcode::If:
-      case Opcode::IfExcept:
-      case Opcode::Invalid:
-      case Opcode::Loop:
-      case Opcode::Rethrow:
-      case Opcode::Throw:
-      case Opcode::Try:
-        WABT_UNREACHABLE;
-        break;
-    }
-  }
-}
-
-void Environment::DisassembleModule(Stream* stream, Module* module) {
-  assert(!module->is_host);
-  auto* defined_module = cast<DefinedModule>(module);
-  Disassemble(stream, defined_module->istream_start,
-              defined_module->istream_end);
-}
-
 Executor::Executor(Environment* env,
                    Stream* trace_stream,
                    const Thread::Options& options)
@@ -4438,6 +3302,7 @@ ExecResult Executor::RunFunction(Index func_index, const TypedValues& args) {
   Func* func = env_->GetFunc(func_index);
   FuncSignature* sig = env_->GetFuncSignature(func->sig_index);
 
+  thread_.Reset();
   exec_result.result = PushArgs(sig, args);
   if (exec_result.result == Result::Ok) {
     exec_result.result =
@@ -4448,7 +3313,6 @@ ExecResult Executor::RunFunction(Index func_index, const TypedValues& args) {
     }
   }
 
-  thread_.Reset();
   return exec_result;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
+ * Copyright 2018 WebAssembly Community Group participants
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef WABT_WAST_PARSER_LEXER_SHARED_H_
-#define WABT_WAST_PARSER_LEXER_SHARED_H_
+#ifndef WABT_OPCODE_CODE_TABLE_H_
+#define WABT_OPCODE_CODE_TABLE_H_
 
-#include <cstdarg>
+#include <stdlib.h>
+#include <stdint.h>
 
-namespace wabt {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class ErrorHandler;
-struct Location;
-class WastLexer;
+#define WABT_OPCODE_CODE_TABLE_SIZE 65536
 
-// TODO(binji): Move this somewhere else.
-void WastFormatError(ErrorHandler*,
-                     const Location*,
-                     WastLexer*,
-                     const char* format,
-                     va_list);
+/* This structure is defined in C because C++ doesn't (yet) allow you to use
+ * designated array initializers, i.e. [10] = {foo}.
+ */
+extern uint32_t WabtOpcodeCodeTable[WABT_OPCODE_CODE_TABLE_SIZE];
 
-}  // namespace wabt
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
-#endif /* WABT_WAST_PARSER_LEXER_SHARED_H_ */
+#endif /* WABT_OPCODE_CODE_TABLE_H_ */

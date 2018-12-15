@@ -22,7 +22,7 @@
 #include "src/apply-names.h"
 #include "src/binary-reader.h"
 #include "src/binary-reader-ir.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
 #include "src/generate-names.h"
 #include "src/ir.h"
@@ -107,19 +107,18 @@ int ProgramMain(int argc, char** argv) {
   std::vector<uint8_t> file_data;
   result = ReadFile(s_infile.c_str(), &file_data);
   if (Succeeded(result)) {
-    ErrorHandlerFile error_handler(Location::Type::Binary);
+    Errors errors;
     Module module;
     const bool kStopOnFirstError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(),
                               s_read_debug_names, kStopOnFirstError,
                               s_fail_on_custom_section_error);
-    result = ReadBinaryIr(s_infile.c_str(), file_data.data(),
-                          file_data.size(), &options, &error_handler, &module);
+    result = ReadBinaryIr(s_infile.c_str(), file_data.data(), file_data.size(),
+                          options, &errors, &module);
     if (Succeeded(result)) {
       if (Succeeded(result) && s_validate) {
-        WastLexer* lexer = nullptr;
         ValidateOptions options(s_features);
-        result = ValidateModule(lexer, &module, &error_handler, &options);
+        result = ValidateModule(&module, &errors, options);
       }
 
       if (s_generate_names) {
@@ -136,9 +135,10 @@ int ProgramMain(int argc, char** argv) {
       if (Succeeded(result)) {
         FileStream stream(!s_outfile.empty() ? FileStream(s_outfile)
                                              : FileStream(stdout));
-        result = WriteWat(&stream, &module, &s_write_wat_options);
+        result = WriteWat(&stream, &module, s_write_wat_options);
       }
     }
+    FormatErrorsToFile(errors, Location::Type::Binary);
   }
   return result != Result::Ok;
 }

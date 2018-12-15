@@ -22,11 +22,10 @@
 #include <vector>
 
 #include "src/common.h"
+#include "src/lexer-source.h"
 #include "src/range.h"
 
 namespace wabt {
-
-class LexerSource;
 
 class LexerSourceLineFinder {
  public:

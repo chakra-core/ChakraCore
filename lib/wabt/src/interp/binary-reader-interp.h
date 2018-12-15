@@ -18,6 +18,7 @@
 #define WABT_BINARY_READER_INTERP_H_
 
 #include "src/common.h"
+#include "src/error.h"
 
 namespace wabt {
 
@@ -28,14 +29,13 @@ class Environment;
 
 }  // namespace interp
 
-class ErrorHandler;
 struct ReadBinaryOptions;
 
 Result ReadBinaryInterp(interp::Environment* env,
                         const void* data,
                         size_t size,
-                        const ReadBinaryOptions* options,
-                        ErrorHandler*,
+                        const ReadBinaryOptions& options,
+                        Errors*,
                         interp::DefinedModule** out_module);
 
 }  // namespace wabt

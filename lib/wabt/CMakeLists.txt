@@ -84,48 +84,41 @@ set(WAST_LEXER_GEN_CC src/prebuilt/wast-lexer-gen.cc)
 add_custom_target(everything)
 
 add_library(libwabt OBJECT
-  src/token.cc
-  src/opcode.cc
-  src/error-handler.cc
-  src/hash-util.cc
-  src/filenames.cc
-  src/string-view.cc
-  src/ir.cc
-  src/expr-visitor.cc
-  src/lexer-source.cc
-  src/lexer-source-line-finder.cc
-  src/wast-parser-lexer-shared.cc
-  ${WAST_LEXER_GEN_CC}
-  src/wast-parser.cc
-  src/type-checker.cc
-  src/validator.cc
-
+  chakra/wabtapi.cc
+  src/apply-names.cc
+  src/binary.cc
   src/binary-reader.cc
+  src/binary-reader-ir.cc
   src/binary-reader-logging.cc
   src/binary-writer.cc
   src/binary-writer-spec.cc
-  src/binary-reader-ir.cc
   src/binding-hash.cc
-  src/wat-writer.cc
-  src/interp.cc
-  src/binary-reader-interp.cc
-  src/apply-names.cc
-  src/generate-names.cc
-  src/resolve-names.cc
-
-  src/binary.cc
   src/color.cc
   src/common.cc
   src/config.cc
+  src/error-formatter.cc
+  src/expr-visitor.cc
   src/feature.cc
+  src/filenames.cc
+  src/generate-names.cc
+  src/hash-util.cc
+  src/ir.cc
   src/leb128.cc
+  src/lexer-source.cc
+  src/lexer-source-line-finder.cc
   src/literal.cc
+  src/opcode.cc
+  src/opcode-code-table.c
   src/option-parser.cc
+  src/resolve-names.cc
   src/stream.cc
+  src/string-view.cc
+  src/token.cc
   src/tracing.cc
+  src/type-checker.cc
   src/utf8.cc
-
-  chakra/wabtapi.cc
-
-
+  src/validator.cc
+  src/wast-parser.cc
+  src/wat-writer.cc
+  ${WAST_LEXER_GEN_CC}
 )

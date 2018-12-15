@@ -31,7 +31,8 @@
 #include "src/binary-writer-spec.h"
 #include "src/binary-writer.h"
 #include "src/common.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
+#include "src/feature.h"
 #include "src/filenames.h"
 #include "src/generate-names.h"
 #include "src/ir.h"
@@ -76,6 +77,24 @@ struct WabtParseWastResult {
 
 extern "C" {
 
+wabt::Features* wabt_new_features(void) {
+  return new wabt::Features();
+}
+
+void wabt_destroy_features(wabt::Features* f) {
+  delete f;
+}
+
+#define WABT_FEATURE(variable, flag, default_, help)                   \
+  bool wabt_##variable##_enabled(wabt::Features* f) {                  \
+    return f->variable##_enabled();                                    \
+  }                                                                    \
+  void wabt_set_##variable##_enabled(wabt::Features* f, int enabled) { \
+    f->set_##variable##_enabled(enabled);                              \
+  }
+#include "src/feature.def"
+#undef WABT_FEATURE
+
 wabt::WastLexer* wabt_new_wast_buffer_lexer(const char* filename,
                                             const void* data,
                                             size_t size) {
@@ -85,29 +104,34 @@ wabt::WastLexer* wabt_new_wast_buffer_lexer(const char* filename,
 }
 
 WabtParseWatResult* wabt_parse_wat(wabt::WastLexer* lexer,
-                                   wabt::ErrorHandlerBuffer* error_handler) {
+                                   wabt::Features* features,
+                                   wabt::Errors* errors) {
+  wabt::WastParseOptions options(*features);
   WabtParseWatResult* result = new WabtParseWatResult();
   std::unique_ptr<wabt::Module> module;
-  result->result = wabt::ParseWatModule(lexer, &module, error_handler);
+  result->result = wabt::ParseWatModule(lexer, &module, errors, &options);
   result->module = std::move(module);
   return result;
 }
 
 WabtParseWastResult* wabt_parse_wast(wabt::WastLexer* lexer,
-                                     wabt::ErrorHandlerBuffer* error_handler) {
+                                     wabt::Features* features,
+                                     wabt::Errors* errors) {
+  wabt::WastParseOptions options(*features);
   WabtParseWastResult* result = new WabtParseWastResult();
   std::unique_ptr<wabt::Script> script;
-  result->result = wabt::ParseWastScript(lexer, &script, error_handler);
+  result->result = wabt::ParseWastScript(lexer, &script, errors, &options);
   result->script = std::move(script);
   return result;
 }
 
-WabtReadBinaryResult* wabt_read_binary(
-    const void* data,
-    size_t size,
-    int read_debug_names,
-    wabt::ErrorHandlerBuffer* error_handler) {
+WabtReadBinaryResult* wabt_read_binary(const void* data,
+                                       size_t size,
+                                       int read_debug_names,
+                                       wabt::Features* features,
+                                       wabt::Errors* errors) {
   wabt::ReadBinaryOptions options;
+  options.features = *features;
   options.read_debug_names = read_debug_names;
 
   WabtReadBinaryResult* result = new WabtReadBinaryResult();
@@ -115,32 +139,30 @@ WabtReadBinaryResult* wabt_read_binary(
   // TODO(binji): Pass through from wabt_read_binary parameter.
   const char* filename = "<binary>";
   result->result =
-      wabt::ReadBinaryIr(filename, data, size, &options, error_handler, module);
+      wabt::ReadBinaryIr(filename, data, size, options, errors, module);
   result->module.reset(module);
   return result;
 }
 
-wabt::Result::Enum wabt_resolve_names_module(
-    wabt::WastLexer* lexer,
-    wabt::Module* module,
-    wabt::ErrorHandlerBuffer* error_handler) {
-  return ResolveNamesModule(lexer, module, error_handler);
+wabt::Result::Enum wabt_resolve_names_module(wabt::Module* module,
+                                             wabt::Errors* errors) {
+  return ResolveNamesModule(module, errors);
 }
 
-wabt::Result::Enum wabt_validate_module(
-    wabt::WastLexer* lexer,
-    wabt::Module* module,
-    wabt::ErrorHandlerBuffer* error_handler) {
+wabt::Result::Enum wabt_validate_module(wabt::Module* module,
+                                        wabt::Features* features,
+                                        wabt::Errors* errors) {
   wabt::ValidateOptions options;
-  return ValidateModule(lexer, module, error_handler, &options);
+  options.features = *features;
+  return ValidateModule(module, errors, options);
 }
 
-wabt::Result::Enum wabt_validate_script(
-    wabt::WastLexer* lexer,
-    wabt::Script* script,
-    wabt::ErrorHandlerBuffer* error_handler) {
+wabt::Result::Enum wabt_validate_script(wabt::Script* script,
+                                        wabt::Features* features,
+                                        wabt::Errors* errors) {
   wabt::ValidateOptions options;
-  return ValidateScript(lexer, script, error_handler, &options);
+  options.features = *features;
+  return ValidateScript(script, errors, options);
 }
 
 WabtWriteScriptResult* wabt_write_binary_spec_script(
@@ -168,7 +190,7 @@ WabtWriteScriptResult* wabt_write_binary_spec_script(
 
   WabtWriteScriptResult* result = new WabtWriteScriptResult();
   result->result = WriteBinarySpecScript(&json_stream, script, source_filename,
-                                         module_filename_noext, &options,
+                                         module_filename_noext, options,
                                          &module_streams, log_stream_p);
 
   if (result->result == wabt::Result::Ok) {
@@ -205,7 +227,7 @@ WabtWriteModuleResult* wabt_write_binary_module(wabt::Module* module,
 
   wabt::MemoryStream stream(log ? &log_stream : nullptr);
   WabtWriteModuleResult* result = new WabtWriteModuleResult();
-  result->result = WriteBinaryModule(&stream, module, &options);
+  result->result = WriteBinaryModule(&stream, module, options);
   if (result->result == wabt::Result::Ok) {
     result->buffer = stream.ReleaseOutputBuffer();
     result->log_buffer = log ? log_stream.ReleaseOutputBuffer() : nullptr;
@@ -222,7 +244,7 @@ WabtWriteModuleResult* wabt_write_text_module(wabt::Module* module,
 
   wabt::MemoryStream stream;
   WabtWriteModuleResult* result = new WabtWriteModuleResult();
-  result->result = WriteWat(&stream, module, &options);
+  result->result = WriteWat(&stream, module, options);
   if (result->result == wabt::Result::Ok) {
     result->buffer = stream.ReleaseOutputBuffer();
   }
@@ -237,28 +259,35 @@ void wabt_destroy_wast_lexer(wabt::WastLexer* lexer) {
   delete lexer;
 }
 
-// ErrorHandlerBuffer
-wabt::ErrorHandlerBuffer* wabt_new_text_error_handler_buffer(void) {
-  return new wabt::ErrorHandlerBuffer(wabt::Location::Type::Text);
+// Errors
+wabt::Errors* wabt_new_errors(void) {
+  return new wabt::Errors();
 }
 
-wabt::ErrorHandlerBuffer* wabt_new_binary_error_handler_buffer(void) {
-  return new wabt::ErrorHandlerBuffer(wabt::Location::Type::Binary);
+wabt::OutputBuffer* wabt_format_text_errors(wabt::Errors* errors,
+                                            wabt::WastLexer* lexer) {
+  auto line_finder = lexer->MakeLineFinder();
+  std::string string_result = FormatErrorsToString(
+      *errors, wabt::Location::Type::Text, line_finder.get());
+
+  wabt::OutputBuffer* result = new wabt::OutputBuffer();
+  std::copy(string_result.begin(), string_result.end(),
+            std::back_inserter(result->data));
+  return result;
 }
 
-const void* wabt_error_handler_buffer_get_data(
-    wabt::ErrorHandlerBuffer* error_handler) {
-  return error_handler->buffer().data();
+wabt::OutputBuffer* wabt_format_binary_errors(wabt::Errors* errors) {
+  std::string string_result =
+      FormatErrorsToString(*errors, wabt::Location::Type::Binary);
+
+  wabt::OutputBuffer* result = new wabt::OutputBuffer();
+  std::copy(string_result.begin(), string_result.end(),
+            std::back_inserter(result->data));
+  return result;
 }
 
-size_t wabt_error_handler_buffer_get_size(
-    wabt::ErrorHandlerBuffer* error_handler) {
-  return error_handler->buffer().size();
-}
-
-void wabt_destroy_error_handler_buffer(
-    wabt::ErrorHandlerBuffer* error_handler) {
-  delete error_handler;
+void wabt_destroy_errors(wabt::Errors* errors) {
+  delete errors;
 }
 
 // WabtParseWatResult
@@ -374,6 +403,9 @@ size_t wabt_output_buffer_get_size(wabt::OutputBuffer* output_buffer) {
 void wabt_destroy_output_buffer(wabt::OutputBuffer* output_buffer) {
   delete output_buffer;
 }
+
+// See https://github.com/kripken/emscripten/issues/7073.
+void dummy_workaround_for_emscripten_issue_7073(void) {}
 
 }  // extern "C"
 
