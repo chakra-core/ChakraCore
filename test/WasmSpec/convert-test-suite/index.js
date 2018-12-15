@@ -28,7 +28,9 @@ const argv = require("yargs")
 
 // Make sure all arguments are valid
 for (const folder of folders) {
-  fs.statSync(folder).isDirectory();
+  if (!fs.statSync(folder).isDirectory()) {
+    throw new Error(`${folder} is not a folder`);
+  }
 }
 
 function hostFlags(specFile) {
@@ -36,7 +38,7 @@ function hostFlags(specFile) {
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.basename)))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, specFile.relative.replace(specFile.ext, ""))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -82,19 +84,18 @@ function main() {
     fs.walk(folder)
       .on("data", item => {
         const ext = path.extname(item.path);
-        const basename = path.basename(item.path, ext);
+        const relative = path.relative(rlRoot, item.path);
         if ((
             (ext === ".wast" && item.path.indexOf(".fail") === -1) ||
             (ext === ".js")
           ) &&
-          !config.excludes.includes(basename)
+          !config.excludes.includes(slash(relative))
         ) {
           specFiles.push({
             path: item.path,
-            basename,
             ext,
             dirname: path.dirname(item.path),
-            relative: path.relative(rlRoot, item.path)
+            relative
           });
         }
       })
@@ -103,33 +104,23 @@ function main() {
       });
   }), [])
   ).then(specFiles => {
-    // Verify that no 2 file have the same name. We use the name as key even if they're in different folders
-    const map = {};
-    for (const file of specFiles) {
-      if (map[file.basename]) {
-        throw new Error(`Duplicate filename entry
-original : ${map[file.basename].path}
-duplicate: ${file.path}`);
-      }
-      map[file.basename] = file;
-    }
-    return specFiles;
-  }).then(specFiles => {
     const runners = {
       ".wast": "spec.js",
       ".js": "jsapi.js",
     };
     runs = specFiles.map(specFile => {
-      const ext = specFile.ext;
-      const basename = specFile.basename;
+      const {
+        ext,
+        relative
+      } = specFile;
       const dirname = path.dirname(specFile.path);
 
       const useFeature = (allowRequired, feature) => !(allowRequired ^ feature.required) && (
-        (feature.files || []).includes(basename) ||
+        (feature.files || []).includes(slash(relative)) ||
         (feature.folders || []).map(folder => path.join(rlRoot, folder)).includes(dirname)
       );
 
-      const isXplatExcluded = config["xplat-excludes"].indexOf(basename) !== -1;
+      const isXplatExcluded = config["xplat-excludes"].indexOf(slash(relative)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const runner = runners[ext];
@@ -189,6 +180,7 @@ duplicate: ${file.path}`);
     fs.ensureDirSync(baselineDir);
     const startRuns = runs.map(run => () => new Bluebird((resolve, reject) => {
       const test = run[0];
+      fs.ensureDirSync(path.dirname(test.baseline));
       const baseline = fs.createWriteStream(test.baseline);
       baseline.on("open", () => {
         const args = [path.resolve(rlRoot, test.runner)].concat(test.flags);
