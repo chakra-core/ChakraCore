@@ -77,7 +77,7 @@ Encoder::Encode()
 
     m_pc = m_encodeBuffer;
     m_inlineeFrameMap = Anew(m_tempAlloc, ArenaInlineeFrameMap, m_tempAlloc);
-    m_bailoutRecordMap = Anew(m_tempAlloc, ArenaBailoutRecordMap, m_tempAlloc);
+    m_sortedLazyBailoutRecordList = Anew(m_tempAlloc, ArenaLazyBailoutRecordList, m_tempAlloc);
 
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
@@ -254,9 +254,15 @@ Encoder::Encode()
                 isCallInstr = false;
                 this->RecordInlineeFrame(instr->m_func, GetCurrentOffset());
             }
-            if (instr->HasBailOutInfo() && Lowerer::DoLazyBailout(this->m_func))
+
+            if (instr->HasLazyBailOut())
             {
-                this->RecordBailout(instr, (uint32)(m_pc - m_encodeBuffer));
+                this->SaveToLazyBailOutRecordList(instr, this->GetCurrentOffset());
+            }
+
+            if (instr->m_opcode == Js::OpCode::LazyBailOutThunkLabel)
+            {
+                this->SaveLazyBailOutThunkOffset(this->GetCurrentOffset());
             }
         }
         else
@@ -537,11 +543,6 @@ Encoder::Encode()
         m_func->GetThreadContextInfo()->ResetIsAllJITCodeInPreReservedRegion();
     }
 
-    this->m_bailoutRecordMap->MapAddress([=](int index, LazyBailOutRecord* record)
-    {
-        this->m_encoderMD.AddLabelReloc((BYTE*)&record->instructionPointer);
-    });
-
     // Relocs
     m_encoderMD.ApplyRelocs((size_t)allocation->address, codeSize, &bufferCRC, isSuccessBrShortAndLoopAlign);
 
@@ -631,10 +632,7 @@ Encoder::Encode()
         }
     }
 
-    if (this->m_bailoutRecordMap->Count() > 0)
-    {
-        m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordBailOutMap(m_bailoutRecordMap);
-    }
+    this->SaveLazyBailOutJitTransferData();
 
     if (this->m_func->pinnedTypeRefs != nullptr)
     {
@@ -727,18 +725,6 @@ Encoder::Encode()
             });
             m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardsCount);
         }
-    }
-
-    if (this->m_func->lazyBailoutProperties.Count() > 0)
-    {
-        int count = this->m_func->lazyBailoutProperties.Count();
-        Js::PropertyId* lazyBailoutProperties = HeapNewArrayZ(Js::PropertyId, count);
-        Js::PropertyId* dstProperties = lazyBailoutProperties;
-        this->m_func->lazyBailoutProperties.Map([&](Js::PropertyId propertyId)
-        {
-            *dstProperties++ = propertyId;
-        });
-        m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
     }
 
     // Save all property guards on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
@@ -1218,7 +1204,8 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
         , &m_origOffsetBuffer );
 
     // Here we mark BRs to be shortened and adjust Labels and relocList entries offsets.
-    uint32 offsetBuffIndex = 0, pragmaInstToRecordOffsetIndex = 0, inlineeFrameRecordsIndex = 0, inlineeFrameMapIndex = 0;
+    FixUpMapIndex mapIndices;
+
     int32 totalBytesSaved = 0;
 
     // loop over all BRs, find the ones we can convert to short form
@@ -1242,7 +1229,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
             {
                 AssertMsg(reloc.isAlignedLabel(), "Expecting aligned label.");
                 // we aligned a loop, fix maps
-                m_encoderMD.FixMaps((uint32)(reloc.getLabelOrigPC() - buffStart), totalBytesSaved, &inlineeFrameRecordsIndex, &inlineeFrameMapIndex, &pragmaInstToRecordOffsetIndex, &offsetBuffIndex);
+                m_encoderMD.FixMaps((uint32)(reloc.getLabelOrigPC() - buffStart), totalBytesSaved, &mapIndices);
                 codeChange = true;
             }
             totalBytesSaved = newTotalBytesSaved;
@@ -1303,7 +1290,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
 
             // fix all maps entries from last shortened br to this one, before updating total bytes saved.
             brOffset = (uint32) ((BYTE*)reloc.m_origPtr - buffStart);
-            m_encoderMD.FixMaps(brOffset, totalBytesSaved, &inlineeFrameRecordsIndex, &inlineeFrameMapIndex, &pragmaInstToRecordOffsetIndex, &offsetBuffIndex);
+            m_encoderMD.FixMaps(brOffset, totalBytesSaved, &mapIndices);
             codeChange = true;
             totalBytesSaved += bytesSaved;
 
@@ -1319,9 +1306,10 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
     // Fix the rest of the maps, if needed.
     if (totalBytesSaved != 0)
     {
-        m_encoderMD.FixMaps((uint32) -1, totalBytesSaved, &inlineeFrameRecordsIndex, &inlineeFrameMapIndex, &pragmaInstToRecordOffsetIndex, &offsetBuffIndex);
+        m_encoderMD.FixMaps((uint32)-1, totalBytesSaved, &mapIndices);
         codeChange = true;
         newCodeSize -= totalBytesSaved;
+        this->FixLazyBailOutThunkOffset(totalBytesSaved);
     }
 
     // no BR shortening or Label alignment happened, no need to copy code
@@ -1644,27 +1632,6 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
 
 #endif
 
-void Encoder::RecordBailout(IR::Instr* instr, uint32 currentOffset)
-{
-    BailOutInfo* bailoutInfo = instr->GetBailOutInfo();
-    if (bailoutInfo->bailOutRecord == nullptr)
-    {
-        return;
-    }
-#if DBG_DUMP
-    if (PHASE_DUMP(Js::LazyBailoutPhase, m_func))
-    {
-        Output::Print(_u("Offset: %u Instr: "), currentOffset);
-        instr->Dump();
-        Output::Print(_u("Bailout label: "));
-        bailoutInfo->bailOutInstr->Dump();
-    }
-#endif
-    Assert(bailoutInfo->bailOutInstr->IsLabelInstr());
-    LazyBailOutRecord record(currentOffset, (BYTE*)bailoutInfo->bailOutInstr, bailoutInfo->bailOutRecord);
-    m_bailoutRecordMap->Add(record);
-}
-
 #if DBG_DUMP
 void Encoder::DumpInlineeFrameMap(size_t baseAddress)
 {
@@ -1685,3 +1652,70 @@ void Encoder::DumpInlineeFrameMap(size_t baseAddress)
     });
 }
 #endif
+
+void
+Encoder::SaveToLazyBailOutRecordList(IR::Instr* instr, uint32 currentOffset)
+{
+    BailOutInfo* bailOutInfo = instr->GetBailOutInfo();
+
+    Assert(instr->OnlyHasLazyBailOut() && bailOutInfo->bailOutRecord != nullptr);
+
+#if DBG_DUMP
+    if (PHASE_DUMP(Js::LazyBailoutPhase, m_func))
+    {
+        Output::Print(_u("Offset: %u Instr: "), currentOffset);
+        instr->Dump();
+        Output::Print(_u("Bailout label: "));
+        bailOutInfo->bailOutInstr->Dump();
+    }
+#endif
+
+    LazyBailOutRecord record(currentOffset, bailOutInfo->bailOutRecord);
+    this->m_sortedLazyBailoutRecordList->Add(record);
+}
+
+void
+Encoder::SaveLazyBailOutThunkOffset(uint32 currentOffset)
+{
+    AssertMsg(
+        this->m_lazyBailOutThunkOffset == 0,
+        "We should only have one thunk generated during final lowerer"
+    );
+    this->m_lazyBailOutThunkOffset = this->GetCurrentOffset();
+}
+
+void
+Encoder::SaveLazyBailOutJitTransferData()
+{
+    if (this->m_func->HasLazyBailOut())
+    {
+        Assert(this->m_sortedLazyBailoutRecordList->Count() > 0);
+        Assert(this->m_lazyBailOutThunkOffset != 0);
+        Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
+
+        auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
+        nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailoutRecordList);
+        nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
+        nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
+    }
+
+    if (this->m_func->lazyBailoutProperties.Count() > 0)
+    {
+        const int count = this->m_func->lazyBailoutProperties.Count();
+        Js::PropertyId* lazyBailoutProperties = HeapNewArrayZ(Js::PropertyId, count);
+        Js::PropertyId* dstProperties = lazyBailoutProperties;
+        this->m_func->lazyBailoutProperties.Map([&](Js::PropertyId propertyId)
+        {
+            *dstProperties++ = propertyId;
+        });
+        this->m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
+    }
+}
+
+void
+Encoder::FixLazyBailOutThunkOffset(uint32 bytesSaved)
+{
+    // Lazy bailout thunk is inserted at the end of the function,
+    // so just decrease the offset by the number of bytes saved
+    this->m_lazyBailOutThunkOffset -= bytesSaved;
+}

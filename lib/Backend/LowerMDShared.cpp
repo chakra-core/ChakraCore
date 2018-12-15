@@ -658,16 +658,65 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut,
+LowererMD::ChangeToHelperCall(IR::Instr *callInstr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut,
                               IR::Opnd *opndBailOutArg, IR::PropertySymOpnd *propSymOpnd, bool isHelperContinuation)
 {
+    // Clear lazy bailout when we realize that the function cannot be reentrant in lowerer
+    // since they won't have side effects
+    if (callInstr->HasLazyBailOut() && !HelperMethodAttributes::CanBeReentrant(helperMethod))
+    {
+        callInstr->ClearLazyBailOut();
+    }
+
+    // If we want a LazyBailOut on an instruction with preop bailout, we
+    // would need to have a BailOnImplicitCallPreOp on that instruction.
+    // There are two ways we can go about this:
+    // 1. During GlobOpt::GenerateLazyBailOut, simply use BailOnImplicitCallPreOp
+    //    as the main bailout kind for that instruction. This wouldn't require
+    //    any special treatment in the lowerer. However, there are a few problems:
+    //      a) The instruction might have some other main bailout kind already
+    //         attached.
+    //         + First scenario is that the bailout kind already prevents
+    //         implicit calls from happening, which leaves us to just correctly
+    //         implement GlobOpt::IsLazyBailOutCurrentlyNeeded so that it doesn't
+    //         return true when we already have such bailouts by incorporating
+    //         GlobOpt::MayNeedBailOnImplicitCall.
+    //         + Second scenario is when that bailout kind doesn't really help with
+    //         preventing implicit calls. Theoretically, this shouldn't be a problem
+    //         because we should be able to support bail on implicit calls if that
+    //         instruction might have implicit calls. But there are some dark patterns
+    //         such as NewScObjArray having a BailOnNotNative attached to it.
+    //         Those will need to be rewritten before we proceed.
+    // 
+    //      b) We will have to change our BailOutKind bit validation because some of the
+    //         kinds don't currently expect to go together with BailOnImplicitCall. This
+    //         is probably less of a problem and more of just finding those cases and
+    //         adding allowed bit combinations.
+    //
+    // 2. Just attach the lazy bailout bit onto the BailOutKind and use this opportunity
+    //    to also lower an additional BailOnImplicitCallPreOp. The problem is we aren't
+    //    sure if those instructions will go through `ChangeToHelperCall` at all since
+    //    this right now only handles BailOutOnNotPrimitive, BailOutOnPowIntIntOverflow,
+    //    and BailOutOnImplicitCalls.
+    if (callInstr->HasLazyBailOut() && callInstr->HasPreOpBailOut() &&
+        !BailOutInfo::IsBailOutOnImplicitCalls(callInstr->GetBailOutKind()))
+    {
+        AssertMsg(false, "Not implemented");
+    }
+
+    const bool hasLazyBailOut = callInstr->HasLazyBailOut();
+
+    // Cache BailOutInfo so that we can copy it later for lazy bailout
+    BailOutInfo * const bailOutInfo = callInstr->HasBailOutInfo() ? callInstr->GetBailOutInfo() : nullptr;
+
 #if DBG
     this->m_lowerer->ReconcileWithLowererStateOnHelperCall(callInstr, helperMethod);
 #endif
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+        const IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+
         if (bailOutKind == IR::BailOutOnNotPrimitive ||
             bailOutKind == IR::BailOutOnPowIntIntOverflow)
         {
@@ -680,9 +729,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
                                         : Js::OpCode::BailOnPowIntIntOverflow;
             bailOutInstr->SetSrc1(opndBailOutArg);
         }
-        else
+        else if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
         {
             bailOutInstr = this->m_lowerer->SplitBailOnImplicitCall(callInstr);
+        }
+        else
+        {
+            AssertMsg(BailOutInfo::HasLazyBailOut(bailOutKind), "Unexpected BailOutKind, are we adding new BailOutKind on instructions?");
         }
     }
 
@@ -701,24 +754,66 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr,  IR::JnHelperMethod helperM
 
     if (bailOutInstr != callInstr)
     {
+        const Js::OpCode opcode = bailOutInstr->m_opcode;
         // The bailout needs to be lowered after we lower the helper call because the helper argument
-        // has already been loaded.  We need to drain them on AMD64 before starting another helper call
-        if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
-        {
-            this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
-        }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive ||
-            bailOutInstr->m_opcode == Js::OpCode::BailOnPowIntIntOverflow)
+        // has already been loaded. We need to drain them on AMD64 before starting another helper call
+        if (opcode == Js::OpCode::BailOnNotPrimitive ||
+            opcode == Js::OpCode::BailOnPowIntIntOverflow)
         {
             this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOut)
+        else if (opcode == Js::OpCode::BailOnNotEqual)
         {
-            this->m_lowerer->GenerateBailOut(bailOutInstr, nullptr, labelBailOut);
+            // `SplitBailOnImplicitCall` above changes the opcode to BailOnNotEqual
+            Assert(BailOutInfo::IsBailOutOnImplicitCalls(bailOutInstr->GetBailOutKind()));
+            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
         }
         else
         {
-            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
+            AssertMsg(false, "Unexpected OpCode for BailOutInstruction");
+        }
+
+        // Create BailOutInfo and BailOutRecord for helper call
+        // Example:
+        // We transform:
+        // ```
+        //  call someHelper
+        //  ...
+        //  call SaveAllRegisterAndBailOut (BailOutReason)
+        // ```
+        // to
+        // ```
+        //  call someHelper (LazyBailOut)
+        //  ...
+        //  call SaveAllRegisterAndBailOut (BailOutReason)
+        // ```
+        // so that the call to helper has the correct BailOutRecord filled during RegAlloc.
+        if (hasLazyBailOut)
+        {
+            Assert(bailOutInfo != nullptr);
+            Assert(!callInstr->HasBailOutInfo());
+            Assert(callInstr->m_opcode == Js::OpCode::CALL);
+
+            callInstr = callInstr->ConvertToBailOutInstrWithBailOutInfoCopy(bailOutInfo, IR::LazyBailOut);
+
+            Assert(callInstr->HasBailOutInfo() && callInstr->GetBailOutInfo() != bailOutInfo);
+
+            BailOutInfo *bailOutInfoCopy = callInstr->GetBailOutInfo();
+
+            BailOutRecord *bailOutRecord = NativeCodeDataNewZ(
+                this->m_func->GetNativeCodeDataAllocator(),
+                BailOutRecord,
+                bailOutInfoCopy->bailOutOffset,
+                bailOutInfoCopy->polymorphicCacheIndex,
+                callInstr->GetBailOutKind(),
+                bailOutInfoCopy->bailOutFunc
+            );
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            bailOutRecord->bailOutOpcode = bailOutInfoCopy->bailOutOpcode;
+#endif
+
+            bailOutInfoCopy->bailOutRecord = bailOutRecord;
         }
     }
 
@@ -762,7 +857,11 @@ LowererMD::ChangeToAssign(IR::Instr * instr)
 IR::Instr *
 LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 {
-    Assert(!instr->HasBailOutInfo() || instr->GetBailOutKind() == IR::BailOutExpectingString);
+    Assert(
+        !instr->HasBailOutInfo() ||
+        instr->GetBailOutKind() == IR::BailOutExpectingString ||
+        instr->HasLazyBailOut()
+    );
 
 #if _M_IX86
     if (IRType_IsInt64(type))
@@ -8742,6 +8841,7 @@ LowererMD::InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1,
 
     return instr;
 }
+
 IR::BranchInstr*
 LowererMD::InsertMissingItemCompareBranch(IR::Opnd* compareSrc, IR::Opnd* missingItemOpnd, Js::OpCode opcode, IR::LabelInstr* target, IR::Instr* insertBeforeInstr)
 {

@@ -731,7 +731,14 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         if (OpCodeAttr::CallInstr(instr->m_opcode))
         {
             this->EndTrackCall(instr);
-            if (this->inInlinedBuiltIn && instr->m_opcode == Js::OpCode::CallDirect)
+            // With `InlineeBuiltInStart` and `InlineeBuiltInEnd` surrounding CallI/CallIDirect/CallIDynamic/CallIFixed,
+            // we are not popping the call sequence correctly. That makes the bailout code thinks that we need to restore
+            // argouts of the remaining call even though we shouldn't.
+            // Also see Inline::InlineApplyWithArgumentsObject,  Inline::InlineApplyWithoutArrayArgument, Inline::InlineCall
+            // in which we set the end tag instruction's opcode to InlineNonTrackingBuiltInEnd
+            if (this->inInlinedBuiltIn &&
+                (instr->m_opcode == Js::OpCode::CallDirect || instr->m_opcode == Js::OpCode::CallI ||
+                 instr->m_opcode == Js::OpCode::CallIDynamic || instr->m_opcode == Js::OpCode::CallIFixed))
             {
                 // We can end up in this situation when a built-in apply target is inlined to a CallDirect. We have the following IR:
                 //
@@ -1205,24 +1212,157 @@ GlobOpt::MaySrcNeedBailOnImplicitCall(IR::Opnd const * opnd, Value const * val)
 }
 
 bool
+GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, bool isHoisted) const
+{
+#ifdef _M_X64
+
+    if (!this->func->ShouldDoLazyBailOut() ||
+        this->IsLoopPrePass() ||
+        isHoisted
+    )
+    {
+        return false;
+    }
+
+    if (this->currentBlock->IsLandingPad())
+    {
+        Assert(!instr->HasAnyImplicitCalls() || this->currentBlock->GetNext()->loop->endDisableImplicitCall != nullptr);
+        return false;
+    }
+
+    // These opcodes can change the value of a field regardless whether the
+    // instruction has any implicit call
+    if (OpCodeAttr::CallInstr(instr->m_opcode) || instr->IsStElemVariant() || instr->IsStFldVariant())
+    {
+        return true;
+    }
+
+    // Now onto those that might change values of fixed fields through implicit calls.
+    // There are certain bailouts that are already attached to this instruction that
+    // prevent implicit calls from happening, so we won't need lazy bailout for those.
+
+    // If a type check fails, we will bail out and therefore no need for lazy bailout
+    if (instr->HasTypeCheckBailOut())
+    {
+        return false;
+    }
+
+    // We decided to do StackArgs optimization, which means that this instruction
+    // could only either be LdElemI_A or TypeofElem, and that it does not have
+    // an implicit call. So no need for lazy bailout.
+    if (instr->HasBailOutInfo() && instr->GetBailOutKind() == IR::BailOnStackArgsOutOfActualsRange)
+    {
+        Assert(instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem);
+        return false;
+    }
+
+    // If all operands are type specialized, we won't generate helper path;
+    // therefore no need for lazy bailout
+    if (instr->AreAllOpndsTypeSpecialized())
+    {
+        return false;
+    }
+
+    // The instruction might have other bailouts that prevent
+    // implicit calls from happening. That is captured in
+    // GlobOpt::MayNeedBailOnImplicitCall. So we only
+    // need lazy bailout of we think there might be implicit calls
+    // or if there aren't any bailouts that prevent them from happening.
+    return this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val);
+
+#else // _M_X64
+
+    return false;
+
+#endif
+}
+
+void
+GlobOpt::GenerateLazyBailOut(IR::Instr *&instr)
+{
+    // LazyBailOut:
+    //  + For all StFld variants (o.x), in the forward pass, we set LazyBailOutBit in the instruction.
+    //    In DeadStore, we will remove the bit if the field that the instruction is setting to is not fixed
+    //    downstream.
+    //  + For StElem variants (o[x]), we do not need LazyBailOut if the `x` operand is a number because
+    //    we currently only "fix" a field if the property name is non-numeric.
+    //  + For all other cases (instructions that may have implicit calls), we will just add on the bit anyway and figure
+    //    out later whether we need LazyBailOut during DeadStore.
+    // 
+    // Note that for StFld and StElem instructions which can change fixed fields whether or not implicit calls will happen,
+    // if such instructions already have a preop bailout, they should both have BailOnImplicitCallPreOp and LazyBailOut attached.
+    // This is to cover two cases:
+    //  + if the operation turns out to be an implicit call, we do a preop bailout
+    //  + if the operation isn't an implicit call, but if it invalidates our fixed field's PropertyGuard, then LazyBailOut preop
+    //    is triggered. LazyBailOut preop means that we will perform the StFld/StElem again in the interpreter, but that is fine
+    //    since we are simply overwriting the value again.
+    if (instr->forcePreOpBailOutIfNeeded)
+    {
+        // `forcePreOpBailOutIfNeeded` indicates that when we need to bail on implicit calls,
+        // the bailout should be preop because these instructions are lowerered to multiple helper calls.
+        // In such cases, simply adding a postop lazy bailout to the instruction wouldn't be correct,
+        // so we must generate a bailout on implicit calls preop in place of lazy bailout.
+        if (instr->HasBailOutInfo())
+        {
+            Assert(instr->GetBailOutKind() == IR::BailOutOnImplicitCallsPreOp);
+            instr->SetBailOutKind(BailOutInfo::WithLazyBailOut(instr->GetBailOutKind()));
+        }
+        else
+        {
+            this->GenerateBailAtOperation(&instr, BailOutInfo::WithLazyBailOut(IR::BailOutOnImplicitCallsPreOp));
+        }
+    }
+    else if (!instr->IsStElemVariant() || this->IsNonNumericRegOpnd(instr->GetDst()->AsIndirOpnd()->GetIndexOpnd(), true /* inGlobOpt */))
+    {
+        if (instr->HasBailOutInfo())
+        {
+            instr->SetBailOutKind(BailOutInfo::WithLazyBailOut(instr->GetBailOutKind()));
+        }
+        else
+        {
+            this->GenerateBailAfterOperation(&instr, IR::LazyBailOut);
+        }
+    }
+}
+
+bool
 GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val) const
 {
     Assert(!this->IsLoopPrePass());
 
-    return this->IsImplicitCallBailOutCurrentlyNeeded(instr, src1Val, src2Val, this->currentBlock,
-        (!this->currentBlock->globOptData.liveFields->IsEmpty()), !this->currentBlock->IsLandingPad(), true);
+    return this->IsImplicitCallBailOutCurrentlyNeeded(
+        instr, src1Val, src2Val, this->currentBlock,
+        (!this->currentBlock->globOptData.liveFields->IsEmpty()) /* hasLiveFields */,
+        !this->currentBlock->IsLandingPad() /* mayNeedImplicitCallBailOut */,
+        true /* isForwardPass */
+    );
 }
 
 bool
-GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, BasicBlock const * block, bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass) const
+GlobOpt::IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, Value const * src2Val, BasicBlock const * block,
+    bool hasLiveFields, bool mayNeedImplicitCallBailOut, bool isForwardPass, bool mayNeedLazyBailOut) const
 {
+    // We use BailOnImplicitCallPreOp for fixed field optimization in place of LazyBailOut when
+    // an instruction already has a preop bailout. This function is called both from the forward
+    // and backward passes to check if implicit bailout is needed and use the result to insert/remove
+    // bailout. In the backward pass, we would want to override the decision to not
+    // use implicit call to true when we need lazy bailout so that the bailout isn't removed.
+    // In the forward pass, however, we don't want to influence the result. So make sure that
+    // mayNeedLazyBailOut is false when we are in the forward pass.
+    Assert(!isForwardPass || !mayNeedLazyBailOut);
+
     if (mayNeedImplicitCallBailOut &&
-        !instr->CallsAccessor() &&
+
+        // If we know that we are calling an accessor, don't insert bailout on implicit calls
+        // because we will bail out anyway. However, with fixed field optimization we still
+        // want the bailout to prevent any side effects from happening.
+        (!instr->CallsAccessor() || mayNeedLazyBailOut) &&
         (
             NeedBailOnImplicitCallForLiveValues(block, isForwardPass) ||
             NeedBailOnImplicitCallForCSE(block, isForwardPass) ||
             NeedBailOnImplicitCallWithFieldOpts(block->loop, hasLiveFields) ||
-            NeedBailOnImplicitCallForArrayCheckHoist(block, isForwardPass)
+            NeedBailOnImplicitCallForArrayCheckHoist(block, isForwardPass) ||
+            mayNeedLazyBailOut
         ) &&
         (!instr->HasTypeCheckBailOut() && MayNeedBailOnImplicitCall(instr, src1Val, src2Val)))
     {

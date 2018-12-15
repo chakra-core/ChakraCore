@@ -88,6 +88,7 @@ public:
     uint DoLoopProbeAndNumber(IR::BranchInstr *branchInstr);
     void InsertOneLoopProbe(IR::Instr *insertInstr, IR::LabelInstr *loopLabel);
     void FinalLower();
+    void InsertLazyBailOutThunk();
     void EHBailoutPatchUp();
     inline Js::ScriptContext* GetScriptContext()
     {
@@ -156,13 +157,13 @@ private:
     IR::RegOpnd *   GeneratePolymorphicTypeIndex(IR::RegOpnd * typeOpnd, Js::PropertyGuard * typeCheckGuard, IR::Instr * instrInsert);
     void            GenerateLeaOfOOPData(IR::RegOpnd * regOpnd, void * address, int32 offset, IR::Instr * instrInsert);
     IR::Opnd *      GenerateIndirOfOOPData(void * address, int32 offset, IR::Instr * instrInsert);
-    void            GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
+    bool            GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     Js::JitTypePropertyGuard* CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::PropertySymOpnd* propertySymOpnd);
     Js::JitEquivalentTypeGuard* CreateEquivalentTypeGuardAndLinkToGuardedProperties(IR::PropertySymOpnd* propertySymOpnd);
     bool            LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* cache);
     template<typename LinkFunc>
     bool            LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link);
-    void            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
+    bool            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     IR::Instr *     GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr);
     void            GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* propertySymOpnd);
@@ -820,9 +821,8 @@ public:
     static bool     IsSpreadCall(IR::Instr *instr);
     static
     IR::Instr*      GetLdSpreadIndicesInstr(IR::Instr *instr);
-    static bool DoLazyBailout(Func* func) { return PHASE_ON(Js::LazyBailoutPhase, func) && !func->IsLoopBody(); }
-    static bool DoLazyFixedTypeBailout(Func* func) { return DoLazyBailout(func) && !PHASE_OFF(Js::LazyFixedTypeBailoutPhase, func); }
-    static bool DoLazyFixedDataBailout(Func* func) { return DoLazyBailout(func) && !PHASE_OFF(Js::LazyFixedDataBailoutPhase, func); }
+    static bool ShouldDoLazyFixedTypeBailout(Func* func) { return func->ShouldDoLazyBailOut() && PHASE_ON1(Js::LazyFixedTypeBailoutPhase); }
+    static bool ShouldDoLazyFixedDataBailout(Func* func) { return func->ShouldDoLazyBailOut() && !PHASE_OFF1(Js::LazyFixedDataBailoutPhase); }
     LowererMD * GetLowererMD() { return &m_lowererMD; }
 private:
     Func *          m_func;

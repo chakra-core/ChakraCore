@@ -754,7 +754,6 @@ public:
     bool                isPostPeeps:1;
     bool                isPostLayout:1;
     bool                isPostFinalLower:1;
-
     struct InstrByteCodeRegisterUses
     {
         Js::OpCode capturingOpCode;
@@ -1042,8 +1041,8 @@ public:
 
     StackSym * GetNativeCodeDataSym() const;
     void SetNativeCodeDataSym(StackSym * sym);
-private:
 
+private:
     Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only
 
     JITOutput m_output;
@@ -1100,6 +1099,18 @@ private:
 public:
     Lowerer* m_lowerer;
 #endif
+
+    // Lazy bailout
+private:
+    bool                hasLazyBailOut : 1;
+    StackSym *          m_lazyBailOutRecordSlot;
+
+public:
+    void EnsureLazyBailOutRecordSlot();
+    StackSym *GetLazyBailOutRecordSlot() const;
+    void SetHasLazyBailOut();
+    bool HasLazyBailOut() const;
+    bool ShouldDoLazyBailOut() const;
 };
 
 class AutoCodeGenPhase

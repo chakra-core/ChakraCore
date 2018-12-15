@@ -13,11 +13,85 @@
 
 extern const IRType RegTypes[RegNumCount];
 
+// In `FillBailOutRecord`, some of the fields of BailOutInfo are modified directly,
+// so simply doing a shallow copy of pointers when duplicating the BailOutInfo to
+// the helper calls for lazy bailouts will mess things up.Make a deep copies of such fields.
+void BailOutInfo::PartialDeepCopyTo(BailOutInfo * const other) const
+{
+    // Primitive types
+    other->wasCloned = this->wasCloned;
+    other->isInvertedBranch = this->isInvertedBranch;
+    other->sharedBailOutKind = this->sharedBailOutKind;
+    other->isLoopTopBailOutInfo = this->isLoopTopBailOutInfo;
+    other->bailOutOffset = this->bailOutOffset;
+    other->polymorphicCacheIndex = this->polymorphicCacheIndex;
+    other->startCallCount = this->startCallCount;
+    other->totalOutParamCount = this->totalOutParamCount;
+    other->stackLiteralBailOutInfoCount = this->stackLiteralBailOutInfoCount;
+#if DBG
+    other->wasCopied = this->wasCopied;
+#endif
+
+    other->bailOutRecord = this->bailOutRecord;
+
+    this->capturedValues->CopyTo(this->bailOutFunc->m_alloc, other->capturedValues);
+    this->usedCapturedValues->CopyTo(this->bailOutFunc->m_alloc, other->usedCapturedValues);
+
+    if (this->byteCodeUpwardExposedUsed != nullptr)
+    {
+        other->byteCodeUpwardExposedUsed = this->byteCodeUpwardExposedUsed->CopyNew(this->bailOutFunc->m_alloc);
+    }
+
+    if (this->liveVarSyms != nullptr)
+    {
+        other->liveVarSyms = this->liveVarSyms->CopyNew(this->bailOutFunc->m_alloc);
+    }
+
+    if (this->liveLosslessInt32Syms != nullptr)
+    {
+        other->liveLosslessInt32Syms = this->liveLosslessInt32Syms->CopyNew(this->bailOutFunc->m_alloc);
+    }
+
+    if (this->liveFloat64Syms != nullptr)
+    {
+        other->liveFloat64Syms = this->liveFloat64Syms->CopyNew(this->bailOutFunc->m_alloc);
+    }
+
+    if (this->outParamInlinedArgSlot != nullptr)
+    {
+        other->outParamInlinedArgSlot = this->outParamInlinedArgSlot->CopyNew(this->bailOutFunc->m_alloc);
+    }
+
+    other->startCallFunc = this->startCallFunc;
+    other->argOutSyms = this->argOutSyms;
+    other->startCallInfo = this->startCallInfo;
+    other->stackLiteralBailOutInfo = this->stackLiteralBailOutInfo;
+    other->outParamOffsets = this->outParamOffsets;
+
+
+#ifdef _M_IX86
+    other->outParamFrameAdjustArgSlot = this->outParamFrameAdjustArgSlot;
+    other->inlinedStartCall = this->inlinedStartCall;
+#endif
+
+    other->bailOutInstr = this->bailOutInstr;
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    other->bailOutOpcode = this->bailOutOpcode;
+#endif
+
+    other->bailOutFunc = this->bailOutFunc;
+    other->branchConditionOpnd = this->branchConditionOpnd;
+}
+
 void
 BailOutInfo::Clear(JitArenaAllocator * allocator)
 {
-    // Currently, we don't have a case where we delete bailout info after we allocated the bailout record
-    Assert(!bailOutRecord);
+    // Previously, we don't have a case where we delete bailout info after we allocated the bailout record.
+    // However, since lazy bailouts can now be attached on helper call instructions, and those instructions
+    // might sometimes be removed in Peeps, we will hit those cases. Make sure that in such cases, lazy bailout
+    // is the only bailout reason we have.
+    Assert(bailOutRecord == nullptr || BailOutInfo::OnlyHasLazyBailOut(bailOutRecord->bailOutKind));
     if (this->capturedValues && this->capturedValues->DecrementRefCount() == 0)
     {
         this->capturedValues->constantValues.Clear(allocator);
@@ -67,6 +141,37 @@ BailOutInfo::Clear(JitArenaAllocator * allocator)
         JitAdelete(allocator, outParamFrameAdjustArgSlot);
     }
 #endif
+}
+
+// Refer to comments in the header file
+void BailOutInfo::ClearUseOfDst(SymID id)
+{
+    Assert(id != SymID_Invalid);
+    if (this->byteCodeUpwardExposedUsed != nullptr &&
+        this->byteCodeUpwardExposedUsed->Test(id))
+    {
+        this->clearedDstByteCodeUpwardExposedUseId = id;
+        this->byteCodeUpwardExposedUsed->Clear(id);
+    }
+}
+
+void BailOutInfo::RestoreUseOfDst()
+{
+    if (this->byteCodeUpwardExposedUsed != nullptr &&
+        this->NeedsToRestoreUseOfDst())
+    {
+        this->byteCodeUpwardExposedUsed->Set(this->clearedDstByteCodeUpwardExposedUseId);
+    }
+}
+
+bool BailOutInfo::NeedsToRestoreUseOfDst() const
+{
+    return this->clearedDstByteCodeUpwardExposedUseId != SymID_Invalid;
+}
+
+SymID BailOutInfo::GetClearedUseOfDstId() const
+{
+    return this->clearedDstByteCodeUpwardExposedUseId;
 }
 
 #ifdef _M_IX86
@@ -2852,16 +2957,11 @@ SharedBailOutRecord::SharedBailOutRecord(uint32 bailOutOffset, uint bailOutCache
     this->type = BailoutRecordType::Shared;
 }
 
-void LazyBailOutRecord::SetBailOutKind()
-{
-    this->bailoutRecord->SetBailOutKind(IR::BailOutKind::LazyBailOut);
-}
-
 #if DBG
-void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody)
+void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody) const
 {
     OUTPUT_PRINT(functionBody);
-    Output::Print(_u("Bytecode Offset: #%04x opcode: %s"), this->bailoutRecord->GetBailOutOffset(), Js::OpCodeUtil::GetOpCodeName(this->bailoutRecord->GetBailOutOpCode()));
+    Output::Print(_u("Bytecode Offset: #%04x opcode: %s"), this->bailOutRecord->GetBailOutOffset(), Js::OpCodeUtil::GetOpCodeName(this->bailOutRecord->GetBailOutOpCode()));
 }
 #endif
 

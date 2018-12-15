@@ -386,6 +386,7 @@ public:
 #endif
 
     // Deadstore data
+    BVSparse<JitArenaAllocator> *              liveFixedFields;
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
@@ -431,6 +432,7 @@ private:
         isDead(false),
         isLoopHeader(false),
         hasCall(false),
+        liveFixedFields(nullptr),
         upwardExposedUses(nullptr),
         upwardExposedFields(nullptr),
         typesNeedingKnownObjectLayout(nullptr),

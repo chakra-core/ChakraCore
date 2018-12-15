@@ -56,12 +56,16 @@ SCCLiveness::Build()
             {
                 helperOpnd = instr->GetSrc1();
             }
-            else if (instr->GetSrc1()->AsRegOpnd()->m_sym)
+            else if (instr->GetSrc1()->AsRegOpnd()->m_sym && !instr->HasLazyBailOut())
             {
                 Assert(instr->GetSrc1()->AsRegOpnd()->m_sym->m_instrDef);
                 helperOpnd = instr->GetSrc1()->AsRegOpnd()->m_sym->m_instrDef->GetSrc1();
             }
-            Assert(!helperOpnd || BailOutInfo::IsBailOutHelper(helperOpnd->AsHelperCallOpnd()->m_fnHelper));
+            Assert(
+                !helperOpnd ||
+                BailOutInfo::IsBailOutHelper(helperOpnd->AsHelperCallOpnd()->m_fnHelper) ||
+                instr->HasLazyBailOut() // instructions with lazy bailout can be user calls
+            );
 #endif
             ProcessBailOutUses(instr);
         }
@@ -125,9 +129,11 @@ SCCLiveness::Build()
             }
         }
 
-        // Keep track of the last call instruction number to find out whether a lifetime crosses a call
-        // Do not count call to bailout which exits anyways
-        if (LowererMD::IsCall(instr) && !instr->HasBailOutInfo())
+        // Keep track of the last call instruction number to find out whether a lifetime crosses a call.
+        // Do not count call to bailout (e.g: call SaveAllRegistersAndBailOut) which exits anyways.
+        // However, for calls with LazyBailOut, we still need to process them since they are not guaranteed
+        // to exit.
+        if (LowererMD::IsCall(instr) && (!instr->HasBailOutInfo() || instr->OnlyHasLazyBailOut()))
         {
             if (this->lastOpHelperLabel == nullptr)
             {
@@ -454,6 +460,44 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
 void
 SCCLiveness::ProcessBailOutUses(IR::Instr * instr)
 {
+    // With lazy bailout, call instructions will have bailouts attached to it.
+    // However, since `lastCall` is only updated *after* we process bailout uses,
+    // stack symbols aren't marked as live across calls inside `ProcessStackSymUse`
+    // (due to the lifetime->start < this->lastCall condition). This makes symbols
+    // that have rax assigned not being spilled on the stack and therefore will be
+    // incorrectly replaced by the return value of the call.
+    //
+    // So for instructions with lazy bailout, we update the `lastCall` number early
+    // and later restore it to what it was before. Additionally, we also need to 
+    // make sure that the lifetimes of those symbols are *after* the call by
+    // *temporarily* incrementing the instruction number by one.
+    struct UpdateLastCalInstrNumberForLazyBailOut {
+        IR::Instr *lazyBailOutInstr;
+        const uint32 previousInstrNumber;
+        uint32 &lastCall;
+        const uint32 previousLastCallNumber;
+
+        UpdateLastCalInstrNumberForLazyBailOut(IR::Instr *instr, uint32 &lastCall) :
+            lazyBailOutInstr(instr), previousInstrNumber(instr->GetNumber()),
+            lastCall(lastCall), previousLastCallNumber(lastCall)
+        {
+            if (this->lazyBailOutInstr->HasLazyBailOut())
+            {
+                this->lastCall = this->previousInstrNumber;
+                this->lazyBailOutInstr->SetNumber(this->previousInstrNumber + 1);
+            }
+        }
+
+        ~UpdateLastCalInstrNumberForLazyBailOut()
+        {
+            if (this->lazyBailOutInstr->HasLazyBailOut())
+            {
+                this->lastCall = this->previousLastCallNumber;
+                this->lazyBailOutInstr->SetNumber(this->previousInstrNumber);
+            }
+        }
+    } autoUpdateRestoreLastCall(instr, this->lastCall);
+
     BailOutInfo * bailOutInfo = instr->GetBailOutInfo();
     FOREACH_BITSET_IN_SPARSEBV(id, bailOutInfo->byteCodeUpwardExposedUsed)
     {
@@ -710,7 +754,11 @@ SCCLiveness::ExtendLifetime(Lifetime *lifetime, IR::Instr *instr)
         // The case of equality is valid on Arm64 where some branch instructions have sources.
         AssertMsg(lifetime->end >= instr->GetNumber(), "Lifetime end not set correctly");
 #else
-        AssertMsg(lifetime->end > instr->GetNumber(), "Lifetime end not set correctly");
+        AssertMsg(
+            (!instr->HasLazyBailOut() && lifetime->end > instr->GetNumber()) ||
+            (instr->HasLazyBailOut() && lifetime->end >= instr->GetNumber()),
+            "Lifetime end not set correctly"
+        );
 #endif
     }
     this->extendedLifetimesLoopList->Clear(this->tempAlloc);

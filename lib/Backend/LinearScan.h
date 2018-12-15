@@ -181,6 +181,7 @@ private:
     static void         SetBitVectorIfTypeSpec(StackSym * sym, Js::RegSlot regSlot, BVFixed * intSyms, BVFixed * floatSyms);
     void                FillBailOutRecord(IR::Instr * instr);
     void                FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutState * state, IR::Instr * instr);
+    int                 SaveSymbolToReg(RegNum reg, FillBailOutState * state, StackSym * stackSym);
     void                FillStackLiteralBailOutRecord(IR::Instr * instr, BailOutInfo * bailOutInfo, struct FuncBailOutData * funcBailOutData, uint funcCount);
     template <typename Fn>
     void                ForEachStackLiteralBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo, FuncBailOutData * funcBailOutData, uint funcCount, Fn fn);
@@ -220,6 +221,8 @@ private:
     IR::Instr *         GetIncInsertionPoint(IR::Instr *instr);
     void                DynamicStatsInstrument();
 #endif
+
+    void                ProcessLazyBailOut(IR::Instr *instr);
 
     static IR::Instr *  InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
     static IR::Instr *  InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);

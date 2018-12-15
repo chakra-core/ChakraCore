@@ -1341,6 +1341,7 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
     else
     {
         currentCallInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
+        currentCallInstr->SetByteCodeOffset(callInstr);
         currentCallInstr->SetSrc1(methodOpnd);
         if (returnValueOpnd)
         {
@@ -2631,7 +2632,8 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
 
     // Optimize .init.apply(this, arguments);
     IR::Instr* builtInStartInstr;
-    InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     // Move argouts close to call. Globopt expects this for arguments object tracking.
     IR::Instr* argInsertInstr = builtInStartInstr;
@@ -2771,7 +2773,8 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
 
     EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
-    InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     IR::Instr * startCall = IR::Instr::New(Js::OpCode::StartCall,
         IR::RegOpnd::New(TyVar, callInstr->m_func),
@@ -3297,7 +3300,8 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
 
     EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
-    InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     uint actualCountToInlinedCall = actualCount - (isCallInstanceFunction ? 2 : 1);
 

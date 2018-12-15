@@ -43,6 +43,7 @@ private:
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
     IR::Instr* ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
+    void ClearDstUseForPostOpLazyBailOut(IR::Instr *instr);
     void ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed);
     void ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* argSymsBv);
     void ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* argSymsBv);
@@ -73,7 +74,7 @@ private:
     void DumpMarkTemp();
 #endif
 
-    static bool UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall);
+    static bool UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut);
 
     bool ProcessNoImplicitCallUses(IR::Instr *const instr);
     void ProcessNoImplicitCallDef(IR::Instr *const instr);
@@ -102,9 +103,11 @@ private:
 
     void TrackFloatSymEquivalence(IR::Instr *const instr);
 
-    void DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields);
+    bool IsLazyBailOutCurrentlyNeeeded(IR::Instr * instr) const;
+    void DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields, bool needsLazyBailOut);
     void DeadStoreTypeCheckBailOut(IR::Instr * instr);
-    bool IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool hasLiveFields);
+    void DeadStoreLazyBailOut(IR::Instr * instr, bool needsLazyBailOut);
+    bool IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool needLazyBailOut, bool hasLiveFields);
     bool NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr);
     bool TrackNoImplicitCallInlinees(IR::Instr *instr);
     bool ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block);
