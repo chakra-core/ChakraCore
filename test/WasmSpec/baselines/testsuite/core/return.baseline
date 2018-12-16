@@ -1,1 +1,2 @@
-61/61 tests passed.
+(49) testsuite/core/return.wast:285: assert_return($$.as-tee_local-value() == i32:1) failed. Unexpectedly threw: CompileError: function as-tee_local-value[45] at offset 1672/1839 (0x688/0x72f): Can't tee_local unreachable values
+66/67 tests passed.

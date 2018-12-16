@@ -1,0 +1,17 @@
+Harness Status: OK
+Found 15 tests: Fail = 14 Pass = 1
+Fail Missing arguments  assert_throws: function "() => table.grow()" did not throw
+Pass Branding  
+Fail Basic  'assert_equal_to_array' is not defined
+Fail Reached maximum  'assert_equal_to_array' is not defined
+Fail Exceeded maximum  'assert_equal_to_array' is not defined
+Fail Out-of-range argument: undefined  assert_throws: function "() => table.grow(value)" did not throw
+Fail Out-of-range argument: NaN  assert_throws: function "() => table.grow(value)" did not throw
+Fail Out-of-range argument: Infinity  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: -Infinity  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: -1  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: 4294967296  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: 68719476736  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: "0x100000000"  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Out-of-range argument: object "[object Object]"  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Fail Stray argument  'assert_equal_to_array' is not defined

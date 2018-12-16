@@ -804,6 +804,21 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/testsuite/core/load.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/load.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/testsuite/core/load.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/load.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/testsuite/core/loop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/loop.wast -endargs</compile-flags>
     </default>
@@ -837,6 +852,21 @@
       <baseline>baselines/testsuite/core/memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory.wast -endargs -wasmfastarray-</compile-flags>
       <tags>exclude_x86</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/testsuite/core/memory_grow.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/memory_grow.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/testsuite/core/memory_grow.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/memory_grow.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -890,29 +920,6 @@
       <baseline>baselines/testsuite/core/nop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/nop.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/testsuite/core/resizing.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/testsuite/core/resizing.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>spec.js</files>
-      <baseline>baselines/testsuite/core/resizing.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs -wasmfastarray-</compile-flags>
-      <tags>exclude_x86</tags>
     </default>
   </test>
   <test>
@@ -1008,15 +1015,15 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/testsuite/core/store_retval.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/store_retval.wast -endargs</compile-flags>
+      <baseline>baselines/testsuite/core/store.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/store.wast -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines/testsuite/core/store_retval.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/core/store_retval.wast -endargs -nonative</compile-flags>
+      <baseline>baselines/testsuite/core/store.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/store.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
@@ -1233,15 +1240,405 @@
   <test>
     <default>
       <files>jsapi.js</files>
-      <baseline>baselines/testsuite/js-api/jsapi.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs</compile-flags>
+      <baseline>baselines/testsuite/js-api/constructor/compile.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/compile.any.js -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>jsapi.js</files>
-      <baseline>baselines/testsuite/js-api/jsapi.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs -nonative</compile-flags>
+      <baseline>baselines/testsuite/js-api/constructor/compile.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/compile.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/instantiate-bad-imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/instantiate-bad-imports.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/instantiate-bad-imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/instantiate-bad-imports.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/instantiate.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/instantiate.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/instantiate.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/instantiate.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/validate.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/validate.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/constructor/validate.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/constructor/validate.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/constructor.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/constructor.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/toString.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/toString.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/value-get-set.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/value-get-set.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/value-get-set.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/value-get-set.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/valueOf.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/valueOf.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/global/valueOf.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/global/valueOf.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/constructor-bad-imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/constructor-bad-imports.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/constructor-bad-imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/constructor-bad-imports.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/constructor.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/constructor.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/exports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/exports.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/exports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/exports.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/toString.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/instance/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/instance/toString.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/buffer.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/buffer.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/buffer.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/buffer.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/constructor.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/constructor.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/grow.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/grow.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/grow.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/grow.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/toString.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/memory/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/memory/toString.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/constructor.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/constructor.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/customSections.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/customSections.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/customSections.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/customSections.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/exports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/exports.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/exports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/exports.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/imports.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/imports.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/imports.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/toString.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/module/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/module/toString.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/assertions.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/assertions.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/assertions.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/assertions.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/constructor.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/constructor.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/constructor.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/get-set.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/get-set.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/get-set.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/get-set.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/grow.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/grow.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/grow.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/grow.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/length.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/length.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/length.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/length.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/toString.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/table/toString.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/table/toString.any.js -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
