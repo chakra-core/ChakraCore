@@ -1,0 +1,61 @@
+Harness Status: OK
+Found 59 tests: Pass = 58 Fail = 1
+Pass new WebAssembly.Instance(module): Non-object imports argument: null  
+Pass new WebAssembly.Instance(module): Non-object imports argument: true  
+Pass new WebAssembly.Instance(module): Non-object imports argument: ""  
+Pass new WebAssembly.Instance(module): Non-object imports argument: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Non-object imports argument: 1  
+Pass new WebAssembly.Instance(module): Non-object imports argument: 0.1  
+Pass new WebAssembly.Instance(module): Non-object imports argument: NaN  
+Pass new WebAssembly.Instance(module): Non-object module: undefined  
+Pass new WebAssembly.Instance(module): Non-object module: null  
+Pass new WebAssembly.Instance(module): Non-object module: true  
+Pass new WebAssembly.Instance(module): Non-object module: ""  
+Pass new WebAssembly.Instance(module): Non-object module: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Non-object module: 1  
+Pass new WebAssembly.Instance(module): Non-object module: 0.1  
+Pass new WebAssembly.Instance(module): Non-object module: NaN  
+Pass new WebAssembly.Instance(module): Missing imports argument  
+Pass new WebAssembly.Instance(module): Imports argument with missing property: undefined  
+Pass new WebAssembly.Instance(module): Imports argument with missing property: empty object  
+Pass new WebAssembly.Instance(module): Imports argument with missing property: wrong property  
+Fail new WebAssembly.Instance(module): Importing an i64 global  assert_throws: function "() => new WebAssembly.Instance(module, ...arguments)" threw object "TypeError: Invalid WebAssembly type conversion Var to i64" ("TypeError") expected object "LinkError" ("LinkError")
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: undefined  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: null  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: true  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: ""  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: 1  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: 0.1  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: NaN  
+Pass new WebAssembly.Instance(module): Importing a function with an incorrectly-typed value: object "[object Object]"  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: undefined  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: null  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: true  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: ""  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Importing a global with an incorrectly-typed value: plain object  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: undefined  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: null  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: true  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: ""  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: 1  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: 0.1  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: NaN  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: plain object  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: WebAssembly.Memory  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: WebAssembly.Memory.prototype  
+Pass new WebAssembly.Instance(module): Importing memory with an incorrectly-typed value: Object.create(WebAssembly.Memory.prototype)  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: undefined  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: null  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: true  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: ""  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: symbol "Symbol()"  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: 1  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: 0.1  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: NaN  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: plain object  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: WebAssembly.Table  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: WebAssembly.Table.prototype  
+Pass new WebAssembly.Instance(module): Importing table with an incorrectly-typed value: Object.create(WebAssembly.Table.prototype)  

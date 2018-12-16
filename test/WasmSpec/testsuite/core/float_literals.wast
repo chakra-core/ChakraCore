@@ -37,6 +37,9 @@
   (func (export "f32_dec.max_finite") (result i32) (i32.reinterpret/f32 (f32.const 3.4028234e+38)))
   (func (export "f32_dec.trailing_dot") (result i32) (i32.reinterpret/f32 (f32.const 1.e10)))
 
+  ;; https://twitter.com/Archivd/status/994637336506912768
+  (func (export "f32_dec.root_beer_float") (result i32) (i32.reinterpret/f32 (f32.const 1.000000119)))
+
   ;; f64 special values
   (func (export "f64.nan") (result i64) (i64.reinterpret/f64 (f64.const nan)))
   (func (export "f64.positive_nan") (result i64) (i64.reinterpret/f64 (f64.const +nan)))
@@ -72,6 +75,9 @@
   (func (export "f64_dec.max_subnormal") (result i64) (i64.reinterpret/f64 (f64.const 2.2250738585072011e-308)))
   (func (export "f64_dec.max_finite") (result i64) (i64.reinterpret/f64 (f64.const 1.7976931348623157e+308)))
   (func (export "f64_dec.trailing_dot") (result i64) (i64.reinterpret/f64 (f64.const 1.e100)))
+
+  ;; https://twitter.com/Archivd/status/994637336506912768
+  (func (export "f64_dec.root_beer_float") (result i64) (i64.reinterpret/f64 (f64.const 1.000000119)))
 
   (func (export "f32-dec-sep1") (result f32) (f32.const 1_000_000))
   (func (export "f32-dec-sep2") (result f32) (f32.const 1_0_0_0))
@@ -126,6 +132,7 @@
 (assert_return (invoke "f32_dec.max_subnormal") (i32.const 0x7fffff))
 (assert_return (invoke "f32_dec.max_finite") (i32.const 0x7f7fffff))
 (assert_return (invoke "f32_dec.trailing_dot") (i32.const 0x501502f9))
+(assert_return (invoke "f32_dec.root_beer_float") (i32.const 0x3f800001))
 
 (assert_return (invoke "f64.nan") (i64.const 0x7ff8000000000000))
 (assert_return (invoke "f64.positive_nan") (i64.const 0x7ff8000000000000))
@@ -157,6 +164,7 @@
 (assert_return (invoke "f64_dec.max_subnormal") (i64.const 0xfffffffffffff))
 (assert_return (invoke "f64_dec.max_finite") (i64.const 0x7fefffffffffffff))
 (assert_return (invoke "f64_dec.trailing_dot") (i64.const 0x54b249ad2594c37d))
+(assert_return (invoke "f64_dec.root_beer_float") (i64.const 0x3ff000001ff19e24))
 
 (assert_return (invoke "f32-dec-sep1") (f32.const 1000000))
 (assert_return (invoke "f32-dec-sep2") (f32.const 1000))

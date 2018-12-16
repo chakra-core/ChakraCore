@@ -3,7 +3,12 @@
     "chakra",
     "chakra_generated",
     "testsuite/core",
-    "testsuite/js-api",
+    "testsuite/js-api/constructor",
+    "testsuite/js-api/global",
+    "testsuite/js-api/instance",
+    "testsuite/js-api/memory",
+    "testsuite/js-api/module",
+    "testsuite/js-api/table",
 
     "features/extends",
     "features/nontrapping",

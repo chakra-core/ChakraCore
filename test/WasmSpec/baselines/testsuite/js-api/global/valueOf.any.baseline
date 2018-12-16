@@ -1,0 +1,4 @@
+Harness Status: OK
+Found 2 tests: Fail = 2
+Fail Branding  Unable to get property 'prototype' of undefined or null reference
+Fail Stray argument  Object doesn't support this action

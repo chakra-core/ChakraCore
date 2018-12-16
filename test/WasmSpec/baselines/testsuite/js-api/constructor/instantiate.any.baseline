@@ -1,0 +1,24 @@
+Harness Status: OK
+Found 22 tests: Pass = 17 Fail = 5
+Pass Missing arguments  
+Pass Branding  
+Pass Invalid arguments  
+Pass Promise type  
+Pass Empty module without imports argument: BufferSource argument  
+Pass Empty module without imports argument: Module argument  
+Pass Empty module with undefined imports argument: BufferSource argument  
+Pass Empty module with undefined imports argument: Module argument  
+Pass Empty module with empty imports argument: BufferSource argument  
+Pass Empty module with empty imports argument: Module argument  
+Pass getter order for imports object: BufferSource argument  
+Pass getter order for imports object: Module argument  
+Pass imports: BufferSource argument  
+Pass imports: Module argument  
+Fail No imports: BufferSource argument  Object doesn't support property or method 'setFunctionTableLength'
+Fail No imports: Module argument  Object doesn't support property or method 'setFunctionTableLength'
+Fail exports and imports: BufferSource argument  assert_false: fn: writable expected false got true
+Fail exports and imports: Module argument  assert_false: fn: writable expected false got true
+Pass stray argument: BufferSource argument  
+Pass stray argument: Module argument  
+Pass Invalid code  
+Fail Changing the buffer  assert_equals: expected (number) 0 but got (undefined) undefined

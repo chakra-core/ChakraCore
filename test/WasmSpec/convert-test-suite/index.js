@@ -53,27 +53,27 @@ function removePossiblyEmptyFolder(folder) {
   });
 }
 
-function generateChakraTests() {
+async function generateChakraTests() {
   const chakraTestsDestination = path.join(rlRoot, "chakra_generated");
 
   const chakraTests = require("./generateTests");
-  return removePossiblyEmptyFolder(chakraTestsDestination)
-    .then(() => fs.ensureDirAsync(chakraTestsDestination))
-    .then(() => Promise.all(chakraTests.map(test => test.getContent(rlRoot)
-      .then(content => {
-        if (!content) {
-          return;
-        }
-        const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
-        const copyrightHeader =
+  await removePossiblyEmptyFolder(chakraTestsDestination);
+  await fs.ensureDirAsync(chakraTestsDestination);
+  await fs.writeFileAsync(path.join(chakraTestsDestination, ".keep"), "Committing an empty directory on the Windows side to work around a GVFS issue\n");
+  for (const test of chakraTests) {
+    const content = await test.getContent(rlRoot);
+    if (!content) {
+      return;
+    }
+    const testPath = path.join(chakraTestsDestination, `${test.name}.wast`);
+    const copyrightHeader =
 `;;-------------------------------------------------------------------------------------------------------
 ;; Copyright (C) Microsoft. All rights reserved.
 ;; Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ;;-------------------------------------------------------------------------------------------------------
 `;
-        return fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
-      })
-    )));
+    await fs.writeFileAsync(testPath, `${copyrightHeader};;AUTO-GENERATED do not modify\n${content}`);
+  }
 }
 
 function main() {
