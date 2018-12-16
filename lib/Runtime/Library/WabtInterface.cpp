@@ -173,7 +173,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
         }
         return result;
     }
-    catch (ChakraWabt::Error& e)
+    catch (ChakraWabt::WabtAPIError& e)
     {
         JavascriptError::ThrowTypeErrorVar(scriptContext, WABTERR_WabtError, NarrowStringToWide(&context, e.message));
     }

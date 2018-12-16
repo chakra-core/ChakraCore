@@ -69,7 +69,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\lexer-source-line-finder.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\lexer-source.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\literal.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\opcode-code-table.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\opcode-code-table.c" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\opcode.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\option-parser.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\wast-lexer-gen.cc" />
