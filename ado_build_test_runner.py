@@ -1,23 +1,73 @@
 import subprocess
 import sys
 
-#os = "Linux"
 os = "OSX"
-
-if len(sys.argv) >= 2:
-    os = sys.argv[1]
-
-# setup vars
 branch = "master"
+debug = False
+test = False
+release = False
+no_jit = False
+no_icu = False
+run_not_static = False
+run_static = False
+
+for arg in sys.argv:
+    arg = arg.replace(" ","")
+    argArr = arg.split(":")
+
+    # "OSX" or "Linux". Default: "master"
+    if argArr[0] == "--os":
+        os = argArr[1]
+
+    # Default: "Master"
+    elif argArr[0] == "--branch":
+        branch = argArr[1]
+
+    elif argArr[0] == "--run-debug":
+        debug = True
+    elif argArr[0] == "--run-test":
+        test = True
+    elif argArr[0] == "--run-release":
+        release = True
+    elif argArr[0] == "--run-no-jit":
+        no_jit = True
+    elif argArr[0] == "--run-no-icu":
+        no_icu = True
+    elif argArr[0] == "--make-run-static":
+        run_static = True
+    elif argArr[0] == "--make-run-not-static":
+        run_not_static = True
+
+if not run_static and not run_not_static:
+    run_not_static = True
+
 
 def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, extraBuildParams):
-    isPRArr = {True, False}
-    for isPR in isPRArr:
-        CreateXPlatBuildTask(isPR, "test", "", machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit", extraBuildParams)
+    
+    #isPRArr = {True, False}
+    # temp replacement. Change when isPR is implemented in CreateXPlatBuildTask
+    isPRArr = {False}
 
-        buildTypeArr = {"debug", "test", "release"}
+    for isPR in isPRArr:
+        if no_jit:
+            CreateXPlatBuildTask(isPR, "test", "", machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit", extraBuildParams)
+
+        buildTypeArr = []
+        if debug:
+            buildTypeArr.append("debug")
+        if test:
+            buildTypeArr.append("test")
+        if release:
+            buildTypeArr.append("release")
+
         for buildType in buildTypeArr:
-            staticBuildConfigs = {True, False}
+
+            staticBuildConfigs = []
+            if run_static:
+                staticBuildConfigs.append(True)
+            if run_not_static:
+                staticBuildConfigs.append(False)
+
             if platform is "osx":
                 staticBuildConfigs = {True}
 
@@ -112,9 +162,12 @@ if os == "Linux":
     osString = 'Ubuntu16.04'
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, None, "")
 
-    isPRArr = {True, False}
-    for isPR in isPRArr:
-        CreateXPlatBuildTask(isPR, "debug", True, osString, "linux", "ubuntu", branch, None, "--no-icu", "--not-tag exclude_noicu", "")
+    if no_icu:
+        #isPRArr = {True, False}
+        # temp replacement. Change when isPR is implemented in CreateXPlatBuildTask
+        isPRArr = {False}
+        for isPR in isPRArr:
+            CreateXPlatBuildTask(isPR, "debug", True, osString, "linux", "ubuntu", branch, None, "--no-icu", "--not-tag exclude_noicu", "")
 
 # OSX build tasks:
 elif os == "OSX":
