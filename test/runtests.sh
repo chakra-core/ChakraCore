@@ -38,6 +38,8 @@ echo $cur_dir
 echo "test_path:"
 echo $test_path
 
+cd $test_path
+
 cd ..
 echo "files in ..:"
 dotdotFiles=`ls`
@@ -47,6 +49,12 @@ cd out
 echo "files in out:"
 outFiles=`ls`
 echo $outFiles 
+
+cd Test
+echo "files in Test:"
+TestFiles=`ls`
+echo $TestFiles 
+
 
 if [[ -f "$test_path/../out/Debug/ch" ]]; then
     echo "Warning: Debug build was found"
