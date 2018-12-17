@@ -1,6 +1,6 @@
 import subprocess
 import sys
- 
+
 #os = "Linux"
 os = "OSX"
 
@@ -30,8 +30,8 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     
     # todo: numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
     # temp replacement:
-    numConcurrentCommand = "nproc"
-
+    # numConcurrentCommand = "nproc"
+    numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
 
     config = config if configTag is None else configTag + "_" + config
     config = "static_"+config if staticBuild else "shared"+config
@@ -85,15 +85,23 @@ def exeBashStr(bashStr, j=None, testVariant=None):
     if testVariant:
         bashStrList.append("\""+testVariant+"\"")
     printToADO(bashStrList)
-    subprocess.call(bashStrList)
+
+    ret = None
+    try:
+        ret = subprocess.call(bashStrList)
+    except:
+        print("Invalid Bash String: "+bashStr)
+        return None
+    else:
+        return ret
 
 def printToADO(v):
     subprocess.call(["echo", str(v)])
 
 def getJ(jArg):
-    j = subprocess.call(jArg)
+    j = exeBashStr(jArg)
     if not j or j <= 0:
-        printToADO("j NOT found: "+str(j))
+        printToADO("j not found; value of j: "+str(j))
         return None
     j = str(j)
     printToADO("j found: "+j)
