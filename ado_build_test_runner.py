@@ -1,21 +1,28 @@
 import subprocess
 import sys
+from subprocess import check_output
 
 os = "OSX"
 branch = "master"
 debug = False
 test = False
 release = False
+arm = False
+x64 = False
+x86 = False
 no_jit = False
 no_icu = False
 run_not_static = False
 run_static = False
 
+latestWindowsMachine = 'windows.10.amd64.clientrs4.devex.open' # Windows 10 RS4 with Dev 15.7
+latestWindowsMachineTag = None # all information is included in the machine name above
+
 for arg in sys.argv:
     arg = arg.replace(" ","")
     argArr = arg.split(":")
 
-    # "OSX" or "Linux". Default: "master"
+    # "OSX", "Windows", or "Linux". Default: "OSX"
     if argArr[0] == "--os":
         os = argArr[1]
 
@@ -29,6 +36,12 @@ for arg in sys.argv:
         test = True
     elif argArr[0] == "--run-release":
         release = True
+    elif argArr[0] == "--run-arm":
+        arm = True
+    elif argArr[0] == "--run-x64":
+        x64 = True
+    elif argArr[0] == "--run-x86":
+        x86 = True
     elif argArr[0] == "--run-no-jit":
         no_jit = True
     elif argArr[0] == "--run-no-icu":
@@ -41,6 +54,54 @@ for arg in sys.argv:
 if not run_static and not run_not_static:
     run_not_static = True
 
+def CreateBuildTasks(machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup):
+
+    #isPRArr = {True, False}
+    # temp replacement. Change when isPR is implemented in CreateXPlatBuildTask
+    isPRArr = {False}
+
+    for isPR in isPRArr:
+        buildTypeArr = []
+        if debug:
+            buildTypeArr.append("debug")
+        if test:
+            buildTypeArr.append("test")
+        if release:
+            buildTypeArr.append("release")
+        buildArchArr = []
+        if arm:
+            buildArchArr.append("arm")
+        if x86:
+            buildArchArr.append("x86")
+        if x64:
+            buildArchArr.append("x64")
+
+        for buildType in buildTypeArr:
+            for buildArch in buildArchArr:
+                CreateBuildTask(isPR, buildArch, buildType, machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup)
+
+def CreateBuildTask(isPR, buildArch, buildType, machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup):
+
+    config = buildArch + "_" + buildType
+    
+    config = config if configTag == None else configTag + "_" + config
+
+    testableConfig = buildType in ['debug', 'test'] and buildArch != 'arm'
+    analysisConfig = buildType in ['release'] and runCodeAnalysis
+
+    buildScript = "call .\\jenkins\\buildone.cmd "+ buildArch + " " + buildType
+    buildScript += ' \"/p:runcodeanalysis=true\"' if analysisConfig else ''
+    
+    testScript = "call .\\jenkins\\testone.cmd " + buildArch + " " + buildType + " "
+
+    analysisScript = '.\\Build\\scripts\\check_prefast_error.ps1 . CodeAnalysis.err'
+
+    exeShellStr(buildScript)
+    if testableConfig:
+        exeShellStr(testScript)
+    # TODO:
+    # if analysisConfig:
+    #     powerShellInPython()
 
 def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, extraBuildParams):
     
@@ -127,6 +188,7 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     printToADO("----- TEST SCRIPT -----")
     exeBashStr(testScript, None, testVariant)
 
+# Unix
 def exeBashStr(bashStr, j=None, testVariant=None):
     bashStrList = bashStr.split(" ")
     bashStrList = filter(lambda a: a != "", bashStrList)
@@ -145,8 +207,16 @@ def exeBashStr(bashStr, j=None, testVariant=None):
     else:
         return ret
 
-def printToADO(v):
-    subprocess.call(["echo", str(v)])
+# Windows
+def exeShellStr(shellStr):
+    printToADO(shellStr, True)
+    print(check_output(shellStr, shell=True))
+
+def printToADO(v, windows = False):
+    if windows:
+        print(check_output("echo printToADO: "+v, shell=True))
+    else:
+        subprocess.call(["echo printToADO:", str(v)])
 
 def getJ(jArg):
     j = exeBashStr(jArg)
@@ -175,6 +245,9 @@ if os == "Linux":
 elif os == "OSX":
     osString = 'OSX.1011.Amd64.Chakra.Open'
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, None, "")
+
+elif os == "Windows":
+    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, None, None, "-win10", True, None, None)
 
 else:
     print("incorrect OS string value: " + os)
