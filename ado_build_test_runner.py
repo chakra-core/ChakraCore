@@ -1,6 +1,6 @@
 import subprocess
 import sys
- 
+
 os = "OSX"
 branch = "master"
 debug = False
@@ -160,14 +160,16 @@ def getJ(jArg):
 # Linux build tasks:
 if os == "Linux":
     osString = 'Ubuntu16.04'
-    CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, None, "")
+
+    # not sure if --lto is needed, using temporarily because cmake cant find llvm
+    CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, None, "--lto")
 
     if no_icu:
         #isPRArr = {True, False}
         # temp replacement. Change when isPR is implemented in CreateXPlatBuildTask
         isPRArr = {False}
         for isPR in isPRArr:
-            CreateXPlatBuildTask(isPR, "debug", True, osString, "linux", "ubuntu", branch, None, "--no-icu", "--not-tag exclude_noicu", "")
+            CreateXPlatBuildTask(isPR, "debug", True, osString, "linux", "ubuntu", branch, None, "--no-icu", "--not-tag exclude_noicu", "--lto")
 
 # OSX build tasks:
 elif os == "OSX":
