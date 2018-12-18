@@ -14,6 +14,9 @@ no_jit = False
 no_icu = False
 run_not_static = False
 run_static = False
+slow = False
+lite = False
+legacy = False
 
 latestWindowsMachine = 'windows.10.amd64.clientrs4.devex.open' # Windows 10 RS4 with Dev 15.7
 latestWindowsMachineTag = None # all information is included in the machine name above
@@ -50,6 +53,12 @@ for arg in sys.argv:
         run_static = True
     elif argArr[0] == "--make-run-not-static":
         run_not_static = True
+    elif argArr[0] == "--slow":
+        slow = True
+    elif argArr[0] == "--lite":
+        lite = True
+    elif argArr[0] == "--legacy":
+        legacy = True
 
 if not run_static and not run_not_static:
     run_not_static = True
@@ -160,7 +169,7 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
 
     # todo: icuFlag = "--icu=/Users/DDITLABS/homebrew/opt/icu4c/include" if platform == "osx" else ""
     # temp replacement:
-    icuFlag = "--system-icu" if platform == "osx" else ""
+    icuFlag = "--embed-icu" if platform == "osx" else ""
 
     # todo: compilerPaths = "" if platform is "osx" else "--cxx=/usr/bin/clang++-3.9 --cc=/usr/bin/clang-3.9"
     # temp replacement:
@@ -214,9 +223,9 @@ def exeShellStr(shellStr):
 
 def printToADO(v, windows = False):
     if windows:
-        print(check_output("echo printToADO: "+v, shell=True))
+        print(check_output("echo"+v, shell=True))
     else:
-        subprocess.call(["echo printToADO:", str(v)])
+        subprocess.call(["echo", str(v)])
 
 def getJ(jArg):
     j = exeBashStr(jArg)
@@ -246,13 +255,22 @@ elif os == "OSX":
     osString = 'OSX.1011.Amd64.Chakra.Open'
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, None, "")
 
+#                CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, "", "", extraBuildParams)
+
+
 elif os == "Windows":
-    CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, None, None, "-win10", True, None, None)
+
+    if slow:
+        CreateBuildTask(True, 'x64', 'debug', latestWindowsMachine, latestWindowsMachineTag, 'ci_slow', None, '-win10 -includeSlow', False, None, None)
+    elif no_jit:
+        CreateBuildTask(True, 'x64', 'debug', latestWindowsMachine, latestWindowsMachineTag, 'ci_disablejit', '"/p:BuildJIT=false"', '-win10 -disablejit', False, None, None)
+    elif lite:
+        CreateBuildTask(True, 'x64', 'debug', latestWindowsMachine, latestWindowsMachineTag, 'ci_lite', '"/p:BuildLite=true"', '-win10 -lite', False, None, None)
+    else:
+        CreateBuildTasks(latestWindowsMachine, latestWindowsMachineTag, None, None, "-win10", True, None, None)
 
 else:
     print("incorrect OS string value: " + os)
-
-
 
 
 '''
