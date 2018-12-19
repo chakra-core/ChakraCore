@@ -219,7 +219,8 @@ def exeBashStr(bashStr, j=None, testVariant=None):
 # Windows
 def exeShellStr(shellStr):
     printToADO(shellStr, True)
-    print(check_output(shellStr, shell=True))
+    ado_vm_output = check_output(shellStr, shell=True)
+    check_output("echo " + ado_vm_output.replace("\\n"," echo. "), shell=True)
 
 def printToADO(v, windows = False):
     if windows:
@@ -240,7 +241,7 @@ def getJ(jArg):
 if os == "Linux":
     osString = 'Ubuntu16.04'
 
-    # not sure if --lto-thin is needed, using temporarily because cmake cant find llvm
+    # not sure if --lto-thin is needed, using temporarily because cmake cant find ll vm
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, None, "--lto-thin")
 
     if no_icu:
