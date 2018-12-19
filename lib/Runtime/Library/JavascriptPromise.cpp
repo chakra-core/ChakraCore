@@ -1144,15 +1144,17 @@ namespace Js
             sourcePromise->reactions->Prepend(pair);
             break;
         case PromiseStatusCode_HasResolution:
-            EnqueuePromiseReactionTask(resolveReaction, sourcePromise->result, scriptContext);
+            EnqueuePromiseReactionTask(resolveReaction, CrossSite::MarshalVar(scriptContext, sourcePromise->result), scriptContext);
             break;
         case PromiseStatusCode_HasRejection:
+        {
             if (!sourcePromise->GetIsHandled())
             {
-                scriptContext->GetLibrary()->CallNativeHostPromiseRejectionTracker(sourcePromise, sourcePromise->result, true);
+                scriptContext->GetLibrary()->CallNativeHostPromiseRejectionTracker(sourcePromise, CrossSite::MarshalVar(scriptContext, sourcePromise->result), true);
             }
-            EnqueuePromiseReactionTask(rejectReaction, sourcePromise->result, scriptContext);
+            EnqueuePromiseReactionTask(rejectReaction, CrossSite::MarshalVar(scriptContext, sourcePromise->result), scriptContext);
             break;
+        }
         default:
             AssertMsg(false, "Promise status is in an invalid state");
             break;
