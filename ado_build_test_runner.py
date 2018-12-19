@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from subprocess import check_output
- 
+
 os = "OSX"
 branch = "master"
 debug = False
@@ -198,18 +198,21 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     exeBashStr(testScript, None, testVariant)
 
 # Unix
-def exeBashStr(bashStr, j=None, testVariant=None):
+def exeBashStr(bashStr, j=None, testVariant=None, windows=False):
     bashStrList = bashStr.split(" ")
     bashStrList = filter(lambda a: a != "", bashStrList)
     if j:
         bashStrList.append("-j="+j)
     if testVariant:
         bashStrList.append("\""+testVariant+"\"")
-    printToADO(bashStrList)
+    printToADO(bashStrList, windows)
 
     ret = None
     try:
-        ret = subprocess.call(bashStrList)
+        if windows:
+            ret = subprocess.call(bashStrList, shell=True)
+        else:
+            ret = subprocess.call(bashStrList)
     except:
         print("Invalid Bash String: "+bashStr)
         return None
@@ -219,12 +222,12 @@ def exeBashStr(bashStr, j=None, testVariant=None):
 # Windows
 def exeShellStr(shellStr):
     printToADO(shellStr, True)
-    ado_vm_output = check_output(shellStr, shell=True)
-    check_output("echo " + ado_vm_output.replace("\\n"," echo. "), shell=True)
+    exeBashStr(shellStr, None, None, True)
+    
 
 def printToADO(v, windows = False):
     if windows:
-        print(check_output("echo "+v, shell=True))
+        subprocess.call(["echo", str(v)], shell=True)
     else:
         subprocess.call(["echo", str(v)])
 
