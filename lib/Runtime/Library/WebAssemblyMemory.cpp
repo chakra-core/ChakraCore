@@ -75,31 +75,34 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     }
     DynamicObject * memoryDescriptor = VarTo<DynamicObject>(args[1]);
 
-    if (!JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::initial, scriptContext))
+    Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
+    if (Js::JavascriptOperators::IsUndefined(initVar))
     {
         JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("descriptor.initial"));
     }
-    Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
     uint32 maximum = Wasm::Limits::GetMaxMemoryMaximumPages();
     bool hasMaximum = false;
-    if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
+    Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
+    if (!Js::JavascriptOperators::IsUndefined(maxVar))
     {
         hasMaximum = true;
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
 
     bool isShared = false;
-    if (Wasm::Threads::IsEnabled() && JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::shared, scriptContext))
+    if (Wasm::Threads::IsEnabled())
     {
-        if (!hasMaximum)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
-        }
         Var sharedVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::shared, scriptContext);
-        isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
+        if (!Js::JavascriptOperators::IsUndefined(sharedVar))
+        {
+            isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
+            if (!hasMaximum)
+            {
+                JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
+            }
+        }
     }
 
     return CreateMemoryObject(initial, maximum, isShared, scriptContext);
