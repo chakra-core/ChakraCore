@@ -419,7 +419,7 @@ JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleReco
         {
             errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
 
-            if (errorCode == JsNoError)
+            if (errorCode == JsNoError && moduleRecord != nullptr)
             {
                 errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
             }
@@ -1130,14 +1130,7 @@ Error:
 
 JsErrorCode WScriptJsrt::InitializeModuleCallbacks()
 {
-    JsModuleRecord moduleRecord = JS_INVALID_REFERENCE;
-    JsErrorCode errorCode = ChakraRTInterface::JsInitializeModuleRecord(nullptr, nullptr, &moduleRecord);
-    if (errorCode == JsNoError)
-    {
-        errorCode = InitializeModuleInfo(nullptr, moduleRecord);
-    }
-
-    return errorCode;
+    return InitializeModuleInfo(nullptr, nullptr);
 }
 
 bool WScriptJsrt::Uninitialize()

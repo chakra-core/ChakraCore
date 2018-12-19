@@ -138,16 +138,27 @@ JsModuleEvaluation(
 
 CHAKRA_API
 JsSetModuleHostInfo(
-    _In_ JsModuleRecord requestModule,
+    _In_opt_ JsModuleRecord requestModule,
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _In_ void* hostInfo)
 {
+    Js::ScriptContext* scriptContext;
+    Js::SourceTextModuleRecord* moduleRecord;
     if (!Js::SourceTextModuleRecord::Is(requestModule))
     {
-        return JsErrorInvalidArgument;
+        if (moduleHostInfo != JsModuleHostInfo_FetchImportedModuleCallback &&
+            moduleHostInfo != JsModuleHostInfo_FetchImportedModuleFromScriptCallback &&
+            moduleHostInfo != JsModuleHostInfo_NotifyModuleReadyCallback)
+        {
+            return JsErrorInvalidArgument;
+        }
+        scriptContext = JsrtContext::GetCurrent()->GetScriptContext();
     }
-    Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
-    Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
+    else
+    {
+        moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
+        scriptContext = moduleRecord->GetScriptContext();
+    }
     JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         JsrtContextCore* currentContext = static_cast<JsrtContextCore*>(JsrtContextCore::GetCurrent());
