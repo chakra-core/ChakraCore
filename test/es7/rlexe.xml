@@ -101,4 +101,10 @@
       <compile-flags>-ESSymbolDescription -args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>globalThis.js</files>
+      <compile-flags>-ESGlobalThis -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

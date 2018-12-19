@@ -655,9 +655,10 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
 #define DEFAULT_CONFIG_ES6Unscopables          (true)
 #define DEFAULT_CONFIG_ES6RegExSticky          (true)
-#define DEFAULT_CONFIG_ES2018RegExDotAll          (true)
-#define DEFAULT_CONFIG_ESBigInt          (false)
+#define DEFAULT_CONFIG_ES2018RegExDotAll       (true)
+#define DEFAULT_CONFIG_ESBigInt                (false)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
+#define DEFAULT_CONFIG_ESGlobalThis            (true)
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
     // If ES6RegExPrototypeProperties needs to be disabled by compile flag, DEFAULT_CONFIG_ES6RegExPrototypeProperties should be false
     #define DEFAULT_CONFIG_ES6RegExPrototypeProperties (false)
@@ -1194,6 +1195,9 @@ FLAGR(Boolean, ESBigInt, "Enable ESBigInt flag", DEFAULT_CONFIG_ESBigInt)
 
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
+
+//ES globalThis flag
+FLAGR(Boolean, ESGlobalThis, "Enable globalThis", DEFAULT_CONFIG_ESGlobalThis)
 
 // This flag to be removed once JITing generator functions is stable
 FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", false)
