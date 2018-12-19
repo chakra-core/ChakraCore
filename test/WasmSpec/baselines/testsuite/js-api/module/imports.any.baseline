@@ -1,0 +1,10 @@
+Harness Status: OK
+Found 8 tests: Pass = 8
+Pass Missing arguments  
+Pass Non-Module arguments  
+Pass Branding  
+Pass Return type  
+Pass Empty module  
+Pass Empty module: array caching  
+Pass imports  
+Pass Stray argument  

@@ -83,8 +83,12 @@ def build_js(out_js_dir, include_harness=False):
     convert_wast_to_js(out_js_dir)
 
     print('Copying JS tests to the JS out dir...')
-    for js_file in glob.glob(os.path.join(JS_TESTS_DIR, '*.js')):
-        shutil.copy(js_file, out_js_dir)
+    for path in os.listdir(JS_TESTS_DIR):
+        abspath = os.path.join(JS_TESTS_DIR, path)
+        if os.path.isdir(abspath):
+            shutil.copytree(abspath, os.path.join(out_js_dir, path))
+        else:
+            shutil.copy(abspath, out_js_dir)
 
     harness_dir = os.path.join(out_js_dir, 'harness')
     ensure_empty_dir(harness_dir)

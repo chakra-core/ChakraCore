@@ -124,7 +124,7 @@ class CWriter {
   CWriter(Stream* c_stream,
           Stream* h_stream,
           const char* header_name,
-          const WriteCOptions* options)
+          const WriteCOptions& options)
       : options_(options),
         c_stream_(c_stream),
         h_stream_(h_stream),
@@ -240,8 +240,9 @@ class CWriter {
   void WriteInit();
   void WriteFuncs();
   void Write(const Func&);
-  void WriteParams();
-  void WriteLocals();
+  void WriteParamsAndLocals();
+  void WriteParams(const std::vector<std::string>& index_to_name);
+  void WriteLocals(const std::vector<std::string>& index_to_name);
   void WriteStackVarDeclarations();
   void Write(const ExprList&);
 
@@ -266,7 +267,7 @@ class CWriter {
   void Write(const SimdLaneOpExpr&);
   void Write(const SimdShuffleOpExpr&);
 
-  const WriteCOptions* options_ = nullptr;
+  const WriteCOptions& options_;
   const Module* module_ = nullptr;
   const Func* func_ = nullptr;
   Stream* stream_ = nullptr;
@@ -1281,8 +1282,7 @@ void CWriter::Write(const Func& func) {
 
   Write("static ", ResultType(func.decl.sig.result_types), " ",
         GlobalName(func.name), "(");
-  WriteParams();
-  WriteLocals();
+  WriteParamsAndLocals();
   Write("FUNC_PROLOGUE;", Newline());
 
   stream_ = &func_stream_;
@@ -1316,13 +1316,18 @@ void CWriter::Write(const Func& func) {
   func_ = nullptr;
 }
 
-void CWriter::WriteParams() {
-  if (func_->decl.sig.param_types.empty()) {
+void CWriter::WriteParamsAndLocals() {
+  std::vector<std::string> index_to_name;
+  MakeTypeBindingReverseMapping(func_->GetNumParamsAndLocals(), func_->bindings,
+                                &index_to_name);
+  WriteParams(index_to_name);
+  WriteLocals(index_to_name);
+}
+
+void CWriter::WriteParams(const std::vector<std::string>& index_to_name) {
+  if (func_->GetNumParams() == 0) {
     Write("void");
   } else {
-    std::vector<std::string> index_to_name;
-    MakeTypeBindingReverseMapping(func_->decl.sig.param_types.size(),
-                                  func_->param_bindings, &index_to_name);
     Indent(4);
     for (Index i = 0; i < func_->GetNumParams(); ++i) {
       if (i != 0) {
@@ -1338,10 +1343,8 @@ void CWriter::WriteParams() {
   Write(") ", OpenBrace());
 }
 
-void CWriter::WriteLocals() {
-  std::vector<std::string> index_to_name;
-  MakeTypeBindingReverseMapping(func_->local_types.size(),
-                                func_->local_bindings, &index_to_name);
+void CWriter::WriteLocals(const std::vector<std::string>& index_to_name) {
+  Index num_params = func_->GetNumParams();
   for (Type type : {Type::I32, Type::I64, Type::F32, Type::F64}) {
     Index local_index = 0;
     size_t count = 0;
@@ -1356,7 +1359,8 @@ void CWriter::WriteLocals() {
             Write(Newline());
         }
 
-        Write(DefineLocalScopeName(index_to_name[local_index]), " = 0");
+        Write(DefineLocalScopeName(index_to_name[num_params + local_index]),
+              " = 0");
         ++count;
       }
       ++local_index;
@@ -1565,6 +1569,16 @@ void CWriter::Write(const ExprList& exprs) {
         break;
       }
 
+      case ExprType::MemoryCopy:
+      case ExprType::MemoryDrop:
+      case ExprType::MemoryInit:
+      case ExprType::MemoryFill:
+      case ExprType::TableCopy:
+      case ExprType::TableDrop:
+      case ExprType::TableInit:
+        UNIMPLEMENTED("...");
+        break;
+
       case ExprType::MemoryGrow: {
         assert(module_->memories.size() == 1);
         Memory* memory = module_->memories[0];
@@ -1649,14 +1663,16 @@ void CWriter::Write(const ExprList& exprs) {
         Write("UNREACHABLE;", Newline());
         return;
 
-      case ExprType::AtomicWait:
-      case ExprType::AtomicWake:
       case ExprType::AtomicLoad:
       case ExprType::AtomicRmw:
       case ExprType::AtomicRmwCmpxchg:
       case ExprType::AtomicStore:
+      case ExprType::AtomicWait:
+      case ExprType::AtomicWake:
       case ExprType::IfExcept:
       case ExprType::Rethrow:
+      case ExprType::ReturnCall:
+      case ExprType::ReturnCallIndirect:
       case ExprType::Throw:
       case ExprType::Try:
         UNIMPLEMENTED("...");
@@ -2286,7 +2302,7 @@ Result WriteC(Stream* c_stream,
               Stream* h_stream,
               const char* header_name,
               const Module* module,
-              const WriteCOptions* options) {
+              const WriteCOptions& options) {
   CWriter c_writer(c_stream, h_stream, header_name, options);
   return c_writer.WriteModule(*module);
 }

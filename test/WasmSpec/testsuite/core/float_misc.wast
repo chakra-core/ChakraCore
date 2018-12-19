@@ -235,7 +235,7 @@
 (assert_return (invoke "f64.sub" (f64.const 0x1.5e423fe8571f4p-57) (f64.const 0x1.9624ed7c162dfp-618)) (f64.const 0x1.5e423fe8571f4p-57))
 
 ;; pow(e, π) - π
-;; https://xkcd.com/217
+;; https://xkcd.com/217/
 (assert_return (invoke "f32.sub" (f32.const 0x1.724046p+4) (f32.const 0x1.921fb6p+1)) (f32.const 0x1.3ffc5p+4))
 (assert_return (invoke "f64.sub" (f64.const 0x1.724046eb0933ap+4) (f64.const 0x1.921fb54442d18p+1)) (f64.const 0x1.3ffc504280d97p+4))
 

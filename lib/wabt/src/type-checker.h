@@ -75,6 +75,8 @@ class TypeChecker {
   Result OnCall(const TypeVector& param_types, const TypeVector& result_types);
   Result OnCallIndirect(const TypeVector& param_types,
                         const TypeVector& result_types);
+  Result OnReturnCall(const TypeVector& param_types, const TypeVector& result_types);
+  Result OnReturnCallIndirect(const TypeVector& param_types, const TypeVector& result_types);
   Result OnCatch();
   Result OnCompare(Opcode);
   Result OnConst(Type);
@@ -90,8 +92,15 @@ class TypeChecker {
                     const TypeVector& except_sig);
   Result OnLoad(Opcode);
   Result OnLoop(const TypeVector& param_types, const TypeVector& result_types);
+  Result OnMemoryCopy();
+  Result OnMemoryDrop(Index);
+  Result OnMemoryFill();
   Result OnMemoryGrow();
+  Result OnMemoryInit(Index);
   Result OnMemorySize();
+  Result OnTableCopy();
+  Result OnTableDrop(Index);
+  Result OnTableInit(Index);
   Result OnRethrow();
   Result OnReturn();
   Result OnSelect();
@@ -118,6 +127,7 @@ class TypeChecker {
                  const TypeVector& result_types);
   Result PopLabel();
   Result CheckLabelType(Label* label, LabelType label_type);
+  Result GetThisFunctionLabel(Label **label);
   Result PeekType(Index depth, Type* out_type);
   Result PeekAndCheckType(Index depth, Type expected);
   Result DropTypes(size_t drop_count);
@@ -125,12 +135,14 @@ class TypeChecker {
   void PushTypes(const TypeVector& types);
   Result CheckTypeStackEnd(const char* desc);
   Result CheckType(Type actual, Type expected);
+  Result CheckTypes(const TypeVector &actual, const TypeVector &expected);
   Result CheckSignature(const TypeVector& sig, const char* desc);
+  Result CheckReturnSignature(const TypeVector& sig, const TypeVector &expected,const char *desc);
   Result PopAndCheckSignature(const TypeVector& sig, const char* desc);
   Result PopAndCheckCall(const TypeVector& param_types,
                          const TypeVector& result_types,
                          const char* desc);
-  Result PopAndCheck1Type(Type expected, const char* desc);
+    Result PopAndCheck1Type(Type expected, const char* desc);
   Result PopAndCheck2Types(Type expected1, Type expected2, const char* desc);
   Result PopAndCheck3Types(Type expected1,
                            Type expected2,

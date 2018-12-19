@@ -1,0 +1,15 @@
+Harness Status: OK
+Found 13 tests: Pass = 11 Fail = 2
+Pass name  
+Pass length  
+Pass No arguments  
+Pass Non-Module arguments  
+Pass Calling  
+Pass Empty module without imports argument  
+Pass Empty module with undefined imports argument  
+Pass Empty module with empty imports argument  
+Pass getter order for imports object  
+Pass imports  
+Fail No imports  Object doesn't support property or method 'setFunctionTableLength'
+Fail exports and imports  assert_false: fn: writable expected false got true
+Pass stray argument  

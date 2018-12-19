@@ -38,7 +38,7 @@
 #define HAVE_STRCASECMP 0
 
 /* Whether ENABLE_VIRTUAL_TERMINAL_PROCESSING is defined by windows.h */
-#define HAVE_WIN32_VT100 1
+#define HAVE_WIN32_VT100 0
 
 #define COMPILER_IS_CLANG 0
 #define COMPILER_IS_GNU 0
@@ -97,7 +97,7 @@
 
 #elif COMPILER_IS_MSVC
 
-#include <cstring>
+#include <string.h>
 #include <intrin.h>
 
 #define WABT_UNUSED
@@ -116,7 +116,7 @@
 
 #endif
 
-
+#ifdef __cplusplus
 namespace wabt
 {
 
@@ -294,7 +294,7 @@ int wabt_vsnprintf(char* str, size_t size, const char* format, va_list ap);
 #endif
 
 #if !HAVE_SSIZE_T
-typedef int ssize_t;
+typedef long ssize_t;
 #endif
 
 #if !HAVE_STRCASECMP
@@ -343,5 +343,7 @@ __inline float wabt_convert_uint64_to_float(unsigned __int64 x)
 #define wabt_convert_uint64_to_double(x) static_cast<double>(x)
 #define wabt_convert_uint64_to_float(x) static_cast<float>(x)
 #endif
+
+#endif  // __cplusplus
 
 #endif /* WABT_CONFIG_H_ */

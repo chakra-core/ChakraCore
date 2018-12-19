@@ -1,0 +1,38 @@
+Harness Status: OK
+Found 36 tests: Fail = 32 Pass = 4
+Fail name  Object expected
+Fail length  Object expected
+Pass No arguments  
+Pass Calling  
+Fail Order of evaluation  Object doesn't support this action
+Pass Invalid descriptor argument  
+Pass Invalid type argument  
+Fail i64 with default  Object doesn't support this action
+Fail Default value for type i32  Object doesn't support this action
+Fail Explicit value undefined for type i32  Object doesn't support this action
+Fail Explicit value null for type i32  Object doesn't support this action
+Fail Explicit value true for type i32  Object doesn't support this action
+Fail Explicit value false for type i32  Object doesn't support this action
+Fail Explicit value 2 for type i32  Object doesn't support this action
+Fail Explicit value "3" for type i32  Object doesn't support this action
+Fail Explicit value object with toString for type i32  Object doesn't support this action
+Fail Explicit value object with valueOf for type i32  Object doesn't support this action
+Fail Default value for type f32  Object doesn't support this action
+Fail Explicit value undefined for type f32  Object doesn't support this action
+Fail Explicit value null for type f32  Object doesn't support this action
+Fail Explicit value true for type f32  Object doesn't support this action
+Fail Explicit value false for type f32  Object doesn't support this action
+Fail Explicit value 2 for type f32  Object doesn't support this action
+Fail Explicit value "3" for type f32  Object doesn't support this action
+Fail Explicit value object with toString for type f32  Object doesn't support this action
+Fail Explicit value object with valueOf for type f32  Object doesn't support this action
+Fail Default value for type f64  Object doesn't support this action
+Fail Explicit value undefined for type f64  Object doesn't support this action
+Fail Explicit value null for type f64  Object doesn't support this action
+Fail Explicit value true for type f64  Object doesn't support this action
+Fail Explicit value false for type f64  Object doesn't support this action
+Fail Explicit value 2 for type f64  Object doesn't support this action
+Fail Explicit value "3" for type f64  Object doesn't support this action
+Fail Explicit value object with toString for type f64  Object doesn't support this action
+Fail Explicit value object with valueOf for type f64  Object doesn't support this action
+Fail Stray argument  Object doesn't support this action

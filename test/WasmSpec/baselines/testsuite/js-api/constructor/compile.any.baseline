@@ -1,0 +1,10 @@
+Harness Status: OK
+Found 8 tests: Pass = 7 Fail = 1
+Pass Missing argument  
+Pass Invalid arguments  
+Pass Branding  
+Pass Promise type  
+Pass Invalid code  
+Pass Result type  
+Pass Stray argument  
+Fail Changing the buffer  assert_equals: expected (number) 0 but got (undefined) undefined

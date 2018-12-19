@@ -39,7 +39,7 @@ class BinaryWriterSpec {
                    WriteBinarySpecStreamFactory module_stream_factory,
                    string_view source_filename,
                    string_view module_filename_noext,
-                   const WriteBinaryOptions* options);
+                   const WriteBinaryOptions& options);
 
   Result WriteScript(const Script& script);
 
@@ -68,7 +68,7 @@ class BinaryWriterSpec {
   WriteBinarySpecStreamFactory module_stream_factory_;
   std::string source_filename_;
   std::string module_filename_noext_;
-  const WriteBinaryOptions* options_ = nullptr;
+  const WriteBinaryOptions& options_;
   Result result_ = Result::Ok;
   size_t num_modules_ = 0;
 };
@@ -78,7 +78,7 @@ BinaryWriterSpec::BinaryWriterSpec(
     WriteBinarySpecStreamFactory module_stream_factory,
     string_view source_filename,
     string_view module_filename_noext,
-    const WriteBinaryOptions* options)
+    const WriteBinaryOptions& options)
     : json_stream_(json_stream),
       module_stream_factory_(module_stream_factory),
       source_filename_(source_filename),
@@ -514,7 +514,7 @@ Result WriteBinarySpecScript(Stream* json_stream,
                              Script* script,
                              string_view source_filename,
                              string_view module_filename_noext,
-                             const WriteBinaryOptions* options) {
+                             const WriteBinaryOptions& options) {
   BinaryWriterSpec binary_writer_spec(json_stream, module_stream_factory,
                                       source_filename, module_filename_noext,
                                       options);
@@ -526,7 +526,7 @@ Result WriteBinarySpecScript(
     Script* script,
     string_view source_filename,
     string_view module_filename_noext,
-    const WriteBinaryOptions* options,
+    const WriteBinaryOptions& options,
     std::vector<FilenameMemoryStreamPair>* out_module_streams,
     Stream* log_stream) {
   WriteBinarySpecStreamFactory module_stream_factory =

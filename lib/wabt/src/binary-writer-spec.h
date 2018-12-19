@@ -43,7 +43,7 @@ Result WriteBinarySpecScript(Stream* json_stream,
                              Script*,
                              string_view source_filename,
                              string_view module_filename_noext,
-                             const WriteBinaryOptions*);
+                             const WriteBinaryOptions&);
 
 // Convenience function for producing MemoryStream outputs all modules.
 Result WriteBinarySpecScript(
@@ -51,7 +51,7 @@ Result WriteBinarySpecScript(
     Script*,
     string_view source_filename,
     string_view module_filename_noext,
-    const WriteBinaryOptions*,
+    const WriteBinaryOptions&,
     std::vector<FilenameMemoryStreamPair>* out_module_streams,
     Stream* log_stream = nullptr);
 

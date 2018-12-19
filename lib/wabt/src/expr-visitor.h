@@ -89,10 +89,19 @@ class ExprVisitor::Delegate {
   virtual Result OnLoadExpr(LoadExpr*) = 0;
   virtual Result BeginLoopExpr(LoopExpr*) = 0;
   virtual Result EndLoopExpr(LoopExpr*) = 0;
+  virtual Result OnMemoryCopyExpr(MemoryCopyExpr*) = 0;
+  virtual Result OnMemoryDropExpr(MemoryDropExpr*) = 0;
+  virtual Result OnMemoryFillExpr(MemoryFillExpr*) = 0;
   virtual Result OnMemoryGrowExpr(MemoryGrowExpr*) = 0;
+  virtual Result OnMemoryInitExpr(MemoryInitExpr*) = 0;
   virtual Result OnMemorySizeExpr(MemorySizeExpr*) = 0;
+  virtual Result OnTableCopyExpr(TableCopyExpr*) = 0;
+  virtual Result OnTableDropExpr(TableDropExpr*) = 0;
+  virtual Result OnTableInitExpr(TableInitExpr*) = 0;
   virtual Result OnNopExpr(NopExpr*) = 0;
   virtual Result OnReturnExpr(ReturnExpr*) = 0;
+  virtual Result OnReturnCallExpr(ReturnCallExpr*) = 0;
+  virtual Result OnReturnCallIndirectExpr(ReturnCallIndirectExpr*) = 0;
   virtual Result OnSelectExpr(SelectExpr*) = 0;
   virtual Result OnSetGlobalExpr(SetGlobalExpr*) = 0;
   virtual Result OnSetLocalExpr(SetLocalExpr*) = 0;
@@ -141,10 +150,21 @@ class ExprVisitor::DelegateNop : public ExprVisitor::Delegate {
   Result OnLoadExpr(LoadExpr*) override { return Result::Ok; }
   Result BeginLoopExpr(LoopExpr*) override { return Result::Ok; }
   Result EndLoopExpr(LoopExpr*) override { return Result::Ok; }
+  Result OnMemoryCopyExpr(MemoryCopyExpr*) override { return Result::Ok; }
+  Result OnMemoryDropExpr(MemoryDropExpr*) override { return Result::Ok; }
+  Result OnMemoryFillExpr(MemoryFillExpr*) override { return Result::Ok; }
   Result OnMemoryGrowExpr(MemoryGrowExpr*) override { return Result::Ok; }
+  Result OnMemoryInitExpr(MemoryInitExpr*) override { return Result::Ok; }
   Result OnMemorySizeExpr(MemorySizeExpr*) override { return Result::Ok; }
+  Result OnTableCopyExpr(TableCopyExpr*) override { return Result::Ok; }
+  Result OnTableDropExpr(TableDropExpr*) override { return Result::Ok; }
+  Result OnTableInitExpr(TableInitExpr*) override { return Result::Ok; }
   Result OnNopExpr(NopExpr*) override { return Result::Ok; }
   Result OnReturnExpr(ReturnExpr*) override { return Result::Ok; }
+  Result OnReturnCallExpr(ReturnCallExpr*) override { return Result::Ok; }
+  Result OnReturnCallIndirectExpr(ReturnCallIndirectExpr*) override {
+    return Result::Ok;
+  }
   Result OnSelectExpr(SelectExpr*) override { return Result::Ok; }
   Result OnSetGlobalExpr(SetGlobalExpr*) override { return Result::Ok; }
   Result OnSetLocalExpr(SetLocalExpr*) override { return Result::Ok; }
