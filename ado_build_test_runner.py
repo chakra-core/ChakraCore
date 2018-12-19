@@ -223,7 +223,7 @@ def exeShellStr(shellStr):
 
 def printToADO(v, windows = False):
     if windows:
-        print(check_output("echo"+v, shell=True))
+        print(check_output("echo "+v, shell=True))
     else:
         subprocess.call(["echo", str(v)])
 
