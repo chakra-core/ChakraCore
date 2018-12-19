@@ -1,32 +1,32 @@
 Harness Status: OK
-Found 30 tests: Fail = 26 Pass = 4
-Fail Missing arguments: get  assert_throws: function "() => table.get()" did not throw
+Found 30 tests: Pass = 29 Fail = 1
+Pass Missing arguments: get  
 Pass Branding: get  
 Pass Missing arguments: set  
 Pass Branding: set  
-Fail Basic  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Growing  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-bounds  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting non-function  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting non-wasm function  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting non-wasm arrow function  assert_throws: undefined: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: undefined  assert_throws: function "() => table.get(value)" did not throw
-Fail Setting out-of-range argument: undefined  assert_throws: function "() => table.set(value, null)" did not throw
-Fail Getting out-of-range argument: NaN  assert_throws: function "() => table.get(value)" did not throw
-Fail Setting out-of-range argument: NaN  assert_throws: function "() => table.set(value, null)" did not throw
-Fail Getting out-of-range argument: Infinity  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: Infinity  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: -Infinity  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: -Infinity  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: -1  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: -1  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: 4294967296  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: 4294967296  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: 68719476736  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: 68719476736  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: "0x100000000"  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: "0x100000000"  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Getting out-of-range argument: object "[object Object]"  assert_throws: function "() => table.get(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Setting out-of-range argument: object "[object Object]"  assert_throws: function "() => table.set(value, null)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Pass Basic  
+Pass Growing  
+Pass Setting out-of-bounds  
+Pass Setting non-function  
+Pass Setting non-wasm function  
+Pass Setting non-wasm arrow function  
+Pass Getting out-of-range argument: undefined  
+Pass Setting out-of-range argument: undefined  
+Pass Getting out-of-range argument: NaN  
+Pass Setting out-of-range argument: NaN  
+Pass Getting out-of-range argument: Infinity  
+Pass Setting out-of-range argument: Infinity  
+Pass Getting out-of-range argument: -Infinity  
+Pass Setting out-of-range argument: -Infinity  
+Pass Getting out-of-range argument: -1  
+Pass Setting out-of-range argument: -1  
+Pass Getting out-of-range argument: 4294967296  
+Pass Setting out-of-range argument: 4294967296  
+Pass Getting out-of-range argument: 68719476736  
+Pass Setting out-of-range argument: 68719476736  
+Pass Getting out-of-range argument: "0x100000000"  
+Pass Setting out-of-range argument: "0x100000000"  
+Pass Getting out-of-range argument: object "[object Object]"  
+Pass Setting out-of-range argument: object "[object Object]"  
 Fail Order of argument conversion  assert_equals: expected 1 but got 0
 Pass Stray argument  
