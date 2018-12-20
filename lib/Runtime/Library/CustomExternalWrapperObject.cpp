@@ -308,6 +308,9 @@ void CustomExternalWrapperObject::SetPrototype(RecyclableObject* newPrototype)
         return;
     }
 
+    // setting the value could be deferred and now we are on a different context from
+    // make sure the value has the same context as the containing object.
+    newPrototype = VarTo<RecyclableObject>(Js::CrossSite::MarshalVar(this->GetScriptContext(), newPrototype));
     DynamicObject::SetPrototype(newPrototype);
 }
 
@@ -315,7 +318,7 @@ Js::Var CustomExternalWrapperObject::GetValueFromDescriptor(Js::Var instance, Js
 {
     if (propertyDescriptor.ValueSpecified())
     {
-        return Js::CrossSite::MarshalVar(requestContext, propertyDescriptor.GetValue());
+        return propertyDescriptor.GetValue();
     }
     if (propertyDescriptor.GetterSpecified())
     {
@@ -588,11 +591,20 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
     Assert(!requestContext->IsHeapEnumInProgress());
     if (nullptr == defineOwnPropertyMethod)
     {
+        Js::PropertyDescriptor desc = descriptor;
+
+        if(desc.ValueSpecified())
+        {
+            // setting the value could be deferred and now we are on a different context from
+            // make sure the value has the same context as the containing object.
+            desc.SetValue(Js::CrossSite::MarshalVar(targetObj->GetScriptContext(), descriptor.GetValue()));
+        }
+
         PropertyDescriptor currentDescriptor;
         BOOL isCurrentDescriptorDefined = JavascriptOperators::GetOwnPropertyDescriptor(obj, propId, requestContext, &currentDescriptor);
 
         bool isExtensible = !!obj->IsExtensible();
-        return Js::JavascriptOperators::ValidateAndApplyPropertyDescriptor<true>(obj, propId, descriptor, isCurrentDescriptorDefined ? &currentDescriptor : nullptr, isExtensible, throwOnError, requestContext);
+        return Js::JavascriptOperators::ValidateAndApplyPropertyDescriptor<true>(obj, propId, desc, isCurrentDescriptorDefined ? &currentDescriptor : nullptr, isExtensible, throwOnError, requestContext);
     }
 
     Js::Var descVar = descriptor.GetOriginal();
@@ -651,6 +663,9 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     };
     auto fn = [&]()->BOOL
     {
+        // setting the value could be deferred and now we are on a different context from
+        // make sure the value has the same context as the containing object.
+        newValue = Js::CrossSite::MarshalVar(this->GetScriptContext(), newValue);
         return DynamicObject::SetProperty(propertyNameString, newValue, propertyOperationFlags, nullptr);
     };
     return SetPropertyTrap(receiver, setPropertyTrapKind, getPropertyName, newValue, requestContext, propertyOperationFlags, FALSE, fn);
@@ -708,7 +723,6 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext)
 {
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
-    originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
     Js::PropertyDescriptor result;
 
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
@@ -735,7 +749,6 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext)
 {
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
-    originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
     Js::PropertyDescriptor result;
 
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
@@ -766,7 +779,6 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyReferenceQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext)
 {
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
-    originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
     Js::PropertyDescriptor result;
 
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
@@ -826,7 +838,6 @@ BOOL CustomExternalWrapperObject::HasOwnItem(uint32 index)
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext)
 {
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
-    originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
     Js::PropertyDescriptor result;
 
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
@@ -857,7 +868,6 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var origina
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemReferenceQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext)
 {
     if (!this->VerifyObjectAlive()) return Js::PropertyQueryFlags::Property_NotFound;
-    originalInstance = Js::CrossSite::MarshalVar(GetScriptContext(), originalInstance);
 
     Js::PropertyDescriptor result;
     auto fn = [&](Js::RecyclableObject* object)-> BOOL {
@@ -898,11 +908,17 @@ BOOL CustomExternalWrapperObject::SetItem(uint32 index, Js::Var value, Js::Prope
 
     auto fn = [&]()->BOOL
     {
+        // setting the value could be deferred and now we are on a different context from
+        // make sure the value has the same context as the containing object.
+        value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
         return DynamicObject::SetItem(index, value, flags);
     };
     BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetItemKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn);
     if (!trapResult)
     {
+        // setting the value could be deferred and now we are on a different context from
+        // make sure the value has the same context as the containing object.
+        value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
         return Js::DynamicObject::SetItem(index, value, flags);
     }
 
@@ -1020,6 +1036,7 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
                                 // if (desc.enumerable) yield key;
                                 if (desc.IsEnumerable())
                                 {
+                                    //TODO: (vsadov) not sure if should marshal here, it is "getting"
                                     return VarTo<JavascriptString>(CrossSite::MarshalVar(
                                         scriptContext, propertyName, propertyName->GetScriptContext()));
                                 }
@@ -1040,7 +1057,6 @@ BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator *
 BOOL CustomExternalWrapperObject::SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info)
 {
     if (!this->VerifyObjectAlive()) return FALSE;
-    //value = Js::CrossSite::MarshalVar(GetScriptContext(), value);
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
     auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
@@ -1050,6 +1066,9 @@ BOOL CustomExternalWrapperObject::SetProperty(Js::PropertyId propertyId, Js::Var
 
     auto fn = [&]()->BOOL
     {
+        // setting the value could be deferred and now we are on a different context from
+        // make sure the value has the same context as the containing object.
+        value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
         return DynamicObject::SetProperty(propertyId, value, flags, info);
     };
 
@@ -1068,6 +1087,9 @@ BOOL CustomExternalWrapperObject::SetProperty(Js::JavascriptString* propertyName
 
     auto fn = [&]()->BOOL
     {
+        // setting the value could be deferred and now we are on a different context from
+        // make sure the value has the same context as the containing object.
+        value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     };
 
@@ -1101,6 +1123,9 @@ BOOL CustomExternalWrapperObject::InitProperty(PropertyId propertyId, Var value,
         return FALSE;
     }
 
+    // setting the value could be deferred and now we are on a different context from
+    // make sure the value has the same context as the containing object.
+    value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
     return DynamicObject::InitProperty(propertyId, value, flags, info);
 }
 
