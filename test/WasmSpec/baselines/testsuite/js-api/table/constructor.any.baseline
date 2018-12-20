@@ -1,5 +1,5 @@
 Harness Status: OK
-Found 27 tests: Pass = 24 Fail = 3
+Found 27 tests: Pass = 27
 Pass name  
 Pass length  
 Pass No arguments  
@@ -24,6 +24,6 @@ Pass Initial value exceeds maximum
 Pass Basic (zero)  
 Pass Basic (non-zero)  
 Pass Stray argument  
-Fail Proxy descriptor  assert_unreached: Should not call [[HasProperty]] with maximum Reached unreachable code
-Fail Type conversion for descriptor.element  tableDescriptor.element is not AnyFunc
-Fail Order of evaluation for descriptor  tableDescriptor.element is not AnyFunc
+Pass Proxy descriptor  
+Pass Type conversion for descriptor.element  
+Pass Order of evaluation for descriptor  
