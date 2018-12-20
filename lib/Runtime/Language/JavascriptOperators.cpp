@@ -1883,9 +1883,15 @@ CommonNumber:
     void JavascriptOperators::TryCacheMissingProperty(Var instance, Var cacheInstance, bool isRoot, PropertyId propertyId, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info)
     {
         // Here, any well-behaved subclasses of DynamicObject can opt in to getting included in the missing property cache.
-        // For now, we only include basic objects and arrays. CustomExternalObject in particular is problematic because in
-        // some cases it can add new properties without transitioning its type handler.
+        // For now, we only include basic objects and arrays. 
         if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !(DynamicObject::IsBaseDynamicObject(instance) || DynamicObject::IsAnyArray(instance)))
+        {
+            return;
+        }
+
+        // CustomExternalObject in particular is problematic because in some cases it can report missing when implicit callsare disabled.
+        // See CustomExternalObject::GetPropertyQuery for an example.
+        if (UnsafeVarTo<DynamicObject>(instance)->GetType()->IsJsrtExternal() && requestContext->GetThreadContext()->IsDisableImplicitCall())
         {
             return;
         }
