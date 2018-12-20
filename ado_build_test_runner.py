@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from subprocess import check_output
-  
+
 os = "OSX"
 branch = "master"
 debug = False
@@ -138,7 +138,7 @@ def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultT
             if run_not_static:
                 staticBuildConfigs.append(False)
 
-            if platform is "osx":
+            if platform == "osx":
                 staticBuildConfigs = {True}
 
             for staticBuild in staticBuildConfigs:
@@ -146,12 +146,12 @@ def CreateXPlatBuildTasks(machine, platform, configTag, xplatBranch, nonDefaultT
 
 
 def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, configTag, xplatBranch, nonDefaultTaskSetup, customOption, testVariant, extraBuildParams):
-    config = "osx_"+buildType if platform is "osx" else "linux_"+buildType
+    config = "osx_"+buildType if platform == "osx" else "linux_"+buildType
     
     # todo: numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
     # temp replacement:
     # numConcurrentCommand = "nproc"
-    numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform is "osx" else "nproc"
+    numConcurrentCommand = "sysctl -n hw.logicalcpu" if platform == "osx" else "nproc"
 
     config = config if configTag is None else configTag + "_" + config
     config = "static_"+config if staticBuild else "shared"+config
@@ -161,11 +161,11 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
 
     infoScript = "bash jenkins/get_system_info.sh --"+platform
 
-    buildFlag = "" if buildType is "release" else ("--debug" if buildType is "debug" else "--test-build")
+    buildFlag = "" if buildType == "release" else ("--debug" if buildType == "debug" else "--test-build")
 
     staticFlag = "--static" if staticBuild else ""
 
-    swbCheckFlag = "--wb-check" if platform is "linux" and buildType is "debug" and not staticBuild else ""
+    swbCheckFlag = "--wb-check" if platform == "linux" and buildType == "debug" and not staticBuild else ""
 
     # todo: icuFlag = "--icu=/Users/DDITLABS/homebrew/opt/icu4c/include" if platform == "osx" else ""
     # temp replacement:
@@ -176,6 +176,9 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
     compilerPaths = ""
 
     buildScript = "bash ./build.sh "+staticFlag+" "+buildFlag+" "+swbCheckFlag+" "+compilerPaths+" "+icuFlag+" "+customOption+" "+extraBuildParams
+
+    if platform == "linux":
+        buildScript = "sudo " + buildScript
 
     # todo: icuLibFlag = "--iculib=/Users/DDITLABS/homebrew/opt/icu4c" if platform == "osx" else ""
     # temp replacement:
