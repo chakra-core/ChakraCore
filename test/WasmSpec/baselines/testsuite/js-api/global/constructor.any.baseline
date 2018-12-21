@@ -1,38 +1,38 @@
 Harness Status: OK
-Found 36 tests: Fail = 32 Pass = 4
-Fail name  Object expected
-Fail length  Object expected
-Pass No arguments  
+Found 36 tests: Fail = 35 Pass = 1
+Fail name  assert_equals: WebAssembly.Global name should be Global expected "Global" but got ""
+Fail length  assert_equals: WebAssembly.Global length should be 1 expected 1 but got 0
+Fail No arguments  assert_throws: function "() => new WebAssembly.Global()" did not throw
 Pass Calling  
-Fail Order of evaluation  Object doesn't support this action
-Pass Invalid descriptor argument  
-Pass Invalid type argument  
-Fail i64 with default  Object doesn't support this action
-Fail Default value for type i32  Object doesn't support this action
-Fail Explicit value undefined for type i32  Object doesn't support this action
-Fail Explicit value null for type i32  Object doesn't support this action
-Fail Explicit value true for type i32  Object doesn't support this action
-Fail Explicit value false for type i32  Object doesn't support this action
-Fail Explicit value 2 for type i32  Object doesn't support this action
-Fail Explicit value "3" for type i32  Object doesn't support this action
-Fail Explicit value object with toString for type i32  Object doesn't support this action
-Fail Explicit value object with valueOf for type i32  Object doesn't support this action
-Fail Default value for type f32  Object doesn't support this action
-Fail Explicit value undefined for type f32  Object doesn't support this action
-Fail Explicit value null for type f32  Object doesn't support this action
-Fail Explicit value true for type f32  Object doesn't support this action
-Fail Explicit value false for type f32  Object doesn't support this action
-Fail Explicit value 2 for type f32  Object doesn't support this action
-Fail Explicit value "3" for type f32  Object doesn't support this action
-Fail Explicit value object with toString for type f32  Object doesn't support this action
-Fail Explicit value object with valueOf for type f32  Object doesn't support this action
-Fail Default value for type f64  Object doesn't support this action
-Fail Explicit value undefined for type f64  Object doesn't support this action
-Fail Explicit value null for type f64  Object doesn't support this action
-Fail Explicit value true for type f64  Object doesn't support this action
-Fail Explicit value false for type f64  Object doesn't support this action
-Fail Explicit value 2 for type f64  Object doesn't support this action
-Fail Explicit value "3" for type f64  Object doesn't support this action
-Fail Explicit value object with toString for type f64  Object doesn't support this action
-Fail Explicit value object with valueOf for type f64  Object doesn't support this action
-Fail Stray argument  Object doesn't support this action
+Fail Order of evaluation  assert_array_equals: lengths differ, expected 4 got 0
+Fail Invalid descriptor argument  assert_throws: new Global(undefined) function "() => new WebAssembly.Global(invalidArgument)" did not throw
+Fail Invalid type argument  assert_throws: function "() => new WebAssembly.Global(argument)" did not throw
+Fail i64 with default  assert_throws: function "() => global.value" did not throw
+Fail Default value for type i32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value undefined for type i32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value null for type i32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value true for type i32  assert_equals: value expected (number) 1 but got (undefined) undefined
+Fail Explicit value false for type i32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value 2 for type i32  assert_equals: value expected (number) 2 but got (undefined) undefined
+Fail Explicit value "3" for type i32  assert_equals: value expected (number) 3 but got (undefined) undefined
+Fail Explicit value object with toString for type i32  assert_equals: value expected (number) 5 but got (undefined) undefined
+Fail Explicit value object with valueOf for type i32  assert_equals: value expected (number) 8 but got (undefined) undefined
+Fail Default value for type f32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value undefined for type f32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value null for type f32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value true for type f32  assert_equals: value expected (number) 1 but got (undefined) undefined
+Fail Explicit value false for type f32  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value 2 for type f32  assert_equals: value expected (number) 2 but got (undefined) undefined
+Fail Explicit value "3" for type f32  assert_equals: value expected (number) 3 but got (undefined) undefined
+Fail Explicit value object with toString for type f32  assert_equals: value expected (number) 5 but got (undefined) undefined
+Fail Explicit value object with valueOf for type f32  assert_equals: value expected (number) 8 but got (undefined) undefined
+Fail Default value for type f64  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value undefined for type f64  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value null for type f64  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value true for type f64  assert_equals: value expected (number) 1 but got (undefined) undefined
+Fail Explicit value false for type f64  assert_equals: value expected (number) 0 but got (undefined) undefined
+Fail Explicit value 2 for type f64  assert_equals: value expected (number) 2 but got (undefined) undefined
+Fail Explicit value "3" for type f64  assert_equals: value expected (number) 3 but got (undefined) undefined
+Fail Explicit value object with toString for type f64  assert_equals: value expected (number) 5 but got (undefined) undefined
+Fail Explicit value object with valueOf for type f64  assert_equals: value expected (number) 8 but got (undefined) undefined
+Fail Stray argument  assert_equals: value expected (number) 0 but got (undefined) undefined

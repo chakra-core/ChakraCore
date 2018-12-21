@@ -17,6 +17,11 @@ WScript.Flag(`-wasmMaxTableSize:${(Math.pow(2,32)-1)|0}`);
 
 self.addEventListener = function() {};
 
+if (!WebAssembly.Global) {
+  // Shim WebAssembly.Global so the tests fails, but don't crash
+  WebAssembly.Global = class {}
+}
+
 class ConsoleTestEnvironment {
   constructor() {
     this.all_loaded = false;

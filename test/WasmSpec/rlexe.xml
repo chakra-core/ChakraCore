@@ -1240,6 +1240,21 @@
   <test>
     <default>
       <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/interface.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/interface.any.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/testsuite/js-api/interface.any.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/interface.any.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
       <baseline>baselines/testsuite/js-api/constructor/compile.any.baseline</baseline>
       <compile-flags>-wasm -args testsuite/js-api/constructor/compile.any.js -endargs</compile-flags>
     </default>
@@ -1549,21 +1564,6 @@
       <files>jsapi.js</files>
       <baseline>baselines/testsuite/js-api/module/toString.any.baseline</baseline>
       <compile-flags>-wasm -args testsuite/js-api/module/toString.any.js -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>jsapi.js</files>
-      <baseline>baselines/testsuite/js-api/table/assertions.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/js-api/table/assertions.js -endargs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>jsapi.js</files>
-      <baseline>baselines/testsuite/js-api/table/assertions.baseline</baseline>
-      <compile-flags>-wasm -args testsuite/js-api/table/assertions.js -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
