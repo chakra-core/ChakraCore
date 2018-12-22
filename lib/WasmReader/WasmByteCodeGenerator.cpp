@@ -963,7 +963,8 @@ EmitInfo WasmBytecodeGenerator::EmitSetLocal(bool tee)
     {
         if (info.type == WasmTypes::Any)
         {
-            throw WasmCompilationException(_u("Can't tee_local unreachable values"));
+            info.location = local.location;
+            info.type = local.type;
         }
         return info;
     }
