@@ -2021,6 +2021,22 @@ Instr::New(Js::OpCode opcode, Func *func)
 ///
 /// Instr::New
 ///
+///     Create an Instr with a byte code offset.
+///
+///----------------------------------------------------------------------------
+
+Instr *
+Instr::New(Js::OpCode opcode, Func *func, IR::Instr * bytecodeOffsetInstr)
+{
+    Instr * instr = Instr::New(opcode, func);
+    instr->SetByteCodeOffset(bytecodeOffsetInstr);
+    return instr;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::New
+///
 ///     Create an Instr with dst.
 ///
 ///----------------------------------------------------------------------------

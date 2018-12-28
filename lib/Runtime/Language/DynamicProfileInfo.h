@@ -60,6 +60,7 @@ namespace Js
         Field(ProfileId) arrayCallSiteCount;
         Field(ProfileId) slotInfoCount;
         Field(ProfileId) callSiteInfoCount;
+        Field(ProfileId) callApplyTargetInfoCount;
         Field(ProfileId) returnTypeInfoCount;
         Field(ProfileId) divCount;
         Field(ProfileId) switchCount;
@@ -128,7 +129,6 @@ namespace Js
             _u_type() {}
         } u;
     };
-
 
     // TODO: include ImplicitCallFlags in this structure
     struct LoopFlags
@@ -460,10 +460,12 @@ namespace Js
         void RecordAsmJsCallSiteInfo(FunctionBody* callerBody, ProfileId callSiteId, FunctionBody* calleeBody);
 #endif
         void RecordCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * calleeFunctionInfo, JavascriptFunction* calleeFunction, uint actualArgCount, bool isConstructorCall, InlineCacheIndex ldFldInlineCacheId = Js::Constants::NoInlineCacheIndex);
+        void RecordCallApplyTargetInfo(FunctionBody* functionBody, ProfileId callSiteId, FunctionInfo * targetFunctionInfo, JavascriptFunction* targetFunction);
         void RecordParameterAtCallSite(FunctionBody * functionBody, ProfileId callSiteId, Var arg, int argNum, Js::RegSlot regSlot);
         static bool HasCallSiteInfo(FunctionBody* functionBody);
         bool HasCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId); // Does a particular callsite have ProfileInfo?
         FunctionInfo * GetCallbackInfo(FunctionBody * functionBody, ProfileId callSiteId);
+        FunctionInfo * GetCallApplyTargetInfo(FunctionBody * functionBody, ProfileId callSiteId);
         bool MayHaveNonBuiltinCallee(ProfileId callSiteId);
         FunctionInfo * GetCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, bool *isConstructorCall, bool *isPolymorphicCall);
         CallSiteInfo * GetCallSiteInfo() const { return callSiteInfo; }
@@ -533,6 +535,7 @@ namespace Js
         // Replaced with the function body it is verified and matched (See DynamicProfileInfo::MatchFunctionBody)
         Field(DynamicProfileFunctionInfo *) dynamicProfileFunctionInfo;
         Field(CallSiteInfo *) callSiteInfo;
+        Field(CallSiteInfo *) callApplyTargetInfo;
         Field(ValueType *) returnTypeInfo; // return type of calls for non inline call sites
         Field(ValueType *) divideTypeInfo;
         Field(ValueType *) switchTypeInfo;

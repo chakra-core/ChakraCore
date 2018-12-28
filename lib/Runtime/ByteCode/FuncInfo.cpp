@@ -91,6 +91,7 @@ FuncInfo::FuncInfo(
     rootObjectStoreInlineCacheMap(nullptr),
     inlineCacheMap(nullptr),
     referencedPropertyIdToMapIndex(nullptr),
+    callSiteToCallApplyCallSiteMap(nullptr),
     valueOfStoreCacheIds(),
     toStringStoreCacheIds(),
     slotProfileIdMap(alloc),
@@ -474,6 +475,15 @@ CapturedSymMap *FuncInfo::EnsureCapturedSymMap()
         this->capturedSymMap = Anew(alloc, CapturedSymMap, alloc);
     }
     return this->capturedSymMap;
+}
+
+CallSiteToCallApplyCallSiteMap * FuncInfo::EnsureCallSiteToCallApplyCallSiteMap()
+{
+    if (this->callSiteToCallApplyCallSiteMap == nullptr)
+    {
+        this->callSiteToCallApplyCallSiteMap = Anew(alloc, CallSiteToCallApplyCallSiteMap, alloc);
+    }
+    return this->callSiteToCallApplyCallSiteMap;
 }
 
 void FuncInfo::SetHasMaybeEscapedNestedFunc(DebugOnly(char16 const * reason))

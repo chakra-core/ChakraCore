@@ -32,6 +32,8 @@ public:
     Js::FunctionInfo *GetCallSiteFuncInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, bool* isConstructorCall, bool* isPolymorphicCall);
     Js::FunctionInfo * InlineCallback(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth);
     Js::FunctionInfo * GetCallSiteCallbackInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
+    Js::FunctionInfo * InlineCallApplyTarget(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, uint recursiveInlineDepth);
+    Js::FunctionInfo * GetCallApplyTargetInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint16 GetConstantArgInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     bool HasCallSiteInfo(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId);
     uint InlinePolymorphicCallSite(Js::FunctionBody *const inliner, const Js::ProfileId profiledCallSiteId, Js::FunctionBody** functionBodyArray, uint functionBodyArrayLength, bool* canInlineArray, uint recursiveInlineDepth = 0);

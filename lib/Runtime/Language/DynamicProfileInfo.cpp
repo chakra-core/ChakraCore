@@ -61,6 +61,7 @@ namespace Js
         Allocation batch[] =
         {
             { (uint)offsetof(DynamicProfileInfo, callSiteInfo), functionBody->GetProfiledCallSiteCount() * sizeof(CallSiteInfo) },
+            { (uint)offsetof(DynamicProfileInfo, callApplyTargetInfo), functionBody->GetProfiledCallApplyCallSiteCount() * sizeof(CallSiteInfo) },
             { (uint)offsetof(DynamicProfileInfo, ldLenInfo), functionBody->GetProfiledLdLenCount() * sizeof(LdLenInfo) },
             { (uint)offsetof(DynamicProfileInfo, ldElemInfo), functionBody->GetProfiledLdElemCount() * sizeof(LdElemInfo) },
             { (uint)offsetof(DynamicProfileInfo, stElemInfo), functionBody->GetProfiledStElemCount() * sizeof(StElemInfo) },
@@ -154,6 +155,11 @@ namespace Js
         {
             callSiteInfo[i].returnType = ValueType::Uninitialized;
             callSiteInfo[i].u.functionData.sourceId = NoSourceId;
+        }
+        for (ProfileId i = 0; i < functionBody->GetProfiledCallApplyCallSiteCount(); ++i)
+        {
+            callApplyTargetInfo[i].returnType = ValueType::Uninitialized;
+            callApplyTargetInfo[i].u.functionData.sourceId = NoSourceId;
         }
         for (ProfileId i = 0; i < functionBody->GetProfiledLdLenCount(); ++i)
         {
@@ -761,6 +767,38 @@ namespace Js
 
         return;
     }
+    void DynamicProfileInfo::RecordCallApplyTargetInfo(FunctionBody* functionBody, ProfileId callApplyCallSiteNum, FunctionInfo * targetFunctionInfo, JavascriptFunction* targetFunction)
+    {
+        AutoCriticalSection cs(&this->callSiteInfoCS);
+
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        // If we persistsAcrossScriptContext, the dynamic profile info may be referred to by multiple function body from
+        // different script context
+        Assert(!DynamicProfileInfo::NeedProfileInfoList() || this->persistsAcrossScriptContexts || this->functionBody == functionBody);
+#endif
+        Assert(callApplyCallSiteNum < functionBody->GetProfiledCallApplyCallSiteCount());
+        Js::SourceId oldSourceId = callApplyTargetInfo[callApplyCallSiteNum].u.functionData.sourceId;
+        Js::LocalFunctionId oldFunctionId = callApplyTargetInfo[callApplyCallSiteNum].u.functionData.functionId;
+        if (oldSourceId == InvalidSourceId)
+        {
+            return;
+        }
+
+        Js::SourceId sourceId;
+        Js::LocalFunctionId functionId;
+        GetSourceAndFunctionId(functionBody, targetFunctionInfo, targetFunction, &sourceId, &functionId);
+
+        if (oldSourceId == NoSourceId)
+        {
+            callApplyTargetInfo[callApplyCallSiteNum].u.functionData.sourceId = sourceId;
+            callApplyTargetInfo[callApplyCallSiteNum].u.functionData.functionId = functionId;
+            callApplyTargetInfo[callApplyCallSiteNum].dontInline = false;
+        }
+        else if (oldSourceId != sourceId || oldFunctionId != functionId)
+        {
+            callApplyTargetInfo[callApplyCallSiteNum].isPolymorphic = true;
+        }
+    }
 
     bool DynamicProfileInfo::IsPolymorphicCallSite(Js::LocalFunctionId curFunctionId, Js::SourceId curSourceId, Js::LocalFunctionId oldFunctionId, Js::SourceId oldSourceId)
     {
@@ -1124,6 +1162,24 @@ namespace Js
         return GetFunctionInfo(functionBody, callbackInfo->sourceId, callbackInfo->functionId);
     }
 
+    FunctionInfo * DynamicProfileInfo::GetCallApplyTargetInfo(FunctionBody * functionBody, ProfileId callSiteId)
+    {
+        Assert(functionBody != nullptr);
+        Js::ProfileId callSiteCount = functionBody->GetProfiledCallSiteCount();
+        Assert(callSiteId < callSiteCount);
+        Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
+
+        Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
+        Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+        
+        if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+        {
+            return nullptr;
+        }
+
+        return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
+    }
+
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)
     {
         Assert(functionBody);
@@ -1399,6 +1455,7 @@ namespace Js
             this->dynamicProfileFunctionInfo = RecyclerNewStructLeaf(recycler, DynamicProfileFunctionInfo);
         }
         this->dynamicProfileFunctionInfo->callSiteInfoCount = functionBody->GetProfiledCallSiteCount();
+        this->dynamicProfileFunctionInfo->callApplyTargetInfoCount = functionBody->GetProfiledCallApplyCallSiteCount();
         this->dynamicProfileFunctionInfo->paramInfoCount = functionBody->GetProfiledInParamsCount();
         this->dynamicProfileFunctionInfo->divCount = functionBody->GetProfiledDivOrRemCount();
         this->dynamicProfileFunctionInfo->switchCount = functionBody->GetProfiledSwitchCount();
@@ -1452,6 +1509,7 @@ namespace Js
             || this->dynamicProfileFunctionInfo->fldInfoCount != functionBody->GetProfiledFldCount()
             || this->dynamicProfileFunctionInfo->slotInfoCount != functionBody->GetProfiledSlotCount()
             || this->dynamicProfileFunctionInfo->callSiteInfoCount != functionBody->GetProfiledCallSiteCount()
+            || this->dynamicProfileFunctionInfo->callApplyTargetInfoCount != functionBody->GetProfiledCallApplyCallSiteCount()
             || this->dynamicProfileFunctionInfo->returnTypeInfoCount != functionBody->GetProfiledReturnTypeCount()
             || this->dynamicProfileFunctionInfo->loopCount != functionBody->GetLoopCount()
             || this->dynamicProfileFunctionInfo->switchCount != functionBody->GetProfiledSwitchCount()
@@ -2113,6 +2171,8 @@ namespace Js
             || !writer->WriteArray(this->slotInfo, functionBody->GetProfiledSlotCount())
             || !writer->Write(functionBody->GetProfiledCallSiteCount())
             || !writer->WriteArray(this->callSiteInfo, functionBody->GetProfiledCallSiteCount())
+            || !writer->Write(functionBody->GetProfiledCallApplyCallSiteCount())
+            || !writer->WriteArray(this->callApplyTargetInfo, functionBody->GetProfiledCallApplyCallSiteCount())
             || !writer->Write(functionBody->GetProfiledDivOrRemCount())
             || !writer->WriteArray(this->divideTypeInfo, functionBody->GetProfiledDivOrRemCount())
             || !writer->Write(functionBody->GetProfiledSwitchCount())
@@ -2142,6 +2202,7 @@ namespace Js
         ProfileId arrayCallSiteCount = 0;
         ProfileId slotInfoCount = 0;
         ProfileId callSiteInfoCount = 0;
+        ProfileId callApplyTargetInfoCount = 0;
         ProfileId returnTypeInfoCount = 0;
         ProfileId divCount = 0;
         ProfileId switchCount = 0;
@@ -2155,6 +2216,7 @@ namespace Js
         FldInfo * fldInfo = nullptr;
         ValueType * slotInfo = nullptr;
         CallSiteInfo * callSiteInfo = nullptr;
+        CallSiteInfo * callApplyTargetInfo = nullptr;
         ValueType * divTypeInfo = nullptr;
         ValueType * switchTypeInfo = nullptr;
         ValueType * returnTypeInfo = nullptr;
@@ -2291,6 +2353,23 @@ namespace Js
                 }
             }
 
+            if (!reader->Read(&callApplyTargetInfoCount))
+            {
+                goto Error;
+            }
+
+            if (callApplyTargetInfoCount != 0)
+            {
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
+                callApplyTargetInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callApplyTargetInfoCount);
+                if (!reader->ReadArray(callApplyTargetInfo, callApplyTargetInfoCount))
+                {
+                    goto Error;
+                }
+            }
+
             if (!reader->Read(&divCount))
             {
                 goto Error;
@@ -2373,6 +2452,7 @@ namespace Js
             dynamicProfileFunctionInfo->fldInfoCount = fldInfoCount;
             dynamicProfileFunctionInfo->slotInfoCount = slotInfoCount;
             dynamicProfileFunctionInfo->callSiteInfoCount = callSiteInfoCount;
+            dynamicProfileFunctionInfo->callApplyTargetInfoCount = callApplyTargetInfoCount;
             dynamicProfileFunctionInfo->divCount = divCount;
             dynamicProfileFunctionInfo->switchCount = switchCount;
             dynamicProfileFunctionInfo->returnTypeInfoCount = returnTypeInfoCount;
@@ -2388,6 +2468,7 @@ namespace Js
             dynamicProfileInfo->fldInfo = fldInfo;
             dynamicProfileInfo->slotInfo = slotInfo;
             dynamicProfileInfo->callSiteInfo = callSiteInfo;
+            dynamicProfileInfo->callApplyTargetInfo = callApplyTargetInfo;
             dynamicProfileInfo->divideTypeInfo = divTypeInfo;
             dynamicProfileInfo->switchTypeInfo = switchTypeInfo;
             dynamicProfileInfo->returnTypeInfo = returnTypeInfo;

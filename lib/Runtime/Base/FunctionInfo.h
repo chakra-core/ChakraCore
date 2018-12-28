@@ -121,6 +121,9 @@ namespace Js
         uint GetCompileCount() const { return compileCount; }
         void SetCompileCount(uint count) { compileCount = count; }
 
+        bool IsBuiltInApplyFunction();
+        bool IsBuiltInCallFunction();
+        
         BOOL IsDeferredDeserializeFunction() const { return ((this->attributes & DeferredDeserialize) == DeferredDeserialize); }
         BOOL IsDeferredParseFunction() const { return ((this->attributes & DeferredParse) == DeferredParse); }
         void SetCapturesThis() { attributes = (Attributes)(attributes | Attributes::CapturesThis); }

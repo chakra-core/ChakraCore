@@ -177,6 +177,7 @@ protected:
     }
 public:
     static Instr *  New(Js::OpCode opcode, Func *func);
+    static Instr *  New(Js::OpCode opcode, Func *func, IR::Instr * bytecodeOffsetInstr);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Func *func);
     static Instr *  New(Js::OpCode opcode, Opnd *dstOpnd, Opnd *src1Opnd, Opnd *src2Opnd, Func *func);

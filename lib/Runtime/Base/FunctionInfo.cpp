@@ -63,4 +63,14 @@ namespace Js
         return function->GetTypeId() == Js::TypeIds_Function ?
             Js::UnsafeVarTo<Js::JavascriptFunction>(function)->GetFunctionInfo()->GetAttributes() : Js::FunctionInfo::None;
     }
+
+    bool FunctionInfo::IsBuiltInApplyFunction()
+    {
+        return Js::JavascriptLibrary::GetBuiltInForFuncInfo(this->GetLocalFunctionId()) == Js::BuiltinFunction::JavascriptFunction_Apply;
+    }
+
+    bool FunctionInfo::IsBuiltInCallFunction()
+    {
+        return Js::JavascriptLibrary::GetBuiltInForFuncInfo(this->GetLocalFunctionId()) == Js::BuiltinFunction::JavascriptFunction_Call;
+    }
 }

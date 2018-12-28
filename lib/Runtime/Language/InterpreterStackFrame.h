@@ -152,7 +152,6 @@ namespace Js
         uint retOffset;
         int16 nestedFinallyDepth;
 
-
         void (InterpreterStackFrame::*opLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
 #if ENABLE_PROFILE_INFO
         void (InterpreterStackFrame::*opProfiledLoopBodyStart)(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);

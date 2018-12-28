@@ -2813,6 +2813,38 @@ NativeCodeGenerator::GatherCodeGenData(
                 if (!isJitTimeDataComputed)
                 {
                     jitTimeData->AddInlinee(recycler, profiledCallSiteId, inlinee);
+                    
+                    if (inlinee->IsBuiltInApplyFunction() || inlinee->IsBuiltInCallFunction())
+                    {
+                        // .call/.apply targets
+                        Js::FunctionInfo *const targetFunctionInfo = inliningDecider.InlineCallApplyTarget(functionBody, profiledCallSiteId, recursiveInlineDepth);
+                        if (targetFunctionInfo != nullptr)
+                        {
+                            Js::FunctionBody *const targetFunctionBody = targetFunctionInfo->GetFunctionBody();
+                            Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[profiledCallSiteId];
+                            if (!targetFunctionBody)
+                            {
+                                jitTimeData->AddCallApplyTargetInlinee(recycler, profiledCallSiteId, callApplyCallSiteId, targetFunctionInfo);
+                            }
+                            else if (targetFunctionBody != functionBody)
+                            {
+                                Js::FunctionCodeGenJitTimeData * targetJittimeData = jitTimeData->AddCallApplyTargetInlinee(recycler, profiledCallSiteId, callApplyCallSiteId, targetFunctionInfo);
+                                Js::FunctionCodeGenRuntimeData * targetRuntimeData = IsInlinee ? runtimeData->EnsureCallApplyTargetInlinee(recycler, callApplyCallSiteId, targetFunctionBody) : functionBody->EnsureCallApplyTargetInlineeCodeGenRuntimeData(recycler, callApplyCallSiteId, targetFunctionBody);
+
+                                GatherCodeGenData<true>(
+                                    recycler,
+                                    topFunctionBody,
+                                    targetFunctionBody,
+                                    entryPoint,
+                                    inliningDecider,
+                                    objTypeSpecFldInfoList,
+                                    targetJittimeData,
+                                    targetRuntimeData);
+
+                                AddInlineCacheStats(jitTimeData, targetJittimeData);
+                            }
+                        }
+                    }
                 }
                 continue;
             }
