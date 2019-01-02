@@ -482,11 +482,12 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
-    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && instr->m_func->IsStackArgsEnabled()
-        && instr->m_func->hasArgLenAndConstOpt && instr->m_func->unoptimizableArgumentsObjReference == 0)
+    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && 
+        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled())
+        && instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
     {
         instr->m_func->hasUnoptimizedArgumentsAccess = false;
-        if (DoInlineArgsOpt(instr->m_func))
+        if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
         {
             instr->m_func->m_hasInlineArgsOpt = true;
             Assert(instr->m_func->cachedInlineeFrameInfo);
@@ -502,6 +503,8 @@ GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 
     Assert(this->currentBlock->globOptData.inlinedArgOutSize >= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false));
     this->currentBlock->globOptData.inlinedArgOutSize -= instr->GetArgOutSize(/*getInterpreterArgOutCount*/ false);
+
+    instr->m_func->GetParentFunc()->unoptimizableArgumentsObjReferenceInInlinees += instr->m_func->unoptimizableArgumentsObjReference;
 }
 
 void

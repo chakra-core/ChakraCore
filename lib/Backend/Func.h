@@ -726,6 +726,7 @@ public:
     StackSym *          tempSymBool;
     uint32              loopCount;
     uint32              unoptimizableArgumentsObjReference;
+    uint32              unoptimizableArgumentsObjReferenceInInlinees;
     Js::ProfileId       callSiteIdInParentFunc;
     InlineeFrameInfo*   cachedInlineeFrameInfo;
     bool                m_hasCalls: 1; // This is more accurate compared to m_isLeaf
@@ -855,6 +856,7 @@ public:
                         {
                             curFunc->m_canDoInlineArgsOpt = false;
                             curFunc->m_hasInlineArgsOpt = false;
+                            curFunc->frameInfo = nullptr;
                             curFunc = curFunc->GetParentFunc();
                         }
     }

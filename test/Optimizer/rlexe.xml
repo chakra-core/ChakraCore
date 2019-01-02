@@ -1502,6 +1502,11 @@
   </test>
   <test>
     <default>
+      <files>test152.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>IsIn_ArrayNoMissingValues.js</files>
       <baseline>IsIn_ArrayNoMissingValues.baseline</baseline>
       <compile-flags>-testtrace:BoundCheckElimination</compile-flags>

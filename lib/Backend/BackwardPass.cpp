@@ -8033,11 +8033,12 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
 
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
-        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n"),
+        PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s, 'arguments' access: %s, stackArgs enabled: %s, Can do inlinee args opt: %s\n"),
                 func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
                 inlineeStart->m_func->GetJITFunctionBody()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAccess()),
+                IsTrueOrFalse(inlineeStart->m_func->IsStackArgsEnabled()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
         return false;
     }
@@ -8115,6 +8116,11 @@ BackwardPass::ProcessInlineeEnd(IR::Instr* instr)
     }
     else if (this->tag == Js::DeadStorePhase)
     {
+        if (instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() && !instr->m_func->IsStackArgsEnabled())
+        {
+            instr->m_func->DisableCanDoInlineArgOpt();
+        }
+
         if (instr->m_func->m_hasInlineArgsOpt)
         {
             Assert(instr->m_func->frameInfo);
