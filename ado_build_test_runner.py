@@ -17,6 +17,9 @@ run_static = False
 slow = False
 lite = False
 legacy = False
+runInfoScript = False
+createBinary = False
+runTestsAgainstBinary = False
 
 latestWindowsMachine = 'windows.10.amd64.clientrs4.devex.open' # Windows 10 RS4 with Dev 15.7
 latestWindowsMachineTag = None # all information is included in the machine name above
@@ -59,9 +62,20 @@ for arg in sys.argv:
         lite = True
     elif argArr[0] == "--legacy":
         legacy = True
+    elif argArr[0] == "--runInfoScript":
+        runInfoScript = True
+    elif argArr[0] == "--createBinary":
+        createBinary = True
+    elif argArr[0] == "--runTestsAgainstBinary":
+        runTestsAgainstBinary = True
 
 if not run_static and not run_not_static:
     run_not_static = True
+
+if not runInfoScript and not createBinary and not runTestsAgainstBinary:
+    runInfoScript = True
+    createBinary = True
+    runTestsAgainstBinary = True
 
 def CreateBuildTasks(machine, machineTag, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup):
 
@@ -188,17 +202,20 @@ def CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform, config
 
     j = getJ(numConcurrentCommand)
 
-    printToADO("----- INFO SCRIPT -----")
-    exeBashStr(infoScript)
+    if runInfoScript:
+        printToADO("----- INFO SCRIPT -----")
+        exeBashStr(infoScript)
 
-    printToADO("----- BUILD SCRIPT -----")
-    if j:
-        exeBashStr(buildScript, j)
-    else:
-        exeBashStr(buildScript)
+    if createBinary:
+        printToADO("----- BUILD SCRIPT -----")
+        if j:
+            exeBashStr(buildScript, j)
+        else:
+            exeBashStr(buildScript)
     
-    printToADO("----- TEST SCRIPT -----")
-    exeBashStr(testScript, None, testVariant)
+    if runTestsAgainstBinary:
+        printToADO("----- TEST SCRIPT -----")
+        exeBashStr(testScript, None, testVariant)
 
 # Unix
 def exeBashStr(bashStr, j=None, testVariant=None, windows=False):
