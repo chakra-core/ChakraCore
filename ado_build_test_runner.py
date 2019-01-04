@@ -237,7 +237,7 @@ def exeBashStr(bashStr, j=None, testVariant=None, windows=False):
         print("Invalid Bash String: "+bashStr)
         return None
     
-    print("RET CODE FOR "+bashStr+" : "+ret)
+    printToADO("RET CODE FOR "+bashStr+" : "+str(ret))
 
     return ret
 
