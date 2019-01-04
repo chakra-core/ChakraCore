@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from subprocess import check_output
-  
+ 
 os = "OSX"
 branch = "master"
 debug = False
@@ -236,14 +236,15 @@ def exeBashStr(bashStr, j=None, testVariant=None, windows=False):
     except:
         print("Invalid Bash String: "+bashStr)
         return None
-    else:
-        return ret
+    
+    print("RET CODE FOR "+bashStr+" : "+ret)
+
+    return ret
 
 # Windows
 def exeShellStr(shellStr):
     printToADO(shellStr, True)
-    exeBashStr(shellStr, None, None, True)
-    
+    return exeBashStr(shellStr, None, None, True)
 
 def printToADO(v, windows = False):
     if windows:
