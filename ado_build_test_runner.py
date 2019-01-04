@@ -236,15 +236,17 @@ def exeBashStr(bashStr, j=None, testVariant=None, windows=False):
     except:
         print("Invalid Bash String: "+bashStr)
         return None
-    
-    print("RET CODE FOR "+bashStr+" : "+str(ret))
+
+    if ret != 0:
+        print("exit code: "+str(ret))
+        sys.exit(ret)
 
     return ret
 
 # Windows
 def exeShellStr(shellStr):
     printToADO(shellStr, True)
-    return exeBashStr(shellStr, None, None, True)
+    exeBashStr(shellStr, None, None, True)
 
 def printToADO(v, windows = False):
     if windows:
