@@ -23306,10 +23306,20 @@ Lowerer::GenerateFastIsInst(IR::Instr * instr)
     instrArg = instr->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
 
     objectSrc = instrArg->GetSrc1();
+    if (instr->GetDst()->IsEqual(objectSrc))
+    {
+        IR::Instr* hoistInstr = m_lowererMD.ChangeToAssign(instrArg->HoistSrc1(Js::OpCode::Ld_A));
+        objectSrc = hoistInstr->GetDst();
+    }
     Assert(instrArg->GetSrc2()->AsRegOpnd()->m_sym->m_isSingleDef);
     instrArg = instrArg->GetSrc2()->AsRegOpnd()->m_sym->m_instrDef;
 
     functionSrc = instrArg->GetSrc1();
+    if (instr->GetDst()->IsEqual(functionSrc))
+    {
+        IR::Instr* hoistInstr = m_lowererMD.ChangeToAssign(instrArg->HoistSrc1(Js::OpCode::Ld_A));
+        functionSrc = hoistInstr->GetDst();
+    }
     Assert(instrArg->GetSrc2() == nullptr);
 
     // MOV dst, Js::false
