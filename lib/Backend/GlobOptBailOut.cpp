@@ -483,8 +483,9 @@ void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
     if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && 
-        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled())
-        && instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
+        !IsLoopPrePass() &&
+        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled()) &&
+        instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
     {
         instr->m_func->hasUnoptimizedArgumentsAccess = false;
         if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
