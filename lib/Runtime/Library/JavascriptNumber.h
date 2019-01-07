@@ -55,6 +55,7 @@ namespace Js
         static bool TryToVarFastWithCheck(double value, Var* result);
 
         inline static BOOL IsNan(double value) { return NumberUtilities::IsNan(value); }
+        inline static BOOL IsNegative(double value) { return NumberUtilities::IsNegative(value); }
         static bool IsZero(double value);
         static BOOL IsNegZero(double value);
         static bool IsPosInf(double value);

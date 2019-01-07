@@ -23,7 +23,7 @@ namespace Js
 #if FLOATVAR
         if (IsNan(value))
         {
-            value = JavascriptNumber::NaN;
+            value = IsNegative(value) ? JavascriptNumber::NegativeNaN : JavascriptNumber::NaN;
         }
 #endif
         return JavascriptNumber::NewInlined(value, scriptContext);

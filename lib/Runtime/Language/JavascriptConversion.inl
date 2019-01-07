@@ -297,10 +297,11 @@ namespace Js {
 #if FLOATVAR
            if (typeId == TypeIds_Number)
            {
-               // NaN could have sign bit set, but that isn't observable so canonicalize to positive NaN
                double numberValue = JavascriptNumber::GetValue(value);
                return JavascriptNumber::IsNan(numberValue)
-                   ? JavascriptNumber::ToVar(JavascriptNumber::NaN)
+                   ? JavascriptNumber::IsNegative(numberValue)
+                        ? JavascriptNumber::ToVar(JavascriptNumber::NegativeNaN)
+                        : JavascriptNumber::ToVar(JavascriptNumber::NaN)
                    : value;
            }
 #else
