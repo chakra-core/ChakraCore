@@ -456,6 +456,15 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         }
         break;
 
+    case Js::OpCode::InitClass:
+    case Js::OpCode::InitProto:
+    case Js::OpCode::NewScObjectNoCtor:
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
+        break;
+
     default:
         if (instr->UsesAllFields())
         {
