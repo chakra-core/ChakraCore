@@ -26,6 +26,21 @@ function GetVersionField($fieldname) {
 function GetBuildInfo($oauth, $commitHash) {
     # Get the git remote path and construct the REST API URI
     $gitExe = GetGitPath
+    
+    "testing remote acccess"
+    (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })
+    $aaa = (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })
+    Write-Output $aaa
+    
+    (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })[0]
+    $bbb = (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })[0]
+    Write-Output $bbb
+    
+    
+    (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })[0].split()
+    $ccc = (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })[0].split()
+    Write-Output $ccc
+    
     $remote = (Invoke-Expression "$gitExe remote -v" `
         | Where-Object { $_.contains("_git") })[0].split()[1].replace("_git", "_apis/git/repositories")
     $remote = $remote.replace("mshttps", "https")
