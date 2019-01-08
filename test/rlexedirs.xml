@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
+  <dir>	
+   <default>	
+    <files>Date</files>	
+  </default>	
+</dir>
+  <dir>	
+   <default>	
+    <files>VT_DATE</files>	
+  </default>	
+</dir>
+  <dir>	
+   <default>	
+    <files>JSON</files>	
+  </default>	
+</dir>
 <dir>
   <default>
     <files>262</files>
