@@ -100,6 +100,26 @@ namespace Js
         {
             return;
         }
+        
+        struct AutoRestoreFlags
+        {
+            ThreadContext * ctx;
+            ImplicitCallFlags savedImplicitCallFlags;
+            DisableImplicitFlags savedDisableImplicitFlags;
+            AutoRestoreFlags(ThreadContext *ctx, Js::ImplicitCallFlags implFlags, DisableImplicitFlags disableImplFlags) :
+                ctx(ctx),
+                savedImplicitCallFlags(implFlags),
+                savedDisableImplicitFlags(disableImplFlags)
+            {
+                ctx->ClearDisableImplicitFlags();
+            }
+
+            ~AutoRestoreFlags()
+            {
+                ctx->SetImplicitCallFlags((Js::ImplicitCallFlags)(savedImplicitCallFlags));
+                ctx->SetDisableImplicitFlags((DisableImplicitFlags)savedDisableImplicitFlags);
+            }
+        };
 
         try {
             EnsureJsBuiltInByteCode(scriptContext);
@@ -138,19 +158,19 @@ namespace Js
             scriptContext->GetThreadContext()->SetNoJsReentrancy(false);
 #endif
             // Clear disable implicit call bit as initialization code doesn't have any side effect
-            Js::ImplicitCallFlags saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-            JavascriptFunction::CallRootFunctionInScript(functionGlobal, Js::Arguments(callInfo, args));
-            scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
+            {
+                AutoRestoreFlags autoRestoreFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                JavascriptFunction::CallRootFunctionInScript(functionGlobal, Js::Arguments(callInfo, args));
+            }
 
             Js::ScriptFunction *functionBuiltins = scriptContext->GetLibrary()->CreateScriptFunction(jsBuiltInByteCode->GetNestedFunctionForExecution(0));
             functionBuiltins->SetPrototype(scriptContext->GetLibrary()->nullValue);
 
             // Clear disable implicit call bit as initialization code doesn't have any side effect
-            saveImplicitCallFlags = scriptContext->GetThreadContext()->GetImplicitCallFlags();
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
-            JavascriptFunction::CallRootFunctionInScript(functionBuiltins, Js::Arguments(callInfo, args));
-            scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
+            {
+                AutoRestoreFlags autoRestoreFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                JavascriptFunction::CallRootFunctionInScript(functionBuiltins, Js::Arguments(callInfo, args));
+            }
 
             InitializePrototypes(scriptContext);
 #if DBG_DUMP
