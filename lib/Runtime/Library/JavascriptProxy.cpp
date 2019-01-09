@@ -2143,7 +2143,11 @@ namespace Js
                 // args.Values[0] will be null in the case where NewTarget is initially provided by proxy.
                 if (!isCtorSuperCall || !args.Values[0])
                 {
-                    newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
+                    BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+                    {
+                        newThisObject = JavascriptOperators::NewScObjectNoCtor(targetObj, scriptContext);
+                    }
+                    END_SAFE_REENTRANT_CALL
                     args.Values[0] = newThisObject;
                 }
                 else

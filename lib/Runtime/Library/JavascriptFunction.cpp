@@ -866,7 +866,11 @@ using namespace Js;
         }
         else
         {
-            resultObject = JavascriptOperators::NewScObjectNoCtor(v, scriptContext);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                resultObject = JavascriptOperators::NewScObjectNoCtor(v, scriptContext);
+            }
+            END_SAFE_REENTRANT_CALL
         }
 
         // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
