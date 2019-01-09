@@ -27,7 +27,13 @@ function GetBuildInfo($oauth, $commitHash) {
     # Get the git remote path and construct the REST API URI
     $gitExe = GetGitPath
     
-    "testing remote acccess"
+    
+    Write-Output "testing remote acccesssssssss"
+    $asdf = Invoke-Expression "$gitExe remote -v"
+    Write-Output $asdf
+    
+    
+    
     (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })
     $aaa = (Invoke-Expression "$gitExe remote -v" | Where-Object { $_.contains("_git") })
     Write-Output $aaa
