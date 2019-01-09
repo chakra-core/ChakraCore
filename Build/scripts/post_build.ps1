@@ -81,7 +81,7 @@ if ($arch -eq "*") {
     }
 
     WriteMessage "======================================================================================"
-    WriteMessage "Post build script for $arch $flavor"
+    WriteMessage "Post build script for $arch $flavor    $testparams"
     WriteMessage "======================================================================================"
 
     $bvtcmdpath =  UseValueOrDefault $bvtcmdpath "" (Resolve-Path "$PSScriptRoot\..\..\test\runcitests.cmd")
@@ -116,6 +116,11 @@ if ($arch -eq "*") {
 
         # run tests
         if (-not $skipTests) {
+        
+            WriteMessage "hey running $bvtcmdpath !!!!!!"
+            WriteMessage "-$arch$flavor $testparams"
+            WriteMessage "$testparams"
+        
             # marshall environment var for cmd script
             $Env:TF_BUILD_BINARIESDIRECTORY = $buildRoot
             ExecuteCommand("$bvtcmdpath -$arch$flavor $testparams")
