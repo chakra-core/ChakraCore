@@ -1571,6 +1571,7 @@ EmitInfo WasmBytecodeGenerator::EmitReplaceLaneExpr(Js::OpCodeAsmJs op, const Wa
 
     m_writer->AsmReg4(op, resultReg, simdArg.location, indexInfo.location, valueArg.location);
     ReleaseLocation(&indexInfo);
+    ReleaseLocation(&valueArg);
     return result;
 }
 
@@ -1579,6 +1580,11 @@ EmitInfo WasmBytecodeGenerator::EmitM128BitSelect()
     EmitInfo mask = PopEvalStack(WasmTypes::M128);
     EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
     EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+
+    ReleaseLocation(&mask);
+    ReleaseLocation(&arg2Info);
+    ReleaseLocation(&arg1Info);
+
     Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, WasmTypes::M128);
     m_writer->AsmReg4(Js::OpCodeAsmJs::Simd128_BitSelect_I4, resultReg, arg1Info.location, arg2Info.location, mask.location);
@@ -1589,6 +1595,8 @@ EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
 {
     EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
     EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
+
+    // FIXME Release arg2Info and arg1Info
 
     Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, WasmTypes::M128);
@@ -1612,16 +1620,16 @@ EmitInfo WasmBytecodeGenerator::EmitExtractLaneExpr(Js::OpCodeAsmJs op, const Wa
     WasmTypes::WasmType simdArgType = signature[1];
 
     EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type M128"));
+    ReleaseLocation(&simdArgInfo);
 
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, resultType);
 
     //put index into a register to reuse the existing infra in Interpreter and Compiler
     EmitInfo indexInfo = EmitLaneIndex(op);
+    ReleaseLocation(&indexInfo);
 
     m_writer->AsmReg3(op, resultReg, simdArgInfo.location, indexInfo.location);
-    ReleaseLocation(&indexInfo);
-    ReleaseLocation(&simdArgInfo);
     return resultInfo;
 }
 
