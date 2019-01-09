@@ -129,7 +129,7 @@ set _HadFailures=0
 :: ============================================================================
 :runTests
 
-  call :do %_TestDir%\runtests.cmd -%1%2 %3 -quiet -cleanupall -binDir %_StagingDir%\bin
+  call :do %_TestDir%\runtests.cmd -%1%2 %* -quiet -cleanupall -binDir %_StagingDir%\bin
 
   if "%_error%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runtests.cmd failed
