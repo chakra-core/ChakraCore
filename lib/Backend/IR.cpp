@@ -3464,6 +3464,11 @@ IR::Instr* Instr::GetBytecodeArgOutCapture()
         this->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
     Assert(this->m_dst->GetStackSym()->m_isArgCaptured);
     IR::Instr* instr = this->GetSrc1()->GetStackSym()->m_instrDef;
+    while (instr->m_opcode != Js::OpCode::BytecodeArgOutCapture)
+    {
+        Assert(instr->GetSrc1() && instr->GetSrc1()->GetStackSym() && instr->GetSrc1()->GetStackSym()->IsSingleDef());
+        instr = instr->GetSrc1()->GetStackSym()->m_instrDef;
+    }
     Assert(instr->m_opcode == Js::OpCode::BytecodeArgOutCapture);
     return instr;
 }

@@ -1172,8 +1172,13 @@ namespace Js
         if (functionBody->GetCallSiteToCallApplyCallSiteArray())
         {
             Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
+            if (callApplyCallSiteId == Js::Constants::NoProfileId)
+            {
+                return nullptr;
+            } 
+            
             Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-
+            
             if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
             {
                 return nullptr;

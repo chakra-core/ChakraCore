@@ -3909,10 +3909,13 @@ skipThunk:
                 if (callSiteToCallApplyCallSiteMap)
                 {
                     Js::ProfileId callApplyCallSiteId = callSiteToCallApplyCallSiteMap[profileId];
-                    Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-                    if (callApplyCallSiteId != Js::Constants::NoProfileId)
+                    if (callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount())
                     {
                         dynamicProfileInfo->RecordCallApplyTargetInfo(functionBody, callApplyCallSiteId, targetFunction->GetFunctionInfo(), targetFunction);
+                    }
+                    else
+                    {
+                        Assert(callApplyCallSiteId == Js::Constants::NoProfileId);
                     }
                 }
             }
