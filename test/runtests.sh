@@ -18,20 +18,16 @@ release_build=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
     --iculib=*)
-        echo "1: $1"
         ICU4C_LIBRARY_PATH=$1
         ICU4C_LIBRARY_PATH="${ICU4C_LIBRARY_PATH:9}"
         export ICU4C_LIBRARY_PATH
         ;;
 
     *)
-        echo "2: $1"
         test_variant=$1
         ;;
     esac
     
-    echo "3: $1"
-
     shift
 done
 
