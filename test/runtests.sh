@@ -18,43 +18,22 @@ release_build=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
     --iculib=*)
+        echo "1: $1"
         ICU4C_LIBRARY_PATH=$1
         ICU4C_LIBRARY_PATH="${ICU4C_LIBRARY_PATH:9}"
         export ICU4C_LIBRARY_PATH
         ;;
 
     *)
+        echo "2: $1"
         test_variant=$1
         ;;
     esac
+    
+    echo "3: $1"
 
     shift
 done
-
-cur_dir=`pwd -P`
-echo "current dir:"
-echo $cur_dir
-
-echo "test_path:"
-echo $test_path
-
-cd $test_path
-
-cd ..
-echo "files in ..:"
-dotdotFiles=`ls`
-echo $dotdotFiles
-
-cd out
-echo "files in out:"
-outFiles=`ls`
-echo $outFiles 
-
-cd Test
-echo "files in Test:"
-TestFiles=`ls`
-echo $TestFiles 
-
 
 if [[ -f "$test_path/../out/Debug/ch" ]]; then
     echo "Warning: Debug build was found"
