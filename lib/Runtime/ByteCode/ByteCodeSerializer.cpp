@@ -3169,7 +3169,7 @@ public:
         string16IndexTable = (StringIndexRecord*)ReadInt32(string16s, &string16Count);
         lineCharacterOffsetCacheBuffer = (charcount_t *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
         byte haslineByteOffsetCacheBuffer;
-        current = ReadByte(lineInfoCaches + sizeof(charcount_t) * lineInfoCacheCount, &haslineByteOffsetCacheBuffer);
+        current = ReadByte((byte*)lineCharacterOffsetCacheBuffer + sizeof(charcount_t) * lineInfoCacheCount, &haslineByteOffsetCacheBuffer);
         if (haslineByteOffsetCacheBuffer)
         {
             lineByteOffsetCacheBuffer = (charcount_t *)current;
