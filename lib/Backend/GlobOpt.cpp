@@ -2748,11 +2748,14 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                     ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), true /*preserveSubClassInfo*/);
                     return false;
                 }
-                if (this->byteCodeUses)
+                if (!this->IsLoopPrePass())
                 {
-                    this->InsertByteCodeUses(instr);
+                    if (this->byteCodeUses)
+                    {
+                        this->InsertByteCodeUses(instr);
+                    }
+                    this->currentBlock->RemoveInstr(instr);
                 }
-                this->currentBlock->RemoveInstr(instr);
                 return true;
             }
 
