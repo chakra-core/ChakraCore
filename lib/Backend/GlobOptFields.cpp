@@ -237,6 +237,11 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
     }
+    else if (inGlobOpt && indexOpnd && !indexOpnd->GetValueType().IsInt() && !currentBlock->globOptData.IsInt32TypeSpecialized(indexOpnd->m_sym))
+    {
+        // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
+        this->KillAllObjectTypes(bv);
+    }
 }
 
 void
