@@ -406,7 +406,8 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         KillLiveFields(this->lengthEquivBv, bv);
         if (inGlobOpt)
         {
-            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            // Deleting an item, or pushing a property to a non-array, may change object layout
+            KillAllObjectTypes(bv);
         }
         break;
 
@@ -423,27 +424,32 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::CallDirect:
         fnHelper = instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper;
 
-        // Kill length field for built-ins that can update it.
-        if(fnHelper == IR::JnHelperMethod::HelperArray_Shift 
-           || fnHelper == IR::JnHelperMethod::HelperArray_Splice
-           || fnHelper == IR::JnHelperMethod::HelperArray_Unshift)
+        switch (fnHelper)
         {
-            if (nullptr != this->lengthEquivBv)
-            {
-                KillLiveFields(this->lengthEquivBv, bv);
-            }
-            if (inGlobOpt)
-            {
-                KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
-            }
-        }
+            case IR::JnHelperMethod::HelperArray_Shift:
+            case IR::JnHelperMethod::HelperArray_Splice:
+            case IR::JnHelperMethod::HelperArray_Unshift:
+                // Kill length field for built-ins that can update it.
+                if (nullptr != this->lengthEquivBv)
+                {
+                    KillLiveFields(this->lengthEquivBv, bv);
+                }
+                // fall through
 
-        if ((fnHelper == IR::JnHelperMethod::HelperRegExp_Exec)
-           || (fnHelper == IR::JnHelperMethod::HelperString_Match)
-           || (fnHelper == IR::JnHelperMethod::HelperString_Replace))
-        {
-            // Consider: We may not need to kill all fields here.
-            this->KillAllFields(bv);
+            case IR::JnHelperMethod::HelperArray_Reverse:
+                // Deleting an item may change object layout
+                if (inGlobOpt)
+                {
+                    KillAllObjectTypes(bv);
+                }
+                break;
+
+            case IR::JnHelperMethod::HelperRegExp_Exec:
+            case IR::JnHelperMethod::HelperString_Match:
+            case IR::JnHelperMethod::HelperString_Replace:
+                // Consider: We may not need to kill all fields here.
+                this->KillAllFields(bv);
+                break;
         }
         break;
 
