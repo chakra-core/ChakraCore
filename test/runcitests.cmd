@@ -129,11 +129,22 @@ set _HadFailures=0
 :: ============================================================================
 :runTests
 
-  arch=%1
-  build=%2
+  :: save the architecture and build values, then obtain the rest of the arguments
+  set arch=%1
+  set build=%2
   shift
   shift
-  call :do %_TestDir%\runtests.cmd -%arch%build %* -quiet -cleanupall -binDir %_StagingDir%\bin
+  
+  set rest=
+  :rest_loop
+  if "%1"=="" goto after_rest_loop
+  set rest=%rest% %1
+  shift
+  goto rest_loop
+
+  :after_rest_loop
+
+  call :do %_TestDir%\runtests.cmd -%arch%%build% %rest% -quiet -cleanupall -binDir %_StagingDir%\bin
 
   if "%_error%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runtests.cmd failed
