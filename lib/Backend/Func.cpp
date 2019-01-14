@@ -2112,7 +2112,7 @@ bool
 Func::ShouldDoLazyBailOut() const
 {
 #if defined(_M_X64)
-    if (!PHASE_ON1(Js::LazyBailoutPhase) ||
+    if (!PHASE_OFF1(Js::LazyBailoutPhase) ||
         this->GetJITFunctionBody()->IsAsmJsMode() || // don't have bailouts in asm.js
         this->HasTry() ||                            // lazy bailout in function with try/catch not supported for now
                                                      // `EHBailoutPatchUp` set a `hasBailedOut` bit to rethrow the exception in the interpreter

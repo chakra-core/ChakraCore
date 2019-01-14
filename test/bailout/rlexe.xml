@@ -275,4 +275,45 @@
       <files>bug17449647.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>LazyBailout_0.js</files>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit -off:bailonnoprofile -force:fixdataprops -oopjit-</compile-flags>
+    </default>
+  </test>
+<!-- add once OOPJIT LazyBailout is completed
+  <test>
+    <default>
+      <files>LazyBailout_0.js</files>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit -off:bailonnoprofile -force:fixdataprops</compile-flags>
+    </default>
+  </test>
+  <test>
+-->
+  <test>
+    <default>
+      <files>LazyBailout_1.js</files>
+      <baseline>LazyBailout_1.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit -off:bailonnoprofile -force:fixdataprops -oopjit- -off:bailonnoprofile -on:LazyFixedTypeBailout</compile-flags>
+    </default>
+  </test>
+<!-- add once OOPJIT LazyBailout is completed
+  <test>
+    <default>
+      <files>LazyBailout_0.js</files>
+      <baseline>LazyBailout_1.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit -off:bailonnoprofile -force:fixdataprops -off:bailonnoprofile -on:LazyFixedTypeBailout</compile-flags>
+    </default>
+  </test>
+  <test>
+-->
+<!-- add once LazyFixedTypeBailout is completed
+  <test>
+    <default>
+      <files>LazyBailout_1.js</files>
+      <baseline>LazyBailout_1.baseline</baseline>
+      <compile-flags>-debug -mic:1 -bgjit- -off:simplejit -trace:bailout -off:bailonnoprofile -force:fixdataprops -oopjit- -on:lazybailout  -on:LazyFixedTypeBailout</compile-flags>
+    </default>
+  </test>
+-->
 </regress-exe>

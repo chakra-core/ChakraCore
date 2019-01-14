@@ -8723,6 +8723,87 @@ namespace Js
 
     }
 
+    LazyBailOutRecord* EntryPointInfo::FindLazyBailoutRecord(size_t codeOffset)
+    {
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())  // OOP JIT
+        {
+            OOPNativeEntryPointData * oopNativeEntryPointData = this->GetOOPNativeEntryPointData();
+            char * nativeDataBuffer = oopNativeEntryPointData->GetNativeDataBuffer();
+            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayOffset());
+
+            uint lazyBailOutRecordOffsetArrayCount = oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayCount();
+            if (lazyBailOutRecordOffsetArrayCount == 0)
+            {
+                return nullptr;
+            }
+
+            uint fromIndex = 0;
+            uint toIndex = lazyBailOutRecordOffsetArrayCount - 1;
+            while (fromIndex <= toIndex)
+            {
+                uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
+                auto item = offsets[midIndex];
+
+                if (item.offset >= codeOffset)
+                {
+                    if (midIndex == 0 || (midIndex > 0 && offsets[midIndex - 1].offset < codeOffset))
+                    {
+                        if (offsets[midIndex].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        {
+                            return nullptr;
+                        }
+                        else
+                        {
+                            return (LazyBailOutRecord*)(nativeDataBuffer + offsets[midIndex].recordOffset);
+                        }
+                    }
+                    else
+                    {
+                        toIndex = midIndex - 1;
+                    }
+                }
+                else
+                {
+                    fromIndex = midIndex + 1;
+                }
+            }
+            return nullptr;
+        }
+        else
+#endif
+            // in-proc JIT
+        {
+            NativeLazyBailOutRecordList * sortedLazyBailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
+            int found = sortedLazyBailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
+            {
+                // find the closest entry which is greater than the current offset.
+                if (record.offset >= codeOffset)
+                {
+                    if (index == 0 || (index > 0 && sortedLazyBailOutRecordList->Item(index - 1).offset < codeOffset))
+                    {
+                        return 0;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
+                }
+                return -1;
+            });
+            if (found != -1)
+            {
+                LazyBailOutRecord& record = sortedLazyBailOutRecordList->Item(found);
+                return &record;
+            }
+            else
+            {
+                AssertMsg(false, "Lazy Bailout address mapping missing");
+                return nullptr;
+            }
+        }
+    }
+
     void EntryPointInfo::DoLazyBailout(
         BYTE **addressOfInstructionPointer,
         BYTE *framePointer
@@ -8738,54 +8819,18 @@ namespace Js
         ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
         Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
         size_t offset = instructionPointer - (BYTE*)nativeAddress;
-        NativeLazyBailOutRecordList * bailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
 
-        AssertMsg(bailOutRecordList != nullptr, "Lazy Bailout: bailOutRecordList is missing");
-
-        int found = bailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
+        LazyBailOutRecord* record = FindLazyBailoutRecord(offset);
+        *addressOfInstructionPointer = record->instructionPointer;
+        if (PHASE_TRACE1(Js::LazyBailoutPhase))
         {
-            if (record.offset == offset)
-            {
-                return 0;
-            }
-            else if (record.offset > offset)
-            {
-                return 1;
-            }
-            else
-            {
-                return -1;
-            }
-        });
-
-        if (found != -1)
-        {
-            auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
-            const LazyBailOutRecord& record = bailOutRecordList->Item(found);
-            const uint32 lazyBailOutThunkOffset = inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
-            BYTE * const lazyBailOutThunkAddress = (BYTE *) nativeAddress + lazyBailOutThunkOffset;
-
-            // Change the instruction pointer of the frame to our thunk so that
-            // when execution returns back to this frame, we will execute the thunk instead
-            *addressOfInstructionPointer = lazyBailOutThunkAddress;
-
-            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
-            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
-            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record.bailOutRecord);
-            
-            if (PHASE_TRACE1(Js::LazyBailoutPhase))
-            {
 #if DBG
-                Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, lazyBailOutThunkAddress);
-                record.Dump(functionBody);
-                Output::Print(_u("\n"));
+            Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, record->instructionPointer);
+            record->Dump(functionBody);
+            Output::Print(_u("\n"));
 #endif
-            }
         }
-        else
-        {
-            AssertMsg(false, "Lazy Bailout: Address mapping missing");
-        }
+
     }
 
     void EntryPointInfo::FreeJitTransferData()

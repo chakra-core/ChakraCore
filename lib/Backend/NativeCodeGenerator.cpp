@@ -1113,6 +1113,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         }
 
         epInfo->GetOOPNativeEntryPointData()->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutRecordOffsetsInfo(jitWriteData.lazyBailOutRecordOffsetArrayOffset, jitWriteData.lazyBailOutRecordOffsetArrayCount);
     }
 #endif
 

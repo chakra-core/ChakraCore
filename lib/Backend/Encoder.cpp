@@ -607,12 +607,9 @@ Encoder::Encode()
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-        if (!m_func->IsOOPJIT()) // in-proc JIT
+        if (m_func->IsOOPJIT())
         {
-            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordInlineeFrameMap(m_inlineeFrameMap);
-        }
-        else // OOP JIT
-        {
+            // TODO: Encoder::SaveLazyBailOutJitTransferData() uses a similar pattern as below, can refactor both into a single templated function.
             NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
 
             this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
@@ -629,6 +626,10 @@ Encoder::Encode()
             });
 
             m_func->GetJITOutput()->RecordInlineeFrameOffsetsInfo(NativeCodeData::GetDataChunk(pairs)->offset, this->m_inlineeFrameMap->Count());
+        }
+        else
+        {
+            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordInlineeFrameMap(m_inlineeFrameMap);
         }
     }
 
@@ -1670,7 +1671,9 @@ Encoder::SaveToLazyBailOutRecordList(IR::Instr* instr, uint32 currentOffset)
     }
 #endif
 
-    LazyBailOutRecord record(currentOffset, bailOutInfo->bailOutRecord);
+    // TODO: Inserting value 0xdeadbeef instead of a valid instructionPointer
+    //       for now. When is the instructionPointer property used?
+    LazyBailOutRecord record(currentOffset, (BYTE*)0xdeadbeef, bailOutInfo->bailOutRecord);
     this->m_sortedLazyBailoutRecordList->Add(record);
 }
 
@@ -1693,22 +1696,53 @@ Encoder::SaveLazyBailOutJitTransferData()
         Assert(this->m_lazyBailOutThunkOffset != 0);
         Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
 
-        auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
-        nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailoutRecordList);
-        nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
-        nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
+        if (m_func->IsOOPJIT())
+        {
+            // TODO: Encoder::Encode() uses a similar pattern as below, can refactor both into a single templated function.
+            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, m_sortedLazyBailoutRecordList->Count());
+
+            m_sortedLazyBailoutRecordList->Map([&pairs](int i, LazyBailOutRecord& p)
+            {
+                pairs[i].offset = p.offset;
+                if (p.bailOutRecord)
+                {
+                    pairs[i].recordOffset = NativeCodeData::GetDataChunk(p.bailOutRecord)->offset;
+                }
+                else
+                {
+                    pairs[i].recordOffset = NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset;
+                }
+            });
+
+            m_func->GetJITOutput()->RecordLazyBailOutRecordOffsetsInfo(NativeCodeData::GetDataChunk(pairs)->offset, m_sortedLazyBailoutRecordList->Count());
+        }
+        else
+        {
+            auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
+            nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailoutRecordList);
+            nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
+            nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
+        }
     }
 
     if (this->m_func->lazyBailoutProperties.Count() > 0)
     {
         const int count = this->m_func->lazyBailoutProperties.Count();
-        Js::PropertyId* lazyBailoutProperties = HeapNewArrayZ(Js::PropertyId, count);
-        Js::PropertyId* dstProperties = lazyBailoutProperties;
+        Js::PropertyId* lazyBailoutPropertiesArray = HeapNewArrayZ(Js::PropertyId, count);
+        Js::PropertyId* dstProperties = lazyBailoutPropertiesArray;
         this->m_func->lazyBailoutProperties.Map([&](Js::PropertyId propertyId)
         {
             *dstProperties++ = propertyId;
         });
-        this->m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
+
+        if (m_func->IsOOPJIT())
+        {
+            m_func->GetJITOutput()->RecordLazyBailOutProperties(NativeCodeData::GetDataChunk(lazyBailoutPropertiesArray)->offset, count);
+        }
+        else
+        {
+            this->m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutPropertiesArray, count);
+        }
     }
 }
 

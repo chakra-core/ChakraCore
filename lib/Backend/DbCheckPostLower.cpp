@@ -349,9 +349,6 @@ DbCheckPostLower::EnsureOnlyMovesToRegisterOpnd(IR::Instr *instr)
             {
                 if (!instr->GetDst()->IsRegOpnd())
                 {
-                    // Instructions such as Op_SetElementI with LazyBailOut are
-                    // followed by a MOV to re-enable implicit calls, don't throw
-                    // in such cases.
                     if (!instr->m_noLazyHelperAssert)
                     {
                         instr->Dump();
@@ -364,7 +361,12 @@ DbCheckPostLower::EnsureOnlyMovesToRegisterOpnd(IR::Instr *instr)
                 if (this->IsCallToHelper(instr, IR::HelperOp_Equal) ||
                     this->IsCallToHelper(instr, IR::HelperOp_StrictEqual) ||
                     this->IsCallToHelper(instr, IR::HelperOP_CmEq_A) ||
-                    this->IsCallToHelper(instr, IR::HelperOP_CmNeq_A)
+                    this->IsCallToHelper(instr, IR::HelperOP_CmNeq_A) ||
+
+                    // TODO: do these two checks belong here? The else condition below is
+                    //       executed without these checks and thus an assertion occurs.
+                    this->IsCallToHelper(instr, IR::HelperOP_CmSrNeq_A) ||
+                    this->IsCallToHelper(instr, IR::HelperOP_CmSrEq_A)
                     )
                 {
                     // Pattern matched
