@@ -28,10 +28,7 @@
 @echo off
 setlocal
 
-if "%TF_BUILD_BINARIESDIRECTORY%" == "" (
-  echo TF_BUILD_BINARIESDIRECTORY is required for this script to work correctly.
-  exit /b 1
-)
+
 
 set _RootDir=%~dp0..
 set _StagingDir=%TF_BUILD_BINARIESDIRECTORY%
@@ -56,12 +53,6 @@ set _HadFailures=0
   if not "%fShowGetHelp%" == "" (
     call :printGetHelp
     goto :eof
-  )
-
-  if not "%TF_BUILD%" == "True" (
-    echo Error: TF_BUILD environment variable is not set to "True".
-    echo   This script must be run under a TF Build Agent environment.
-    exit /b 2
   )
 
   :: Cannot run tests for arm on build machine and release builds
@@ -129,11 +120,24 @@ set _HadFailures=0
 :: ============================================================================
 :runTests
 
-  arch=%1
-  build=%2
+  set arch=%1
+  set build=%2
   shift
   shift
-  call :do %_TestDir%\runtests.cmd -%arch%build %* -quiet -cleanupall -binDir %_StagingDir%\bin
+
+  echo %1
+  echo %2
+  
+  set rest=
+  :rest_loop
+  if "%1"=="" goto after_rest_loop
+  set rest=%rest% %1
+  shift
+  goto rest_loop
+
+  :after_rest_loop
+
+  call :do %_TestDir%\runtests.cmd -%arch%%build% %rest% -quiet -cleanupall -binDir %_StagingDir%\bin
 
   if "%_error%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runtests.cmd failed
