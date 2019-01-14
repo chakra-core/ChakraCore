@@ -142,14 +142,17 @@ class BailOutRecord;
 struct LazyBailOutRecord
 {
     uint32 offset;
+    BYTE* instructionPointer; // Instruction pointer of the bailout code
     BailOutRecord* bailOutRecord;
 
-    LazyBailOutRecord() : offset(0), bailOutRecord(nullptr) {}
+    LazyBailOutRecord() : offset(0), instructionPointer(nullptr), bailOutRecord(nullptr) {}
 
-    LazyBailOutRecord(uint32 offset, BailOutRecord* record) :
-        offset(offset), bailOutRecord(record)
+    LazyBailOutRecord(uint32 offset, BYTE* address, BailOutRecord* record) :
+        offset(offset), instructionPointer(address),
+        bailOutRecord(record)
     {}
 
+    void SetBailOutKind();
 #if DBG
     void Dump(Js::FunctionBody* functionBody) const;
 #endif

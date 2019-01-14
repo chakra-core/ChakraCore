@@ -565,12 +565,34 @@ OOPNativeEntryPointData::GetInlineeFrameOffsetArrayCount()
     return this->inlineeFrameOffsetArrayCount; 
 }
 
+uint
+OOPNativeEntryPointData::GetLazyBailOutRecordOffsetArrayOffset()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutRecordOffsetArrayOffset;
+}
+
+uint
+OOPNativeEntryPointData::GetLazyBailOutRecordOffsetArrayCount()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutRecordOffsetArrayCount;
+}
+
 void
 OOPNativeEntryPointData::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     this->inlineeFrameOffsetArrayOffset = offsetsArrayOffset;
     this->inlineeFrameOffsetArrayCount = offsetsArrayCount;
+}
+
+void
+OOPNativeEntryPointData::RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutRecordOffsetArrayOffset = offsetsArrayOffset;
+    this->lazyBailOutRecordOffsetArrayCount = offsetsArrayCount;
 }
 
 #if !FLOATVAR

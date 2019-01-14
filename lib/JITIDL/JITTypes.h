@@ -875,6 +875,10 @@ typedef struct JITOutputIDL
     unsigned int throwMapCount;
     unsigned int inlineeFrameOffsetArrayOffset;
     unsigned int inlineeFrameOffsetArrayCount;
+    unsigned int lazyBailOutRecordOffsetArrayOffset;
+    unsigned int lazyBailOutRecordOffsetArrayCount;
+    unsigned int lazyBailOutPropertiesArrayOffset;
+    unsigned int lazyBailOutPropertiesArrayCount;
 
     unsigned int propertyGuardCount;
     unsigned int ctorCachesCount;

@@ -1270,7 +1270,7 @@ GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, 
     // The instruction might have other bailouts that prevent
     // implicit calls from happening. That is captured in
     // GlobOpt::MayNeedBailOnImplicitCall. So we only
-    // need lazy bailout of we think there might be implicit calls
+    // need lazy bailout if we think there might be implicit calls
     // or if there aren't any bailouts that prevent them from happening.
     return this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val);
 
