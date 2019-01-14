@@ -1233,51 +1233,43 @@ GlobOpt::IsLazyBailOutCurrentlyNeeded(IR::Instr * instr, Value const * src1Val, 
         Assert(!instr->HasAnyImplicitCalls() || this->currentBlock->GetNext()->loop->endDisableImplicitCall != nullptr);
         return false;
     }
-
-    // These opcodes can change the value of a field regardless whether the
-    // instruction has any implicit call
-    if (OpCodeAttr::CallInstr(instr->m_opcode) || instr->IsStElemVariant() || instr->IsStFldVariant())
+    // These opcodes can change the value of a field regardless
+    // of whether the instruction has any implicit calls.
+    if (OpCodeAttr::CallInstr(instr->m_opcode))
     {
         return true;
     }
-
-    // Now onto those that might change values of fixed fields through implicit calls.
+    // Now onto instrs that might change values of fixed fields through implicit calls.
     // There are certain bailouts that are already attached to this instruction that
     // prevent implicit calls from happening, so we won't need lazy bailout for those.
-
-    // If a type check fails, we will bail out and therefore no need for lazy bailout
+    // If a type check fails we will bailout and therefore there is no need for a LazyBailout.
     if (instr->HasTypeCheckBailOut())
     {
         return false;
     }
 
-    // We decided to do StackArgs optimization, which means that this instruction
-    // could only either be LdElemI_A or TypeofElem, and that it does not have
-    // an implicit call. So no need for lazy bailout.
+    // We decided to do StackArgs optimization, which means that this instruction could only either be 
+    // LdElemI_A or TypeofElem, and that it does not have an implicit call. So no need for lazy bailout.
     if (instr->HasBailOutInfo() && instr->GetBailOutKind() == IR::BailOnStackArgsOutOfActualsRange)
     {
         Assert(instr->m_opcode == Js::OpCode::LdElemI_A || instr->m_opcode == Js::OpCode::TypeofElem);
         return false;
     }
 
-    // If all operands are type specialized, we won't generate helper path;
-    // therefore no need for lazy bailout
+    // If all operands are type specialized, we won't generate
+    // helper path; therefore no need for lazy bailout.
     if (instr->AreAllOpndsTypeSpecialized())
     {
         return false;
     }
 
-    // The instruction might have other bailouts that prevent
-    // implicit calls from happening. That is captured in
-    // GlobOpt::MayNeedBailOnImplicitCall. So we only
-    // need lazy bailout of we think there might be implicit calls
-    // or if there aren't any bailouts that prevent them from happening.
+    // The instruction might have other bailouts that prevent implicit calls from happening. That
+    // is captured in GlobOpt::MayNeedBailOnImplicitCall. So we only need lazy bailout if we think
+    // there might be implicit calls or if there aren't any bailouts that prevent them from happening.
     return this->MayNeedBailOnImplicitCall(instr, src1Val, src2Val);
 
 #else // _M_X64
-
     return false;
-
 #endif
 }
 

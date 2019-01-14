@@ -1112,7 +1112,20 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             }
         }
 
+        typedef JsUtil::BaseHashSet<Js::PropertyId, JitArenaAllocator> PropertyIdSet;
+
         epInfo->GetOOPNativeEntryPointData()->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutRecordOffsetsInfo(jitWriteData.lazyBailOutRecordOffsetArrayOffset, jitWriteData.lazyBailOutRecordOffsetArrayCount);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutPropertiesInfo(jitWriteData.lazyBailOutPropertiesArrayOffset, jitWriteData.lazyBailOutPropertiesArrayCount);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutRecordSlotOffset(jitWriteData.lazyBailOutRecordSlotOffset);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutThunkOffset(jitWriteData.lazyBailOutThunkOffset);
+        epInfo->GetOOPNativeEntryPointData()->SetHasLazyBailOut(jitWriteData.hasLazyBailOut);
+
+        epInfo->GetOOPNativeEntryPointData()->GetJitTransferData()->SetLazyBailoutProperties(
+            // Offset into jitWriteData to get address of lazyBailOutPropertiesArray.
+            (Js::PropertyId*)(jitWriteData.buffer->data + jitWriteData.lazyBailOutPropertiesArrayOffset),
+            jitWriteData.lazyBailOutPropertiesArrayCount
+        );
     }
 #endif
 

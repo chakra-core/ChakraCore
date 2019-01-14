@@ -2215,15 +2215,20 @@ BackwardPass::IsLazyBailOutCurrentlyNeeeded(IR::Instr * instr) const
         "liveFixedField is null, MergeSuccBlocksInfo might have not initialized it?"
     );
 
-    if (instr->IsStFldVariant())
+    // StFld LazyBailOut tag removal optimization. Given that this instr is a StFld variant and
+    // that there already is an BailOutOnImplicitCall tag on this instr, we can remove the
+    // LazyBailOut tag on this instr if the StFld is writing to a live fixed field. We cannot
+    // perform this optimization if a BailOutOnImplicitCall tag is abscent because writing to
+    // a property can result in an implicit call that then can result in a lazy bailout.
+    if (instr->IsStFldVariant() && BailOutInfo::IsBailOutOnImplicitCalls(instr->GetBailOutKind()))
     {
         Assert(instr->GetDst());
-        Js::PropertyId id = instr->GetDst()->GetSym()->AsPropertySym()->m_propertyId;
-
-        // We only need to protect against SetFld if it is setting to one of the live fixed fields
-        return this->currentBlock->liveFixedFields->Test(id);
+        // We only need to protect against StFld if it is setting to one of the live fixed fields.
+        return currentBlock->liveFixedFields->Test(instr->GetDst()->GetSym()->AsPropertySym()->m_propertyId);
     }
 
+    // If no more fixed fields exist at this point in the block it is safe to assume that any field marked as
+    // a fixed field has been verified to have not been modified and thus a LazyBailOut tag is not necessary.
     return !this->currentBlock->liveFixedFields->IsEmpty();
 }
 
@@ -2333,7 +2338,7 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
         return;
     }
 
-    // If bailOutKind is equivTypeCheck then leave alone the bailout
+    // If bailOutKind is equivTypeCheck then leave the bailout alone.
     if (bailOutKind == IR::BailOutFailedEquivalentTypeCheck ||
         bailOutKind == IR::BailOutFailedEquivalentFixedFieldTypeCheck)
     {
@@ -2357,9 +2362,9 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
 }
 
 void
-BackwardPass::DeadStoreLazyBailOut(IR::Instr * instr, bool needsLazyBailOut)
+BackwardPass::DeadStoreLazyBailOut(IR::Instr * instr)
 {
-    if (!this->IsPrePass() && !needsLazyBailOut && instr->HasLazyBailOut())
+    if (!this->IsPrePass() && instr->HasLazyBailOut())
     {
         instr->ClearLazyBailOut();
         if (!instr->HasBailOutInfo())
@@ -2441,12 +2446,13 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
     // We have an implicit call bailout in the code, and we want to make sure that it's required.
     // Do this now, because only in the dead store pass do we have complete forward and backward liveness info.
     bool needsBailOutOnImplicitCall = this->IsImplicitCallBailOutCurrentlyNeeded(instr, mayNeedBailOnImplicitCall, needsLazyBailOut, hasLiveFields);
+
     if(!UpdateImplicitCallBailOutKind(instr, needsBailOutOnImplicitCall, needsLazyBailOut))
     {
         instr->ClearBailOutInfo();
-        if (preOpBailOutInstrToProcess == instr)
+        if (this->preOpBailOutInstrToProcess == instr)
         {
-            preOpBailOutInstrToProcess = nullptr;
+            this->preOpBailOutInstrToProcess = nullptr;
         }
 #if DBG
         if (this->DoMarkTempObjectVerify())
@@ -2476,9 +2482,9 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
 
     const bool hasMarkTempObject = bailOutKindWithBits & IR::BailOutMarkTempObject;
 
-    // Firstly, we remove the mark temp object bit, as it is not needed after the dead store pass.
-    // We will later skip removing BailOutOnImplicitCalls when there is a mark temp object bit regardless
-    // of `needsBailOutOnImplicitCall`.
+    // First we remove the mark temp object bit as it is not needed after the dead
+    // store pass. We will later skip removing BailOutOnImplicitCalls when there
+    // is a mark temp object bit regardless of needsBailOutOnImplicitCall.
     if (hasMarkTempObject)
     {
         instr->SetBailOutKind(bailOutKindWithBits & ~IR::BailOutMarkTempObject);
@@ -2486,9 +2492,11 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
 
     if (needsBailOutOnImplicitCall)
     {
-        // We decided that BailOutOnImplicitCall is needed. So lazy bailout is unnecessary
-        // because we are already protected from potential side effects unless the operation
-        // itself can change fields' values (StFld/StElem).
+        // We decided that BailOutOnImplicitCall is needed; LazyBailOut is unnecessary because
+        // the modification of a property would trigger an implicit call bailout before a LazyBailOut
+        // would trigger. An edge case is when the act of checking the type of the object with the
+        // property, which occurs before the implicit call check, results in a property guard invalidation.
+        // In this case a LazyBailOut is necessary.
         if (needsLazyBailOut && !instr->CanChangeFieldValueWithoutImplicitCall())
         {
             instr->ClearLazyBailOut();
@@ -2496,16 +2504,19 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
 
         return true;
     }
-    else
+
+    // needsBailOutOnImplicitCall also captures our intention to keep BailOutOnImplicitCalls
+    // because we want to do fixed field lazy bailout optimization. So if we don't need them,
+    // just remove our lazy bailout unless this instr can cause a PropertyGuard invalidation
+    // during the type check.
+    if (!instr->CanChangeFieldValueWithoutImplicitCall())
     {
-        // `needsBailOutOnImplicitCall` also captures our intention to keep BailOutOnImplicitCalls
-        // because we want to do fixed field lazy bailout optimization. So if we don't need them,
-        // just remove our lazy bailout.
         instr->ClearLazyBailOut();
-        if (!instr->HasBailOutInfo())
-        {
-            return true;
-        }
+    }
+
+    if (!instr->HasBailOutInfo())
+    {
+        return true;
     }
 
     const IR::BailOutKind bailOutKindWithoutBits = instr->GetBailOutKindNoBits();
@@ -2517,8 +2528,8 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
         return true;
     }
 
-    // At this point, we don't need the bail on implicit calls.
-    // Simply use the bailout kind bits as our new bailout kind.
+    // At this point we don't need the bail on implicit calls,
+    // use the bailout kind bits as our new bailout kind.
     IR::BailOutKind newBailOutKind = bailOutKindWithBits - bailOutKindWithoutBits;
 
     if (newBailOutKind == IR::BailOutInvalid)
@@ -3721,7 +3732,10 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             );
 
             DeadStoreTypeCheckBailOut(instr);
-            DeadStoreLazyBailOut(instr, needsLazyBailOut);
+            if (!needsLazyBailOut)
+            {
+                DeadStoreLazyBailOut(instr);
+            }
             DeadStoreImplicitCallBailOut(instr, hasLiveFields, needsLazyBailOut);
 
             AssertMsg(
@@ -5714,8 +5728,13 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         typeWithProperty == typeWithoutProperty ||
         (opnd->IsTypeChecked() && !opnd->IsInitialTypeChecked()))
     {
-        if (!this->IsPrePass() && block->stackSymToFinalType != nullptr && !this->currentInstr->HasBailOutInfo())
+        if (
+            !this->IsPrePass() &&
+            block->stackSymToFinalType != nullptr &&
+            (!this->currentInstr->HasBailOutInfo() || currentInstr->OnlyHasLazyBailOut())
+        )
         {
+
             PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
@@ -6009,12 +6028,15 @@ BackwardPass::InsertTypeTransitionsAtPotentialKills()
     // Final types can't be pushed up past certain instructions.
     IR::Instr *instr = this->currentInstr;
 
-    if (instr->HasBailOutInfo() || instr->m_opcode == Js::OpCode::UpdateNewScObjectCache)
+    // Final types can't be pushed up past a BailOut point. Insert any transitions called
+    // for by the current state of add-property buckets. Also do this for ctor cache updates
+    // to avoid putting a type in the ctor cache that extends past the end of the ctor that
+    // the cache covers.
+    // TODO: explain why LBO gets exempted from this rule.
+    if (instr->m_opcode == Js::OpCode::UpdateNewScObjectCache ||
+        (instr->HasBailOutInfo() && !instr->OnlyHasLazyBailOut())
+    )
     {
-        // Final types can't be pushed up past a bailout point.
-        // Insert any transitions called for by the current state of add-property buckets.
-        // Also do this for ctor cache updates, to avoid putting a type in the ctor cache that extends past
-        // the end of the ctor that the cache covers.
         this->ForEachAddPropertyCacheBucket([&](int symId, AddPropertyCacheBucket *data)->bool {
             this->InsertTypeTransitionAfterInstr(instr, symId, data, this->currentBlock->upwardExposedUses);
             return false;

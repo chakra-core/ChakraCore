@@ -259,6 +259,35 @@ namespace Js
     bool DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode)
     {
         Assert(initializer == m_initializer);
+        ScriptContext* scriptContext = instance->GetScriptContext();
+       
+        // Set the ScriptContext's IsDeferredTypeInitialization to true as DeferredTypeInitialization is about
+        // to occur. This must be done using an instantiated struct on the stack so that once this stack frame
+        // is killed, IsDeferredTypeInit is restored to its previous value (using AutoRestoreIsDeferredTypeInit's
+        // destructor). This is necessary as this function may not be returned to due to a potential exception.
+        struct AutoRestoreIsDeferredTypeInit
+        {
+            bool oldIsDeferredTypeInit;
+            ScriptContext* scriptContext;
+            AutoRestoreIsDeferredTypeInit(bool oldIsDeferredTypeInit, ScriptContext* scriptContext) :
+                oldIsDeferredTypeInit(oldIsDeferredTypeInit), 
+                scriptContext(scriptContext)
+            {
+                scriptContext->SetIsDeferredTypeInit(true);
+            }
+            ~AutoRestoreIsDeferredTypeInit()
+            {
+                // We keep track of the ScriptContext's previous IsDeferredTypeInit (as opposed to setting
+                // IsDeferredTypeInit to false) in order to protect against nested deferred type initializations.
+                scriptContext->SetIsDeferredTypeInit(oldIsDeferredTypeInit);
+            }
+        };
+
+        AutoRestoreIsDeferredTypeInit autoRestoreIsDeferredTypeInit(
+            scriptContext->IsDeferredTypeInit(),
+            scriptContext
+        );
+
         return m_initializer(instance, this, mode);
     }
 

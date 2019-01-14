@@ -46,7 +46,7 @@ private:
     Field(size_t) ctorCacheGuardsByPropertyIdPlusSize;
 
     Field(int) equivalentTypeGuardCount;
-    Field(int) lazyBailoutPropertyCount;
+    Field(int) lazyBailOutPropertyCount;
     // This is a dynamically sized array of JitEquivalentTypeGuards. It's heap allocated by the JIT thread and lives
     // until entry point is installed, at which point it is explicitly freed. We need it during installation so as to
     // swap the cache associated with each guard from the heap to the recycler (so the types in the cache are kept alive).
@@ -66,7 +66,7 @@ public:
         propertyGuardCount(0), propertyGuardsByPropertyId(nullptr), propertyGuardsByPropertyIdPlusSize(0),
         ctorCacheGuardsByPropertyId(nullptr), ctorCacheGuardsByPropertyIdPlusSize(0),
         equivalentTypeGuardCount(0), equivalentTypeGuards(nullptr), jitTransferRawData(nullptr),
-        falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailoutPropertyCount(0) {}
+        falseReferencePreventionBit(true), isReady(false), lazyBailoutProperties(nullptr), lazyBailOutPropertyCount(0) {}
 
     void SetRawData(NativeCodeData* rawData) { jitTransferRawData = rawData; }
 
@@ -85,7 +85,7 @@ public:
     void SetLazyBailoutProperties(Js::PropertyId* properties, int count)
     {
         this->lazyBailoutProperties = properties;
-        this->lazyBailoutPropertyCount = count;
+        this->lazyBailOutPropertyCount = count;
     }
     void SetEquivalentTypeGuardOffsets(EquivalentTypeGuardOffsets* offsets)
     {

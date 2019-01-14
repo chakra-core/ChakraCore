@@ -130,17 +130,19 @@ private:
     InlineeFrameRecord* Reverse();
 };
 
-struct NativeOffsetInlineeFramePair
+template <typename T>
+struct NativeOffsetRecordPair
 {
-    uint32 offset;
-    InlineeFrameRecord* record;
+    uint32 nativeAddressOffset; // An address offset into native code.
+    T* record;                  // The record that corresponds to the nativeAddressOffset.
 };
 
-struct NativeOffsetInlineeFrameRecordOffset
+struct NativeOffsetToRecordOffset
 {
-    uint32 offset;
-    uint32 recordOffset;
-    static uint32 InvalidRecordOffset;
+    uint32 nativeAddressOffset;        // An address offset into native code.
+    uint32 recordOffset;               // The offset that the record that corresponds to
+                                       // nativeAddressOffset can be found at in the JitOutput.
+    static uint32 InvalidRecordOffset; // No record exists for this nativeAddressOffset.
 };
 
 struct InlineeFrameInfo

@@ -74,7 +74,7 @@ private:
     void DumpMarkTemp();
 #endif
 
-    static bool UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut);
+    bool UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut);
 
     bool ProcessNoImplicitCallUses(IR::Instr *const instr);
     void ProcessNoImplicitCallDef(IR::Instr *const instr);
@@ -106,7 +106,7 @@ private:
     bool IsLazyBailOutCurrentlyNeeeded(IR::Instr * instr) const;
     void DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields, bool needsLazyBailOut);
     void DeadStoreTypeCheckBailOut(IR::Instr * instr);
-    void DeadStoreLazyBailOut(IR::Instr * instr, bool needsLazyBailOut);
+    void DeadStoreLazyBailOut(IR::Instr * instr);
     bool IsImplicitCallBailOutCurrentlyNeeded(IR::Instr * instr, bool mayNeedImplicitCallBailOut, bool needLazyBailOut, bool hasLiveFields);
     bool NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr);
     bool TrackNoImplicitCallInlinees(IR::Instr *instr);

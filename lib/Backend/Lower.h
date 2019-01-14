@@ -822,7 +822,7 @@ public:
     static bool     IsSpreadCall(IR::Instr *instr);
     static
     IR::Instr*      GetLdSpreadIndicesInstr(IR::Instr *instr);
-    static bool ShouldDoLazyFixedTypeBailout(Func* func) { return func->ShouldDoLazyBailOut() && PHASE_ON1(Js::LazyFixedTypeBailoutPhase); }
+    static bool ShouldDoLazyFixedTypeBailout(Func* func) { return func->ShouldDoLazyBailOut() && !PHASE_OFF1(Js::LazyFixedTypeBailoutPhase); }
     static bool ShouldDoLazyFixedDataBailout(Func* func) { return func->ShouldDoLazyBailOut() && !PHASE_OFF1(Js::LazyFixedDataBailoutPhase); }
     LowererMD * GetLowererMD() { return &m_lowererMD; }
 private:

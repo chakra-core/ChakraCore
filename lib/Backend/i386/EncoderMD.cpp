@@ -1391,9 +1391,9 @@ EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, FixUpMapIndex *mapIndices)
 
     {
         ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
-        for (i = mapIndices->inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).offset <= brOffset; i++)
+        for (i = mapIndices->inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).nativeAddressOffset <= brOffset; i++)
         {
-            mapList->Item(i).offset -= bytesSaved;
+            mapList->Item(i).nativeAddressOffset -= bytesSaved;
         }
 
         mapIndices->inlineeFrameMapIndex = i;
@@ -1411,10 +1411,10 @@ EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, FixUpMapIndex *mapIndices)
 
 
     {
-        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailoutRecordList;
-        for (i = mapIndices->lazyBailOutRecordListIndex; i < lazyBailOutRecordList->Count() && lazyBailOutRecordList->Item(i).offset <= brOffset; i++)
+        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailOutRecordList;
+        for (i = mapIndices->lazyBailOutRecordListIndex; i < lazyBailOutRecordList->Count() && lazyBailOutRecordList->Item(i).nativeAddressOffset <= brOffset; i++)
         {
-            lazyBailOutRecordList->Item(i).offset -= bytesSaved;
+            lazyBailOutRecordList->Item(i).nativeAddressOffset -= bytesSaved;
         }
 
         mapIndices->lazyBailOutRecordListIndex = i;

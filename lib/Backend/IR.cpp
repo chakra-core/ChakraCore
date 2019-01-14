@@ -1032,18 +1032,18 @@ bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
 bool IR::Instr::IsStFldVariant() const
 {
     return this->m_opcode == Js::OpCode::StFld ||
-        this->m_opcode == Js::OpCode::StFldStrict ||
-        this->m_opcode == Js::OpCode::StLocalFld ||
-        this->m_opcode == Js::OpCode::StRootFld ||
-        this->m_opcode == Js::OpCode::StRootFldStrict ||
-        this->m_opcode == Js::OpCode::StSuperFld;
+           this->m_opcode == Js::OpCode::StFldStrict ||
+           this->m_opcode == Js::OpCode::StLocalFld ||
+           this->m_opcode == Js::OpCode::StRootFld ||
+           this->m_opcode == Js::OpCode::StRootFldStrict ||
+           this->m_opcode == Js::OpCode::StSuperFld;
 }
 
 bool IR::Instr::IsStElemVariant() const
 {
     return this->m_opcode == Js::OpCode::StElemI_A ||
-        this->m_opcode == Js::OpCode::StElemI_A_Strict ||
-        this->m_opcode == Js::OpCode::StElemC;
+           this->m_opcode == Js::OpCode::StElemI_A_Strict ||
+           this->m_opcode == Js::OpCode::StElemC;
 }
 
 bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
@@ -1053,10 +1053,10 @@ bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
 }
 
 // If LazyBailOut is the only BailOutKind on the instruction, the BailOutInfo is cleared.
-// Otherwise, we remove the LazyBailOut kind from the instruction and still keep the BailOutInfo.
+// Otherwise, we remove the LazyBailOut kind from the instruction but still keep the BailOutInfo.
 void IR::Instr::ClearLazyBailOut()
 {
-    if (!this->HasBailOutInfo())
+    if (!this->HasBailOutInfo() || !this->HasLazyBailOut())
     {
         return;
     }

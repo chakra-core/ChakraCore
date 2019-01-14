@@ -50,13 +50,10 @@ public:
     void PartialDeepCopyTo(BailOutInfo *const bailOutInfo) const;
     void Clear(JitArenaAllocator * allocator);
 
-    // Lazy bailout
-    // 
-    // Workaround for dealing with use of destination register of `call` instructions with postop lazy bailout.
-    // As an example, in globopt, we have s1 = Call and s1 is in byteCodeUpwardExposedUse,
-    // but after lowering, the instructions are: s3 = Call, s1 = s3.
-    // If we add a postop lazy bailout to s3 = call, we will create a use of s1 right at that instructions.
-    // However, s1 at that point is not initialized yet.
+    // Related to Lazy bailout. Workaround for dealing with use of destination register of `call` instructions
+    // with postop lazy bailout. As an example, in globopt, we have s1 = Call and s1 is in byteCodeUpwardExposedUse,
+    // but after lowering, the instructions are: s3 = Call, s1 = s3. If we add a postop lazy bailout to s3 = call,
+    // we will create a use of s1 right at that instructions. However, s1 at that point is not initialized yet.
     // As a workaround, we will clear the use of s1 and restore it if we determine that lazy bailout is not needed.
     void ClearUseOfDst(SymID id);
     void RestoreUseOfDst();

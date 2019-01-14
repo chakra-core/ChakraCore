@@ -314,7 +314,7 @@ namespace Js
         /*
         Returns a value indicating whether the current type handler is locked.
 
-        Given below is the list of  all the actions where different type handlers explicitly check for the type handler being locked. In most cases, when a type is evolving,
+        Given below is the list of all the actions where different type handlers explicitly check for the type handler being locked. In most cases, when a type is evolving,
         if the type handler is locked a new type handler is created and all existing properties are copied over before evolving the type.
         1. SimpleTypeHandler
               (i) SetPropertyWithAttributes

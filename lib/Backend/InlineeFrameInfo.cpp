@@ -24,7 +24,7 @@
 #endif
 
 
-unsigned int NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset = (unsigned int)(-1);
+unsigned int NativeOffsetToRecordOffset::InvalidRecordOffset = (unsigned int)(-1);
 
 void BailoutConstantValue::InitVarConstValue(Js::Var value)
 {

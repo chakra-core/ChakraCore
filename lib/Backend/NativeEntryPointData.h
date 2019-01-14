@@ -12,7 +12,7 @@ namespace Js
     class FunctionBody;
 };
 
-typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
+typedef JsUtil::List<NativeOffsetRecordPair<InlineeFrameRecord>, HeapAllocator> InlineeFrameMap;
 typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> NativeLazyBailOutRecordList;
 
 class JitTransferData;
@@ -68,6 +68,11 @@ public:
    
     void Cleanup(Js::ScriptContext * scriptContext, bool isShutdown, bool reset);
     void ClearTypeRefsAndGuards(Js::ScriptContext * scriptContext);   
+
+    virtual uint32 GetLazyBailOutThunkOffset() = 0;
+    virtual int32 GetLazyBailOutRecordSlotOffset() = 0;
+    virtual void SetHasLazyBailOut(bool hasLazyBailOut) = 0;
+    virtual bool GetHasLazyBailOut() = 0;
 
 #if PDATA_ENABLED
     XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
@@ -154,16 +159,19 @@ public:
     void SetNativeCodeData(NativeCodeData * nativeCodeData);
 
     InlineeFrameMap * GetInlineeFrameMap();
-    void RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap);
+    void RecordInlineeFrameMap(JsUtil::List<NativeOffsetRecordPair<InlineeFrameRecord>, ArenaAllocator>* tempInlineeFrameMap);
 
     NativeLazyBailOutRecordList * GetSortedLazyBailOutRecordList() const;
     void SetSortedLazyBailOutRecordList(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* sortedLazyBailOutRecordList);
 
     void SetLazyBailOutRecordSlotOffset(int32 argSlotOffset);
-    int32 GetLazyBailOutRecordSlotOffset() const;
+    int32 GetLazyBailOutRecordSlotOffset();
 
     void SetLazyBailOutThunkOffset(uint32 thunkOffset);
-    uint32 GetLazyBailOutThunkOffset() const;
+    uint32 GetLazyBailOutThunkOffset();
+
+    void SetHasLazyBailOut(bool hasLazyBailOut);
+    bool GetHasLazyBailOut();
 
 #if !FLOATVAR
     void SetNumberChunks(CodeGenNumberChunk* chunks)
@@ -179,6 +187,7 @@ private:
     FieldNoBarrier(NativeLazyBailOutRecordList *) sortedLazyBailoutRecordList;
     FieldNoBarrier(int32) lazyBailOutRecordSlotOffset;
     FieldNoBarrier(uint32) lazyBailOutThunkOffset;
+    FieldNoBarrier(bool) hasLazyBailOut;
 #if !FLOATVAR
     Field(CodeGenNumberChunk*) numberChunks;
 #endif
@@ -198,7 +207,21 @@ public:
 
     uint GetInlineeFrameOffsetArrayOffset();
     uint GetInlineeFrameOffsetArrayCount();
+    uint GetLazyBailOutRecordOffsetArrayOffset();
+    uint GetLazyBailOutRecordOffsetArrayCount();
+    uint32 GetLazyBailOutThunkOffset();
+    int32 GetLazyBailOutRecordSlotOffset();
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
+
+    // TODO: parent class can virtualize these methods and share them with
+    //       InProcNativeEntryPointData's similarily named functions.
+    void RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
+    void RecordLazyBailOutPropertiesInfo(unsigned int arrayOffset, unsigned int arrayCount);
+    void RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlotOffset);
+    void RecordLazyBailOutThunkOffset(uint lazyBailOutThunkOffset);
+
+    void SetHasLazyBailOut(bool hasLazyBailOut);
+    bool GetHasLazyBailOut();
 
 #if !FLOATVAR
     void ProcessNumberPageSegments(Js::ScriptContext * scriptContext);
@@ -213,6 +236,13 @@ public:
 private:
     Field(uint) inlineeFrameOffsetArrayOffset;
     Field(uint) inlineeFrameOffsetArrayCount;
+    Field(uint) lazyBailOutRecordOffsetArrayOffset;
+    Field(uint) lazyBailOutRecordOffsetArrayCount;
+    Field(uint) lazyBailOutPropertiesArrayOffset;
+    Field(uint) lazyBailOutPropertiesArrayCount;
+    Field(uint) lazyBailOutThunkOffset;
+    Field(int)  lazyBailOutRecordSlotOffset;
+    Field(bool) hasLazyBailOut;
     FieldNoBarrier(char *) nativeDataBuffer;
 
 #if !FLOATVAR

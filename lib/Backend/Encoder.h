@@ -11,7 +11,7 @@
 ///
 ///---------------------------------------------------------------------------
 
-typedef JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator> ArenaInlineeFrameMap;
+typedef JsUtil::List<NativeOffsetRecordPair<InlineeFrameRecord>, ArenaAllocator> ArenaInlineeFrameMap;
 typedef JsUtil::List<IR::PragmaInstr*, ArenaAllocator> PragmaInstrList;
 typedef JsUtil::List<uint32, ArenaAllocator> OffsetList;
 typedef JsUtil::List<BranchJumpTableWrapper*, ArenaAllocator> JmpTableList;
@@ -32,7 +32,7 @@ class Encoder
 public:
     Encoder(Func * func) :
         m_func(func), m_encoderMD(func), m_inlineeFrameMap(nullptr),
-        m_lazyBailOutThunkOffset(0), m_sortedLazyBailoutRecordList(nullptr)
+        m_lazyBailOutThunkOffset(0), m_sortedLazyBailOutRecordList(nullptr)
         {}
 
     void            Encode();
@@ -52,7 +52,7 @@ private:
     uint32 m_inlineeFrameMapRecordCount;
     
     uint32 m_lazyBailOutThunkOffset;
-    ArenaLazyBailoutRecordList* m_sortedLazyBailoutRecordList;
+    ArenaLazyBailoutRecordList* m_sortedLazyBailOutRecordList;
 #if DBG_DUMP
     void DumpInlineeFrameMap(size_t baseAddress);
     uint32 *        m_offsetBuffer;
