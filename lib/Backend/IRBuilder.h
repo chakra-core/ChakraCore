@@ -292,7 +292,6 @@ private:
     Js::RegSlot         GetEnvRegForEvalCode() const;
     Js::RegSlot         GetEnvRegForInnerFrameDisplay() const;
     void                AddEnvOpndForInnerFrameDisplay(IR::Instr *instr, uint offset);
-    bool                DoSlotArrayCheck(IR::SymOpnd *fieldOpnd, bool doDynamicCheck);
     void                EmitClosureRangeChecks();
     void                DoClosureRegCheck(Js::RegSlot reg);
     void                BuildInitCachedScope(int auxOffset, int offset);

@@ -665,7 +665,6 @@ public:
     PropertyIdSet lazyBailoutProperties;
     bool anyPropertyMayBeWrittenTo;
 
-    SlotArrayCheckTable *slotArrayCheckTable;
     FrameDisplayCheckTable *frameDisplayCheckTable;
 
     IR::Instr *         m_headInstr;
@@ -995,7 +994,6 @@ public:
     void MarkConstantAddressSyms(BVSparse<JitArenaAllocator> * bv);
     void DisableConstandAddressLoadHoist() { canHoistConstantAddressLoad = false; }
 
-    void AddSlotArrayCheck(IR::SymOpnd *fieldOpnd);
     void AddFrameDisplayCheck(IR::SymOpnd *fieldOpnd, uint32 slotId = (uint32)-1);
 
     void EnsureStackArgWithFormalsTracker();

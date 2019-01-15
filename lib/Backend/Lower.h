@@ -229,6 +229,7 @@ private:
     IR::Instr *     LowerDeleteElemI(IR::Instr *instr, bool strictMode);
     IR::Instr *     LowerStElemC(IR::Instr *instr);
     void            LowerLdArrHead(IR::Instr *instr);
+    IR::Instr*      AddSlotArrayCheck(PropertySym *propertySym, IR::Instr* instr);
     IR::Instr *     LowerStSlot(IR::Instr *instr);
     IR::Instr *     LowerStSlotChkUndecl(IR::Instr *instr);
     void            LowerStLoopBodyCount(IR::Instr* instr);

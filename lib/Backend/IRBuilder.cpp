@@ -314,56 +314,6 @@ IRBuilder::AddEnvOpndForInnerFrameDisplay(IR::Instr *instr, uint offset)
     }
 }
 
-bool
-IRBuilder::DoSlotArrayCheck(IR::SymOpnd *fieldOpnd, bool doDynamicCheck)
-{
-    if (PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
-    {
-        return true;
-    }
-
-    PropertySym *propertySym = fieldOpnd->m_sym->AsPropertySym();
-    IR::Instr *instrDef = propertySym->m_stackSym->m_instrDef;
-    IR::Opnd *allocOpnd = nullptr;
-
-    if (instrDef == nullptr)
-    {
-        if (doDynamicCheck)
-        {
-            return false;
-        }
-        Js::Throw::FatalInternalError();
-    }
-    switch(instrDef->m_opcode)
-    {
-    case Js::OpCode::NewScopeSlots:
-    case Js::OpCode::NewStackScopeSlots:
-    case Js::OpCode::NewScopeSlotsWithoutPropIds:
-        allocOpnd = instrDef->GetSrc1();
-        break;
-
-    case Js::OpCode::LdSlot:
-    case Js::OpCode::LdSlotArr:
-        if (doDynamicCheck)
-        {
-            return false;
-        }
-        // fall through
-    default:
-        Js::Throw::FatalInternalError();
-    }
-
-    uint32 allocCount = allocOpnd->AsIntConstOpnd()->AsUint32();
-    uint32 slotId = (uint32)propertySym->m_propertyId;
-
-    if (slotId >= allocCount)
-    {
-        Js::Throw::FatalInternalError();
-    }
-
-    return true;
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// IRBuilder::Build
@@ -904,40 +854,6 @@ IRBuilder::Build()
 void
 IRBuilder::EmitClosureRangeChecks()
 {
-    // Emit closure range checks
-    if (m_func->slotArrayCheckTable)
-    {
-        // Local slot array checks, should only be necessary in jitted loop bodies.
-        FOREACH_HASHTABLE_ENTRY(uint32, bucket, m_func->slotArrayCheckTable)
-        {
-            uint32 slotId = bucket.element;
-            Assert(slotId != (uint32)-1 && slotId >= Js::ScopeSlots::FirstSlotIndex);
-
-            if (slotId > Js::ScopeSlots::FirstSlotIndex)
-            {
-                // Emit a SlotArrayCheck instruction, chained to the instruction (LdSlot) that defines the pointer.
-                StackSym *stackSym = m_func->m_symTable->FindStackSym(bucket.value);
-                Assert(stackSym && stackSym->m_instrDef);
-
-                IR::Instr *instrDef = stackSym->m_instrDef;
-                IR::Instr *insertInstr = instrDef->m_next;
-                IR::RegOpnd *dstOpnd = instrDef->UnlinkDst()->AsRegOpnd();
-                IR::Instr *instr = IR::Instr::New(Js::OpCode::SlotArrayCheck, dstOpnd, m_func);
-
-                dstOpnd = IR::RegOpnd::New(TyVar, m_func);
-                instrDef->SetDst(dstOpnd);
-                instr->SetSrc1(dstOpnd);
-
-                // Attach the slot ID to the check instruction.
-                IR::IntConstOpnd *slotIdOpnd = IR::IntConstOpnd::New(bucket.element, TyUint32, m_func);
-                instr->SetSrc2(slotIdOpnd);
-
-                insertInstr->InsertBefore(instr);
-            }
-        }
-        NEXT_HASHTABLE_ENTRY;
-    }
-
     if (m_func->frameDisplayCheckTable)
     {
         // Frame display checks. Again, chain to the instruction (LdEnv/LdSlot).
@@ -3571,8 +3487,6 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 if (IsLoopBody())
                 {
                     fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, closureSym->m_id, slotId, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
-                    // Need a dynamic check on the size of the local slot array.
-                    m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
                 }
             }
             else if (IsLoopBody())
@@ -3594,11 +3508,6 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             }
             this->AddInstr(instr, offset);
 
-            if (!m_func->DoStackFrameDisplay() && IsLoopBody())
-            {
-                // Need a dynamic check on the size of the local slot array.
-                m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
-            }
             break;
 
         case Js::OpCode::LdParamObjSlot:
@@ -3676,8 +3585,6 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 if (IsLoopBody())
                 {
                     fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, closureSym->m_id, slotId, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
-                    // Need a dynamic check on the size of the local slot array.
-                    m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
                 }
             }
             else
@@ -3697,11 +3604,6 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
                 instr->SetSrc2(fieldOpnd);
             }
 
-            if (!m_func->DoStackFrameDisplay() && IsLoopBody())
-            {
-                // Need a dynamic check on the size of the local slot array.
-                m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
-            }
             break;
 
         case Js::OpCode::StParamObjSlot:
@@ -4013,11 +3915,6 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             else
             {
                 fieldOpnd = this->BuildFieldOpnd(Js::OpCode::StSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots);
-                if (!this->DoSlotArrayCheck(fieldOpnd, IsLoopBody()))
-                {
-                    // Need a dynamic check on the size of the local slot array.
-                    m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
-                }
             }
             newOpcode = 
                 newOpcode == Js::OpCode::StInnerObjSlot || newOpcode == Js::OpCode::StInnerSlot ?
@@ -4056,11 +3953,6 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             else
             {
                 fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlot, slotId1, slotId2, (Js::PropertyIdIndexType)-1, PropertyKindSlots);
-                if (!this->DoSlotArrayCheck(fieldOpnd, IsLoopBody()))
-                {
-                    // Need a dynamic check on the size of the local slot array.
-                    m_func->GetTopFunc()->AddSlotArrayCheck(fieldOpnd);
-                }
             }
             regOpnd = this->BuildDstOpnd(regSlot);
             instr = IR::Instr::New(Js::OpCode::LdSlot, regOpnd, fieldOpnd, m_func);
