@@ -429,6 +429,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 
 #include "Library/JavascriptNumber.h"
 #include "Library/JavascriptFunction.h"
+#include "Library/BoundFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
 #include "Library/CustomExternalIterator.h"
