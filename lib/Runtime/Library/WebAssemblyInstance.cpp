@@ -268,10 +268,10 @@ Var WebAssemblyInstance::CreateExportObject(WebAssemblyModule * wasmModule, Scri
                 case Wasm::WasmTypes::I64:
                     JavascriptError::ThrowTypeErrorVar(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion, _u("i64"), _u("Var"));
                 case Wasm::WasmTypes::F32:
-                    obj = JavascriptNumber::New(cnst.f32, scriptContext);
+                    obj = JavascriptNumber::NewWithCheck(cnst.f32, scriptContext);
                     break;
                 case Wasm::WasmTypes::F64:
-                    obj = JavascriptNumber::New(cnst.f64, scriptContext);
+                    obj = JavascriptNumber::NewWithCheck(cnst.f64, scriptContext);
                     break;
 #ifdef ENABLE_WASM_SIMD
                 case Wasm::WasmTypes::M128:
