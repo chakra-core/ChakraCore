@@ -902,11 +902,12 @@ namespace Js
 
         DynamicTypeHandler * GetDeferredFunctionTypeHandler();
         DynamicTypeHandler * GetDeferredFunctionWithLengthTypeHandler();
+        DynamicTypeHandler* GetDeferredFunctionWithLengthUnsetTypeHandler();
         DynamicTypeHandler * GetDeferredPrototypeFunctionWithNameAndLengthTypeHandler();
         DynamicTypeHandler * ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction);
         DynamicTypeHandler * GetDeferredAnonymousFunctionWithLengthTypeHandler();
         DynamicTypeHandler * GetDeferredAnonymousFunctionTypeHandler();
-        template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false>
+        template<bool isNameAvailable, bool isPrototypeAvailable = true, bool isLengthAvailable = false, bool addLength = isLengthAvailable>
         static DynamicTypeHandler * GetDeferredFunctionTypeHandlerBase();
         template<bool isNameAvailable, bool isPrototypeAvailable = true>
         static DynamicTypeHandler * GetDeferredGeneratorFunctionTypeHandlerBase();
@@ -1236,7 +1237,7 @@ namespace Js
 #endif
 
     public:
-        template<bool addPrototype, bool addName, bool useLengthType>
+        template<bool addPrototype, bool addName, bool useLengthType, bool addLength>
         static bool __cdecl InitializeFunction(DynamicObject* function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
         virtual void Finalize(bool isShutdown) override;
 

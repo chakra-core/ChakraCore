@@ -594,7 +594,7 @@ namespace Js
             Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredConstructorInitializer>::GetDefaultInstance(), true, true);
 
         boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
-            GetDeferredFunctionTypeHandler(), true, true);
+            GetDeferredFunctionWithLengthUnsetTypeHandler(), true, true);
         crossSiteDeferredFunctionType = CreateDeferredFunctionTypeNoProfileThunk(
             scriptContext->CurrentCrossSiteThunk, true /*isShared*/);
         crossSiteDeferredPrototypeFunctionType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(
@@ -784,7 +784,7 @@ namespace Js
         JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptArray>();
     }
 
-    template<bool addPrototype, bool addName, bool useLengthType>
+    template<bool addPrototype, bool addName, bool useLengthType, bool addLength>
     bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptFunction * function = VarTo<JavascriptFunction>(instance);
@@ -833,7 +833,8 @@ namespace Js
         {
             ParseableFunctionInfo * funcInfo = scriptFunction->GetFunctionProxy()->EnsureDeserialized();
 
-            if (useLengthType)
+            CompileAssert(!addLength || useLengthType);
+            if (addLength)
             {
                 function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(funcInfo->GetReportedInParamsCount() - 1), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
             }
@@ -914,10 +915,10 @@ namespace Js
         }
     };
 
-    template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable>
+    template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable, bool addLength>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable, addLength>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable, bool isPrototypeAvailable>
@@ -991,6 +992,11 @@ namespace Js
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler()
     {
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthUnsetTypeHandler()
+    {
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true, /* addLength */ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction)
