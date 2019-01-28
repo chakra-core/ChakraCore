@@ -58,6 +58,7 @@ public:
         Assert(tk == tkStrCon || tk == tkStrTmplBasic || tk == tkStrTmplBegin || tk == tkStrTmplMid || tk == tkStrTmplEnd);
         return u.pid;
     }
+
     IdentPtr GetIdentifier(HashTbl * hashTbl)
     {
         Assert(IsIdentifier() || IsReservedWord());
@@ -72,6 +73,12 @@ public:
     {
         Assert(tk == tkIntCon);
         return u.lw;
+    }
+
+    IdentPtr GetBigInt() const
+    {
+        Assert(tk == tkBigIntCon);
+        return u.pid;
     }
 
     double GetDouble() const
@@ -136,6 +143,12 @@ public:
     {
         this->u.dbl = dbl;
         this->u.maybeInt = maybeInt;
+    }
+
+    void SetBigInt(IdentPtr pid)
+    {
+        this->u.pid = pid;
+        this->u.pchMin = nullptr;
     }
 
     tokens SetRegex(UnifiedRegex::RegexPattern *const pattern, Parser *const parser);
@@ -763,11 +776,11 @@ private:
         throw ParseExceptionObject(hr);
     }
 
-    const EncodedCharPtr PchBase(void) const
+    EncodedCharPtr PchBase(void) const
     {
         return m_pchBase;
     }
-    const EncodedCharPtr PchMinTok(void)
+    EncodedCharPtr PchMinTok(void)
     {
         return m_pchMinTok;
     }
@@ -780,7 +793,7 @@ private:
 
     void ScanNewLine(uint ch);
     void NotifyScannedNewLine();
-    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last);
+    charcount_t LineLength(EncodedCharPtr first, EncodedCharPtr last, size_t* cb);
 
     tokens ScanIdentifier(bool identifyKwds, EncodedCharPtr *pp);
     BOOL FastIdentifierContinue(EncodedCharPtr&p, EncodedCharPtr last);
@@ -788,7 +801,7 @@ private:
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);
-    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, bool& likelyInt, size_t savedMultiUnits);
+    EncodedCharPtr FScanNumber(EncodedCharPtr p, double *pdbl, LikelyNumberType& likelyInt, size_t savedMultiUnits);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last, bool fHadEscape, bool fHasMultiChar);
     IdentPtr PidOfIdentiferAt(EncodedCharPtr p, EncodedCharPtr last);
     uint32 UnescapeToTempBuf(EncodedCharPtr p, EncodedCharPtr last);

@@ -506,13 +506,16 @@ FlowGraph::Build(void)
                     {
                         Assert(exitLabel);
                         IR::Instr * bailOnEarlyExit = IR::BailOutInstr::New(Js::OpCode::BailOnEarlyExit, IR::BailOutOnEarlyExit, instr, instr->m_func);
+                        bailOnEarlyExit->SetByteCodeOffset(instr);
                         instr->InsertBefore(bailOnEarlyExit);
+
                         IR::LabelInstr *exceptFinallyLabel = this->finallyLabelStack->Top();
                         IR::LabelInstr *nonExceptFinallyLabel = exceptFinallyLabel->m_next->m_next->AsLabelInstr();
 
                         // It is possible for the finally region to have a non terminating loop, in which case the end of finally is eliminated
                         // We can skip adding edge from finally to early exit in this case
                         IR::Instr * leaveToFinally = IR::BranchInstr::New(Js::OpCode::Leave, exceptFinallyLabel, this->func);
+                        leaveToFinally->SetByteCodeOffset(instr);
                         instr->InsertBefore(leaveToFinally);
                         instr->Remove();
                         this->AddEdge(currentLabel->GetBasicBlock(), exceptFinallyLabel->GetBasicBlock());
@@ -5263,7 +5266,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             }
             if(symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
             {
-                globOpt->InsertValueCompensation(pred, symsRequiringCompensationToMergedValueInfoMap);
+                globOpt->InsertValueCompensation(pred, &symsRequiringCompensationToMergedValueInfoMap);
             }
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
@@ -5322,6 +5325,12 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
         loop->liveFieldsOnEntry = JitAnew(globOpt->alloc, BVSparse<JitArenaAllocator>, globOpt->alloc);
         loop->liveFieldsOnEntry->Copy(this->globOptData.liveFields);
 
+        if (symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
+        {
+            loop->symsRequiringCompensationToMergedValueInfoMap = JitAnew(globOpt->alloc, SymToValueInfoMap, globOpt->alloc);
+            loop->symsRequiringCompensationToMergedValueInfoMap->Copy(&symsRequiringCompensationToMergedValueInfoMap);
+        }
+        
         if(globOpt->DoBoundCheckHoist() && loop->inductionVariables)
         {
             globOpt->FinalizeInductionVariables(loop, &blockData);

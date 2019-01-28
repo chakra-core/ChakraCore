@@ -217,7 +217,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
 
         case Js::TypeIds_Enumerator:
         case Js::TypeIds_HostDispatch:
-        case Js::TypeIds_WithScopeObject:
+        case Js::TypeIds_UnscopablesWrapperObject:
         case Js::TypeIds_UndeclBlockVar:
         case Js::TypeIds_EngineInterfaceObject:
         case Js::TypeIds_WinRTDate:

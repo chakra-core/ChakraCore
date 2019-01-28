@@ -310,8 +310,10 @@ JsModuleEvaluation(
 /// <remarks>
 ///     This is used for four things:
 ///     1. Setting up the callbacks for module loading - note these are actually
-///         set on the current Context not the module so only have to be set for
-///         the first root module in any given context.
+///         set on the module's Context not the module itself so only have to be set
+///         for the first root module in any given context.
+///         Alternatively you can set these on the currentContext by supplying a nullptr
+///         as the requestModule
 ///     2. Setting host defined info on a module record - can be anything that
 ///         you wish to associate with your modules.
 ///     3. Setting a URL for a module to be used for stack traces/debugging -
@@ -319,7 +321,7 @@ JsModuleEvaluation(
 ///         or it will be ignored.
 ///     4. Setting an exception on the module object - only relevant prior to it being Parsed.
 /// </remarks>
-/// <param name="requestModule">The request module.</param>
+/// <param name="requestModule">The request module, optional for setting callbacks, required for other uses.</param>
 /// <param name="moduleHostInfo">The type of host info to be set.</param>
 /// <param name="hostInfo">The host info to be set.</param>
 /// <returns>
@@ -327,7 +329,7 @@ JsModuleEvaluation(
 /// </returns>
 CHAKRA_API
 JsSetModuleHostInfo(
-    _In_ JsModuleRecord requestModule,
+    _In_opt_ JsModuleRecord requestModule,
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _In_ void* hostInfo);
 
@@ -1892,6 +1894,11 @@ JsSetArrayBufferExtraInfo(
 CHAKRA_API
 JsDetachArrayBuffer(
     _In_ JsValueRef arrayBuffer);
+
+
+#ifdef _WIN32
+#include "ChakraCoreWindows.h"
+#endif // _WIN32
 
 
 #endif // _CHAKRACOREBUILD

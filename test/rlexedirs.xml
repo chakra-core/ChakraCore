@@ -95,6 +95,11 @@
 </dir>
 <dir>
   <default>
+    <files>BigInt</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>ControlFlow</files>
   </default>
 </dir>

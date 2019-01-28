@@ -317,7 +317,7 @@ protected:
     __declspec(noreturn) void Error(HRESULT hr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
 private:
     __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
-    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
+    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""));
     __declspec(noreturn) static void OutOfMemory();
 
     void EnsureStackAvailable();
@@ -378,6 +378,7 @@ private:
 
     ParseNodeInt * CreateIntNode(int32 lw);
     ParseNodeStr * CreateStrNode(IdentPtr pid);
+    ParseNodeBigInt * CreateBigIntNode(IdentPtr pid);
     ParseNodeName * CreateNameNode(IdentPtr pid);
     ParseNodeName * CreateNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
     ParseNodeSpecialName * CreateSpecialNameNode(IdentPtr pid, PidRefStack * ref, charcount_t ichMin, charcount_t ichLim);
@@ -482,7 +483,6 @@ private:
         IdentPtr as;
         IdentPtr _default;
         IdentPtr _star; // Special '*' identifier for modules
-        IdentPtr _starDefaultStar; // Special '*default*' identifier for modules
         IdentPtr _this; // Special 'this' identifier
         IdentPtr _newTarget; // Special new.target identifier
         IdentPtr _super; // Special super identifier
@@ -641,10 +641,12 @@ protected:
     ModuleImportOrExportEntryList* EnsureModuleStarExportEntryList();
 
     void AddModuleSpecifier(IdentPtr moduleRequest);
-    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest);
+    ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest, charcount_t offsetForError = 0);
     ModuleImportOrExportEntry* AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, ModuleImportOrExportEntry* importOrExportEntry);
     void AddModuleLocalExportEntry(ParseNodePtr varDeclNode);
+    void CheckForDuplicateExportEntry(IdentPtr exportName);
     void CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName);
+    void VerifyModuleLocalExportEntries();
 
     ParseNodeVar * CreateModuleImportDeclNode(IdentPtr localName);
 
@@ -1086,11 +1088,11 @@ private:
     void AddToNodeList(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
     void AddToNodeListEscapedUse(ParseNode ** ppnodeList, ParseNode *** pppnodeLast, ParseNode * pnodeAdd);
 
-    void ChkCurTokNoScan(int tk, int wErr)
+    void ChkCurTokNoScan(int tk, int wErr, LPCWSTR stringOne = _u(""), LPCWSTR stringTwo = _u(""))
     {
         if (m_token.tk != tk)
         {
-            Error(wErr);
+            Error(wErr, stringOne, stringTwo);
         }
     }
 
@@ -1129,17 +1131,17 @@ private:
 
     enum FncDeclFlag : ushort
     {
-        fFncNoFlgs                  = 0,
-        fFncDeclaration             = 1 << 0,
-        fFncNoArg                   = 1 << 1,
-        fFncOneArg                  = 1 << 2, //Force exactly one argument.
-        fFncNoName                  = 1 << 3,
-        fFncLambda                  = 1 << 4,
-        fFncMethod                  = 1 << 5,
-        fFncClassMember             = 1 << 6,
-        fFncGenerator               = 1 << 7,
-        fFncAsync                   = 1 << 8,
-        fFncModule                  = 1 << 9,
+        fFncNoFlgs      = 0,
+        fFncDeclaration = 1 << 0,
+        fFncNoArg       = 1 << 1,
+        fFncOneArg      = 1 << 2, //Force exactly one argument.
+        fFncNoName      = 1 << 3,
+        fFncLambda      = 1 << 4,
+        fFncMethod      = 1 << 5,
+        fFncClassMember = 1 << 6,
+        fFncGenerator   = 1 << 7,
+        fFncAsync       = 1 << 8,
+        fFncModule      = 1 << 9,
         fFncClassConstructor        = 1 << 10,
         fFncBaseClassConstructor    = 1 << 11,
     };

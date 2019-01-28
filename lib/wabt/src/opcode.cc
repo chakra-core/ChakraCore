@@ -16,8 +16,6 @@
 
 #include "src/opcode.h"
 
-#include <algorithm>
-
 #include "src/feature.h"
 
 namespace wabt {
@@ -31,6 +29,8 @@ Opcode::Info Opcode::infos_[] = {
    prefix,      code,        PrefixCode(prefix, code)},
 #include "src/opcode.def"
 #undef WABT_OPCODE
+
+    {"<invalid>", Type::Void, Type::Void, Type::Void, Type::Void, 0, 0, 0, 0},
 };
 
 #define WABT_OPCODE(rtype, type1, type2, type3, mem_size, prefix, code, Name, \
@@ -39,40 +39,14 @@ Opcode::Info Opcode::infos_[] = {
 #include "src/opcode.def"
 #undef WABT_OPCODE
 
-// static
-Opcode Opcode::FromCode(uint32_t code) {
-  return FromCode(0, code);
-}
-
-// static
-Opcode Opcode::FromCode(uint8_t prefix, uint32_t code) {
-  uint32_t prefix_code = PrefixCode(prefix, code);
-  auto begin = infos_;
-  auto end = infos_ + WABT_ARRAY_SIZE(infos_);
-  auto iter = std::lower_bound(begin, end, prefix_code,
-                               [](const Info& info, uint32_t prefix_code) {
-                                 return info.prefix_code < prefix_code;
-                               });
-  if (iter == end || iter->prefix_code != prefix_code) {
-    return Opcode(EncodeInvalidOpcode(prefix_code));
-  }
-
-  return Opcode(static_cast<Enum>(iter - infos_));
-}
-
 Opcode::Info Opcode::GetInfo() const {
   if (enum_ < Invalid) {
     return infos_[enum_];
   }
 
-  uint8_t prefix;
-  uint32_t code;
-  DecodeInvalidOpcode(enum_, &prefix, &code);
-  const Info invalid_info = {
-      "<invalid>", Type::Void, Type::Void,
-      Type::Void,  Type::Void, 0,
-      prefix,      code,       PrefixCode(prefix, code),
-  };
+  Info invalid_info = infos_[Opcode::Invalid];
+  DecodeInvalidOpcode(enum_, &invalid_info.prefix, &invalid_info.code);
+  invalid_info.prefix_code = PrefixCode(invalid_info.prefix, invalid_info.code);
   return invalid_info;
 }
 
@@ -96,6 +70,10 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::Rethrow:
     case Opcode::IfExcept:
       return features.exceptions_enabled();
+
+    case Opcode::ReturnCallIndirect:
+    case Opcode::ReturnCall:
+      return features.tail_call_enabled();
 
     case Opcode::I32TruncSSatF32:
     case Opcode::I32TruncUSatF32:
@@ -324,6 +302,15 @@ bool Opcode::IsEnabled(const Features& features) const {
     case Opcode::I64X2TruncUF64X2Sat:
       return features.simd_enabled();
 
+    case Opcode::MemoryInit:
+    case Opcode::MemoryDrop:
+    case Opcode::MemoryCopy:
+    case Opcode::MemoryFill:
+    case Opcode::TableInit:
+    case Opcode::TableDrop:
+    case Opcode::TableCopy:
+      return features.bulk_memory_enabled();
+
     // Interpreter opcodes are never "enabled".
     case Opcode::InterpAlloca:
     case Opcode::InterpBrUnless:
@@ -364,6 +351,22 @@ uint32_t Opcode::GetSimdLaneCount() const {
     default:
       WABT_UNREACHABLE;
   }
+}
+
+// Get the byte sequence for this opcode, including prefix.
+std::vector<uint8_t> Opcode::GetBytes() const {
+  std::vector<uint8_t> result;
+  if (HasPrefix()) {
+    result.push_back(GetPrefix());
+    uint8_t buffer[5];
+    Offset length =
+        WriteU32Leb128Raw(buffer, buffer + sizeof(buffer), GetCode());
+    assert(length != 0);
+    result.insert(result.end(), buffer, buffer + length);
+  } else {
+    result.push_back(GetCode());
+  }
+  return result;
 }
 
 }  // namespace wabt

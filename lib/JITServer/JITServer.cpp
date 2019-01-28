@@ -27,16 +27,7 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
-#ifndef NTBUILD
-    status = RpcServerRegisterIf2(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL);
-#else
+#if (NTDDI_VERSION >= NTDDI_WIN8)
     status = RpcServerRegisterIf3(
         ServerIChakraJIT_v0_0_s_ifspec,
         NULL,
@@ -46,6 +37,15 @@ HRESULT JsInitializeJITServer(
         (ULONG)-1,
         NULL,
         securityDescriptor);
+#else
+    status = RpcServerRegisterIf2(
+        ServerIChakraJIT_v0_0_s_ifspec,
+        NULL,
+        NULL,
+        RPC_IF_AUTOLISTEN,
+        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+        (ULONG)-1,
+        NULL);
 #endif
     if (status != RPC_S_OK)
     {
@@ -543,11 +543,7 @@ ServerNewInterpreterThunkBlock(
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
-            BYTE* callTarget = runtimeAddress;
-#ifdef _M_ARM
-            callTarget = (BYTE*)((uintptr_t)callTarget | 0x1); // Thumb-tag buffer to get actual callable value
-#endif
-            threadContext->SetValidCallTargetForCFG(callTarget);
+            emitBufferManager->SetValidCallTarget(alloc, runtimeAddress, true);
         }
 
         thunkOutput->thunkCount = thunkCount;

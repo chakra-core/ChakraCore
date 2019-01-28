@@ -337,7 +337,7 @@ IRBuilderAsmJs::BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type)
 {
     StackSym * symSrc = m_func->m_symTable->FindStackSym(BuildSrcStackSymID(srcRegSlot, type));
     AssertMsg(symSrc, "Tried to use an undefined stack slot?");
-        IR::RegOpnd * regOpnd = IR::RegOpnd::New(symSrc, type, m_func);
+    IR::RegOpnd * regOpnd = IR::RegOpnd::New(symSrc, type, m_func);
 
     return regOpnd;
 }
@@ -732,10 +732,15 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset, bool isFirstLoad)
             // ArrayBuffer
             // GrowMemory can change the ArrayBuffer, we have to reload it
             AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::WasmMemoryReg, Js::WebAssemblyMemory::GetOffsetOfArrayBuffer(), TyVar, DoReload);
-            // ArrayBuffer.buffer
+
             // The buffer doesn't change when using Fast Virtual buffer even if we grow the memory
             ShouldReload shouldReloadBufferPointer = m_func->GetJITFunctionBody()->UsesWAsmJsFastVirtualBuffer() ? DontReload : DoReload;
-            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), TyVar, shouldReloadBufferPointer);
+
+            // ArrayBuffer.bufferContent
+            AddLoadField(AsmJsRegSlots::RefCountedBuffer, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferContentsOffset(), TyVar, DoReload);
+
+            // RefCountedBuffer.buffer
+            AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::RefCountedBuffer, Js::RefCountedBuffer::GetBufferOffset(), TyVar, shouldReloadBufferPointer);
             // ArrayBuffer.length
             AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), TyUint32, DoReload);
         }
@@ -758,8 +763,10 @@ IRBuilderAsmJs::BuildHeapBufferReload(uint32 offset, bool isFirstLoad)
         // ArrayBuffer
         // The ArrayBuffer can be changed on the environment, if it is detached, we'll throw
         AddLoadField(AsmJsRegSlots::ArrayReg, AsmJsRegSlots::ModuleMemReg, (int32)Js::AsmJsModuleMemory::MemoryTableBeginOffset, TyVar, DontReload);
-        // ArrayBuffer.buffer
-        AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferOffset(), TyVar, DontReload);
+        // ArrayBuffer.bufferContent
+        AddLoadField(AsmJsRegSlots::RefCountedBuffer, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetBufferContentsOffset(), TyVar, DontReload);
+        // RefCountedBuffer.buffer
+        AddLoadField(AsmJsRegSlots::BufferReg, AsmJsRegSlots::RefCountedBuffer, Js::RefCountedBuffer::GetBufferOffset(), TyVar, DontReload);
         // ArrayBuffer.length
         AddLoadField(AsmJsRegSlots::LengthReg, AsmJsRegSlots::ArrayReg, Js::ArrayBuffer::GetByteLengthOffset(), TyUint32, DontReload);
     }
@@ -1446,7 +1453,7 @@ void
 IRBuilderAsmJs::InitializeMemAccessTypeInfo(Js::ArrayBufferView::ViewType viewType, _Out_ MemAccessTypeInfo * typeInfo)
 {
     AssertOrFailFast(typeInfo);
-    
+
     switch (viewType)
     {
 #define ARRAYBUFFER_VIEW(name, align, RegType, MemType, irSuffix) \
@@ -1873,9 +1880,9 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 #ifdef ENABLE_WASM
     // heap buffer can change for wasm
     if (m_asmFuncInfo->UsesHeapBuffer() && m_func->GetJITFunctionBody()->IsWasmFunction())
-        {
-            BuildHeapBufferReload(offset);
-        }
+    {
+        BuildHeapBufferReload(offset);
+    }
 #endif
 }
 
@@ -5894,7 +5901,6 @@ IRBuilderAsmJs::BuildInt1Uint8x16_1Int1(Js::OpCodeAsmJs newOpcode, uint32 offset
 
 void IRBuilderAsmJs::BuildUint8x16_2Int16(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG18)
 {
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128U16);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128U16);
 
     IR::RegOpnd * src2Opnd = BuildIntConstOpnd(src2RegSlot);
@@ -5913,6 +5919,8 @@ void IRBuilderAsmJs::BuildUint8x16_2Int16(Js::OpCodeAsmJs newOpcode, uint32 offs
     IR::RegOpnd * src15Opnd = BuildIntConstOpnd(src15RegSlot);
     IR::RegOpnd * src16Opnd = BuildIntConstOpnd(src16RegSlot);
     IR::RegOpnd * src17Opnd = BuildIntConstOpnd(src17RegSlot);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128U16);
 
     IR::Instr * instr = nullptr;
     dstOpnd->SetValueType(ValueType::Simd);
@@ -5952,9 +5960,9 @@ IRBuilderAsmJs::BuildAsmShuffle(Js::OpCodeAsmJs newOpcode, uint32 offset)
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode) && newOpcode == Js::OpCodeAsmJs::Simd128_Shuffle_V8X16);
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmShuffle<SizePolicy>>();
 
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(GetRegSlotFromSimd128Reg(layout->R0), TySimd128U16);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R1), TySimd128U16);
     IR::RegOpnd * src2Opnd = BuildSrcOpnd(GetRegSlotFromSimd128Reg(layout->R2), TySimd128U16);
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(GetRegSlotFromSimd128Reg(layout->R0), TySimd128U16);
     dstOpnd->SetValueType(ValueType::Simd);
     src1Opnd->SetValueType(ValueType::Simd);
     src2Opnd->SetValueType(ValueType::Simd);
@@ -5973,7 +5981,6 @@ IRBuilderAsmJs::BuildAsmShuffle(Js::OpCodeAsmJs newOpcode, uint32 offset)
 
 void IRBuilderAsmJs::BuildUint8x16_3Int16(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG19)
 {
-    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128U16);
     IR::RegOpnd * src1Opnd = BuildSrcOpnd(src1RegSlot, TySimd128U16);
     IR::RegOpnd * src2Opnd = BuildSrcOpnd(src2RegSlot, TySimd128U16);
 
@@ -5993,6 +6000,8 @@ void IRBuilderAsmJs::BuildUint8x16_3Int16(Js::OpCodeAsmJs newOpcode, uint32 offs
     IR::RegOpnd * src16Opnd = BuildIntConstOpnd(src16RegSlot);
     IR::RegOpnd * src17Opnd = BuildIntConstOpnd(src17RegSlot);
     IR::RegOpnd * src18Opnd = BuildIntConstOpnd(src18RegSlot);
+
+    IR::RegOpnd * dstOpnd = BuildDstOpnd(dstRegSlot, TySimd128U16);
 
     IR::Instr * instr = nullptr;
     dstOpnd->SetValueType(ValueType::Simd);

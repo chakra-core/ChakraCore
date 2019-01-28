@@ -23,12 +23,12 @@
 #include <string>
 #include <vector>
 
-#include "src/binary-reader-interp.h"
 #include "src/binary-reader.h"
 #include "src/cast.h"
-#include "src/error-handler.h"
+#include "src/error-formatter.h"
 #include "src/feature.h"
-#include "src/interp.h"
+#include "src/interp/binary-reader-interp.h"
+#include "src/interp/interp.h"
 #include "src/literal.h"
 #include "src/option-parser.h"
 #include "src/resolve-names.h"
@@ -802,7 +802,7 @@ class CommandRunner {
 
   wabt::Result ReadInvalidTextModule(string_view module_filename,
                                      Environment* env,
-                                     ErrorHandler* error_handler);
+                                     const std::string& header);
   wabt::Result ReadInvalidModule(int line_number,
                                  string_view module_filename,
                                  Environment* env,
@@ -818,119 +818,34 @@ class CommandRunner {
   std::string source_filename_;
 };
 
-static interp::Result DefaultHostCallback(const HostFunc* func,
-                                          const interp::FuncSignature* sig,
-                                          Index num_args,
-                                          TypedValue* args,
-                                          Index num_results,
-                                          TypedValue* out_results,
-                                          void* user_data) {
-  memset(static_cast<void*>(out_results), 0,
-                            sizeof(TypedValue) * num_results);
-  for (Index i = 0; i < num_results; ++i)
-    out_results[i].type = sig->result_types[i];
-
-  TypedValues vec_args(args, args + num_args);
-  TypedValues vec_results(out_results, out_results + num_results);
-
+static interp::Result PrintCallback(const HostFunc* func,
+                                    const interp::FuncSignature* sig,
+                                    const TypedValues& args,
+                                    TypedValues& results) {
   printf("called host ");
-  WriteCall(s_stdout_stream.get(), func->module_name, func->field_name,
-            vec_args, vec_results, interp::Result::Ok);
+  WriteCall(s_stdout_stream.get(), func->module_name, func->field_name, args,
+            results, interp::Result::Ok);
   return interp::Result::Ok;
 }
 
-#define PRIimport "\"%s.%s\""
-#define PRINTF_IMPORT_ARG(x) ((x).module_name.c_str()), ((x).field_name.c_str())
-
-class SpectestHostImportDelegate : public HostImportDelegate {
- public:
-  wabt::Result ImportFunc(interp::FuncImport* import,
-                          interp::Func* func,
-                          interp::FuncSignature* func_sig,
-                          const ErrorCallback& callback) override {
-    if (import->field_name == "print" || import->field_name == "print_i32" ||
-        import->field_name == "print_f32" ||
-        import->field_name == "print_f64" ||
-        import->field_name == "print_i32_f32" ||
-        import->field_name == "print_f64_f64") {
-      cast<HostFunc>(func)->callback = DefaultHostCallback;
-      return wabt::Result::Ok;
-    } else {
-      PrintError(callback, "unknown host function import " PRIimport,
-                 PRINTF_IMPORT_ARG(*import));
-      return wabt::Result::Error;
-    }
-  }
-
-  wabt::Result ImportTable(interp::TableImport* import,
-                           interp::Table* table,
-                           const ErrorCallback& callback) override {
-    if (import->field_name == "table") {
-      table->limits.has_max = true;
-      table->limits.initial = 10;
-      table->limits.max = 20;
-      return wabt::Result::Ok;
-    } else {
-      PrintError(callback, "unknown host table import " PRIimport,
-                 PRINTF_IMPORT_ARG(*import));
-      return wabt::Result::Error;
-    }
-  }
-
-  wabt::Result ImportMemory(interp::MemoryImport* import,
-                            interp::Memory* memory,
-                            const ErrorCallback& callback) override {
-    if (import->field_name == "memory") {
-      memory->page_limits.has_max = true;
-      memory->page_limits.initial = 1;
-      memory->page_limits.max = 2;
-      memory->data.resize(memory->page_limits.initial * WABT_MAX_PAGES);
-      return wabt::Result::Ok;
-    } else {
-      PrintError(callback, "unknown host memory import " PRIimport,
-                 PRINTF_IMPORT_ARG(*import));
-      return wabt::Result::Error;
-    }
-  }
-
-  wabt::Result ImportGlobal(interp::GlobalImport* import,
-                            interp::Global* global,
-                            const ErrorCallback& callback) override {
-    if (import->field_name == "global_i32") {
-      global->typed_value.type = Type::I32;
-      global->typed_value.value.i32 = 666;
-      return wabt::Result::Ok;
-    } else if (import->field_name == "global_f32") {
-      global->typed_value.type = Type::F32;
-      float value = 666.6f;
-      memcpy(&global->typed_value.value.f32_bits, &value, sizeof(value));
-      return wabt::Result::Ok;
-    } else if (import->field_name == "global_i64") {
-      global->typed_value.type = Type::I64;
-      global->typed_value.value.i64 = 666;
-      return wabt::Result::Ok;
-    } else if (import->field_name == "global_f64") {
-      global->typed_value.type = Type::F64;
-      double value = 666.6;
-      memcpy(&global->typed_value.value.f64_bits, &value, sizeof(value));
-      return wabt::Result::Ok;
-    } else {
-      PrintError(callback, "unknown host global import " PRIimport,
-                 PRINTF_IMPORT_ARG(*import));
-      return wabt::Result::Error;
-    }
-  }
-
- private:
-  void PrintError(const ErrorCallback& callback, const char* format, ...) {
-    WABT_SNPRINTF_ALLOCA(buffer, length, format);
-    callback(buffer);
-  }
-};
-
 static void InitEnvironment(Environment* env) {
   HostModule* host_module = env->AppendHostModule("spectest");
-  host_module->import_delegate.reset(new SpectestHostImportDelegate());
+  host_module->AppendFuncExport("print", {{}, {}}, PrintCallback);
+  host_module->AppendFuncExport("print_i32", {{Type::I32}, {}}, PrintCallback);
+  host_module->AppendFuncExport("print_f32", {{Type::F32}, {}}, PrintCallback);
+  host_module->AppendFuncExport("print_f64", {{Type::F64}, {}}, PrintCallback);
+  host_module->AppendFuncExport("print_i32_f32", {{Type::I32, Type::F32}, {}},
+                                PrintCallback);
+  host_module->AppendFuncExport("print_f64_f64", {{Type::F64, Type::F64}, {}},
+                                PrintCallback);
+
+  host_module->AppendTableExport("table", Limits(10, 20));
+  host_module->AppendMemoryExport("memory", Limits(1, 2));
+
+  host_module->AppendGlobalExport("global_i32", false, uint32_t(666));
+  host_module->AppendGlobalExport("global_i64", false, uint64_t(666));
+  host_module->AppendGlobalExport("global_f32", false, float(666.6f));
+  host_module->AppendGlobalExport("global_f64", false, double(666.6));
 }
 
 CommandRunner::CommandRunner()
@@ -1061,27 +976,31 @@ ExecResult CommandRunner::RunAction(int line_number,
 
 wabt::Result CommandRunner::ReadInvalidTextModule(string_view module_filename,
                                                   Environment* env,
-                                                  ErrorHandler* error_handler) {
+                                                  const std::string& header) {
   std::unique_ptr<WastLexer> lexer =
       WastLexer::CreateFileLexer(module_filename);
+  Errors errors;
   std::unique_ptr<::Script> script;
-  wabt::Result result = ParseWastScript(lexer.get(), &script, error_handler);
+  wabt::Result result = ParseWastScript(lexer.get(), &script, &errors);
   if (Succeeded(result)) {
     wabt::Module* module = script->GetFirstModule();
-    result = ResolveNamesModule(lexer.get(), module, error_handler);
+    result = ResolveNamesModule(module, &errors);
     if (Succeeded(result)) {
       ValidateOptions options(s_features);
       // Don't do a full validation, just validate the function signatures.
-      result =
-          ValidateFuncSignatures(lexer.get(), module, error_handler, &options);
+      result = ValidateFuncSignatures(module, &errors, options);
     }
   }
+
+  auto line_finder = lexer->MakeLineFinder();
+  FormatErrorsToFile(errors, Location::Type::Text, line_finder.get(), stdout,
+                     header, PrintHeader::Once);
   return result;
 }
 
 static wabt::Result ReadModule(string_view module_filename,
                                Environment* env,
-                               ErrorHandler* error_handler,
+                               Errors* errors,
                                DefinedModule** out_module) {
   wabt::Result result;
   std::vector<uint8_t> file_data;
@@ -1095,8 +1014,8 @@ static wabt::Result ReadModule(string_view module_filename,
     const bool kFailOnCustomSectionError = true;
     ReadBinaryOptions options(s_features, s_log_stream.get(), kReadDebugNames,
                               kStopOnFirstError, kFailOnCustomSectionError);
-    result = ReadBinaryInterp(env, file_data.data(), file_data.size(),
-                              &options, error_handler, out_module);
+    result = ReadBinaryInterp(env, file_data.data(), file_data.size(), options,
+                              errors, out_module);
 
     if (Succeeded(result)) {
       if (s_verbose) {
@@ -1117,16 +1036,16 @@ wabt::Result CommandRunner::ReadInvalidModule(int line_number,
 
   switch (module_type) {
     case ModuleType::Text: {
-      ErrorHandlerFile error_handler(Location::Type::Text, stdout, header,
-                                     ErrorHandlerFile::PrintHeader::Once);
-      return ReadInvalidTextModule(module_filename, env, &error_handler);
+      return ReadInvalidTextModule(module_filename, env, header);
     }
 
     case ModuleType::Binary: {
       DefinedModule* module;
-      ErrorHandlerFile error_handler(Location::Type::Binary, stdout, header,
-                                     ErrorHandlerFile::PrintHeader::Once);
-      return ReadModule(module_filename, env, &error_handler, &module);
+      Errors errors;
+      wabt::Result result = ReadModule(module_filename, env, &errors, &module);
+      FormatErrorsToFile(errors, Location::Type::Binary, {}, stdout, header,
+                         PrintHeader::Once);
+      return result;
     }
   }
 
@@ -1135,9 +1054,10 @@ wabt::Result CommandRunner::ReadInvalidModule(int line_number,
 
 wabt::Result CommandRunner::OnModuleCommand(const ModuleCommand* command) {
   Environment::MarkPoint mark = env_.Mark();
-  ErrorHandlerFile error_handler(Location::Type::Binary);
+  Errors errors;
   wabt::Result result = ReadModule(command->filename, &env_,
-                                   &error_handler, &last_module_);
+                                   &errors, &last_module_);
+  FormatErrorsToFile(errors, Location::Type::Binary);
 
   if (Failed(result)) {
     env_.ResetToMarkPoint(mark);
@@ -1245,11 +1165,11 @@ wabt::Result CommandRunner::OnAssertInvalidCommand(
 
 wabt::Result CommandRunner::OnAssertUninstantiableCommand(
     const AssertUninstantiableCommand* command) {
-  ErrorHandlerFile error_handler(Location::Type::Binary);
+  Errors errors;
   DefinedModule* module;
   Environment::MarkPoint mark = env_.Mark();
-  wabt::Result result =
-      ReadModule(command->filename, &env_, &error_handler, &module);
+  wabt::Result result = ReadModule(command->filename, &env_, &errors, &module);
+  FormatErrorsToFile(errors, Location::Type::Binary);
 
   if (Succeeded(result)) {
     ExecResult exec_result = executor_.RunStartFunction(module);

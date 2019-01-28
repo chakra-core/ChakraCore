@@ -658,11 +658,13 @@ namespace Js
 
         // 3. Let result be ? Call(onFinally, undefined)
         Var result = nullptr;
+
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
         {
             result = CALL_FUNCTION(scriptContext->GetThreadContext(), thenFinallyFunction->GetOnFinally(), CallInfo(CallFlags_Value, 1), library->GetUndefined());
         }
         END_SAFE_REENTRANT_CALL
+
         Assert(result);
 
         // 4. Let C be F.[[Constructor]]

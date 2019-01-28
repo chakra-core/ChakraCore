@@ -116,55 +116,9 @@ function RunFloat32x4Tests() {
     exports = new WebAssembly.Instance(mod, ffi).exports;
 
     check(1.0, "exports.func_f32x4_0");
-    check(2147483648, "exports.func_f32x4_1");
+    check(3.4028234663852886e+38, "exports.func_f32x4_1");
     check(2147483648, "exports.func_f32x4_2");
     check(-2147483648, "exports.func_f32x4_3");
-}
-
-function RunBool32x4Tests() {
-    mod = new WebAssembly.Module(readbuffer('b32x4.wasm'));
-    exports = new WebAssembly.Instance(mod, ffi).exports;
-
-    check(false, "exports.func_b32x4_0");
-    check(true, "exports.func_b32x4_1");
-    check(true, "exports.func_b32x4_2");
-    check(true, "exports.func_b32x4_3");
-}
-
-function RunBool16x8Tests() {
-    mod = new WebAssembly.Module(readbuffer('b16x8.wasm'));
-    exports = new WebAssembly.Instance(mod, ffi).exports;
-
-    check(true, "exports.func_b16x8_0");
-    check(false, "exports.func_b16x8_1");
-    check(true, "exports.func_b16x8_2");
-    check(true, "exports.func_b16x8_3");    
-    check(true, "exports.func_b16x8_4");
-    check(true, "exports.func_b16x8_5");
-    check(true, "exports.func_b16x8_6");
-    check(true, "exports.func_b16x8_7");
-}
-
-function RunBool8x16Tests() {
-    mod = new WebAssembly.Module(readbuffer('b8x16.wasm'));
-    exports = new WebAssembly.Instance(mod, ffi).exports;
-
-    check(true, "exports.func_b8x16_0");
-    check(false, "exports.func_b8x16_1");
-    check(true, "exports.func_b8x16_2");
-    check(true, "exports.func_b8x16_3");    
-    check(true, "exports.func_b8x16_4");
-    check(true, "exports.func_b8x16_5");
-    check(true, "exports.func_b8x16_6");
-    check(true, "exports.func_b8x16_7");    
-    check(true, "exports.func_b8x16_8");
-    check(true, "exports.func_b8x16_9");
-    check(true, "exports.func_b8x16_10");
-    check(true, "exports.func_b8x16_11");    
-    check(true, "exports.func_b8x16_12");
-    check(true, "exports.func_b8x16_13");
-    check(true, "exports.func_b8x16_14");
-    check(true, "exports.func_b8x16_15");    
 }
 
 //Tests
@@ -174,9 +128,6 @@ RunInt16x8SignedTests();
 RunInt8x16UnsignedTests();
 RunInt8x16SignedTests();
 RunFloat32x4Tests();
-RunBool32x4Tests();
-RunBool16x8Tests();
-RunBool8x16Tests();
     
 if(passed) {
   print("Passed");

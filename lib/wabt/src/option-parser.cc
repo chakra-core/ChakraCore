@@ -90,7 +90,7 @@ void OptionParser::AddOption(char short_name,
 }
 
 void OptionParser::AddHelpOption() {
-  AddOption('h', "help", "Print this help message", [this]() {
+  AddOption("help", "Print this help message", [this]() {
     PrintHelp();
     exit(0);
   });

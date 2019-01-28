@@ -103,7 +103,7 @@ EncoderMD::Init(Encoder *encoder)
 ///
 ///----------------------------------------------------------------------------
 
-const BYTE
+BYTE
 EncoderMD::GetOpcodeByte2(IR::Instr *instr)
 {
     return OpcodeByte2[instr->m_opcode - (Js::OpCode::MDStart+1)];
@@ -161,13 +161,13 @@ EncoderMD::GetOpbyte(IR::Instr *instr)
 ///
 ///----------------------------------------------------------------------------
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(IR::RegOpnd *regOpnd)
 {
     return this->GetRegEncode(regOpnd->GetReg());
 }
 
-const BYTE
+BYTE
 EncoderMD::GetRegEncode(RegNum reg)
 {
     AssertMsg(reg != RegNOREG, "should have valid reg in encoder");
@@ -189,7 +189,7 @@ EncoderMD::GetRegEncode(RegNum reg)
 ///
 ///----------------------------------------------------------------------------
 
-const uint32
+uint32
 EncoderMD::GetOpdope(IR::Instr *instr)
 {
     return Opdope[instr->m_opcode - (Js::OpCode::MDStart+1)];
@@ -203,7 +203,7 @@ EncoderMD::GetOpdope(IR::Instr *instr)
 ///
 ///----------------------------------------------------------------------------
 
-const uint32
+uint32
 EncoderMD::GetLeadIn(IR::Instr * instr)
 {
     return OpcodeLeadIn[instr->m_opcode - (Js::OpCode::MDStart+1)];
@@ -1543,33 +1543,62 @@ void EncoderMD::AddLabelReloc(BYTE* relocAddress)
 ///
 ///----------------------------------------------------------------------------
 void
-EncoderMD::FixMaps(uint32 brOffset, uint32 bytesSaved, uint32 *inlineeFrameRecordsIndex, uint32 *inlineeFrameMapIndex,  uint32 *pragmaInstToRecordOffsetIndex, uint32 *offsetBuffIndex)
+EncoderMD::FixMaps(uint32 brOffset, uint32 bytesSaved, FixUpMapIndex *mapIndices)
 
 {
-    InlineeFrameRecords *recList = m_encoder->m_inlineeFrameRecords;
-    ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
-    PragmaInstrList *pInstrList = m_encoder->m_pragmaInstrToRecordOffset;
     int32 i;
-    for (i = *inlineeFrameRecordsIndex; i < recList->Count() && recList->Item(i)->inlineeStartOffset <= brOffset; i++)
-        recList->Item(i)->inlineeStartOffset -= bytesSaved;
 
-    *inlineeFrameRecordsIndex = i;
+    {
+        InlineeFrameRecords *recList = m_encoder->m_inlineeFrameRecords;
+        for (i = mapIndices->inlineeFrameRecordsIndex; i < recList->Count() && recList->Item(i)->inlineeStartOffset <= brOffset; i++)
+        {
+            recList->Item(i)->inlineeStartOffset -= bytesSaved;
+        }
 
-    for (i = *inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).offset <= brOffset; i++)
+        mapIndices->inlineeFrameRecordsIndex = i;
+    }
+
+    {
+        ArenaInlineeFrameMap *mapList = m_encoder->m_inlineeFrameMap;
+        for (i = mapIndices->inlineeFrameMapIndex; i < mapList->Count() && mapList->Item(i).offset <= brOffset; i++)
+        {
             mapList->Item(i).offset -= bytesSaved;
+        }
 
-    *inlineeFrameMapIndex = i;
+        mapIndices->inlineeFrameMapIndex = i;
+    }
 
-    for (i = *pragmaInstToRecordOffsetIndex; i < pInstrList->Count() && pInstrList->Item(i)->m_offsetInBuffer <= brOffset; i++)
-        pInstrList->Item(i)->m_offsetInBuffer -= bytesSaved;
+    {
+        PragmaInstrList *pInstrList = m_encoder->m_pragmaInstrToRecordOffset;
+        for (i = mapIndices->pragmaInstToRecordOffsetIndex; i < pInstrList->Count() && pInstrList->Item(i)->m_offsetInBuffer <= brOffset; i++)
+        {
+            pInstrList->Item(i)->m_offsetInBuffer -= bytesSaved;
+        }
 
-    *pragmaInstToRecordOffsetIndex = i;
+        mapIndices->pragmaInstToRecordOffsetIndex = i;
+    }
+
+    {
+        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailoutRecordList;
+        for (i = mapIndices->lazyBailOutRecordListIndex; i < lazyBailOutRecordList->Count() && lazyBailOutRecordList->Item(i).offset <= brOffset; i++)
+        {
+            lazyBailOutRecordList->Item(i).offset -= bytesSaved;
+        }
+
+        mapIndices->lazyBailOutRecordListIndex = i;
+    }
 
 #if DBG_DUMP
-    for (i = *offsetBuffIndex; (uint)i < m_encoder->m_instrNumber && m_encoder->m_offsetBuffer[i] <= brOffset; i++)
-        m_encoder->m_offsetBuffer[i] -= bytesSaved;
 
-    *offsetBuffIndex = i;
+    {
+        for (i = mapIndices->offsetBuffIndex; (uint)i < m_encoder->m_instrNumber && m_encoder->m_offsetBuffer[i] <= brOffset; i++)
+        {
+            m_encoder->m_offsetBuffer[i] -= bytesSaved;
+        }
+
+        mapIndices->offsetBuffIndex = i;
+    }
+
 #endif
 }
 

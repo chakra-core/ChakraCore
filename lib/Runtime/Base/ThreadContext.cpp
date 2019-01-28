@@ -1520,6 +1520,8 @@ ThreadContext::EnterScriptEnd(Js::ScriptEntryExitRecord * record, bool doCleanup
             this->hasThrownPendingException = false;
         }
 
+        delayFreeCallback.ClearAll();
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.FreeRejittedCode)
 #endif
@@ -2747,6 +2749,20 @@ ThreadContext::DoTryRedeferral() const
     };
 }
 
+void
+ThreadContext::OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount)
+{
+    // Scan the stack to match with current list of delayed free buffer. For those which are not found on the stack
+    // will be released (ref-count decremented)
+
+    if (!this->delayFreeCallback.HasAnyItem())
+    {
+        return;
+    }
+
+    this->delayFreeCallback.ScanStack(stackTop, byteCount, registers, registersByteCount);
+}
+
 bool
 ThreadContext::DoRedeferFunctionBodies() const
 {
@@ -3698,8 +3714,14 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
                 {
                     if (entry->entryPoints->TryGetValue(functionEntryPoint, &dummy))
                     {
-                        functionEntryPoint->DoLazyBailout(stackWalker.GetCurrentAddressOfInstructionPointer(),
-                            caller->GetFunctionBody(), propertyRecord);
+                        functionEntryPoint->DoLazyBailout(
+                            stackWalker.GetCurrentAddressOfInstructionPointer(),
+                            static_cast<BYTE*>(stackWalker.GetFramePointer())
+#if DBG
+                            , caller->GetFunctionBody()
+                            , propertyRecord
+#endif
+                        );
                     }
                 }
             }

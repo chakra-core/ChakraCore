@@ -72,6 +72,7 @@ class ParseNodeUni;
 class ParseNodeBin;
 class ParseNodeTri;
 class ParseNodeInt;
+class ParseNodeBigInt;
 class ParseNodeFloat;
 class ParseNodeRegExp;
 class ParseNodeStr;
@@ -119,6 +120,7 @@ public:
     ParseNodeBin * AsParseNodeBin();
     ParseNodeTri * AsParseNodeTri();
     ParseNodeInt * AsParseNodeInt();
+    ParseNodeBigInt * AsParseNodeBigInt();
     ParseNodeFloat * AsParseNodeFloat();
     ParseNodeRegExp * AsParseNodeRegExp();
     ParseNodeVar * AsParseNodeVar();
@@ -307,6 +309,19 @@ public:
     int32 lw;
 
     DISABLE_SELF_CAST(ParseNodeInt);
+};
+
+// bigint constant
+class ParseNodeBigInt : public ParseNode
+{
+public:
+    ParseNodeBigInt(charcount_t ichMin, charcount_t ichLim, IdentPtr pid);
+
+    IdentPtr const pid;
+    bool isNegative : 1;
+
+    DISABLE_SELF_CAST(ParseNodeBigInt);
+
 };
 
 // double constant
@@ -1020,6 +1035,9 @@ class ParseNodeCatch : public ParseNodeStmt
 {
 public:
     ParseNodeCatch(OpCode nop, charcount_t ichMin, charcount_t ichLim);
+
+    bool HasPatternParam() { return pnodeParam != nullptr && pnodeParam->nop == knopParamPattern; }
+    bool HasParam() { return pnodeParam != nullptr;  }
 
     ParseNodePtr GetParam() { return pnodeParam; }
     void SetParam(ParseNodeName * pnode) { pnodeParam = pnode;  }

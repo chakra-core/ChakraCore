@@ -19,6 +19,13 @@ int LogicalStringCompareImpl(const char16* p1, int p1size, const char16* p2, int
 }
 }
 
+namespace Js
+{
+    static digit_t AddDigit(digit_t a, digit_t b, digit_t * carry);
+    static digit_t SubtractDigit(digit_t a, digit_t b, digit_t * borrow);
+    static digit_t MulDigit(digit_t a, digit_t b, digit_t * high);
+}
+
 #ifdef ENABLE_TEST_HOOKS
 
 HRESULT __stdcall SetConfigFlags(__in int argc, __in_ecount(argc) LPWSTR argv[], ICustomConfigFlags* customConfigFlags)
@@ -60,16 +67,6 @@ HRESULT __stdcall SetEnableCheckMemoryLeakOutput(bool flag)
 #endif
     return S_OK;
 }
-
-#if ENABLE_NATIVE_CODEGEN
-#ifdef _WIN32
-void __stdcall ConnectJITServer(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
-{
-    JITManager::GetJITManager()->EnableOOPJIT();
-    ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
-}
-#endif
-#endif
 
 void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 {
@@ -168,6 +165,11 @@ HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
         SetEnableCheckMemoryLeakOutput,
         PlatformAgnostic::UnicodeText::Internal::LogicalStringCompareImpl,
 
+        //BigInt hooks
+        Js::JavascriptBigInt::AddDigit,
+        Js::JavascriptBigInt::SubDigit,
+        Js::JavascriptBigInt::MulDigit,
+
 #define FLAG(type, name, description, defaultValue, ...) FLAG_##type##(name)
 #define FLAGINCLUDE(name) \
     IsEnabled##name##Flag, \
@@ -191,9 +193,6 @@ HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberTrioSet
 #undef FLAG_NumberRange
-#if ENABLE_NATIVE_CODEGEN && _WIN32
-        ConnectJITServer,
-#endif
         NotifyUnhandledException
     };
     return pfChakraCoreLoaded(testHooks);

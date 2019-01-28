@@ -1430,6 +1430,13 @@
   </test>
   <test>
     <default>
+      <files>bug_OS13976524.js</files>
+      <tags>BugFix</tags>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>DeferParseLambda.js</files>
       <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
     </default>

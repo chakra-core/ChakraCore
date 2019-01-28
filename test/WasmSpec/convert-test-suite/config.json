@@ -3,7 +3,12 @@
     "chakra",
     "chakra_generated",
     "testsuite/core",
-    "testsuite/js-api",
+    "testsuite/js-api/constructor",
+    "testsuite/js-api/global",
+    "testsuite/js-api/instance",
+    "testsuite/js-api/memory",
+    "testsuite/js-api/module",
+    "testsuite/js-api/table",
 
     "features/extends",
     "features/nontrapping",
@@ -13,22 +18,22 @@
     "flags": ["-wasmfastarray-"],
     "rltags": ["exclude_x86"],
     "files": [
-      "address",
-      "float_memory",
-      "memory",
-      "memory_trap",
-      "resizing",
-      "traps"
+      "testsuite/core/address.wast",
+      "testsuite/core/float_memory.wast",
+      "testsuite/core/memory.wast",
+      "testsuite/core/memory_trap.wast",
+      "testsuite/core/resizing.wast",
+      "testsuite/core/traps.wast"
     ]
   }, {
     "flags": ["-wasmMathExFilter"],
     "files": [
-      "int_exprs",
-      "i32",
-      "i64",
-      "chakra_i32",
-      "chakra_i64",
-      "traps"
+      "testsuite/core/int_exprs.wast",
+      "testsuite/core/i32.wast",
+      "testsuite/core/i64.wast",
+      "chakra_generated/chakra_i32.wast",
+      "chakra_generated/chakra_i64.wast",
+      "testsuite/core/traps.wast"
     ]
   }, {
     "required": true,
@@ -37,17 +42,14 @@
       "features/extends"
     ],
     "files": [
-      "chakra_extends_i32",
-      "chakra_extends_i64"
+      "chakra_generated/chakra_extends_i32.wast",
+      "chakra_generated/chakra_extends_i64.wast"
     ]
   }, {
     "required": true,
     "flags": ["-WasmNontrapping"],
     "folders": [
       "features/nontrapping"
-    ],
-    "files": [
-      "nontrapping_conversions"
     ]
   }, {
     "required": true,
@@ -56,8 +58,8 @@
       "features/threads"
     ],
     "files": [
-      "chakra_atomic_load",
-      "chakra_atomic_store"
+      "chakra/chakra_atomic_load.wast",
+      "chakra/chakra_atomic_store.wast"
     ]
   }, {
     "flags": ["-WasmThreads", "-ESSharedArrayBuffer", "-WasmSharedArrayVirtualBuffer-", "-WasmFastArray-"],
@@ -65,12 +67,12 @@
       "features/threads"
     ],
     "files": [
-      "chakra_atomic_load",
-      "chakra_atomic_store"
+      "chakra/chakra_atomic_load.wast",
+      "chakra/chakra_atomic_store.wast"
     ]
   }],
   "excludes": [
-    "names"
+    "testsuite/core/names.wast"
   ],
   "xplat-excludes": [
   ]

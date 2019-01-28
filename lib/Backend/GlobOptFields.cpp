@@ -210,8 +210,6 @@ void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BV
 void
 GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func)
 {
-    IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
-
     // obj.x = 10;
     // obj["x"] = ...;   // This needs to kill obj.x...  We need to kill all fields...
     //
@@ -225,14 +223,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
     // - We check the type specialization status for the sym as well. For the purpose of doing kills, we can assume that
     //   if type specialization happened, that fields don't need to be killed. Note that they may be killed in the next
     //   pass based on the value.
-    if (func->GetThisOrParentInlinerHasArguments() ||
-        (
-            indexOpnd &&
-            (
-                indexOpnd->m_sym->m_isNotNumber ||
-                (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(indexOpnd->m_sym))
-            )
-        ))
+    if (func->GetThisOrParentInlinerHasArguments() || this->IsNonNumericRegOpnd(indirOpnd->GetIndexOpnd(), inGlobOpt))
     {
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
@@ -328,10 +319,20 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         Assert(dstOpnd != nullptr);
         KillLiveFields(this->lengthEquivBv, bv);
         KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::InitComputedProperty:
+    case Js::OpCode::InitGetElemI:
+    case Js::OpCode::InitSetElemI:
         KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::DeleteElemI_A:
@@ -394,6 +395,10 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
         KillLiveFields(this->lengthEquivBv, bv);
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
         break;
 
     case Js::OpCode::InlineeStart:
@@ -410,10 +415,18 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         fnHelper = instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper;
 
         // Kill length field for built-ins that can update it.
-        if(nullptr != this->lengthEquivBv && (fnHelper == IR::JnHelperMethod::HelperArray_Shift || fnHelper == IR::JnHelperMethod::HelperArray_Splice
-            || fnHelper == IR::JnHelperMethod::HelperArray_Unshift))
+        if(fnHelper == IR::JnHelperMethod::HelperArray_Shift 
+           || fnHelper == IR::JnHelperMethod::HelperArray_Splice
+           || fnHelper == IR::JnHelperMethod::HelperArray_Unshift)
         {
-            KillLiveFields(this->lengthEquivBv, bv);
+            if (nullptr != this->lengthEquivBv)
+            {
+                KillLiveFields(this->lengthEquivBv, bv);
+            }
+            if (inGlobOpt)
+            {
+                KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            }
         }
 
         if ((fnHelper == IR::JnHelperMethod::HelperRegExp_Exec)
@@ -431,6 +444,15 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::LdLetHeapArgsCached:
         if (inGlobOpt) {
             this->KillLiveFields(this->slotSyms, bv);
+        }
+        break;
+
+    case Js::OpCode::InitClass:
+    case Js::OpCode::InitProto:
+    case Js::OpCode::NewScObjectNoCtor:
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
         }
         break;
 
@@ -1983,20 +2005,8 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
         switch (typeId)
         {
         default:
-            if (typeId > Js::TypeIds_LastStaticType)
-            {
-                Assert(typeId != Js::TypeIds_Proxy);
-                if (objValueType.IsLikelyArrayOrObjectWithArray())
-                {
-                    // If we have likely object with array before, we can't make it definite object with array
-                    // since we have only proved that it is an object.
-                    // Keep the likely array or object with array.
-                }
-                else
-                {
-                    newValueType = ValueType::GetObject(ObjectType::Object);
-                }
-            }
+            // Can't mark as definite object because it may actually be object-with-array.
+            // Consider: a value type that subsumes object, array, and object-with-array.
             break;
         case Js::TypeIds_NativeIntArray:
         case Js::TypeIds_NativeFloatArray:

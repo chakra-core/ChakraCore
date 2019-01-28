@@ -1169,15 +1169,25 @@ namespace Js
         Assert(callSiteId < callSiteCount);
         Assert(functionBody->IsJsBuiltInCode() || functionBody->IsPublicLibraryCode() || HasCallSiteInfo(functionBody));
 
-        Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
-        Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-        
-        if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+        if (functionBody->GetCallSiteToCallApplyCallSiteArray())
         {
-            return nullptr;
+            Js::ProfileId callApplyCallSiteId = functionBody->GetCallSiteToCallApplyCallSiteArray()[callSiteId];
+            if (callApplyCallSiteId == Js::Constants::NoProfileId)
+            {
+                return nullptr;
+            } 
+            
+            Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
+            
+            if (callApplyTargetInfo[callApplyCallSiteId].isPolymorphic)
+            {
+                return nullptr;
+            }
+
+            return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
         }
 
-        return GetFunctionInfo(functionBody, callApplyTargetInfo[callApplyCallSiteId].u.functionData.sourceId, callApplyTargetInfo[callApplyCallSiteId].u.functionData.functionId);
+        return nullptr;
     }
 
     uint DynamicProfileInfo::GetLdFldCacheIndexFromCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId)
@@ -2532,8 +2542,9 @@ namespace Js
         if (sz)
         {
             charcount_t len = static_cast<charcount_t>(wcslen(sz));
-            utf8char_t * tempBuffer = HeapNewArray(utf8char_t, len * 3);
-            size_t cbNeeded = utf8::EncodeInto(tempBuffer, sz, len);
+            const size_t cbTempBuffer = UInt32Math::Mul<3>(len);
+            utf8char_t * tempBuffer = HeapNewArray(utf8char_t, cbTempBuffer);
+            const size_t cbNeeded = utf8::EncodeInto<utf8::Utf8EncodingKind::Cesu8>(tempBuffer, cbTempBuffer, sz, len);
             fwrite(&cbNeeded, sizeof(cbNeeded), 1, file);
             fwrite(tempBuffer, sizeof(utf8char_t), cbNeeded, file);
             HeapDeleteArray(len * 3, tempBuffer);
@@ -2893,7 +2904,13 @@ const char* GetBailOutKindName(IR::BailOutKind kind)
         kind ^= BailOutMarkTempObject;
         position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
     }
+    ++offset;
 
+    if (kind & LazyBailOut)
+    {
+        kind ^= LazyBailOut;
+        position += ConcatBailOutKindBits(name, sizeof(name), position, offset);
+    }
     ++offset;
     // BailOutKindBits
 

@@ -201,6 +201,8 @@ enum Forms : BYTE;
 typedef JsUtil::List<InlineeFrameRecord*, ArenaAllocator> InlineeFrameRecords;
 typedef JsUtil::List<EncodeRelocAndLabels, ArenaAllocator> RelocList;
 
+struct FixUpMapIndex;
+
 class EncoderMD
 {
 public:
@@ -220,7 +222,7 @@ public:
     RelocList*      GetRelocList() const { return m_relocList; }
     int             AppendRelocEntry(RelocType type, void *ptr, IR::LabelInstr * labelInstr = nullptr, const void * fnAddress = nullptr);
     int             FixRelocListEntry(uint32 index, int32 totalBytesSaved, BYTE *buffStart, BYTE* buffEnd);
-    void            FixMaps(uint32 brOffset, int32 bytesSaved, uint32 *inlineeFrameRecordsIndex, uint32 *inlineeFrameMapIndex,  uint32 *pragmaInstToRecordOffsetIndex, uint32 *offsetBuffIndex);
+    void            FixMaps(uint32 brOffset, int32 bytesSaved, FixUpMapIndex *mapIndices);
     void            UpdateRelocListWithNewBuffer(RelocList * relocList, BYTE * newBuffer, BYTE * oldBufferStart, BYTE * oldBufferEnd);
 #ifdef DBG
     void            VerifyRelocList(BYTE *buffStart, BYTE *buffEnd);
@@ -229,13 +231,13 @@ public:
     BYTE *          GetRelocBufferAddress(EncodeRelocAndLabels * reloc);
 
 private:
-    const BYTE      GetOpcodeByte2(IR::Instr *instr);
+    BYTE            GetOpcodeByte2(IR::Instr *instr);
     const BYTE *    GetFormTemplate(IR::Instr *instr);
     static Forms    GetInstrForm(IR::Instr *instr);
     const BYTE *    GetOpbyte(IR::Instr *instr);
-    const BYTE      GetRegEncode(IR::RegOpnd *regOpnd);
-    const uint32    GetLeadIn(IR::Instr * instr);
-    static const uint32 GetOpdope(IR::Instr *instr);
+    BYTE            GetRegEncode(IR::RegOpnd *regOpnd);
+    uint32          GetLeadIn(IR::Instr * instr);
+    static uint32   GetOpdope(IR::Instr *instr);
     void            EmitModRM(IR::Instr * instr, IR::Opnd *opnd, BYTE reg1);
     void            EmitConst(size_t val, int size);
     int             EmitImmed(IR::Opnd * opnd, int opSize, int sbit);

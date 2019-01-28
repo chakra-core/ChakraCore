@@ -894,7 +894,7 @@ namespace TTD
         // Null-terminate the list before we try to use the buffer as a string.
         charList.Add(_u('\0'));
 
-        bool likelyint; //we don't care about this just want to know that it is convertable to a number
+        LikelyNumberType likelyint; //we don't care about this just want to know that it is convertable to a number
         const char16* end;
         const char16* start = charList.GetBuffer();
         double val = Js::NumberUtilities::StrToDbl<char16>(start, &end, likelyint);
@@ -1152,7 +1152,7 @@ namespace TTD
 
     double TextFormatReader::ReadDoubleFromCharArray(const char16* buff)
     {
-        bool likelytInt; //we don't care about this as we already know it is a double
+        LikelyNumberType likelytInt; //we don't care about this as we already know it is a double
         const char16* end;
         double val = Js::NumberUtilities::StrToDbl<char16>(buff, &end, likelytInt);
         TTDAssert((buff != end) && !Js::JavascriptNumber::IsNan(val), "Error in parse.");

@@ -88,6 +88,7 @@ public:
     uint DoLoopProbeAndNumber(IR::BranchInstr *branchInstr);
     void InsertOneLoopProbe(IR::Instr *insertInstr, IR::LabelInstr *loopLabel);
     void FinalLower();
+    void InsertLazyBailOutThunk();
     void EHBailoutPatchUp();
     inline Js::ScriptContext* GetScriptContext()
     {
@@ -156,13 +157,13 @@ private:
     IR::RegOpnd *   GeneratePolymorphicTypeIndex(IR::RegOpnd * typeOpnd, Js::PropertyGuard * typeCheckGuard, IR::Instr * instrInsert);
     void            GenerateLeaOfOOPData(IR::RegOpnd * regOpnd, void * address, int32 offset, IR::Instr * instrInsert);
     IR::Opnd *      GenerateIndirOfOOPData(void * address, int32 offset, IR::Instr * instrInsert);
-    void            GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
+    bool            GenerateFixedFieldGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     Js::JitTypePropertyGuard* CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::PropertySymOpnd* propertySymOpnd);
     Js::JitEquivalentTypeGuard* CreateEquivalentTypeGuardAndLinkToGuardedProperties(IR::PropertySymOpnd* propertySymOpnd);
     bool            LinkCtorCacheToGuardedProperties(JITTimeConstructorCache* cache);
     template<typename LinkFunc>
     bool            LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guardedPropOps, LinkFunc link);
-    void            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
+    bool            GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySymOpnd *propertySymOpnd, IR::LabelInstr *labelBailOut);
     IR::Instr *     GeneratePropertyGuardCheckBailoutAndLoadType(IR::Instr *insertInstr);
     void            GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySymOpnd *propertySymOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* propertySymOpnd);
@@ -269,6 +270,7 @@ private:
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);
     IR::Instr *     LowerBrBMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBrOnObject(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+    IR::Instr *     LowerStrictBrOrCm(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool noMathFastPath, bool isBranch, bool isHelper = true);
     IR::Instr *     LowerBrCMem(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool noMathFastPath, bool isHelper = true);
     IR::Instr *     LowerBrFncApply(IR::Instr * instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBrProperty(IR::Instr * instr, IR::JnHelperMethod helperMethod);
@@ -303,20 +305,21 @@ private:
     bool            IsEmitTempSrc(IR::Opnd *opnd);
     bool            IsNullOrUndefRegOpnd(IR::RegOpnd *opnd) const;
     bool            IsConstRegOpnd(IR::RegOpnd *opnd) const;
+    IR::Opnd *      GetConstRegOpnd(IR::RegOpnd *opnd, IR::Instr *instr);
     IR::Instr *     GenerateRuntimeError(IR::Instr * insertBeforeInstr, Js::MessageId errorCode, IR::JnHelperMethod helper = IR::JnHelperMethod::HelperOp_RuntimeTypeError);
     bool            InlineBuiltInLibraryCall(IR::Instr *callInstr);
     void            LowerInlineBuiltIn(IR::Instr* instr);
     intptr_t GetObjRefForBuiltInTarget(IR::RegOpnd * opnd);
-    bool            TryGenerateFastCmSrEq(IR::Instr * instr);
+    bool            TryGenerateFastCmSrXx(IR::Instr * instr);
     bool            TryGenerateFastBrEq(IR::Instr * instr);
     bool            TryGenerateFastBrNeq(IR::Instr * instr);
-    bool            GenerateFastBrSrEq(IR::Instr * instr, IR::RegOpnd * srcReg1, IR::RegOpnd * srcReg2, IR::Instr ** pInstrPrev, bool noMathFastPath);
-    bool            GenerateFastBrSrNeq(IR::Instr * instr, IR::Instr ** pInstrPrev);
+    bool            TryGenerateFastBrSrXx(IR::Instr * instr, IR::RegOpnd * srcReg1, IR::RegOpnd * srcReg2, IR::Instr ** pInstrPrev, bool noMathFastPath);
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
     void            GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst);
     bool            GenerateJSBooleanTest(IR::RegOpnd * regSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false);
     bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper, bool isInHelper);
+    bool            GenerateFastBrOrCmEqDefinite(IR::Instr * instrBranch, IR::JnHelperMethod helperMethod, bool *pNeedHelper, bool isBranch, bool isInHelper);
     bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper, bool isInHelper);
     bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper, bool isInHelper);
     bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper, bool isInHelper);
@@ -563,6 +566,7 @@ private:
     IR::Instr *     LowerBailOnNotPolymorphicInlinee(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotStackArgs(IR::Instr * instr);
     IR::Instr *     LowerBailOnNotObject(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
+    IR::Instr *     LowerCheckIsFuncObj(IR::Instr *instr, bool checkFuncInfo = false);
     IR::Instr *     LowerBailOnTrue(IR::Instr *instr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotBuiltIn(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
     IR::Instr *     LowerBailOnNotInteger(IR::Instr *instr, IR::BranchInstr *branchInstr = nullptr, IR::LabelInstr *labelBailOut = nullptr);
@@ -626,7 +630,7 @@ private:
     bool            GenerateFastArgumentsLdElemI(IR::Instr* ldElem, IR::LabelInstr *labelFallThru);
     bool            GenerateFastRealStackArgumentsLdLen(IR::Instr *ldLen);
     bool            GenerateFastArgumentsLdLen(IR::Instr *ldLen, IR::LabelInstr* labelFallThru);
-    static const uint16  GetFormalParamOffset() { /*formal start after frame pointer, return address, function object, callInfo*/ return 4;};
+    static uint16   GetFormalParamOffset() { /*formal start after frame pointer, return address, function object, callInfo*/ return 4;};
 
     IR::RegOpnd*    GenerateFunctionTypeFromFixedFunctionObject(IR::Instr *callInstr, IR::Opnd* functionObjOpnd);
 
@@ -797,6 +801,11 @@ private:
 
     IR::LabelInstr* InsertLoopTopLabel(IR::Instr * insertBeforeInstr);
     IR::Instr *     AddBailoutToHelperCallInstr(IR::Instr * helperCallInstr, BailOutInfo * bailoutInfo, IR::BailOutKind  bailoutKind, IR::Instr * primaryBailoutInstr);
+
+    IR::Instr* InsertObjectCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+    IR::Instr* InsertFunctionTypeIdCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+    IR::Instr* InsertFunctionInfoCheck(IR::RegOpnd *funcOpnd, IR::Instr *insertBeforeInstr, IR::AddrOpnd *inlinedFuncInfo, IR::BailOutKind bailOutKind, BailOutInfo *bailOutInfo);
+
 public:
     static IRType   GetImplicitCallFlagsType()
     {
@@ -812,9 +821,8 @@ public:
     static bool     IsSpreadCall(IR::Instr *instr);
     static
     IR::Instr*      GetLdSpreadIndicesInstr(IR::Instr *instr);
-    static bool DoLazyBailout(Func* func) { return PHASE_ON(Js::LazyBailoutPhase, func) && !func->IsLoopBody(); }
-    static bool DoLazyFixedTypeBailout(Func* func) { return DoLazyBailout(func) && !PHASE_OFF(Js::LazyFixedTypeBailoutPhase, func); }
-    static bool DoLazyFixedDataBailout(Func* func) { return DoLazyBailout(func) && !PHASE_OFF(Js::LazyFixedDataBailoutPhase, func); }
+    static bool ShouldDoLazyFixedTypeBailout(Func* func) { return func->ShouldDoLazyBailOut() && PHASE_ON1(Js::LazyFixedTypeBailoutPhase); }
+    static bool ShouldDoLazyFixedDataBailout(Func* func) { return func->ShouldDoLazyBailOut() && !PHASE_OFF1(Js::LazyFixedDataBailoutPhase); }
     LowererMD * GetLowererMD() { return &m_lowererMD; }
 private:
     Func *          m_func;

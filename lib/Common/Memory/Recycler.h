@@ -329,6 +329,7 @@ public:
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) = 0;
     virtual uint GetRandomNumber() = 0;
     virtual bool DoSpecialMarkOnScanStack() = 0;
+    virtual void OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount) = 0;
     virtual void PostSweepRedeferralCallBack() = 0;
 
 #ifdef FAULT_INJECTION
@@ -432,6 +433,7 @@ public:
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) override;
     virtual uint GetRandomNumber() override { return 0; }
     virtual bool DoSpecialMarkOnScanStack() override { return false; }
+    virtual void OnScanStackCallback(void ** stackTop, size_t byteCount, void ** registers, size_t registersByteCount) override {};
     virtual void PostSweepRedeferralCallBack() override {}
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() override {};
@@ -864,7 +866,7 @@ private:
     inline bool ShouldCapturePageHeapAllocStack() const { return capturePageHeapAllocStack; }
     void VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size, ObjectInfoBits attributes);
 #else
-    inline const bool IsPageHeapEnabled() const { return false; }
+    inline bool IsPageHeapEnabled() const { return false; }
     inline bool ShouldCapturePageHeapAllocStack() const { return false; }
 #endif
 

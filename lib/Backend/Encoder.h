@@ -15,16 +15,28 @@ typedef JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator> ArenaInlineeF
 typedef JsUtil::List<IR::PragmaInstr*, ArenaAllocator> PragmaInstrList;
 typedef JsUtil::List<uint32, ArenaAllocator> OffsetList;
 typedef JsUtil::List<BranchJumpTableWrapper*, ArenaAllocator> JmpTableList;
+typedef JsUtil::List<LazyBailOutRecord, ArenaAllocator> ArenaLazyBailoutRecordList;
+
+struct FixUpMapIndex
+{
+    uint32 offsetBuffIndex = 0;
+    uint32 pragmaInstToRecordOffsetIndex = 0;
+    uint32 inlineeFrameRecordsIndex = 0;
+    uint32 inlineeFrameMapIndex = 0;
+    uint32 lazyBailOutRecordListIndex = 0;
+};
 
 class Encoder
 {
     friend class EncoderMD;
 public:
-    Encoder(Func * func) : m_func(func), m_encoderMD(func), m_inlineeFrameMap(nullptr) {}
+    Encoder(Func * func) :
+        m_func(func), m_encoderMD(func), m_inlineeFrameMap(nullptr),
+        m_lazyBailOutThunkOffset(0), m_sortedLazyBailoutRecordList(nullptr)
+        {}
 
     void            Encode();
     void            RecordInlineeFrame(Func* inlinee, uint32 currentOffset);
-    void            RecordBailout(IR::Instr* instr, uint32 currentOffset);
 private:
     bool            DoTrackAllStatementBoundary() const;
 
@@ -38,8 +50,9 @@ private:
     ArenaInlineeFrameMap* m_inlineeFrameMap;
     uint32 m_inlineeFrameMapDataOffset;
     uint32 m_inlineeFrameMapRecordCount;
-    typedef JsUtil::List<LazyBailOutRecord, ArenaAllocator> ArenaBailoutRecordMap;
-    ArenaBailoutRecordMap* m_bailoutRecordMap;
+    
+    uint32 m_lazyBailOutThunkOffset;
+    ArenaLazyBailoutRecordList* m_sortedLazyBailoutRecordList;
 #if DBG_DUMP
     void DumpInlineeFrameMap(size_t baseAddress);
     uint32 *        m_offsetBuffer;
@@ -67,5 +80,8 @@ private:
 #if defined(_M_IX86) || defined(_M_X64)
     void            ValidateCRCOnFinalBuffer(_In_reads_bytes_(finalCodeSize) BYTE * finalCodeBufferStart, size_t finalCodeSize, size_t jumpTableSize, _In_reads_bytes_(finalCodeSize) BYTE * oldCodeBufferStart, uint initialCrcSeed, uint bufferCrcToValidate, BOOL isSuccessBrShortAndLoopAlign);
 #endif
+    void            FixLazyBailOutThunkOffset(uint32 bytesSaved);
+    void            SaveLazyBailOutJitTransferData();
+    void            SaveLazyBailOutThunkOffset(uint32 currentOffset);
+    void            SaveToLazyBailOutRecordList(IR::Instr* instr, uint32 currentOffset);
 };
-

@@ -30,7 +30,7 @@ Result WriteC(Stream* c_stream,
               Stream* h_stream,
               const char* header_name,
               const Module*,
-              const WriteCOptions*);
+              const WriteCOptions&);
 
 }  // namespace wabt
 

@@ -20,6 +20,7 @@ DbCheckPostLower::Check()
         {
         case IR::InstrKindLabel:
         case IR::InstrKindProfiledLabel:
+        {
             isInHelperBlock = instr->AsLabelInstr()->isOpHelper;
             if (doOpHelperCheck && !isInHelperBlock && !instr->AsLabelInstr()->m_noHelperAssert)
             {
@@ -82,7 +83,7 @@ DbCheckPostLower::Check()
                 }
             }
             break;
-
+        }
         case IR::InstrKindBranch:
             if (doOpHelperCheck && !isInHelperBlock)
             {
@@ -282,5 +283,136 @@ void DbCheckPostLower::Check(IR::RegOpnd *regOpnd)
         }
     }
 }
+
+#if defined(_M_IX86) || defined(_M_X64)
+
+bool
+DbCheckPostLower::IsEndBoundary(IR::Instr *instr)
+{
+    const Js::OpCode opcode = instr->m_opcode;
+    return instr->IsLabelInstr() ||
+        opcode == Js::OpCode::CMP ||
+        opcode == Js::OpCode::TEST ||
+        opcode == Js::OpCode::JMP;
+}
+
+void
+DbCheckPostLower::EnsureValidEndBoundary(IR::Instr *instr)
+{
+    AssertMsg(IsEndBoundary(instr), "Nested helper call. Not a valid end boundary.");
+    if (instr->IsLabelInstr() && instr->AsLabelInstr()->GetNextNonEmptyLabel()->isOpHelper)
+    {
+        instr->Dump();
+        AssertMsg(false, "Nested helper call. Falling through a helper label.");
+    }
+
+    if (instr->m_opcode == Js::OpCode::JMP && instr->AsBranchInstr()->GetTarget()->GetNextNonEmptyLabel()->isOpHelper)
+    {
+        instr->Dump();
+        AssertMsg(false, "Nested helper call. Jumping to a helper label.");
+    }
+}
+
+bool
+DbCheckPostLower::IsAssign(IR::Instr *instr)
+{
+    return LowererMD::IsAssign(instr)
+#ifdef _M_X64
+        || instr->m_opcode == Js::OpCode::MOVQ
+#endif
+        ;
+}
+
+bool
+DbCheckPostLower::IsCallToHelper(IR::Instr *instr, IR::JnHelperMethod method)
+{
+    IR::Instr *prev = instr->m_prev;
+    IR::Opnd *src1 = prev->GetSrc1();
+    return instr->m_opcode == Js::OpCode::CALL &&
+        prev->m_opcode == Js::OpCode::MOV &&
+        src1 &&
+        src1->IsHelperCallOpnd() &&
+        src1->AsHelperCallOpnd()->m_fnHelper == method;
+}
+
+void
+DbCheckPostLower::EnsureOnlyMovesToRegisterOpnd(IR::Instr *instr)
+{
+    IR::Instr *startingCallInstrSequence = instr;
+    Assert(instr->m_opcode == Js::OpCode::CALL && instr->HasLazyBailOut());
+    instr = instr->m_next;
+    while (!this->IsEndBoundary(instr))
+    {
+        if (!instr->IsPragmaInstr())
+        {
+            if (this->IsAssign(instr))
+            {
+                if (!instr->GetDst()->IsRegOpnd())
+                {
+                    // Instructions such as Op_SetElementI with LazyBailOut are
+                    // followed by a MOV to re-enable implicit calls, don't throw
+                    // in such cases.
+                    if (!instr->m_noLazyHelperAssert)
+                    {
+                        instr->Dump();
+                        AssertMsg(false, "Nested helper call. Non-register operand for destination.");
+                    }
+                }
+            }
+            else if (this->IsCallToHelper(startingCallInstrSequence, IR::HelperOp_Typeof))
+            {
+                if (this->IsCallToHelper(instr, IR::HelperOp_Equal) ||
+                    this->IsCallToHelper(instr, IR::HelperOp_StrictEqual) ||
+                    this->IsCallToHelper(instr, IR::HelperOP_CmEq_A) ||
+                    this->IsCallToHelper(instr, IR::HelperOP_CmNeq_A)
+                    )
+                {
+                    // Pattern matched
+                }
+                else
+                {
+                    instr->Dump();
+                    AssertMsg(false, "Nested helper call. Branch TypeOf/Equal doesn't match.");
+                }
+            }
+            else if (instr->m_opcode == Js::OpCode::LEA)
+            {
+                // Skip, this is probably NewScArray
+            }
+            else
+            {
+                instr->Dump();
+                AssertMsg(false, "Nested helper call. Not assignment after CALL.");
+            }
+        }
+
+        instr = instr->m_next;
+    }
+
+    this->EnsureValidEndBoundary(instr);
+}
+
+void
+DbCheckPostLower::CheckNestedHelperCalls()
+{
+    bool isInHelperBlock = false;
+    FOREACH_INSTR_IN_FUNC(instr, this->func)
+    {
+        if (instr->IsLabelInstr())
+        {
+            isInHelperBlock = instr->AsLabelInstr()->isOpHelper;
+        }
+
+        if (!isInHelperBlock || instr->m_opcode != Js::OpCode::CALL || !instr->HasLazyBailOut())
+        {
+            continue;
+        }
+
+        this->EnsureOnlyMovesToRegisterOpnd(instr);
+
+    } NEXT_INSTR_IN_FUNC;
+}
+
+#endif // X64 || X86
 
 #endif // DBG

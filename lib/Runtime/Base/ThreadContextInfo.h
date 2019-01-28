@@ -68,6 +68,9 @@ public:
     intptr_t GetX86AllNegOnesF4Addr() const;
     intptr_t GetX86AllZerosAddr() const;
     intptr_t GetX86AllOnesF4Addr() const;
+    intptr_t GetX86AllOnesI4Addr() const;
+    intptr_t GetX86AllOnesI8Addr() const;
+    intptr_t GetX86AllOnesI16Addr() const;
     intptr_t GetX86LowBytesMaskAddr() const;
     intptr_t GetX86HighBytesMaskAddr() const;
     intptr_t GetX86DoubleWordSignBitsAddr() const;
@@ -85,6 +88,7 @@ public:
 #endif
 
     void SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid = true);
+    void SetValidCallTargetFile(PVOID callTargetAddress, HANDLE fileHandle, PVOID viewBase, bool isSetValid);
     void ResetIsAllJITCodeInPreReservedRegion();
     bool IsAllJITCodeInPreReservedRegion() const;
 
@@ -124,6 +128,13 @@ public:
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 
+    private:
+        template<bool useFileAPI>
+        void SetValidCallTargetInternal(
+            _In_ PVOID callTargetAddress,
+            _In_opt_ HANDLE fileHandle,
+            _In_opt_ PVOID viewBase,
+            bool isSetValid);
 protected:
     class AutoCloseHandle
     {

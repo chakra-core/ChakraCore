@@ -252,6 +252,12 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->functionSlotsInCachedScopeCount = slotIdInCachedScopeToNestedIndexArray->count;
         jitBody->slotIdInCachedScopeToNestedIndexArray = slotIdInCachedScopeToNestedIndexArray->elements;
     }
+    Js::ProfileId * callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArrayWithLock();
+    if (callSiteToCallApplyCallSiteArray)
+    {
+        jitBody->callSiteToCallApplyCallSiteArrayCount = jitBody->profiledCallSiteCount;
+        jitBody->callSiteToCallApplyCallSiteArray = callSiteToCallApplyCallSiteArray;
+    }
     jitBody->callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArrayWithLock();
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
@@ -1058,8 +1064,12 @@ Js::ProfileId
 JITTimeFunctionBody::GetCallApplyCallSiteIdForCallSiteId(Js::ProfileId callSiteId) const
 {
     AssertOrFailFast(callSiteId < m_bodyData.profiledCallSiteCount);
-    Js::ProfileId callApplyId = m_bodyData.callSiteToCallApplyCallSiteArray[callSiteId];
-    AssertOrFailFast(callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
+    Js::ProfileId callApplyId = Js::Constants::NoProfileId;
+    if (m_bodyData.callSiteToCallApplyCallSiteArray)
+    {
+        callApplyId = m_bodyData.callSiteToCallApplyCallSiteArray[callSiteId];
+        AssertOrFailFast(callApplyId < m_bodyData.profiledCallApplyCallSiteCount);
+    }
     
     return callApplyId;
 }

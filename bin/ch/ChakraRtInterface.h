@@ -103,6 +103,10 @@ struct JsAPIHooks
 
     typedef JsErrorCode(WINAPI *JsrtSerializeParserState)(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes);
     typedef JsErrorCode(WINAPI *JsrtRunScriptWithParserState)(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result);
+    
+    typedef JsErrorCode(WINAPI *JsrtQueueBackgroundParse_Experimental)(JsScriptContents* contents, DWORD* dwBgParseCookie);
+    typedef JsErrorCode(WINAPI *JsrtDiscardBackgroundParse_Experimental)(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer);
+    typedef JsErrorCode(WINAPI *JsrtExecuteBackgroundParse_Experimental)(DWORD dwBgParseCookie, JsValueRef script, JsSourceContext sourceContext, WCHAR *url, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result);
 
     typedef JsErrorCode(WINAPI *JsrtTTDCreateRecordRuntimePtr)(JsRuntimeAttributes attributes, bool enableDebugging, size_t snapInterval, size_t snapHistoryLength, TTDOpenResourceStreamCallback openResourceStream, JsTTDWriteBytesToStreamCallback writeBytesToStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode(WINAPI *JsrtTTDCreateReplayRuntimePtr)(JsRuntimeAttributes attributes, const char* infoUri, size_t infoUriCount, bool enableDebugging, TTDOpenResourceStreamCallback openResourceStream, JsTTDReadBytesFromStreamCallback readBytesFromStream, JsTTDFlushAndCloseStreamCallback flushAndCloseStream, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
@@ -118,6 +122,10 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDGetSnapTimeTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, uint32_t kthEvent, int64_t* targetEventTime, int64_t* targetStartSnapTime, int64_t* targetEndSnapTime);
     typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime);
     typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, int64_t* rootEventTime);
+
+#ifdef _WIN32
+    typedef JsErrorCode(WINAPI *JsrtConnectJITProcess)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+#endif
 
     typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle);
     typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle);
@@ -222,6 +230,10 @@ struct JsAPIHooks
     JsrtSerializeParserState pfJsrtSerializeParserState;
     JsrtRunScriptWithParserState pfJsrtRunScriptWithParserState;
 
+    JsrtQueueBackgroundParse_Experimental pfJsrtQueueBackgroundParse_Experimental;
+    JsrtDiscardBackgroundParse_Experimental pfJsrtDiscardBackgroundParse_Experimental;
+    JsrtExecuteBackgroundParse_Experimental pfJsrtExecuteBackgroundParse_Experimental;
+
     JsrtTTDCreateRecordRuntimePtr pfJsrtTTDCreateRecordRuntime;
     JsrtTTDCreateReplayRuntimePtr pfJsrtTTDCreateReplayRuntime;
     JsrtTTDCreateContextPtr pfJsrtTTDCreateContext;
@@ -240,6 +252,9 @@ struct JsAPIHooks
     JsrtVarSerializerPtr pfJsrtVarSerializer;
     JsrtVarDeserializerPtr pfJsrtVarDeserializer;
 	JsrtDetachArrayBufferPtr pfJsrtDetachArrayBuffer;
+#ifdef _WIN32
+    JsrtConnectJITProcess pfJsrtConnectJITProcess;
+#endif
 };
 
 #ifdef _WIN32
@@ -329,18 +344,6 @@ public:
         return E_UNEXPECTED;
 #endif
     }
-
-#ifdef _WIN32
-#if ENABLE_NATIVE_CODEGEN
-    static void ConnectJITServer(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId)
-    {
-        if (m_testHooksSetup && m_testHooks.pfnConnectJITServer != NULL)
-        {
-            m_testHooks.pfnConnectJITServer(processHandle, serverSecurityDescriptor, connectionId);
-        }
-    }
-#endif
-#endif
 
     static void NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
     {
@@ -476,7 +479,12 @@ public:
     static JsErrorCode WINAPI JsVarSerializer(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle) { return HOOK_JS_API(VarSerializer(delegate, serializerHandle)); }
     static JsErrorCode WINAPI JsVarDeserializer(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(data, dataLength, delegate, deserializerHandle)); }
 	static JsErrorCode WINAPI JsDetachArrayBuffer(JsValueRef buffer) { return HOOK_JS_API(DetachArrayBuffer(buffer)); }
-
+    static JsErrorCode WINAPI JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParseCookie) { return HOOK_JS_API(QueueBackgroundParse_Experimental)(contents, dwBgParseCookie);  }
+    static JsErrorCode WINAPI JsDiscardBackgroundParse_Experimental(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer) { return HOOK_JS_API(DiscardBackgroundParse_Experimental(dwBgParseCookie, buffer, callerOwnsBuffer)); }
+    static JsErrorCode WINAPI JsExecuteBackgroundParse_Experimental(DWORD dwBgParseCookie, JsValueRef script, JsSourceContext sourceContext, WCHAR *url, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result) { return HOOK_JS_API(ExecuteBackgroundParse_Experimental(dwBgParseCookie, script, sourceContext, url, parseAttributes, parserState, result)); }
+#ifdef _WIN32
+    static JsErrorCode WINAPI JsConnectJITProcess(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId) { return HOOK_JS_API(ConnectJITProcess(processHandle, serverSecurityDescriptor, connectionId)); }
+#endif
 };
 
 class AutoRestoreContext

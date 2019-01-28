@@ -7,73 +7,41 @@
 	(func 
 		(export  "func_i32x4_0")  
 		(result  i32)  
-		(local  i32x4)  
+		(local  v128)  
 		(set_local 
 			0 
-			(i32x4.build 
-				(i32.const  2147483647)  
-				(i32.const  0)  
-				(i32.const  -2147483648)  
-				(i32.const  -100)  
-			) 
+			(v128.const i32 2147483647 0 0x80000000 0xFFFFFF9C) 
 		) 
-		(i32x4.extractLane 
-			(get_local  0)  
-			(i32.const  0)  
-		) 
+		(i32x4.extract_lane 0 (get_local  0)) 
 	) 
 	(func 
 		(export  "func_i32x4_1")  
 		(result  i32)  
-		(local  i32x4)  
+		(local  v128)  
 		(set_local 
 			0 
-			(i32x4.build 
-				(i32.const  2147483647)  
-				(i32.const  0)  
-				(i32.const  -2147483648)  
-				(i32.const  -100) 
-			) 
+			(v128.const i32 2147483647 0 0x80000000 0xFFFFFF9C) 
 		) 
-		(i32x4.extractLane 
-			(get_local  0)  
-			(i32.const  1)  
-		) 
+		(i32x4.extract_lane 1 (get_local  0))
 	) 
 	(func 
 		(export  "func_i32x4_2")  
 		(result  i32)  
-		(local  i32x4)  
+		(local  v128)  
 		(set_local 
 			0 
-			(i32x4.build 
-				(i32.const  2147483647)  
-				(i32.const  0)  
-				(i32.const  -2147483648)  
-				(i32.const  -100) 
-			) 
+			(v128.const i32 2147483647 0 0x80000000 0xFFFFFF9C) 
 		) 
-		(i32x4.extractLane 
-			(get_local  0)  
-			(i32.const  2)  
-		) 
+		(i32x4.extract_lane 2 (get_local  0)) 
 	) 
 	(func 
 		(export  "func_i32x4_3")  
 		(result  i32)  
-		(local  i32x4)  
+		(local  v128)  
 		(set_local 
 			0 
-			(i32x4.build 
-				(i32.const  2147483647)  
-				(i32.const  0)  
-				(i32.const  -2147483648)  
-				(i32.const  -100) 
-			) 
+			(v128.const i32 2147483647 0 0x80000000 0xFFFFFF9C) 
 		) 
-		(i32x4.extractLane 
-			(get_local  0)  
-			(i32.const  3)  
-		) 
+		(i32x4.extract_lane 3 (get_local  0)) 
 	) 
 ) 

@@ -36,6 +36,7 @@ namespace wabt {
 
 class Color {
  public:
+  Color() : file_(nullptr), enabled_(false) {}
   Color(FILE*, bool enabled = true);
 
 // Write the given color to the file, if enabled.

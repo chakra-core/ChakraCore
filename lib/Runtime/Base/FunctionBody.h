@@ -578,7 +578,12 @@ namespace Js
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         bool HasInlinees();
-        void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
+
+#if DBG
+        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer, Js::FunctionBody *functionBody, const PropertyRecord *propertyRecord);
+#else
+        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer);
+#endif
 
         void CleanupNativeCode(ScriptContext * scriptContext);
 #if DBG_DUMP
@@ -637,7 +642,7 @@ namespace Js
         virtual void Expire() override;
         virtual void EnterExpirableCollectMode() override;
         virtual void ResetOnNativeCodeInstallFailure() override;
-        static const uint8 GetDecrCallCountPerBailout()
+        static uint8 GetDecrCallCountPerBailout()
         {
             return (uint8)CONFIG_FLAG(CallsToBailoutsRatioForRejit) + 1;
         }
@@ -675,7 +680,7 @@ namespace Js
 
 #if ENABLE_NATIVE_CODEGEN
         virtual void ResetOnNativeCodeInstallFailure() override;
-        static const uint8 GetDecrLoopCountPerBailout()
+        static uint8 GetDecrLoopCountPerBailout()
         {
             return (uint8)CONFIG_FLAG(LoopIterationsToBailoutsRatioForRejit) + 1;
         }
@@ -730,8 +735,8 @@ namespace Js
 #endif
         static const uint NoLoop = (uint)-1;
 
-        static const uint GetOffsetOfProfiledLoopCounter() { return offsetof(LoopHeader, profiledLoopCounter); }
-        static const uint GetOffsetOfInterpretCount() { return offsetof(LoopHeader, interpretCount); }
+        static uint GetOffsetOfProfiledLoopCounter() { return offsetof(LoopHeader, profiledLoopCounter); }
+        static uint GetOffsetOfInterpretCount() { return offsetof(LoopHeader, interpretCount); }
 
         bool Contains(Js::LoopHeader * loopHeader) const
         {
@@ -989,7 +994,7 @@ namespace Js
 
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        static const uint GetOffsetOfFunctionInfo() { return offsetof(FunctionProxy, functionInfo); }
+        static uint GetOffsetOfFunctionInfo() { return offsetof(FunctionProxy, functionInfo); }
         FunctionInfo * GetFunctionInfo() const
         {
             return this->functionInfo;
@@ -2409,7 +2414,7 @@ namespace Js
         }
 #endif
 
-        const bool GetIsAsmJsFunction() const
+        bool GetIsAsmJsFunction() const
         {
             return m_isAsmJsFunction;
         }
@@ -3005,6 +3010,7 @@ namespace Js
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
         void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool forcePropertyString);
+        void RecordBigIntConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool isNegative);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);

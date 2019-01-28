@@ -1656,8 +1656,8 @@ namespace Js
       m_tag21(true),
       m_isMethod(false)
 #if DBG
-        ,m_wasEverAsmjsMode(false)
-        ,scopeObjectSize(0)
+      ,m_wasEverAsmjsMode(false)
+      ,scopeObjectSize(0)
 #endif
     {
         this->functionInfo = RecyclerNew(scriptContext->GetRecycler(), FunctionInfo, entryPoint, attributes, functionId, this);
@@ -3800,10 +3800,12 @@ namespace Js
                 Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterAsmThunk);
             }
             else
-#endif
             {
                 Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterThunk);
             }
+#else
+            Assert(this->GetOriginalEntryPoint_Unchecked() == (JavascriptMethod)&Js::InterpreterStackFrame::StaticInterpreterThunk);
+#endif
         }
 #endif
     }
@@ -4386,6 +4388,13 @@ namespace Js
             str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
         }
         this->RecordConstant(location, str);
+    }
+
+    void FunctionBody::RecordBigIntConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool isNegative)
+    {
+        ScriptContext *scriptContext = this->GetScriptContext();
+        Var bigintConst = JavascriptBigInt::Create(psz, cch, isNegative, scriptContext);
+        this->RecordConstant(location, bigintConst);
     }
 
     void FunctionBody::RecordFloatConstant(RegSlot location, double d)
@@ -5146,7 +5155,7 @@ namespace Js
                 NEXT_SLISTBASE_ENTRY_EDITING;
             }
 #endif
-            this->dynamicProfileInfo = nullptr;
+        this->dynamicProfileInfo = nullptr;
         }
 #endif
         this->hasExecutionDynamicProfileInfo = false;
@@ -5272,7 +5281,7 @@ namespace Js
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
 
-        this->UnlockCounters(); // asuming background jit is stopped and allow the counter setters access again
+        this->UnlockCounters(); // assuming background jit is stopped and allow the counter setters access again
 #endif
     }
 #endif
@@ -8358,7 +8367,7 @@ namespace Js
             Js::PropertyGuard* sharedPropertyGuard = nullptr;
             bool hasSharedPropertyGuard = nativeEntryPointData->TryGetSharedPropertyGuard(propertyId, sharedPropertyGuard);
             Assert(hasSharedPropertyGuard);
-            bool isValid = hasSharedPropertyGuard ? sharedPropertyGuard->IsValid() : false;
+            bool isValid = hasSharedPropertyGuard && sharedPropertyGuard->IsValid();
             if (isValid)
             {
                 scriptContext->GetThreadContext()->RegisterLazyBailout(propertyId, this);
@@ -8714,7 +8723,14 @@ namespace Js
 
     }
 
-    void EntryPointInfo::DoLazyBailout(BYTE** addressOfInstructionPointer, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord)
+    void EntryPointInfo::DoLazyBailout(
+        BYTE **addressOfInstructionPointer,
+        BYTE *framePointer
+#if DBG
+        , Js::FunctionBody *functionBody
+        , const PropertyRecord *propertyRecord
+#endif
+    )
     {
         BYTE* instructionPointer = *addressOfInstructionPointer;
         NativeEntryPointData * nativeEntryPointData = this->GetNativeEntryPointData();
@@ -8722,40 +8738,53 @@ namespace Js
         ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
         Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
         size_t offset = instructionPointer - (BYTE*)nativeAddress;
-        BailOutRecordMap * bailoutRecordMap = this->GetInProcNativeEntryPointData()->GetBailOutRecordMap();
-        int found = bailoutRecordMap->BinarySearch([=](const LazyBailOutRecord& record, int index)
+        NativeLazyBailOutRecordList * bailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
+
+        AssertMsg(bailOutRecordList != nullptr, "Lazy Bailout: bailOutRecordList is missing");
+
+        int found = bailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
         {
-            // find the closest entry which is greater than the current offset.
-            if (record.offset >= offset)
+            if (record.offset == offset)
             {
-                if (index == 0 || (index > 0 && bailoutRecordMap->Item(index - 1).offset < offset))
-                {
-                    return 0;
-                }
-                else
-                {
-                    return 1;
-                }
+                return 0;
             }
-            return -1;
+            else if (record.offset > offset)
+            {
+                return 1;
+            }
+            else
+            {
+                return -1;
+            }
         });
+
         if (found != -1)
         {
-            LazyBailOutRecord& record = bailoutRecordMap->Item(found);
-            *addressOfInstructionPointer = record.instructionPointer;
-            record.SetBailOutKind();
+            auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
+            const LazyBailOutRecord& record = bailOutRecordList->Item(found);
+            const uint32 lazyBailOutThunkOffset = inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
+            BYTE * const lazyBailOutThunkAddress = (BYTE *) nativeAddress + lazyBailOutThunkOffset;
+
+            // Change the instruction pointer of the frame to our thunk so that
+            // when execution returns back to this frame, we will execute the thunk instead
+            *addressOfInstructionPointer = lazyBailOutThunkAddress;
+
+            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
+            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
+            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record.bailOutRecord);
+            
             if (PHASE_TRACE1(Js::LazyBailoutPhase))
             {
-                Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, record.instructionPointer);
 #if DBG
+                Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, lazyBailOutThunkAddress);
                 record.Dump(functionBody);
-#endif
                 Output::Print(_u("\n"));
+#endif
             }
         }
         else
         {
-            AssertMsg(false, "Lazy Bailout address mapping missing");
+            AssertMsg(false, "Lazy Bailout: Address mapping missing");
         }
     }
 

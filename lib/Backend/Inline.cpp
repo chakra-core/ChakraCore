@@ -1028,6 +1028,10 @@ IR::Instr * Inline::TryGetCallbackDefInstrForCallInstr(IR::Instr * callInstr)
 IR::Instr * Inline::TryGetCallbackDefInstrForCallApplyTarget(IR::Instr * callApplyLdInstr)
 {
     // Try to find a function argument that could be inlined.
+    if (!callApplyLdInstr->GetSrc1()->IsSymOpnd() || !callApplyLdInstr->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
+    {
+        return nullptr;
+    }
     StackSym * callbackSym = callApplyLdInstr->GetSrc1()->AsPropertySymOpnd()->GetObjectSym();
     Assert(callbackSym != nullptr);
     return TryGetCallbackDefInstr(callbackSym);
@@ -1086,7 +1090,7 @@ IR::Instr * Inline::TryGetCallbackDefInstr(StackSym * callbackSym)
 
             defInstr = nullptr;
 
-            // find the appropraite argOut from the call site.
+            // find the appropriate argOut from the call site.
             callingInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
                 StackSym *argSym = argInstr->GetDst()->AsSymOpnd()->m_sym->AsStackSym();
                 if (argSym->GetArgSlotNum() - 1 == argIndex)
@@ -1337,6 +1341,7 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
     else
     {
         currentCallInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
+        currentCallInstr->SetByteCodeOffset(callInstr);
         currentCallInstr->SetSrc1(methodOpnd);
         if (returnValueOpnd)
         {
@@ -2462,7 +2467,7 @@ IR::Instr* Inline::InsertInlineeBuiltInStartEndTags(IR::Instr* callInstr, uint a
     IR::Instr* inlineBuiltInEndInstr = IR::Instr::New(Js::OpCode::InlineBuiltInEnd, callInstr->m_func);
     inlineBuiltInEndInstr->SetSrc1(IR::IntConstOpnd::New(actualCount, TyInt32, callInstr->m_func));
     inlineBuiltInEndInstr->SetSrc2(callInstr->GetSrc2());
-    inlineBuiltInEndInstr->SetByteCodeOffset(callInstr->GetNextRealInstrOrLabel());
+    inlineBuiltInEndInstr->SetByteCodeOffset(callInstr);
     callInstr->InsertAfter(inlineBuiltInEndInstr);
     return inlineBuiltInEndInstr;
 }
@@ -2627,7 +2632,8 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
 
     // Optimize .init.apply(this, arguments);
     IR::Instr* builtInStartInstr;
-    InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     // Move argouts close to call. Globopt expects this for arguments object tracking.
     IR::Instr* argInsertInstr = builtInStartInstr;
@@ -2706,7 +2712,15 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     *pIsInlined = true;
     // Fixed function/function object checks for target built-in
     callInstr->ReplaceSrc1(applyTargetLdInstr->GetDst());
-    EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+    {
+        IR::ByteCodeUsesInstr * useCallTargetInstr =
+            EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, builtInInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
+        if (useCallTargetInstr)
+        {
+            // The applyTarget dst already has a use in the argout, this bytecode use is not valid
+            useCallTargetInstr->Remove();
+        }
+    }
 
     // Fixed function/function object checks for .apply
     callInstr->m_opcode = originalCallOpcode;
@@ -2759,7 +2773,8 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
 
     EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, applyInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
-    InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, 2); // 2 args (implicit this + explicit this)
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     IR::Instr * startCall = IR::Instr::New(Js::OpCode::StartCall,
         IR::RegOpnd::New(TyVar, callInstr->m_func),
@@ -2836,7 +2851,9 @@ bool Inline::TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_res
     IR::Opnd* applyOpnd = callInstr->GetSrc1();
     Assert(applyOpnd->IsRegOpnd());
     StackSym* applySym =  applyOpnd->AsRegOpnd()->m_sym->AsStackSym();
-    if (!applySym->IsSingleDef())
+    if (!applySym->IsSingleDef() ||
+        !applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() || 
+        !applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd())
     {
         *applyLdInstr = nullptr;
         *applyTargetLdInstr = nullptr;
@@ -3284,7 +3301,8 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
 
     EmitFixedMethodOrFunctionObjectChecksForBuiltIns(callInstr, callInstr, funcInfo, false /*isPolymorphic*/, true /*isBuiltIn*/, false /*isCtor*/, true /*isInlined*/);
 
-    InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
+    IR::Instr *instr = InsertInlineeBuiltInStartEndTags(callInstr, actualCount);
+    instr->m_opcode = Js::OpCode::InlineNonTrackingBuiltInEnd;
 
     uint actualCountToInlinedCall = actualCount - (isCallInstanceFunction ? 2 : 1);
 
@@ -4579,35 +4597,14 @@ Inline::SplitConstructorCallCommon(
 }
 
 void
-Inline::InsertObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutIfNotObject)
+Inline::InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
 {
-    // Bailout if 'functionRegOpnd' is not an object.
-    bailOutIfNotObject->SetSrc1(funcOpnd);
-    bailOutIfNotObject->SetByteCodeOffset(insertBeforeInstr);
-    insertBeforeInstr->InsertBefore(bailOutIfNotObject);
-}
+    Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
+    AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
 
-void
-Inline::InsertFunctionTypeIdCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr* bailOutIfNotJsFunction)
-{
-    // functionTypeRegOpnd = Ld functionRegOpnd->type
-    IR::IndirOpnd *functionTypeIndirOpnd = IR::IndirOpnd::New(funcOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, insertBeforeInstr->m_func);
-    IR::RegOpnd *functionTypeRegOpnd = IR::RegOpnd::New(TyVar, this->topFunc);
-    IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_A, functionTypeRegOpnd, functionTypeIndirOpnd, insertBeforeInstr->m_func);
-    if(instr->m_func->HasByteCodeOffset())
-    {
-        instr->SetByteCodeOffset(insertBeforeInstr);
-    }
-    insertBeforeInstr->InsertBefore(instr);
-
-    CompileAssert(sizeof(Js::TypeId) == sizeof(int32));
-    // if (functionTypeRegOpnd->typeId != TypeIds_Function) goto $noInlineLabel
-    // BrNeq_I4 $noInlineLabel, functionTypeRegOpnd->typeId, TypeIds_Function
-    IR::IndirOpnd *functionTypeIdIndirOpnd = IR::IndirOpnd::New(functionTypeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, insertBeforeInstr->m_func);
-    IR::IntConstOpnd *typeIdFunctionConstOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, insertBeforeInstr->m_func);
-    bailOutIfNotJsFunction->SetSrc1(functionTypeIdIndirOpnd);
-    bailOutIfNotJsFunction->SetSrc2(typeIdFunctionConstOpnd);
-    insertBeforeInstr->InsertBefore(bailOutIfNotJsFunction);
+    bailOutInstr->SetSrc1(funcOpnd);
+    bailOutInstr->SetSrc2(IR::IntConstOpnd::New(index, TyInt32, insertBeforeInstr->m_func));
+    insertBeforeInstr->InsertBefore(bailOutInstr);
 }
 
 void
@@ -4616,44 +4613,15 @@ Inline::InsertJsFunctionCheck(IR::Instr * callInstr, IR::Instr *insertBeforeInst
     // This function only inserts bailout for tagged int & TypeIds_Function.
     // As of now this is only used for polymorphic inlining.
     Assert(bailOutKind == IR::BailOutOnPolymorphicInlineFunction);
-
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
 
-    IR::RegOpnd * funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
-
-    // bailOutIfNotFunction is primary bailout instruction
-    IR::Instr* bailOutIfNotFunction = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
-
-    IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject, bailOutKind, bailOutIfNotFunction->GetBailOutInfo(), callInstr->m_func);
-    InsertObjectCheck(funcOpnd, insertBeforeInstr, bailOutIfNotObject);
-
-    InsertFunctionTypeIdCheck(funcOpnd, insertBeforeInstr, bailOutIfNotFunction);
-
-}
-
-void
-Inline::InsertFunctionInfoCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo)
-{
-    // if (VarTo<JavascriptFunction>(r1)->functionInfo != funcInfo) goto noInlineLabel
-    // BrNeq_I4 noInlineLabel, r1->functionInfo, funcInfo
-    IR::IndirOpnd* opndFuncInfo = IR::IndirOpnd::New(funcOpnd, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, insertBeforeInstr->m_func);
-    IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
-    bailoutInstr->SetSrc1(opndFuncInfo);
-    bailoutInstr->SetSrc2(inlinedFuncInfo);
-
-    insertBeforeInstr->InsertBefore(bailoutInstr);
-}
-
-void
-Inline::InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr *bailOutInstr, const FunctionJITTimeInfo *funcInfo)
-{
-     Js::BuiltinFunction index = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
-    AssertMsg(index < Js::BuiltinFunction::Count, "Invalid built-in index on a call target marked as built-in");
-
-    bailOutInstr->SetSrc1(funcOpnd);
-    bailOutInstr->SetSrc2(IR::IntConstOpnd::New(index, TyInt32, insertBeforeInstr->m_func));
-    insertBeforeInstr->InsertBefore(bailOutInstr);
+    // Two bailout checks, an object check followed by a function type ID check, are required. These bailout instructions are created
+    // when lowering checkFunctionEntryPoint rather than being created here as checkFunctionEntryPoint can be hoisted outside of a loop.
+    IR::Instr *checkIsFuncObj = IR::BailOutInstr::New(Js::OpCode::CheckIsFuncObj, bailOutKind, insertBeforeInstr, callInstr->m_func);
+    checkIsFuncObj->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
+    checkIsFuncObj->SetByteCodeOffset(insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(checkIsFuncObj);
 }
 
 IR::Instr *
@@ -4661,29 +4629,17 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
 {
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
-    IR::BailOutKind bailOutKind = IR::BailOutOnInlineFunction;
 
-    IR::RegOpnd * funcOpnd = callInstr->GetSrc1()->AsRegOpnd();
+    IR::Instr *checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
+    checkFuncInfo->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
 
-    // FunctionBody check is the primary bailout instruction, create it first
-    IR::BailOutInstr* primaryBailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, insertBeforeInstr, callInstr->m_func);
-    primaryBailOutInstr->SetByteCodeOffset(insertBeforeInstr);
+    IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
+    checkFuncInfo->SetSrc2(inlinedFuncInfo);
 
-    // 1. Bailout if function object is not an object.
-    IR::Instr *bailOutIfNotObject = IR::BailOutInstr::New(Js::OpCode::BailOnNotObject,
-                                                          bailOutKind,
-                                                          primaryBailOutInstr->GetBailOutInfo(),
-                                                          callInstr->m_func);
-    InsertObjectCheck(funcOpnd, insertBeforeInstr, bailOutIfNotObject);
+    checkFuncInfo->SetByteCodeOffset(insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(checkFuncInfo);
 
-    // 2. Bailout if function object is not a TypeId_Function
-    IR::Instr* bailOutIfNotJsFunction = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, bailOutKind, primaryBailOutInstr->GetBailOutInfo(), callInstr->m_func);
-    InsertFunctionTypeIdCheck(funcOpnd, insertBeforeInstr, bailOutIfNotJsFunction);
-
-    // 3. Bailout if function body doesn't match funcInfo
-    InsertFunctionInfoCheck(funcOpnd, insertBeforeInstr, primaryBailOutInstr, funcInfo);
-
-    return primaryBailOutInstr;
+    return checkFuncInfo;
 }
 
 IR::ByteCodeUsesInstr*
@@ -5430,6 +5386,10 @@ Inline::MapFormals(Func *inlinee,
                 else
                 {
                     instr->SetSrc1(funcObjOpnd);
+
+                    // This usage doesn't correspond with any byte code register, since interpreter stack frames
+                    // get their function reference via this->function rather than from a register.
+                    instr->GetSrc1()->SetIsJITOptimizedReg(true);
                 }
             }
             else

@@ -85,7 +85,7 @@ typedef std::map<OpcodeInfo, size_t> OpcodeInfoCounts;
 
 Result ReadBinaryOpcnt(const void* data,
                        size_t size,
-                       const struct ReadBinaryOptions* options,
+                       const ReadBinaryOptions& options,
                        OpcodeInfoCounts* opcode_counts);
 
 }  // namespace wabt

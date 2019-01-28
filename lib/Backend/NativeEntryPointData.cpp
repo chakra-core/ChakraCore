@@ -392,7 +392,8 @@ NativeEntryPointData::Cleanup(ScriptContext * scriptContext, bool isShutdown, bo
 }
 
 InProcNativeEntryPointData::InProcNativeEntryPointData() :
-    nativeCodeData(nullptr), inlineeFrameMap(nullptr), bailoutRecordMap(nullptr)
+    nativeCodeData(nullptr), inlineeFrameMap(nullptr), sortedLazyBailoutRecordList(nullptr),
+    lazyBailOutRecordSlotOffset{0}, lazyBailOutThunkOffset{0}
 #if !FLOATVAR
     , numberChunks(nullptr)
 #endif
@@ -427,20 +428,68 @@ InProcNativeEntryPointData::RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlin
     }
 }
 
-BailOutRecordMap *
-InProcNativeEntryPointData::GetBailOutRecordMap()
+NativeLazyBailOutRecordList *
+InProcNativeEntryPointData::GetSortedLazyBailOutRecordList() const
 {
     Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
-    return this->bailoutRecordMap;
+    return this->sortedLazyBailoutRecordList;
 }
 
 void 
-InProcNativeEntryPointData::RecordBailOutMap(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* bailoutMap)
+InProcNativeEntryPointData::SetSortedLazyBailOutRecordList(JsUtil::List<LazyBailOutRecord, ArenaAllocator> *sortedLazyBailOutRecordList)
 {
     Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
-    Assert(this->bailoutRecordMap == nullptr);
-    this->bailoutRecordMap = HeapNew(BailOutRecordMap, &HeapAllocator::Instance);
-    this->bailoutRecordMap->Copy(bailoutMap);
+    Assert(this->sortedLazyBailoutRecordList == nullptr);
+
+#if DBG
+
+    // Making sure the list is sorted
+
+    Assert(sortedLazyBailOutRecordList != nullptr);
+    if (sortedLazyBailOutRecordList->Count() >= 2)
+    {
+        sortedLazyBailOutRecordList->MapFrom(1, [=](int index, const LazyBailOutRecord& currentRecord)
+        {
+            const LazyBailOutRecord& previousRecord = sortedLazyBailOutRecordList->Item(index - 1);
+            AssertMsg(
+                currentRecord.offset > previousRecord.offset,
+                "Lazy bailout record list isn't sorted by offset?"
+            );
+        });
+    }
+
+#endif
+
+    this->sortedLazyBailoutRecordList = HeapNew(NativeLazyBailOutRecordList, &HeapAllocator::Instance);
+    this->sortedLazyBailoutRecordList->Copy(sortedLazyBailOutRecordList);
+}
+
+int32
+InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset() const
+{
+    Assert(this->lazyBailOutRecordSlotOffset != 0);
+    return this->lazyBailOutRecordSlotOffset;
+}
+
+void
+InProcNativeEntryPointData::SetLazyBailOutRecordSlotOffset(int32 argSlotOffset)
+{
+    Assert(this->lazyBailOutRecordSlotOffset == 0 && argSlotOffset != 0);
+    this->lazyBailOutRecordSlotOffset = argSlotOffset;
+}
+
+uint32
+InProcNativeEntryPointData::GetLazyBailOutThunkOffset() const
+{
+    Assert(this->lazyBailOutThunkOffset != 0);
+    return this->lazyBailOutThunkOffset;
+}
+
+void
+InProcNativeEntryPointData::SetLazyBailOutThunkOffset(uint32 thunkOffset)
+{
+    Assert(this->lazyBailOutThunkOffset == 0 && thunkOffset != 0);
+    this->lazyBailOutThunkOffset = thunkOffset;
 }
 
 void
@@ -459,10 +508,10 @@ InProcNativeEntryPointData::OnCleanup()
         this->inlineeFrameMap = nullptr;
     }
 
-    if (this->bailoutRecordMap)
+    if (this->sortedLazyBailoutRecordList)
     {
-        HeapDelete(this->bailoutRecordMap);
-        this->bailoutRecordMap = nullptr;
+        HeapDelete(this->sortedLazyBailoutRecordList);
+        this->sortedLazyBailoutRecordList = nullptr;
     }
 
 #if !FLOATVAR

@@ -920,6 +920,13 @@ var tests = [
         }
     },
     {
+        name: "ArrayBuffer.detach on 0 buffer should not throw error",
+        body: function() {
+            var ab = new ArrayBuffer(0);
+            assert.doesNotThrow(function() { ArrayBuffer.detach(ab) });
+        }
+    },
+    {
         name: "%TypedArray%.prototype.fill behavior",
         body: function() {
             var fill = Uint8Array.prototype.__proto__.fill;

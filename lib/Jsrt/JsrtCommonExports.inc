@@ -128,6 +128,7 @@
     JsRunSerialized
     JsCreatePropertyId
     JsCreatePropertyString
+    JsConnectJITProcess
     JsCopyPropertyId
     JsCreatePromise
     JsCreateWeakReference

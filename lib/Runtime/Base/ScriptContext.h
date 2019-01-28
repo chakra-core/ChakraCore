@@ -128,6 +128,13 @@ enum LoadScriptFlag
     LoadScriptFlag_StrictMode = 0x400                   // parse using strict mode semantics
 };
 
+enum class ScriptContextPrivilegeLevel
+{
+    Low,
+    Medium,
+    High
+};
+
 #ifdef INLINE_CACHE_STATS
 // Used to store inline cache stats
 
@@ -517,7 +524,9 @@ namespace Js
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
 #endif
 
-        void SetIsDiagnosticsScriptContext(bool set) { this->isDiagnosticsScriptContext = set; }
+        void SetPrivilegeLevel(ScriptContextPrivilegeLevel level) { this->scriptContextPrivilegeLevel = level; }
+        ScriptContextPrivilegeLevel GetPrivilegeLevel() { return this->scriptContextPrivilegeLevel; }
+        void SetIsDiagnosticsScriptContext(bool);
         bool IsDiagnosticsScriptContext() const { return this->isDiagnosticsScriptContext; }
         bool IsScriptContextInNonDebugMode() const;
         bool IsScriptContextInDebugMode() const;
@@ -848,12 +857,12 @@ private:
         DateTime::Utility dateTimeUtility;
 
 public:
-        inline const WCHAR *const GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        inline const WCHAR *GetStandardName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
             return dateTimeUtility.GetStandardName(nameLength, ymd);
         }
 
-        inline const WCHAR *const GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
+        inline const WCHAR *GetDaylightName(size_t *nameLength, DateTime::YMD *ymd = NULL)
         {
             return dateTimeUtility.GetDaylightName(nameLength, ymd);
         }
@@ -895,6 +904,9 @@ private:
         bool isPerformingNonreentrantWork;
         bool isDiagnosticsScriptContext;   // mentions that current script context belongs to the diagnostics OM.
 
+        // Privilege levels are a way of enforcing a relationship hierarchy between two script contexts
+        // A less privileged script context is not allowed to marshal in objects that live in a more privileged context
+        ScriptContextPrivilegeLevel scriptContextPrivilegeLevel;
         size_t sourceSize;
 
         void CleanSourceListInternal(bool calledDuringMark);

@@ -3,6 +3,9 @@
 :: Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 ::-------------------------------------------------------------------------------------------------------
 @echo off
+
+:: usage updatedTests.cmd <path/ch.exe> [WasmSpec commit hash]
+
 pushd %~dp0
 if not exist "%1" (
     echo Please provide path to a chakra host, ch or jshost.
@@ -12,8 +15,16 @@ if not exist "%1" (
 if exist "wasm-spec" (
     rd /q /s wasm-spec
 )
-git clone --depth 1 --branch master https://github.com/WebAssembly/spec.git wasm-spec
-cd wasm-spec
+
+if "" equ "%2" (
+    git clone --depth 1 --branch master https://github.com/WebAssembly/spec.git wasm-spec
+    cd wasm-spec
+) else (
+    git clone https://github.com/WebAssembly/spec.git wasm-spec
+    cd wasm-spec
+    git reset --hard %2
+)
+
 git rev-parse HEAD > ..\testsuite.rev
 cd ..
 rem Exclude comments.wast because it is intended to test wast->wasm with uncommon characters

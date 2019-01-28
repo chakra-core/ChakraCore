@@ -325,7 +325,7 @@ MACRO_EXTEND_WMS(       Conv_Str,           Reg2,           OpOpndHasImplicitCal
 //      OpSideEffect - May throw exception on null/undefined.
 //      Do not call valueOf/toString no implicit call
 MACRO_WMS(              Conv_Obj,           Reg2,           OpSideEffect|OpPostOpDbgBailOut|OpTempObjectTransfer)   // Convert to Object
-MACRO_EXTEND_WMS(       NewWithObject,      Reg2,           OpSideEffect | OpPostOpDbgBailOut)  // Wrap in a with Object
+MACRO_EXTEND_WMS(       NewUnscopablesWrapperObject,      Reg2,           OpSideEffect | OpPostOpDbgBailOut)  // Wrap in a with Object
 MACRO_BACKEND_ONLY(     ToVar,              Reg2,           OpTempNumberProducing|OpTempNumberSources|OpCanCSE)     // Load from int32/float64 to Var(reg)
 // Load from Var(reg) to int32/float64, NOTE: always bail if it is not primitive. so no implicit call, but still mark with CallsValueOf so it won't get automatically dead stored
 // TODO: Consider changing the code so we don't have mark this as CallsValueOf
@@ -771,6 +771,8 @@ MACRO_BACKEND_ONLY(     InlineRegExpExec,    Empty,          OpSideEffect|OpInli
 
 MACRO_BACKEND_ONLY(     CallIFixed,          Empty,          OpSideEffect|OpUseAllFields|OpCallInstr|OpInlineCallInstr)
 MACRO_BACKEND_ONLY(     CheckFixedFld,       Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
+MACRO_BACKEND_ONLY(     CheckIsFuncObj,      Empty,          OpCanCSE | OpBailOutRec)
+MACRO_BACKEND_ONLY(     CheckFuncInfo,       Empty,          OpCanCSE | OpBailOutRec)
 MACRO_BACKEND_ONLY(     CheckPropertyGuardAndLoadType,  Empty,          OpFastFldInstr|OpTempObjectSources|OpDoNotTransfer)
 MACRO_BACKEND_ONLY(     CheckObjType,        Empty,          OpFastFldInstr|OpTempObjectSources|OpCanCSE)
 MACRO_BACKEND_ONLY(     AdjustObjType,       Empty,          OpSideEffect)
@@ -835,6 +837,11 @@ MACRO_EXTEND_WMS(       StPropIdArrFromVar, ElementSlot,    OpSideEffect|OpHasIm
 MACRO_EXTEND_WMS(       Restify,            Reg4,           OpSideEffect|OpHasImplicitCall)
 MACRO_EXTEND_WMS(       NewPropIdArrForCompProps, Reg1Unsigned1, OpSideEffect)
 
+MACRO_BACKEND_ONLY(BigIntLiteral, Empty, None) // Load BigInt literal
+MACRO_EXTEND_WMS(Conv_Numeric, Reg2, OpSideEffect | OpTempNumberProducing | OpTempNumberTransfer | OpTempObjectSources | OpOpndHasImplicitCall | OpProducesNumber) // Convert to Numeric. [[ToNumeric()]]
+MACRO_EXTEND_WMS(Incr_Num_A, Reg2, OpTempNumberProducing | OpOpndHasImplicitCall | OpDoNotTransfer | OpTempNumberSources | OpTempObjectSources | OpCanCSE | OpPostOpDbgBailOut | OpProducesNumber)     // Increment Numeric
+MACRO_EXTEND_WMS(Decr_Num_A, Reg2, OpTempNumberProducing | OpOpndHasImplicitCall | OpDoNotTransfer | OpTempNumberSources | OpTempObjectSources | OpCanCSE | OpPostOpDbgBailOut | OpProducesNumber)     // Increment Numeric
+MACRO_BACKEND_ONLY(LazyBailOutThunkLabel, Empty, None)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

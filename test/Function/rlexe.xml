@@ -2,6 +2,12 @@
 <regress-exe>
   <test>
     <default>
+      <files>LabelFuncAsWithStmt.js</files>
+      <baseline>LabelFuncAsWithStmt.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>apply.js</files>
       <baseline>apply.baseline</baseline>
     </default>

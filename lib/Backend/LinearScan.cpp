@@ -212,7 +212,32 @@ LinearScan::RegAlloc()
             continue;
         }
 
-        if (instr->HasBailOutInfo())
+#if DBG
+        // Since not all call instructions are forwarded to ChangeToHelperCall, we might have
+        // missed allocating bailout records for them. Additionally, some instructions might
+        // end up being lowered differently, so the lazy bailout is not on a CALL instruction
+        // anymore. Use this opportunity to detect them.
+        // Note that the dump for the instruction will also be printed with -ForcePostLowerGlobOptInstrString
+        if (instr->HasBailOutInfo() && instr->GetBailOutInfo()->bailOutRecord == nullptr)
+        {
+            if (CONFIG_FLAG(ForcePostLowerGlobOptInstrString))
+            {
+                // The instruction has already been lowered, find the start to get the globopt dump
+                IR::Instr *curr = instr;
+                while (curr->globOptInstrString == nullptr)
+                {
+                    curr = curr->m_prev;
+                }
+
+                instr->Dump();
+                curr->DumpGlobOptInstrString();
+            }
+
+            AssertMsg(false, "Lazy bailout: bailOutRecord not allocated");
+        }
+#endif
+
+        if (instr->HasBailOutInfo() && !instr->HasLazyBailOut())
         {
             if (this->currentRegion)
             {
@@ -248,6 +273,8 @@ LinearScan::RegAlloc()
         this->CheckOpHelper(instr);
 
         this->KillImplicitRegs(instr);
+
+        this->ProcessLazyBailOut(instr);
 
         this->AllocateNewLifetimes(instr);
         this->SetDstReg(instr);
@@ -1152,7 +1179,6 @@ struct FillBailOutState
     FillBailOutState(JitArenaAllocator * allocator) : constantList(allocator) {}
 };
 
-
 void
 LinearScan::FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutState * state, IR::Instr * instr)
 {
@@ -1175,7 +1201,7 @@ LinearScan::FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutStat
     else
     {
         Lifetime * lifetime = stackSym->scratch.linearScan.lifetime;
-        Assert(lifetime && lifetime->start < instr->GetNumber() && instr->GetNumber() <= lifetime->end);
+        Assert(instr->HasLazyBailOut() || lifetime && lifetime->start < instr->GetNumber() && instr->GetNumber() <= lifetime->end);
         if (instr->GetBailOutKind() == IR::BailOutOnException)
         {
             // Apart from the exception object sym, lifetimes for all other syms that need to be restored at this bailout,
@@ -1185,10 +1211,28 @@ LinearScan::FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutStat
         }
 
         this->PrepareForUse(lifetime);
-        if (lifetime->isSpilled ||
+
+        if (instr->HasLazyBailOut() && instr->GetBailOutInfo()->GetClearedUseOfDstId() == stackSym->m_id)
+        {
+            // Force value of bytecode upward exposed destination symbol of a call instruction
+            // with lazy bailout to be restored from `rax`
+            // We clear the bit in bytecode upward exposed for destination symbol of a call
+            // instructions with lazy bailout in globopt to get past the assert that the
+            // register hasn't been initialized yet.
+            // Now, since the value is actually in rax, during FillBailOutRecord,
+            // we can always force the bailout to restore that symbol from rax.
+#ifdef _M_X64
+            *offset = this->SaveSymbolToReg(RegRAX, state, stackSym);
+#elif _M_IX86
+            *offset = this->SaveSymbolToReg(RegEAX, state, stackSym);
+#else
+            AssertMsg(false, "Lazy bailout for ARM is not yet supported");
+#endif
+        }
+        else if (lifetime->isSpilled ||
             ((instr->GetBailOutKind() == IR::BailOutOnException) && (stackSym != this->currentRegion->GetExceptionObjectSym()))) // BailOutOnException must restore from memory
         {
-            Assert(stackSym->IsAllocated());
+            Assert(stackSym->IsAllocated() || lifetime->isDeadStore);
 #ifdef MD_GROW_LOCALS_AREA_UP
             *offset = -((int)stackSym->m_offset + BailOutInfo::StackSymBias);
 #else
@@ -1198,20 +1242,26 @@ LinearScan::FillBailOutOffset(int * offset, StackSym * stackSym, FillBailOutStat
         }
         else
         {
-            Assert(lifetime->reg != RegNOREG);
-            Assert(state->registerSaveSyms[lifetime->reg - 1] == nullptr ||
-                state->registerSaveSyms[lifetime->reg - 1] == stackSym);
-            AssertMsg((stackSym->IsFloat64() || stackSym->IsSimd128()) && RegTypes[lifetime->reg] == TyFloat64 ||
-                !(stackSym->IsFloat64() || stackSym->IsSimd128()) && RegTypes[lifetime->reg] != TyFloat64,
-                      "Trying to save float64 sym into non-float64 reg or non-float64 sym into float64 reg");
-
-            // Save the register value to the register save space using the reg enum value as index
-            state->registerSaveSyms[lifetime->reg - 1] = stackSym;
-            *offset = LinearScanMD::GetRegisterSaveIndex(lifetime->reg);
-
-            state->registerSaveCount++;
+            *offset = this->SaveSymbolToReg(lifetime->reg, state, stackSym);
         }
     }
+}
+
+int
+LinearScan::SaveSymbolToReg(RegNum reg, FillBailOutState * state, StackSym * stackSym)
+{
+    Assert(reg != RegNOREG);
+    Assert(state->registerSaveSyms[reg - 1] == nullptr ||
+        state->registerSaveSyms[reg - 1] == stackSym);
+    AssertMsg((stackSym->IsFloat64() || stackSym->IsSimd128()) && RegTypes[reg] == TyFloat64 ||
+        !(stackSym->IsFloat64() || stackSym->IsSimd128()) && RegTypes[reg] != TyFloat64,
+        "Trying to save float64 sym into non-float64 reg or non-float64 sym into float64 reg");
+
+    // Save the register value to the register save space using the reg enum value as index
+    state->registerSaveSyms[reg - 1] = stackSym;
+    state->registerSaveCount++;
+
+    return LinearScanMD::GetRegisterSaveIndex(reg);
 }
 
 struct FuncBailOutData
@@ -1282,11 +1332,11 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
     Func *topFunc = func->GetTopFunc();
     bool isTopFunc = (func == topFunc);
     uint32 inlineeID = isTopFunc ? 0 : func->m_inlineeId;
-    NativeCodeData::Allocator * allocator = this->func->GetNativeCodeDataAllocator();
 
     GlobalBailOutRecordDataTable *globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID];
     if (globalBailOutRecordDataTable == nullptr)
     {
+        NativeCodeData::Allocator * allocator = this->func->GetNativeCodeDataAllocator();
         globalBailOutRecordDataTable = globalBailOutRecordTables[inlineeID] = NativeCodeDataNew(allocator, GlobalBailOutRecordDataTable);
         globalBailOutRecordDataTable->entryPointInfo = (Js::EntryPointInfo*)func->GetWorkItem()->GetJITTimeInfo()->GetEntryPointInfoAddr();
         globalBailOutRecordDataTable->length = globalBailOutRecordDataTable->size = 0;
@@ -1417,7 +1467,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     memset(state.registerSaveSyms, 0, sizeof(state.registerSaveSyms));
 
     // Fill in the constants
-    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues.constantValues, constantValuesIterator)
+    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues->constantValues, constantValuesIterator)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "constant prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = value.Key();
@@ -1460,7 +1510,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     NEXT_SLISTBASE_ENTRY_EDITING;
 
     // Fill in the copy prop syms
-    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues.copyPropSyms, copyPropSymsIter)
+    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues->copyPropSyms, copyPropSymsIter)
     {
         AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "copy prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = copyPropSyms.Key();
@@ -1513,9 +1563,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     }
     NEXT_BITSET_IN_SPARSEBV;
 
-    if (bailOutInfo->usedCapturedValues.argObjSyms)
+    if (bailOutInfo->usedCapturedValues->argObjSyms)
     {
-        FOREACH_BITSET_IN_SPARSEBV(id, bailOutInfo->usedCapturedValues.argObjSyms)
+        FOREACH_BITSET_IN_SPARSEBV(id, bailOutInfo->usedCapturedValues->argObjSyms)
         {
             StackSym * stackSym = this->func->m_symTable->FindStackSym(id);
             Assert(stackSym != nullptr);
@@ -1705,7 +1755,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                 uint outParamOffsetIndex = outParamStart + argSlot;
                 if (!sym->m_isBailOutReferenced && !sym->IsArgSlotSym())
                 {
-                    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, constantValue, &bailOutInfo->usedCapturedValues.constantValues, iterator)
+                    FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, constantValue, &bailOutInfo->usedCapturedValues->constantValues, iterator)
                     {
                         if (constantValue.Key()->m_id == sym->m_id)
                         {
@@ -1731,13 +1781,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                         continue;
                     }
 
-                    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSym, &bailOutInfo->usedCapturedValues.copyPropSyms, iter)
+                    FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSym, &bailOutInfo->usedCapturedValues->copyPropSyms, iter)
                     {
                         if (copyPropSym.Key()->m_id == sym->m_id)
                         {
                             StackSym * copyStackSym = copyPropSym.Value();
 
-                            BVSparse<JitArenaAllocator>* argObjSyms = bailOutInfo->usedCapturedValues.argObjSyms;
+                            BVSparse<JitArenaAllocator>* argObjSyms = bailOutInfo->usedCapturedValues->argObjSyms;
                             if (argObjSyms && argObjSyms->Test(copyStackSym->m_id))
                             {
                                 outParamOffsets[outParamOffsetIndex] = BailOutRecord::GetArgumentsObjectOffset();
@@ -1845,7 +1895,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                                     Assert(LowererMD::IsAssign(instrDef));
                                 }
 
-                                if (bailOutInfo->usedCapturedValues.argObjSyms && bailOutInfo->usedCapturedValues.argObjSyms->Test(sym->m_id))
+                                if (bailOutInfo->usedCapturedValues->argObjSyms && bailOutInfo->usedCapturedValues->argObjSyms->Test(sym->m_id))
                                 {
                                     //foo.apply(this,arguments) case and we bailout when the apply is overridden. We need to restore the arguments object.
                                     outParamOffsets[outParamOffsetIndex] = BailOutRecord::GetArgumentsObjectOffset();
@@ -1921,7 +1971,10 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         instr->m_func = this->func;
     }
 
-    linearScanMD.GenerateBailOut(instr, state.registerSaveSyms, _countof(state.registerSaveSyms));
+    if (!instr->HasLazyBailOut())
+    {
+        linearScanMD.GenerateBailOut(instr, state.registerSaveSyms, _countof(state.registerSaveSyms));
+    }
 
     // generate the constant table
     Js::Var * constants = NativeCodeDataNewArrayNoFixup(allocator, Js::Var, state.constantList.Count());
@@ -3291,10 +3344,16 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
 
     this->TrackInlineeArgLifetimes(instr);
 
-    // Don't care about kills on bailout calls as we are going to exit anyways
-    // Also, for bailout scenarios we have already handled the inlinee frame spills
+    // Don't care about kills on bailout calls (e.g: call SaveAllRegAndBailOut) as we are going to exit anyways.
+    // Note that those are different from normal helper calls with LazyBailOut because they are not guaranteed to exit.
+    // Also, for bailout scenarios we have already handled the inlinee frame spills.
+    // 
+    // Lazy bailout:
+    // Also make sure that Call instructions that previously do not have bailouts are still processed the same way in RegAlloc
+    // Previously only `call SaveAllRegistersAndBailOut` can have bailout, but now other calls may have lazy bailouts too.
+    // This makes them not being processed the same way as before(such as computing Lifetime across calls).
     Assert(LowererMD::IsCall(instr) || !instr->HasBailOutInfo());
-    if (!LowererMD::IsCall(instr) || instr->HasBailOutInfo())
+    if (!LowererMD::IsCall(instr) || (instr->HasBailOutInfo() && !instr->HasLazyBailOut()))
     {
         return;
     }
@@ -4807,4 +4866,36 @@ IR::Instr* LinearScan::InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *con
     }
 
     return instrRet;
+}
+
+void
+LinearScan::ProcessLazyBailOut(IR::Instr *instr)
+{
+    if (instr->HasLazyBailOut())
+    {
+        // No lazy bailout for function with try/catch for now
+        Assert(!this->func->HasTry());
+
+        this->func->EnsureLazyBailOutRecordSlot();
+
+        if (instr->GetBailOutInfo()->NeedsToRestoreUseOfDst())
+        {
+            Assert(instr->OnlyHasLazyBailOut());
+            instr->GetBailOutInfo()->RestoreUseOfDst();
+        }
+
+        // FillBailOutRecord on lazy bailout must be called after KillImplicitRegs
+        //
+        // s1(rax) = ...
+        // s2 = call s1(rax)
+        // ...
+        // use of s1
+        //
+        // s1 in this case needs to be spilled due to the call.
+        // If we fill the bailout record similarly to normal bailouts,
+        // we wouldn't have the correct value of s1 because rax would have already
+        // been replaced by the result of the call.
+        // Therefore we have to capture the value of it after the call and after KillImplicitRegs.
+        this->FillBailOutRecord(instr);
+    }
 }

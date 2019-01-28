@@ -73,7 +73,7 @@ public:
     template <typename TBlockAttributes>
     bool IsPageHeapEnabledForBlock(const size_t objectSize);
 #else
-    const bool IsPageHeapEnabled() const{ return false; }
+    bool IsPageHeapEnabled() const{ return false; }
 #endif
 
 #if ENABLE_MEM_STATS

@@ -597,6 +597,12 @@
   (func (export "⸎") (result i32) (i32.const 469))
   (func (export "\14") (result i32) (i32.const 470)) ;; ¶ in CP437
   (func (export "☙") (result i32) (i32.const 471))
+  (func (export "⸿") (result i32) (i32.const 472))
+  (func (export "〇") (result i32) (i32.const 473))
+  (func (export "๛") (result i32) (i32.const 474))
+
+  ;; Test an unusual character.
+  (func (export "ꙮ") (result i32) (i32.const 475))
 )
 
 (assert_return (invoke "") (i32.const 0))
@@ -1071,6 +1077,10 @@
 (assert_return (invoke "⸎") (i32.const 469))
 (assert_return (invoke "\14") (i32.const 470))
 (assert_return (invoke "☙") (i32.const 471))
+(assert_return (invoke "⸿") (i32.const 472))
+(assert_return (invoke "〇") (i32.const 473))
+(assert_return (invoke "๛") (i32.const 474))
+(assert_return (invoke "ꙮ") (i32.const 475))
 
 (module
   ;; Test that we can use indices instead of names to reference imports,

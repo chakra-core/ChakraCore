@@ -1776,7 +1776,7 @@ skipThunk:
 #pragma optimize("", on)
 #endif
 
-    const bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
+    bool InterpreterStackFrame::ShouldDoProfile(FunctionBody* executeFunction)
     {
 #if ENABLE_PROFILE_INFO
         const bool doProfile = executeFunction->GetInterpreterExecutionMode(false) == ExecutionMode::ProfilingInterpreter ||
@@ -3905,11 +3905,18 @@ skipThunk:
         {
             if ((functionInfo->IsBuiltInApplyFunction() || functionInfo->IsBuiltInCallFunction()) && targetFunction)
             {
-                Js::ProfileId callApplyCallSiteId = this->m_functionBody->GetCallSiteToCallApplyCallSiteArray()[profileId];
-                Assert(callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount());
-                if (callApplyCallSiteId != Js::Constants::NoProfileId)
+                Js::ProfileId * callSiteToCallApplyCallSiteMap = this->m_functionBody->GetCallSiteToCallApplyCallSiteArray();
+                if (callSiteToCallApplyCallSiteMap)
                 {
-                    dynamicProfileInfo->RecordCallApplyTargetInfo(functionBody, callApplyCallSiteId, targetFunction->GetFunctionInfo(), targetFunction);
+                    Js::ProfileId callApplyCallSiteId = callSiteToCallApplyCallSiteMap[profileId];
+                    if (callApplyCallSiteId < functionBody->GetProfiledCallApplyCallSiteCount())
+                    {
+                        dynamicProfileInfo->RecordCallApplyTargetInfo(functionBody, callApplyCallSiteId, targetFunction->GetFunctionInfo(), targetFunction);
+                    }
+                    else
+                    {
+                        Assert(callApplyCallSiteId == Js::Constants::NoProfileId);
+                    }
                 }
             }
         }
@@ -6458,7 +6465,7 @@ skipThunk:
         }
         END_SAFE_REENTRANT_CALL
 
-            PopOut(ArgCount);
+        PopOut(ArgCount);
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(newVarInstance));
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
@@ -6810,6 +6817,12 @@ skipThunk:
             // Finally exited with LeaveNull, We don't throw for early returns
             if (finallyEndOffset == 0 && exceptionObj)
             {
+#if ENABLE_NATIVE_CODEGEN
+                if (scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr() != nullptr)
+                {
+                    JavascriptExceptionOperators::WalkStackForCleaningUpInlineeInfo(scriptContext, nullptr, scriptContext->GetThreadContext()->GetTryHandlerAddrOfReturnAddr());
+                }
+#endif
                 JavascriptExceptionOperators::DoThrow(const_cast<Js::JavascriptExceptionObject *>(exceptionObj), scriptContext);
             }
             if (finallyEndOffset != 0)

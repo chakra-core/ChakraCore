@@ -386,6 +386,7 @@ public:
 #endif
 
     // Deadstore data
+    BVSparse<JitArenaAllocator> *              liveFixedFields;
     BVSparse<JitArenaAllocator> *              upwardExposedUses;
     BVSparse<JitArenaAllocator> *              upwardExposedFields;
     BVSparse<JitArenaAllocator> *              typesNeedingKnownObjectLayout;
@@ -431,6 +432,7 @@ private:
         isDead(false),
         isLoopHeader(false),
         hasCall(false),
+        liveFixedFields(nullptr),
         upwardExposedUses(nullptr),
         upwardExposedFields(nullptr),
         typesNeedingKnownObjectLayout(nullptr),
@@ -575,6 +577,7 @@ public:
     BVSparse<JitArenaAllocator> *lossyInt32SymsOnEntry; // see GlobOptData::liveLossyInt32Syms
     BVSparse<JitArenaAllocator> *float64SymsOnEntry;
     BVSparse<JitArenaAllocator> *liveFieldsOnEntry;
+    SymToValueInfoMap           *symsRequiringCompensationToMergedValueInfoMap;
 
     BVSparse<JitArenaAllocator> *symsUsedBeforeDefined;                // stack syms that are live in the landing pad, and used before they are defined in the loop
     BVSparse<JitArenaAllocator> *likelyIntSymsUsedBeforeDefined;       // stack syms that are live in the landing pad with a likely-int value, and used before they are defined in the loop
@@ -694,6 +697,7 @@ public:
         // Temporary map to reuse existing startIndexOpnd while emitting
         // 0 = !increment & !alreadyChanged, 1 = !increment & alreadyChanged, 2 = increment & !alreadyChanged, 3 = increment & alreadyChanged
         IR::RegOpnd* startIndexOpndCache[4];
+        IR::Instr* instr;
     } MemOpInfo;
 
     bool doMemOp : 1;
@@ -741,7 +745,8 @@ public:
         allFieldsKilled(false),
         isLeaf(true),
         isProcessed(false),
-        initialValueFieldMap(alloc)
+        initialValueFieldMap(alloc),
+        symsRequiringCompensationToMergedValueInfoMap(nullptr)
     {
         this->loopNumber = ++func->loopCount;
     }

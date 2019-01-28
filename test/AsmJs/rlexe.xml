@@ -989,6 +989,13 @@
   </test>
   <test>
     <default>
+      <files>notBinaryPropertyDefinition.js</files>
+      <baseline>notBinaryPropertyDefinition.baseline</baseline>
+      <compile-flags>-ES2018ObjectRestSpread -testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constbrbug.js</files>
       <baseline>constbrbug.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:0</compile-flags>

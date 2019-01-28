@@ -1029,6 +1029,84 @@ bool Instr::CanAggregateByteCodeUsesAcrossInstr(Instr * instr)
         (instr->GetByteCodeOffset() == this->GetByteCodeOffset()));
 }
 
+bool IR::Instr::IsStFldVariant() const
+{
+    return this->m_opcode == Js::OpCode::StFld ||
+        this->m_opcode == Js::OpCode::StFldStrict ||
+        this->m_opcode == Js::OpCode::StLocalFld ||
+        this->m_opcode == Js::OpCode::StRootFld ||
+        this->m_opcode == Js::OpCode::StRootFldStrict ||
+        this->m_opcode == Js::OpCode::StSuperFld;
+}
+
+bool IR::Instr::IsStElemVariant() const
+{
+    return this->m_opcode == Js::OpCode::StElemI_A ||
+        this->m_opcode == Js::OpCode::StElemI_A_Strict ||
+        this->m_opcode == Js::OpCode::StElemC;
+}
+
+bool IR::Instr::CanChangeFieldValueWithoutImplicitCall() const
+{
+    // TODO: Why is InitFld necessary?
+    return this->IsStFldVariant() || this->IsStElemVariant();
+}
+
+// If LazyBailOut is the only BailOutKind on the instruction, the BailOutInfo is cleared.
+// Otherwise, we remove the LazyBailOut kind from the instruction and still keep the BailOutInfo.
+void IR::Instr::ClearLazyBailOut()
+{
+    if (!this->HasBailOutInfo())
+    {
+        return;
+    }
+
+    if (this->OnlyHasLazyBailOut())
+    {
+        this->ClearBailOutInfo();
+    }
+    else
+    {
+        this->GetBailOutInfo()->RestoreUseOfDst();
+        this->SetBailOutKind(BailOutInfo::WithoutLazyBailOut(this->GetBailOutKind()));
+    }
+
+    Assert(!this->HasLazyBailOut());
+}
+
+int IR::Instr::GetOpndCount() const
+{
+    return (this->m_src1 ? 1 : 0) + (this->m_src2 ? 1 : 0) + (this->m_dst ? 1 : 0);
+}
+
+bool IR::Instr::AreAllOpndsTypeSpecialized() const
+{
+    bool src1TypeSpec = !this->m_src1 || (this->m_src1->GetStackSym() && this->m_src1->GetStackSym()->IsTypeSpec());
+    bool src2TypeSpec = !this->m_src2 || (this->m_src2->GetStackSym() && this->m_src2->GetStackSym()->IsTypeSpec());
+    bool dstTypeSpec = !this->m_dst || (this->m_dst->GetStackSym() && this->m_dst->GetStackSym()->IsTypeSpec());
+    return src1TypeSpec && src2TypeSpec && dstTypeSpec && this->GetOpndCount() > 0;
+}
+
+bool IR::Instr::OnlyHasLazyBailOut() const
+{
+    return this->HasBailOutInfo() && BailOutInfo::OnlyHasLazyBailOut(this->GetBailOutKind());
+}
+
+bool IR::Instr::HasLazyBailOut() const
+{
+    return this->HasBailOutInfo() && BailOutInfo::HasLazyBailOut(this->GetBailOutKind());
+}
+
+bool IR::Instr::HasPreOpBailOut() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutInfo()->bailOutOffset == this->GetByteCodeOffset();
+}
+
+bool IR::Instr::HasPostOpBailOut() const
+{
+    return this->HasBailOutInfo() && this->GetBailOutInfo()->bailOutOffset > this->GetByteCodeOffset();
+}
+
 BailOutInfo *
 Instr::GetBailOutInfo() const
 {
@@ -2680,6 +2758,21 @@ Instr::GetNextRealInstr() const
     return instr;
 }
 
+#if DBG
+IR::LabelInstr *
+Instr::GetNextNonEmptyLabel() const
+{
+    IR::Instr *instr = const_cast<Instr*>(this);
+
+    while (instr != nullptr && (!instr->IsLabelInstr() || instr->m_next->IsLabelInstr()))
+    {
+        instr = instr->m_next;
+    }
+
+    return instr->AsLabelInstr();
+}
+#endif
+
 ///----------------------------------------------------------------------------
 ///
 /// Instr::GetNextRealInstrOrLabel
@@ -2858,7 +2951,7 @@ Instr::IsByteCodeUsesInstrFor(IR::Instr * instr) const
 IR::LabelInstr *
 Instr::GetOrCreateContinueLabel(const bool isHelper)
 {
-    if(m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
+    if (m_next && m_next->IsLabelInstr() && m_next->AsLabelInstr()->isOpHelper == isHelper)
     {
         return m_next->AsLabelInstr();
     }
@@ -3083,6 +3176,8 @@ Instr::TransferTo(Instr * instr)
     instr->dstIsAlwaysConvertedToInt32 = this->dstIsAlwaysConvertedToInt32;
     instr->dstIsAlwaysConvertedToNumber = this->dstIsAlwaysConvertedToNumber;
     instr->dataWidth = this->dataWidth;
+    instr->isCtorCall = this->isCtorCall;
+    instr->forcePreOpBailOutIfNeeded = this->forcePreOpBailOutIfNeeded;
     IR::Opnd * dst = this->m_dst;
 
     if (dst)
@@ -3103,6 +3198,16 @@ Instr::TransferTo(Instr * instr)
 
     this->m_src1 = nullptr;
     this->m_src2 = nullptr;
+}
+
+// Convert an instruction to a bailout instruction and perform a shallow copy of the input instruction's BailOutInfo.
+// Can optionally change the BailOutKind, otherwise the input instruction's BailOutKind will be used instead.
+IR::Instr *
+Instr::ConvertToBailOutInstrWithBailOutInfoCopy(BailOutInfo *bailOutInfo, IR::BailOutKind bailOutKind)
+{
+    BailOutInfo *bailOutInfoCopy = JitAnew(this->m_func->m_alloc, BailOutInfo, bailOutInfo->bailOutOffset, this->m_func);
+    bailOutInfo->PartialDeepCopyTo(bailOutInfoCopy);
+    return this->ConvertToBailOutInstr(bailOutInfoCopy, bailOutKind);
 }
 
 IR::Instr *
@@ -3359,6 +3464,11 @@ IR::Instr* Instr::GetBytecodeArgOutCapture()
         this->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
     Assert(this->m_dst->GetStackSym()->m_isArgCaptured);
     IR::Instr* instr = this->GetSrc1()->GetStackSym()->m_instrDef;
+    while (instr->m_opcode != Js::OpCode::BytecodeArgOutCapture)
+    {
+        Assert(instr->GetSrc1() && instr->GetSrc1()->GetStackSym() && instr->GetSrc1()->GetStackSym()->IsSingleDef());
+        instr = instr->GetSrc1()->GetStackSym()->m_instrDef;
+    }
     Assert(instr->m_opcode == Js::OpCode::BytecodeArgOutCapture);
     return instr;
 }

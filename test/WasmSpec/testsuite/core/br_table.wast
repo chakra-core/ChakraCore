@@ -873,7 +873,7 @@
   )
 
   (func (export "as-br-value") (result i32)
-    (block (result i32) (br 0 (br 0 (i32.const 9))))
+    (block (result i32) (br 0 (br_table 0 (i32.const 9) (i32.const 0))))
   )
 
   (func (export "as-br_if-cond")
@@ -1024,6 +1024,20 @@
     (local f32)
     (block (result i32)
       (set_local 0 (br_table 0 (i32.const 17) (i32.const 1)))
+      (i32.const -1)
+    )
+  )
+  (func (export "as-tee_local-value") (result i32)
+    (local i32)
+    (block (result i32)
+      (set_local 0 (br_table 0 (i32.const 1) (i32.const 1)))
+      (i32.const -1)
+    )
+  )
+  (global $a (mut i32) (i32.const 10))
+  (func (export "as-set_global-value") (result i32)
+    (block (result i32)
+      (set_global $a (br_table 0 (i32.const 1) (i32.const 1)))
       (i32.const -1)
     )
   )
@@ -1342,6 +1356,8 @@
 (assert_return (invoke "as-call_indirect-func") (i32.const 23))
 
 (assert_return (invoke "as-set_local-value") (i32.const 17))
+(assert_return (invoke "as-tee_local-value") (i32.const 1))
+(assert_return (invoke "as-set_global-value") (i32.const 1))
 
 (assert_return (invoke "as-load-address") (f32.const 1.7))
 (assert_return (invoke "as-loadN-address") (i64.const 30))

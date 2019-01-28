@@ -63,7 +63,7 @@ public:
     static void             ChangeToSub(IR::Instr *const instr, const bool needFlags);
     static void             ChangeToShift(IR::Instr *const instr, const bool needFlags);
     static void             ChangeToIMul(IR::Instr *const instr, const bool hasOverflowCheck = false);
-    static const uint16     GetFormalParamOffset();
+    static uint16           GetFormalParamOffset();
     static const Js::OpCode MDUncondBranchOpcode;
     static const Js::OpCode MDMultiBranchOpcode;
     static const Js::OpCode MDExtend32Opcode;
@@ -143,7 +143,7 @@ public:
 #if FLOATVAR
             IR::RegOpnd*    CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr* labelHelper);
 #endif
-            bool            GenerateFastCmSrEqConst(IR::Instr *instr);
+            bool            GenerateFastCmSrXxConst(IR::Instr *instr);
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false);
             void            GenerateFastCmXxI4(IR::Instr *instr);
             void            GenerateFastCmXxR8(IR::Instr *instr);
@@ -171,6 +171,7 @@ public:
             void            GenerateCheckForArgumentsLength(IR::Instr* ldElem, IR::LabelInstr* labelCreateHeapArgs, IR::Opnd* actualParamOpnd, IR::Opnd* valueOpnd, Js::OpCode);
             IR::RegOpnd *   LoadNonnegativeIndex(IR::RegOpnd *indexOpnd, const bool skipNegativeCheck, IR::LabelInstr *const notTaggedIntLabel, IR::LabelInstr *const negativeLabel, IR::Instr *const insertBeforeInstr);
             IR::RegOpnd *   GenerateUntagVar(IR::RegOpnd * opnd, IR::LabelInstr * labelFail, IR::Instr * insertBeforeInstr, bool generateTagCheck = true);
+            bool            GenerateFastLdMethodFromFlags(IR::Instr * instrLdFld);
             IR::Instr *     GenerateFastScopedLdFld(IR::Instr * instrLdFld);
             IR::Instr *     GenerateFastScopedStFld(IR::Instr * instrStFld);
             void            GenerateFastAbs(IR::Opnd *dst, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel);

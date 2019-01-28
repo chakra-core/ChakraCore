@@ -1032,7 +1032,7 @@ public:
     BitVector SavedRegisters() const { return m_savedRegisters; }
     BitVector SavedDoubles() const { return m_savedDoubles; }
 
-    // Locals area sits right after space allocated for argments
+    // Locals area sits right after space allocated for arguments
     ULONG LocalsOffset() const { return this->m_argSlotCount * MachRegInt; }
     ULONG LocalsSize() const { return this->m_localsArea; }
 
@@ -1991,7 +1991,8 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
     IR::Instr * bailOutInstr = callInstr;
     if (callInstr->HasBailOutInfo())
     {
-        if (callInstr->GetBailOutKind() == IR::BailOutOnNotPrimitive)
+        const IR::BailOutKind bailOutKind = callInstr->GetBailOutKind();
+        if (bailOutKind == IR::BailOutOnNotPrimitive)
         {
             callInstr = IR::Instr::New(callInstr->m_opcode, callInstr->m_func);
             bailOutInstr->TransferTo(callInstr);
@@ -2000,9 +2001,13 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
             bailOutInstr->m_opcode = Js::OpCode::BailOnNotPrimitive;
             bailOutInstr->SetSrc1(opndInstance);
         }
-        else
+        else if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
         {
             bailOutInstr = this->m_lowerer->SplitBailOnImplicitCall(callInstr);
+        }
+        else
+        {
+            AssertMsg(false, "Unexpected BailOutKind, are we adding new BailOutKind on instructions?");
         }
     }
 
@@ -2020,18 +2025,20 @@ LowererMD::ChangeToHelperCall(IR::Instr * callInstr, IR::JnHelperMethod helperMe
     if (bailOutInstr != callInstr)
     {
         // The bailout needs to be lowered after we lower the helper call because the helper argument
-        // has already been loaded.  We need to drain them on AMD64 before starting another helper call
-        if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotObject)
-        {
-            this->m_lowerer->LowerBailOnNotObject(bailOutInstr, nullptr, labelBailOut);
-        }
-        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
+        // has already been loaded. We need to drain them on AMD64 before starting another helper call
+        if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotPrimitive)
         {
             this->m_lowerer->LowerBailOnTrue(bailOutInstr, labelBailOut);
         }
+        else if (bailOutInstr->m_opcode == Js::OpCode::BailOnNotEqual)
+        {
+            // `SplitBailOnImplicitCall` above changes the opcode to BailOnNotEqual
+            Assert(BailOutInfo::IsBailOutOnImplicitCalls(bailOutInstr->GetBailOutKind()));
+            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
+        }
         else
         {
-            this->m_lowerer->LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, labelBailOut, propSymOpnd, isHelperContinuation);
+            AssertMsg(false, "Unexpected OpCode for BailOutInstruction");
         }
     }
 
@@ -2655,21 +2662,21 @@ LowererMD::GenerateFastDivByPow2(IR::Instr *instrDiv)
 ///----------------------------------------------------------------------------
 
 bool
-LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
+LowererMD::GenerateFastCmSrXxConst(IR::Instr *instr)
 {
     //
     // Given:
-    // s1 = CmSrEq_A s2, s3
+    // s1 = CmSrXX_A s2, s3
     // where either s2 or s3 is 'null', 'true' or 'false'
     //
     // Generate:
     //
     //     CMP s2, s3
-    //     JEQ $mov_true
-    //     MOV s1, Library.GetFalse()
+    //     JEQ $mov_res
+    //     MOV s1, eq ? Library.GetFalse() : Library.GetTrue()
     //     JMP $done
-    // $mov_true:
-    //     MOV s1, Library.GetTrue()
+    // $mov_res:
+    //     MOV s1, eq ? Library.GetTrue() : Library.GetFalse()
     // $done:
     //
 

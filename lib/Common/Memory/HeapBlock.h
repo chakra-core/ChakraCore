@@ -387,7 +387,7 @@ public:
         Assert(GetHeapBlockType() <= HeapBlock::HeapBlockType::BlockTypeCount);
     }
 
-    HeapBlockType const GetHeapBlockType() const
+    HeapBlockType GetHeapBlockType() const
     {
         return (heapBlockType);
     }

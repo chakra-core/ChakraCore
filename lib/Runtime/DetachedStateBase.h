@@ -41,6 +41,8 @@ namespace Js
         virtual void ClearSelfOnly() = 0;
         virtual void DiscardState() = 0;
         virtual void Discard() = 0;
+        virtual void AddRefBufferContent() = 0;
+        virtual long ReleaseRefBufferContent() = 0;
     };
 
     typedef enum ArrayBufferAllocationType
@@ -51,19 +53,52 @@ namespace Js
         External = 0x03,
     } ArrayBufferAllocationType;
 
+    class RefCountedBuffer;
+
     class ArrayBufferDetachedStateBase : public DetachedStateBase
     {
     public:
-        BYTE* buffer;
+        RefCountedBuffer* buffer;
         uint32 bufferLength;
         ArrayBufferAllocationType allocationType;
 
-        ArrayBufferDetachedStateBase(TypeId typeId, BYTE* buffer, uint32 bufferLength, ArrayBufferAllocationType allocationType)
+        ArrayBufferDetachedStateBase(TypeId typeId, RefCountedBuffer* buffer, uint32 bufferLength, ArrayBufferAllocationType allocationType)
             : DetachedStateBase(typeId),
             buffer(buffer),
             bufferLength(bufferLength),
             allocationType(allocationType)
         {}
 
+        virtual void AddRefBufferContent() override;
+
+        virtual long ReleaseRefBufferContent() override;
+
+    protected:
+        // Clean up all local state. Different subclasses use different cleanup mechanisms for the buffer allocation.
+        template <typename TFreeFn> void DiscardStateBase(TFreeFn freeFunction)
+        {
+            // this function will be called in the case where transferable object is going away and current arraybuffer is not claimed.
+
+            if (this->buffer != nullptr)
+            {
+                RefCountedBuffer *local = this->buffer;
+                this->buffer = nullptr;
+
+                Assert(local->GetBuffer());
+
+                if (local->GetBuffer() != nullptr)
+                {
+                    long ref = local->Release();
+                    // The ref may not be 0, as we may have put the object in the DelayFree buffer list.
+                    if (ref == 0)
+                    {
+                        freeFunction(local->GetBuffer());
+                        HeapDelete(local);
+                    }
+                }
+            }
+
+            this->bufferLength = 0;
+        }
     };
 }

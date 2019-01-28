@@ -24,6 +24,7 @@ endif()
 set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
+    DelayFreeArrayBufferHelper.cpp
     ArrayBuffer.cpp
     AtomicsOperations.cpp
     AtomicsObject.cpp
@@ -84,6 +85,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptStringEnumerator.cpp
     JavascriptStringIterator.cpp
     JavascriptStringObject.cpp
+    JavascriptBigInt.cpp
+    JavascriptBigIntObject.cpp
     JavascriptSymbol.cpp
     JavascriptSymbolObject.cpp
     JavascriptTypedNumber.cpp

@@ -26,6 +26,7 @@ enum tokens
     tkFltCon,    // floating literal
     tkStrCon,    // string literal
     tkRegExp,    // regular expression literal
+    tkBigIntCon, // bigint literal
 
     tkLim
 };

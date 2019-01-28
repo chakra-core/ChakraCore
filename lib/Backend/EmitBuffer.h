@@ -47,6 +47,7 @@ public:
     bool CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
     void CompletePreviousAllocation(TEmitBufferAllocation* allocation);
     bool FreeAllocation(void* address);
+    void SetValidCallTarget(TEmitBufferAllocation* allocation, void* callTarget, bool isValid);
     //Ends here
 
     bool IsInHeap(void* address);

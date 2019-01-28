@@ -1660,7 +1660,7 @@ var tests = {
         body: function() {
             try {
                 var propName = 1;
-                Object.defineProperty(Array.prototype, propName, {
+                Object.defineProperty(Object.prototype, propName, {
                     value: 321,
                     writable: true, configurable: true, enumerable: true
                 });
@@ -1675,7 +1675,7 @@ var tests = {
                 o.sort();
                 assert.areEqual("10,321,", o.toString(), "sort result mismatch?");
             } finally {
-                delete Array.prototype[propName];
+                delete Object.prototype[propName];
             }
         }
     },

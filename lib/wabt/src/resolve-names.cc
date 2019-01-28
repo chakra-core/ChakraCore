@@ -20,11 +20,9 @@
 #include <cstdio>
 
 #include "src/cast.h"
-#include "src/error-handler.h"
 #include "src/expr-visitor.h"
 #include "src/ir.h"
 #include "src/wast-lexer.h"
-#include "src/wast-parser-lexer-shared.h"
 
 namespace wabt {
 
@@ -32,7 +30,7 @@ namespace {
 
 class NameResolver : public ExprVisitor::DelegateNop {
  public:
-  NameResolver(WastLexer* lexer, Script* script, ErrorHandler* error_handler);
+  NameResolver(Script* script, Errors* errors);
 
   Result VisitModule(Module* module);
   Result VisitScript(Script* script);
@@ -45,6 +43,8 @@ class NameResolver : public ExprVisitor::DelegateNop {
   Result OnBrTableExpr(BrTableExpr*) override;
   Result OnCallExpr(CallExpr*) override;
   Result OnCallIndirectExpr(CallIndirectExpr*) override;
+  Result OnReturnCallExpr(ReturnCallExpr *) override;
+  Result OnReturnCallIndirectExpr(ReturnCallIndirectExpr*) override;
   Result OnGetGlobalExpr(GetGlobalExpr*) override;
   Result OnGetLocalExpr(GetLocalExpr*) override;
   Result BeginIfExpr(IfExpr*) override;
@@ -53,8 +53,12 @@ class NameResolver : public ExprVisitor::DelegateNop {
   Result EndIfExceptExpr(IfExceptExpr*) override;
   Result BeginLoopExpr(LoopExpr*) override;
   Result EndLoopExpr(LoopExpr*) override;
+  Result OnMemoryDropExpr(MemoryDropExpr*) override;
+  Result OnMemoryInitExpr(MemoryInitExpr*) override;
   Result OnSetGlobalExpr(SetGlobalExpr*) override;
   Result OnSetLocalExpr(SetLocalExpr*) override;
+  Result OnTableDropExpr(TableDropExpr*) override;
+  Result OnTableInitExpr(TableInitExpr*) override;
   Result OnTeeLocalExpr(TeeLocalExpr*) override;
   Result BeginTryExpr(TryExpr*) override;
   Result EndTryExpr(TryExpr*) override;
@@ -65,6 +69,9 @@ class NameResolver : public ExprVisitor::DelegateNop {
   void PushLabel(const std::string& label);
   void PopLabel();
   void CheckDuplicateBindings(const BindingHash* bindings, const char* desc);
+  void PrintDuplicateBindingsError(const BindingHash::value_type&,
+                                   const BindingHash::value_type&,
+                                   const char* desc);
   void ResolveLabelVar(Var* var);
   void ResolveVar(const BindingHash* bindings, Var* var, const char* desc);
   void ResolveFuncVar(Var* var);
@@ -73,7 +80,10 @@ class NameResolver : public ExprVisitor::DelegateNop {
   void ResolveTableVar(Var* var);
   void ResolveMemoryVar(Var* var);
   void ResolveExceptionVar(Var* var);
+  void ResolveDataSegmentVar(Var* var);
+  void ResolveElemSegmentVar(Var* var);
   void ResolveLocalVar(Var* var);
+  void ResolveBlockDeclarationVar(BlockDeclaration* decl);
   void VisitFunc(Func* func);
   void VisitExport(Export* export_);
   void VisitGlobal(Global* global);
@@ -82,8 +92,7 @@ class NameResolver : public ExprVisitor::DelegateNop {
   void VisitScriptModule(ScriptModule* script_module);
   void VisitCommand(Command* command);
 
-  ErrorHandler* error_handler_ = nullptr;
-  WastLexer* lexer_ = nullptr;
+  Errors* errors_ = nullptr;
   Script* script_ = nullptr;
   Module* current_module_ = nullptr;
   Func* current_func_ = nullptr;
@@ -92,24 +101,19 @@ class NameResolver : public ExprVisitor::DelegateNop {
   Result result_ = Result::Ok;
 };
 
-NameResolver::NameResolver(WastLexer* lexer,
-                           Script* script,
-                           ErrorHandler* error_handler)
-    : error_handler_(error_handler),
-      lexer_(lexer),
+NameResolver::NameResolver(Script* script, Errors* errors)
+    : errors_(errors),
       script_(script),
       visitor_(this) {}
 
 }  // end anonymous namespace
 
 void WABT_PRINTF_FORMAT(3, 4) NameResolver::PrintError(const Location* loc,
-                                                       const char* fmt,
+                                                       const char* format,
                                                        ...) {
   result_ = Result::Error;
-  va_list args;
-  va_start(args, fmt);
-  WastFormatError(error_handler_, loc, lexer_, fmt, args);
-  va_end(args);
+  WABT_SNPRINTF_ALLOCA(buffer, length, format);
+  errors_->emplace_back(ErrorLevel::Error, *loc, buffer);
 }
 
 void NameResolver::PushLabel(const std::string& label) {
@@ -124,13 +128,18 @@ void NameResolver::CheckDuplicateBindings(const BindingHash* bindings,
                                           const char* desc) {
   bindings->FindDuplicates([this, desc](const BindingHash::value_type& a,
                                         const BindingHash::value_type& b) {
-    // Choose the location that is later in the file.
-    const Location& a_loc = a.second.loc;
-    const Location& b_loc = b.second.loc;
-    const Location& loc = a_loc.line > b_loc.line ? a_loc : b_loc;
-    PrintError(&loc, "redefinition of %s \"%s\"", desc, a.first.c_str());
-
+    PrintDuplicateBindingsError(a, b, desc);
   });
+}
+
+void NameResolver::PrintDuplicateBindingsError(const BindingHash::value_type& a,
+                                               const BindingHash::value_type& b,
+                                               const char* desc) {
+  // Choose the location that is later in the file.
+  const Location& a_loc = a.second.loc;
+  const Location& b_loc = b.second.loc;
+  const Location& loc = a_loc.line > b_loc.line ? a_loc : b_loc;
+  PrintError(&loc, "redefinition of %s \"%s\"", desc, a.first.c_str());
 }
 
 void NameResolver::ResolveLabelVar(Var* var) {
@@ -186,6 +195,14 @@ void NameResolver::ResolveExceptionVar(Var* var) {
   ResolveVar(&current_module_->except_bindings, var, "exception");
 }
 
+void NameResolver::ResolveDataSegmentVar(Var* var) {
+  ResolveVar(&current_module_->data_segment_bindings, var, "data segment");
+}
+
+void NameResolver::ResolveElemSegmentVar(Var* var) {
+  ResolveVar(&current_module_->elem_segment_bindings, var, "elem segment");
+}
+
 void NameResolver::ResolveLocalVar(Var* var) {
   if (var->is_name()) {
     if (!current_func_) {
@@ -203,8 +220,15 @@ void NameResolver::ResolveLocalVar(Var* var) {
   }
 }
 
+void NameResolver::ResolveBlockDeclarationVar(BlockDeclaration* decl) {
+  if (decl->has_func_type) {
+    ResolveFuncTypeVar(&decl->type_var);
+  }
+}
+
 Result NameResolver::BeginBlockExpr(BlockExpr* expr) {
   PushLabel(expr->block.label);
+  ResolveBlockDeclarationVar(&expr->block.decl);
   return Result::Ok;
 }
 
@@ -215,6 +239,7 @@ Result NameResolver::EndBlockExpr(BlockExpr* expr) {
 
 Result NameResolver::BeginLoopExpr(LoopExpr* expr) {
   PushLabel(expr->block.label);
+  ResolveBlockDeclarationVar(&expr->block.decl);
   return Result::Ok;
 }
 
@@ -252,6 +277,18 @@ Result NameResolver::OnCallIndirectExpr(CallIndirectExpr* expr) {
   return Result::Ok;
 }
 
+Result NameResolver::OnReturnCallExpr(ReturnCallExpr* expr) {
+  ResolveFuncVar(&expr->var);
+  return Result::Ok;
+}
+
+Result NameResolver::OnReturnCallIndirectExpr(ReturnCallIndirectExpr* expr) {
+  if (expr->decl.has_func_type) {
+    ResolveFuncTypeVar(&expr->decl.type_var);
+  }
+  return Result::Ok;
+}
+
 Result NameResolver::OnGetGlobalExpr(GetGlobalExpr* expr) {
   ResolveGlobalVar(&expr->var);
   return Result::Ok;
@@ -264,6 +301,7 @@ Result NameResolver::OnGetLocalExpr(GetLocalExpr* expr) {
 
 Result NameResolver::BeginIfExpr(IfExpr* expr) {
   PushLabel(expr->true_.label);
+  ResolveBlockDeclarationVar(&expr->true_.decl);
   return Result::Ok;
 }
 
@@ -274,12 +312,23 @@ Result NameResolver::EndIfExpr(IfExpr* expr) {
 
 Result NameResolver::BeginIfExceptExpr(IfExceptExpr* expr) {
   PushLabel(expr->true_.label);
+  ResolveBlockDeclarationVar(&expr->true_.decl);
   ResolveExceptionVar(&expr->except_var);
   return Result::Ok;
 }
 
 Result NameResolver::EndIfExceptExpr(IfExceptExpr* expr) {
   PopLabel();
+  return Result::Ok;
+}
+
+Result NameResolver::OnMemoryDropExpr(MemoryDropExpr* expr) {
+  ResolveDataSegmentVar(&expr->var);
+  return Result::Ok;
+}
+
+Result NameResolver::OnMemoryInitExpr(MemoryInitExpr* expr) {
+  ResolveDataSegmentVar(&expr->var);
   return Result::Ok;
 }
 
@@ -293,6 +342,16 @@ Result NameResolver::OnSetLocalExpr(SetLocalExpr* expr) {
   return Result::Ok;
 }
 
+Result NameResolver::OnTableDropExpr(TableDropExpr* expr) {
+  ResolveElemSegmentVar(&expr->var);
+  return Result::Ok;
+}
+
+Result NameResolver::OnTableInitExpr(TableInitExpr* expr) {
+  ResolveElemSegmentVar(&expr->var);
+  return Result::Ok;
+}
+
 Result NameResolver::OnTeeLocalExpr(TeeLocalExpr* expr) {
   ResolveLocalVar(&expr->var);
   return Result::Ok;
@@ -300,6 +359,7 @@ Result NameResolver::OnTeeLocalExpr(TeeLocalExpr* expr) {
 
 Result NameResolver::BeginTryExpr(TryExpr* expr) {
   PushLabel(expr->block.label);
+  ResolveBlockDeclarationVar(&expr->block.decl);
   return Result::Ok;
 }
 
@@ -319,8 +379,12 @@ void NameResolver::VisitFunc(Func* func) {
     ResolveFuncTypeVar(&func->decl.type_var);
   }
 
-  CheckDuplicateBindings(&func->param_bindings, "parameter");
-  CheckDuplicateBindings(&func->local_bindings, "local");
+  func->bindings.FindDuplicates(
+      [=](const BindingHash::value_type& a, const BindingHash::value_type& b) {
+        const char* desc =
+            (a.second.index < func->GetNumParams()) ? "parameter" : "local";
+        PrintDuplicateBindingsError(a, b, desc);
+      });
 
   visitor_.VisitFunc(func);
   current_func_ = nullptr;
@@ -424,8 +488,8 @@ void NameResolver::VisitCommand(Command* command) {
       /* The module may be invalid because the names cannot be resolved; we
        * don't want to print errors or fail if that's the case, but we still
        * should try to resolve names when possible. */
-      ErrorHandlerNop new_error_handler;
-      NameResolver new_resolver(lexer_, script_, &new_error_handler);
+      Errors errors;
+      NameResolver new_resolver(script_, &errors);
       new_resolver.VisitScriptModule(assert_invalid_command->module.get());
       break;
     }
@@ -447,17 +511,13 @@ Result NameResolver::VisitScript(Script* script) {
   return result_;
 }
 
-Result ResolveNamesModule(WastLexer* lexer,
-                          Module* module,
-                          ErrorHandler* error_handler) {
-  NameResolver resolver(lexer, nullptr, error_handler);
+Result ResolveNamesModule(Module* module, Errors* errors) {
+  NameResolver resolver(nullptr, errors);
   return resolver.VisitModule(module);
 }
 
-Result ResolveNamesScript(WastLexer* lexer,
-                          Script* script,
-                          ErrorHandler* error_handler) {
-  NameResolver resolver(lexer, script, error_handler);
+Result ResolveNamesScript(Script* script, Errors* errors) {
+  NameResolver resolver(script, errors);
   return resolver.VisitScript(script);
 }
 

@@ -93,6 +93,33 @@ var tests = [
             const start = 'import "b.js"; import "a.js"; import "c.js";';
             testRunner.LoadModule(start);
         }
+    },
+    {
+        // https://github.com/Microsoft/ChakraCore/issues/5501
+        name : "Issue 5501: Indirect exports excluded from namespace object - POC 1",
+        body()
+        {
+            WScript.RegisterModuleSource("test5501Part1", `
+                export {bar as foo} from "test5501Part1";
+                export const bar = 5;
+                import * as stuff from "test5501Part1";
+                assert.areEqual(stuff.bar, stuff.foo);
+            `);
+            testRunner.LoadModule("import 'test5501Part1'");
+        }
+    },
+    {
+        name : "Issue 5501: Indirect exports excluded from namespace object - POC 2",
+        body()
+        {
+            WScript.RegisterModuleSource("test5501Part2a", "export default function () { return true; }");
+            WScript.RegisterModuleSource("test5501Part2b", "export {default as aliasName} from 'test5501Part2a'");
+
+            testRunner.LoadModule(`
+                import {aliasName} from 'test5501Part2b';
+                assert.isTrue(aliasName());
+            `);
+        }
     }
 ];
 

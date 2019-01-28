@@ -13,8 +13,8 @@ namespace Js
         diagProbesContainer(nullptr),
         isClosed(false),
         debuggerMode(DebuggerMode::NotDebugging),
-        isDebuggerRecording(true),
-        isReparsingSource(false)
+        isReparsingSource(false),
+        isDebuggerRecording(true)
     {
         Assert(scriptContext != nullptr);
     }

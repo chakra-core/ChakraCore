@@ -39,6 +39,8 @@ UINT32 snapHistoryLength = MAXUINT32;
 LPCWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
+HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileName);
+
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
 {
@@ -456,14 +458,20 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, size_t fileLength, 
         {
             runScript = WScriptJsrt::ModuleEntryPoint(fileName, fileContents, fullPath);
         }
+        else if (HostConfigFlags::flags.ExecuteWithBgParse && !HostConfigFlags::flags.DebugLaunch)
+        {
+            unsigned int lengthBytes = (unsigned int) fileLength;
+            runScript = (JsErrorCode)RunBgParseSync(fileContents, lengthBytes, fileName);
+        }
         else // bufferValue == nullptr && parserStateCache == nullptr
         {
             JsValueRef scriptSource;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
                 (unsigned int)fileLength,
                 fileContentsFinalizeCallback, (void*)fileContents, &scriptSource));
+
 #if ENABLE_TTD
-            if(doTTRecord)
+            if (doTTRecord)
             {
                 JsPropertyIdRef ttProperty = nullptr;
                 JsValueRef ttString = nullptr;
@@ -753,6 +761,47 @@ Error:
     }
 
     return hr;
+}
+
+// Use the asynchronous BGParse JSRT APIs in a synchronous call
+HRESULT RunBgParseSync(LPCSTR fileContents, UINT lengthBytes, const char* fileName)
+{
+    JsValueRef scriptSource;
+    JsErrorCode e = (ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+        (unsigned int)lengthBytes,
+        nullptr, (void*)fileContents, &scriptSource));
+
+    // What's the preferred way of doing this?
+    WCHAR fileNameWide[MAX_PATH] = { 0 };
+    size_t fileNameLength = strlen(fileName);
+    for (size_t i = 0; i < fileNameLength; i++)
+    {
+        fileNameWide[i] = fileName[i];
+    }
+
+    JsScriptContents scriptContents = { 0 };
+    scriptContents.container = (LPVOID)fileContents;
+    scriptContents.containerType = JsScriptContainerType::HeapAllocatedBuffer;
+    scriptContents.encodingType = JsScriptEncodingType::Utf8;
+    scriptContents.contentLengthInBytes = lengthBytes;
+    scriptContents.fullPath = fileNameWide;
+
+    DWORD cookie = 0;
+    e = ChakraRTInterface::JsQueueBackgroundParse_Experimental(&scriptContents, &cookie);
+    Assert(e == JsErrorCode::JsNoError);
+
+    JsValueRef bgResult = nullptr;
+    e = ChakraRTInterface::JsExecuteBackgroundParse_Experimental(
+        cookie,
+        scriptSource,
+        WScriptJsrt::GetNextSourceContext(),
+        (WCHAR*)scriptContents.fullPath,
+        JsParseScriptAttributes::JsParseScriptAttributeNone,
+        nullptr,//_In_ JsValueRef parserState,
+        &bgResult
+    );
+
+    return e;
 }
 
 HRESULT ExecuteTest(const char* fileName)
@@ -1249,7 +1298,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             // TODO: Error checking
             JITProcessManager::StartRpcServer(argc, argv);
-            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
+            ChakraRTInterface::JsConnectJITProcess(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
         }
 #endif
         HANDLE threadHandle;

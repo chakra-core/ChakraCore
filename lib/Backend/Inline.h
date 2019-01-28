@@ -165,10 +165,7 @@ private:
     void SetInlineeFrameStartSym(Func *inlinee, uint actualCount);
     void CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr);
 
-    void InsertObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
-    void InsertFunctionTypeIdCheck(IR::RegOpnd * funcOpnd, IR::Instr* insertBeforeInstr, IR::Instr*bailOutInstr);
     void InsertJsFunctionCheck(IR::Instr * callInstr, IR::Instr *insertBeforeInstr, IR::BailOutKind bailOutKind);
-    void InsertFunctionInfoCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
     void InsertFunctionObjectCheck(IR::RegOpnd * funcOpnd, IR::Instr *insertBeforeInstr, IR::Instr* bailoutInstr, const FunctionJITTimeInfo *funcInfo);
 
     void TryResetObjTypeSpecFldInfoOn(IR::PropertySymOpnd* propertySymOpnd);

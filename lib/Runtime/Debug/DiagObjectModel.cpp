@@ -2483,7 +2483,7 @@ namespace Js
                     else
                     {
                         RecyclableObject* wrapperObject = nullptr;
-                        if (JavascriptOperators::GetTypeId(object) == TypeIds_WithScopeObject)
+                        if (JavascriptOperators::GetTypeId(object) == TypeIds_UnscopablesWrapperObject)
                         {
                             wrapperObject = object;
                             object = object->GetThisObjectOrUnWrap();
@@ -3427,8 +3427,8 @@ namespace Js
         RecyclableObject *obj               = Js::VarTo<Js::RecyclableObject>(instance);
 
         Assert(obj->GetPrototype() != nullptr);
-        //withscopeObjects prototype is null
-        Assert(obj->GetPrototype()->GetTypeId() != TypeIds_Null || (obj->GetPrototype()->GetTypeId() == TypeIds_Null && obj->GetTypeId() == TypeIds_WithScopeObject));
+        //UnscopablesWrapperObjects prototype is null
+        Assert(obj->GetPrototype()->GetTypeId() != TypeIds_Null || (obj->GetPrototype()->GetTypeId() == TypeIds_Null && obj->GetTypeId() == TypeIds_UnscopablesWrapperObject));
 
         pResolvedObject->obj                = obj->GetPrototype();
         pResolvedObject->originalObj        = (originalInstance != nullptr) ? Js::VarTo<Js::RecyclableObject>(originalInstance) : pResolvedObject->obj;

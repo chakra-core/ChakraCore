@@ -241,6 +241,14 @@ namespace Js
             DeferredTypeHandler<InitializeNumberPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
         numberPrototype = RecyclerNew(recycler, JavascriptNumberObject, TaggedInt::ToVarUnchecked(0), tempDynamicType);
 
+        bigintPrototype = nullptr;
+        if (scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            tempDynamicType = DynamicType::New(scriptContext, TypeIds_BigIntObject, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeBigIntPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
+            bigintPrototype = RecyclerNew(recycler, JavascriptBigIntObject, nullptr, tempDynamicType);
+        }
+
         tempDynamicType = DynamicType::New(scriptContext, TypeIds_StringObject, objectPrototype, nullptr,
             DeferredTypeHandler<InitializeStringPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance());
         stringPrototype = RecyclerNew(recycler, JavascriptStringObject, nullptr, tempDynamicType);
@@ -515,6 +523,12 @@ namespace Js
         promiseType = nullptr;
         moduleNamespaceType = nullptr;
 
+        if (config->IsESBigIntEnabled())
+        {
+            bigintTypeStatic = StaticType::New(scriptContext, TypeIds_BigInt, bigintPrototype, nullptr);
+            bigintTypeDynamic = DynamicType::New(scriptContext, TypeIds_BigIntObject, bigintPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+        }
+
         // Initialize boolean types
         booleanTypeStatic = StaticType::New(scriptContext, TypeIds_Boolean, booleanPrototype, nullptr);
         booleanTypeDynamic = DynamicType::New(scriptContext, TypeIds_BooleanObject, booleanPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
@@ -525,7 +539,7 @@ namespace Js
 
         if (config->IsES6UnscopablesEnabled())
         {
-            withType = StaticType::New(scriptContext, TypeIds_WithScopeObject, GetNull(), nullptr);
+            withType = StaticType::New(scriptContext, TypeIds_UnscopablesWrapperObject, GetNull(), nullptr);
         }
 
         if (config->IsES6SpreadEnabled())
@@ -580,7 +594,7 @@ namespace Js
             Js::DeferredTypeHandler<Js::JavascriptExternalFunction::DeferredConstructorInitializer>::GetDefaultInstance(), true, true);
 
         boundFunctionType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, BoundFunction::NewInstance,
-            GetDeferredFunctionTypeHandler(), true, true);
+            GetDeferredFunctionWithLengthUnsetTypeHandler(), true, true);
         crossSiteDeferredFunctionType = CreateDeferredFunctionTypeNoProfileThunk(
             scriptContext->CurrentCrossSiteThunk, true /*isShared*/);
         crossSiteDeferredPrototypeFunctionType = CreateDeferredPrototypeFunctionTypeNoProfileThunk(
@@ -770,7 +784,7 @@ namespace Js
         JavascriptArray::EnsureCalculationOfAllocationBuckets<Js::JavascriptArray>();
     }
 
-    template<bool addPrototype, bool addName, bool useLengthType>
+    template<bool addPrototype, bool addName, bool useLengthType, bool addLength>
     bool JavascriptLibrary::InitializeFunction(DynamicObject *instance, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptFunction * function = VarTo<JavascriptFunction>(instance);
@@ -819,7 +833,8 @@ namespace Js
         {
             ParseableFunctionInfo * funcInfo = scriptFunction->GetFunctionProxy()->EnsureDeserialized();
 
-            if (useLengthType)
+            CompileAssert(!addLength || useLengthType);
+            if (addLength)
             {
                 function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(funcInfo->GetReportedInParamsCount() - 1), PropertyConfigurable, nullptr, PropertyOperation_None, SideEffects_None);
             }
@@ -900,10 +915,10 @@ namespace Js
         }
     };
 
-    template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable>
+    template<bool isNameAvailable, bool isPrototypeAvailable, bool isLengthAvailable, bool addLength>
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionTypeHandlerBase()
     {
-        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
+        return DeferredTypeHandler<InitializeFunction<isPrototypeAvailable, isNameAvailable, isLengthAvailable, addLength>, InitializeFunctionDeferredTypeHandlerFilter<isNameAvailable, isPrototypeAvailable, isLengthAvailable>>::GetDefaultInstance();
     }
 
     template<bool isNameAvailable, bool isPrototypeAvailable>
@@ -977,6 +992,11 @@ namespace Js
     DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthTypeHandler()
     {
         return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true>();
+    }
+
+    DynamicTypeHandler * JavascriptLibrary::GetDeferredFunctionWithLengthUnsetTypeHandler()
+    {
+        return GetDeferredFunctionTypeHandlerBase</*isNameAvailable*/ true, /*isPrototypeAvailable*/ false, /* isLengthAvailable */ true, /* addLength */ false>();
     }
 
     DynamicTypeHandler * JavascriptLibrary::ScriptFunctionTypeHandler(bool noPrototypeProperty, bool isAnonymousFunction)
@@ -1172,7 +1192,7 @@ namespace Js
     {
         RecyclableObject* globalObjectPrototype = GetObjectPrototype();
         globalObject->SetPrototype(globalObjectPrototype);
-        Recycler* recycler = this->GetRecycler();
+        Recycler * recycler = this->GetRecycler();
         StaticType* staticString = StaticType::New(scriptContext, TypeIds_String, stringPrototype, nullptr);
         stringCache.Initialize(scriptContext, staticString);
 
@@ -1385,6 +1405,15 @@ namespace Js
         numberConstructor = CreateBuiltinConstructor(&JavascriptNumber::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeNumberConstructor>::GetDefaultInstance());
         AddFunction(globalObject, PropertyIds::Number, numberConstructor);
+
+        bigIntConstructor = nullptr;
+        if (scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            bigIntConstructor = CreateBuiltinConstructor(&JavascriptBigInt::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeBigIntConstructor>::GetDefaultInstance());
+            AddFunction(globalObject, PropertyIds::BigInt, bigIntConstructor);
+        }
+
         stringConstructor = CreateBuiltinConstructor(&JavascriptString::EntryInfo::NewInstance,
             DeferredTypeHandler<InitializeStringConstructor>::GetDefaultInstance());
         AddFunction(globalObject, PropertyIds::String, stringConstructor);
@@ -1806,7 +1835,6 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptArray_Reverse]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::reverse,         &JavascriptArray::EntryInfo::Reverse,           0);
         builtinFuncs[BuiltinFunction::JavascriptArray_Shift]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::shift,           &JavascriptArray::EntryInfo::Shift,             0);
         builtinFuncs[BuiltinFunction::JavascriptArray_Slice]              = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::slice,           &JavascriptArray::EntryInfo::Slice,             2);
-        /* No inlining                Array_Sort               */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::sort,            &JavascriptArray::EntryInfo::Sort,              1);
         builtinFuncs[BuiltinFunction::JavascriptArray_Splice]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::splice,          &JavascriptArray::EntryInfo::Splice,            2);
 
         // The toString and toLocaleString properties are shared between Array.prototype and %TypedArray%.prototype.
@@ -1832,6 +1860,7 @@ namespace Js
         {
             builtinFuncs[BuiltinFunction::JavascriptArray_IndexOf] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf, &JavascriptArray::EntryInfo::IndexOf, 1);
             builtinFuncs[BuiltinFunction::JavascriptArray_Includes] = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::includes, &JavascriptArray::EntryInfo::Includes, 1);
+            /* No inlining                Array_Sort               */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::sort, &JavascriptArray::EntryInfo::Sort, 1);
         }
 
         builtinFuncs[BuiltinFunction::JavascriptArray_LastIndexOf]    = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::lastIndexOf,     &JavascriptArray::EntryInfo::LastIndexOf,       1);
@@ -1886,7 +1915,6 @@ namespace Js
 
         /* No inlining            Array_Fill           */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::fill, &JavascriptArray::EntryInfo::Fill, 1);
         /* No inlining            Array_CopyWithin     */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::copyWithin, &JavascriptArray::EntryInfo::CopyWithin, 2);
-
         DebugOnly(CheckRegisteredBuiltIns(builtinFuncs, scriptContext));
 
         arrayPrototype->SetHasNoEnumerableProperties(true);
@@ -2377,7 +2405,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeSymbolPrototype(DynamicObject* symbolPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(symbolPrototype, mode, 5);
+        typeHandler->Convert(symbolPrototype, mode, 6);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterSymbol
         // so that the update is in sync with profiler
         JavascriptLibrary* library = symbolPrototype->GetLibrary();
@@ -2401,6 +2429,12 @@ namespace Js
                 &JavascriptSymbol::EntryInfo::SymbolToPrimitive, 1));
             symbolPrototype->SetWritable(PropertyIds::_symbolToPrimitive, false);
         }
+
+        if (scriptContext->GetConfig()->IsESSymbolDescriptionEnabled())
+        {
+            library->AddAccessorsToLibraryObject(symbolPrototype, PropertyIds::description, &JavascriptSymbol::EntryInfo::Description, nullptr);
+        }
+
         symbolPrototype->SetHasNoEnumerableProperties(true);
 
         return true;
@@ -2721,7 +2755,7 @@ namespace Js
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToISOString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toISOString, &JavascriptDate::EntryInfo::ToISOString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToJSON.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
+             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toJSON, &JavascriptDate::EntryInfo::ToJSON, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleDateString.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(datePrototype, PropertyIds::toLocaleDateString, &JavascriptDate::EntryInfo::ToLocaleDateString, 0));
         scriptContext->SetBuiltInLibraryFunction(JavascriptDate::EntryInfo::ToLocaleString.GetOriginalEntryPoint(),
@@ -2870,6 +2904,18 @@ namespace Js
 
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
+#ifdef ENABLE_JS_BUILTINS
+        if (scriptContext->IsJsBuiltInEnabled())
+        {
+            library->EnsureBuiltInEngineIsReady();
+        }
+        else
+#endif
+        {
+            builtinFuncs[BuiltinFunction::Math_Max] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::max, &Math::EntryInfo::Max, 2);
+            builtinFuncs[BuiltinFunction::Math_Min] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::min, &Math::EntryInfo::Min, 2);
+        }
+
         builtinFuncs[BuiltinFunction::Math_Abs]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::abs,    &Math::EntryInfo::Abs,    1);
         builtinFuncs[BuiltinFunction::Math_Acos]   = library->AddFunctionToLibraryObject(mathObject, PropertyIds::acos,   &Math::EntryInfo::Acos,   1);
         builtinFuncs[BuiltinFunction::Math_Asin]   = library->AddFunctionToLibraryObject(mathObject, PropertyIds::asin,   &Math::EntryInfo::Asin,   1);
@@ -2880,8 +2926,6 @@ namespace Js
         builtinFuncs[BuiltinFunction::Math_Exp]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::exp,    &Math::EntryInfo::Exp,    1);
         builtinFuncs[BuiltinFunction::Math_Floor]  = library->AddFunctionToLibraryObject(mathObject, PropertyIds::floor,  &Math::EntryInfo::Floor,  1);
         builtinFuncs[BuiltinFunction::Math_Log]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::log,    &Math::EntryInfo::Log,    1);
-        builtinFuncs[BuiltinFunction::Math_Max]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::max,    &Math::EntryInfo::Max,    2);
-        builtinFuncs[BuiltinFunction::Math_Min]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::min,    &Math::EntryInfo::Min,    2);
         builtinFuncs[BuiltinFunction::Math_Pow]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::pow,    &Math::EntryInfo::Pow,    2);
         builtinFuncs[BuiltinFunction::Math_Random] = library->AddFunctionToLibraryObject(mathObject, PropertyIds::random, &Math::EntryInfo::Random, 0);
         builtinFuncs[BuiltinFunction::Math_Round]  = library->AddFunctionToLibraryObject(mathObject, PropertyIds::round,  &Math::EntryInfo::Round,  1);
@@ -3251,7 +3295,7 @@ namespace Js
 
             case TypeIds_Enumerator:
             case TypeIds_HostDispatch:
-            case TypeIds_WithScopeObject:
+            case TypeIds_UnscopablesWrapperObject:
             case TypeIds_UndeclBlockVar:
             case TypeIds_Proxy:
             case TypeIds_SpreadArgument:
@@ -3599,6 +3643,25 @@ namespace Js
         return (flags != ImplicitCall_None) || arrayIteratorPrototypeNext != scriptContext->GetLibrary()->GetArrayIteratorPrototypeBuiltinNextFunction();
     }
 
+    bool JavascriptLibrary::InitializeBigIntConstructor(DynamicObject* bigIntConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        const int numberOfProperties = 3;
+        typeHandler->Convert(bigIntConstructor, mode, numberOfProperties);
+
+        // TODO(BigInt): Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBigInt
+        // so that the update is in sync with profiler
+        ScriptContext* scriptContext = bigIntConstructor->GetScriptContext();
+        JavascriptLibrary* library = bigIntConstructor->GetLibrary();
+        library->AddMember(bigIntConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(bigIntConstructor, PropertyIds::prototype, library->bigintPrototype, PropertyNone);
+        library->AddMember(bigIntConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::BigInt), PropertyConfigurable);
+
+        bigIntConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
+    }
+
+
     bool JavascriptLibrary::InitializeNumberConstructor(DynamicObject* numberConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(numberConstructor, mode, 17);
@@ -3641,6 +3704,20 @@ namespace Js
         }
 
         numberConstructor->SetHasNoEnumerableProperties(true);
+
+        return true;
+    }
+
+    bool JavascriptLibrary::InitializeBigIntPrototype(DynamicObject* bigIntPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        const int numberOfProperties = 1;
+        typeHandler->Convert(bigIntPrototype, mode, numberOfProperties);
+        // TODO(BigInt): Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterBigInt
+        // so that the update is in sync with profiler
+        JavascriptLibrary* library = bigIntPrototype->GetLibrary();
+        library->AddMember(bigIntPrototype, PropertyIds::constructor, library->bigIntConstructor);
+
+        bigIntPrototype->SetHasNoEnumerableProperties(true);
 
         return true;
     }
@@ -3993,7 +4070,7 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptString_CharAt]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charAt,             &JavascriptString::EntryInfo::CharAt,               1);
         builtinFuncs[BuiltinFunction::JavascriptString_CharCodeAt]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::charCodeAt,         &JavascriptString::EntryInfo::CharCodeAt,           1);
         builtinFuncs[BuiltinFunction::JavascriptString_Concat]            = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::concat,             &JavascriptString::EntryInfo::Concat,               1);
-        // OS#17824730: Don't inline String.prototype.localeCompare because it immediately calls back into Intl.js, which can break implicitCallFlags
+        // Don't inline String.prototype.localeCompare because it immediately calls back into Intl.js, which can break implicitCallFlags
         /* No inlining                String_LocaleCompare */               library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::localeCompare,      &JavascriptString::EntryInfo::LocaleCompare,        1);
         builtinFuncs[BuiltinFunction::JavascriptString_Match]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::match,              &JavascriptString::EntryInfo::Match,                1);
         builtinFuncs[BuiltinFunction::JavascriptString_Split]             = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::split,              &JavascriptString::EntryInfo::Split,                2);
@@ -4487,9 +4564,9 @@ namespace Js
 
     JavascriptFunction* JavascriptLibrary::AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function)
     {
-        AddMember(object, propertyId, function);
-        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
-        return function;
+       AddMember(object, propertyId, function);
+       function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
+       return function;
     }
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
@@ -4861,7 +4938,7 @@ namespace Js
 
     bool JavascriptLibrary::InitializeIntlObject(DynamicObject* IntlObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(IntlObject, mode, /*initSlotCapacity*/ 2);
+        typeHandler->Convert(IntlObject, mode,  /*initSlotCapacity*/ 2);
 
         auto intlInitializer = [&](IntlEngineInterfaceExtensionObject* intlExtension, ScriptContext * scriptContext, DynamicObject* intlObject) ->void
         {
@@ -5584,6 +5661,12 @@ namespace Js
         return arr;
     }
 
+    ArrayBuffer* JavascriptLibrary::CreateArrayBuffer(RefCountedBuffer* buffer, uint32 length)
+    {
+        ArrayBuffer* arr = JavascriptArrayBuffer::Create(buffer, length, arrayBufferType);
+        return arr;
+    }
+
 #ifdef ENABLE_WASM
     Js::WebAssemblyArrayBuffer* JavascriptLibrary::CreateWebAssemblyArrayBuffer(uint32 length)
     {
@@ -5638,7 +5721,14 @@ namespace Js
         return arr;
     }
 
-    ArrayBuffer* JavascriptLibrary::CreateExternalArrayBuffer(byte* buffer, uint32 length)
+    ArrayBuffer* JavascriptLibrary::CreateProjectionArraybuffer(RefCountedBuffer* buffer, uint32 length)
+    {
+        ArrayBuffer* arr = ProjectionArrayBuffer::Create(buffer, length, arrayBufferType);
+        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(arr));
+        return arr;
+    }
+
+    ArrayBuffer* JavascriptLibrary::CreateExternalArrayBuffer(RefCountedBuffer* buffer, uint32 length)
     {
         ArrayBuffer* arr = ExternalArrayBuffer::Create(buffer, length, arrayBufferType);
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(arr));
@@ -7007,6 +7097,20 @@ namespace Js
         return hr;
     }
 
+    HRESULT JavascriptLibrary::ProfilerRegisterBigInt()
+    {
+        if (!scriptContext->GetConfig()->IsESBigIntEnabled())
+        {
+            return E_FAIL;
+        }
+        HRESULT hr = S_OK;
+        REG_GLOBAL_CONSTRUCTOR(BigInt);
+
+        //DEFINE_OBJECT_NAME(BigInt);
+        
+        return hr;
+    }
+
     HRESULT JavascriptLibrary::ProfilerRegisterDate()
     {
         HRESULT hr = S_OK;
@@ -7364,6 +7468,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toString, JavascriptSymbol::EntryToString);
         REG_OBJECTS_LIB_FUNC2(for_, _u("for"), JavascriptSymbol::EntryFor);
         REG_OBJECTS_LIB_FUNC(keyFor, JavascriptSymbol::EntryKeyFor);
+        REG_OBJECTS_LIB_FUNC(description, JavascriptSymbol::EntryDescription);
 
         return hr;
     }

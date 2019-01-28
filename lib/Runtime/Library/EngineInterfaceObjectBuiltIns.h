@@ -56,7 +56,6 @@ GlobalBuiltInConstructor(Symbol)
 
 GlobalMathBuiltIn(Abs)
 GlobalMathBuiltIn(Floor)
-GlobalMathBuiltIn(Max)
 GlobalMathBuiltIn(Pow)
 
 GlobalBuiltIn(JavascriptObject, DefineProperty)

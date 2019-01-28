@@ -15,6 +15,8 @@ class IRBuilderAsmJs;
 class FlowGraph;
 class GlobOpt;
 class BailOutInfo;
+class SCCLiveness;
+
 struct LazyBailOutRecord;
 
 typedef JsUtil::KeyValuePair<StackSym *, BailoutConstantValue> ConstantStackSymValue;
@@ -49,6 +51,30 @@ struct CapturedValues
     {
         Assert(refCount > 0);
         refCount++;
+    }
+
+    void CopyTo(JitArenaAllocator *allocator, CapturedValues *other)
+    {
+        Assert(other != nullptr);
+        this->constantValues.CopyTo(allocator, other->constantValues);
+        this->copyPropSyms.CopyTo(allocator, other->copyPropSyms);
+
+        if (other->argObjSyms != nullptr)
+        {
+            other->argObjSyms->ClearAll();
+            JitAdelete(allocator, other->argObjSyms);
+        }
+
+        if (this->argObjSyms != nullptr)
+        {
+            other->argObjSyms = this->argObjSyms->CopyNew(allocator);
+        }
+        else
+        {
+            other->argObjSyms = nullptr;
+        }
+
+        // Ignore refCount because other objects might still reference it
     }
 };
 
@@ -172,6 +198,7 @@ protected:
         isSafeToSpeculate(false)
 #if DBG
         , highlight(0)
+        , m_noLazyHelperAssert(false)
 #endif
     {
     }
@@ -284,8 +311,12 @@ public:
     IR::Instr *     Copy(bool copyDst = true);
     IR::Instr *     CopyWithoutDst();
     IR::Instr *     Clone();
-    IR::Instr *     ConvertToBailOutInstr(IR::Instr * bailOutTarget, BailOutKind kind, uint32 bailOutOffset = Js::Constants::NoByteCodeOffset);
-    IR::Instr *     ConvertToBailOutInstr(BailOutInfo * bailOutInfo, BailOutKind kind, bool useAuxBailout = false);
+    IR::Instr *     ConvertToBailOutInstr(IR::Instr *bailOutTarget, BailOutKind kind, uint32 bailOutOffset = Js::Constants::NoByteCodeOffset);
+    IR::Instr *     ConvertToBailOutInstr(BailOutInfo *bailOutInfo, BailOutKind kind, bool useAuxBailout = false);
+    IR::Instr *     ConvertToBailOutInstrWithBailOutInfoCopy(BailOutInfo *bailOutInfo, IR::BailOutKind bailOutKind);
+#if DBG
+    IR::LabelInstr *GetNextNonEmptyLabel() const;
+#endif
     IR::Instr *     GetNextRealInstr() const;
     IR::Instr *     GetNextRealInstrOrLabel() const;
     IR::Instr *     GetNextBranchOrLabel() const;
@@ -304,6 +335,20 @@ public:
     RegOpnd *       FindRegDef(StackSym *sym);
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
     bool            CanAggregateByteCodeUsesAcrossInstr(IR::Instr * instr);
+
+    // LazyBailOut
+    bool            AreAllOpndsTypeSpecialized() const;
+    bool            IsStFldVariant() const;
+    bool            IsStElemVariant() const;
+    bool            CanChangeFieldValueWithoutImplicitCall() const;
+    void            ClearLazyBailOut();
+    bool            OnlyHasLazyBailOut() const;
+    bool            HasLazyBailOut() const;
+    bool            HasPreOpBailOut() const;
+    bool            HasPostOpBailOut() const;
+#if DBG
+    bool            m_noLazyHelperAssert;
+#endif
 
     BranchInstr *   ChangeCmCCToBranchInstr(LabelInstr *targetInstr);
     static void     MoveRangeAfter(Instr * instrStart, Instr * instrLast, Instr * instrAfter);
@@ -476,11 +521,13 @@ public:
     void       MoveArgs(bool generateByteCodeCapture = false);
     void       Move(IR::Instr* insertInstr);
 private:
+    int             GetOpndCount() const;
     void            ClearNumber() { this->m_number = 0; }
     void            SetNumber(uint32 number);
     friend class ::Func;
     friend class ::Lowerer;
     friend class IR::ByteCodeUsesInstr;
+    friend class ::SCCLiveness;
 
     void            SetByteCodeOffset(uint32 number);
     friend class ::IRBuilder;

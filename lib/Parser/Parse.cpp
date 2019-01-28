@@ -335,10 +335,10 @@ void Parser::Error(HRESULT hr, ParseNodePtr pnode)
     }
 }
 
-void Parser::Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim)
+void Parser::Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim, LPCWSTR stringOne, LPCWSTR stringTwo)
 {
     this->GetScanner()->SetErrorPosition(ichMin, ichLim);
-    Error(hr);
+    Error(hr, stringOne, stringTwo);
 }
 
 void Parser::IdentifierExpectedError(const Token& token)
@@ -1054,6 +1054,15 @@ ParseNodeStr * Parser::CreateStrNode(IdentPtr pid)
     ParseNodeStr * pnode = Anew(&m_nodeAllocator, ParseNodeStr, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok(), pid);
     pnode->grfpn |= PNodeFlags::fpnCanFlattenConcatExpr;
     AddAstSize(sizeof(ParseNodeStr));
+    return pnode;
+}
+
+ParseNodeBigInt * Parser::CreateBigIntNode(IdentPtr pid)
+{
+    Assert(!this->m_deferringAST);
+    ParseNodeBigInt * pnode = Anew(&m_nodeAllocator, ParseNodeBigInt, this->GetScanner()->IchMinTok(), this->GetScanner()->IchLimTok(), pid);
+    pnode->isNegative = false;
+    AddAstSize(sizeof(ParseNodeBigInt));
     return pnode;
 }
 
@@ -2346,6 +2355,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 
         IdentPtr identifierName = m_token.GetIdentifier(this->GetHashTbl());
         IdentPtr identifierAs = identifierName;
+        charcount_t offsetForError = this->GetScanner()->IchMinTok();
 
         this->GetScanner()->Scan();
 
@@ -2362,12 +2372,12 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             // If we are parsing an import statement, the token after 'as' must be a BindingIdentifier.
             if (!isExportClause)
             {
-                ChkCurTokNoScan(tkID, ERRsyntax);
+                ChkCurTokNoScan(tkID, ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
             }
 
             if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
             {
-                Error(ERRsyntax);
+                Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
             }
 
             identifierAs = m_token.GetIdentifier(this->GetHashTbl());
@@ -2388,19 +2398,16 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
             this->GetScanner()->Scan();
         }
 
-        if (buildAST)
+        if (isExportClause)
+        {
+            identifierName->SetIsModuleExport();
+            AddModuleImportOrExportEntry(importOrExportEntryList, nullptr, identifierName, identifierAs, nullptr, offsetForError);
+        }
+        else if (buildAST)
         {
             // The name we will use 'as' this import/export is a binding identifier in import statements.
-            if (!isExportClause)
-            {
-                CreateModuleImportDeclNode(identifierAs);
-                AddModuleImportOrExportEntry(importOrExportEntryList, identifierName, identifierAs, nullptr, nullptr);
-            }
-            else
-            {
-                identifierName->SetIsModuleExport();
-                AddModuleImportOrExportEntry(importOrExportEntryList, nullptr, identifierName, identifierAs, nullptr);
-            }
+            CreateModuleImportDeclNode(identifierAs);
+            AddModuleImportOrExportEntry(importOrExportEntryList, identifierName, identifierAs, nullptr, nullptr);
         }
     }
 
@@ -2411,6 +2418,23 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
 IdentPtrList* Parser::GetRequestedModulesList()
 {
     return m_currentNodeProg->AsParseNodeModule()->requestedModules;
+}
+
+void Parser::VerifyModuleLocalExportEntries()
+{
+    ModuleImportOrExportEntryList* localExportRecordList = GetModuleLocalExportEntryList();
+    if (localExportRecordList != nullptr)
+    {
+        localExportRecordList->Map([=](ModuleImportOrExportEntry exportEntry) {
+            if (exportEntry.pidRefStack!=nullptr)
+            {
+                if (exportEntry.pidRefStack->GetSym() == nullptr)
+                {
+                    Error(ERRUndeclaredExportName, exportEntry.offset, exportEntry.localName->Cch(), exportEntry.localName->Psz());
+                }
+            }
+        });
+    }
 }
 
 ModuleImportOrExportEntryList* Parser::GetModuleImportEntryList()
@@ -2492,7 +2516,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
 {
     if (importOrExportEntry->exportName != nullptr)
     {
-        CheckForDuplicateExportEntry(importOrExportEntryList, importOrExportEntry->exportName);
+        CheckForDuplicateExportEntry(importOrExportEntry->exportName);
     }
 
     importOrExportEntryList->Prepend(*importOrExportEntry);
@@ -2500,7 +2524,7 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
     return importOrExportEntry;
 }
 
-ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest)
+ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrExportEntryList* importOrExportEntryList, IdentPtr importName, IdentPtr localName, IdentPtr exportName, IdentPtr moduleRequest, charcount_t offsetForError)
 {
     ModuleImportOrExportEntry* importOrExportEntry = Anew(&m_nodeAllocator, ModuleImportOrExportEntry);
 
@@ -2508,6 +2532,8 @@ ModuleImportOrExportEntry* Parser::AddModuleImportOrExportEntry(ModuleImportOrEx
     importOrExportEntry->localName = localName;
     importOrExportEntry->exportName = exportName;
     importOrExportEntry->moduleRequest = moduleRequest;
+    importOrExportEntry->pidRefStack = offsetForError == 0 ? nullptr : PushPidRef(localName);
+    importOrExportEntry->offset = offsetForError;
 
     return AddModuleImportOrExportEntry(importOrExportEntryList, importOrExportEntry);
 }
@@ -2520,6 +2546,19 @@ void Parser::AddModuleLocalExportEntry(ParseNodePtr varDeclNode)
     varDeclNode->AsParseNodeVar()->sym->SetIsModuleExportStorage(true);
 
     AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, localName, nullptr);
+}
+
+void Parser::CheckForDuplicateExportEntry(IdentPtr exportName)
+{
+    if (m_currentNodeProg->AsParseNodeModule()->indirectExportEntries != nullptr)
+    {
+        CheckForDuplicateExportEntry(m_currentNodeProg->AsParseNodeModule()->indirectExportEntries, exportName);
+    }
+
+    if (m_currentNodeProg->AsParseNodeModule()->localExportEntries != nullptr)
+    {
+       CheckForDuplicateExportEntry(m_currentNodeProg->AsParseNodeModule()->localExportEntries, exportName);
+    }
 }
 
 void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportEntryList, IdentPtr exportName)
@@ -2535,7 +2574,7 @@ void Parser::CheckForDuplicateExportEntry(ModuleImportOrExportEntryList* exportE
 
     if (findResult != nullptr)
     {
-        Error(ERRsyntax);
+        Error(ERRDuplicateExport, exportName->Psz());
     }
 }
 
@@ -2891,8 +2930,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
     }
 
     IdentPtr exportName = wellKnownPropertyPids._default;
-    IdentPtr localName = wellKnownPropertyPids._starDefaultStar;
-    AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, localName, exportName, nullptr);
+    AddModuleImportOrExportEntry(EnsureModuleLocalExportEntryList(), nullptr, exportName, exportName, nullptr);
 
     return pnode;
 }
@@ -2923,7 +2961,34 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
     switch (m_token.tk)
     {
     case tkStar:
+    {
         this->GetScanner()->Scan();
+        IdentPtr exportName = nullptr;
+
+        if (m_scriptContext->GetConfig()->IsESExportNsAsEnabled())
+        {
+            // export * as name
+            if (m_token.tk == tkID)
+            {
+                // check for 'as'
+                if (wellKnownPropertyPids.as == m_token.GetIdentifier(this->GetHashTbl()))
+                {
+                    // scan to the next token
+                    this->GetScanner()->Scan();
+
+                    // token after as must be an identifier
+                    if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
+                    {
+                        Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
+                    }
+
+                    exportName = m_token.GetIdentifier(this->GetHashTbl());
+                    
+                    // scan to next token
+                    this->GetScanner()->Scan();
+                }
+            }
+        }
 
         // A star token in an export declaration must be followed by a from clause which begins with a token 'from'.
         moduleIdentifier = ParseImportOrExportFromClause<buildAST>(true);
@@ -2933,9 +2998,16 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
             Assert(moduleIdentifier != nullptr);
 
             AddModuleSpecifier(moduleIdentifier);
-            IdentPtr importName = wellKnownPropertyPids._star;
 
-            AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), importName, nullptr, nullptr, moduleIdentifier);
+            if (!exportName)
+            {
+                AddModuleImportOrExportEntry(EnsureModuleStarExportEntryList(), wellKnownPropertyPids._star, nullptr, nullptr, moduleIdentifier);
+            }
+            else
+            {
+                CheckForDuplicateExportEntry(exportName);
+                AddModuleImportOrExportEntry(EnsureModuleIndirectExportEntryList(), wellKnownPropertyPids._star, nullptr, exportName, moduleIdentifier);
+            }
         }
 
         if (needTerminator != nullptr)
@@ -2944,6 +3016,7 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
         }
 
         break;
+    }
 
     case tkLCurly:
     {
@@ -3352,6 +3425,20 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         this->GetScanner()->Scan();
         break;
 
+    case tkBigIntCon:
+        if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
+        {
+            Error(ERRES5NoOctal);
+        }
+
+        if (buildAST)
+        {
+            pnode = CreateBigIntNode(m_token.GetBigInt());
+        }
+        fCanAssign = FALSE;
+        this->GetScanner()->Scan();
+        break;
+
     case tkFltCon:
         if (IsStrictMode() && this->GetScanner()->IsOctOrLeadingZeroOnLastTKNumber())
         {
@@ -3562,6 +3649,10 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     case tkIMPORT:
         if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
         {
+            if (!fAllowCall)
+            {
+                Error(ERRTokenAfter, _u("import"), _u("new"));
+            }
             this->GetScanner()->Scan();
             ChkCurTokNoScan(tkLParen, ERRnoLparen);
             pnode = ParseImportCall<buildAST>();
@@ -6091,6 +6182,11 @@ void Parser::ParseTopLevelDeferredFunc(ParseNodeFnc * pnodeFnc, ParseNodeFnc * p
             pnodeFnc->functionId, GetFunctionName(pnodeFnc, pNameHint), pnodeFnc->ichMin, stub->restorePoint.m_ichMinTok);
 
         this->GetScanner()->SeekTo(stub->restorePoint, m_nextFunctionId);
+
+        // If we already incremented m_nextFunctionId when we saw some functions in the parameter scope
+        // (in default argument assignment, for example), we want to remove the count of those so the
+        // function ids following the one we are skipping right now are correct.
+        *m_nextFunctionId -= pnodeFnc->nestedCount;
 
         for (uint i = 0; i < stub->capturedNameCount; i++)
         {
@@ -8794,7 +8890,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 }
                 else if (nop == knopNeg &&
                     ((pnodeT->nop == knopInt && pnodeT->AsParseNodeInt()->lw != 0) ||
-                    (pnodeT->nop == knopFlt && (pnodeT->AsParseNodeFloat()->dbl != 0 || this->m_InAsmMode))))
+                    (pnodeT->nop == knopFlt && (pnodeT->AsParseNodeFloat()->dbl != 0 || this->m_InAsmMode)) ||
+                    (pnodeT->nop == knopBigInt)))
                 {
                     // Fold a unary '-' on a number into the value of the number itself.
                     pnode = pnodeT;
@@ -8802,7 +8899,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     {
                         pnode->AsParseNodeInt()->lw = -pnode->AsParseNodeInt()->lw;
                     }
-                    else
+                    else if (pnode->nop == knopBigInt)
+                    {
+                        pnode->AsParseNodeBigInt()->isNegative = true;
+                    }
+                    else 
                     {
                         pnode->AsParseNodeFloat()->dbl = -pnode->AsParseNodeFloat()->dbl;
                     }
@@ -9168,6 +9269,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             {
             case knopName:
             case knopInt:
+            case knopBigInt:
             case knopFlt:
             case knopStr:
             case knopRegExp:
@@ -9683,15 +9785,21 @@ ParseNodeCatch * Parser::ParseCatch()
             ichMin = this->GetScanner()->IchMinTok();
         }
         this->GetScanner()->Scan(); //catch
-        ChkCurTok(tkLParen, ERRnoLparen); //catch(
 
         bool isPattern = false;
-        if (tkID != m_token.tk)
+        bool hasParam = false;
+
+        if (tkLParen == m_token.tk)
         {
-            isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
-            if (!isPattern)
+            hasParam = true;
+            this->GetScanner()->Scan(); //catch(
+            if (tkID != m_token.tk)
             {
-                IdentifierExpectedError(m_token);
+                isPattern = IsES6DestructuringEnabled() && IsPossiblePatternStart();
+                if (!isPattern)
+                {
+                    IdentifierExpectedError(m_token);
+                }
             }
         }
 
@@ -9739,7 +9847,7 @@ ParseNodeCatch * Parser::ParseCatch()
                 pnode->scope = scope;
             }
         }
-        else
+        else if (hasParam)
         {
             if (IsStrictMode())
             {
@@ -9783,13 +9891,24 @@ ParseNodeCatch * Parser::ParseCatch()
 
             this->GetScanner()->Scan();
         }
+        else
+        {
+            if (buildAST)
+            {
+                pnode->scope = pnodeCatchScope->scope;
+            }
+        }
 
         charcount_t ichLim;
         if (buildAST)
         {
             ichLim = this->GetScanner()->IchLimTok();
         }
-        ChkCurTok(tkRParen, ERRnoRparen); //catch(id[:expr])
+
+        if (hasParam)
+        {
+            ChkCurTok(tkRParen, ERRnoRparen); //catch(id[:expr])
+        }
 
         if (tkLCurly != m_token.tk)
         {
@@ -9948,14 +10067,38 @@ LRestart:
         }
 
         Assert(pnode != nullptr);
-        ParseNodeFnc* pNodeFnc = (ParseNodeFnc*)pnode;
+
         if (labelledStatement)
         {
             if (IsStrictMode())
             {
                 Error(ERRFunctionAfterLabelInStrict);
             }
-            else if (pNodeFnc->IsAsync())
+            // #sec-with-statement-static-semantics-early-errors states that the Statement of
+            // a WithStatement throws a Syntax Error if the Statement is a LabelledFunction.
+            else if (m_pstmtCur && m_pstmtCur->pnodeStmt && m_pstmtCur->GetNop() == knopWith)
+            {
+                Error(ERRStmtOfWithIsLabelledFunc);
+            }
+
+            ParseNodeFnc* pNodeFnc = nullptr;
+
+            // pnode can be a knopBlock due to ParseFncDeclCheckScope, which
+            // can return a ParseNodeBlock that contains a ParseNodeFnc.
+            if (pnode->nop == knopBlock)
+            {
+                ParseNodeBlock* pNodeBlock = pnode->AsParseNodeBlock();
+                if (pNodeBlock->pnodeStmt && pNodeBlock->pnodeStmt->nop == knopFncDecl)
+                {
+                    pNodeFnc = pNodeBlock->pnodeStmt->AsParseNodeFnc();
+                }
+            }
+            if (pNodeFnc == nullptr)
+            {
+                pNodeFnc = pnode->AsParseNodeFnc();
+            }
+
+            if (pNodeFnc->IsAsync())
             {
                 Error(ERRLabelBeforeAsyncFncDeclaration);
             }
@@ -11477,7 +11620,6 @@ void Parser::InitPids()
     wellKnownPropertyPids.as = this->GetHashTbl()->PidHashNameLen(_u("as"), sizeof("as") - 1);
     wellKnownPropertyPids.from = this->GetHashTbl()->PidHashNameLen(_u("from"), sizeof("from") - 1);
     wellKnownPropertyPids._default = this->GetHashTbl()->PidHashNameLen(_u("default"), sizeof("default") - 1);
-    wellKnownPropertyPids._starDefaultStar = this->GetHashTbl()->PidHashNameLen(_u("*default*"), sizeof("*default*") - 1);
     wellKnownPropertyPids._star = this->GetHashTbl()->PidHashNameLen(_u("*"), sizeof("*") - 1);
     wellKnownPropertyPids._this = this->GetHashTbl()->PidHashNameLen(_u("*this*"), sizeof("*this*") - 1);
     wellKnownPropertyPids._newTarget = this->GetHashTbl()->PidHashNameLen(_u("*new.target*"), sizeof("*new.target*") - 1);
@@ -11892,6 +12034,13 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
     {
         JS_ETW(EventWriteJSCRIPT_PARSE_METHOD_STOP(m_sourceContextInfo->dwHostSourceContext, GetScriptContext(), pnodeProg->functionId, *m_pCurrentAstSize, false, Js::Constants::GlobalFunction));
     }
+
+    if (isModuleSource)
+    {
+        // verify that any local module exports are defined
+        VerifyModuleLocalExportEntries();
+    }
+
     return pnodeProg;
 }
 
@@ -12281,6 +12430,9 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     }
                    //PTNODE(knopInt        , "int const"    ,None    ,Int  ,fnopLeaf|fnopConst)
     case knopInt:
+        return pnode;
+        //PTNODE(knopBigInt        , "bigint const"    ,None    ,BigInt  ,fnopLeaf|fnopConst)
+    case knopBigInt:
         return pnode;
         //PTNODE(knopFlt        , "flt const"    ,None    ,Flt  ,fnopLeaf|fnopConst)
     case knopFlt:
@@ -12844,6 +12996,9 @@ ParseNodePtr Parser::ParseDestructuredLiteral(tokens declarationType,
 {
     ParseNodeUni * pnode = nullptr;
     Assert(IsPossiblePatternStart());
+
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
+
     if (m_token.tk == tkLCurly)
     {
         pnode = ParseDestructuredObjectLiteral<buildAST>(declarationType, isDecl, topLevel);
@@ -13352,6 +13507,11 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
         Indent(indentAmt);
         Output::Print(_u("%d\n"), pnode->AsParseNodeInt()->lw);
         break;
+        //PTNODE(knopInt        , "int const"    ,None    ,Int  ,fnopLeaf|fnopConst)
+    case knopBigInt:
+        Indent(indentAmt);
+        Output::Print(_u("%s%s\n"), pnode->AsParseNodeBigInt()->isNegative? "-" : "", pnode->AsParseNodeBigInt()->pid->Psz());
+        break;
         //PTNODE(knopFlt        , "flt const"    ,None    ,Flt  ,fnopLeaf|fnopConst)
     case knopFlt:
         Indent(indentAmt);
@@ -13796,7 +13956,9 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
         Output::Print(_u("ComputedProperty\n"));
         PrintPnodeWIndent(pnode->AsParseNodeUni()->pnode1, indentAmt + INDENT_SIZE);
         break;
-
+    case knopParamPattern:
+        PrintPnodeWIndent(pnode->AsParseNodeParamPattern()->pnode1, indentAmt);
+        break;
         //PTNODE(knopMember     , ":"            ,None    ,Bin  ,fnopBin)
     case knopMember:
     case knopMemberShort:
@@ -14077,7 +14239,7 @@ void PrintFormalsWIndent(ParseNode *pnodeArgs, int indentAmt)
 {
     for (ParseNode *pnode = pnodeArgs; pnode != nullptr; pnode = pnode->GetFormalNext())
     {
-        PrintPnodeWIndent(pnode->nop == knopParamPattern ? pnode->AsParseNodeParamPattern()->pnode1 : pnode, indentAmt);
+        PrintPnodeWIndent(pnode, indentAmt);
     }
 }
 

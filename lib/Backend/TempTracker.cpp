@@ -1076,7 +1076,15 @@ ObjectTemp::IsTempProducing(IR::Instr * instr)
     Js::OpCode opcode = instr->m_opcode;
     if (OpCodeAttr::TempObjectProducing(opcode))
     {
-        return true;
+        if (instr->m_opcode == Js::OpCode::CallDirect)
+        {
+            IR::HelperCallOpnd* helper = instr->GetSrc1()->AsHelperCallOpnd();
+            return HelperMethodAttributes::TempObjectProducing(helper->m_fnHelper);
+        }
+        else
+        {
+            return true;
+        }
     }
 
     // TODO: Process NewScObject and CallI with isCtorCall when the ctor is fixed
