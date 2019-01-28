@@ -1596,7 +1596,8 @@ EmitInfo WasmBytecodeGenerator::EmitV8X16Shuffle()
     EmitInfo arg2Info = PopEvalStack(WasmTypes::M128);
     EmitInfo arg1Info = PopEvalStack(WasmTypes::M128);
 
-    // FIXME Release arg2Info and arg1Info
+    ReleaseLocation(&arg2Info);
+    ReleaseLocation(&arg1Info);
 
     Js::RegSlot resultReg = GetRegisterSpace(WasmTypes::M128)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, WasmTypes::M128);
