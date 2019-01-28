@@ -102,7 +102,7 @@
     <ClInclude Include="src\circular-array.h" />
     <ClInclude Include="src\color.h" />
     <ClInclude Include="src\common.h" />
-    <ClInclude Include="src\error-formater.h" />
+    <ClInclude Include="src\error-formatter.h" />
     <ClInclude Include="src\error.h" />
     <ClInclude Include="src\expr-visitor.h" />
     <ClInclude Include="src\feature.def" />
