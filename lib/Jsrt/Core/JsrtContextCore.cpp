@@ -271,8 +271,8 @@ bool ChakraHostDeserializerHandle::ReadRawBytes(size_t length, void **data)
 
 bool ChakraHostDeserializerHandle::ReadBytes(size_t length, void **data)
 {
-	Assert(m_deserializer);
-	return m_deserializer->ReadBytes(length, data);
+    Assert(m_deserializer);
+    return m_deserializer->ReadBytes(length, data);
 }
 
 JsValueRef ChakraHostDeserializerHandle::ReadValue()

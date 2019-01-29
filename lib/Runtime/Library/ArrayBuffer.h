@@ -94,15 +94,15 @@ namespace Js
         virtual BYTE* GetBuffer() const = 0;
         virtual bool IsValidVirtualBufferLength(uint length) const { return false; };
 
-		char GetExtraInfoBits() { return infoBits; }
-		void SetExtraInfoBits(char info) { infoBits = info; }
+        char GetExtraInfoBits() { return infoBits; }
+        void SetExtraInfoBits(char info) { infoBits = info; }
 
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
         Field(bool) isDetached;
-		Field(char) infoBits;
-	};
+        Field(char) infoBits;
+    };
 
     template <> bool VarIsImpl<ArrayBufferBase>(RecyclableObject* obj);
 
@@ -208,7 +208,7 @@ namespace Js
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
         virtual void AddParent(ArrayBufferParent* parent) override;
 
-		void Detach();
+        void Detach();
 #if defined(TARGET_64)
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;

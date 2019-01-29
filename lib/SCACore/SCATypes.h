@@ -63,7 +63,7 @@ enum SCATypeId
     SCA_WebCryptoKeyObject = 106,
     SCA_MessagePort = 107,
     SCA_Last = (SCA_MessagePort + 1)
-} 	SCATypeId;
+}   SCATypeId;
 
 typedef unsigned int scaposition_t;
 

@@ -46,9 +46,9 @@
 
 struct SerializerBlob
 {
-	void *data;
-	size_t dataLength;
-	std::vector< std::pair<void *, uint32> > transferableArrays;
+    void *data;
+    size_t dataLength;
+    std::vector< std::pair<void *, uint32> > transferableArrays;
 };
 
 MessageQueue* WScriptJsrt::messageQueue = nullptr;

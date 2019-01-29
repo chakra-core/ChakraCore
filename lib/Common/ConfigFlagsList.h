@@ -525,6 +525,25 @@ PHASE(All)
 #define DEFAULT_CONFIG_MaxJitThreadCount        (2)
 #define DEFAULT_CONFIG_ForceMaxJitThreadCount   (false)
 
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
+#define DEFAULT_CONFIG_MitigateSpectre (true)
+
+#define DEFAULT_CONFIG_AddMaskingBlocks (true)
+
+#define DEFAULT_CONFIG_PoisonVarArrayLoad (true)
+#define DEFAULT_CONFIG_PoisonIntArrayLoad (true)
+#define DEFAULT_CONFIG_PoisonFloatArrayLoad (true)
+#define DEFAULT_CONFIG_PoisonTypedArrayLoad (true)
+#define DEFAULT_CONFIG_PoisonStringLoad (true)
+#define DEFAULT_CONFIG_PoisonObjectsForLoads (true)
+
+#define DEFAULT_CONFIG_PoisonVarArrayStore (true)
+#define DEFAULT_CONFIG_PoisonIntArrayStore (true)
+#define DEFAULT_CONFIG_PoisonFloatArrayStore (true)
+#define DEFAULT_CONFIG_PoisonTypedArrayStore (true)
+#define DEFAULT_CONFIG_PoisonStringStore (true)
+#define DEFAULT_CONFIG_PoisonObjectsForStores (true)
+#else
 #define DEFAULT_CONFIG_MitigateSpectre (false)
 
 #define DEFAULT_CONFIG_AddMaskingBlocks (false)
@@ -540,8 +559,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_PoisonIntArrayStore (false)
 #define DEFAULT_CONFIG_PoisonFloatArrayStore (false)
 #define DEFAULT_CONFIG_PoisonTypedArrayStore (false)
-#define DEFAULT_CONFIG_PoisonStringStore (true)
+#define DEFAULT_CONFIG_PoisonStringStore (false)
 #define DEFAULT_CONFIG_PoisonObjectsForStores (false)
+#endif
 
 #ifdef RECYCLER_PAGE_HEAP
 #define DEFAULT_CONFIG_PageHeap             ((Js::Number) PageHeapMode::PageHeapModeOff)
