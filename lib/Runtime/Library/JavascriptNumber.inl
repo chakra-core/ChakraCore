@@ -14,7 +14,7 @@ namespace Js
 #endif
     )
     {
-        AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
+        AssertMsg(!IsNan(value) || ToSpecial(value) == k_NegativeNan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         SetSpecial(ToSpecial(value) ^ FloatTag_Value);
     }
 #else
@@ -96,7 +96,7 @@ namespace Js
 #if FLOATVAR
         if (IsNan(value))
         {
-            value = JavascriptNumber::NaN;
+            value = IsNegative(value) ? JavascriptNumber::NegativeNaN : JavascriptNumber::NaN;
         }
 
         *result = JavascriptNumber::ToVar(value);
@@ -128,7 +128,7 @@ namespace Js
     {
         if (IsNan(value))
         {
-            value = JavascriptNumber::NaN;
+            value = IsNegative(value) ? JavascriptNumber::NegativeNaN : JavascriptNumber::NaN;
         }
         return ToVar(value);
     }
@@ -148,7 +148,7 @@ namespace Js
     inline Var JavascriptNumber::ToVar(double value)
     {
         uint64 val = *(uint64*)&value;
-        AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
+        AssertMsg(!IsNan(value) || ToSpecial(value) == k_NegativeNan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         return reinterpret_cast<Var>(val ^ FloatTag_Value);
     }
 

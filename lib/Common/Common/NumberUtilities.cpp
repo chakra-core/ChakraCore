@@ -17,6 +17,7 @@ using namespace Js;
     // Redeclare static constants
     const UINT64 NumberConstantsBase::k_Nan;
     const UINT32 NumberConstantsBase::k_Nan32;
+    const UINT64 NumberConstantsBase::k_NegativeNan;
     const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
     const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
     const uint64 NumberConstants::k_PosInf;
@@ -59,6 +60,7 @@ using namespace Js;
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
     const double NumberConstants::MIN_VALUE = *(double*)(&NumberConstants::k_PosMin);
     const double NumberConstants::NaN = *(double*)(&NumberConstants::k_Nan);
+    const double NumberConstants::NegativeNaN = *(double*)(&NumberConstants::k_NegativeNan);
     const double NumberConstants::NEGATIVE_INFINITY= *(double*)(&NumberConstants::k_NegInf);
     const double NumberConstants::POSITIVE_INFINITY= *(double*)(&NumberConstants::k_PosInf );
     const double NumberConstants::NEG_ZERO= *(double*)(&NumberConstants::k_NegZero );

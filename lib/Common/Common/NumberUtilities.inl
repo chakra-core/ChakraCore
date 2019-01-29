@@ -137,8 +137,8 @@ namespace Js
     NUMBER_UTIL_INLINE bool NumberUtilities::IsNan(double value)
     {
 #if defined(TARGET_64)
-        // NaN is a range of values; all bits on the exponent are 1's and some nonzero significant.
-        // no distinction on signed NaN's
+        // NaN is a range of values; all bits on the exponent are 1's 
+        // and some nonzero significant. No distinction on signed NaN's.
         uint64 nCompare = ToSpecial(value);
         bool isNan = (0 == (~nCompare & 0x7FF0000000000000ull) &&
             0 != (nCompare & 0x000FFFFFFFFFFFFFull));
@@ -147,6 +147,12 @@ namespace Js
         return 0 == (~Js::NumberUtilities::LuHiDbl(value) & 0x7FF00000) &&
             (0 != Js::NumberUtilities::LuLoDbl(value) || 0 != (Js::NumberUtilities::LuHiDbl(value) & 0x000FFFFF));
 #endif
+    }
+
+    NUMBER_UTIL_INLINE bool NumberUtilities::IsNegative(double value)
+    {
+        uint64 nCompare = ToSpecial(value);
+        return nCompare & 0x8000000000000000ull;
     }
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsSpecial(double value, uint64 nSpecial)
