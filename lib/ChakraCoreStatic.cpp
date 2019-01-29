@@ -6,4 +6,5 @@
 // dummy file for build system to make sure libChakraCoreStatic.a builds.
 void EMPTY_FUNCTION()
 {
+  
 }
