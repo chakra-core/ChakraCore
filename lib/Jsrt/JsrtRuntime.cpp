@@ -15,8 +15,10 @@ JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispa
     this->collectCallback = NULL;
     this->beforeCollectCallback = NULL;
     this->beforeCollectCallbackContext = NULL;
+#ifdef _CHAKRACOREBUILD
     this->beforeSweepCallback = NULL;
     this->beforeSweepCallbackContext = NULL;
+#endif
     this->allocationPolicyManager = threadContext->GetAllocationPolicyManager();
     this->useIdle = useIdle;
     this->dispatchExceptions = dispatchExceptions;
@@ -99,7 +101,11 @@ void JsrtRuntime::SetBeforeCollectCallback(JsBeforeCollectCallback beforeCollect
     }
     else
     {
-        if (this->collectCallback != nullptr && this->beforeSweepCallback == nullptr)
+        if (this->collectCallback != nullptr
+#ifdef _CHAKRACOREBUILD
+            && this->beforeSweepCallback == nullptr
+#endif
+            )
         {
             this->threadContext->RemoveRecyclerCollectCallBack(this->collectCallback);
             this->collectCallback = nullptr;
@@ -110,6 +116,7 @@ void JsrtRuntime::SetBeforeCollectCallback(JsBeforeCollectCallback beforeCollect
     }
 }
 
+#ifdef _CHAKRACOREBUILD
 void JsrtRuntime::SetBeforeSweepCallback(JsBeforeSweepCallback afterCollectCallback, void * callbackContext)
 {
     if (afterCollectCallback != nullptr)
@@ -134,6 +141,7 @@ void JsrtRuntime::SetBeforeSweepCallback(JsBeforeSweepCallback afterCollectCallb
         this->beforeSweepCallbackContext = nullptr;
     }
 }
+#endif
 
 void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectCallBackFlags flags)
 {
@@ -154,6 +162,7 @@ void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectC
             AssertMsg(false, "Unexpected non-engine exception.");
         }
     }
+#ifdef _CHAKRACOREBUILD
     else if (flags & Collect_Begin_Sweep)
     {
         JsrtRuntime * _this = reinterpret_cast<JsrtRuntime *>(context);
@@ -171,6 +180,7 @@ void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectC
             AssertMsg(false, "Unexpected non-engine exception.");
         }
     }
+#endif
 }
 
 unsigned int JsrtRuntime::Idle()
