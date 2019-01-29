@@ -124,7 +124,8 @@ enum LoadScriptFlag
     LoadScriptFlag_Utf8Source = 0x40,                   // input buffer is utf8 encoded.
     LoadScriptFlag_LibraryCode = 0x80,                  // for debugger, indicating 'not my code'
     LoadScriptFlag_ExternalArrayBuffer = 0x100,         // for ExternalArrayBuffer
-    LoadScriptFlag_CreateParserState = 0x200            // create the parser state cache while parsing.
+    LoadScriptFlag_CreateParserState = 0x200,           // create the parser state cache while parsing.
+    LoadScriptFlag_StrictMode = 0x400                   // parse using strict mode semantics
 };
 
 enum class ScriptContextPrivilegeLevel
@@ -184,6 +185,8 @@ public:
     virtual HRESULT FetchImportedModuleFromScript(DWORD_PTR dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
 
+    virtual HRESULT ThrowIfFailed(HRESULT hr) = 0;
+
     Js::ScriptContext* GetScriptContext() { return scriptContext; }
 
     virtual bool SetCrossSiteForFunctionType(Js::JavascriptFunction * function) = 0;
@@ -195,6 +198,19 @@ public:
 #endif
 private:
     Js::ScriptContext* scriptContext;
+};
+
+class HostStream
+{
+public:
+    virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+    virtual bool WriteHostObject(void* data) = 0;
+};
+
+class HostReadStream
+{
+public:
+    virtual Js::Var ReadHostObject() = 0;
 };
 
 #if ENABLE_TTD

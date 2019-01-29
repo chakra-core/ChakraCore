@@ -14,7 +14,9 @@ JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispa
     this->contextList = NULL;
     this->collectCallback = NULL;
     this->beforeCollectCallback = NULL;
-    this->callbackContext = NULL;
+    this->beforeCollectCallbackContext = NULL;
+    this->beforeSweepCallback = NULL;
+    this->beforeSweepCallbackContext = NULL;
     this->allocationPolicyManager = threadContext->GetAllocationPolicyManager();
     this->useIdle = useIdle;
     this->dispatchExceptions = dispatchExceptions;
@@ -85,26 +87,51 @@ void JsrtRuntime::CloseContexts()
 
 void JsrtRuntime::SetBeforeCollectCallback(JsBeforeCollectCallback beforeCollectCallback, void * callbackContext)
 {
-    if (beforeCollectCallback != NULL)
+    if (beforeCollectCallback != nullptr)
     {
-        if (this->collectCallback == NULL)
+        if (this->collectCallback == nullptr)
         {
             this->collectCallback = this->threadContext->AddRecyclerCollectCallBack(RecyclerCollectCallbackStatic, this);
         }
 
         this->beforeCollectCallback = beforeCollectCallback;
-        this->callbackContext = callbackContext;
+        this->beforeCollectCallbackContext = callbackContext;
     }
     else
     {
-        if (this->collectCallback != NULL)
+        if (this->collectCallback != nullptr && this->beforeSweepCallback == nullptr)
         {
             this->threadContext->RemoveRecyclerCollectCallBack(this->collectCallback);
-            this->collectCallback = NULL;
+            this->collectCallback = nullptr;
         }
 
-        this->beforeCollectCallback = NULL;
-        this->callbackContext = NULL;
+        this->beforeCollectCallback = nullptr;
+        this->beforeCollectCallbackContext = nullptr;
+    }
+}
+
+void JsrtRuntime::SetBeforeSweepCallback(JsBeforeSweepCallback afterCollectCallback, void * callbackContext)
+{
+    if (afterCollectCallback != nullptr)
+    {
+        if (this->collectCallback == nullptr)
+        {
+            this->collectCallback = this->threadContext->AddRecyclerCollectCallBack(RecyclerCollectCallbackStatic, this);
+        }
+
+        this->beforeSweepCallback = afterCollectCallback;
+        this->beforeSweepCallbackContext = callbackContext;
+    }
+    else
+    {
+        if (this->collectCallback != nullptr && this->beforeCollectCallback == nullptr)
+        {
+            this->threadContext->RemoveRecyclerCollectCallBack(this->collectCallback);
+            this->collectCallback = nullptr;
+        }
+
+        this->beforeSweepCallback = nullptr;
+        this->beforeSweepCallbackContext = nullptr;
     }
 }
 
@@ -113,10 +140,31 @@ void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectC
     if (flags & Collect_Begin)
     {
         JsrtRuntime * _this = reinterpret_cast<JsrtRuntime *>(context);
+        if (_this->beforeCollectCallback == nullptr) 
+        {
+            return;
+        }
         try
         {
             JsrtCallbackState scope(reinterpret_cast<ThreadContext*>(_this->GetThreadContext()));
-            _this->beforeCollectCallback(_this->callbackContext);
+            _this->beforeCollectCallback(_this->beforeCollectCallbackContext);
+        }
+        catch (...)
+        {
+            AssertMsg(false, "Unexpected non-engine exception.");
+        }
+    }
+    else if (flags & Collect_Begin_Sweep)
+    {
+        JsrtRuntime * _this = reinterpret_cast<JsrtRuntime *>(context);
+        if (_this->beforeSweepCallback == nullptr)
+        {
+            return;
+        }
+        try
+        {
+            JsrtCallbackState scope(reinterpret_cast<ThreadContext*>(_this->GetThreadContext()));
+            _this->beforeSweepCallback(_this->beforeSweepCallbackContext);
         }
         catch (...)
         {

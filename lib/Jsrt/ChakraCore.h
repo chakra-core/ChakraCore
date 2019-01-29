@@ -596,6 +596,32 @@ CHAKRA_API
         _Out_ JsPropertyIdRef *propertyId);
 
 /// <summary>
+///     Creates the property ID associated with the name.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Property IDs are specific to a context and cannot be used across contexts.
+///     </para>
+///     <para>
+///         Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="name">
+///     The name of the property ID to get or create. The name may consist of only digits.
+///     The string is expected to be ASCII / utf8 encoded.
+/// </param>
+/// <param name="length">length of the name in bytes</param>
+/// <param name="propertyString">The property string in this runtime for the given name.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreatePropertyString(
+    _In_z_ const char *name,
+    _In_ size_t length,
+    _Out_ JsValueRef* propertyString);
+
+/// <summary>
 ///     Copies the name associated with the property ID into a buffer.
 /// </summary>
 /// <remarks>
@@ -1003,6 +1029,290 @@ CHAKRA_API
         _Out_ JsValueRef *object);
 
 /// <summary>
+///     Creates a new object (with prototype) that stores some external data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object);
+
+///     Creates a new object (with prototype) that stores some data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object);
+
+/// <summary>
+///     Creates a new object that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateCustomExternalObject(
+    _In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
+    _Out_ JsValueRef * object);
+
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateCustomExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
+
+/// <summary>
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedCustomExternalObjectWithPrototype(
+    _In_opt_ void *data,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.forEach function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.forEach function.</param>
+CHAKRA_API
+JsGetArrayForEachFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.keys function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.keys function.</param>
+CHAKRA_API
+JsGetArrayKeysFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.values function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.values function.</param>
+CHAKRA_API
+JsGetArrayValuesFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Array.Prototype.entries function. The function is created if it's not already present.
+/// </summary>
+/// <param name="result">A reference to the Array.Prototype.entries function.</param>
+CHAKRA_API
+JsGetArrayEntriesFunction(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns the property id of the Symbol.iterator property.
+/// </summary>
+/// <param name="propertyId">The property id of the Symbol.iterator property.</param>
+CHAKRA_API
+JsGetPropertyIdSymbolIterator(_Out_ JsPropertyIdRef * propertyId);
+
+/// <summary>
+///     Returns a reference to the Javascript error prototype object.
+/// </summary>
+/// <param name="result">A reference to the Javascript error prototype object.</param>
+CHAKRA_API
+JsGetErrorPrototype(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Returns a reference to the Javascript iterator prototype object.
+/// </summary>
+/// <param name="result">A reference to the Javascript iterator prototype object.</param>
+CHAKRA_API
+JsGetIteratorPrototype(_Out_ JsValueRef * result);
+
+/// <summary>
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="traceCallback">
+///     A callback for when the object is traced. May be null.
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef * object);
+
+///     Clones an object
+/// </summary>
+/// <param name="source">The original object.</param>
+/// <param name="clonedObject">
+///     Pointer to the cloned object.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCloneObject(
+    _In_ JsValueRef source,
+    _Out_ JsValueRef* clonedObject);
+
+/// <summary>
+///     Determines whether an object has a private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that may contain the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="hasProperty">Whether the object (or a prototype) has the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsHasPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ bool *hasProperty);
+
+/// <summary>
+///     Gets an object's private property
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="value">The value of the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *value);
+
+/// <summary>
+///     Puts an object's private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="value">The new value of the property.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsSetPrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_ JsValueRef value);
+
+/// <summary>
+///     Deletes an object's private property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that contains the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="result">Whether the property was deleted.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsDeletePrivateProperty(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _Out_ JsValueRef *result);
+
+/// <summary>
 ///     Gets an object's property.
 /// </summary>
 /// <remarks>
@@ -1077,6 +1387,31 @@ CHAKRA_API
         _In_ JsValueRef key,
         _In_ JsValueRef propertyDescriptor,
         _Out_ bool *result);
+
+/// <summary>
+///     Defines a new object's own property from a property descriptor.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that has the property.</param>
+/// <param name="key">The key (JavascriptString or JavascriptSymbol) to the property.</param>
+/// <param name="propertyDescriptor">The property descriptor.</param>
+/// <param name="result">Whether the property was defined.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsObjectDefinePropertyFull(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_opt_ JsValueRef value,
+    _In_opt_ JsValueRef getter,
+    _In_opt_ JsValueRef setter,
+    _In_ bool writable,
+    _In_ bool enumerable,
+    _In_ bool configurable,
+    _Out_ bool *result);
 
 /// <summary>
 ///     Deletes an object's property.
@@ -1273,10 +1608,298 @@ CHAKRA_API
         _In_ JsValueRef parserState,
         _Out_ JsValueRef * result);
 
+typedef void (CHAKRA_CALLBACK *JsBeforeSweepCallback)(_In_opt_ void *callbackState);
+
+CHAKRA_API
+    JsSetRuntimeBeforeSweepCallback(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_opt_ void *callbackState,
+        _In_ JsBeforeSweepCallback beforeSweepCallback);
+
+CHAKRA_API
+JsSetRuntimeDomWrapperTracingCallbacks(
+    _In_ JsRuntimeHandle runtimeHandle,
+    _In_ JsRef wrapperTracingState,
+    _In_ JsDOMWrapperTracingCallback wrapperTracingCallback,
+    _In_ JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback,
+    _In_ JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
+
+CHAKRA_API
+JsTraceExternalReference(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ JsValueRef value
+    );
+
+CHAKRA_API
+    JsAllocRawData(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ size_t sizeInBytes,
+        _Out_ JsRef * buffer
+    );
+
+CHAKRA_API
+    JsAllocRawDataZeroed(
+        _In_ JsRuntimeHandle runtimeHandle,
+        _In_ size_t sizeInBytes,
+        _Out_ JsRef * buffer
+    );
+
+/// <summary>
+///     A callback structure to facilitate during variable serialization work. The callback handles many stuff like
+///     allocating buffer, de-allocate that buffer. This memory buffer is used to hold the serialization data.
+/// </summary>
+typedef struct SerializerCallbackBase
+{
+public:
+    /// <summary>
+    ///     A callback function to ask host to re-allocated buffer to the new size when the current buffer is full
+    /// </summary>
+    /// <param name="oldBuffer">An old memory buffer, which may be null, to be reallocated</param>
+    /// <param name="allocatedSize">Request host to allocate buffer of this size</param>
+    /// <param name="arrayBuffer">Actual size of the new buffer</param>
+    /// <returns>
+    ///     New buffer will be returned upon success, null otherwise.
+    /// </returns>
+    virtual byte *ReallocateBufferMemory(byte *oldBuffer, size_t newSize, size_t *allocatedSize) = 0;
+
+    /// <summary>
+    ///     A callback to ask host to free the buffer which was allocated using ReallocateBufferMemory 
+    /// </summary>
+    /// <param name="buffer">Buffer to be freed</param>
+    virtual void FreeBufferMemory(byte *buffer) = 0;
+
+    /// <summary>
+    ///     A callback to ask host to throw an exception upon Structured Cloning Algorithm error.
+    /// </summary>
+    /// <param name="message">Error message to be populated with</param>
+    virtual void ThrowDataCloneError(void *message) = 0;
+
+    /// <summary>
+    ///     A callback to ask host write current Host object to the serialization buffer.
+    /// </summary>
+    /// <param name="hostObject">Host object to be serialized</param>
+    /// <returns>
+    ///     A Boolean true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool WriteHostObject(void* hostObject) = 0;
+
+    /// <summary>
+    ///     A callback to ask host to record current SharedArrayBuffer and pass an unique ID
+    /// </summary>
+    /// <param name="sharedArrayBuffer">SharedArrayBuffer object</param>
+    /// <returns>
+    ///     An unique ID representing the SharedArrayBuffer is returned. Upon failures the exception is thrown
+    /// </returns>
+    virtual unsigned int GetSharedArrayBufferId(void * sharedArrayBuffer) = 0;
+
+} SerializerCallbackBase;
+
+/// <summary>
+///     The object of SerializerHandleBase will be passed to the caller when JsVarSerializer is called.
+///     This object will provide functionality to write data to serialization buffer.
+/// </summary>
+typedef struct SerializerHandleBase
+{
+public:
+    /// <summary>
+    ///     Write raw bytes to the buffer.
+    /// </summary>
+    /// <param name="source">Source byte buffer</param>
+    /// <param name="length">Length of bytes to write from source raw byte buffer</param>
+    virtual void WriteRawBytes(const void* source, size_t length) = 0;
+
+    /// <summary>
+    ///     A method to serialize given Javascript object to the serialization buffer
+    /// </summary>
+    /// <param name="rootObject">A Javascript object to be serialized</param>
+    /// <returns>
+    ///     A Boolean value true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool WriteValue(JsValueRef rootObject) = 0;
+
+    /// <summary>
+    ///     A method to pass on the current serialized buffer (this buffer was allocated using ReallocateBufferMemory) to host.
+    /// </summary>
+    /// <param name="data">A buffer which holds current serialized data</param>
+    /// <param name="dataLength">Length of the buffer</param>
+    /// <returns>
+    ///     A Boolean value true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool ReleaseData(byte** data, size_t *dataLength) = 0;
+
+    /// <summary>
+    ///     Detach all array buffers which were passed using SetTransferableVars.
+    /// </summary>
+    /// <returns>
+    ///     A Boolean value true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool DetachArrayBuffer() = 0;
+
+    /// <summary>
+    ///     Host provides all the objects which has transferable semantics (Such as ArrayBuffers).
+    /// </summary>
+    /// <param name="transferableVars">An array of transferable objects</param>
+    /// <param name="transferableVarsCount">Length of transferableVars array </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
+
+    /// <summary>
+    ///     Free current object (which was created upon JsVarSerializer) when the serialization is done. SerializerHandleBase object should not be used further after FreeSelf call.
+    /// </summary>
+    virtual void FreeSelf() = 0;
+} SerializerHandleBase;
+
+/// <summary>
+///     A callback structure to facilitate de-serialization work.
+/// </summary>
+typedef struct DeserializerCallbackBase
+{
+public:
+
+    /// <summary>
+    ///     A callback to ask host to read the current data from the serialization buffer as a Host object.
+    /// </summary>
+    /// <returns>
+    ///     A valid host object is returned upon success, an exception is thrown otherwise.
+    /// </returns>
+    virtual JsValueRef ReadHostObject() = 0;
+
+    /// <summary>
+    ///     A callback to ask host to retrieve SharedArrayBuffer object from given ID.
+    /// </summary>
+    /// <param name="id">An ID, which was provided by SerializerCallbackBase::GetSharedArrayBufferId method</param>
+    /// <returns>
+    ///     A valid SharedArrayBuffer is returned upon success, an exception is thrown otherwise.
+    /// </returns>
+    virtual JsValueRef GetSharedArrayBufferFromId(uint32_t id) = 0;
+
+} DeserializerCallbackBase;
+
+/// <summary>
+///     This object will be passed from Engine to Host when JsVarDeserializer is called.
+///     This object handles functionalities related reading current buffer and create Javascript objects
+/// </summary>
+typedef struct DeserializerHandleBase
+{
+public:
+    /// <summary>
+    ///     A method to read bytes from the serialized buffer. Caller should not allocate the data buffer.
+    /// </summary>
+    /// <param name="length">Advance current buffer's position by length</param>
+    /// <param name="data">The data will be pointing to the raw serialized buffer</param>
+    /// <returns>
+    ///     A Boolean value true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool ReadRawBytes(size_t length, void **data) = 0;
+
+    /// <summary>
+    ///     A method to read bytes from the serialized buffer. Caller must allocate data buffer by length.
+    /// </summary>
+    /// <param name="length">Length of data buffer</param>
+    /// <param name="data">data buffer to be populated from the serialized buffer till the given length</param>
+    /// <returns>
+    ///     A Boolean value true is returned upon success, false otherwise.
+    /// </returns>
+    virtual bool ReadBytes(size_t length, void **data) = 0;
+
+    /// <summary>
+    ///     Deserialized current buffer and pass the root object.
+    /// </summary>
+    /// <returns>
+    ///     A valid Javascript object is returned upon success, an exception is thrown otherwise.
+    /// </returns>
+    virtual JsValueRef ReadValue() = 0;
+
+    /// <summary>
+    ///     Host provides all the objects which has transferable semantics (Such as ArrayBuffers).
+    /// </summary>
+    /// <param name="transferableVars">An array of transferable objects</param>
+    /// <param name="transferableVarsCount">Length of transferableVars array </param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
+
+    /// <summary>
+    ///     Free current object (which was created upon JsVarDeserializer) when the deserialization is done. DeserializerHandleBase object should not be used further after FreeSelf call.
+    /// </summary>
+    virtual void FreeSelf() = 0;
+} DeserializerHandleBase;
+
+/// <summary>
+///     Initialize Serialization of the object.
+/// </summary>
+/// <param name="serializerCallback">A callback object to interact with host during serialization.</param>
+/// <param name="serializerHandle">A handle which provides various functionalities to serailize objects</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsVarSerializer(
+    _In_ SerializerCallbackBase *serializerCallback,
+    _Out_ SerializerHandleBase **serializerHandle);
+
+/// <summary>
+///     Initiate Deserialization of the memory buffer to a Javascript object.
+/// </summary>
+/// <param name="data">A memory buffer which holds the serialized data</param>
+/// <param name="size">Length of the passed data in bytes</param>
+/// <param name="deserializerCallback">A callback object to interact with host during deserialization</param>
+/// <param name="deserializerHandle">A handle which provides various functionalities to deserailize a buffer to an object</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializer(
+    _In_ void *data,
+    _In_ size_t size,
+    _In_ DeserializerCallbackBase *deserializerCallback,
+    _Out_ DeserializerHandleBase **deserializerHandle);
+
+/// <summary>
+///     Extract extra info stored from an ArrayBuffer object
+/// </summary>
+/// <param name="arrayBuffer">An ArrayBuffer from which the extrainfor needed to extracted</param>
+/// <param name="extraInfo">The host information (some flags such as object externalized, detached) stored in the object</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsGetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _Out_ char *extraInfo);
+
+/// <summary>
+///     Set Extra info (host data) to an ArrayBuffer object.
+/// </summary>
+/// <param name="arrayBuffer">An ArrayBuffer on which the host information will be stored</param>
+/// <param name="extraInfo">The host data</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsSetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _In_ char extraInfo);
+
+/// <summary>
+///     Neuter current ArrayBuffer
+/// </summary>
+/// <param name="arrayBuffer">An ArrayBuffer which will be neutered </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsDetachArrayBuffer(
+    _In_ JsValueRef arrayBuffer);
+
 
 #ifdef _WIN32
 #include "ChakraCoreWindows.h"
 #endif // _WIN32
+
 
 #endif // _CHAKRACOREBUILD
 #endif // _CHAKRACORE_H_

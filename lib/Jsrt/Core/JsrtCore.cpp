@@ -5,6 +5,7 @@
 #include "JsrtPch.h"
 #include "JsrtInternal.h"
 #include "jsrtHelper.h"
+#include "SCACorePch.h"
 #include "JsrtContextCore.h"
 #include "ChakraCore.h"
 
@@ -255,3 +256,99 @@ CHAKRA_API JsGetModuleNamespace(_In_ JsModuleRecord requestModule, _Outptr_resul
     *moduleNamespace = static_cast<JsValueRef>(moduleRecord->GetNamespace());
     return JsNoError;
 }
+
+CHAKRA_API
+JsVarSerializer(
+    _In_ SerializerCallbackBase *delegate,
+    _Out_ SerializerHandleBase **serializerHandle)
+{
+    PARAM_NOT_NULL(delegate);
+    PARAM_NOT_NULL(serializerHandle);
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, delegate);
+        writer->SetSerializer(HeapNew(Js::SCACore::Serializer, scriptContext, writer));
+        *serializerHandle = (SerializerHandleBase *)writer;
+        return JsNoError;
+    });
+
+    return errorCode;
+
+}
+
+CHAKRA_API
+JsVarDeserializer(
+    _In_ void *data,
+    _In_ size_t size,
+    _In_ DeserializerCallbackBase *delegate,
+    _Out_ DeserializerHandleBase **deserializerHandle)
+{
+    PARAM_NOT_NULL(data);
+    PARAM_NOT_NULL(delegate);
+    PARAM_NOT_NULL(deserializerHandle);
+    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle, delegate);
+        reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, data, size, scriptContext, reader));
+        *deserializerHandle = (DeserializerHandleBase *)reader;
+        return JsNoError;
+    });
+
+    return errorCode;
+}
+
+CHAKRA_API
+JsGetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _Out_ char *extraInfo)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    PARAM_NOT_NULL(extraInfo);
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        *extraInfo = Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->GetExtraInfoBits();
+    }
+    END_JSRT_NO_EXCEPTION
+
+}
+
+CHAKRA_API
+JsSetArrayBufferExtraInfo(
+    _In_ JsValueRef arrayBuffer,
+    _In_ char extraInfo)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    BEGIN_JSRT_NO_EXCEPTION
+    {
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
+        {
+            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+        }
+
+        Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->SetExtraInfoBits(extraInfo);
+    }
+    END_JSRT_NO_EXCEPTION
+}
+
+CHAKRA_API
+JsDetachArrayBuffer(
+    _In_ JsValueRef arrayBuffer)
+{
+    VALIDATE_JSREF(arrayBuffer);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->Detach();
+        return JsNoError;
+    });
+}
+

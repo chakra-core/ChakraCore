@@ -1209,9 +1209,8 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
     AssertMsg(includeStringProperties || includeSymbolProperties, "Should either get string or symbol properties.");
 
     JavascriptStaticEnumerator enumerator;
+    EnumeratorFlags flags = EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::UseCache;
     JavascriptArray* newArr = scriptContext->GetLibrary()->CreateArray(0);
-    JavascriptArray* newArrForSymbols = scriptContext->GetLibrary()->CreateArray(0);
-    EnumeratorFlags flags = EnumeratorFlags::None;
     if (includeNonEnumerable)
     {
         flags |= EnumeratorFlags::EnumNonEnumerable;
@@ -1220,7 +1219,8 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
     {
         flags |= EnumeratorFlags::EnumSymbols;
     }
-    if (!object->GetEnumerator(&enumerator, flags, scriptContext))
+    EnumeratorCache* cache = scriptContext->GetLibrary()->GetCreateKeysCache(object->GetType());
+    if (!object->GetEnumerator(&enumerator, flags, scriptContext, cache))
     {
         return newArr;  // Return an empty array if we don't have an enumerator
     }
@@ -1231,7 +1231,7 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
     uint32 symbolIndex = 0;
     const PropertyRecord* propertyRecord;
     JavascriptSymbol* symbol;
-
+    JavascriptArray* newArrForSymbols = nullptr;
     while ((propertyName = enumerator.MoveAndGetNext(propertyId)) != NULL)
     {
         if (propertyName)
@@ -1244,6 +1244,10 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
                 {
                     symbol = scriptContext->GetSymbol(propertyRecord);
                     // no need to marshal symbol because it is created from scriptContext
+                    if (!newArrForSymbols)
+                    {
+                        newArrForSymbols = scriptContext->GetLibrary()->CreateArray(0);
+                    }
                     newArrForSymbols->DirectSetItemAt(symbolIndex++, symbol);
                     continue;
                 }
@@ -1266,11 +1270,14 @@ JavascriptArray* JavascriptObject::CreateKeysHelper(RecyclableObject* object, Sc
         }
     }
 
-    // Append all the symbols at the end of list
-    uint32 totalSymbols = newArrForSymbols->GetLength();
-    for (uint32 symIndex = 0; symIndex < totalSymbols; symIndex++)
+    if (newArrForSymbols)
     {
-        newArr->DirectSetItemAt(propertyIndex++, newArrForSymbols->DirectGetItem(symIndex));
+        // Append all the symbols at the end of list
+        uint32 totalSymbols = newArrForSymbols->GetLength();
+        for (uint32 symIndex = 0; symIndex < totalSymbols; symIndex++)
+        {
+            newArr->DirectSetItemAt(propertyIndex++, newArrForSymbols->DirectGetItem(symIndex));
+        }
     }
 
     return newArr;

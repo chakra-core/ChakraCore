@@ -1,4 +1,5 @@
     JsSetObjectBeforeCollectCallback
+    JsSetRuntimeDomWrapperTracingCallbacks
     JsCreateRuntime
     JsCollectGarbage
     JsDisposeRuntime
@@ -30,6 +31,17 @@
     JsGetGlobalObject
     JsCreateObject
     JsCreateExternalObject
+    JsCreateCustomExternalObject
+    JsCreateCustomExternalObjectWithPrototype
+    JsCreateTracedCustomExternalObjectWithPrototype
+    JsCreateTracedCustomExternalObjectWithPrototypeAndSlots
+    JsGetArrayForEachFunction
+    JsGetArrayKeysFunction
+    JsGetArrayValuesFunction
+    JsGetArrayEntriesFunction
+    JsGetPropertyIdSymbolIterator
+    JsGetErrorPrototype
+    JsGetIteratorPrototype
     JsConvertValueToObject
     JsGetPrototype
     JsSetPrototype
@@ -103,6 +115,7 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+    JsIsConstructor
 #ifndef NTBUILD
     JsCreateString
     JsCreateStringUtf16
@@ -114,6 +127,7 @@
     JsParseSerialized
     JsRunSerialized
     JsCreatePropertyId
+    JsCreatePropertyString
     JsConnectJITProcess
     JsCopyPropertyId
     JsCreatePromise
@@ -124,6 +138,8 @@
     JsCopyStringOneByte
     JsGetDataViewInfo
     JsCreateExternalObjectWithPrototype
+    JsCreateTracedExternalObjectWithPrototype
+    JsCreateTracedExternalObjectWithPrototypeAndSlots
     JsObjectGetProperty
     JsObjectHasProperty
     JsObjectSetProperty
@@ -131,4 +147,14 @@
     JsObjectHasOwnProperty
     JsObjectGetOwnPropertyDescriptor
     JsObjectDefineProperty
+    JsObjectDefinePropertyFull
+    JsSetRuntimeBeforeSweepCallback
+    JsTraceExternalReference
+    JsAllocRawData
+    JsAllocRawDataZeroed
+    JsCloneObject
+    JsHasPrivateProperty
+    JsSetPrivateProperty
+    JsGetPrivateProperty
+    JsDeletePrivateProperty
 #endif

@@ -5,7 +5,7 @@
 #pragma once
 
 #ifdef ENABLE_TEST_HOOKS
-
+#include <oaidl.h>
 interface ICustomConfigFlags;
 
 #if defined(_WIN32) || defined(_MSC_VER)

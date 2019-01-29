@@ -70,7 +70,11 @@ JsSerializeParserState
 JsRunScriptWithParserState
 JsGetPromiseState
 JsGetPromiseResult
-
+JsVarSerializer
+JsVarDeserializer
+JsGetArrayBufferExtraInfo
+JsSetArrayBufferExtraInfo
+JsDetachArrayBuffer
 JsQueueBackgroundParse_Experimental
 JsDiscardBackgroundParse_Experimental
 JsExecuteBackgroundParse_Experimental

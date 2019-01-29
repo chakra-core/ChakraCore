@@ -10,5 +10,6 @@ target_include_directories (
     ../../Runtime
     ../../Runtime/ByteCode
     ../../Parser
+    ../../SCACore
     ../
     )

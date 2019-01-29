@@ -330,7 +330,7 @@ namespace Js
         static RecyclableObject* OP_GetPrototype(Var instance, ScriptContext* scriptContext);
 
         static BOOL OP_HasProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext);
-        static BOOL OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext);
+        static BOOL OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext, _In_opt_ PropertyString * propString = nullptr);
         static BOOL HasOwnPropertyNoHostObject(Var instance, PropertyId propertyId);
         static BOOL HasOwnPropertyNoHostObjectForHeapEnum(Var instance, PropertyId propertyId, ScriptContext* scriptContext, Var& getter, Var& setter);
         static Var GetOwnPropertyNoHostObjectForHeapEnum(Var instance, PropertyId propertyId, ScriptContext* scriptContext, Var& getter, Var &setter);

@@ -1098,6 +1098,14 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
+        else
+        {
+            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
+            if (wrapper)
+            {
+                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
+            }
+        }
 
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
@@ -1113,6 +1121,14 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
         }
+        else
+        {
+            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
+            if (wrapper)
+            {
+                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
+            }
+        }
 
         return JavascriptObject::CreateOwnSymbolPropertiesHelper(object, scriptContext);
     }
@@ -1126,6 +1142,14 @@ CommonNumber:
         if (proxy)
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
+        }
+        else
+        {
+            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
+            if (wrapper)
+            {
+                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::KeysKind, scriptContext);
+            }
         }
 
         return JavascriptObject::CreateOwnStringSymbolPropertiesHelper(object, scriptContext);
@@ -1162,6 +1186,42 @@ CommonNumber:
             }
             return proxyResultToReturn;
         }
+        else
+        {
+            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
+            if (wrapper)
+            {
+                JavascriptArray* wrapperResult = wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnEnumerablePropertyNamesKind, scriptContext);
+                JavascriptArray* wrapperResultToReturn = scriptContext->GetLibrary()->CreateArray(0);
+                if (wrapperResult != nullptr)
+                {
+                    // filter enumerable keys
+                    uint32 resultLength = wrapperResult->GetLength();
+                    Var element;
+                    const Js::PropertyRecord *propertyRecord = nullptr;
+                    uint32 index = 0;
+                    for (uint32 i = 0; i < resultLength; i++)
+                    {
+                        element = wrapperResult->DirectGetItem(i);
+
+                        Assert(!VarIs<JavascriptSymbol>(element));
+
+                        PropertyDescriptor propertyDescriptor;
+                        JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord, nullptr);
+                        if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
+                        {
+                            if (propertyDescriptor.IsEnumerable())
+                            {
+                                wrapperResultToReturn->DirectSetItemAt(index++, CrossSite::MarshalVar(scriptContext, element));
+                            }
+                        }
+                    }
+                }
+
+                return wrapperResultToReturn;
+            }
+        }
+
         return JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(object, scriptContext);
     }
 
@@ -1172,6 +1232,15 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
+        else
+        {
+            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
+            if (wrapper)
+            {
+                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::EnumerableKeysKind, scriptContext);
+            }
+        }
+
         return JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(object, scriptContext);
     }
 
@@ -1571,12 +1640,12 @@ CommonNumber:
         JIT_HELPER_END(Op_HasProperty);
     }
 
-    BOOL JavascriptOperators::OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext)
+    BOOL JavascriptOperators::OP_HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext* scriptContext, _In_opt_ PropertyString * propString)
     {
         RecyclableObject* object = TaggedNumber::Is(instance) ?
             scriptContext->GetLibrary()->GetNumberPrototype() :
             VarTo<RecyclableObject>(instance);
-        BOOL result = HasOwnProperty(object, propertyId, scriptContext, nullptr);
+        BOOL result = HasOwnProperty(object, propertyId, scriptContext, propString);
         return result;
     }
 
@@ -1842,9 +1911,15 @@ CommonNumber:
     void JavascriptOperators::TryCacheMissingProperty(Var instance, Var cacheInstance, bool isRoot, PropertyId propertyId, ScriptContext* requestContext, _Inout_ PropertyValueInfo * info)
     {
         // Here, any well-behaved subclasses of DynamicObject can opt in to getting included in the missing property cache.
-        // For now, we only include basic objects and arrays. CustomExternalObject in particular is problematic because in
-        // some cases it can add new properties without transitioning its type handler.
+        // For now, we only include basic objects and arrays. 
         if (PHASE_OFF1(MissingPropertyCachePhase) || isRoot || !(DynamicObject::IsBaseDynamicObject(instance) || DynamicObject::IsAnyArray(instance)))
+        {
+            return;
+        }
+
+        // CustomExternalObject in particular is problematic because in some cases it can report missing when implicit callsare disabled.
+        // See CustomExternalObject::GetPropertyQuery for an example.
+        if (UnsafeVarTo<DynamicObject>(instance)->GetType()->IsJsrtExternal() && requestContext->GetThreadContext()->IsDisableImplicitCall())
         {
             return;
         }
@@ -3840,7 +3915,9 @@ CommonNumber:
 
     Var JavascriptOperators::OP_GetElementI(Var instance, Var index, ScriptContext* scriptContext)
     {
+#ifdef ENABLE_SPECTRE_RUNTIME_MITIGATIONS
         instance = BreakSpeculation(instance);
+#endif
         if (TaggedInt::Is(index))
         {
             return GetElementIIntIndex(instance, index, scriptContext);
@@ -8730,6 +8807,15 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         if (VarIs<JavascriptProxy>(obj))
         {
             return JavascriptProxy::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
+        }
+        else if (VarIs<CustomExternalWrapperObject>(obj))
+        {
+            // See if there is a trap for defineProperty.
+            BOOL wrapperResult = CustomExternalWrapperObject::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
+            if (wrapperResult)
+            {
+                return TRUE;
+            }
         }
 
         PropertyDescriptor currentDescriptor;

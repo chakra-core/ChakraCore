@@ -2860,6 +2860,7 @@ bool Inline::TryGetCallApplyAndTargetLdInstrs(IR::Instr * callInstr, _Outptr_res
         return false;
     }
 
+    Assert(applySym->GetInstrDef()->GetSrc1()->IsSymOpnd() && applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->IsPropertySymOpnd());
     StackSym * targetSym = applySym->GetInstrDef()->GetSrc1()->AsSymOpnd()->AsPropertySymOpnd()->GetObjectSym();
     if (!targetSym->IsSingleDef())
     {

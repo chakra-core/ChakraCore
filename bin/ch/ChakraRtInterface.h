@@ -9,12 +9,21 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtCreateRuntimePtr)(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateContextPtr)(JsRuntimeHandle runtime, JsContextRef *newContext);
     typedef JsErrorCode (WINAPI *JsrtSetObjectBeforeCollectCallbackPtr)(JsRef ref, void* callbackState, JsObjectBeforeCollectCallback objectBeforeCollectCallback);
+    typedef JsErrorCode(WINAPI *JsrtSetRuntimeDomWrapperTracingCallbacksPtr)(JsRuntimeHandle runtime, JsRef wrapperTracingState, JsDOMWrapperTracingCallback wrapperTracingCallback, JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback, JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
     typedef JsErrorCode (WINAPI *JsrtSetRuntimeMemoryLimitPtr)(JsRuntimeHandle runtime, size_t memoryLimit);
     typedef JsErrorCode (WINAPI *JsrtSetCurrentContextPtr)(JsContextRef context);
     typedef JsErrorCode (WINAPI *JsrtGetCurrentContextPtr)(JsContextRef* context);
     typedef JsErrorCode (WINAPI *JsrtDisposeRuntimePtr)(JsRuntimeHandle runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateObjectPtr)(JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtCreateExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef *object);
+    typedef JsErrorCode (WINAPI *JsrtCreateCustomExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef *object);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayForEachFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayKeysFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayValuesFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetArrayEntriesFunctionPtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetPropertyIdSymbolIteratorPtr)(JsPropertyIdRef *propertyId);
+    typedef JsErrorCode (WINAPI *JsrtGetErrorPrototypePtr)(JsValueRef *result);
+    typedef JsErrorCode (WINAPI *JsrtGetIteratorPrototypePtr)(JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateFunctionPtr)(JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function);
     typedef JsErrorCode (WINAPI *JsrtCreateEnhancedFunctionPtr)(JsEnhancedNativeFunction nativeFunction, JsValueRef metadata, void *callbackState, JsValueRef *function);
     typedef JsErrorCode (WINAPI *JsCreateNamedFunctionPtr)(JsValueRef name, JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function);
@@ -40,6 +49,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDoubleToNumberPtr)(double doubleValue, JsValueRef* value);
     typedef JsErrorCode (WINAPI *JsrtGetExternalDataPtr)(JsValueRef object, void **data);
     typedef JsErrorCode (WINAPI *JsrtSetExternalDataPtr)(JsValueRef object, void *data);
+    typedef JsErrorCode(WINAPI *JsrtCloneObjectPtr)(JsValueRef object, JsValueRef *newObject);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayPtr)(unsigned int length, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateArrayBufferPtr)(unsigned int byteLength, JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtCreateSharedArrayBufferWithSharedContentPtr)(JsSharedArrayBufferContentHandle sharedContent, JsValueRef *result);
@@ -54,6 +64,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtReleasePtr)(JsRef ref, unsigned int* count);
     typedef JsErrorCode (WINAPI *JsrtAddRefPtr)(JsRef ref, unsigned int* count);
     typedef JsErrorCode (WINAPI *JsrtGetValueType)(JsValueRef value, JsValueType *type);
+    typedef JsErrorCode(WINAPI *JsrtGetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef *value);
     typedef JsErrorCode (WINAPI *JsrtSetIndexedPropertyPtr)(JsValueRef object, JsValueRef index, JsValueRef value);
     typedef JsErrorCode (WINAPI *JsrtSetPromiseContinuationCallbackPtr)(JsPromiseContinuationCallback callback, void *callbackState);
     typedef JsErrorCode (WINAPI *JsrtSetHostPromiseRejectionTrackerPtr)(JsHostPromiseRejectionTrackerCallback callback, void *callbackState);
@@ -116,15 +127,29 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtConnectJITProcess)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
 #endif
 
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle);
+    typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle);
+	typedef JsErrorCode(WINAPI *JsrtDetachArrayBufferPtr)(JsValueRef buffer);
+
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
     JsrtSetObjectBeforeCollectCallbackPtr pfJsrtSetObjectBeforeCollectCallback;
+    JsrtSetRuntimeDomWrapperTracingCallbacksPtr pfJsrtSetRuntimeDomWrapperTracingCallbacks;
     JsrtSetRuntimeMemoryLimitPtr pfJsrtSetRuntimeMemoryLimit;
     JsrtSetCurrentContextPtr pfJsrtSetCurrentContext;
     JsrtGetCurrentContextPtr pfJsrtGetCurrentContext;
     JsrtDisposeRuntimePtr pfJsrtDisposeRuntime;
     JsrtCreateObjectPtr pfJsrtCreateObject;
     JsrtCreateExternalObjectPtr pfJsrtCreateExternalObject;
+    JsrtCreateCustomExternalObjectPtr pfJsrtCreateCustomExternalObject;
+    JsrtGetArrayForEachFunctionPtr pfJsrtGetArrayForEachFunction;
+    JsrtGetArrayKeysFunctionPtr pfJsrtGetArrayKeysFunction;
+    JsrtGetArrayValuesFunctionPtr pfJsrtGetArrayValuesFunction;
+    JsrtGetArrayEntriesFunctionPtr pfJsrtGetArrayEntriesFunction;
+    JsrtGetPropertyIdSymbolIteratorPtr pfJsrtGetPropertyIdSymbolIterator;
+    JsrtGetErrorPrototypePtr pfJsrtGetErrorPrototype;
+    JsrtGetIteratorPrototypePtr pfJsrtGetIteratorPrototype;
+
     JsrtCreateFunctionPtr pfJsrtCreateFunction;
     JsrtCreateEnhancedFunctionPtr pfJsrtCreateEnhancedFunction;
     JsCreateNamedFunctionPtr pfJsrtCreateNamedFunction;
@@ -153,6 +178,7 @@ struct JsAPIHooks
     JsrtDoubleToNumberPtr pfJsrtDoubleToNumber;
     JsrtGetExternalDataPtr pfJsrtGetExternalData;
     JsrtSetExternalDataPtr pfJsrtSetExternalData;
+    JsrtCloneObjectPtr pfJsrtCloneObject;
     JsrtCreateArrayPtr pfJsrtCreateArray;
     JsrtCreateArrayBufferPtr pfJsrtCreateArrayBuffer;
     JsrtCreateSharedArrayBufferWithSharedContentPtr pfJsrtCreateSharedArrayBufferWithSharedContent;
@@ -167,6 +193,7 @@ struct JsAPIHooks
     JsrtReleasePtr pfJsrtRelease;
     JsrtAddRefPtr pfJsrtAddRef;
     JsrtGetValueType pfJsrtGetValueType;
+    JsrtGetIndexedPropertyPtr pfJsrtGetIndexedProperty;
     JsrtSetIndexedPropertyPtr pfJsrtSetIndexedProperty;
     JsrtSetPromiseContinuationCallbackPtr pfJsrtSetPromiseContinuationCallback;
     JsrtSetHostPromiseRejectionTrackerPtr pfJsrtSetHostPromiseRejectionTracker;
@@ -222,6 +249,9 @@ struct JsAPIHooks
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 
+    JsrtVarSerializerPtr pfJsrtVarSerializer;
+    JsrtVarDeserializerPtr pfJsrtVarDeserializer;
+	JsrtDetachArrayBufferPtr pfJsrtDetachArrayBuffer;
 #ifdef _WIN32
     JsrtConnectJITProcess pfJsrtConnectJITProcess;
 #endif
@@ -331,12 +361,21 @@ public:
     static JsErrorCode WINAPI JsCreateRuntime(JsRuntimeAttributes attributes, JsThreadServiceCallback threadService, JsRuntimeHandle *runtime) { return HOOK_JS_API(CreateRuntime(attributes, threadService, runtime)); }
     static JsErrorCode WINAPI JsCreateContext(JsRuntimeHandle runtime, JsContextRef *newContext) { return HOOK_JS_API(CreateContext(runtime, newContext)); }
     static JsErrorCode WINAPI JsSetObjectBeforeCollectCallback(JsRef ref, void* callbackState, JsObjectBeforeCollectCallback objectBeforeCollectCallback) { return HOOK_JS_API(SetObjectBeforeCollectCallback(ref, callbackState, objectBeforeCollectCallback)); }
+    static JsErrorCode WINAPI JsSetRuntimeDomWrapperTracingCallbacks(JsRuntimeHandle runtime, JsRef wrapperTracingState, JsDOMWrapperTracingCallback wrapperTracingCallback, JsDOMWrapperTracingDoneCallback wrapperTracingDoneCallback, JsDOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback) { return HOOK_JS_API(SetRuntimeDomWrapperTracingCallbacks(runtime, wrapperTracingState, wrapperTracingCallback, wrapperTracingDoneCallback, enterFinalPauseCallback)); }
     static JsErrorCode WINAPI JsSetRuntimeMemoryLimit(JsRuntimeHandle runtime, size_t memory) { return HOOK_JS_API(SetRuntimeMemoryLimit(runtime, memory)); }
     static JsErrorCode WINAPI JsSetCurrentContext(JsContextRef context) { return HOOK_JS_API(SetCurrentContext(context)); }
     static JsErrorCode WINAPI JsGetCurrentContext(JsContextRef* context) { return HOOK_JS_API(GetCurrentContext(context)); }
     static JsErrorCode WINAPI JsDisposeRuntime(JsRuntimeHandle runtime) { return HOOK_JS_API(DisposeRuntime(runtime)); }
     static JsErrorCode WINAPI JsCreateObject(JsValueRef *object) { return HOOK_JS_API(CreateObject(object)); }
     static JsErrorCode WINAPI JsCreateExternalObject(void *data, JsFinalizeCallback callback, JsValueRef *object) { return HOOK_JS_API(CreateExternalObject(data, callback, object)); }
+    static JsErrorCode WINAPI JsCreateCustomExternalObject(void *data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef * object) { return HOOK_JS_API(CreateCustomExternalObject(data, callback, getterSetterInterceptor, object)); }
+    static JsErrorCode WINAPI JsGetArrayForEachFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayForEachFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayKeysFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayKeysFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayValuesFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayValuesFunction(result)); }
+    static JsErrorCode WINAPI JsGetArrayEntriesFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayEntriesFunction(result)); }
+    static JsErrorCode WINAPI JsGetPropertyIdSymbolIterator(JsPropertyIdRef * propertyId) { return HOOK_JS_API(GetPropertyIdSymbolIterator(propertyId)); }
+    static JsErrorCode WINAPI JsGetErrorPrototype(JsValueRef * result) { return HOOK_JS_API(GetErrorPrototype(result)); }
+    static JsErrorCode WINAPI JsGetIteratorPrototype(JsValueRef * result) { return HOOK_JS_API(GetIteratorPrototype(result)); }
     static JsErrorCode WINAPI JsCreateFunction(JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateFunction(nativeFunction, callbackState, function)); }
     static JsErrorCode WINAPI JsCreateEnhancedFunction(JsEnhancedNativeFunction nativeFunction, JsValueRef metadata, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateEnhancedFunction(nativeFunction, metadata, callbackState, function)); }
     static JsErrorCode WINAPI JsCreateNamedFunction(JsValueRef name, JsNativeFunction nativeFunction, void *callbackState, JsValueRef *function) { return HOOK_JS_API(CreateNamedFunction(name, nativeFunction, callbackState, function)); }
@@ -359,6 +398,7 @@ public:
     static JsErrorCode WINAPI JsDoubleToNumber(double doubleValue, JsValueRef* value) { return HOOK_JS_API(DoubleToNumber(doubleValue, value)); }
     static JsErrorCode WINAPI JsGetExternalData(JsValueRef object, void **data) { return HOOK_JS_API(GetExternalData(object, data)); }
     static JsErrorCode WINAPI JsSetExternalData(JsValueRef object, void *data)  { return HOOK_JS_API(SetExternalData(object, data)); }
+    static JsErrorCode WINAPI JsCloneObject(JsValueRef object, JsValueRef *data) { return HOOK_JS_API(CloneObject(object, data)); }
     static JsErrorCode WINAPI JsCreateArray(unsigned int length, JsValueRef *result) { return HOOK_JS_API(CreateArray(length, result)); }
     static JsErrorCode WINAPI JsCreateArrayBuffer(unsigned int byteLength, JsValueRef *result) { return HOOK_JS_API(CreateArrayBuffer(byteLength, result)); }
     static JsErrorCode WINAPI JsCreateSharedArrayBufferWithSharedContent(JsSharedArrayBufferContentHandle sharedContent, JsValueRef *result) { return HOOK_JS_API(CreateSharedArrayBufferWithSharedContent(sharedContent, result)); }
@@ -373,6 +413,7 @@ public:
     static JsErrorCode WINAPI JsRelease(JsRef ref, unsigned int* count) { return HOOK_JS_API(Release(ref, count)); }
     static JsErrorCode WINAPI JsAddRef(JsRef ref, unsigned int* count) { return HOOK_JS_API(AddRef(ref, count)); }
     static JsErrorCode WINAPI JsGetValueType(JsValueRef value, JsValueType *type) { return HOOK_JS_API(GetValueType(value, type)); }
+    static JsErrorCode WINAPI JsGetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef *value) { return HOOK_JS_API(GetIndexedProperty(object, index, value)); }
     static JsErrorCode WINAPI JsSetIndexedProperty(JsValueRef object, JsValueRef index, JsValueRef value) { return HOOK_JS_API(SetIndexedProperty(object, index, value)); }
     static JsErrorCode WINAPI JsSetPromiseContinuationCallback(JsPromiseContinuationCallback callback, void *callbackState) { return HOOK_JS_API(SetPromiseContinuationCallback(callback, callbackState)); }
     static JsErrorCode WINAPI JsSetHostPromiseRejectionTracker(JsHostPromiseRejectionTrackerCallback callback, void *callbackState) { return HOOK_JS_API(SetHostPromiseRejectionTracker(callback, callbackState)); }
@@ -435,6 +476,9 @@ public:
     static JsErrorCode WINAPI JsSerializeParserState(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes) { return HOOK_JS_API(SerializeParserState(script, buffer, parseAttributes)); }
     static JsErrorCode WINAPI JsRunScriptWithParserState(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef * result) { return HOOK_JS_API(RunScriptWithParserState(script, sourceContext, sourceUrl, parseAttributes, parserState, result)); }
 
+    static JsErrorCode WINAPI JsVarSerializer(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle) { return HOOK_JS_API(VarSerializer(delegate, serializerHandle)); }
+    static JsErrorCode WINAPI JsVarDeserializer(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(data, dataLength, delegate, deserializerHandle)); }
+	static JsErrorCode WINAPI JsDetachArrayBuffer(JsValueRef buffer) { return HOOK_JS_API(DetachArrayBuffer(buffer)); }
     static JsErrorCode WINAPI JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParseCookie) { return HOOK_JS_API(QueueBackgroundParse_Experimental)(contents, dwBgParseCookie);  }
     static JsErrorCode WINAPI JsDiscardBackgroundParse_Experimental(DWORD dwBgParseCookie, void* buffer, bool* callerOwnsBuffer) { return HOOK_JS_API(DiscardBackgroundParse_Experimental(dwBgParseCookie, buffer, callerOwnsBuffer)); }
     static JsErrorCode WINAPI JsExecuteBackgroundParse_Experimental(DWORD dwBgParseCookie, JsValueRef script, JsSourceContext sourceContext, WCHAR *url, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef *result) { return HOOK_JS_API(ExecuteBackgroundParse_Experimental(dwBgParseCookie, script, sourceContext, url, parseAttributes, parserState, result)); }

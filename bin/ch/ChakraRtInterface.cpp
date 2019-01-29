@@ -78,12 +78,21 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtCreateRuntime = (JsAPIHooks::JsrtCreateRuntimePtr)GetChakraCoreSymbol(library, "JsCreateRuntime");
     m_jsApiHooks.pfJsrtCreateContext = (JsAPIHooks::JsrtCreateContextPtr)GetChakraCoreSymbol(library, "JsCreateContext");
     m_jsApiHooks.pfJsrtSetObjectBeforeCollectCallback = (JsAPIHooks::JsrtSetObjectBeforeCollectCallbackPtr)GetChakraCoreSymbol(library, "JsSetObjectBeforeCollectCallback");
+    m_jsApiHooks.pfJsrtSetRuntimeDomWrapperTracingCallbacks = (JsAPIHooks::JsrtSetRuntimeDomWrapperTracingCallbacksPtr)GetChakraCoreSymbol(library, "JsSetRuntimeDomWrapperTracingCallbacks");
     m_jsApiHooks.pfJsrtSetRuntimeMemoryLimit = (JsAPIHooks::JsrtSetRuntimeMemoryLimitPtr)GetChakraCoreSymbol(library, "JsSetRuntimeMemoryLimit");
     m_jsApiHooks.pfJsrtSetCurrentContext = (JsAPIHooks::JsrtSetCurrentContextPtr)GetChakraCoreSymbol(library, "JsSetCurrentContext");
     m_jsApiHooks.pfJsrtGetCurrentContext = (JsAPIHooks::JsrtGetCurrentContextPtr)GetChakraCoreSymbol(library, "JsGetCurrentContext");
     m_jsApiHooks.pfJsrtDisposeRuntime = (JsAPIHooks::JsrtDisposeRuntimePtr)GetChakraCoreSymbol(library, "JsDisposeRuntime");
     m_jsApiHooks.pfJsrtCreateObject = (JsAPIHooks::JsrtCreateObjectPtr)GetChakraCoreSymbol(library, "JsCreateObject");
     m_jsApiHooks.pfJsrtCreateExternalObject = (JsAPIHooks::JsrtCreateExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateExternalObject");
+    m_jsApiHooks.pfJsrtCreateCustomExternalObject = (JsAPIHooks::JsrtCreateCustomExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateCustomExternalObject");
+    m_jsApiHooks.pfJsrtGetArrayForEachFunction = (JsAPIHooks::JsrtGetArrayForEachFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayForEachFunction");;
+    m_jsApiHooks.pfJsrtGetArrayKeysFunction = (JsAPIHooks::JsrtGetArrayKeysFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayKeysFunction");;
+    m_jsApiHooks.pfJsrtGetArrayValuesFunction = (JsAPIHooks::JsrtGetArrayValuesFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayValuesFunction");;
+    m_jsApiHooks.pfJsrtGetArrayEntriesFunction = (JsAPIHooks::JsrtGetArrayEntriesFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayEntriesFunction");;
+    m_jsApiHooks.pfJsrtGetPropertyIdSymbolIterator = (JsAPIHooks::JsrtGetPropertyIdSymbolIteratorPtr)GetChakraCoreSymbol(library, "JsGetPropertyIdSymbolIterator");;
+    m_jsApiHooks.pfJsrtGetErrorPrototype = (JsAPIHooks::JsrtGetErrorPrototypePtr)GetChakraCoreSymbol(library, "JsGetErrorPrototype");;
+    m_jsApiHooks.pfJsrtGetIteratorPrototype = (JsAPIHooks::JsrtGetIteratorPrototypePtr)GetChakraCoreSymbol(library, "JsGetIteratorPrototype");;
     m_jsApiHooks.pfJsrtCreateFunction = (JsAPIHooks::JsrtCreateFunctionPtr)GetChakraCoreSymbol(library, "JsCreateFunction");
     m_jsApiHooks.pfJsrtCreateNamedFunction = (JsAPIHooks::JsCreateNamedFunctionPtr)GetChakraCoreSymbol(library, "JsCreateNamedFunction");
     m_jsApiHooks.pfJsrtSetProperty = (JsAPIHooks::JsrtSetPropertyPtr)GetChakraCoreSymbol(library, "JsSetProperty");
@@ -105,6 +114,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtDoubleToNumber = (JsAPIHooks::JsrtDoubleToNumberPtr)GetChakraCoreSymbol(library, "JsDoubleToNumber");
     m_jsApiHooks.pfJsrtGetExternalData = (JsAPIHooks::JsrtGetExternalDataPtr)GetChakraCoreSymbol(library, "JsGetExternalData");
     m_jsApiHooks.pfJsrtSetExternalData = (JsAPIHooks::JsrtSetExternalDataPtr)GetChakraCoreSymbol(library, "JsSetExternalData");
+    m_jsApiHooks.pfJsrtCloneObject = (JsAPIHooks::JsrtCloneObjectPtr)GetChakraCoreSymbol(library, "JsCloneObject");
     m_jsApiHooks.pfJsrtCreateArray = (JsAPIHooks::JsrtCreateArrayPtr)GetChakraCoreSymbol(library, "JsCreateArray");
     m_jsApiHooks.pfJsrtCreateArrayBuffer = (JsAPIHooks::JsrtCreateArrayBufferPtr)GetChakraCoreSymbol(library, "JsCreateArrayBuffer");
     m_jsApiHooks.pfJsrtCreateSharedArrayBufferWithSharedContent = (JsAPIHooks::JsrtCreateSharedArrayBufferWithSharedContentPtr)GetChakraCoreSymbol(library, "JsCreateSharedArrayBufferWithSharedContent");
@@ -119,6 +129,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtRelease = (JsAPIHooks::JsrtReleasePtr)GetChakraCoreSymbol(library, "JsRelease");
     m_jsApiHooks.pfJsrtAddRef = (JsAPIHooks::JsrtAddRefPtr)GetChakraCoreSymbol(library, "JsAddRef");
     m_jsApiHooks.pfJsrtGetValueType = (JsAPIHooks::JsrtGetValueType)GetChakraCoreSymbol(library, "JsGetValueType");
+    m_jsApiHooks.pfJsrtGetIndexedProperty = (JsAPIHooks::JsrtGetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsGetIndexedProperty");
     m_jsApiHooks.pfJsrtSetIndexedProperty = (JsAPIHooks::JsrtSetIndexedPropertyPtr)GetChakraCoreSymbol(library, "JsSetIndexedProperty");
     m_jsApiHooks.pfJsrtSetPromiseContinuationCallback = (JsAPIHooks::JsrtSetPromiseContinuationCallbackPtr)GetChakraCoreSymbol(library, "JsSetPromiseContinuationCallback");
     m_jsApiHooks.pfJsrtSetHostPromiseRejectionTracker = (JsAPIHooks::JsrtSetHostPromiseRejectionTrackerPtr)GetChakraCoreSymbol(library, "JsSetHostPromiseRejectionTracker");
@@ -178,6 +189,10 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtTTDGetSnapTimeTopLevelEventMove = (JsAPIHooks::JsrtTTDGetSnapTimeTopLevelEventMovePtr)GetChakraCoreSymbol(library, "JsTTDGetSnapTimeTopLevelEventMove");
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetChakraCoreSymbol(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
+    m_jsApiHooks.pfJsrtVarSerializer = (JsAPIHooks::JsrtVarSerializerPtr)GetChakraCoreSymbol(library, "JsVarSerializer");
+    m_jsApiHooks.pfJsrtVarDeserializer = (JsAPIHooks::JsrtVarDeserializerPtr)GetChakraCoreSymbol(library, "JsVarDeserializer");
+    m_jsApiHooks.pfJsrtDetachArrayBuffer = (JsAPIHooks::JsrtDetachArrayBufferPtr)GetChakraCoreSymbol(library, "JsDetachArrayBuffer");
+
 #ifdef _WIN32
     m_jsApiHooks.pfJsrtConnectJITProcess = (JsAPIHooks::JsrtConnectJITProcess)GetChakraCoreSymbol(library, "JsConnectJITProcess");
 #endif

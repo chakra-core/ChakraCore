@@ -525,21 +525,23 @@ PHASE(All)
 #define DEFAULT_CONFIG_MaxJitThreadCount        (2)
 #define DEFAULT_CONFIG_ForceMaxJitThreadCount   (false)
 
-#define DEFAULT_CONFIG_MitigateSpectre (true)
+#define DEFAULT_CONFIG_MitigateSpectre (false)
 
-#define DEFAULT_CONFIG_PoisonVarArrayLoad (true)
-#define DEFAULT_CONFIG_PoisonIntArrayLoad (true)
-#define DEFAULT_CONFIG_PoisonFloatArrayLoad (true)
-#define DEFAULT_CONFIG_PoisonTypedArrayLoad (true)
-#define DEFAULT_CONFIG_PoisonStringLoad (true)
-#define DEFAULT_CONFIG_PoisonObjectsForLoads (true)
+#define DEFAULT_CONFIG_AddMaskingBlocks (false)
 
-#define DEFAULT_CONFIG_PoisonVarArrayStore (true)
-#define DEFAULT_CONFIG_PoisonIntArrayStore (true)
-#define DEFAULT_CONFIG_PoisonFloatArrayStore (true)
-#define DEFAULT_CONFIG_PoisonTypedArrayStore (true)
+#define DEFAULT_CONFIG_PoisonVarArrayLoad (false)
+#define DEFAULT_CONFIG_PoisonIntArrayLoad (false)
+#define DEFAULT_CONFIG_PoisonFloatArrayLoad (false)
+#define DEFAULT_CONFIG_PoisonTypedArrayLoad (false)
+#define DEFAULT_CONFIG_PoisonStringLoad (false)
+#define DEFAULT_CONFIG_PoisonObjectsForLoads (false)
+
+#define DEFAULT_CONFIG_PoisonVarArrayStore (false)
+#define DEFAULT_CONFIG_PoisonIntArrayStore (false)
+#define DEFAULT_CONFIG_PoisonFloatArrayStore (false)
+#define DEFAULT_CONFIG_PoisonTypedArrayStore (false)
 #define DEFAULT_CONFIG_PoisonStringStore (true)
-#define DEFAULT_CONFIG_PoisonObjectsForStores (true)
+#define DEFAULT_CONFIG_PoisonObjectsForStores (false)
 
 #ifdef RECYCLER_PAGE_HEAP
 #define DEFAULT_CONFIG_PageHeap             ((Js::Number) PageHeapMode::PageHeapModeOff)
@@ -1322,6 +1324,8 @@ FLAGNR(Number,  MaxJitThreadCount     , "Number of maximum allowed parallel jit 
 FLAGNR(Boolean, ForceMaxJitThreadCount, "Force the number of parallel jit threads as specified by MaxJitThreadCount flag (creation guaranteed)", DEFAULT_CONFIG_ForceMaxJitThreadCount)
 
 FLAGR(Boolean, MitigateSpectre, "Use mitigations for Spectre", DEFAULT_CONFIG_MitigateSpectre)
+
+FLAGPR(Boolean, MitigateSpectre, AddMaskingBlocks, "Optimize Spectre mitigations by masking on loop out edges", DEFAULT_CONFIG_AddMaskingBlocks)
 
 FLAGPR(Boolean, MitigateSpectre, PoisonVarArrayLoad, "Poison loads from Var arrays", DEFAULT_CONFIG_PoisonVarArrayLoad)
 FLAGPR(Boolean, MitigateSpectre, PoisonIntArrayLoad, "Poison loads from Int arrays", DEFAULT_CONFIG_PoisonIntArrayLoad)

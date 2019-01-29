@@ -788,7 +788,7 @@ NativeCodeGenerator::IsValidVar(const Js::Var var, Recycler *const recycler)
         return false;
     }
 
-    // Not using DynamicObject::FromVar since there's a virtual call in there
+    // Not using VarTo<DynamicObject> since there's a virtual call in there
     DynamicObject *const object = static_cast<DynamicObject *>(recyclableObject);
     if(!recycler->IsValidObject(object, sizeof(*object)))
     {

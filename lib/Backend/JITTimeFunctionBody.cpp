@@ -258,6 +258,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->callSiteToCallApplyCallSiteArrayCount = jitBody->profiledCallSiteCount;
         jitBody->callSiteToCallApplyCallSiteArray = callSiteToCallApplyCallSiteArray;
     }
+    jitBody->callSiteToCallApplyCallSiteArray = functionBody->GetCallSiteToCallApplyCallSiteArrayWithLock();
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
