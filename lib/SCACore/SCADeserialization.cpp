@@ -14,7 +14,7 @@ namespace Js
             return false;
         }
 
-        ScriptContext* scriptContext = GetScriptContext();
+        ScriptContext* scriptContext = this->GetScriptContext();
         JavascriptLibrary* lib = scriptContext->GetLibrary();
 
         switch (typeId)
@@ -27,9 +27,9 @@ namespace Js
             {
                 scaposition_t pos;
                 m_reader->Read(&pos);
-                if (!GetEngine()->TryGetClonedObject(pos, dst))
+                if (!this->GetEngine()->TryGetClonedObject(pos, dst))
                 {
-                    ThrowSCADataCorrupt();
+                    this->ThrowSCADataCorrupt();
                 }
             }
             break;
@@ -92,7 +92,7 @@ namespace Js
     template <class Reader>
     bool DeserializationCloner<Reader>::TryCloneObject(SrcTypeId typeId, Src src, Dst* dst, SCADeepCloneType* deepClone)
     {
-        ScriptContext* scriptContext = GetScriptContext();
+        ScriptContext* scriptContext = this->GetScriptContext();
         JavascriptLibrary* lib = scriptContext->GetLibrary();
         *deepClone = SCADeepCloneType::None;
         bool isObject = true;
@@ -102,10 +102,10 @@ namespace Js
             scaposition_t pos;
             m_reader->Read(&pos);
 
-            *dst = GetEngine()->ClaimTransferable(pos, lib);
+            *dst = this->GetEngine()->ClaimTransferable(pos, lib);
             if (*dst == nullptr)
             {
-                ThrowSCADataCorrupt();
+                this->ThrowSCADataCorrupt();
             }
 
             return true;
@@ -325,7 +325,7 @@ namespace Js
                 for (uint32 i = 0; i < length; i++)
                 {
                     Dst value = NULL;
-                    GetEngine()->Clone(m_reader->GetPosition(), &value);
+                    this->GetEngine()->Clone(m_reader->GetPosition(), &value);
                     if (value)
                     {
                         arr->DirectSetItemAt(i, value); //Note: no prototype check
@@ -345,10 +345,10 @@ namespace Js
                     }
 
                     Dst value = NULL;
-                    GetEngine()->Clone(m_reader->GetPosition(), &value);
+                    this->GetEngine()->Clone(m_reader->GetPosition(), &value);
                     if (value == NULL)
                     {
-                        ThrowSCADataCorrupt();
+                        this->ThrowSCADataCorrupt();
                     }
 
                     arr->DirectSetItemAt(i, value); //Note: no prototype check
@@ -373,16 +373,16 @@ namespace Js
             Var key;
             Var value;
 
-            GetEngine()->Clone(m_reader->GetPosition(), &key);
+            this->GetEngine()->Clone(m_reader->GetPosition(), &key);
             if (!key)
             {
-                ThrowSCADataCorrupt();
+                this->ThrowSCADataCorrupt();
             }
 
-            GetEngine()->Clone(m_reader->GetPosition(), &value);
+            this->GetEngine()->Clone(m_reader->GetPosition(), &value);
             if (!value)
             {
-                ThrowSCADataCorrupt();
+                this->ThrowSCADataCorrupt();
             }
 
             map->Set(key, value);
@@ -401,10 +401,10 @@ namespace Js
         {
             Var value;
 
-            GetEngine()->Clone(m_reader->GetPosition(), &value);
+            this->GetEngine()->Clone(m_reader->GetPosition(), &value);
             if (!value)
             {
-                ThrowSCADataCorrupt();
+                this->ThrowSCADataCorrupt();
             }
 
             set->Add(value);
@@ -436,13 +436,12 @@ namespace Js
 
         if (byteLen == SCA_PROPERTY_TERMINATOR)
         {
-            return false;
+            return nullptr;
         }
         else if (byteLen == 0)
         {
-            static char16* emptyString = _u("");
             *len = 0;
-            return emptyString;
+            return _u("");
         }
         else
         {
@@ -453,7 +452,7 @@ namespace Js
             {
                 if (this->m_bufferLength < newLen)
                 {
-                    Recycler* recycler = GetScriptContext()->GetRecycler();
+                    Recycler* recycler = this->GetScriptContext()->GetRecycler();
                     this->m_buffer = RecyclerNewArrayLeaf(recycler, char16, newLen + 1);
                     this->m_bufferLength = newLen;
                 }
@@ -462,7 +461,7 @@ namespace Js
             }
             else
             {
-                Recycler* recycler = GetScriptContext()->GetRecycler();
+                Recycler* recycler = this->GetScriptContext()->GetRecycler();
                 buf = RecyclerNewArrayLeaf(recycler, char16, newLen + 1);
             }
 
@@ -492,7 +491,7 @@ namespace Js
 
         if (str == nullptr)
         {
-            ThrowSCADataCorrupt();
+            this->ThrowSCADataCorrupt();
         }
 
         return str;

@@ -3,8 +3,8 @@
 //----------------------------------------------------------------------------
 
 #include "SCACorePch.h"
-#include "Debug\ProbeContainer.h"
-#include "Debug\DebugContext.h"
+#include "Debug/ProbeContainer.h"
+#include "Debug/DebugContext.h"
 
 namespace Js
 {

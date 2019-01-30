@@ -105,7 +105,7 @@ void JsrtExternalObject::Dispose(bool isShutdown)
 void * JsrtExternalObject::GetSlotData() const
 {
     return this->slotType == SlotType::External
-        ? this->u.slot
+        ? unsafe_write_barrier_cast<void *>(this->u.slot)
         : GetInlineSlots();
 }
 
@@ -122,11 +122,11 @@ int JsrtExternalObject::GetInlineSlotSize() const
         : this->u.inlineSlotSize;
 }
 
-void* JsrtExternalObject::GetInlineSlots() const
+void * JsrtExternalObject::GetInlineSlots() const
 {
     return this->slotType == SlotType::External
         ? nullptr
-        : (void*)((uintptr_t)this + sizeof(JsrtExternalObject));
+        : (void *)((uintptr_t)this + sizeof(JsrtExternalObject));
 }
 
 Js::DynamicType* JsrtExternalObject::DuplicateType()

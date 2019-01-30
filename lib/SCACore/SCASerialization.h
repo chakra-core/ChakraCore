@@ -12,6 +12,11 @@ namespace Js
     class SerializationCloner:
         public ClonerBase<Var, scaposition_t, TypeId, SerializationCloner<Writer> >
     {
+    public:
+        using typename ClonerBase<Var, scaposition_t, TypeId, SerializationCloner<Writer> >::Dst;
+        using typename ClonerBase<Var, scaposition_t, TypeId, SerializationCloner<Writer> >::Src;
+        using typename ClonerBase<Var, scaposition_t, TypeId, SerializationCloner<Writer> >::SrcTypeId;
+
     private:
         //AutoCOMPtr<ISCAContext> m_pSCAContext;
         Writer* m_writer;
@@ -39,12 +44,12 @@ namespace Js
         void WriteTypedArray(Src src) const
         {
             typedef TypedArrayTrace<T, clamped, isVirtual> trace_type;
-            typedef trace_type::TypedArrayType array_type;
+            typedef typename trace_type::TypedArrayType array_type;
 
             WriteTypeId(trace_type::GetSCATypeId());
             array_type* arr = VarTo<array_type>(src);
 
-            GetEngine()->Clone(arr->GetArrayBuffer());
+            this->GetEngine()->Clone(arr->GetArrayBuffer());
 
             Write(arr->GetByteOffset());
             Write(arr->GetLength());
@@ -63,7 +68,7 @@ namespace Js
         template <class ArrayItemAccessor>
         void WriteArrayIndexProperties(JavascriptArray* arr)
         {
-            ScriptContext* scriptContext = GetScriptContext();
+            ScriptContext* scriptContext = this->GetScriptContext();
             uint32 length = arr->GetLength();
 
             for (uint32 i = 0; i < length; i++)
@@ -71,7 +76,7 @@ namespace Js
                 Var value = nullptr;
                 if (ArrayItemAccessor::GetItem(arr, i, &value, scriptContext))
                 {
-                    GetEngine()->Clone(value);
+                    this->GetEngine()->Clone(value);
                 }
                 else
                 {
@@ -86,7 +91,7 @@ namespace Js
         template <class IndexEnumerator, class ArrayItemAccessor>
         void WriteSparseArrayIndexProperties(typename IndexEnumerator::ArrayType* arr)
         {
-            ScriptContext* scriptContext = GetScriptContext();
+            ScriptContext* scriptContext = this->GetScriptContext();
             IndexEnumerator e(arr);
             Var value = nullptr;
 
@@ -96,7 +101,7 @@ namespace Js
                 if (ArrayItemAccessor::GetItem(arr, i, &value, scriptContext))
                 {
                     Write(i);
-                    GetEngine()->Clone(value);
+                    this->GetEngine()->Clone(value);
                 }
             }
 
@@ -115,7 +120,7 @@ namespace Js
                 Write(enumerator->GetNameString(), enumerator->GetNameLength());
 
                 // Write property value
-                GetEngine()->Clone(enumerator->GetValue());
+                this->GetEngine()->Clone(enumerator->GetValue());
             }
 
             // Write property terminator
@@ -155,7 +160,7 @@ namespace Js
 
     public:
         SerializationCloner(ScriptContext* scriptContext, Writer* writer, JsUtil::List<SharedContents*, HeapAllocator>* sharedContentsrList)
-            : ClonerBase(scriptContext), m_writer(writer), m_sharedContentsrList(sharedContentsrList)
+            : ClonerBase<Var, scaposition_t, TypeId, SerializationCloner<Writer> >(scriptContext), m_writer(writer), m_sharedContentsrList(sharedContentsrList)
         {
         }
 

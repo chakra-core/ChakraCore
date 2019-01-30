@@ -74,10 +74,14 @@ private:
     };
 
     Field(SlotType) slotType;
-    union
+    union SlotInfo
     {
         Field(void *) slot;
         Field(uint) inlineSlotSize;
+        SlotInfo()
+        {
+            memset(this, 0, sizeof(SlotInfo));
+        }
     } u;
 
 #if ENABLE_TTD

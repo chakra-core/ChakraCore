@@ -42,7 +42,6 @@ namespace Js
         FieldNoBarrier(JsFinalizeCallback const) jsFinalizeCallback;
         FieldNoBarrier(JsGetterSetterInterceptor *) jsGetterSetterInterceptor;
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::CustomExternalWrapperType, &Js::Type::DumpObjectFunction);
 
     class CustomExternalWrapperObject : public DynamicObject
     {
@@ -163,10 +162,14 @@ namespace Js
 
         Field(bool) initialized = false;
         Field(SlotType) slotType;
-        union
+        union SlotInfo
         {
             Field(void *) slot;
             Field(uint) inlineSlotSize;
+            SlotInfo()
+            {
+                memset(this, 0, sizeof(SlotInfo));
+            }
         } u;
 
         Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext * requestContext);
@@ -228,4 +231,6 @@ namespace Js
     }
 
 }
+
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::CustomExternalWrapperType, &Js::Type::DumpObjectFunction);
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::CustomExternalWrapperObject, &Js::RecyclableObject::DumpObjectFunction);

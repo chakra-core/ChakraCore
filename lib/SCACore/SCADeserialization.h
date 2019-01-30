@@ -14,6 +14,10 @@ namespace Js
     class DeserializationCloner:
         public ClonerBase<scaposition_t, Var, SCATypeId, DeserializationCloner<Reader> >
     {
+    public:
+        using typename ClonerBase<scaposition_t, Var, SCATypeId, DeserializationCloner<Reader> >::Dst;
+        using typename ClonerBase<scaposition_t, Var, SCATypeId, DeserializationCloner<Reader> >::Src;
+        using typename ClonerBase<scaposition_t, Var, SCATypeId, DeserializationCloner<Reader> >::SrcTypeId;
     private:
         //AutoCOMPtr<ISCAHost> m_pSCAHost;
         //AutoCOMPtr<ISCAContext> m_pSCAContext;
@@ -48,17 +52,17 @@ namespace Js
             typedef TypedArrayTrace<T,clamped> trace_type;
 
             Dst arrayBuffer;
-            GetEngine()->Clone(m_reader->GetPosition(), &arrayBuffer);
+            this->GetEngine()->Clone(m_reader->GetPosition(), &arrayBuffer);
             if (!arrayBuffer || !VarIs<ArrayBufferBase>(arrayBuffer))
             {
-                ThrowSCADataCorrupt();
+                this->ThrowSCADataCorrupt();
             }
 
             uint32 byteOffset, length;
             Read(&byteOffset);
             Read(&length);
             *dst = trace_type::CreateTypedArray(
-                VarTo<ArrayBufferBase>(arrayBuffer), byteOffset, length, GetScriptContext());
+                VarTo<ArrayBufferBase>(arrayBuffer), byteOffset, length, this->GetScriptContext());
         }
 
         void ReadTypedArray(SrcTypeId typeId, Dst* dst) const;
@@ -68,7 +72,7 @@ namespace Js
         //
         void ReadObjectPropertiesIntoObject(RecyclableObject* m_obj)
         {
-            ScriptContext* scriptContext = GetScriptContext();
+            ScriptContext* scriptContext = this->GetScriptContext();
 
             for(;;)
             {
@@ -87,10 +91,10 @@ namespace Js
                 //       The propertyRecord keeps its own copy od the data.
 
                 Var value;
-                GetEngine()->Clone(m_reader->GetPosition(), &value);
+                this->GetEngine()->Clone(m_reader->GetPosition(), &value);
                 if (!value)
                 {
-                    ThrowSCADataCorrupt();
+                    this->ThrowSCADataCorrupt();
                 }
 
                 m_obj->SetProperty(propertyRecord->GetPropertyId(), value, PropertyOperation_None, NULL); //Note: no prototype check
@@ -110,10 +114,10 @@ namespace Js
                 }
 
                 Var value;
-                GetEngine()->Clone(m_reader->GetPosition(), &value);
+                this->GetEngine()->Clone(m_reader->GetPosition(), &value);
                 if (!value)
                 {
-                    ThrowSCADataCorrupt();
+                    this->ThrowSCADataCorrupt();
                 }
 
                 HRESULT hr = m_propbag->InternalAddNoCopy(name, len, value);
@@ -123,7 +127,7 @@ namespace Js
 
     public:
         DeserializationCloner(ScriptContext* scriptContext, Reader* reader)
-            : ClonerBase(scriptContext), m_reader(reader), 
+            : ClonerBase<scaposition_t, Var, SCATypeId, DeserializationCloner<Reader> >(scriptContext), m_reader(reader), 
                          m_buffer(nullptr), m_bufferLength(0)
         {
         }
@@ -144,7 +148,7 @@ namespace Js
         void ThrowSCAUnsupported() const
         {
             // Unexpected SCATypeId indicates data corruption.
-            ThrowSCADataCorrupt();
+            this->ThrowSCADataCorrupt();
         }
 
         bool TryClonePrimitive(SrcTypeId typeId, Src src, Dst* dst);

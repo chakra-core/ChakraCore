@@ -3,21 +3,21 @@
 //----------------------------------------------------------------------------
 
 #include "SCACorePch.h"
-#include "common\ByteSwap.h"
-#include "Library\JavascriptNumberObject.h"
-#include "Library\JavascriptStringObject.h"
-#include "Library\JavascriptBooleanObject.h"
-#include "Library\DateImplementation.h"
-#include "Library\JavascriptDate.h"
-#include "Library\dataview.h"
-#include "Library\ES5Array.h"
+#include "Common/ByteSwap.h"
+#include "Library/JavascriptNumberObject.h"
+#include "Library/JavascriptStringObject.h"
+#include "Library/JavascriptBooleanObject.h"
+#include "Library/DateImplementation.h"
+#include "Library/JavascriptDate.h"
+#include "Library/DataView.h"
+#include "Library/ES5Array.h"
 
-#include "Types\PropertyIndexRanges.h"
-#include "Types\DictionaryPropertyDescriptor.h"
-#include "Types\DictionaryTypeHandler.h"
-#include "Types\ES5ArrayTypeHandler.h"
-#include "Library\JavascriptArrayIndexStaticEnumerator.h"
-#include "Library\ES5ArrayIndexStaticEnumerator.h"
+#include "Types/PropertyIndexRanges.h"
+#include "Types/DictionaryPropertyDescriptor.h"
+#include "Types/DictionaryTypeHandler.h"
+#include "Types/ES5ArrayTypeHandler.h"
+#include "Library/JavascriptArrayIndexStaticEnumerator.h"
+#include "Library/ES5ArrayIndexStaticEnumerator.h"
 
 namespace Js
 {
@@ -82,7 +82,7 @@ namespace Js
         *deepClone = SCADeepCloneType::None;
 
         size_t transferredIndex = 0;
-        if (this->CanBeTransferred(typeId) && GetEngine()->TryGetTransferredOrShared(src, &transferredIndex))
+        if (this->CanBeTransferred(typeId) && this->GetEngine()->TryGetTransferredOrShared(src, &transferredIndex))
         {
             WriteTypeId(SCA_Transferable);
             m_writer->Write((uint32)transferredIndex);
@@ -90,7 +90,7 @@ namespace Js
         else if (JavascriptOperators::IsObjectDetached(src))
         {
             //Object is detached, throw error
-            ThrowSCAObjectDetached();
+            this->ThrowSCAObjectDetached();
         }
         else
         {
@@ -286,7 +286,7 @@ namespace Js
         RecyclableObject* obj = VarTo<RecyclableObject>(src);
         // allocate the JavascriptStaticEnumerator on the heap to avoid blowing the stack
         JavascriptStaticEnumerator enumerator;
-        ScriptContext* scriptContext = GetScriptContext();
+        ScriptContext* scriptContext = this->GetScriptContext();
         if (DynamicObject::IsAnyArrayTypeId(srcTypeId))
         {
             JavascriptArray* arr = JavascriptArray::FromAnyArray(src);
@@ -329,8 +329,8 @@ namespace Js
         while (iter.Next())
         {
             const JavascriptMap::MapDataKeyValuePair& entry = iter.Current();
-            GetEngine()->Clone(entry.Key());
-            GetEngine()->Clone(entry.Value());
+            this->GetEngine()->Clone(entry.Key());
+            this->GetEngine()->Clone(entry.Value());
         }
     }
 
@@ -344,7 +344,7 @@ namespace Js
         JavascriptSet::SetDataList::Iterator iter = set->GetIterator();
         while (iter.Next())
         {
-            GetEngine()->Clone(iter.Current());
+            this->GetEngine()->Clone(iter.Current());
         }
     }
 
@@ -591,7 +591,7 @@ namespace Js
     {
         if (m_innerEnumerator)
         {
-            ScriptContext* scriptContext = GetScriptContext();
+            ScriptContext* scriptContext = this->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             Var propertyName;
             PropertyId propertyId;
