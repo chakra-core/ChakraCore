@@ -12,6 +12,7 @@
 
 #include "rpc.h"
 #include "rpcndr.h"
+#include <initguid.h>
 
 #ifndef __IUnknown_INTERFACE_DEFINED__
 #define __IUnknown_INTERFACE_DEFINED__
@@ -21,7 +22,7 @@ typedef interface IUnknown IUnknown;
 typedef /* [unique] */ IUnknown *LPUNKNOWN;
 
 // 00000000-0000-0000-C000-000000000046
-EXTERN_C const IID IID_IUnknown;
+DEFINE_GUID(IID_IUnknown, 0x00000000, 0x0000, 0x0000, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
 
 MIDL_INTERFACE("00000000-0000-0000-C000-000000000046")
 IUnknown
