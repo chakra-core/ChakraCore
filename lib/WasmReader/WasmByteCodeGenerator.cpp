@@ -1579,6 +1579,7 @@ EmitInfo WasmBytecodeGenerator::EmitExtractLaneExpr(Js::OpCodeAsmJs op, const Wa
     WasmTypes::WasmType simdArgType = signature[1];
 
     EmitInfo simdArgInfo = PopEvalStack(simdArgType, _u("Argument should be of type V128"));
+    ReleaseLocation(&simdArgInfo);
 
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
     EmitInfo resultInfo(resultReg, resultType);
