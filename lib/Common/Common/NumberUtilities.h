@@ -64,6 +64,7 @@ namespace Js
         static const double     MAX_VALUE;
         static const double     MIN_VALUE;
         static const double     NaN;
+        static const double     NegativeNaN;
         static const double     NEGATIVE_INFINITY;
         static const double     POSITIVE_INFINITY;
         static const double     NEG_ZERO;
@@ -99,6 +100,7 @@ namespace Js
 
         static bool IsFinite(double value);
         static bool IsNan(double value);
+        static bool IsNegative(double value);
         static bool IsFloat32NegZero(float value);
         static bool IsSpecial(double value, uint64 nSpecial);
         static uint64 ToSpecial(double value);

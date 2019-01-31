@@ -72,3 +72,34 @@ test2();
 test2();
 test2();
 WScript.Echo("PASSED\n");
+
+function test3(a, b)
+{
+    return String.prototype.replace.call(a, b, "a")
+}
+test3("foobar", /foo/i)
+test3("foobar", /foo/i)
+test3("foobar", /foo/i)
+print("passed")
+
+function test4()
+{
+  function bar(a)
+  {
+      return 'call'
+  }
+  function test()
+  {
+      return this;
+  }
+  function foo()
+  {
+      test[bar('1')](this);
+      test.call(this);
+  }
+  foo()
+  foo()
+  foo()
+}
+test4()
+print("passed")

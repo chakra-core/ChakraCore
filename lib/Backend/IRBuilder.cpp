@@ -4857,6 +4857,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
             regOpnd = this->BuildDstOpnd(regSlot);
 
             instr = IR::ProfiledInstr::New(newOpcode, regOpnd, fieldSymOpnd, value2Opnd, m_func);
+            instr->AsProfiledInstr()->u.FldInfo() = *(m_func->GetReadOnlyProfileInfo()->GetFldInfo(propertyIdIndex));
             this->AddInstr(instr, offset);
         }
         break;
@@ -4878,7 +4879,7 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         value2Opnd = this->BuildSrcOpnd(value2Slot);
 
         instr = IR::ProfiledInstr::New(newOpcode, fieldSymOpnd, regOpnd, value2Opnd, m_func);
-
+        instr->AsProfiledInstr()->u.FldInfo() = *(m_func->GetReadOnlyProfileInfo()->GetFldInfo(propertyIdIndex));
         this->AddInstr(instr, offset);
         break;
     }
