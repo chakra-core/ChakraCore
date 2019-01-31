@@ -464,15 +464,13 @@ JsValueRef __stdcall WScriptJsrt::Deserialize(JsValueRef callee, bool isConstruc
         {
             transferables = new JsValueRef[arraySize];
 
-            size_t i = 0;
-            for (const auto& it : blob->transferableArrays)
+            for (size_t i = 0; i < arraySize; ++i)
             {
                 JsValueRef result = nullptr;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer(it.first, it.second, nullptr, nullptr, &result));
-                transferables[i++] = result;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer(blob->transferableArrays[i].first, blob->transferableArrays[i].second, nullptr, nullptr, &result));
+                transferables[i] = result;
             }
 
-            Assert(i == arraySize);
             IfJsrtErrorSetGo(deserializerHandle->SetTransferableVars(transferables, arraySize));
         }
 

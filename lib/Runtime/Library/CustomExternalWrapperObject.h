@@ -170,7 +170,8 @@ namespace Js
             {
                 memset(this, 0, sizeof(SlotInfo));
             }
-        } u;
+        };
+        Field(SlotInfo) u;
 
         Var GetValueFromDescriptor(Var instance, PropertyDescriptor propertyDescriptor, ScriptContext * requestContext);
         Var GetName(ScriptContext* requestContext, PropertyId propertyId, Var * isPropertyNameNumeric, Var * propertyNameNumericValue);

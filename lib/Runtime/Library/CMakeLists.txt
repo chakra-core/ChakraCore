@@ -33,6 +33,7 @@ set(CRLIB_SOURCE_CODES
     CommonExternalApiImpl.cpp
     CompoundString.cpp
     ConcatString.cpp
+    CustomExternalWrapperObject.cpp
     DataView.cpp
     DateImplementation.cpp
     ES5Array.cpp

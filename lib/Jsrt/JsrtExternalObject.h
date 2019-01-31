@@ -82,7 +82,8 @@ private:
         {
             memset(this, 0, sizeof(SlotInfo));
         }
-    } u;
+    };
+    Field(SlotInfo) u;
 
 #if ENABLE_TTD
 public:

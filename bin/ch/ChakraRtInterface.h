@@ -16,7 +16,7 @@ struct JsAPIHooks
     typedef JsErrorCode (WINAPI *JsrtDisposeRuntimePtr)(JsRuntimeHandle runtime);
     typedef JsErrorCode (WINAPI *JsrtCreateObjectPtr)(JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtCreateExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef *object);
-    typedef JsErrorCode (WINAPI *JsrtCreateCustomExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef *object);
+    typedef JsErrorCode (WINAPI *JsrtCreateCustomExternalObjectPtr)(void* data, JsFinalizeCallback callback, JsGetterSetterInterceptor ** getterSetterInterceptor, JsValueRef *object);
     typedef JsErrorCode (WINAPI *JsrtGetArrayForEachFunctionPtr)(JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtGetArrayKeysFunctionPtr)(JsValueRef *result);
     typedef JsErrorCode (WINAPI *JsrtGetArrayValuesFunctionPtr)(JsValueRef *result);
@@ -368,7 +368,7 @@ public:
     static JsErrorCode WINAPI JsDisposeRuntime(JsRuntimeHandle runtime) { return HOOK_JS_API(DisposeRuntime(runtime)); }
     static JsErrorCode WINAPI JsCreateObject(JsValueRef *object) { return HOOK_JS_API(CreateObject(object)); }
     static JsErrorCode WINAPI JsCreateExternalObject(void *data, JsFinalizeCallback callback, JsValueRef *object) { return HOOK_JS_API(CreateExternalObject(data, callback, object)); }
-    static JsErrorCode WINAPI JsCreateCustomExternalObject(void *data, JsFinalizeCallback callback, JsValueRef getterSetterInterceptor, JsValueRef * object) { return HOOK_JS_API(CreateCustomExternalObject(data, callback, getterSetterInterceptor, object)); }
+    static JsErrorCode WINAPI JsCreateCustomExternalObject(void *data, JsFinalizeCallback callback, JsGetterSetterInterceptor ** getterSetterInterceptor, JsValueRef * object) { return HOOK_JS_API(CreateCustomExternalObject(data, callback, getterSetterInterceptor, object)); }
     static JsErrorCode WINAPI JsGetArrayForEachFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayForEachFunction(result)); }
     static JsErrorCode WINAPI JsGetArrayKeysFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayKeysFunction(result)); }
     static JsErrorCode WINAPI JsGetArrayValuesFunction(JsValueRef * result) { return HOOK_JS_API(GetArrayValuesFunction(result)); }

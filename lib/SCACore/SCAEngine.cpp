@@ -4,8 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "SCACorePch.h"
+#ifdef ENABLE_SCRIPT_DEBUGGING
 #include "Debug/ProbeContainer.h"
 #include "Debug/DebugContext.h"
+#endif
 
 namespace Js
 {

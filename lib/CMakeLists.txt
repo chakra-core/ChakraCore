@@ -40,6 +40,7 @@ add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Runtime.Types>
   $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
   $<TARGET_OBJECTS:Chakra.Parser>
+  $<TARGET_OBJECTS:Chakra.SCACore>
   ${wasm_objects}
   ${wabt_objects}
   ${lttng_objects}
@@ -77,6 +78,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${CHAKRACORE_SOURCE_DIR}/lib/SCACore
   ${wasm_includes}
   ${wabt_includes}
   )

@@ -272,7 +272,7 @@ void CustomExternalWrapperObject::Dispose(bool isShutdown)
 void * CustomExternalWrapperObject::GetSlotData() const
 {
     return this->slotType == SlotType::External
-        ? this->u.slot
+        ? unsafe_write_barrier_cast<void *>(this->u.slot)
         : GetInlineSlots();
 }
 
