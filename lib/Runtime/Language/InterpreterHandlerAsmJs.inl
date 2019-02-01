@@ -420,7 +420,7 @@ EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Opera
 EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
 
   // args out, copy value to outParams
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::M128,true>)  , Reg1Float32x4_1)
+EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::V128,true>)  , Reg1Float32x4_1)
 EXDEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
 
