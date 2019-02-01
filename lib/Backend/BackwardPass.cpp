@@ -8710,6 +8710,12 @@ BackwardPass::VerifyByteCodeUpwardExposed(BasicBlock* block, Func* func, BVSpars
         // We've collected the Backward bytecodeUpwardExposeUses for nothing, oh well.
         if (this->func->hasBailout)
         {
+            if (instr->GetPrevRealInstrOrLabel()->GetByteCodeOffset() == instr->GetByteCodeOffset())
+            {
+                // When successive instr have same bytecode offset, do the check only on the first instr with that bytecode offset
+                // This will avoid false positives when we have successive instr with same bytecode offset
+                return;
+            }
             BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = GetByteCodeRegisterUpwardExposed(block, func, this->tempAlloc);
             BVSparse<JitArenaAllocator>* notInDeadStore = trackingByteCodeUpwardExposedUsed->MinusNew(byteCodeUpwardExposedUsed, this->tempAlloc);
 
