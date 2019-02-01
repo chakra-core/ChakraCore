@@ -10,15 +10,15 @@ namespace Js
     typedef void (*JsFinalizeCallback)(void * data);
 
     typedef struct JsGetterSetterInterceptor {
-        void * getTrap;
-        void * setTrap;
-        void * deletePropertyTrap;
-        void * enumerateTrap;
-        void * ownKeysTrap;
-        void * hasTrap;
-        void * getOwnPropertyDescriptorTrap;
-        void * definePropertyTrap;
-        void * initializeTrap;
+        Field(void *) getTrap;
+        Field(void *) setTrap;
+        Field(void *) deletePropertyTrap;
+        Field(void *) enumerateTrap;
+        Field(void *) ownKeysTrap;
+        Field(void *) hasTrap;
+        Field(void *) getOwnPropertyDescriptorTrap;
+        Field(void *) definePropertyTrap;
+        Field(void *) initializeTrap;
 
         explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 

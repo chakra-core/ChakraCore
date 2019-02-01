@@ -42,6 +42,7 @@ typedef BYTE* ChakraBytePtr;
 #define _In_z_
 #define _In_opt_
 #define _Inout_
+#define _Inout_opt_
 #define _Out_
 #define _Out_opt_
 #define _In_reads_(x)
