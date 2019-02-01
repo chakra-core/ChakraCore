@@ -1277,6 +1277,10 @@ namespace Js
         randSeed0 = 0;
         randSeed1 = 0;
 
+        if (globalObject->GetScriptContext()->GetConfig()->IsESGlobalThisEnabled())
+        {
+            AddMember(globalObject, PropertyIds::globalThis, globalObject, PropertyConfigurable | PropertyWritable);
+        }
         AddMember(globalObject, PropertyIds::NaN, nan, PropertyNone);
         AddMember(globalObject, PropertyIds::Infinity, positiveInfinite, PropertyNone);
         AddMember(globalObject, PropertyIds::undefined, undefinedValue, PropertyNone);
