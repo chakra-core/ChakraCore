@@ -143,7 +143,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , constantAddressRegOpnd(alloc)
     , lastConstantAddressRegLoadInstr(nullptr)
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
-    , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
     , m_forInLoopBaseDepth(0)
@@ -1030,29 +1029,6 @@ Func::GetLocalsPointer() const
 }
 
 #endif
-
-void Func::AddSlotArrayCheck(IR::SymOpnd *fieldOpnd)
-{
-    if (PHASE_OFF(Js::ClosureRangeCheckPhase, this))
-    {
-        return;
-    }
-
-    Assert(IsTopFunc());
-    if (this->slotArrayCheckTable == nullptr)
-    {
-        this->slotArrayCheckTable = SlotArrayCheckTable::New(m_alloc, 4);
-    }
-
-    PropertySym *propertySym = fieldOpnd->m_sym->AsPropertySym();
-    uint32 slot = propertySym->m_propertyId;
-    uint32 *pSlotId = this->slotArrayCheckTable->FindOrInsert(slot, propertySym->m_stackSym->m_id);
-
-    if (pSlotId && (*pSlotId == (uint32)-1 || *pSlotId < slot))
-    {
-        *pSlotId = propertySym->m_propertyId;
-    }
-}
 
 void Func::AddFrameDisplayCheck(IR::SymOpnd *fieldOpnd, uint32 slotId)
 {

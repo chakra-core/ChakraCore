@@ -2251,13 +2251,20 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
 
         case Js::OpCode::StSlot:
+        {
+            PropertySym *propertySym = instr->GetDst()->AsSymOpnd()->m_sym->AsPropertySym();
+            instrPrev = AddSlotArrayCheck(propertySym, instr);
             this->LowerStSlot(instr);
             break;
+        }
 
         case Js::OpCode::StSlotChkUndecl:
+        {
+            PropertySym *propertySym = instr->GetDst()->AsSymOpnd()->m_sym->AsPropertySym();
+            instrPrev = AddSlotArrayCheck(propertySym, instr);
             this->LowerStSlotChkUndecl(instr);
             break;
-
+        }
         case Js::OpCode::ProfiledLoopStart:
         {
             Assert(m_func->DoSimpleJitDynamicProfile());
@@ -2432,6 +2439,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif
 
         case Js::OpCode::LdSlot:
+        {
+            PropertySym *propertySym = instr->GetSrc1()->AsSymOpnd()->m_sym->AsPropertySym();
+            instrPrev = AddSlotArrayCheck(propertySym, instr);
+        }
         case Js::OpCode::LdSlotArr:
         {
             Js::ProfileId profileId;
@@ -10887,6 +10898,78 @@ Lowerer::CreateOpndForSlotAccess(IR::Opnd * opnd)
     IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(symOpnd->CreatePropertyOwnerOpnd(m_func),
        offset , opnd->GetType(), this->m_func);
     return indirOpnd;
+}
+
+IR::Instr* Lowerer::AddSlotArrayCheck(PropertySym *propertySym, IR::Instr* instr)
+{
+    if (propertySym->m_stackSym != m_func->GetLocalClosureSym() || PHASE_OFF(Js::ClosureRangeCheckPhase, m_func))
+    {
+        return instr->m_prev;
+    }
+
+    IR::Instr *instrDef = propertySym->m_stackSym->m_instrDef;
+
+    bool doDynamicCheck = this->m_func->IsLoopBody();
+    bool insertSlotArrayCheck = false;
+    uint32 slotId = (uint32)propertySym->m_propertyId;
+
+    if (instrDef)
+    {
+        switch (instrDef->m_opcode)
+        {
+        case Js::OpCode::NewScopeSlots:
+        case Js::OpCode::NewStackScopeSlots:
+        case Js::OpCode::NewScopeSlotsWithoutPropIds:
+        {
+            IR::Opnd *allocOpnd = allocOpnd = instrDef->GetSrc1();
+            uint32 allocCount = allocOpnd->AsIntConstOpnd()->AsUint32();
+
+            if (slotId >= allocCount)
+            {
+                Js::Throw::FatalInternalError();
+            }
+            break;
+        }
+        case Js::OpCode::ArgIn_A:
+            break;
+        case Js::OpCode::LdSlot:
+        case Js::OpCode::LdSlotArr:
+        {
+            if (doDynamicCheck && slotId > Js::ScopeSlots::FirstSlotIndex)
+            {
+                insertSlotArrayCheck = true;
+            }
+            break;
+        }
+        case Js::OpCode::SlotArrayCheck:
+        {
+            uint32 currentSlotId = instrDef->GetSrc2()->AsIntConstOpnd()->AsInt32();
+            if (slotId > currentSlotId)
+            {
+                instrDef->ReplaceSrc2(IR::IntConstOpnd::New(slotId, TyUint32, m_func));
+            }
+            break;
+        }
+        default:
+            Js::Throw::FatalInternalError();
+        }
+    }
+    if (insertSlotArrayCheck)
+    {
+        IR::Instr *insertInstr = instrDef->m_next;
+        IR::RegOpnd *dstOpnd = instrDef->UnlinkDst()->AsRegOpnd();
+        IR::Instr *checkInstr = IR::Instr::New(Js::OpCode::SlotArrayCheck, dstOpnd, m_func);
+
+        dstOpnd = IR::RegOpnd::New(TyVar, m_func);
+        instrDef->SetDst(dstOpnd);
+        checkInstr->SetSrc1(dstOpnd);
+
+        // Attach the slot ID to the check instruction.
+        IR::IntConstOpnd *slotIdOpnd = IR::IntConstOpnd::New(slotId, TyUint32, m_func);
+        checkInstr->SetSrc2(slotIdOpnd);
+        insertInstr->InsertBefore(checkInstr);
+    }
+    return instr->m_prev;
 }
 
 IR::Instr *
