@@ -37,22 +37,6 @@ namespace Js
         void Write(const void* pv, size_t cb);
         void WriteHostObject(void* data);
 
-        //template <typename T>
-        //void Write(const T& value)
-        //{
-        //    C_ASSERT(BUF_SIZE >= sizeof(T));
-
-        //    if (m_cur <= BUF_SIZE - sizeof(T))
-        //    {
-        //        *(T*)(m_buf + m_cur) = value;
-        //        m_cur += sizeof(T);
-        //    }
-        //    else
-        //    {
-        //        Write(&value, sizeof(T));
-        //    }
-        //}
-
         template <typename T>
         void Write(const T& value)
         {

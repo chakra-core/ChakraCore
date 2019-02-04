@@ -278,44 +278,6 @@ void WScriptJsrt::SetExceptionIf(JsErrorCode errorCode, LPCWSTR errorMessage)
     }
 }
 
-class SerializerDelegateData : public SerializerCallbackBase
-{
-public:
-    virtual byte *ReallocateBufferMemory(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override
-    {
-        void* data = realloc((void*)oldBuffer, newSize);
-        if (allocatedSize)
-        {
-            *allocatedSize = newSize;
-        }
-        return (byte*)data;
-    }
-
-
-    virtual void FreeBufferMemory(byte *buffer) override
-    {
-        free(buffer);
-    }
-
-    virtual void ThrowDataCloneError(void *message)
-    {
-        // TBD
-    }
-
-    virtual bool WriteHostObject(JsValueRef data)
-    {
-        // Not implemented
-        return true;
-    }
-
-    virtual uint GetSharedArrayBufferId(JsValueRef sharedArrayBuffer)
-    {
-        // Not implemented
-        return 0;
-    }
-
-};
-
 class DeserializerDelegateData : public DeserializerCallbackBase
 {
 public:
@@ -336,6 +298,22 @@ public:
         return nullptr;
     }
 };
+
+byte * CHAKRA_CALLBACK ReallocateBufferMemory(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
+{
+    void* data = realloc((void*)oldBuffer, newSize);
+    if (allocatedSize)
+    {
+        *allocatedSize = newSize;
+    }
+    return (byte*)data;
+}
+
+bool CHAKRA_CALLBACK WriteHostObject(JsValueRef data)
+{
+    // Not implemented
+    return true;
+}
 
 JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
@@ -402,15 +380,14 @@ JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isCons
             }
         }
 
-        SerializerDelegateData *delegateData = new SerializerDelegateData();
-        SerializerHandleBase *serializerHandle = nullptr;
+        JsVarSerializerHandle serializerHandle = nullptr;
 
         // This memory will be claimed at WScriptJsrt::Deserialize.
         SerializerBlob *blob = new SerializerBlob();
-        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializer(delegateData, &serializerHandle));
-        IfJsrtErrorSetGo(serializerHandle->SetTransferableVars(transferVarsArray, transferVarsCount));
-        serializerHandle->WriteValue(rootObject);
-        serializerHandle->ReleaseData((byte**)&blob->data, &blob->dataLength);
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializer(ReallocateBufferMemory, WriteHostObject, &serializerHandle));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerSetTransferableVars(serializerHandle, transferVarsArray, transferVarsCount));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerWriteValue(serializerHandle, rootObject));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerReleaseData(serializerHandle, (byte**)&blob->data, &blob->dataLength));
 
         for (int i = 0; i < transferVarsCount; i++)
         {
@@ -423,7 +400,7 @@ JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isCons
         }
 
         errorCode = ChakraRTInterface::JsCreateExternalArrayBuffer((void*)blob, sizeof(SerializerBlob), nullptr, nullptr, &returnValue);
-        serializerHandle->FreeSelf();
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerFree(serializerHandle));
     }
 Error:
     SetExceptionIf(errorCode, errorMessage);

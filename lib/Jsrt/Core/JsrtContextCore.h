@@ -33,16 +33,18 @@ private:
     FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
 };
 
-class ChakraCoreStreamWriter : public HostStream, public SerializerHandleBase
+class ChakraCoreStreamWriter : public HostStream
 {
-    SerializerCallbackBase *m_delegate;
     Js::SCACore::Serializer *m_serializerCore;
     byte* m_data;
     size_t m_length;
 
+    ReallocateBufferMemoryFunc reallocateBufferMemory;
+    WriteHostObjectFunc writeHostObject;
 public:
-    ChakraCoreStreamWriter(SerializerCallbackBase *delegate)
-        : m_delegate(delegate),
+    ChakraCoreStreamWriter(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject) :
+        reallocateBufferMemory(reallocateBufferMemory),
+        writeHostObject(writeHostObject),
         m_data(nullptr),
         m_length(0),
         m_serializerCore(nullptr)
@@ -53,15 +55,15 @@ public:
 
     void SetSerializer(Js::SCACore::Serializer *s);
 
-    void WriteRawBytes(const void* source, size_t length) override;
-    bool WriteValue(JsValueRef root) override;
-    bool ReleaseData(byte** data, size_t *dataLength) override;
-    bool DetachArrayBuffer() override;
-    JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) override;
-    void FreeSelf() override;
+    void WriteRawBytes(const void* source, size_t length);
+    bool WriteValue(JsValueRef root);
+    bool ReleaseData(byte** data, size_t *dataLength);
+    bool DetachArrayBuffer();
+    JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
+    void FreeSelf();
 
-    bool WriteHostObject(void* data) override;
-    byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
+    virtual bool WriteHostObject(void* data) override;
+    virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
 };
 
 class ChakraHostDeserializerHandle : public HostReadStream, public DeserializerHandleBase

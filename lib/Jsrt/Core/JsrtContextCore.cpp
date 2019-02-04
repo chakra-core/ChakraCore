@@ -164,29 +164,10 @@ ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
     HeapDelete(m_serializerCore);
 }
 
-bool ChakraCoreStreamWriter::WriteHostObject(void* data)
-{
-    Assert(m_delegate);
-    return WriteHostObject(data);
-}
-
 byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
 {
-    if (m_delegate)
-    {
-        m_data = m_delegate->ReallocateBufferMemory(oldBuffer, newSize, allocatedSize);
-        m_length = newSize;
-    }
-    else
-    {
-        void* data = realloc((void*)oldBuffer, newSize);
-        if (allocatedSize)
-        {
-            *allocatedSize = newSize;
-        }
-        m_data = (byte*)data;
-        m_length = newSize;
-    }
+    m_data = this->reallocateBufferMemory(oldBuffer, newSize, allocatedSize);
+    m_length = newSize;
 
     if (m_data == nullptr)
     {
@@ -194,6 +175,11 @@ byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, siz
         OutOfMemory_unrecoverable_error();
     }
     return m_data;
+}
+
+bool ChakraCoreStreamWriter::WriteHostObject(void* data)
+{
+    return this->writeHostObject(data);
 }
 
 void ChakraCoreStreamWriter::SetSerializer(Js::SCACore::Serializer *s)

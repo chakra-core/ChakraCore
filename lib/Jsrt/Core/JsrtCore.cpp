@@ -259,21 +259,110 @@ CHAKRA_API JsGetModuleNamespace(_In_ JsModuleRecord requestModule, _Outptr_resul
 
 CHAKRA_API
 JsVarSerializer(
-    _In_ SerializerCallbackBase *delegate,
-    _Out_ SerializerHandleBase **serializerHandle)
+    _In_ ReallocateBufferMemoryFunc reallocateBufferMemory,
+    _In_ WriteHostObjectFunc writeHostObject,
+    _Out_ JsVarSerializerHandle *serializerHandle)
 {
-    PARAM_NOT_NULL(delegate);
+    PARAM_NOT_NULL(reallocateBufferMemory);
+    PARAM_NOT_NULL(writeHostObject);
     PARAM_NOT_NULL(serializerHandle);
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, delegate);
+        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, reallocateBufferMemory, writeHostObject);
         writer->SetSerializer(HeapNew(Js::SCACore::Serializer, scriptContext, writer));
-        *serializerHandle = (SerializerHandleBase *)writer;
+        *serializerHandle = writer;
         return JsNoError;
     });
 
     return errorCode;
 
+}
+
+CHAKRA_API
+JsVarSerializerWriteRawBytes(
+    _In_ JsVarSerializerHandle serializerHandle,
+    _In_ const void* source,
+    _In_ size_t length)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    PARAM_NOT_NULL(source);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        streamWriter->WriteRawBytes(source, length);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarSerializerWriteValue(
+    _In_ JsVarSerializerHandle serializerHandle,
+    _In_ JsValueRef rootObject)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    PARAM_NOT_NULL(rootObject);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        streamWriter->WriteValue(rootObject);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarSerializerReleaseData(
+    _In_ JsVarSerializerHandle serializerHandle,
+    _Out_ byte** data,
+    _Out_ size_t *dataLength)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    PARAM_NOT_NULL(data);
+    PARAM_NOT_NULL(dataLength);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        if (!streamWriter->ReleaseData(data, dataLength))
+        {
+            return JsErrorInvalidArgument;
+        }
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarSerializerDetachArrayBuffer(_In_ JsVarSerializerHandle serializerHandle)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        if (!streamWriter->DetachArrayBuffer())
+        {
+            return JsErrorInvalidArgument;
+        }
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarSerializerSetTransferableVars(
+    _In_ JsVarSerializerHandle serializerHandle,
+    _In_opt_ JsValueRef *transferableVars,
+    _In_ size_t transferableVarsCount)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        return streamWriter->SetTransferableVars(transferableVars, transferableVarsCount);
+    });
+
+}
+
+CHAKRA_API
+JsVarSerializerFree(_In_ JsVarSerializerHandle serializerHandle)
+{
+    PARAM_NOT_NULL(serializerHandle);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraCoreStreamWriter* streamWriter = reinterpret_cast<ChakraCoreStreamWriter*>(serializerHandle);
+        streamWriter->FreeSelf();
+        return JsNoError;
+    });
 }
 
 CHAKRA_API

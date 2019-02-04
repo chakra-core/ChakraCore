@@ -127,7 +127,12 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtConnectJITProcess)(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
 #endif
 
-    typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle);
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerPtr)(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject, JsVarSerializerHandle *serializerHandle);
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerSetTransferableVarsPtr)(JsVarSerializerHandle serializerHandle, JsValueRef *transferableVars, size_t transferableVarsCount);
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerWriteValuePtr)(JsVarSerializerHandle serializerHandle, JsValueRef rootObject);
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerReleaseDataPtr)(JsVarSerializerHandle serializerHandle, byte** data, size_t *dataLength);
+    typedef JsErrorCode(WINAPI *JsrtVarSerializerFreePtr)(JsVarSerializerHandle serializerHandle);
+
     typedef JsErrorCode(WINAPI *JsrtVarDeserializerPtr)(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle);
     typedef JsErrorCode(WINAPI *JsrtDetachArrayBufferPtr)(JsValueRef buffer);
 
@@ -250,6 +255,11 @@ struct JsAPIHooks
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 
     JsrtVarSerializerPtr pfJsrtVarSerializer;
+    JsrtVarSerializerSetTransferableVarsPtr pfJsrtVarSerializerSetTransferableVars;
+    JsrtVarSerializerWriteValuePtr pfJsrtVarSerializerWriteValue;
+    JsrtVarSerializerReleaseDataPtr pfJsrtVarSerializerReleaseData;
+    JsrtVarSerializerFreePtr pfJsrtVarSerializerFree;
+
     JsrtVarDeserializerPtr pfJsrtVarDeserializer;
     JsrtDetachArrayBufferPtr pfJsrtDetachArrayBuffer;
 #ifdef _WIN32
@@ -476,7 +486,12 @@ public:
     static JsErrorCode WINAPI JsSerializeParserState(JsValueRef script, JsValueRef *buffer, JsParseScriptAttributes parseAttributes) { return HOOK_JS_API(SerializeParserState(script, buffer, parseAttributes)); }
     static JsErrorCode WINAPI JsRunScriptWithParserState(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef parserState, JsValueRef * result) { return HOOK_JS_API(RunScriptWithParserState(script, sourceContext, sourceUrl, parseAttributes, parserState, result)); }
 
-    static JsErrorCode WINAPI JsVarSerializer(SerializerCallbackBase *delegate, SerializerHandleBase **serializerHandle) { return HOOK_JS_API(VarSerializer(delegate, serializerHandle)); }
+    static JsErrorCode WINAPI JsVarSerializer(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject, JsVarSerializerHandle *serializerHandle) { return HOOK_JS_API(VarSerializer(reallocateBufferMemory, writeHostObject, serializerHandle)); }
+    static JsErrorCode WINAPI JsVarSerializerSetTransferableVars(JsVarSerializerHandle serializerHandle, JsValueRef *transferableVars, size_t transferableVarsCount) { return HOOK_JS_API(VarSerializerSetTransferableVars(serializerHandle, transferableVars, transferableVarsCount)); }
+    static JsErrorCode WINAPI JsVarSerializerWriteValue(JsVarSerializerHandle serializerHandle, JsValueRef rootObject) { return HOOK_JS_API(VarSerializerWriteValue(serializerHandle, rootObject)); }
+    static JsErrorCode WINAPI JsVarSerializerReleaseData(JsVarSerializerHandle serializerHandle, byte** data, size_t *dataLength) { return HOOK_JS_API(VarSerializerReleaseData(serializerHandle, data, dataLength)); }
+    static JsErrorCode WINAPI JsVarSerializerFree(JsVarSerializerHandle serializerHandle) { return HOOK_JS_API(VarSerializerFree(serializerHandle)); }
+
     static JsErrorCode WINAPI JsVarDeserializer(void *data, size_t dataLength, DeserializerCallbackBase *delegate, DeserializerHandleBase **deserializerHandle) { return HOOK_JS_API(VarDeserializer(data, dataLength, delegate, deserializerHandle)); }
     static JsErrorCode WINAPI JsDetachArrayBuffer(JsValueRef buffer) { return HOOK_JS_API(DetachArrayBuffer(buffer)); }
     static JsErrorCode WINAPI JsQueueBackgroundParse_Experimental(JsScriptContents* contents, DWORD* dwBgParseCookie) { return HOOK_JS_API(QueueBackgroundParse_Experimental)(contents, dwBgParseCookie);  }
