@@ -299,7 +299,7 @@ public:
     }
 };
 
-byte * CHAKRA_CALLBACK ReallocateBufferMemory(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
+byte * CHAKRA_CALLBACK ReallocateBufferMemory(void * state, byte *oldBuffer, size_t newSize, size_t *allocatedSize)
 {
     void* data = realloc((void*)oldBuffer, newSize);
     if (allocatedSize)
@@ -309,7 +309,7 @@ byte * CHAKRA_CALLBACK ReallocateBufferMemory(byte *oldBuffer, size_t newSize, s
     return (byte*)data;
 }
 
-bool CHAKRA_CALLBACK WriteHostObject(JsValueRef data)
+bool CHAKRA_CALLBACK WriteHostObject(void * state, JsValueRef data)
 {
     // Not implemented
     return true;
@@ -384,7 +384,7 @@ JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isCons
 
         // This memory will be claimed at WScriptJsrt::Deserialize.
         SerializerBlob *blob = new SerializerBlob();
-        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializer(ReallocateBufferMemory, WriteHostObject, &serializerHandle));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializer(ReallocateBufferMemory, WriteHostObject, nullptr, &serializerHandle));
         IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerSetTransferableVars(serializerHandle, transferVarsArray, transferVarsCount));
         IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerWriteValue(serializerHandle, rootObject));
         IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerReleaseData(serializerHandle, (byte**)&blob->data, &blob->dataLength));

@@ -1732,13 +1732,14 @@ public:
 /// <summary>
 ///     A callback function to ask host to re-allocated buffer to the new size when the current buffer is full
 /// </summary>
+/// <param name="state">Pointer representing state of the serializer</param>
 /// <param name="oldBuffer">An old memory buffer, which may be null, to be reallocated</param>
 /// <param name="allocatedSize">Request host to allocate buffer of this size</param>
 /// <param name="arrayBuffer">Actual size of the new buffer</param>
 /// <returns>
 ///     New buffer will be returned upon success, null otherwise.
 /// </returns>
-typedef byte * (CHAKRA_CALLBACK *ReallocateBufferMemoryFunc)(byte *oldBuffer, size_t newSize, size_t *allocatedSize);
+typedef byte * (CHAKRA_CALLBACK *ReallocateBufferMemoryFunc)(void* state, byte *oldBuffer, size_t newSize, size_t *allocatedSize);
 
 /// <summary>
 ///     A callback to ask host write current Host object to the serialization buffer.
@@ -1746,13 +1747,14 @@ typedef byte * (CHAKRA_CALLBACK *ReallocateBufferMemoryFunc)(byte *oldBuffer, si
 /// <returns>
 ///     A Boolean true is returned upon success, false otherwise.
 /// </returns>
-typedef bool (CHAKRA_CALLBACK *WriteHostObjectFunc)(void* hostObject);
+typedef bool (CHAKRA_CALLBACK *WriteHostObjectFunc)(void* state, void* hostObject);
 
 /// <summary>
 ///     Initialize Serialization of the object.
 /// </summary>
 /// <param name="reallocateBufferMemory">A callback function to ask host to re-allocated buffer to the new size when the current buffer is full</param>
-/// <param name="writeHostObject">A callback object to interact with host during serialization.</param>
+/// <param name="writeHostObject">A callback function to interact with host during serialization</param>
+/// <param name="writeHostObject">A state object to pass to callback functions</param>
 /// <param name="serializerHandle">A handle which provides various functionalities to serialize objects</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -1761,6 +1763,7 @@ CHAKRA_API
 JsVarSerializer(
     _In_ ReallocateBufferMemoryFunc reallocateBufferMemory,
     _In_ WriteHostObjectFunc writeHostObject,
+    _In_opt_ void * callbackState,
     _Out_ JsVarSerializerHandle *serializerHandle);
 
 /// <summary>

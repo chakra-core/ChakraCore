@@ -41,10 +41,12 @@ class ChakraCoreStreamWriter : public HostStream
 
     ReallocateBufferMemoryFunc reallocateBufferMemory;
     WriteHostObjectFunc writeHostObject;
+    void * callbackState;
 public:
-    ChakraCoreStreamWriter(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject) :
+    ChakraCoreStreamWriter(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject, void * callbackState) :
         reallocateBufferMemory(reallocateBufferMemory),
         writeHostObject(writeHostObject),
+        callbackState(callbackState),
         m_data(nullptr),
         m_length(0),
         m_serializerCore(nullptr)

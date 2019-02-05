@@ -166,7 +166,7 @@ ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
 
 byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize)
 {
-    m_data = this->reallocateBufferMemory(oldBuffer, newSize, allocatedSize);
+    m_data = this->reallocateBufferMemory(this->callbackState, oldBuffer, newSize, allocatedSize);
     m_length = newSize;
 
     if (m_data == nullptr)
@@ -179,7 +179,7 @@ byte * ChakraCoreStreamWriter::ExtendBuffer(byte *oldBuffer, size_t newSize, siz
 
 bool ChakraCoreStreamWriter::WriteHostObject(void* data)
 {
-    return this->writeHostObject(data);
+    return this->writeHostObject(this->callbackState, data);
 }
 
 void ChakraCoreStreamWriter::SetSerializer(Js::SCACore::Serializer *s)

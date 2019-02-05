@@ -261,6 +261,7 @@ CHAKRA_API
 JsVarSerializer(
     _In_ ReallocateBufferMemoryFunc reallocateBufferMemory,
     _In_ WriteHostObjectFunc writeHostObject,
+    _In_opt_ void * callbackState,
     _Out_ JsVarSerializerHandle *serializerHandle)
 {
     PARAM_NOT_NULL(reallocateBufferMemory);
@@ -268,7 +269,7 @@ JsVarSerializer(
     PARAM_NOT_NULL(serializerHandle);
     JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, reallocateBufferMemory, writeHostObject);
+        ChakraCoreStreamWriter *writer = HeapNew(ChakraCoreStreamWriter, reallocateBufferMemory, writeHostObject, callbackState);
         writer->SetSerializer(HeapNew(Js::SCACore::Serializer, scriptContext, writer));
         *serializerHandle = writer;
         return JsNoError;
