@@ -769,9 +769,6 @@ CommonNumber:
         case TypeIds_Symbol:
             return true;
 
-        case TypeIds_Boolean:
-            return UnsafeVarTo<JavascriptBoolean>(aValue)->GetValue();
-
 #if !FLOATVAR
         case TypeIds_Number:
             {
