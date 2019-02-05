@@ -9,7 +9,7 @@ namespace Js
     typedef void (*JsTraceCallback)(void * data);
     typedef void (*JsFinalizeCallback)(void * data);
 
-    typedef struct JsGetterSetterInterceptor {
+    typedef struct _JsGetterSetterInterceptor {
         Field(void *) getTrap;
         Field(void *) setTrap;
         Field(void *) deletePropertyTrap;
@@ -19,10 +19,6 @@ namespace Js
         Field(void *) getOwnPropertyDescriptorTrap;
         Field(void *) definePropertyTrap;
         Field(void *) initializeTrap;
-
-        JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
-
-        JsGetterSetterInterceptor();
     } JsGetterSetterInterceptor;
 
     class CustomExternalWrapperType sealed : public DynamicType

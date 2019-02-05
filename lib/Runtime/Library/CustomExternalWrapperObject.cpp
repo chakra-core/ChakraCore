@@ -7,31 +7,6 @@
 
 using namespace Js;
 
-JsGetterSetterInterceptor::JsGetterSetterInterceptor() :
-    getTrap(nullptr),
-    setTrap(nullptr),
-    deletePropertyTrap(nullptr),
-    enumerateTrap(nullptr),
-    ownKeysTrap(nullptr),
-    hasTrap(nullptr),
-    getOwnPropertyDescriptorTrap(nullptr),
-    definePropertyTrap(nullptr)
-{
-}
-
-JsGetterSetterInterceptor::JsGetterSetterInterceptor(
-    JsGetterSetterInterceptor * getterSetterInterceptor) :
-    getTrap(getterSetterInterceptor->getTrap),
-    setTrap(getterSetterInterceptor->setTrap),
-    deletePropertyTrap(getterSetterInterceptor->deletePropertyTrap),
-    enumerateTrap(getterSetterInterceptor->enumerateTrap),
-    ownKeysTrap(getterSetterInterceptor->ownKeysTrap),
-    hasTrap(getterSetterInterceptor->hasTrap),
-    getOwnPropertyDescriptorTrap(getterSetterInterceptor->getOwnPropertyDescriptorTrap),
-    definePropertyTrap(getterSetterInterceptor->definePropertyTrap)
-{
-}
-
 CustomExternalWrapperType::CustomExternalWrapperType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype)
     : Js::DynamicType(
         scriptContext,
@@ -44,7 +19,7 @@ CustomExternalWrapperType::CustomExternalWrapperType(Js::ScriptContext* scriptCo
     , jsTraceCallback(traceCallback)
     , jsFinalizeCallback(finalizeCallback)
 {
-    this->jsGetterSetterInterceptor = RecyclerNew(scriptContext->GetRecycler(), JsGetterSetterInterceptor);
+    this->jsGetterSetterInterceptor = RecyclerNewStructZ(scriptContext->GetRecycler(), JsGetterSetterInterceptor);
     this->flags |= TypeFlagMask_JsrtExternal;
 }
 
@@ -158,15 +133,15 @@ CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalW
     target->initialized = source->initialized;
 
     bool success = target->TryCopy(source, true);
+    AssertOrFailFast(success);
 
     //TODO:akatti: We will always used a cached type, so the following code can be removed.
     // If we are using type from the cache we don't need to copy the interceptors over.
     if (newInterceptors != originalInterceptors)
     {
-        newInterceptors = new (newInterceptors) Js::JsGetterSetterInterceptor(originalInterceptors);
+        memcpy_s(newInterceptors, sizeof(Js::JsGetterSetterInterceptor), originalInterceptors, sizeof(Js::JsGetterSetterInterceptor));
     }
 
-    AssertOrFailFast(success);
     return target;
 }
 
