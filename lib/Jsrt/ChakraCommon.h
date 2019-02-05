@@ -789,11 +789,9 @@ typedef unsigned short uint16_t;
         JsValueRef definePropertyTrap;
         JsValueRef initializerTrap;
 
-        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
+        JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 
         JsGetterSetterInterceptor();
-
-        bool AreInterceptorsRequired();
     } JsGetterSetterInterceptor;
 
     /// <summary>

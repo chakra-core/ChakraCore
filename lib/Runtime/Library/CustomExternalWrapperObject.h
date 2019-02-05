@@ -20,11 +20,9 @@ namespace Js
         Field(void *) definePropertyTrap;
         Field(void *) initializeTrap;
 
-        explicit JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
+        JsGetterSetterInterceptor(JsGetterSetterInterceptor * getterSetterInterceptor);
 
         JsGetterSetterInterceptor();
-
-        bool AreInterceptorsRequired();
     } JsGetterSetterInterceptor;
 
     class CustomExternalWrapperType sealed : public DynamicType

@@ -294,7 +294,6 @@ void ChakraHostDeserializerHandle::FreeSelf()
 
 Js::Var ChakraHostDeserializerHandle::ReadHostObject()
 {
-    Assert(m_delegate);
-    return (Js::Var)m_delegate->ReadHostObject();
+    return (Js::Var)this->readHostObject(this->callbackState);
 }
 

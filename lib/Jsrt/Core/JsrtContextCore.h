@@ -68,24 +68,29 @@ public:
     virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
 };
 
-class ChakraHostDeserializerHandle : public HostReadStream, public DeserializerHandleBase
+class ChakraHostDeserializerHandle : public HostReadStream
 {
     Js::SCACore::Deserializer *m_deserializer;
-    DeserializerCallbackBase *m_delegate;
+    ReadHostObjectFunc readHostObject;
+    GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId;
+    void* callbackState;
 
 public:
-    ChakraHostDeserializerHandle(DeserializerCallbackBase *delegate)
-        : m_delegate(delegate), m_deserializer(nullptr)
+    ChakraHostDeserializerHandle(ReadHostObjectFunc readHostObject, GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId, void* callbackState) :
+        readHostObject(readHostObject),
+        getSharedArrayBufferFromId(getSharedArrayBufferFromId),
+        callbackState(callbackState),
+        m_deserializer(nullptr)
     { }
 
     ~ChakraHostDeserializerHandle();
 
     void SetDeserializer(Js::SCACore::Deserializer *deserializer);
-    bool ReadRawBytes(size_t length, void **data) override;
-    virtual bool ReadBytes(size_t length, void **data) override;
+    bool ReadRawBytes(size_t length, void **data);
+    virtual bool ReadBytes(size_t length, void **data);
     virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
-    JsValueRef ReadValue() override;
-    void FreeSelf() override;
+    JsValueRef ReadValue();
+    void FreeSelf();
 
     virtual Js::Var ReadHostObject() override;
 

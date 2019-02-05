@@ -32,22 +32,6 @@ JsGetterSetterInterceptor::JsGetterSetterInterceptor(
 {
 }
 
-bool JsGetterSetterInterceptor::AreInterceptorsRequired()
-{
-    return (this->getTrap != nullptr ||
-        this->setTrap != nullptr ||
-        this->deletePropertyTrap != nullptr ||
-        this->enumerateTrap != nullptr ||
-        this->ownKeysTrap != nullptr ||
-        this->hasTrap != nullptr ||
-        this->getOwnPropertyDescriptorTrap != nullptr ||
-        this->definePropertyTrap != nullptr);
-    /*
-    CHAKRA: functionCallDelegate is intentionaly not added as interceptors because it can be invoked
-    through Object::CallAsFunction or Object::CallAsConstructor
-    */
-}
-
 CustomExternalWrapperType::CustomExternalWrapperType(Js::ScriptContext* scriptContext, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype)
     : Js::DynamicType(
         scriptContext,

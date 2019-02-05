@@ -57,6 +57,15 @@ typedef void *JsSharedArrayBufferContentHandle;
 typedef void *JsVarSerializerHandle;
 
 /// <summary>
+///     A reference to a SCA Deserializer.
+/// </summary>
+/// <remarks>
+///     This represents the internal state of a Deserializer
+/// </remarks>
+typedef void *JsVarDeserializerHandle;
+
+
+/// <summary>
 ///     Flags for parsing a module.
 /// </summary>
 typedef enum JsParseModuleSourceFlags
@@ -1653,83 +1662,6 @@ CHAKRA_API
     );
 
 /// <summary>
-///     A callback structure to facilitate de-serialization work.
-/// </summary>
-typedef struct DeserializerCallbackBase
-{
-public:
-
-    /// <summary>
-    ///     A callback to ask host to read the current data from the serialization buffer as a Host object.
-    /// </summary>
-    /// <returns>
-    ///     A valid host object is returned upon success, an exception is thrown otherwise.
-    /// </returns>
-    virtual JsValueRef ReadHostObject() = 0;
-
-    /// <summary>
-    ///     A callback to ask host to retrieve SharedArrayBuffer object from given ID.
-    /// </summary>
-    /// <param name="id">An ID, which was provided by SerializerCallbackBase::GetSharedArrayBufferId method</param>
-    /// <returns>
-    ///     A valid SharedArrayBuffer is returned upon success, an exception is thrown otherwise.
-    /// </returns>
-    virtual JsValueRef GetSharedArrayBufferFromId(uint32_t id) = 0;
-
-} DeserializerCallbackBase;
-
-/// <summary>
-///     This object will be passed from Engine to Host when JsVarDeserializer is called.
-///     This object handles functionalities related reading current buffer and create Javascript objects
-/// </summary>
-typedef struct DeserializerHandleBase
-{
-public:
-    /// <summary>
-    ///     A method to read bytes from the serialized buffer. Caller should not allocate the data buffer.
-    /// </summary>
-    /// <param name="length">Advance current buffer's position by length</param>
-    /// <param name="data">The data will be pointing to the raw serialized buffer</param>
-    /// <returns>
-    ///     A Boolean value true is returned upon success, false otherwise.
-    /// </returns>
-    virtual bool ReadRawBytes(size_t length, void **data) = 0;
-
-    /// <summary>
-    ///     A method to read bytes from the serialized buffer. Caller must allocate data buffer by length.
-    /// </summary>
-    /// <param name="length">Length of data buffer</param>
-    /// <param name="data">data buffer to be populated from the serialized buffer till the given length</param>
-    /// <returns>
-    ///     A Boolean value true is returned upon success, false otherwise.
-    /// </returns>
-    virtual bool ReadBytes(size_t length, void **data) = 0;
-
-    /// <summary>
-    ///     Deserialized current buffer and pass the root object.
-    /// </summary>
-    /// <returns>
-    ///     A valid Javascript object is returned upon success, an exception is thrown otherwise.
-    /// </returns>
-    virtual JsValueRef ReadValue() = 0;
-
-    /// <summary>
-    ///     Host provides all the objects which has transferable semantics (Such as ArrayBuffers).
-    /// </summary>
-    /// <param name="transferableVars">An array of transferable objects</param>
-    /// <param name="transferableVarsCount">Length of transferableVars array </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount) = 0;
-
-    /// <summary>
-    ///     Free current object (which was created upon JsVarDeserializer) when the deserialization is done. DeserializerHandleBase object should not be used further after FreeSelf call.
-    /// </summary>
-    virtual void FreeSelf() = 0;
-} DeserializerHandleBase;
-
-/// <summary>
 ///     A callback function to ask host to re-allocated buffer to the new size when the current buffer is full
 /// </summary>
 /// <param name="state">Pointer representing state of the serializer</param>
@@ -1839,11 +1771,30 @@ CHAKRA_API
 JsVarSerializerFree(_In_ JsVarSerializerHandle serializerHandle);
 
 /// <summary>
+///     A callback to ask host to read the current data from the serialization buffer as a Host object.
+/// </summary>
+/// <returns>
+///     A valid host object is returned upon success, an exception is thrown otherwise.
+/// </returns>
+typedef JsValueRef(*ReadHostObjectFunc)(void* state);
+
+/// <summary>
+///     A callback to ask host to retrieve SharedArrayBuffer object from given ID.
+/// </summary>
+/// <param name="id">An ID, which was provided by SerializerCallbackBase::GetSharedArrayBufferId method</param>
+/// <returns>
+///     A valid SharedArrayBuffer is returned upon success, an exception is thrown otherwise.
+/// </returns>
+typedef JsValueRef(*GetSharedArrayBufferFromIdFunc)(void* state, uint32_t id);
+
+/// <summary>
 ///     Initiate Deserialization of the memory buffer to a Javascript object.
 /// </summary>
 /// <param name="data">A memory buffer which holds the serialized data</param>
 /// <param name="size">Length of the passed data in bytes</param>
-/// <param name="deserializerCallback">A callback object to interact with host during deserialization</param>
+/// <param name="ReadHostObjectFunc">A callback to ask host to read the current data from the serialization buffer as a Host object.</param>
+/// <param name="GetSharedArrayBufferFromIdFunc">A callback to ask host to retrieve SharedArrayBuffer object from given ID.</param>
+/// <param name="callbackState">A callback object to interact with host during deserialization</param>
 /// <param name="deserializerHandle">A handle which provides various functionalities to deserailize a buffer to an object</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -1852,8 +1803,61 @@ CHAKRA_API
 JsVarDeserializer(
     _In_ void *data,
     _In_ size_t size,
-    _In_ DeserializerCallbackBase *deserializerCallback,
-    _Out_ DeserializerHandleBase **deserializerHandle);
+    _In_ ReadHostObjectFunc readHostObject,
+    _In_ GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId,
+    _In_opt_ void* callbackState,
+    _Out_ JsVarDeserializerHandle *deserializerHandle);
+
+/// <summary>
+///     A method to read bytes from the serialized buffer. Caller should not allocate the data buffer.
+/// </summary>
+/// <param name="length">Advance current buffer's position by length</param>
+/// <param name="data">The data will be pointing to the raw serialized buffer</param>
+/// <returns>
+///     A Boolean value true is returned upon success, false otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializerReadRawBytes(_In_ JsVarDeserializerHandle deserializerHandle, _In_ size_t length, _Out_ void **data);
+
+/// <summary>
+///     A method to read bytes from the serialized buffer. Caller must allocate data buffer by length.
+/// </summary>
+/// <param name="length">Length of data buffer</param>
+/// <param name="data">data buffer to be populated from the serialized buffer till the given length</param>
+/// <returns>
+///     A Boolean value true is returned upon success, false otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializerReadBytes(_In_ JsVarDeserializerHandle deserializerHandle, _In_ size_t length, _Out_ void **data);
+
+/// <summary>
+///     Deserialized current buffer and pass the root object.
+/// </summary>
+/// <returns>
+///     A valid Javascript object is returned upon success, an exception is thrown otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializerReadValue(_In_ JsVarDeserializerHandle deserializerHandle, _Out_ JsValueRef* value);
+
+/// <summary>
+///     Host provides all the objects which has transferable semantics (Such as ArrayBuffers).
+/// </summary>
+/// <param name="transferableVars">An array of transferable objects</param>
+/// <param name="transferableVarsCount">Length of transferableVars array </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializerSetTransferableVars(_In_ JsVarDeserializerHandle deserializerHandle, _In_opt_ JsValueRef *transferableVars, _In_ size_t transferableVarsCount);
+
+/// <summary>
+///     Free current object (which was created upon JsVarSerializer) when the serialization is done. JsVarSerializerHandle object should not be used further after FreeSelf call.
+/// </summary>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsVarDeserializerFree(_In_ JsVarDeserializerHandle deserializerHandle);
 
 /// <summary>
 ///     Extract extra info stored from an ArrayBuffer object

@@ -370,21 +370,84 @@ CHAKRA_API
 JsVarDeserializer(
     _In_ void *data,
     _In_ size_t size,
-    _In_ DeserializerCallbackBase *delegate,
-    _Out_ DeserializerHandleBase **deserializerHandle)
+    _In_ ReadHostObjectFunc readHostObject,
+    _In_ GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId,
+    _In_opt_ void* callbackState,
+    _Out_ JsVarDeserializerHandle *deserializerHandle)
 {
     PARAM_NOT_NULL(data);
-    PARAM_NOT_NULL(delegate);
+    PARAM_NOT_NULL(readHostObject);
+    PARAM_NOT_NULL(getSharedArrayBufferFromId);
     PARAM_NOT_NULL(deserializerHandle);
-    JsErrorCode errorCode = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-
-        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle, delegate);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle *reader = HeapNew(ChakraHostDeserializerHandle, readHostObject, getSharedArrayBufferFromId, callbackState);
         reader->SetDeserializer(HeapNew(Js::SCACore::Deserializer, data, size, scriptContext, reader));
-        *deserializerHandle = (DeserializerHandleBase *)reader;
+        *deserializerHandle = reader;
         return JsNoError;
     });
+}
 
-    return errorCode;
+CHAKRA_API
+JsVarDeserializerReadRawBytes(_In_ JsVarDeserializerHandle deserializerHandle, _In_ size_t length, _Out_ void **data)
+{
+    PARAM_NOT_NULL(deserializerHandle);
+    PARAM_NOT_NULL(data);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle* deserializer = reinterpret_cast<ChakraHostDeserializerHandle*>(deserializerHandle);
+        if (!deserializer->ReadRawBytes(length, data))
+        {
+            return JsErrorInvalidArgument;
+        }
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarDeserializerReadBytes(_In_ JsVarDeserializerHandle deserializerHandle, _In_ size_t length, _Out_ void **data)
+{
+    PARAM_NOT_NULL(deserializerHandle);
+    PARAM_NOT_NULL(data);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle* deserializer = reinterpret_cast<ChakraHostDeserializerHandle*>(deserializerHandle);
+        if (!deserializer->ReadBytes(length, data))
+        {
+            return JsErrorInvalidArgument;
+        }
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarDeserializerReadValue(_In_ JsVarDeserializerHandle deserializerHandle, _Out_ JsValueRef* value)
+{
+    PARAM_NOT_NULL(deserializerHandle);
+    PARAM_NOT_NULL(value);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle* deserializer = reinterpret_cast<ChakraHostDeserializerHandle*>(deserializerHandle);
+        *value = deserializer->ReadValue();
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsVarDeserializerSetTransferableVars(_In_ JsVarDeserializerHandle deserializerHandle, _In_opt_ JsValueRef *transferableVars, _In_ size_t transferableVarsCount)
+{
+    PARAM_NOT_NULL(deserializerHandle);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle* deserializer = reinterpret_cast<ChakraHostDeserializerHandle*>(deserializerHandle);
+        return deserializer->SetTransferableVars(transferableVars, transferableVarsCount);
+    });
+}
+
+CHAKRA_API
+JsVarDeserializerFree(_In_ JsVarDeserializerHandle deserializerHandle)
+{
+    PARAM_NOT_NULL(deserializerHandle);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        ChakraHostDeserializerHandle* deserializer = reinterpret_cast<ChakraHostDeserializerHandle*>(deserializerHandle);
+        deserializer->FreeSelf();
+        return JsNoError;
+    });
 }
 
 CHAKRA_API
