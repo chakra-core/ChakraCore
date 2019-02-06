@@ -168,4 +168,5 @@
     JsVarSerializerSetTransferableVars
     JsVarSerializerWriteRawBytes
     JsVarSerializerWriteValue
+    JsGetArrayBufferFreeFunction
 #endif

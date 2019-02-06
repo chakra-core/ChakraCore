@@ -199,6 +199,7 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtVarDeserializerFree = (JsAPIHooks::JsrtVarDeserializerFreePtr)GetChakraCoreSymbol(library, "JsVarDeserializerFree");
 
     m_jsApiHooks.pfJsrtDetachArrayBuffer = (JsAPIHooks::JsrtDetachArrayBufferPtr)GetChakraCoreSymbol(library, "JsDetachArrayBuffer");
+    m_jsApiHooks.pfJsrtGetArrayBufferFreeFunction = (JsAPIHooks::JsrtGetArrayBufferFreeFunction)GetChakraCoreSymbol(library, "JsGetArrayBufferFreeFunction");
 
 #ifdef _WIN32
     m_jsApiHooks.pfJsrtConnectJITProcess = (JsAPIHooks::JsrtConnectJITProcess)GetChakraCoreSymbol(library, "JsConnectJITProcess");

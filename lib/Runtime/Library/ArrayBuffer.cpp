@@ -831,6 +831,20 @@ namespace Js
         return result;
     }
 
+    ArrayBuffer::FreeFn* JavascriptArrayBuffer::GetArrayBufferFreeFn()
+    {
+#if ENABLE_FAST_ARRAYBUFFER
+        if (IsValidVirtualBufferLength(bufferLength))
+        {
+            return FreeMemAlloc;
+        }
+        else
+#endif
+        {
+            return free;
+        }
+    }
+
     ArrayBufferDetachedStateBase* JavascriptArrayBuffer::CreateDetachedState(RefCountedBuffer * content, uint32 bufferLength)
     {
         FreeFn* freeFn = nullptr;

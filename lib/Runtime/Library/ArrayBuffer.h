@@ -205,6 +205,9 @@ namespace Js
         virtual BYTE* GetBuffer() const override;
         RefCountedBuffer *GetBufferContent() { return bufferContent;  }
         static int GetBufferContentsOffset() { return offsetof(ArrayBuffer, bufferContent); }
+
+        typedef void __cdecl FreeFn(void* ptr);
+        virtual FreeFn* GetArrayBufferFreeFn() { return nullptr; }
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
         virtual void AddParent(ArrayBufferParent* parent) override;
 
@@ -230,7 +233,6 @@ namespace Js
     protected:
         virtual void ReportExternalMemoryFree();
 
-        typedef void __cdecl FreeFn(void* ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(RefCountedBuffer * content, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) = 0;
 
         // This function will be called from External buffer and projection buffer as they pass the buffer
@@ -308,7 +310,9 @@ namespace Js
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
         virtual bool IsValidVirtualBufferLength(uint length) const override;
 
-    protected:
+        virtual FreeFn* GetArrayBufferFreeFn() override;
+
+       protected:
         JavascriptArrayBuffer(DynamicType * type);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(RefCountedBuffer * content, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
 
