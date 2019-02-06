@@ -183,14 +183,13 @@ namespace Js
 
         bool canSetField; // To verify if we can set a field on the object
         Var setterValue = nullptr;
-        { 
-            // We need to disable implicit call to ensure the check doesn't cause unwanted side effects in debug code
-            // Save old disableImplicitFlags and implicitCallFlags and disable implicit call and exception
+        {
+            // We need to disable implicit call to ensure the check doesn't cause unwanted side effects in debug
+            // code Save old disableImplicitFlags and implicitCallFlags and disable implicit call and exception.
             ThreadContext * threadContext = requestContext->GetThreadContext();
-            DisableImplicitFlags disableImplicitFlags = *threadContext->GetAddressOfDisableImplicitFlags();
-            Js::ImplicitCallFlags implicitCallFlags = threadContext->GetImplicitCallFlags();
+            ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(threadContext, threadContext->GetImplicitCallFlags(), threadContext->GetDisableImplicitFlags());
             threadContext->ClearImplicitCallFlags();
-            *threadContext->GetAddressOfDisableImplicitFlags() = DisableImplicitCallAndExceptionFlag;
+            threadContext->SetDisableImplicitFlags(DisableImplicitCallAndExceptionFlag);
 
             DescriptorFlags flags = DescriptorFlags::None;
             canSetField = !JavascriptOperators::CheckPrototypesForAccessorOrNonWritablePropertySlow(object, propertyId, &setterValue, &flags, isRoot, requestContext);
@@ -199,15 +198,12 @@ namespace Js
                 canSetField = true; // If there was an implicit call, inconclusive. Disable debug check.
                 setterValue = nullptr;
             }
-            else 
-                if ((flags & Accessor) == Accessor)
+            else if ((flags & Accessor) == Accessor)
             {
                 Assert(setterValue != nullptr);
             }
 
-            // Restore old disableImplicitFlags and implicitCallFlags
-            *threadContext->GetAddressOfDisableImplicitFlags() = disableImplicitFlags;
-            threadContext->SetImplicitCallFlags(implicitCallFlags);
+            // ImplicitCallFlags and DisableImplicitFlags restored by AutoRestoreImplicitFlags' destructor.
         }
 #endif
 

@@ -100,26 +100,6 @@ namespace Js
         {
             return;
         }
-        
-        struct AutoRestoreFlags
-        {
-            ThreadContext * ctx;
-            ImplicitCallFlags savedImplicitCallFlags;
-            DisableImplicitFlags savedDisableImplicitFlags;
-            AutoRestoreFlags(ThreadContext *ctx, Js::ImplicitCallFlags implFlags, DisableImplicitFlags disableImplFlags) :
-                ctx(ctx),
-                savedImplicitCallFlags(implFlags),
-                savedDisableImplicitFlags(disableImplFlags)
-            {
-                ctx->ClearDisableImplicitFlags();
-            }
-
-            ~AutoRestoreFlags()
-            {
-                ctx->SetImplicitCallFlags((Js::ImplicitCallFlags)(savedImplicitCallFlags));
-                ctx->SetDisableImplicitFlags((DisableImplicitFlags)savedDisableImplicitFlags);
-            }
-        };
 
         try {
             EnsureJsBuiltInByteCode(scriptContext);
@@ -159,7 +139,8 @@ namespace Js
 #endif
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             {
-                AutoRestoreFlags autoRestoreFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
                 JavascriptFunction::CallRootFunctionInScript(functionGlobal, Js::Arguments(callInfo, args));
             }
 
@@ -168,7 +149,8 @@ namespace Js
 
             // Clear disable implicit call bit as initialization code doesn't have any side effect
             {
-                AutoRestoreFlags autoRestoreFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                ThreadContext::AutoRestoreImplicitFlags autoRestoreImplicitFlags(scriptContext->GetThreadContext(), scriptContext->GetThreadContext()->GetImplicitCallFlags(), scriptContext->GetThreadContext()->GetDisableImplicitFlags());
+                scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
                 JavascriptFunction::CallRootFunctionInScript(functionBuiltins, Js::Arguments(callInfo, args));
             }
 

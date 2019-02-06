@@ -120,6 +120,11 @@
 </dir>
 <dir>
   <default>
+    <files>TryCatch</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>Optimizer</files>
     <tags>require_backend</tags>
   </default>
