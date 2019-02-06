@@ -347,6 +347,25 @@ public:
         WorkerThread(HANDLE handle = nullptr) :threadHandle(handle){};
     };
 
+    struct AutoRestoreImplicitFlags
+    {
+        ThreadContext * threadContext;
+        Js::ImplicitCallFlags savedImplicitCallFlags;
+        DisableImplicitFlags savedDisableImplicitFlags;
+        AutoRestoreImplicitFlags(ThreadContext *threadContext, Js::ImplicitCallFlags implicitCallFlags, DisableImplicitFlags disableImplicitFlags) :
+            threadContext(threadContext),
+            savedImplicitCallFlags(implicitCallFlags),
+            savedDisableImplicitFlags(disableImplicitFlags)
+        {
+        }
+
+        ~AutoRestoreImplicitFlags()
+        {
+            threadContext->SetImplicitCallFlags((Js::ImplicitCallFlags)(savedImplicitCallFlags));
+            threadContext->SetDisableImplicitFlags((DisableImplicitFlags)savedDisableImplicitFlags);
+        }
+    };
+
     void SetCurrentThreadId(DWORD threadId) { this->currentThreadId = threadId; }
     DWORD GetCurrentThreadId() const { return this->currentThreadId; }
     void SetIsThreadBound()
