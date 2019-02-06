@@ -298,20 +298,10 @@ namespace JsRTApiTest
         REQUIRE(JsHasExternalData(jsrtExternalObjectRef, &hasExternalData) == JsNoError);
         REQUIRE(hasExternalData);
 
-        JsValueRef object1 = JS_INVALID_REFERENCE;
-        JsGetterSetterInterceptor * interceptor1 = nullptr;
-        REQUIRE(JsCreateCustomExternalObject((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &interceptor1, &object1) == JsNoError);
-
-
-        JsValueRef object2 = JS_INVALID_REFERENCE;
-        JsGetterSetterInterceptor * interceptor2 = nullptr;
-        JsValueRef prototype1 = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateCustomExternalObjectWithPrototype((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &interceptor2, prototype1, &object2) == JsNoError);
-
         JsValueRef object3 = JS_INVALID_REFERENCE;
         JsGetterSetterInterceptor * interceptor3 = nullptr;
         JsValueRef prototype2 = JS_INVALID_REFERENCE;
-        REQUIRE(JsCreateTracedCustomExternalObjectWithPrototype((void *)0xdeadbeef, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor3, prototype2, &object3) == JsNoError);
+        REQUIRE(JsCreateCustomExternalObject((void *)0xdeadbeef, 0, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor3, prototype2, &object3) == JsNoError);
     }
 
     TEST_CASE("ApiTest_CrossContextSetPropertyTest", "[ApiTest]")

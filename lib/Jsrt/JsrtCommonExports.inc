@@ -104,57 +104,67 @@
     JsIdle
     JsSetPromiseContinuationCallback
 #ifndef NTBUILD
-    JsCreateString
-    JsCreateStringUtf16
-    JsCopyString
-    JsCopyStringUtf16
-    JsParse
-    JsRun
-    JsSerialize
-    JsParseSerialized
-    JsRunSerialized
-    JsCreatePropertyId
-    JsCreatePropertyString
+    JsAllocRawData
+    JsCloneObject
     JsConnectJITProcess
     JsCopyPropertyId
-    JsCreatePromise
-    JsCreateWeakReference
-    JsGetWeakReferenceValue
-    JsGetAndClearExceptionWithMetadata
-    JsHasOwnProperty
+    JsCopyString
     JsCopyStringOneByte
-    JsGetDataViewInfo
+    JsCopyStringUtf16
     JsCreateCustomExternalObject
-    JsCreateCustomExternalObjectWithPrototype
-    JsCreateExternalObjectWithPrototype
-    JsCreateTracedCustomExternalObjectWithPrototype
-    JsCreateTracedCustomExternalObjectWithPrototypeAndSlots
-    JsCreateTracedExternalObjectWithPrototype
-    JsCreateTracedExternalObjectWithPrototypeAndSlots
+    JsCreatePromise
+    JsCreateTracedExternalObject
+    JsCreatePropertyId
+    JsCreatePropertyString
+    JsCreateString
+    JsCreateStringUtf16
+    JsCreateWeakReference
+    JsDetachArrayBuffer
+    JsGetArrayBufferExtraInfo
+    JsGetAndClearExceptionWithMetadata
+    JsGetArrayEntriesFunction
     JsGetArrayForEachFunction
     JsGetArrayKeysFunction
     JsGetArrayValuesFunction
-    JsGetArrayEntriesFunction
-    JsGetPropertyIdSymbolIterator
+    JsGetDataViewInfo
     JsGetErrorPrototype
     JsGetIteratorPrototype
+    JsGetPropertyIdSymbolIterator
+    JsGetWeakReferenceValue
+    JsHasOwnProperty
     JsIsConstructor
-    JsObjectGetProperty
-    JsObjectHasProperty
-    JsObjectSetProperty
-    JsObjectDeleteProperty
-    JsObjectHasOwnProperty
-    JsObjectGetOwnPropertyDescriptor
     JsObjectDefineProperty
     JsObjectDefinePropertyFull
-    JsSetRuntimeDomWrapperTracingCallbacks
+    JsObjectDeleteProperty
+    JsObjectGetOwnPropertyDescriptor
+    JsObjectGetProperty
+    JsObjectHasOwnProperty
+    JsObjectHasProperty
+    JsObjectSetProperty
+    JsParse
+    JsParseSerialized
+    JsPrivateDeleteProperty
+    JsPrivateGetProperty
+    JsPrivateHasProperty
+    JsPrivateSetProperty
+    JsRun
+    JsRunSerialized
+    JsSerialize
+    JsSetArrayBufferExtraInfo
     JsSetRuntimeBeforeSweepCallback
+    JsSetRuntimeDomWrapperTracingCallbacks
     JsTraceExternalReference
-    JsAllocRawData
-    JsAllocRawDataZeroed
-    JsCloneObject
-    JsHasPrivateProperty
-    JsSetPrivateProperty
-    JsGetPrivateProperty
-    JsDeletePrivateProperty
+    JsVarDeserializer
+    JsVarDeserializerFree
+    JsVarDeserializerReadBytes
+    JsVarDeserializerReadRawBytes
+    JsVarDeserializerReadValue
+    JsVarDeserializerSetTransferableVars
+    JsVarSerializer
+    JsVarSerializerDetachArrayBuffer
+    JsVarSerializerFree
+    JsVarSerializerReleaseData
+    JsVarSerializerSetTransferableVars
+    JsVarSerializerWriteRawBytes
+    JsVarSerializerWriteValue
 #endif

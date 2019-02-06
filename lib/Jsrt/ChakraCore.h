@@ -234,6 +234,36 @@ typedef _Ret_maybenull_ JsValueRef(CHAKRA_CALLBACK * JsEnhancedNativeFunction)(_
 typedef void (CHAKRA_CALLBACK *JsHostPromiseRejectionTrackerCallback)(_In_ JsValueRef promise, _In_ JsValueRef reason, _In_ bool handled, _In_opt_ void *callbackState);
 
 /// <summary>
+///     A structure containing information about interceptors.
+/// </summary>
+typedef struct _JsGetterSetterInterceptor {
+    JsValueRef getTrap;
+    JsValueRef setTrap;
+    JsValueRef deletePropertyTrap;
+    JsValueRef enumerateTrap;
+    JsValueRef ownKeysTrap;
+    JsValueRef hasTrap;
+    JsValueRef getOwnPropertyDescriptorTrap;
+    JsValueRef definePropertyTrap;
+    JsValueRef initializerTrap;
+} JsGetterSetterInterceptor;
+
+/// <summary>
+///     A callback for tracing references back from Chakra to DOM wrappers.
+/// </summary>
+typedef void (CHAKRA_CALLBACK *JsDOMWrapperTracingCallback)(_In_opt_ void *data);
+
+/// <summary>
+///     A callback for checking whether tracing from Chakra to DOM wrappers has completed.
+/// </summary>
+typedef bool (CHAKRA_CALLBACK *JsDOMWrapperTracingDoneCallback)(_In_opt_ void *data);
+
+/// <summary>
+///     A callback for entering final pause for tracing DOM wrappers.
+/// </summary>
+typedef void(CHAKRA_CALLBACK *JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
+
+/// <summary>
 ///     Creates a new enhanced JavaScript function.
 /// </summary>
 /// <remarks>
@@ -1023,53 +1053,6 @@ CHAKRA_API
         _In_ JsValueRef object2,
         _Out_ bool *result);
 
-/// <summary>
-///     Creates a new object (with prototype) that stores some external data.
-/// </summary>
-/// <remarks>
-///     Requires an active script context.
-/// </remarks>
-/// <param name="data">External data that the object will represent. May be null.</param>
-/// <param name="finalizeCallback">
-///     A callback for when the object is finalized. May be null.
-/// </param>
-/// <param name="prototype">Prototype object or nullptr.</param>
-/// <param name="object">The new object.</param>
-/// <returns>
-///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-/// </returns>
-CHAKRA_API
-    JsCreateExternalObjectWithPrototype(
-        _In_opt_ void *data,
-        _In_opt_ JsFinalizeCallback finalizeCallback,
-        _In_opt_ JsValueRef prototype,
-        _Out_ JsValueRef *object);
-
-/// <summary>
-///     Creates a new object (with prototype) that stores some external data.
-/// </summary>
-/// <remarks>
-///     Requires an active script context.
-/// </remarks>
-/// <param name="data">External data that the object will represent. May be null.</param>
-/// <param name="traceCallback">
-///     A callback for when the object is traced. May be null.
-/// <param name="finalizeCallback">
-///     A callback for when the object is finalized. May be null.
-/// </param>
-/// <param name="prototype">Prototype object or nullptr.</param>
-/// <param name="object">The new object.</param>
-/// <returns>
-///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-/// </returns>
-CHAKRA_API
-JsCreateTracedExternalObjectWithPrototype(
-    _In_opt_ void *data,
-    _In_opt_ JsTraceCallback traceCallback,
-    _In_opt_ JsFinalizeCallback finalizeCallback,
-    _In_opt_ JsValueRef prototype,
-    _Out_ JsValueRef *object);
-
 ///     Creates a new object (with prototype) that stores some data.
 /// </summary>
 /// <remarks>
@@ -1087,7 +1070,7 @@ JsCreateTracedExternalObjectWithPrototype(
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsCreateTracedExternalObjectWithPrototypeAndSlots(
+JsCreateTracedExternalObject(
     _In_opt_ void *data,
     _In_opt_ size_t inlineSlotSize,
     _In_opt_ JsTraceCallback traceCallback,
@@ -1095,8 +1078,7 @@ JsCreateTracedExternalObjectWithPrototypeAndSlots(
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object);
 
-/// <summary>
-///     Creates a new object that stores some external data and also supports interceptors.
+///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
 /// </summary>
 /// <remarks>
 ///     Requires an active script context.
@@ -1105,7 +1087,7 @@ JsCreateTracedExternalObjectWithPrototypeAndSlots(
 /// <param name="finalizeCallback">
 ///     A callback for when the object is finalized. May be null.
 /// </param>
-/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
+/// <param name="prototype">Prototype object or nullptr.</param>
 /// <param name="object">The new object.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -1113,53 +1095,7 @@ JsCreateTracedExternalObjectWithPrototypeAndSlots(
 CHAKRA_API
 JsCreateCustomExternalObject(
     _In_opt_ void *data,
-    _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
-    _Out_ JsValueRef * object);
-
-///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
-/// </summary>
-/// <remarks>
-///     Requires an active script context.
-/// </remarks>
-/// <param name="data">External data that the object will represent. May be null.</param>
-/// <param name="finalizeCallback">
-///     A callback for when the object is finalized. May be null.
-/// </param>
-/// <param name="prototype">Prototype object or nullptr.</param>
-/// <param name="object">The new object.</param>
-/// <returns>
-///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-/// </returns>
-CHAKRA_API
-JsCreateCustomExternalObjectWithPrototype(
-    _In_opt_ void *data,
-    _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
-    _In_opt_ JsValueRef prototype,
-    _Out_ JsValueRef * object);
-
-/// <summary>
-///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
-/// </summary>
-/// <remarks>
-///     Requires an active script context.
-/// </remarks>
-/// <param name="data">External data that the object will represent. May be null.</param>
-/// <param name="traceCallback">
-///     A callback for when the object is traced. May be null.
-/// <param name="finalizeCallback">
-///     A callback for when the object is finalized. May be null.
-/// </param>
-/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
-/// <param name="prototype">Prototype object or nullptr.</param>
-/// <param name="object">The new object.</param>
-/// <returns>
-///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-/// </returns>
-CHAKRA_API
-JsCreateTracedCustomExternalObjectWithPrototype(
-    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
     _In_opt_ JsTraceCallback traceCallback,
     _In_opt_ JsFinalizeCallback finalizeCallback,
     _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
@@ -1216,32 +1152,20 @@ CHAKRA_API
 JsGetIteratorPrototype(_Out_ JsValueRef * result);
 
 /// <summary>
-///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
+///      Returns a value that indicates whether an object is a constructor.
 /// </summary>
 /// <remarks>
 ///     Requires an active script context.
 /// </remarks>
-/// <param name="data">External data that the object will represent. May be null.</param>
-/// <param name="traceCallback">
-///     A callback for when the object is traced. May be null.
-/// <param name="finalizeCallback">
-///     A callback for when the object is finalized. May be null.
-/// </param>
-/// <param name="getterSetterInterceptor">A new or existing object containing valid interceptors.</param>
-/// <param name="prototype">Prototype object or nullptr.</param>
-/// <param name="object">The new object.</param>
+/// <param name="object">The object to test.</param>
+/// <param name="isConstructor">If the object is a constructor, <c>true</c>, <c>false</c> otherwise.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsCreateTracedCustomExternalObjectWithPrototypeAndSlots(
-    _In_opt_ void *data,
-    _In_opt_ size_t inlineSlotSize,
-    _In_opt_ JsTraceCallback traceCallback,
-    _In_opt_ JsFinalizeCallback finalizeCallback,
-    _Inout_opt_ JsGetterSetterInterceptor ** getterSetterInterceptor,
-    _In_opt_ JsValueRef prototype,
-    _Out_ JsValueRef * object);
+JsIsConstructor(
+    _In_ JsValueRef object,
+    _Out_ bool *isConstructor);
 
 ///     Clones an object
 /// </summary>
@@ -1270,7 +1194,7 @@ JsCloneObject(
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsHasPrivateProperty(
+JsPrivateHasProperty(
     _In_ JsValueRef object,
     _In_ JsValueRef key,
     _Out_ bool *hasProperty);
@@ -1288,7 +1212,7 @@ JsHasPrivateProperty(
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsGetPrivateProperty(
+JsPrivateGetProperty(
     _In_ JsValueRef object,
     _In_ JsValueRef key,
     _Out_ JsValueRef *value);
@@ -1306,7 +1230,7 @@ JsGetPrivateProperty(
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsSetPrivateProperty(
+JsPrivateSetProperty(
     _In_ JsValueRef object,
     _In_ JsValueRef key,
     _In_ JsValueRef value);
@@ -1324,7 +1248,7 @@ JsSetPrivateProperty(
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsDeletePrivateProperty(
+JsPrivateDeleteProperty(
     _In_ JsValueRef object,
     _In_ JsValueRef key,
     _Out_ JsValueRef *result);
@@ -1648,18 +1572,12 @@ JsTraceExternalReference(
     );
 
 CHAKRA_API
-    JsAllocRawData(
-        _In_ JsRuntimeHandle runtimeHandle,
-        _In_ size_t sizeInBytes,
-        _Out_ JsRef * buffer
-    );
-
-CHAKRA_API
-    JsAllocRawDataZeroed(
-        _In_ JsRuntimeHandle runtimeHandle,
-        _In_ size_t sizeInBytes,
-        _Out_ JsRef * buffer
-    );
+JsAllocRawData(
+    _In_ JsRuntimeHandle runtimeHandle,
+    _In_ size_t sizeInBytes,
+    _In_ bool zeroed,
+    _Out_ JsRef * buffer
+);
 
 /// <summary>
 ///     A callback function to ask host to re-allocated buffer to the new size when the current buffer is full

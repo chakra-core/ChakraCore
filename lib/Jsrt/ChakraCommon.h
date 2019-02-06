@@ -732,20 +732,20 @@ typedef unsigned short uint16_t;
     typedef void (CHAKRA_CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
 
     /// <summary>
-    ///     A trace callback.
-    /// </summary>
-    /// <param name="data">
-    ///     The external data that was passed in when creating the object being traced.
-    /// </param>
-    typedef void (CHAKRA_CALLBACK *JsTraceCallback)(_In_opt_ void *data);
-
-    /// <summary>
     ///     A finalizer callback.
     /// </summary>
     /// <param name="data">
     ///     The external data that was passed in when creating the object being finalized.
     /// </param>
     typedef void (CHAKRA_CALLBACK *JsFinalizeCallback)(_In_opt_ void *data);
+
+    /// <summary>
+    ///     A trace callback.
+    /// </summary>
+    /// <param name="data">
+    ///     The external data that was passed in when creating the object being traced.
+    /// </param>
+    typedef void (CHAKRA_CALLBACK *JsTraceCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     A function callback.
@@ -774,36 +774,6 @@ typedef unsigned short uint16_t;
     /// <param name="task">The task, represented as a JavaScript function.</param>
     /// <param name="callbackState">The data argument to be passed to the callback.</param>
     typedef void (CHAKRA_CALLBACK *JsPromiseContinuationCallback)(_In_ JsValueRef task, _In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     A structure containing information about interceptors.
-    /// </summary>
-    typedef struct _JsGetterSetterInterceptor {
-        JsValueRef getTrap;
-        JsValueRef setTrap;
-        JsValueRef deletePropertyTrap;
-        JsValueRef enumerateTrap;
-        JsValueRef ownKeysTrap;
-        JsValueRef hasTrap;
-        JsValueRef getOwnPropertyDescriptorTrap;
-        JsValueRef definePropertyTrap;
-        JsValueRef initializerTrap;
-    } JsGetterSetterInterceptor;
-
-    /// <summary>
-    ///     A callback for tracing references back from Chakra to DOM wrappers.
-    /// </summary>
-    typedef void (CHAKRA_CALLBACK *JsDOMWrapperTracingCallback)(_In_opt_ void *data);
-
-    /// <summary>
-    ///     A callback for checking whether tracing from Chakra to DOM wrappers has completed.
-    /// </summary>
-    typedef bool (CHAKRA_CALLBACK *JsDOMWrapperTracingDoneCallback)(_In_opt_ void *data);
-
-    /// <summary>
-    ///     A callback for entering final pause for tracing DOM wrappers.
-    /// </summary>
-    typedef void(CHAKRA_CALLBACK *JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
 
     /// <summary>
     ///     Creates a new runtime.
@@ -2489,22 +2459,6 @@ typedef unsigned short uint16_t;
         JsSetPromiseContinuationCallback(
             _In_opt_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
-
-    /// <summary>
-    ///      Returns a value that indicates whether an object is a constructor.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="object">The object to test.</param>
-    /// <param name="isConstructor">If the object is a constructor, <c>true</c>, <c>false</c> otherwise.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsIsConstructor(
-            _In_ JsValueRef object,
-            _Out_ bool *isConstructor);
 
     /// <summary>
     ///     Note: Experimental API
