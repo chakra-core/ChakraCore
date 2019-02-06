@@ -10,6 +10,8 @@
 #ifndef _CHAKRACOREWINDOWS_H_
 #define _CHAKRACOREWINDOWS_H_
 
+#include <rpc.h>
+
 /// <summary>
 ///     Enables out-of-process JIT by connecting to a Chakra JIT process that was initialized by calling JsInitializeJITServer
 /// </summary>
