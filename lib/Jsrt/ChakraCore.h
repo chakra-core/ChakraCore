@@ -1887,6 +1887,22 @@ CHAKRA_API
 JsDetachArrayBuffer(
     _In_ JsValueRef arrayBuffer);
 
+typedef void __cdecl ArrayBufferFreeFn(void* ptr);
+
+/// <summary>
+///     Returns the function which free the underlying buffer of ArrayBuffer
+/// </summary>
+/// <param name="arrayBuffer">An ArrayBuffer for which Free function to be returned </param>
+/// <param name="freeFn">Free function will be returned</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code
+///     otherwise.
+/// </returns>
+CHAKRA_API
+JsGetArrayBufferFreeFunction(
+    _In_ JsValueRef arrayBuffer,
+    _Out_ ArrayBufferFreeFn** freeFn);
+
 
 #ifdef _WIN32
 #include "ChakraCoreWindows.h"

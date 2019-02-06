@@ -136,9 +136,7 @@ namespace Js
             AssertMsg(index < this->m_cTransferableVars, "Index out of range.");
             ArrayBuffer *ab = VarTo<ArrayBuffer>(m_transferableVars[index]);
 
-            // TODO reuse the same ArrayBuffer instead of creating a new ArrayBuffer.
-            // Current ArrayBuffer's from m_transferableVars are JsrtExternalArrayBuffer.
-            return library->CreateArrayBuffer((byte*)ab->GetBuffer(), ab->GetByteLength());
+            return ab;
         }
 
         static Dst Clone(Src root, Cloner* cloner, Var* transferableVars, size_t cTransferableVars)

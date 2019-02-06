@@ -1442,3 +1442,21 @@ JsConnectJITProcess(_In_ HANDLE processHandle, _In_opt_ void* serverSecurityDesc
     return JsNoError;
 }
 #endif
+CHAKRA_API
+JsGetArrayBufferFreeFunction(
+    _In_ JsValueRef arrayBuffer,
+    _Out_ ArrayBufferFreeFn** freeFn)
+{
+  VALIDATE_JSREF(arrayBuffer);
+  PARAM_NOT_NULL(freeFn);
+  return ContextAPINoScriptWrapper_NoRecord(
+      [&](Js::ScriptContext* scriptContext) -> JsErrorCode {
+        if (!Js::VarIs<Js::ArrayBuffer>(arrayBuffer))
+        {
+          return JsErrorInvalidArgument;
+        }
+
+        *freeFn = (ArrayBufferFreeFn*)Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->GetArrayBufferFreeFn();
+        return JsNoError;
+      });
+}

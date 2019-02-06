@@ -374,6 +374,9 @@ JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isCons
             BYTE *buffer = nullptr;
             uint32 bufferLength = 0;
             IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+            ArrayBufferFreeFn* freeFn = nullptr;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferFreeFunction(arrayBuffer, &freeFn));
+
             blob->transferableArrays.push_back(std::make_pair((void*)buffer, bufferLength));
             IfJsrtErrorSetGo(ChakraRTInterface::JsDetachArrayBuffer(arrayBuffer));
         }
