@@ -156,6 +156,11 @@
 </dir>
 <dir>
   <default>
+    <files>RegAlloc</files>
+  </default>
+</dir>
+<dir>
+  <default>
     <files>GlobalFunctions</files>
   </default>
 </dir>
