@@ -139,7 +139,7 @@ namespace Js
                 PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
                 T dataSlot = descriptor.template GetDataPropertyIndex<false>();
-                if (dataSlot != NoSlots && (attribs & PropertyWritable))
+                if (dataSlot != NoSlots && (attribs & PropertyWritable) && type == typeToEnumerate)
                 {
                     PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
                     SetPropertyValueInfo(info, instance, dataSlot, &descriptor);
