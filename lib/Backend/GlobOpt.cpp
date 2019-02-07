@@ -13270,6 +13270,11 @@ GlobOpt::OptStackArgLenAndConst(IR::Instr* instr, Value** src1Val)
             {
                 instr->ClearBailOutInfo();
             }
+            if (instr->IsProfiledInstr())
+            {
+                Assert(opcode == Js::OpCode::Ld_A || opcode == Js::OpCode::Typeof);
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Uninitialized;
+            }
             *src1Val = this->OptSrc(instr->GetSrc1(), &instr);
             instr->m_func->hasArgLenAndConstOpt = true;
         };
