@@ -112,6 +112,7 @@
     JsCopyStringOneByte
     JsCopyStringUtf16
     JsCreateCustomExternalObject
+    JsCreateExternalObjectWithPrototype
     JsCreatePromise
     JsCreateTracedExternalObject
     JsCreatePropertyId

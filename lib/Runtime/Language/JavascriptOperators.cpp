@@ -1098,6 +1098,7 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
+#ifdef _CHAKRACOREBUILD
         else
         {
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
@@ -1106,6 +1107,7 @@ CommonNumber:
                 return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
             }
         }
+#endif
 
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
@@ -1121,6 +1123,7 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
         }
+#ifdef _CHAKRACOREBUILD
         else
         {
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
@@ -1129,6 +1132,7 @@ CommonNumber:
                 return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
             }
         }
+#endif
 
         return JavascriptObject::CreateOwnSymbolPropertiesHelper(object, scriptContext);
     }
@@ -1143,6 +1147,7 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
+#ifdef _CHAKRACOREBUILD
         else
         {
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
@@ -1151,6 +1156,7 @@ CommonNumber:
                 return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::KeysKind, scriptContext);
             }
         }
+#endif
 
         return JavascriptObject::CreateOwnStringSymbolPropertiesHelper(object, scriptContext);
     }
@@ -1186,6 +1192,7 @@ CommonNumber:
             }
             return proxyResultToReturn;
         }
+#ifdef _CHAKRACOREBUILD
         else
         {
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
@@ -1221,6 +1228,7 @@ CommonNumber:
                 return wrapperResultToReturn;
             }
         }
+#endif
 
         return JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(object, scriptContext);
     }
@@ -1232,6 +1240,7 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
+#ifdef _CHAKRACOREBUILD
         else
         {
             CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
@@ -1240,6 +1249,7 @@ CommonNumber:
                 return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::EnumerableKeysKind, scriptContext);
             }
         }
+#endif
 
         return JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(object, scriptContext);
     }
@@ -8808,6 +8818,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         {
             return JavascriptProxy::DefineOwnPropertyDescriptor(obj, propId, descriptor, throwOnError, scriptContext);
         }
+#ifdef _CHAKRACOREBUILD
         else if (VarIs<CustomExternalWrapperObject>(obj))
         {
             // See if there is a trap for defineProperty.
@@ -8817,6 +8828,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 return TRUE;
             }
         }
+#endif
 
         PropertyDescriptor currentDescriptor;
         BOOL isCurrentDescriptorDefined = JavascriptOperators::GetOwnPropertyDescriptor(obj, propId, scriptContext, &currentDescriptor);

@@ -264,6 +264,14 @@ typedef bool (CHAKRA_CALLBACK *JsDOMWrapperTracingDoneCallback)(_In_opt_ void *d
 typedef void(CHAKRA_CALLBACK *JsDOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
 
 /// <summary>
+///     A trace callback.
+/// </summary>
+/// <param name="data">
+///     The external data that was passed in when creating the object being traced.
+/// </param>
+typedef void (CHAKRA_CALLBACK *JsTraceCallback)(_In_opt_ void *data);
+
+/// <summary>
 ///     Creates a new enhanced JavaScript function.
 /// </summary>
 /// <remarks>
@@ -1053,6 +1061,29 @@ CHAKRA_API
         _In_ JsValueRef object2,
         _Out_ bool *result);
 
+/// <summary>
+///     Creates a new object (with prototype) that stores some external data.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="data">External data that the object will represent. May be null.</param>
+/// <param name="finalizeCallback">
+///     A callback for when the object is finalized. May be null.
+/// </param>
+/// <param name="prototype">Prototype object or nullptr.</param>
+/// <param name="object">The new object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateExternalObjectWithPrototype(
+        _In_opt_ void *data,
+        _In_opt_ JsFinalizeCallback finalizeCallback,
+        _In_opt_ JsValueRef prototype,
+        _Out_ JsValueRef *object);
+
+/// <summary>
 ///     Creates a new object (with prototype) that stores some data.
 /// </summary>
 /// <remarks>
@@ -1078,6 +1109,7 @@ JsCreateTracedExternalObject(
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object);
 
+/// <summary>
 ///     Creates a new object (with prototype) that stores some external data and also supports interceptors.
 /// </summary>
 /// <remarks>
@@ -1167,6 +1199,7 @@ JsIsConstructor(
     _In_ JsValueRef object,
     _Out_ bool *isConstructor);
 
+/// <summary>
 ///     Clones an object
 /// </summary>
 /// <param name="source">The original object.</param>

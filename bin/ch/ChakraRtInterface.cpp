@@ -85,7 +85,6 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtDisposeRuntime = (JsAPIHooks::JsrtDisposeRuntimePtr)GetChakraCoreSymbol(library, "JsDisposeRuntime");
     m_jsApiHooks.pfJsrtCreateObject = (JsAPIHooks::JsrtCreateObjectPtr)GetChakraCoreSymbol(library, "JsCreateObject");
     m_jsApiHooks.pfJsrtCreateExternalObject = (JsAPIHooks::JsrtCreateExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateExternalObject");
-    m_jsApiHooks.pfJsrtCreateCustomExternalObject = (JsAPIHooks::JsrtCreateCustomExternalObjectPtr)GetChakraCoreSymbol(library, "JsCreateCustomExternalObject");
     m_jsApiHooks.pfJsrtGetArrayForEachFunction = (JsAPIHooks::JsrtGetArrayForEachFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayForEachFunction");;
     m_jsApiHooks.pfJsrtGetArrayKeysFunction = (JsAPIHooks::JsrtGetArrayKeysFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayKeysFunction");;
     m_jsApiHooks.pfJsrtGetArrayValuesFunction = (JsAPIHooks::JsrtGetArrayValuesFunctionPtr)GetChakraCoreSymbol(library, "JsGetArrayValuesFunction");;
@@ -190,7 +189,15 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtTTDMoveToTopLevelEvent = (JsAPIHooks::JsrtTTDMoveToTopLevelEventPtr)GetChakraCoreSymbol(library, "JsTTDMoveToTopLevelEvent");
     m_jsApiHooks.pfJsrtTTDReplayExecution = (JsAPIHooks::JsrtTTDReplayExecutionPtr)GetChakraCoreSymbol(library, "JsTTDReplayExecution");
     m_jsApiHooks.pfJsrtVarSerializer = (JsAPIHooks::JsrtVarSerializerPtr)GetChakraCoreSymbol(library, "JsVarSerializer");
+    m_jsApiHooks.pfJsrtVarSerializerSetTransferableVars = (JsAPIHooks::JsrtVarSerializerSetTransferableVarsPtr)GetChakraCoreSymbol(library, "JsVarSerializerSetTransferableVars");
+    m_jsApiHooks.pfJsrtVarSerializerWriteValue = (JsAPIHooks::JsrtVarSerializerWriteValuePtr)GetChakraCoreSymbol(library, "JsVarSerializerWriteValue");
+    m_jsApiHooks.pfJsrtVarSerializerReleaseData = (JsAPIHooks::JsrtVarSerializerReleaseDataPtr)GetChakraCoreSymbol(library, "JsVarSerializerReleaseData");
+    m_jsApiHooks.pfJsrtVarSerializerFree = (JsAPIHooks::JsrtVarSerializerFreePtr)GetChakraCoreSymbol(library, "JsVarSerializerFree");
     m_jsApiHooks.pfJsrtVarDeserializer = (JsAPIHooks::JsrtVarDeserializerPtr)GetChakraCoreSymbol(library, "JsVarDeserializer");
+    m_jsApiHooks.pfJsrtVarDeserializerSetTransferableVars = (JsAPIHooks::JsrtVarDeserializerSetTransferableVarsPtr)GetChakraCoreSymbol(library, "JsVarDeserializerSetTransferableVars");
+    m_jsApiHooks.pfJsrtVarDeserializerReadValue = (JsAPIHooks::JsrtVarDeserializerReadValuePtr)GetChakraCoreSymbol(library, "JsVarDeserializerReadValue");
+    m_jsApiHooks.pfJsrtVarDeserializerFree = (JsAPIHooks::JsrtVarDeserializerFreePtr)GetChakraCoreSymbol(library, "JsVarDeserializerFree");
+
     m_jsApiHooks.pfJsrtDetachArrayBuffer = (JsAPIHooks::JsrtDetachArrayBufferPtr)GetChakraCoreSymbol(library, "JsDetachArrayBuffer");
 
 #ifdef _WIN32

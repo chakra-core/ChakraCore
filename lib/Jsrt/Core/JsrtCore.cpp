@@ -599,6 +599,37 @@ CHAKRA_API JsCreateCustomExternalObject(
     });
 }
 
+CHAKRA_API JsCreateTracedExternalObject(
+    _In_opt_ void *data,
+    _In_opt_ size_t inlineSlotSize,
+    _In_opt_ JsTraceCallback traceCallback,
+    _In_opt_ JsFinalizeCallback finalizeCallback,
+    _In_opt_ JsValueRef prototype,
+    _Out_ JsValueRef *object)
+{
+    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTAllocateExternalObject, prototype);
+
+        PARAM_NOT_NULL(object);
+
+        Js::RecyclableObject * prototypeObject = nullptr;
+        if (prototype != JS_INVALID_REFERENCE)
+        {
+            VALIDATE_INCOMING_OBJECT_OR_NULL(prototype, scriptContext);
+            prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
+        }
+        if (inlineSlotSize > UINT32_MAX)
+        {
+            return JsErrorInvalidArgument;
+        }
+        *object = JsrtExternalObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, prototypeObject, scriptContext, nullptr);
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsPrivateHasProperty(
     _In_ JsValueRef object,
     _In_ JsValueRef key,
@@ -830,99 +861,6 @@ CHAKRA_API JsCreateStringUtf16(
 }
 
 
-template <class CopyFunc>
-JsErrorCode WriteStringCopy(
-    JsValueRef value,
-    int start,
-    int length,
-    _Out_opt_ size_t* written,
-    const CopyFunc& copyFunc)
-{
-    if (written)
-    {
-        *written = 0;  // init to 0 for default
-    }
-
-    const char16* str = nullptr;
-    size_t strLength = 0;
-    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
-    if (errorCode != JsNoError)
-    {
-        return errorCode;
-    }
-
-    if (start < 0 || (size_t)start > strLength)
-    {
-        return JsErrorInvalidArgument;  // start out of range, no chars written
-    }
-
-    size_t count = min(static_cast<size_t>(length), strLength - start);
-    if (count == 0)
-    {
-        return JsNoError;  // no chars written
-    }
-
-    errorCode = copyFunc(str + start, count, written);
-    if (errorCode != JsNoError)
-    {
-        return errorCode;
-    }
-
-    if (written)
-    {
-        *written = count;
-    }
-
-    return JsNoError;
-}
-
-CHAKRA_API JsCopyStringUtf16(
-    _In_ JsValueRef value,
-    _In_ int start,
-    _In_ int length,
-    _Out_opt_ uint16_t* buffer,
-    _Out_opt_ size_t* written)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-
-    return WriteStringCopy(value, start, length, written,
-        [buffer](const char16* src, size_t count, size_t *needed)
-    {
-        if (buffer)
-        {
-            memmove(buffer, src, sizeof(char16) * count);
-        }
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsCopyString(
-    _In_ JsValueRef value,
-    _Out_opt_ char* buffer,
-    _In_ size_t bufferSize,
-    _Out_opt_ size_t* length)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-
-    const char16* str = nullptr;
-    size_t strLength = 0;
-    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
-    if (errorCode != JsNoError)
-    {
-        return errorCode;
-    }
-
-    utf8::WideToNarrow utf8Str(str, strLength, buffer, bufferSize);
-    if (length)
-    {
-        *length = utf8Str.Length();
-    }
-
-    return JsNoError;
-}
-
 CHAKRA_API JsCreatePropertyString(
     _In_z_ const char *name,
     _In_ size_t length,
@@ -941,50 +879,6 @@ CHAKRA_API JsCreatePropertyString(
         *propertyString = scriptContext->GetPropertyString(propertyRecord);
         return JsNoError;
     });
-}
-
-CHAKRA_API JsCopyPropertyId(
-    _In_ JsPropertyIdRef propertyId,
-    _Out_ char* buffer,
-    _In_ size_t bufferSize,
-    _Out_ size_t* length)
-{
-    PARAM_NOT_NULL(propertyId);
-
-    const char16* str = nullptr;
-    JsErrorCode errorCode = JsGetPropertyNameFromId(propertyId, &str);
-
-    if (errorCode != JsNoError)
-    {
-        return errorCode;
-    }
-
-    utf8::WideToNarrow utf8Str(str);
-    if (!buffer)
-    {
-        if (length)
-        {
-            *length = utf8Str.Length();
-        }
-    }
-    else
-    {
-        size_t count = min(bufferSize, utf8Str.Length());
-        // Try to copy whole characters if buffer size insufficient
-        auto maxFitChars = utf8::ByteIndexIntoCharacterIndex(
-            (LPCUTF8)(const char*)utf8Str, count,
-            utf8::DecodeOptions::doChunkedEncoding);
-        count = utf8::CharacterIndexToByteIndex(
-            (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
-
-        memmove(buffer, utf8Str, sizeof(char) * count);
-        if (length)
-        {
-            *length = count;
-        }
-    }
-
-    return JsNoError;
 }
 
 CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
@@ -1215,29 +1109,6 @@ CHAKRA_API JsGetAndClearExceptionWithMetadata(_Out_ JsValueRef *metadata)
 #endif
 
 
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsCopyStringOneByte(
-    _In_ JsValueRef value,
-    _In_ int start,
-    _In_ int length,
-    _Out_opt_ char* buffer,
-    _Out_opt_ size_t* written)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-    return WriteStringCopy(value, start, length, written,
-        [buffer](const char16* src, size_t count, size_t *needed)
-    {
-        if (buffer)
-        {
-            for (size_t i = 0; i < count; i++)
-            {
-                buffer[i] = (char)src[i];
-            }
-        }
         return JsNoError;
     });
 }

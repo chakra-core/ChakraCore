@@ -2,7 +2,10 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 #include "RuntimeLibraryPch.h"
+
+#ifdef _CHAKRACOREBUILD
 #include "Types/PathTypeHandler.h"
 
 using namespace Js;
@@ -1367,3 +1370,4 @@ void CustomExternalWrapperObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::
     TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapExternalObject>(objData, nullptr);
 }
 #endif
+#endif // _CHAKRACOREBUILD

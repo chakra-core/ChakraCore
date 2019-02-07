@@ -231,7 +231,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
         prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
     }
 
-    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, nullptr, prototypeObject, ctx, nullptr);
+    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, prototypeObject, ctx, nullptr);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1331,10 +1331,7 @@ CHAKRA_API JsCreateObject(_Out_ JsValueRef *object)
     });
 }
 
-CHAKRA_API JsCreateTracedExternalObject(
-    _In_opt_ void *data,
-    _In_opt_ size_t inlineSlotSize,
-    _In_opt_ JsTraceCallback traceCallback,
+CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
     _In_opt_ JsFinalizeCallback finalizeCallback,
     _In_opt_ JsValueRef prototype,
     _Out_ JsValueRef *object)
@@ -1347,14 +1344,11 @@ CHAKRA_API JsCreateTracedExternalObject(
         Js::RecyclableObject * prototypeObject = nullptr;
         if (prototype != JS_INVALID_REFERENCE)
         {
-            VALIDATE_INCOMING_OBJECT_OR_NULL(prototype, scriptContext);
+            VALIDATE_INCOMING_OBJECT(prototype, scriptContext);
             prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
         }
-        if (inlineSlotSize > UINT32_MAX)
-        {
-            return JsErrorInvalidArgument;
-        }
-        *object = JsrtExternalObject::Create(data, (uint)inlineSlotSize, traceCallback, finalizeCallback, prototypeObject, scriptContext, nullptr);
+
+        *object = JsrtExternalObject::Create(data, 0, finalizeCallback, prototypeObject, scriptContext, nullptr);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
@@ -1364,7 +1358,7 @@ CHAKRA_API JsCreateTracedExternalObject(
 
 CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallback finalizeCallback, _Out_ JsValueRef *object)
 {
-    return JsCreateTracedExternalObject(data, 0, nullptr, finalizeCallback, JS_INVALID_REFERENCE, object);
+    return JsCreateExternalObjectWithPrototype(data, finalizeCallback, JS_INVALID_REFERENCE, object);
 }
 
 CHAKRA_API JsConvertValueToObject(_In_ JsValueRef value, _Out_ JsValueRef *result)
@@ -1751,6 +1745,7 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
     {
         return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
     }
+#ifdef _CHAKRACOREBUILD
     else if (typeId == Js::TypeIds_Object)
     {
         // CEOs can also have traps so we would want the Enter/Leave semantics for those.
@@ -1760,6 +1755,7 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
             return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
         }
     }
+#endif
 
     return ContextAPINoScriptWrapper(internalHasProperty);
 }
@@ -2730,7 +2726,11 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
         {
             object = Js::VarTo<Js::JavascriptProxy>(object);
         }
-        *value = (Js::VarIs<JsrtExternalObject>(object) || Js::VarIs<Js::CustomExternalWrapperObject>(object));
+        *value = (Js::VarIs<JsrtExternalObject>(object)
+#ifdef _CHAKRACOREBUILD
+            || Js::VarIs<Js::CustomExternalWrapperObject>(object)
+#endif
+            );
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -2750,10 +2750,12 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
         {
             *data = Js::VarTo<JsrtExternalObject>(object)->GetSlotData();
         }
+#ifdef _CHAKRACOREBUILD
         else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
         {
             *data = Js::VarTo<Js::CustomExternalWrapperObject>(object)->GetSlotData();
         }
+#endif
         else
         {
             *data = nullptr;
@@ -2777,10 +2779,12 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
         {
             Js::VarTo<JsrtExternalObject>(object)->SetSlotData(data);
         }
+#ifdef _CHAKRACOREBUILD
         else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
         {
             Js::VarTo<Js::CustomExternalWrapperObject>(object)->SetSlotData(data);
         }
+#endif
         else
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
@@ -4851,6 +4855,100 @@ CHAKRA_API JsTTDDiagSetAutoTraceStatus(_In_ bool status)
 
 #ifdef _CHAKRACOREBUILD
 
+
+template <class CopyFunc>
+JsErrorCode WriteStringCopy(
+    JsValueRef value,
+    int start,
+    int length,
+    _Out_opt_ size_t* written,
+    const CopyFunc& copyFunc)
+{
+    if (written)
+    {
+        *written = 0;  // init to 0 for default
+    }
+
+    const char16* str = nullptr;
+    size_t strLength = 0;
+    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    if (start < 0 || (size_t)start > strLength)
+    {
+        return JsErrorInvalidArgument;  // start out of range, no chars written
+    }
+
+    size_t count = min(static_cast<size_t>(length), strLength - start);
+    if (count == 0)
+    {
+        return JsNoError;  // no chars written
+    }
+
+    errorCode = copyFunc(str + start, count, written);
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    if (written)
+    {
+        *written = count;
+    }
+
+    return JsNoError;
+}
+
+CHAKRA_API JsCopyStringUtf16(
+    _In_ JsValueRef value,
+    _In_ int start,
+    _In_ int length,
+    _Out_opt_ uint16_t* buffer,
+    _Out_opt_ size_t* written)
+{
+    PARAM_NOT_NULL(value);
+    VALIDATE_JSREF(value);
+
+    return WriteStringCopy(value, start, length, written,
+        [buffer](const char16* src, size_t count, size_t *needed)
+        {
+            if (buffer)
+            {
+                memmove(buffer, src, sizeof(char16) * count);
+            }
+            return JsNoError;
+        });
+}
+
+CHAKRA_API JsCopyString(
+    _In_ JsValueRef value,
+    _Out_opt_ char* buffer,
+    _In_ size_t bufferSize,
+    _Out_opt_ size_t* length)
+{
+    PARAM_NOT_NULL(value);
+    VALIDATE_JSREF(value);
+
+    const char16* str = nullptr;
+    size_t strLength = 0;
+    JsErrorCode errorCode = JsStringToPointer(value, &str, &strLength);
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    utf8::WideToNarrow utf8Str(str, strLength, buffer, bufferSize);
+    if (length)
+    {
+        *length = utf8Str.Length();
+    }
+
+    return JsNoError;
+}
+
 _ALWAYSINLINE JsErrorCode CompileRun(
     JsValueRef scriptVal,
     JsSourceContext sourceContext,
@@ -4956,6 +5054,50 @@ CHAKRA_API JsCreatePropertyId(
     }
 
     return JsGetPropertyIdFromNameInternal(wname, wname.Length(), propertyId);
+}
+
+CHAKRA_API JsCopyPropertyId(
+    _In_ JsPropertyIdRef propertyId,
+    _Out_ char* buffer,
+    _In_ size_t bufferSize,
+    _Out_ size_t* length)
+{
+    PARAM_NOT_NULL(propertyId);
+
+    const char16* str = nullptr;
+    JsErrorCode errorCode = JsGetPropertyNameFromId(propertyId, &str);
+
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    utf8::WideToNarrow utf8Str(str);
+    if (!buffer)
+    {
+        if (length)
+        {
+            *length = utf8Str.Length();
+        }
+    }
+    else
+    {
+        size_t count = min(bufferSize, utf8Str.Length());
+        // Try to copy whole characters if buffer size insufficient
+        auto maxFitChars = utf8::ByteIndexIntoCharacterIndex(
+            (LPCUTF8)(const char*)utf8Str, count,
+            utf8::DecodeOptions::doChunkedEncoding);
+        count = utf8::CharacterIndexToByteIndex(
+            (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
+
+        memmove(buffer, utf8Str, sizeof(char) * count);
+        if (length)
+        {
+            *length = count;
+        }
+    }
+
+    return JsNoError;
 }
 
 CHAKRA_API JsSerialize(
@@ -5073,6 +5215,30 @@ CHAKRA_API JsRunSerialized(
         scriptLoadCallback, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
         buffer, arrayBuffer, sourceContext, url, 0, false, false, result, Js::Constants::InvalidSourceIndex);
+}
+
+
+CHAKRA_API JsCopyStringOneByte(
+    _In_ JsValueRef value,
+    _In_ int start,
+    _In_ int length,
+    _Out_opt_ char* buffer,
+    _Out_opt_ size_t* written)
+{
+    PARAM_NOT_NULL(value);
+    VALIDATE_JSREF(value);
+    return WriteStringCopy(value, start, length, written,
+        [buffer](const char16* src, size_t count, size_t *needed)
+    {
+        if (buffer)
+        {
+            for (size_t i = 0; i < count; i++)
+            {
+                buffer[i] = (char)src[i];
+            }
+        }
+        return JsNoError;
+    });
 }
 
 CHAKRA_API JsSerializeParserStateCore(
