@@ -1,3 +1,3 @@
 Harness Status: OK
 Found 1 tests: Fail = 1
-Fail Object.prototype.toString on an Global  Object doesn't support this action
+Fail Object.prototype.toString on an Global  assert_equals: expected "[object WebAssembly.Global]" but got "[object Object]"

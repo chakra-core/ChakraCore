@@ -8,9 +8,10 @@ const fs = require("fs-extra");
 const Bluebird = require("bluebird");
 const {spawn} = require("child_process");
 const slash = require("slash");
+const json5 = require("json5");
 
 Bluebird.promisifyAll(fs);
-const config = require("./config.json");
+const config = json5.parse(fs.readFileSync(path.join(__dirname, "config.json5")));
 const rlRoot = path.resolve(__dirname, "..");
 const folders = config.folders.map(folder => path.resolve(rlRoot, folder));
 const baselineDir = path.join(rlRoot, "baselines");

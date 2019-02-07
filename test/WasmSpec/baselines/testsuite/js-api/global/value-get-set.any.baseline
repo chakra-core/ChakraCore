@@ -1,36 +1,36 @@
 Harness Status: OK
 Found 34 tests: Fail = 34
-Fail Branding  Unable to get property 'prototype' of undefined or null reference
-Fail Immutable i32 (missing)  Object doesn't support this action
-Fail Immutable i32 (undefined)  Object doesn't support this action
-Fail Immutable i32 (null)  Object doesn't support this action
-Fail Immutable i32 (false)  Object doesn't support this action
-Fail Immutable i32 (empty string)  Object doesn't support this action
-Fail Immutable i32 (zero)  Object doesn't support this action
-Fail Mutable i32 (true)  Object doesn't support this action
-Fail Mutable i32 (one)  Object doesn't support this action
-Fail Mutable i32 (string)  Object doesn't support this action
-Fail Mutable i32 (true on prototype)  Object doesn't support this action
-Fail Immutable f32 (missing)  Object doesn't support this action
-Fail Immutable f32 (undefined)  Object doesn't support this action
-Fail Immutable f32 (null)  Object doesn't support this action
-Fail Immutable f32 (false)  Object doesn't support this action
-Fail Immutable f32 (empty string)  Object doesn't support this action
-Fail Immutable f32 (zero)  Object doesn't support this action
-Fail Mutable f32 (true)  Object doesn't support this action
-Fail Mutable f32 (one)  Object doesn't support this action
-Fail Mutable f32 (string)  Object doesn't support this action
-Fail Mutable f32 (true on prototype)  Object doesn't support this action
-Fail Immutable f64 (missing)  Object doesn't support this action
-Fail Immutable f64 (undefined)  Object doesn't support this action
-Fail Immutable f64 (null)  Object doesn't support this action
-Fail Immutable f64 (false)  Object doesn't support this action
-Fail Immutable f64 (empty string)  Object doesn't support this action
-Fail Immutable f64 (zero)  Object doesn't support this action
-Fail Mutable f64 (true)  Object doesn't support this action
-Fail Mutable f64 (one)  Object doesn't support this action
-Fail Mutable f64 (string)  Object doesn't support this action
-Fail Mutable f64 (true on prototype)  Object doesn't support this action
-Fail i64 with default  Object doesn't support this action
-Fail Calling setter without argument  Object doesn't support this action
-Fail Stray argument  Object doesn't support this action
+Fail Branding  assert_equals: expected "object" but got "undefined"
+Fail Immutable i32 (missing)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable i32 (undefined)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable i32 (null)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable i32 (false)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable i32 (empty string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable i32 (zero)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable i32 (true)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable i32 (one)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable i32 (string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable i32 (true on prototype)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (missing)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (undefined)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (null)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (false)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (empty string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f32 (zero)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f32 (true)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f32 (one)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f32 (string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f32 (true on prototype)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (missing)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (undefined)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (null)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (false)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (empty string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Immutable f64 (zero)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f64 (true)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f64 (one)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f64 (string)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail Mutable f64 (true on prototype)  assert_equals: initial value expected (number) 0 but got (undefined) undefined
+Fail i64 with default  assert_throws: function "() => global.value" did not throw
+Fail Calling setter without argument  assert_equals: expected "object" but got "undefined"
+Fail Stray argument  assert_equals: expected "object" but got "undefined"
