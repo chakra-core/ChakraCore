@@ -838,6 +838,144 @@ using namespace Js;
         JIT_HELPER_END(Op_StrictEqualEmptyString);
     }
 
+#ifdef _CHAKRACOREBUILD
+    BOOL JavascriptOperators::StrictEqualNumberType(Var aLeft, Var aRight, TypeId leftType, TypeId rightType, ScriptContext *requestContext)
+    {
+        double dblLeft, dblRight;
+
+        switch (leftType)
+        {
+        case TypeIds_Integer:
+            switch (rightType)
+            {
+            case TypeIds_Integer:
+                return aLeft == aRight;
+                // we don't need to worry about int64: it cannot equal as we create
+                // JavascriptInt64Number only in overflow scenarios.
+            case TypeIds_Number:
+                dblLeft = TaggedInt::ToDouble(aLeft);
+                dblRight = JavascriptNumber::GetValue(aRight);
+                goto CommonNumber;
+            }
+            return FALSE;
+
+        case TypeIds_Int64Number:
+            switch (rightType)
+            {
+            case TypeIds_Int64Number:
+            {
+                __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
+                return leftValue == rightValue;
+            }
+            case TypeIds_UInt64Number:
+            {
+                __int64 leftValue = UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptUInt64Number>(aRight)->GetValue();
+                return ((unsigned __int64)leftValue == rightValue);
+            }
+            case TypeIds_Number:
+                dblLeft = (double)UnsafeVarTo<JavascriptInt64Number>(aLeft)->GetValue();
+                dblRight = JavascriptNumber::GetValue(aRight);
+                goto CommonNumber;
+            }
+            return FALSE;
+
+        case TypeIds_UInt64Number:
+            switch (rightType)
+            {
+            case TypeIds_Int64Number:
+            {
+                unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                __int64 rightValue = UnsafeVarTo<JavascriptInt64Number>(aRight)->GetValue();
+                return (leftValue == (unsigned __int64)rightValue);
+            }
+            case TypeIds_UInt64Number:
+            {
+                unsigned __int64 leftValue = UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                unsigned __int64 rightValue = VarTo<JavascriptUInt64Number>(aRight)->GetValue();
+                return leftValue == rightValue;
+            }
+            case TypeIds_Number:
+                dblLeft = (double)UnsafeVarTo<JavascriptUInt64Number>(aLeft)->GetValue();
+                dblRight = JavascriptNumber::GetValue(aRight);
+                goto CommonNumber;
+            }
+            return FALSE;
+
+        case TypeIds_Number:
+            switch (rightType)
+            {
+            case TypeIds_Integer:
+                dblLeft = JavascriptNumber::GetValue(aLeft);
+                dblRight = TaggedInt::ToDouble(aRight);
+                goto CommonNumber;
+            case TypeIds_Int64Number:
+                dblLeft = JavascriptNumber::GetValue(aLeft);
+                dblRight = (double)VarTo<JavascriptInt64Number>(aRight)->GetValue();
+                goto CommonNumber;
+            case TypeIds_UInt64Number:
+                dblLeft = JavascriptNumber::GetValue(aLeft);
+                dblRight = (double)UnsafeVarTo<JavascriptUInt64Number>(aRight)->GetValue();
+                goto CommonNumber;
+            case TypeIds_Number:
+                dblLeft = JavascriptNumber::GetValue(aLeft);
+                dblRight = JavascriptNumber::GetValue(aRight);
+            CommonNumber:
+                return FEqualDbl(dblLeft, dblRight);
+            }
+            return FALSE;
+        }
+
+        Assert(0 && "Unreachable Code");
+        return FALSE;
+    }
+
+    BOOL JavascriptOperators::StrictEqual(Var aLeft, Var aRight, ScriptContext* requestContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_StrictEqual);
+        TypeId rightType, leftType;
+        leftType = JavascriptOperators::GetTypeId(aLeft);
+
+        // Because NaN !== NaN, we may not return TRUE when typeId is Number
+        if (aLeft == aRight && leftType != TypeIds_Number) return TRUE;
+
+        rightType = JavascriptOperators::GetTypeId(aRight);
+
+        if (leftType == TypeIds_String)
+        {
+            if (rightType == TypeIds_String)
+            {
+                return JavascriptString::Equals(UnsafeVarTo<JavascriptString>(aLeft), UnsafeVarTo<JavascriptString>(aRight));
+            }
+            return FALSE;
+        }
+        else if (leftType >= TypeIds_Integer && leftType <= TypeIds_UInt64Number)
+        {
+            return JavascriptOperators::StrictEqualNumberType(aLeft, aRight, leftType, rightType, requestContext);
+        }
+        else if (leftType == TypeIds_GlobalObject)
+        {
+            BOOL result;
+            if (UnsafeVarTo<RecyclableObject>(aLeft)->StrictEquals(aRight, &result, requestContext))
+            {
+                return result;
+            }
+            return false;
+        }
+        else if (leftType == TypeIds_BigInt)
+        {
+            if (rightType == TypeIds_BigInt)
+            {
+                return JavascriptBigInt::Equals(aLeft, aRight);
+            }
+            return FALSE;
+        }
+
+        return aLeft == aRight;
+        JIT_HELPER_END(Op_StrictEqual);
+    }
+ #else
     BOOL JavascriptOperators::StrictEqual(Var aLeft, Var aRight, ScriptContext* requestContext)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_StrictEqual);
@@ -1016,6 +1154,7 @@ CommonNumber:
         return aLeft == aRight;
         JIT_HELPER_END(Op_StrictEqual);
     }
+#endif
 
     BOOL JavascriptOperators::HasOwnProperty(
         Var instance,
