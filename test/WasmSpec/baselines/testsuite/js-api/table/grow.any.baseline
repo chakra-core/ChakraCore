@@ -1,17 +1,17 @@
 Harness Status: OK
-Found 15 tests: Fail = 14 Pass = 1
-Fail Missing arguments  assert_throws: function "() => table.grow()" did not throw
+Found 15 tests: Pass = 15
+Pass Missing arguments  
 Pass Branding  
-Fail Basic  assert_throws: before: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Reached maximum  assert_throws: before: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Exceeded maximum  assert_throws: before: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: undefined  assert_throws: function "() => table.grow(value)" did not throw
-Fail Out-of-range argument: NaN  assert_throws: function "() => table.grow(value)" did not throw
-Fail Out-of-range argument: Infinity  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: -Infinity  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: -1  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: 4294967296  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: 68719476736  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: "0x100000000"  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Out-of-range argument: object "[object Object]"  assert_throws: function "() => table.grow(value)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
-Fail Stray argument  assert_throws: before: table.get(-1) function "() => table.get(-1)" threw object "RangeError: argument out of range" ("RangeError") expected object "TypeError" ("TypeError")
+Pass Basic  
+Pass Reached maximum  
+Pass Exceeded maximum  
+Pass Out-of-range argument: undefined  
+Pass Out-of-range argument: NaN  
+Pass Out-of-range argument: Infinity  
+Pass Out-of-range argument: -Infinity  
+Pass Out-of-range argument: -1  
+Pass Out-of-range argument: 4294967296  
+Pass Out-of-range argument: 68719476736  
+Pass Out-of-range argument: "0x100000000"  
+Pass Out-of-range argument: object "[object Object]"  
+Pass Stray argument  

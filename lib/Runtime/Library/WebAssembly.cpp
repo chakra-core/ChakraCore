@@ -288,12 +288,18 @@ Var WebAssembly::TryResolveResponse(RecyclableObject* function, Var thisArg, Var
 uint32
 WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
 {
-    double i = JavascriptConversion::ToInteger(val, ctx);
-    if (i < 0 || i > (double)UINT32_MAX)
+    double i = JavascriptConversion::ToNumber(val, ctx);
+    if (
+        JavascriptNumber::IsNan(i) ||
+        JavascriptNumber::IsPosInf(i) ||
+        JavascriptNumber::IsNegInf(i) ||
+        i < 0 ||
+        i > (double)UINT32_MAX
+    )
     {
-        JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);
+        JavascriptError::ThrowTypeError(ctx, JSERR_NeedNumber);
     }
-    return (uint32)i;
+    return (uint32)JavascriptConversion::ToInteger(i);
 }
 
 void

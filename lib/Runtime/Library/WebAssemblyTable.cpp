@@ -46,7 +46,8 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     DynamicObject * tableDescriptor = VarTo<DynamicObject>(args[1]);
 
     Var elementVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::element, scriptContext);
-    if (!JavascriptOperators::StrictEqualString(elementVar, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("anyfunc"))))
+    auto elementStr = JavascriptConversion::ToString(elementVar, scriptContext);
+    if (!JavascriptOperators::StrictEqualString(elementStr, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("anyfunc"))))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_ExpectedAnyFunc, _u("tableDescriptor.element"));
     }
@@ -55,9 +56,9 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
     uint32 maximum = Wasm::Limits::GetMaxTableSize();
-    if (JavascriptOperators::OP_HasProperty(tableDescriptor, PropertyIds::maximum, scriptContext))
+    Var maxVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::maximum, scriptContext);
+    if (!JavascriptOperators::IsUndefined(maxVar))
     {
-        Var maxVar = JavascriptOperators::OP_GetProperty(tableDescriptor, PropertyIds::maximum, scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
     return Create(initial, maximum, scriptContext);

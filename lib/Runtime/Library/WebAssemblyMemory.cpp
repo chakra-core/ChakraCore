@@ -22,22 +22,33 @@ WebAssemblyMemory::WebAssemblyMemory(ArrayBufferBase* buffer, uint32 initial, ui
 }
 
 
-_Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum)
+void WebAssemblyMemory::CheckLimits(ScriptContext * scriptContext, uint32 initial, uint32 maximum)
 {
-    return initial <= maximum && initial <= Wasm::Limits::GetMaxMemoryInitialPages() && maximum <= Wasm::Limits::GetMaxMemoryMaximumPages();
+    if (maximum < initial)
+    {
+        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+    }
+    if (initial > Wasm::Limits::GetMaxMemoryInitialPages())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("descriptor.initial"));
+    }
+    if (maximum > Wasm::Limits::GetMaxMemoryMaximumPages())
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid, _u("descriptor.maximum"));
+    }
 }
 
 
-_Must_inspect_result_ bool WebAssemblyMemory::AreLimitsValid(uint32 initial, uint32 maximum, uint32 bufferLength)
+void WebAssemblyMemory::CheckLimits(ScriptContext * scriptContext, uint32 initial, uint32 maximum, uint32 bufferLength)
 {
-    if (!AreLimitsValid(initial, maximum))
-    {
-        return false;
-    }
+    CheckLimits(scriptContext, initial, maximum);
     // Do the mul after initial checks to avoid potential unneeded OOM exception
     const uint32 initBytes = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     const uint32 maxBytes = UInt32Math::Mul<WebAssembly::PageSize>(maximum);
-    return initBytes <= bufferLength && bufferLength <= maxBytes;
+    if (initBytes > bufferLength || bufferLength > maxBytes)
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+    }
 }
 
 Var
@@ -60,31 +71,38 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
 
     if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("memoryDescriptor"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("descriptor"));
     }
     DynamicObject * memoryDescriptor = VarTo<DynamicObject>(args[1]);
 
     Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
+    if (Js::JavascriptOperators::IsUndefined(initVar))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedNumber, _u("descriptor.initial"));
+    }
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
     uint32 maximum = Wasm::Limits::GetMaxMemoryMaximumPages();
     bool hasMaximum = false;
-    if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
+    Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
+    if (!Js::JavascriptOperators::IsUndefined(maxVar))
     {
         hasMaximum = true;
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
 
     bool isShared = false;
-    if (Wasm::Threads::IsEnabled() && JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::shared, scriptContext))
+    if (Wasm::Threads::IsEnabled())
     {
-        if (!hasMaximum)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
-        }
         Var sharedVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::shared, scriptContext);
-        isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
+        if (!Js::JavascriptOperators::IsUndefined(sharedVar))
+        {
+            isShared = JavascriptConversion::ToBool(sharedVar, scriptContext);
+            if (!hasMaximum)
+            {
+                JavascriptError::ThrowTypeError(scriptContext, WASMERR_SharedNoMaximum);
+            }
+        }
     }
 
     return CreateMemoryObject(initial, maximum, isShared, scriptContext);
@@ -271,10 +289,7 @@ WebAssemblyMemory::EntryGetterBuffer(RecyclableObject* function, CallInfo callIn
 WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, bool isShared, ScriptContext * scriptContext)
 {
-    if (!AreLimitsValid(initial, maximum))
-    {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
-    }
+    CheckLimits(scriptContext, initial, maximum);
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     ArrayBufferBase* buffer = nullptr;
 #ifdef ENABLE_WASM_THREADS
@@ -300,10 +315,7 @@ WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, bool isSha
 
 WebAssemblyMemory * WebAssemblyMemory::CreateForExistingBuffer(uint32 initial, uint32 maximum, uint32 currentByteLength, ScriptContext * scriptContext)
 {
-    if (!AreLimitsValid(initial, maximum, currentByteLength))
-    {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
-    }
+    CheckLimits(scriptContext, initial, maximum, currentByteLength);
     ArrayBufferBase* buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(currentByteLength);
     Assert(buffer);
     if (currentByteLength > 0 && buffer->GetByteLength() == 0)
@@ -317,10 +329,11 @@ WebAssemblyMemory * WebAssemblyMemory::CreateForExistingBuffer(uint32 initial, u
 #ifdef ENABLE_WASM_THREADS
 WebAssemblyMemory * WebAssemblyMemory::CreateFromSharedContents(uint32 initial, uint32 maximum, SharedContents* sharedContents, ScriptContext * scriptContext)
 {
-    if (!sharedContents || !AreLimitsValid(initial, maximum, sharedContents->bufferLength))
+    if (!sharedContents)
     {
-        JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
     }
+    CheckLimits(scriptContext, initial, maximum, sharedContents->bufferLength);
     ArrayBufferBase* buffer = scriptContext->GetLibrary()->CreateWebAssemblySharedArrayBuffer(sharedContents);
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
