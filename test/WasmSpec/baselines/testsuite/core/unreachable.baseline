@@ -1,2 +1,1 @@
-(47) testsuite/core/unreachable.wast:275: assert_trap($$.as-tee_local-value()) failed. Unexpected error thrown: CompileError: function as-tee_local-value[43] at offset 1588/1711 (0x634/0x6af): Can't tee_local unreachable values
-61/62 tests passed.
+62/62 tests passed.
