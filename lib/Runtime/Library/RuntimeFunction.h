@@ -25,6 +25,7 @@ namespace Js
         // NOTE: This has a side-effect that after toString() is called for the first time on a built-in function the functionNameId gets replaced with a string like "function foo() { native code }".
         // As a result any code like debugger(F12) that shows the functionNameId to the user will need to pre-process this string as it may not be desirable to use this as-is in some cases.
         // See RuntimeFunction::EnsureSourceString() for details.
+        Field(bool) isDisplayString;
         Field(Var) functionNameId;
         virtual Var GetSourceString() const { return functionNameId; }
         virtual JavascriptString * EnsureSourceString();

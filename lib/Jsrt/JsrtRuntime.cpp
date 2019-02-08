@@ -14,7 +14,11 @@ JsrtRuntime::JsrtRuntime(ThreadContext * threadContext, bool useIdle, bool dispa
     this->contextList = NULL;
     this->collectCallback = NULL;
     this->beforeCollectCallback = NULL;
-    this->callbackContext = NULL;
+    this->beforeCollectCallbackContext = NULL;
+#ifdef _CHAKRACOREBUILD
+    this->beforeSweepCallback = NULL;
+    this->beforeSweepCallbackContext = NULL;
+#endif
     this->allocationPolicyManager = threadContext->GetAllocationPolicyManager();
     this->useIdle = useIdle;
     this->dispatchExceptions = dispatchExceptions;
@@ -85,44 +89,98 @@ void JsrtRuntime::CloseContexts()
 
 void JsrtRuntime::SetBeforeCollectCallback(JsBeforeCollectCallback beforeCollectCallback, void * callbackContext)
 {
-    if (beforeCollectCallback != NULL)
+    if (beforeCollectCallback != nullptr)
     {
-        if (this->collectCallback == NULL)
+        if (this->collectCallback == nullptr)
         {
             this->collectCallback = this->threadContext->AddRecyclerCollectCallBack(RecyclerCollectCallbackStatic, this);
         }
 
         this->beforeCollectCallback = beforeCollectCallback;
-        this->callbackContext = callbackContext;
+        this->beforeCollectCallbackContext = callbackContext;
     }
     else
     {
-        if (this->collectCallback != NULL)
+        if (this->collectCallback != nullptr
+#ifdef _CHAKRACOREBUILD
+            && this->beforeSweepCallback == nullptr
+#endif
+            )
         {
             this->threadContext->RemoveRecyclerCollectCallBack(this->collectCallback);
-            this->collectCallback = NULL;
+            this->collectCallback = nullptr;
         }
 
-        this->beforeCollectCallback = NULL;
-        this->callbackContext = NULL;
+        this->beforeCollectCallback = nullptr;
+        this->beforeCollectCallbackContext = nullptr;
     }
 }
+
+#ifdef _CHAKRACOREBUILD
+void JsrtRuntime::SetBeforeSweepCallback(JsBeforeSweepCallback afterCollectCallback, void * callbackContext)
+{
+    if (afterCollectCallback != nullptr)
+    {
+        if (this->collectCallback == nullptr)
+        {
+            this->collectCallback = this->threadContext->AddRecyclerCollectCallBack(RecyclerCollectCallbackStatic, this);
+        }
+
+        this->beforeSweepCallback = afterCollectCallback;
+        this->beforeSweepCallbackContext = callbackContext;
+    }
+    else
+    {
+        if (this->collectCallback != nullptr && this->beforeCollectCallback == nullptr)
+        {
+            this->threadContext->RemoveRecyclerCollectCallBack(this->collectCallback);
+            this->collectCallback = nullptr;
+        }
+
+        this->beforeSweepCallback = nullptr;
+        this->beforeSweepCallbackContext = nullptr;
+    }
+}
+#endif
 
 void JsrtRuntime::RecyclerCollectCallbackStatic(void * context, RecyclerCollectCallBackFlags flags)
 {
     if (flags & Collect_Begin)
     {
         JsrtRuntime * _this = reinterpret_cast<JsrtRuntime *>(context);
+        if (_this->beforeCollectCallback == nullptr) 
+        {
+            return;
+        }
         try
         {
             JsrtCallbackState scope(reinterpret_cast<ThreadContext*>(_this->GetThreadContext()));
-            _this->beforeCollectCallback(_this->callbackContext);
+            _this->beforeCollectCallback(_this->beforeCollectCallbackContext);
         }
         catch (...)
         {
             AssertMsg(false, "Unexpected non-engine exception.");
         }
     }
+#ifdef _CHAKRACOREBUILD
+    else if (flags & Collect_Begin_Sweep)
+    {
+        JsrtRuntime * _this = reinterpret_cast<JsrtRuntime *>(context);
+        if (_this->beforeSweepCallback == nullptr)
+        {
+            return;
+        }
+        try
+        {
+            JsrtCallbackState scope(reinterpret_cast<ThreadContext*>(_this->GetThreadContext()));
+            _this->beforeSweepCallback(_this->beforeSweepCallbackContext);
+        }
+        catch (...)
+        {
+            AssertMsg(false, "Unexpected non-engine exception.");
+        }
+    }
+#endif
 }
 
 unsigned int JsrtRuntime::Idle()

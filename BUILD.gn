@@ -1,0 +1,48 @@
+#-------------------------------------------------------------------------------------------------------
+# Copyright (C) Microsoft. All rights reserved.
+# Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
+#-------------------------------------------------------------------------------------------------------
+
+action("ChakraCoreBuild") {
+  script = "tools/run_msbuild.py"
+
+  chakracore_solution = rebase_path("Build\Chakra.Core.sln")
+
+  # NOSORT
+  sources = [
+    chakracore_solution
+  ]
+
+  outputs = [
+    "$target_gen_dir/ChakraCore.lib",
+    "$target_gen_dir/../../../ChakraCore.pdb",
+    "$target_gen_dir/../../../ChakraCore.dll"
+  ]
+
+  # The path should be like: "Build/VcBuild/bin/x64_debug""
+  outdir = "Build/VcBuild/bin/" + current_cpu
+
+  if (is_debug) {
+    config = "Debug"
+    outdir = outdir + "_debug"
+  }
+  else {
+    config = "Release"
+    outdir = outdir + "_release"
+  }
+
+  outdir = rebase_path(outdir)
+
+# On Windows, run msbuild.exe on sln and copy lib, dll, pdb files to appropriate locations, 
+# def main(sln, outdir, target_gen_dir, *flags):
+
+  args = [ 
+    chakracore_solution,
+    outdir,
+    rebase_path(target_gen_dir),
+    "/m",
+    "/t:Build",
+    "/p:Configuration=$config",
+    "/p:platform=$current_cpu"
+  ] 
+}

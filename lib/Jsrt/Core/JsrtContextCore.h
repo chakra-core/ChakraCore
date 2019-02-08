@@ -7,6 +7,15 @@
 #include "JsrtRuntime.h"
 class ChakraCoreHostScriptContext;
 
+namespace Js
+{
+    namespace SCACore
+    {
+        class Serializer;
+        class Deserializer;
+    }
+}
+
 class JsrtContextCore sealed : public JsrtContext
 {
 public:
@@ -22,6 +31,69 @@ private:
     Js::ScriptContext* EnsureScriptContext();
 
     FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
+};
+
+class ChakraCoreStreamWriter : public HostStream
+{
+    Js::SCACore::Serializer *m_serializerCore;
+    byte* m_data;
+    size_t m_length;
+
+    ReallocateBufferMemoryFunc reallocateBufferMemory;
+    WriteHostObjectFunc writeHostObject;
+    void * callbackState;
+public:
+    ChakraCoreStreamWriter(ReallocateBufferMemoryFunc reallocateBufferMemory, WriteHostObjectFunc writeHostObject, void * callbackState) :
+        reallocateBufferMemory(reallocateBufferMemory),
+        writeHostObject(writeHostObject),
+        callbackState(callbackState),
+        m_data(nullptr),
+        m_length(0),
+        m_serializerCore(nullptr)
+    {
+    }
+
+    ~ChakraCoreStreamWriter();
+
+    void SetSerializer(Js::SCACore::Serializer *s);
+
+    void WriteRawBytes(const void* source, size_t length);
+    bool WriteValue(JsValueRef root);
+    bool ReleaseData(byte** data, size_t *dataLength);
+    bool DetachArrayBuffer();
+    JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
+    void FreeSelf();
+
+    virtual bool WriteHostObject(void* data) override;
+    virtual byte * ExtendBuffer(byte *oldBuffer, size_t newSize, size_t *allocatedSize) override;
+};
+
+class ChakraHostDeserializerHandle : public HostReadStream
+{
+    Js::SCACore::Deserializer *m_deserializer;
+    ReadHostObjectFunc readHostObject;
+    GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId;
+    void* callbackState;
+
+public:
+    ChakraHostDeserializerHandle(ReadHostObjectFunc readHostObject, GetSharedArrayBufferFromIdFunc getSharedArrayBufferFromId, void* callbackState) :
+        readHostObject(readHostObject),
+        getSharedArrayBufferFromId(getSharedArrayBufferFromId),
+        callbackState(callbackState),
+        m_deserializer(nullptr)
+    { }
+
+    ~ChakraHostDeserializerHandle();
+
+    void SetDeserializer(Js::SCACore::Deserializer *deserializer);
+    bool ReadRawBytes(size_t length, void **data);
+    virtual bool ReadBytes(size_t length, void **data);
+    virtual JsErrorCode SetTransferableVars(JsValueRef *transferableVars, size_t transferableVarsCount);
+    JsValueRef ReadValue();
+    void FreeSelf();
+
+    virtual Js::Var ReadHostObject() override;
+
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext
@@ -161,6 +233,13 @@ public:
         return nullptr;
     }
 
+    HRESULT ThrowIfFailed(HRESULT hr) override
+    {
+        hr;
+        // No support yet
+        return S_OK;
+    }
+
     HRESULT EnqueuePromiseTask(Js::Var taskVar) override
     {
         return E_NOTIMPL;
@@ -195,3 +274,6 @@ private:
     FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
 };
+
+
+

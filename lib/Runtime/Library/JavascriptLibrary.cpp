@@ -4473,7 +4473,12 @@ namespace Js
         return function;
     }
 
-    DynamicType* JavascriptLibrary::GetCachedJsrtExternalType(uintptr_t finalizeCallback)
+    JsrtExternalType* JavascriptLibrary::GetCachedJsrtExternalType(
+#ifdef _CHAKRACOREBUILD
+        uintptr_t traceCallback,
+#endif
+        uintptr_t finalizeCallback,
+        uintptr_t prototype)
     {
         RecyclerWeakReference<DynamicType>* dynamicTypeWeakRef = nullptr;
         DynamicType* dynamicType = nullptr;
@@ -4483,17 +4488,53 @@ namespace Js
             // Register for periodic cleanup
             scriptContext->RegisterWeakReferenceDictionary(jsrtExternalTypesCache);
         }
-        if (jsrtExternalTypesCache->TryGetValue(finalizeCallback, &dynamicTypeWeakRef))
+        if (jsrtExternalTypesCache->TryGetValue(JsrtExternalCallbacks(
+#ifdef _CHAKRACOREBUILD
+            traceCallback,
+#endif
+            finalizeCallback,
+            prototype), &dynamicTypeWeakRef))
+        {
+            dynamicType = dynamicTypeWeakRef->Get();
+        }
+        return (JsrtExternalType*)dynamicType;
+    }
+
+#ifdef _CHAKRACOREBUILD
+    void JavascriptLibrary::CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype, JsrtExternalType* dynamicTypeToCache)
+    {
+        jsrtExternalTypesCache->Item(JsrtExternalCallbacks(traceCallback, finalizeCallback, prototype), recycler->CreateWeakReferenceHandle<DynamicType>((DynamicType*)dynamicTypeToCache));
+    }
+#else
+    void JavascriptLibrary::CacheJsrtExternalType(uintptr_t finalizeCallback, uintptr_t prototype, JsrtExternalType* dynamicTypeToCache)
+    {
+        jsrtExternalTypesCache->Item(JsrtExternalCallbacks(finalizeCallback, prototype), recycler->CreateWeakReferenceHandle<DynamicType>((DynamicType*)dynamicTypeToCache));
+    }
+#endif
+
+#ifdef _CHAKRACOREBUILD
+    DynamicType* JavascriptLibrary::GetCachedCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype)
+    {
+        RecyclerWeakReference<DynamicType>* dynamicTypeWeakRef = nullptr;
+        DynamicType* dynamicType = nullptr;
+        if (customExternalWrapperTypesCache == nullptr)
+        {
+            customExternalWrapperTypesCache = RecyclerNew(recycler, CustomExternalWrapperTypesCache, recycler, 3);
+            // Register for periodic cleanup
+            scriptContext->RegisterWeakReferenceDictionary(customExternalWrapperTypesCache);
+        }
+        if (customExternalWrapperTypesCache->TryGetValue(CustomExternalWrapperCallbacks(traceCallback, finalizeCallback, interceptors, prototype), &dynamicTypeWeakRef))
         {
             dynamicType = dynamicTypeWeakRef->Get();
         }
         return dynamicType;
     }
 
-    void JavascriptLibrary::CacheJsrtExternalType(uintptr_t finalizeCallback, DynamicType* dynamicTypeToCache)
+    void JavascriptLibrary::CacheCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype, DynamicType* dynamicTypeToCache)
     {
-        jsrtExternalTypesCache->Item(finalizeCallback, recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
+        customExternalWrapperTypesCache->Item(CustomExternalWrapperCallbacks(traceCallback, finalizeCallback, interceptors, prototype), recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
+#endif
 
     void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)
     {
@@ -6059,20 +6100,8 @@ namespace Js
 
     JavascriptExternalFunction* JavascriptLibrary::CreateStdCallExternalFunction(StdCallJavascriptMethod entryPoint, Var name, void *callbackState)
     {
-        Var functionNameOrId = name;
-        if (VarIs<JavascriptString>(name))
-        {
-            JavascriptString * functionName = VarTo<JavascriptString>(name);
-            const char16 * functionNameBuffer = functionName->GetString();
-            int functionNameBufferLength = functionName->GetLengthAsSignedInt();
-
-            PropertyId functionNamePropertyId = scriptContext->GetOrAddPropertyIdTracked(functionNameBuffer, functionNameBufferLength);
-            functionNameOrId = TaggedInt::ToVarUnchecked(functionNamePropertyId);
-        }
-
-        AssertOrFailFast(TaggedInt::Is(functionNameOrId));
         JavascriptExternalFunction* function = this->CreateIdMappedExternalFunction(entryPoint, stdCallFunctionWithDeferredPrototypeType);
-        function->SetFunctionNameId(functionNameOrId);
+        function->SetFunctionNameId(name);
         function->SetCallbackState(callbackState);
         return function;
     }
@@ -6393,6 +6422,11 @@ namespace Js
     EnumeratorCache* JavascriptLibrary::GetObjectAssignCache(Type* type)
     {
         return GetEnumeratorCache<Cache::AssignCacheSize>(type, &this->cache.assignCache);
+    }
+
+    EnumeratorCache* JavascriptLibrary::GetCreateKeysCache(Type* type)
+    {
+        return GetEnumeratorCache<Cache::CreateKeysCacheSize>(type, &this->cache.createKeysCache);
     }
 
     EnumeratorCache* JavascriptLibrary::GetStringifyCache(Type* type)

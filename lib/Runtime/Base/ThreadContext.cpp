@@ -2600,6 +2600,8 @@ ThreadContext::PreCollectionCallBack(CollectionFlags flags)
 void
 ThreadContext::PreSweepCallback()
 {
+    CollectionCallBack(Collect_Begin_Sweep);
+
 #ifdef PERSISTENT_INLINE_CACHES
     ClearInlineCachesWithDeadWeakRefs();
 #else

@@ -34,6 +34,9 @@
 
 #include "Types/TypePropertyCache.h"
 #include "Library/JavascriptVariantDate.h"
+#ifdef _CHAKRACOREBUILD
+#include "Library/CustomExternalWrapperObject.h"
+#endif
 #include "Library/JavascriptProxy.h"
 #include "Library/JavascriptSymbolObject.h"
 #include "Library/JavascriptGenerator.h"

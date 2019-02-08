@@ -177,6 +177,7 @@ private:
 #define RecyclerNewFinalized(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedInlined, T, __VA_ARGS__)))
 #define RecyclerNewFinalizedPlus(recycler, size, T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocFinalized, size, T, __VA_ARGS__)))
 #define RecyclerNewTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedInlined, T, __VA_ARGS__)))
+#define RecyclerNewTrackedPlus(recycler, size, T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocTracked, size, T, __VA_ARGS__)))
 #define RecyclerNewEnumClass(recycler, enumClass, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<enumClass>()) T(__VA_ARGS__)
 #define RecyclerNewWithInfoBits(recycler, infoBits, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<infoBits>()) T(__VA_ARGS__)
 #define RecyclerNewFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedInlined, T, __VA_ARGS__)))
@@ -304,6 +305,10 @@ private:
 
 typedef void (__cdecl* ExternalRootMarker)(void *);
 
+typedef void (*DOMWrapperTracingCallback)(_In_opt_ void *data);
+typedef bool (*DOMWrapperTracingDoneCallback)(_In_opt_ void *data);
+typedef void (*DOMWrapperTracingEnterFinalPauseCallback)(_In_opt_ void *data);
+
 class RecyclerCollectionWrapper
 {
 public:
@@ -359,8 +364,58 @@ public:
         _isScriptContextCloseGCPending = TRUE;
     }
 
+    void SetDOMWrapperTracingCallback(DOMWrapperTracingCallback callback)
+    {
+        wrapperTracingCallback = callback;
+    }
+
+    void SetWrapperTracingCallbackState(void * state)
+    {
+        wrapperTracingCallbackState = state;
+    }
+
+    void SetDOMWrapperTracingEnterFinalPauseCallback(DOMWrapperTracingEnterFinalPauseCallback callback)
+    {
+        wrapperTracingEnterFinalPauseCallback = callback;
+    }
+
+    void SetDOMWrapperTracingDoneCallback(DOMWrapperTracingDoneCallback callback)
+    {
+        wrapperTracingDoneCallback = callback;
+    }
+
+    void EndMarkDomWrapperTracingCallback()
+    {
+        if (this->wrapperTracingCallback)
+        {
+            this->wrapperTracingCallback(this->wrapperTracingCallbackState);
+        }
+    }
+
+    bool EndMarkDomWrapperTracingDoneCallback()
+    {
+        if (this->wrapperTracingDoneCallback)
+        {
+            return this->wrapperTracingDoneCallback(this->wrapperTracingCallbackState);
+        }
+
+        return true;
+    }
+
+    void EndMarkDomWrapperTracingEnterFinalPauseCallback()
+    {
+        if (this->wrapperTracingEnterFinalPauseCallback)
+        {
+            this->wrapperTracingEnterFinalPauseCallback(this->wrapperTracingCallbackState);
+        }
+    }
+
 protected:
     BOOL _isScriptContextCloseGCPending;
+    void * wrapperTracingCallbackState;
+    DOMWrapperTracingCallback wrapperTracingCallback;
+    DOMWrapperTracingDoneCallback wrapperTracingDoneCallback;
+    DOMWrapperTracingEnterFinalPauseCallback wrapperTracingEnterFinalPauseCallback;
 };
 
 class DefaultRecyclerCollectionWrapper : public RecyclerCollectionWrapper
@@ -914,6 +969,7 @@ private:
     bool allowDispose;
     bool inDisposeWrapper;
     bool needOOMRescan;
+    bool needExternalWrapperTracing;
     bool hasDisposableObject;
     bool hasNativeGCHost;
     DWORD tickCountNextDispose;
@@ -1178,6 +1234,8 @@ public:
     void SetIsInScript(bool isInScript);
     bool HasNativeGCHost() const;
     void SetHasNativeGCHost();
+    void SetNeedExternalWrapperTracing();
+    void ClearNeedExternalWrapperTracing();
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
 
@@ -1208,6 +1266,7 @@ public:
 #endif
 
     // FindRoots
+    void TryExternalMarkNonInterior(void * candidate);
     void TryMarkNonInterior(void* candidate, void* parentReference = nullptr);
     void TryMarkInterior(void *candidate, void* parentReference = nullptr);
 
@@ -1601,6 +1660,7 @@ private:
     void DoParallelMark();
     void DoBackgroundParallelMark();
 #endif
+    void FinishWrapperObjectTracing();
 
     size_t RootMark(CollectionState markState);
 
@@ -2041,22 +2101,25 @@ public:
         ObjectBeforeCollectCallbackWrapper callbackWrapper,
         void* threadContext);
     void ClearObjectBeforeCollectCallbacks();
+    void SetDOMWrapperTracingCallback(void * state, DOMWrapperTracingCallback tracingCallback, DOMWrapperTracingDoneCallback tracingDoneCallback, DOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback);
+    void ClearDOMWrapperTracingCallback();
     bool IsInObjectBeforeCollectCallback() const { return objectBeforeCollectCallbackState != ObjectBeforeCollectCallback_None; }
 private:
     struct ObjectBeforeCollectCallbackData
     {
+        void* object;
         ObjectBeforeCollectCallback callback;
         void* callbackState;
         void* threadContext;
         ObjectBeforeCollectCallbackWrapper callbackWrapper;
 
         ObjectBeforeCollectCallbackData() {}
-        ObjectBeforeCollectCallbackData(ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
-            callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
+        ObjectBeforeCollectCallbackData(void* object, ObjectBeforeCollectCallbackWrapper callbackWrapper, ObjectBeforeCollectCallback callback, void* callbackState, void* threadContext) :
+            object(object), callbackWrapper(callbackWrapper), callback(callback), callbackState(callbackState), threadContext(threadContext) {}
     };
-    typedef JsUtil::BaseDictionary<void*, ObjectBeforeCollectCallbackData, HeapAllocator,
-        PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> ObjectBeforeCollectCallbackMap;
-    ObjectBeforeCollectCallbackMap* objectBeforeCollectCallbackMap;
+    typedef SList<ObjectBeforeCollectCallbackData> ObjectBeforeCollectCallbackList;
+    ObjectBeforeCollectCallbackList* objectBeforeCollectCallbackList;
+    ArenaAllocator objectBeforeCollectCallbackArena;
 
     enum ObjectBeforeCollectCallbackState
     {

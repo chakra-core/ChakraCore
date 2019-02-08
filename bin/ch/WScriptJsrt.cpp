@@ -44,6 +44,13 @@
 #define INTL_LIBRARY_TEXT ""
 #endif
 
+struct SerializerBlob
+{
+    void *data;
+    size_t dataLength;
+    std::vector< std::pair<void *, uint32> > transferableArrays;
+};
+
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
 std::map<std::string, JsModuleRecord>  WScriptJsrt::moduleRecordMap;
 std::map<JsModuleRecord, std::string>  WScriptJsrt::moduleDirMap;
@@ -252,6 +259,209 @@ Error:
     return returnValue;
 }
 
+void WScriptJsrt::SetExceptionIf(JsErrorCode errorCode, LPCWSTR errorMessage)
+{
+    if (errorCode != JsNoError)
+    {
+        JsValueRef errorObject;
+        JsValueRef errorMessageString;
+
+        if (wcscmp(errorMessage, _u("")) == 0)
+        {
+            errorMessage = ConvertErrorCodeToMessage(errorCode);
+        }
+
+        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+        ChakraRTInterface::JsSetException(errorObject);
+    }
+}
+
+byte * CHAKRA_CALLBACK ReallocateBufferMemory(void * state, byte *oldBuffer, size_t newSize, size_t *allocatedSize)
+{
+    void* data = realloc((void*)oldBuffer, newSize);
+    if (allocatedSize)
+    {
+        *allocatedSize = newSize;
+    }
+    return (byte*)data;
+}
+
+bool CHAKRA_CALLBACK WriteHostObject(void * state, JsValueRef data)
+{
+    // Not implemented
+    return true;
+}
+
+JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    HRESULT hr = S_OK;
+    JsValueRef *transferVarsArray = nullptr;
+    int transferVarsCount = 0;
+    if (argumentCount < 2)
+    {
+        errorCode = JsErrorInvalidArgument;
+        errorMessage = _u("Need an argument for WScript.Serialize");
+    }
+    else
+    {
+        JsValueRef rootObject = arguments[1];
+        JsValueRef transferArray = nullptr;
+        if (argumentCount > 2)
+        {
+            JsValueType argumentType = JsUndefined;
+            transferArray = arguments[2];
+            IfJsrtErrorSetGo(ChakraRTInterface::JsGetValueType(transferArray, &argumentType));
+
+            if (argumentType != JsUndefined)
+            {
+                if (argumentType != JsArray)
+                {
+                    errorCode = JsErrorInvalidArgument;
+                    goto Error;
+                }
+
+                JsPropertyIdRef lengthPropId;
+                JsValueRef arrayLengthObj = JS_INVALID_REFERENCE;
+                int arrayLength = 0;
+                IfJsrtErrorSetGo(CreatePropertyIdFromString("length", &lengthPropId));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsGetProperty(transferArray, lengthPropId, &arrayLengthObj));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsNumberToInt(arrayLengthObj, &arrayLength));
+                if (arrayLength > 0)
+                {
+                    transferVarsArray = new JsValueRef[arrayLength];
+                    if (transferVarsArray == nullptr)
+                    {
+                        errorCode = JsErrorOutOfMemory;
+                        goto Error;
+                    }
+
+                    for (int i = 0; i < arrayLength; i++)
+                    {
+                        JsValueRef index;
+                        JsValueRef value = JS_INVALID_REFERENCE;
+                        JsValueType jsType = JsUndefined;
+
+                        IfJsrtErrorSetGo(ChakraRTInterface::JsIntToNumber(i, &index));
+                        IfJsrtErrorSetGo(ChakraRTInterface::JsGetIndexedProperty(transferArray, index, &value));
+                        IfJsrtErrorSetGo(ChakraRTInterface::JsGetValueType(value, &jsType));
+                        if (jsType == JsArrayBuffer)
+                        {
+                            *(transferVarsArray + transferVarsCount) = value;
+                            transferVarsCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        JsVarSerializerHandle serializerHandle = nullptr;
+
+        // This memory will be claimed at WScriptJsrt::Deserialize.
+        SerializerBlob *blob = new SerializerBlob();
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializer(ReallocateBufferMemory, WriteHostObject, nullptr, &serializerHandle));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerSetTransferableVars(serializerHandle, transferVarsArray, transferVarsCount));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerWriteValue(serializerHandle, rootObject));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerReleaseData(serializerHandle, (byte**)&blob->data, &blob->dataLength));
+
+        for (int i = 0; i < transferVarsCount; i++)
+        {
+            JsValueRef arrayBuffer = transferVarsArray[i];
+            BYTE *buffer = nullptr;
+            uint32 bufferLength = 0;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+            blob->transferableArrays.push_back(std::make_pair((void*)buffer, bufferLength));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsDetachArrayBuffer(arrayBuffer));
+        }
+
+        errorCode = ChakraRTInterface::JsCreateExternalArrayBuffer((void*)blob, sizeof(SerializerBlob), nullptr, nullptr, &returnValue);
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarSerializerFree(serializerHandle));
+    }
+Error:
+    SetExceptionIf(errorCode, errorMessage);
+
+    if (transferVarsArray)
+    {
+        delete[] transferVarsArray;
+    }
+
+    return returnValue;
+}
+
+JsValueRef CHAKRA_CALLBACK ReadHostObject(void * state)
+{
+    Assert(false); // TBD
+    return nullptr;
+}
+
+JsValueRef CHAKRA_CALLBACK GetSharedArrayBufferFromId(void * state, uint32_t id)
+{
+    Assert(false); // TBD
+    return nullptr;
+}
+JsValueRef CHAKRA_CALLBACK GetWasmModuleFromId(void * state, uint32_t transfer_id)
+{
+    Assert(false); // TBD
+    return nullptr;
+}
+
+JsValueRef __stdcall WScriptJsrt::Deserialize(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    JsErrorCode errorCode = JsNoError;
+    LPCWSTR errorMessage = _u("");
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsValueRef * transferables = nullptr;
+    HRESULT hr = S_OK;
+    if (argumentCount < 2)
+    {
+        errorCode = JsErrorInvalidArgument;
+        errorMessage = _u("Need an argument for WScript.Deserialize");
+    }
+    else
+    {
+        JsValueRef dataObject = arguments[1];
+        uint32 dataLength = 0;
+        BYTE *data = nullptr;
+        IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(dataObject, &data, &dataLength));
+        SerializerBlob *blob = (SerializerBlob*)data;
+        JsVarDeserializerHandle deserializerHandle = nullptr;
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarDeserializer(blob->data, blob->dataLength, ReadHostObject, GetSharedArrayBufferFromId, nullptr, &deserializerHandle));
+
+        size_t arraySize = blob->transferableArrays.size();
+        if (arraySize > 0)
+        {
+            transferables = new JsValueRef[arraySize];
+
+            for (size_t i = 0; i < arraySize; ++i)
+            {
+                JsValueRef result = nullptr;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer(blob->transferableArrays[i].first, blob->transferableArrays[i].second, nullptr, nullptr, &result));
+                transferables[i] = result;
+            }
+
+            IfJsrtErrorSetGo(ChakraRTInterface::JsVarDeserializerSetTransferableVars(deserializerHandle, transferables, arraySize));
+        }
+
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarDeserializerReadValue(deserializerHandle, &returnValue));
+        IfJsrtErrorSetGo(ChakraRTInterface::JsVarDeserializerFree(deserializerHandle));
+        delete blob;
+
+    }
+
+Error:
+    SetExceptionIf(errorCode, errorMessage);
+    if (transferables)
+    {
+        delete[] transferables;
+    }
+
+    return returnValue;
+}
+
 JsValueRef __stdcall WScriptJsrt::GetModuleNamespace(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     JsErrorCode errorCode = JsNoError;
@@ -295,21 +505,7 @@ JsValueRef __stdcall WScriptJsrt::GetModuleNamespace(JsValueRef callee, bool isC
         }
     }
 
-    if (errorCode != JsNoError)
-    {
-        JsValueRef errorObject;
-        JsValueRef errorMessageString;
-
-        if (wcscmp(errorMessage, _u("")) == 0)
-        {
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
-        }
-
-        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
-
-        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        ChakraRTInterface::JsSetException(errorObject);
-    }
+    SetExceptionIf(errorCode, errorMessage);
     return returnValue;
 }
 
@@ -983,7 +1179,10 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RegisterModuleSource", RegisterModuleSourceCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetModuleNamespace", GetModuleNamespace));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "GetProxyProperties", GetProxyPropertiesCallback));
-    
+
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "SerializeObject", SerializeObject));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Deserialize", Deserialize));
+
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
 

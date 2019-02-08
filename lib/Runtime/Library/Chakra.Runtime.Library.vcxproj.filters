@@ -103,6 +103,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringifier.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JSONStringBuilder.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PropertyRecordUsageCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)CustomExternalWrapperObject.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigInt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBigIntObject.cpp" />
   </ItemGroup>
@@ -232,6 +233,7 @@
     <ClInclude Include="..\LibraryFunction.h" />
     <ClInclude Include="IntlExtensionObjectBuiltIns.h" />
     <ClInclude Include="StringCacheList.h" />
+    <ClInclude Include="CustomExternalWrapperObject.h" />
     <ClInclude Include="JavascriptBigInt.h" />
     <ClInclude Include="JavascriptBigIntObject.h" />
   </ItemGroup>

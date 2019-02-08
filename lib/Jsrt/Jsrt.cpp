@@ -12,8 +12,6 @@
 #include "ByteCode/ByteCodeSerializer.h"
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
-#include "Library/JavascriptExceptionMetadata.h"
-#include "Library/JavascriptPromise.h"
 #include "Base/ThreadContextTlsEntry.h"
 #include "Codex/Utf8Helper.h"
 
@@ -233,7 +231,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var p
         prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
     }
 
-    *object = JsrtExternalObject::Create(nullptr, nullptr, prototypeObject, ctx);
+    *object = JsrtExternalObject::Create(nullptr, 0, nullptr, prototypeObject, ctx, nullptr);
 }
 
 void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1350,7 +1348,7 @@ CHAKRA_API JsCreateExternalObjectWithPrototype(_In_opt_ void *data,
             prototypeObject = Js::VarTo<Js::RecyclableObject>(prototype);
         }
 
-        *object = JsrtExternalObject::Create(data, finalizeCallback, prototypeObject, scriptContext);
+        *object = JsrtExternalObject::Create(data, 0, finalizeCallback, prototypeObject, scriptContext, nullptr);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 
@@ -1461,10 +1459,10 @@ CHAKRA_API JsPreventExtension(_In_ JsValueRef object)
 }
 
 CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValueRef object,
-    _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty)
+    _In_ const Js::PropertyRecord * propertyRecord, _Out_ bool *hasOwnProperty, _In_opt_ Js::PropertyString * propString)
 {
     *hasOwnProperty = Js::JavascriptOperators::OP_HasOwnProperty(object,
-        propertyRecord->GetPropertyId(), scriptContext) != 0;
+        propertyRecord->GetPropertyId(), scriptContext, propString) != 0;
 
     return JsNoError;
 }
@@ -1472,7 +1470,7 @@ CHAKRA_API JsHasOwnPropertyCommon(Js::ScriptContext * scriptContext, _In_ JsValu
 CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId,
     _Out_ bool *hasOwnProperty)
 {
-    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext,
         TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTHasOwnProperty, (const Js::PropertyRecord *)propertyId, object);
 
@@ -1482,7 +1480,7 @@ CHAKRA_API JsHasOwnProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
         *hasOwnProperty = false;
 
         return JsHasOwnPropertyCommon(scriptContext, object,
-            (const Js::PropertyRecord *)propertyId, hasOwnProperty);
+            (const Js::PropertyRecord *)propertyId, hasOwnProperty, nullptr);
     });
 }
 
@@ -1529,7 +1527,7 @@ CHAKRA_API JsObjectHasOwnProperty(_In_ JsValueRef object, _In_ JsValueRef proper
             return errorValue;
         }
 
-        return JsHasOwnPropertyCommon(scriptContext, object, propertyRecord, hasOwnProperty);
+        return JsHasOwnPropertyCommon(scriptContext, object, propertyRecord, hasOwnProperty, Js::VarIs<Js::PropertyString>(propertyId) ? (Js::PropertyString*)propertyId : nullptr);
     });
 }
 #endif
@@ -1747,10 +1745,19 @@ CHAKRA_API JsHasProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propertyId
     {
         return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
     }
-    else
+#ifdef _CHAKRACOREBUILD
+    else if (typeId == Js::TypeIds_Object)
     {
-        return ContextAPINoScriptWrapper(internalHasProperty);
+        // CEOs can also have traps so we would want the Enter/Leave semantics for those.
+        Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(object);
+        if (externalWrapper)
+        {
+            return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+        }
     }
+#endif
+
+    return ContextAPINoScriptWrapper(internalHasProperty);
 }
 
 #ifdef _CHAKRACOREBUILD
@@ -1793,10 +1800,17 @@ CHAKRA_API JsObjectHasProperty(_In_ JsValueRef object, _In_ JsValueRef propertyI
     {
         return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
     }
-    else
+    else if (typeId == Js::TypeIds_Object)
     {
-        return ContextAPINoScriptWrapper(internalHasProperty);
+        // CEOs can also have traps so we would want the Enter/Leave semantics for those.
+        Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(object);
+        if (externalWrapper)
+        {
+            return ContextAPIWrapper<JSRT_MAYBE_TRUE>(internalHasProperty);
+        }
     }
+
+    return ContextAPINoScriptWrapper(internalHasProperty);
 }
 #endif
 
@@ -1903,6 +1917,71 @@ CHAKRA_API JsDefineProperty(_In_ JsValueRef object, _In_ JsPropertyIdRef propert
 }
 
 #ifdef _CHAKRACOREBUILD
+
+CHAKRA_API
+JsObjectDefinePropertyFull(
+    _In_ JsValueRef object,
+    _In_ JsValueRef key,
+    _In_opt_ JsValueRef value,
+    _In_opt_ JsValueRef getter,
+    _In_opt_ JsValueRef setter,
+    _In_ bool writable,
+    _In_ bool enumerable,
+    _In_ bool configurable,
+    _Out_ bool *result)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        VALIDATE_INCOMING_RECYCLABLE(key, scriptContext);
+        PARAM_NOT_NULL(result);
+        *result = false;
+
+        const Js::PropertyRecord *propertyRecord = nullptr;
+        JsErrorCode errorValue = InternalGetPropertyRecord(scriptContext,
+            Js::VarTo<Js::RecyclableObject>(key), &propertyRecord);
+
+        if (errorValue != JsNoError)
+        {
+            return errorValue;
+        }
+
+        Js::PropertyDescriptor propertyDescriptor;
+        if (value)
+        {
+            propertyDescriptor.SetValue(value);
+        }
+        if (getter)
+        {
+            propertyDescriptor.SetGetter(getter);
+        }
+        if (setter)
+        {
+            propertyDescriptor.SetSetter(setter);
+        }
+        if (writable)
+        {
+            propertyDescriptor.SetWritable(writable);
+        }
+        if (enumerable)
+        {
+            propertyDescriptor.SetEnumerable(enumerable);
+        }
+        if (configurable)
+        {
+            propertyDescriptor.SetConfigurable(configurable);
+        }
+
+        *result = Js::JavascriptOperators::DefineOwnPropertyDescriptor(
+            Js::VarTo<Js::RecyclableObject>(object), propertyRecord->GetPropertyId(),
+            propertyDescriptor, true, scriptContext) != 0;
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsObjectDefineProperty(_In_ JsValueRef object, _In_ JsValueRef propertyId,
     _In_ JsValueRef propertyDescriptor, _Out_ bool *result)
 {
@@ -1997,57 +2076,6 @@ CHAKRA_API JsCreateArrayBuffer(_In_ unsigned int byteLength, _Out_ JsValueRef *r
         return JsNoError;
     });
 }
-
-#ifdef _CHAKRACOREBUILD
-CHAKRA_API JsCreateSharedArrayBufferWithSharedContent(_In_ JsSharedArrayBufferContentHandle sharedContents, _Out_ JsValueRef *result)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-
-        PARAM_NOT_NULL(result);
-
-        Js::JavascriptLibrary* library = scriptContext->GetLibrary();
-        *result = library->CreateSharedArrayBuffer((Js::SharedContents*)sharedContents);
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, result);
-
-        JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_OBJECT(*result));
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsGetSharedArrayBufferContent(_In_ JsValueRef sharedArrayBuffer, _Out_ JsSharedArrayBufferContentHandle *sharedContents)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-
-        PARAM_NOT_NULL(sharedContents);
-
-        if (!Js::VarIs<Js::SharedArrayBuffer>(sharedArrayBuffer))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::SharedContents**& content = (Js::SharedContents**&)sharedContents;
-        *content = Js::VarTo<Js::SharedArrayBuffer>(sharedArrayBuffer)->GetSharedContents();
-
-        if (*content == nullptr)
-        {
-            return JsErrorFatal;
-        }
-
-        (*content)->AddRef();
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsReleaseSharedArrayBufferContentHandle(_In_ JsSharedArrayBufferContentHandle sharedContents)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        ((Js::SharedContents*)sharedContents)->Release();
-        return JsNoError;
-    });
-}
-#endif // _CHAKRACOREBUILD
 
 CHAKRA_API JsCreateExternalArrayBuffer(_Pre_maybenull_ _Pre_writable_byte_size_(byteLength) void *data, _In_ unsigned int byteLength,
     _In_opt_ JsFinalizeCallback finalizeCallback, _In_opt_ void *callbackState, _Out_ JsValueRef *result)
@@ -2694,7 +2722,15 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        *value = Js::VarIs<JsrtExternalObject>(object);
+        if (Js::VarIs<Js::JavascriptProxy>(object))
+        {
+            object = Js::VarTo<Js::JavascriptProxy>(object);
+        }
+        *value = (Js::VarIs<JsrtExternalObject>(object)
+#ifdef _CHAKRACOREBUILD
+            || Js::VarIs<Js::CustomExternalWrapperObject>(object)
+#endif
+            );
     }
     END_JSRT_NO_EXCEPTION
 }
@@ -2706,10 +2742,20 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
+        if (Js::VarIs<Js::JavascriptProxy>(object))
+        {
+            object = Js::VarTo<Js::JavascriptProxy>(object)->GetTarget();
+        }
         if (Js::VarIs<JsrtExternalObject>(object))
         {
             *data = Js::VarTo<JsrtExternalObject>(object)->GetSlotData();
         }
+#ifdef _CHAKRACOREBUILD
+        else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
+        {
+            *data = Js::VarTo<Js::CustomExternalWrapperObject>(object)->GetSlotData();
+        }
+#endif
         else
         {
             *data = nullptr;
@@ -2725,10 +2771,20 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
+        if (Js::VarIs<Js::JavascriptProxy>(object))
+        {
+            object = Js::VarTo<Js::JavascriptProxy>(object)->GetTarget();
+        }
         if (Js::VarIs<JsrtExternalObject>(object))
         {
             Js::VarTo<JsrtExternalObject>(object)->SetSlotData(data);
         }
+#ifdef _CHAKRACOREBUILD
+        else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
+        {
+            Js::VarTo<Js::CustomExternalWrapperObject>(object)->SetSlotData(data);
+        }
+#endif
         else
         {
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
@@ -3527,6 +3583,7 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Expression);
         }
         bool isLibraryCode = (parseAttributes & JsParseScriptAttributeLibraryCode) == JsParseScriptAttributeLibraryCode;
+        bool isStrictMode = (parseAttributes & JsParseScriptAttributeStrictMode) == JsParseScriptAttributeStrictMode;
         if (isLibraryCode)
         {
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_LibraryCode);
@@ -3534,6 +3591,10 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
         if (isSourceModule)
         {
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_Module);
+        }
+        if (isStrictMode)
+        {
+            loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_StrictMode);
         }
 
 #if ENABLE_TTD
@@ -4794,84 +4855,6 @@ CHAKRA_API JsTTDDiagSetAutoTraceStatus(_In_ bool status)
 
 #ifdef _CHAKRACOREBUILD
 
-template <class SrcChar, class DstChar>
-static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
-{
-    const SrcChar* end = src + count;
-    while (src < end)
-    {
-        *dst++ = static_cast<DstChar>(*src++);
-    }
-}
-
-CHAKRA_API JsCreateString(
-    _In_ const char *content,
-    _In_ size_t length,
-    _Out_ JsValueRef *value)
-{
-    PARAM_NOT_NULL(content);
-    PARAM_NOT_NULL(value);
-    *value = JS_INVALID_REFERENCE;
-
-    if (length == static_cast<size_t>(-1))
-    {
-        length = strlen(content);
-    }
-
-    if (length > MaxCharCount)
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-
-        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromCString(content, (CharCount)length, scriptContext->GetLibrary());
-
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
-
-        *value = stringValue;
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsCreateStringUtf16(
-    _In_ const uint16_t *content,
-    _In_ size_t length,
-    _Out_ JsValueRef *value)
-{
-    PARAM_NOT_NULL(content);
-    PARAM_NOT_NULL(value);
-    *value = JS_INVALID_REFERENCE;
-
-    if (length == static_cast<size_t>(-1))
-    {
-        length = wcslen((const char16 *)content);
-    }
-
-    if (length > static_cast<CharCount>(-1))
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-
-        Js::JavascriptString *stringValue = Js::LiteralStringWithPropertyStringPtr::
-            NewFromWideString((const char16 *)content, (CharCount)length, scriptContext->GetLibrary());
-
-        PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue->GetSz(), stringValue->GetLength());
-
-        *value = stringValue;
-
-        PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, value);
-
-        return JsNoError;
-    });
-}
-
 
 template <class CopyFunc>
 JsErrorCode WriteStringCopy(
@@ -4979,8 +4962,8 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     PARAM_NOT_NULL(sourceUrl);
 
     bool isExternalArray = Js::VarIs<Js::ArrayBuffer>(scriptVal),
-         isString = false;
-    bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
+        isString = false;
+    bool isUtf8 = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
 
     LoadScriptFlag scriptFlag = LoadScriptFlag_None;
     const byte* script;
@@ -5234,237 +5217,6 @@ CHAKRA_API JsRunSerialized(
         buffer, arrayBuffer, sourceContext, url, 0, false, false, result, Js::Constants::InvalidSourceIndex);
 }
 
-CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
-
-        PARAM_NOT_NULL(promise);
-        PARAM_NOT_NULL(resolve);
-        PARAM_NOT_NULL(reject);
-
-        *promise = nullptr;
-        *resolve = nullptr;
-        *reject = nullptr;
-
-        Js::JavascriptPromiseResolveOrRejectFunction *jsResolve = nullptr;
-        Js::JavascriptPromiseResolveOrRejectFunction *jsReject = nullptr;
-        Js::JavascriptPromise *jsPromise = scriptContext->GetLibrary()->CreatePromise();
-        Js::JavascriptPromise::InitializePromise(jsPromise, &jsResolve, &jsReject, scriptContext);
-
-        *promise = (JsValueRef)jsPromise;
-        *resolve = (JsValueRef)jsResolve;
-        *reject = (JsValueRef)jsReject;
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsGetPromiseState(_In_ JsValueRef promise, _Out_ JsPromiseState *state)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
-
-        VALIDATE_INCOMING_REFERENCE(promise, scriptContext);
-        PARAM_NOT_NULL(state);
-
-        *state = JsPromiseStatePending;
-
-        if (!Js::VarIs<Js::JavascriptPromise>(promise))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::JavascriptPromise *jsPromise = Js::VarTo<Js::JavascriptPromise>(promise);
-        Js::JavascriptPromise::PromiseStatus status = jsPromise->GetStatus();
-
-        switch (status)
-        {
-        case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasRejection:
-            *state = JsPromiseStateRejected;
-            break;
-
-        case Js::JavascriptPromise::PromiseStatus::PromiseStatusCode_HasResolution:
-            *state = JsPromiseStateFulfilled;
-            break;
-        }
-
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsGetPromiseResult(_In_ JsValueRef promise, _Out_ JsValueRef *result)
-{
-    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
-
-        VALIDATE_INCOMING_REFERENCE(promise, scriptContext);
-        PARAM_NOT_NULL(result);
-
-        *result = JS_INVALID_REFERENCE;
-
-        if (!Js::VarIs<Js::JavascriptPromise>(promise))
-        {
-            return JsErrorInvalidArgument;
-        }
-
-        Js::JavascriptPromise *jsPromise = Js::VarTo<Js::JavascriptPromise>(promise);
-        Js::Var jsResult = jsPromise->GetResult();
-
-        if (jsResult == nullptr)
-        {
-            return JsErrorPromisePending;
-        }
-
-        *result = (JsValueRef)jsResult;
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsCreateWeakReference(
-    _In_ JsValueRef value,
-    _Out_ JsWeakRef* weakRef)
-{
-    VALIDATE_JSREF(value);
-    PARAM_NOT_NULL(weakRef);
-    *weakRef = nullptr;
-
-    if (Js::TaggedNumber::Is(value))
-    {
-        return JsNoWeakRefRequired;
-    }
-
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-        if (threadContext == nullptr)
-        {
-            return JsErrorNoCurrentContext;
-        }
-
-        Recycler* recycler = threadContext->GetRecycler();
-        if (recycler->IsInObjectBeforeCollectCallback())
-        {
-            return JsErrorInObjectBeforeCollectCallback;
-        }
-
-        RecyclerHeapObjectInfo dummyObjectInfo;
-        if (!recycler->FindHeapObject(value, Memory::FindHeapObjectFlags::FindHeapObjectFlags_NoFlags, dummyObjectInfo))
-        {
-            // value is not recyler-allocated
-            return JsErrorInvalidArgument;
-        }
-
-        recycler->FindOrCreateWeakReferenceHandle<char>(
-            reinterpret_cast<char*>(value),
-            reinterpret_cast<Memory::RecyclerWeakReference<char>**>(weakRef));
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsGetWeakReferenceValue(
-    _In_ JsWeakRef weakRef,
-    _Out_ JsValueRef* value)
-{
-    VALIDATE_JSREF(weakRef);
-    PARAM_NOT_NULL(value);
-    *value = JS_INVALID_REFERENCE;
-
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
-        Memory::RecyclerWeakReference<char>* recyclerWeakReference =
-            reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
-        *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
-        return JsNoError;
-    });
-}
-
-CHAKRA_API JsGetAndClearExceptionWithMetadata(_Out_ JsValueRef *metadata)
-{
-    PARAM_NOT_NULL(metadata);
-    *metadata = nullptr;
-
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-
-    if (currentContext == nullptr)
-    {
-        return JsErrorNoCurrentContext;
-    }
-
-    Js::ScriptContext *scriptContext = currentContext->GetScriptContext();
-    Assert(scriptContext != nullptr);
-
-    if (scriptContext->GetRecycler() && scriptContext->GetRecycler()->IsHeapEnumInProgress())
-    {
-        return JsErrorHeapEnumInProgress;
-    }
-    else if (scriptContext->GetThreadContext()->IsInThreadServiceCallback())
-    {
-        return JsErrorInThreadServiceCallback;
-    }
-
-    if (scriptContext->GetThreadContext()->IsExecutionDisabled())
-    {
-        return JsErrorInDisabledState;
-    }
-
-    HRESULT hr = S_OK;
-    Js::JavascriptExceptionObject *recordedException = nullptr;
-
-    BEGIN_TRANSLATE_OOM_TO_HRESULT
-        if (scriptContext->HasRecordedException())
-        {
-            recordedException = scriptContext->GetAndClearRecordedException();
-        }
-    END_TRANSLATE_OOM_TO_HRESULT(hr)
-
-    if (hr == E_OUTOFMEMORY)
-    {
-        recordedException = scriptContext->GetThreadContext()->GetRecordedException();
-    }
-    if (recordedException == nullptr)
-    {
-        return JsErrorInvalidArgument;
-    }
-
-    Js::Var exception = recordedException->GetThrownObject(nullptr);
-
-    if (exception == nullptr)
-    {
-        // TODO: How does this early bailout impact TTD?
-        return JsErrorInvalidArgument;
-    }
-
-    return ContextAPIWrapper<false>([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        Js::Var exceptionMetadata = Js::JavascriptExceptionMetadata::CreateMetadataVar(scriptContext);
-        Js::JavascriptOperators::OP_SetProperty(exceptionMetadata, Js::PropertyIds::exception, exception, scriptContext);
-
-        Js::FunctionBody *functionBody = recordedException->GetFunctionBody();
-        if (functionBody == nullptr)
-        {
-            // This is probably a parse error. We can get the error location metadata from the thrown object.
-            Js::JavascriptExceptionMetadata::PopulateMetadataFromCompileException(exceptionMetadata, exception, scriptContext);
-        }
-        else
-        {
-            if (!Js::JavascriptExceptionMetadata::PopulateMetadataFromException(exceptionMetadata, recordedException, scriptContext))
-            {
-                return JsErrorInvalidArgument;
-            }
-        }
-
-        *metadata = exceptionMetadata;
-
-#if ENABLE_TTD
-        if (hr != E_OUTOFMEMORY)
-        {
-            PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTGetAndClearExceptionWithMetadata);
-            PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, metadata);
-        }
-#endif
-
-
-        return JsNoError;
-    });
-}
 
 CHAKRA_API JsCopyStringOneByte(
     _In_ JsValueRef value,
@@ -5487,96 +5239,6 @@ CHAKRA_API JsCopyStringOneByte(
         }
         return JsNoError;
     });
-}
-
-CHAKRA_API JsGetDataViewInfo(
-    _In_ JsValueRef dataView,
-    _Out_opt_ JsValueRef *arrayBuffer,
-    _Out_opt_ unsigned int *byteOffset,
-    _Out_opt_ unsigned int *byteLength)
-{
-    VALIDATE_JSREF(dataView);
-
-    BEGIN_JSRT_NO_EXCEPTION
-    {
-        if (!Js::VarIs<Js::DataView>(dataView))
-        {
-            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
-        }
-
-        Js::DataView* dv = Js::VarTo<Js::DataView>(dataView);
-        if (arrayBuffer != nullptr) {
-            *arrayBuffer = dv->GetArrayBuffer();
-        }
-
-        if (byteOffset != nullptr) {
-            *byteOffset = dv->GetByteOffset();
-        }
-
-        if (byteLength != nullptr) {
-            *byteLength = dv->GetLength();
-        }
-    }
-
-#if ENABLE_TTD
-    Js::ScriptContext* scriptContext = Js::VarTo<Js::RecyclableObject>(dataView)->GetScriptContext();
-    if(PERFORM_JSRT_TTD_RECORD_ACTION_CHECK(scriptContext) && arrayBuffer != nullptr)
-    {
-        scriptContext->GetThreadContext()->TTDLog->RecordJsRTGetDataViewInfo(dataView, *arrayBuffer);
-    }
-#endif
-
-    END_JSRT_NO_EXCEPTION
-}
-
-CHAKRA_API JsSetHostPromiseRejectionTracker(_In_ JsHostPromiseRejectionTrackerCallback promiseRejectionTrackerCallback, _In_opt_ void *callbackState)
-{
-    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
-        scriptContext->GetLibrary()->SetNativeHostPromiseRejectionTrackerCallback((Js::JavascriptLibrary::HostPromiseRejectionTrackerCallback) promiseRejectionTrackerCallback, callbackState);
-        return JsNoError;
-    },
-    /*allowInObjectBeforeCollectCallback*/true);
-}
-
-CHAKRA_API JsGetProxyProperties (_In_ JsValueRef object, _Out_ bool* isProxy, _Out_opt_ JsValueRef* target, _Out_opt_ JsValueRef* handler)
-{
-    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
-        VALIDATE_INCOMING_REFERENCE(object, scriptContext);
-        PARAM_NOT_NULL(isProxy);
-
-        if (target != nullptr)
-        {
-            *target = JS_INVALID_REFERENCE;
-        }
-
-        if (handler != nullptr)
-        {
-            *handler = JS_INVALID_REFERENCE;
-        }
-
-        *isProxy = Js::VarIs<Js::JavascriptProxy>(object);
-
-        if (!*isProxy)
-        {
-            return JsNoError;
-        }
-
-        Js::JavascriptProxy* proxy = Js::UnsafeVarTo<Js::JavascriptProxy>(object);
-        bool revoked = proxy->IsRevoked();
-
-        if (target != nullptr && !revoked)
-        {
-            *target = static_cast<JsValueRef>(proxy->GetTarget());
-        }
-
-        if (handler != nullptr && !revoked)
-        {
-            *handler = static_cast<JsValueRef>(proxy->GetHandler());
-        }
-
-        return JsNoError;
-    },
-    /*allowInObjectBeforeCollectCallback*/true);
 }
 
 CHAKRA_API JsSerializeParserStateCore(
@@ -5841,40 +5503,6 @@ CHAKRA_API JsRunScriptWithParserState(
     }
 }
 
-CHAKRA_API
-JsQueueBackgroundParse_Experimental(
-    _In_ JsScriptContents* contents,
-    _Out_ DWORD* dwBgParseCookie)
-{
-    HRESULT hr;
-    if (Js::Configuration::Global.flags.BgParse && !CONFIG_FLAG(ForceDiagnosticsMode)
-        // For now, only UTF8 buffers are supported for BGParse
-        && contents->encodingType == JsScriptEncodingType::Utf8
-        && contents->containerType == JsScriptContainerType::HeapAllocatedBuffer
-        // SourceContext not needed for BGParse
-        && contents->sourceContext == 0)
-    {
-        hr = BGParseManager::GetBGParseManager()->QueueBackgroundParse((LPUTF8)contents->container, contents->contentLengthInBytes, (char16*)contents->fullPath, dwBgParseCookie);
-    }
-    else
-    {
-        hr = E_NOTIMPL;
-    }
-
-    JsErrorCode res = (hr == S_OK) ? JsNoError : JsErrorFatal;
-
-    return res;
-}
-
-CHAKRA_API
-JsDiscardBackgroundParse_Experimental(
-    _In_ DWORD dwBgParseCookie,
-    _In_ void* buffer,
-    _Out_ bool* callerOwnsBuffer)
-{
-    (*callerOwnsBuffer) = BGParseManager::GetBGParseManager()->DiscardParseResults(dwBgParseCookie, buffer);
-    return JsNoError;
-}
 
 CHAKRA_API
 JsExecuteBackgroundParse_Experimental(
@@ -5904,17 +5532,4 @@ JsExecuteBackgroundParse_Experimental(
         return JsErrorFatal;
     }
 }
-
-#ifdef _WIN32
-CHAKRA_API
-JsConnectJITProcess(_In_ HANDLE processHandle, _In_opt_ void* serverSecurityDescriptor, _In_ UUID connectionId)
-{
-#ifdef ENABLE_OOP_NATIVE_CODEGEN
-    JITManager::GetJITManager()->EnableOOPJIT();
-    ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
 #endif
-    return JsNoError;
-}
-#endif
-
-#endif // _CHAKRACOREBUILD

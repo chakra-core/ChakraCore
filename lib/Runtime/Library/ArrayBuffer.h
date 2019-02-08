@@ -77,7 +77,7 @@ namespace Js
 
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
-        ArrayBufferBase(DynamicType *type) : DynamicObject(type), isDetached(false) { }
+        ArrayBufferBase(DynamicType *type) : DynamicObject(type), isDetached(false), infoBits(0) { }
         bool IsDetached() { return isDetached; }
 
 #if ENABLE_TTD
@@ -94,10 +94,14 @@ namespace Js
         virtual BYTE* GetBuffer() const = 0;
         virtual bool IsValidVirtualBufferLength(uint length) const { return false; };
 
+        char GetExtraInfoBits() { return infoBits; }
+        void SetExtraInfoBits(char info) { infoBits = info; }
+
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
         Field(bool) isDetached;
+        Field(char) infoBits;
     };
 
     template <> bool VarIsImpl<ArrayBufferBase>(RecyclableObject* obj);
@@ -202,8 +206,9 @@ namespace Js
         RefCountedBuffer *GetBufferContent() { return bufferContent;  }
         static int GetBufferContentsOffset() { return offsetof(ArrayBuffer, bufferContent); }
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
-
         virtual void AddParent(ArrayBufferParent* parent) override;
+
+        void Detach();
 #if defined(TARGET_64)
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
@@ -224,7 +229,6 @@ namespace Js
 
     protected:
         virtual void ReportExternalMemoryFree();
-        void Detach();
 
         typedef void __cdecl FreeFn(void* ptr);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(RefCountedBuffer * content, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) = 0;

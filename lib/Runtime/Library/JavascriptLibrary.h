@@ -20,6 +20,7 @@ class ActiveScriptExternalLibrary;
 class ProjectionExternalLibrary;
 class EditAndContinue;
 class ChakraHostScriptContext;
+class JsrtExternalType;
 
 #ifdef ENABLE_PROJECTION
 namespace Projection
@@ -73,6 +74,7 @@ namespace Js
     {
         static const uint AssignCacheSize = 16;
         static const uint StringifyCacheSize = 16;
+        static const uint CreateKeysCacheSize = 16;
 
         Field(PropertyStringMap*) propertyStrings[80];
         Field(JavascriptString *) lastNumberToStringRadix10String;
@@ -93,6 +95,7 @@ namespace Js
         Field(ScriptContextPolymorphicInlineCache*) toJSONCache;
         Field(EnumeratorCache*) assignCache;
         Field(EnumeratorCache*) stringifyCache;
+        Field(EnumeratorCache*) createKeysCache;
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         Field(DynamicProfileInfoList*) profileInfoList;
@@ -439,7 +442,31 @@ namespace Js
         Field(void *) nativeHostPromiseContinuationFunctionState;
 
         typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
-        typedef JsUtil::WeakReferenceDictionary<uintptr_t, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
+#ifdef _CHAKRACOREBUILD
+        struct JsrtExternalCallbacks
+        {
+            JsrtExternalCallbacks() : traceCallback(0), finalizeCallback(0), prototype(0) {}
+            JsrtExternalCallbacks(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype) : traceCallback(traceCallback), finalizeCallback(finalizeCallback), prototype(prototype) {}
+
+            uintptr_t traceCallback;
+            uintptr_t finalizeCallback;
+            uintptr_t prototype;
+
+            operator hash_t() const { return (hash_t)(traceCallback ^ finalizeCallback ^ prototype); }
+        };
+#else
+        struct JsrtExternalCallbacks
+        {
+            JsrtExternalCallbacks() : finalizeCallback(0), prototype(0) {}
+            JsrtExternalCallbacks(uintptr_t finalizeCallback, uintptr_t prototype) : finalizeCallback(finalizeCallback), prototype(prototype) {}
+
+            uintptr_t finalizeCallback;
+            uintptr_t prototype;
+
+            operator hash_t() const { return (hash_t)(finalizeCallback ^ prototype); }
+        };
+#endif
+        typedef JsUtil::WeakReferenceDictionary<JsrtExternalCallbacks, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
 
         Field(void *) bindRefChunkBegin;
         Field(Field(void*)*) bindRefChunkCurrent;
@@ -451,6 +478,21 @@ namespace Js
         Field(FinalizableObject*) jsrtContextObject;
         Field(JsrtExternalTypesCache*) jsrtExternalTypesCache;
         Field(FunctionBody*) fakeGlobalFuncForUndefer;
+
+        struct CustomExternalWrapperCallbacks
+        {
+            CustomExternalWrapperCallbacks() : traceCallback(0), finalizeCallback(0), interceptors(0), prototype(0) {}
+            CustomExternalWrapperCallbacks(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype) : traceCallback(traceCallback), finalizeCallback(finalizeCallback), interceptors(interceptors), prototype(prototype) {}
+            uintptr_t traceCallback;
+            uintptr_t finalizeCallback;
+            uintptr_t interceptors;
+            uintptr_t prototype;
+
+            operator hash_t() const { return (hash_t)(traceCallback ^ finalizeCallback ^ interceptors ^ prototype); }
+        };
+        typedef JsUtil::WeakReferenceDictionary<CustomExternalWrapperCallbacks, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> CustomExternalWrapperTypesCache;
+
+        Field(CustomExternalWrapperTypesCache*) customExternalWrapperTypesCache;
 
         Field(ModuleRecordList*) moduleRecordList;
 
@@ -522,6 +564,7 @@ namespace Js
             throwerFunction(nullptr),
             jsrtContextObject(nullptr),
             jsrtExternalTypesCache(nullptr),
+            customExternalWrapperTypesCache(nullptr),
             fakeGlobalFuncForUndefer(nullptr),
             externalLibraryList(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
@@ -887,8 +930,16 @@ namespace Js
         JavascriptExternalFunction* CreateIdMappedExternalFunction(MethodType entryPoint, DynamicType *pPrototypeType);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, RecyclableObject * prototype);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors);
-        DynamicType* GetCachedJsrtExternalType(uintptr_t finalizeCallback);
-        void CacheJsrtExternalType(uintptr_t finalizeCallback, DynamicType* dynamicType);
+#ifdef _CHAKRACOREBUILD
+        DynamicType* GetCachedCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype);
+        void CacheCustomExternalWrapperType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t interceptors, uintptr_t prototype, DynamicType* dynamicType);
+
+        JsrtExternalType* GetCachedJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype);
+        void CacheJsrtExternalType(uintptr_t traceCallback, uintptr_t finalizeCallback, uintptr_t prototype, JsrtExternalType* dynamicType);
+#else
+        JsrtExternalType* GetCachedJsrtExternalType(uintptr_t finalizeCallback, uintptr_t prototype);
+        void CacheJsrtExternalType(uintptr_t finalizeCallback, uintptr_t prototype, JsrtExternalType* dynamicType);
+#endif
         static DynamicTypeHandler * GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext);
         DynamicType * CreateDeferredPrototypeGeneratorFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared = false);
@@ -1104,6 +1155,7 @@ namespace Js
         }
 
         EnumeratorCache* GetObjectAssignCache(Type* type);
+        EnumeratorCache* GetCreateKeysCache(Type* type);
         EnumeratorCache* GetStringifyCache(Type* type);
 
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }

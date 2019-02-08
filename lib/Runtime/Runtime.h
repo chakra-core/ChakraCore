@@ -98,6 +98,9 @@ namespace Js
     class JavascriptBooleanObject;
     class JavascriptSymbol;
     class JavascriptSymbolObject;
+#ifdef _CHAKRACOREBUILD
+    class CustomExternalWrapperObject;
+#endif
     class JavascriptProxy;
     class JavascriptReflect;
     class JavascriptEnumeratorIterator;
@@ -527,6 +530,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
 
+#ifdef _CHAKRACOREBUILD
+#include "Library/CustomExternalWrapperObject.h"
+#endif
 #include "Library/JavascriptProxy.h"
 
 #if ENABLE_TTD

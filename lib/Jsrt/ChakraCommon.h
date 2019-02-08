@@ -25,12 +25,13 @@
 
 // Platform specific code
 #if defined(_WIN32) && defined(_MSC_VER)
-#include <oaidl.h>
+#include <windows.h>
 
 // Header macros
 #define CHAKRA_CALLBACK CALLBACK
 #define CHAKRA_API STDAPI_(JsErrorCode)
 
+typedef unsigned char byte;
 typedef DWORD_PTR ChakraCookie;
 typedef BYTE* ChakraBytePtr;
 #else // Non-Windows VC++
@@ -41,6 +42,7 @@ typedef BYTE* ChakraBytePtr;
 #define _In_z_
 #define _In_opt_
 #define _Inout_
+#define _Inout_opt_
 #define _Out_
 #define _Out_opt_
 #define _In_reads_(x)
@@ -314,6 +316,18 @@ typedef unsigned short uint16_t;
         ///     VM was unable to perform the request action
         /// </summary>
         JsErrorDiagUnableToPerformAction,
+        /// <summary>
+        ///     Serializer/Deserializer does not support current data
+        /// </summary>
+        JsSerializerNotSupported,
+        /// <summary>
+        ///     Current object is not transferable during serialization
+        /// </summary>
+        JsTransferableNotSupported,
+        /// <summary>
+        ///     Current object is already detached when serialized
+        /// </summary>
+        JsTransferableAlreadyDetached,
     } JsErrorCode;
 
     /// <summary>
@@ -550,6 +564,10 @@ typedef unsigned short uint16_t;
         ///     This one needs to be set for Utf16
         /// </summary>
         JsParseScriptAttributeArrayBufferIsUtf16Encoded = 0x2,
+        /// <summary>
+        ///     Script should be parsed in strict mode
+        /// </summary>
+        JsParseScriptAttributeStrictMode = 0x4,
     } JsParseScriptAttributes;
 
     /// <summary>

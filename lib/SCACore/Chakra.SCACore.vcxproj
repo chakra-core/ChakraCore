@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <TargetName>Chakra.SCACore</TargetName>
+    <ProjectGuid>{4DA3A367-6ED2-4EE8-9698-5BCD0B8AF7F5}</ProjectGuid>
+    <RootNamespace>JS</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(MSBuildThisFileDirectory)..\Common;
+        $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\Backend;
+        $(MSBuildThisFileDirectory)..\WasmReader;
+        $(MSBuildThisFileDirectory)..\JITClient;
+        $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
+        $(ChakraManifestsIncludeDirectory);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>SCACorePch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCACorePch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCACore.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCADeserialization.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCAEngine.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCAPropBag.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SCASerialization.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)StreamHelper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)StreamReader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)StreamWriter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SCACore.h" />
+    <ClInclude Include="SCACorePch.h" />
+    <ClInclude Include="SCADeserialization.h" />
+    <ClInclude Include="SCAEngine.h" />
+    <ClInclude Include="SCAPropBag.h" />
+    <ClInclude Include="SCASerialization.h" />
+    <ClInclude Include="SCATypes.h" />
+    <ClInclude Include="StreamHelper.h" />
+    <ClInclude Include="StreamReader.h" />
+    <ClInclude Include="StreamWriter.h" />
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

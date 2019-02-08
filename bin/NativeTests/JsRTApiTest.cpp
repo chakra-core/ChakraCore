@@ -257,6 +257,11 @@ namespace JsRTApiTest
         CHECK(data == (void *)0xdeadbeef);
     }
 
+    void CALLBACK ExternalObjectTraceCallback(void *data)
+    {
+        CHECK(data == (void *)0xdeadbeef);
+    }
+
     void CrossContextSetPropertyTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         bool hasExternalData;
@@ -292,6 +297,11 @@ namespace JsRTApiTest
         REQUIRE(JsSetPrototype(jsrtExternalObjectRef, mainObjectRef) == JsNoError);
         REQUIRE(JsHasExternalData(jsrtExternalObjectRef, &hasExternalData) == JsNoError);
         REQUIRE(hasExternalData);
+
+        JsValueRef object3 = JS_INVALID_REFERENCE;
+        JsGetterSetterInterceptor * interceptor3 = nullptr;
+        JsValueRef prototype2 = JS_INVALID_REFERENCE;
+        REQUIRE(JsCreateCustomExternalObject((void *)0xdeadbeef, 0, ExternalObjectTraceCallback, ExternalObjectFinalizeCallback, &interceptor3, prototype2, &object3) == JsNoError);
     }
 
     TEST_CASE("ApiTest_CrossContextSetPropertyTest", "[ApiTest]")
