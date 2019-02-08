@@ -1505,4 +1505,10 @@
     <compile-flags>-args summary -endargs</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>super_bugs.js</files>
+    <compile-flags>-args summary -endargs</compile-flags>
+  </default>
+</test>
 </regress-exe>
