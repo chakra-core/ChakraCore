@@ -68,6 +68,7 @@ JsSetHostPromiseRejectionTracker
 JsGetProxyProperties
 JsSerializeParserState
 JsRunScriptWithParserState
+JsDeserializeParserState
 JsGetPromiseState
 JsGetPromiseResult
 
