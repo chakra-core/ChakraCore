@@ -1373,10 +1373,9 @@ CHAKRA_API JsAllocRawData(_In_ JsRuntimeHandle runtimeHandle, _In_ size_t sizeIn
         }
 
         Recycler * recycler = threadContext->GetRecycler();
-        if (zeroed)
-        {
-            *buffer = RecyclerNewArray(recycler, char, sizeInBytes);
-        }
+        *buffer = zeroed
+            ? RecyclerNewArrayZ(recycler, char, sizeInBytes)
+            : RecyclerNewArray(recycler, char, sizeInBytes);
         return JsNoError;
     });
 }
