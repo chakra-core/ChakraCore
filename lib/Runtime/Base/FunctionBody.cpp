@@ -8804,6 +8804,8 @@ namespace Js
         }
     }
 
+
+
     void EntryPointInfo::DoLazyBailout(
         BYTE **addressOfInstructionPointer,
         BYTE *framePointer
@@ -8818,19 +8820,36 @@ namespace Js
         Js::JavascriptMethod nativeAddress = nativeEntryPointData->GetNativeAddress();
         ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
         Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
-        size_t offset = instructionPointer - (BYTE*)nativeAddress;
+        size_t offset = instructionPointer - (BYTE*)nativeAddress;  
 
         LazyBailOutRecord* record = FindLazyBailoutRecord(offset);
-        *addressOfInstructionPointer = record->instructionPointer;
+        Assert(record);
+
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            Assert(true);
+        }
+        else
+        {
+            auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
+
+            // Change the instruction pointer of the frame to our thunk so that
+            // when execution returns back to this frame, we will execute the thunk instead
+            *addressOfInstructionPointer = (BYTE *)nativeAddress + inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
+
+            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
+            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
+            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record->bailOutRecord);
+        }
+
+#if DBG
         if (PHASE_TRACE1(Js::LazyBailoutPhase))
         {
-#if DBG
             Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, record->instructionPointer);
             record->Dump(functionBody);
             Output::Print(_u("\n"));
-#endif
         }
-
+#endif
     }
 
     void EntryPointInfo::FreeJitTransferData()

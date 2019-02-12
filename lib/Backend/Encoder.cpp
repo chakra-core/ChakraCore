@@ -1208,6 +1208,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
     FixUpMapIndex mapIndices;
 
     int32 totalBytesSaved = 0;
+    int32 bytesSavedAfterLBOThunk = 0;
 
     // loop over all BRs, find the ones we can convert to short form
     for (int32 j = 0; j < relocList->Count(); j++)
@@ -1295,6 +1296,16 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
             codeChange = true;
             totalBytesSaved += bytesSaved;
 
+            // If the offset of the current br instr is further from the beginning of the function than
+            // the lazyBailOutThunk entry point (which is subtracted by totalBytesSaved as at this point
+            // the LBOThunk entry point has been moved due to shortening branches), then keep track of
+            // the bytes being saved as these bytes do not count towards the adjustment of
+            // m_lazyBailOutThunkOffset made at the end of this function.
+            if ((unsigned char*)reloc.m_ptr - *codeStart > m_lazyBailOutThunkOffset - totalBytesSaved)
+            {
+                bytesSavedAfterLBOThunk += bytesSaved;
+            }
+
             // mark br reloc entry as shortened
 #ifdef _M_IX86
             reloc.setAsShortBr(targetLabel);
@@ -1310,7 +1321,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
         m_encoderMD.FixMaps((uint32)-1, totalBytesSaved, &mapIndices);
         codeChange = true;
         newCodeSize -= totalBytesSaved;
-        this->FixLazyBailOutThunkOffset(totalBytesSaved);
+        this->FixLazyBailOutThunkOffset(totalBytesSaved - bytesSavedAfterLBOThunk);
     }
 
     // no BR shortening or Label alignment happened, no need to copy code
@@ -1737,6 +1748,8 @@ Encoder::SaveLazyBailOutJitTransferData()
 
         if (m_func->IsOOPJIT())
         {
+            // Instead of saving LBO properties to this process, we 
+            // must transfer the properties to the root process.
             m_func->GetJITOutput()->RecordLazyBailOutProperties(NativeCodeData::GetDataChunk(lazyBailoutPropertiesArray)->offset, count);
         }
         else
