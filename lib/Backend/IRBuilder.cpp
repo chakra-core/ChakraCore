@@ -724,6 +724,8 @@ IRBuilder::Build()
                     if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
                     {
                         SymID symId = dstSym->m_id;
+
+                        AssertOrFailFast(symId < m_stSlots->Length());
                         if (this->m_stSlots->Test(symId))
                         {
                             // For jitted loop bodies that are in a try block, we consider any symbol that has a
@@ -4076,7 +4078,12 @@ IRBuilder::EnsureLoopBodyLoadSlot(SymID symId, bool isCatchObjectSym)
         return;
     }
     StackSym * symDst = StackSym::FindOrCreate(symId, (Js::RegSlot)symId, m_func);
-    if (symDst->m_isCatchObjectSym || this->m_ldSlots->TestAndSet(symId))
+    if (symDst->m_isCatchObjectSym)
+    {
+        return;
+    }
+    AssertOrFailFast(symId < m_ldSlots->Length());
+    if (this->m_ldSlots->TestAndSet(symId))
     {
         return;
     }
@@ -4120,6 +4127,7 @@ IRBuilder::SetLoopBodyStSlot(SymID symID, bool isCatchObjectSym)
             return;
         }
     }
+    AssertOrFailFast(symID < m_stSlots->Length());
     this->m_stSlots->Set(symID);
 }
 

@@ -3570,7 +3570,10 @@ IRBuilderAsmJs::BuildAsmJsLoopBodySlotOpnd(Js::RegSlot regSlot, IRType opndType)
 void
 IRBuilderAsmJs::EnsureLoopBodyAsmJsLoadSlot(Js::RegSlot regSlot, IRType type)
 {
-    if (GetJitLoopBodyData().GetLdSlots()->TestAndSet(regSlot))
+    BVFixed* ldSlotsBV = GetJitLoopBodyData().GetLdSlots();
+
+    AssertOrFailFast(regSlot < ldSlotsBV->Length());
+    if (ldSlotsBV->TestAndSet(regSlot))
     {
         return;
     }
@@ -3592,7 +3595,6 @@ void
 IRBuilderAsmJs::EnsureLoopBodyAsmJsStoreSlot(Js::RegSlot regSlot, IRType type)
 {
     Assert(!RegIsTemp(regSlot) || RegIsJitLoopYield(regSlot));
-    GetJitLoopBodyData().GetStSlots()->Set(regSlot);
     EnsureLoopBodyAsmJsLoadSlot(regSlot, type);
 }
 

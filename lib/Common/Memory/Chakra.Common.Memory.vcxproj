@@ -26,6 +26,8 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory);
+        $(MSBuildThisFileDirectory)..\..\JITClient;
+        $(ChakraJITIDLIntDir);
         $(MSBuildThisFileDirectory)..;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
