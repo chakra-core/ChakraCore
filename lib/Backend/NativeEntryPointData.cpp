@@ -321,20 +321,14 @@ NativeEntryPointData::CleanupXDataInfo()
 {
     if (this->xdataInfo != nullptr)
     {
+        XDataAllocator::Unregister(this->xdataInfo);
 #ifdef _WIN32
         if (this->xdataInfo->functionTable
-            && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo->functionTable))
+            && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo))
         {
-            DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo->functionTable);
+            DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo);
         }
 #endif
-        XDataAllocator::Unregister(this->xdataInfo);
-#if defined(_M_ARM)
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
-#endif
-        {
-            HeapDelete(this->xdataInfo);
-        }
         this->xdataInfo = nullptr;
     }
 }

@@ -2944,6 +2944,12 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
         Scope::MergeParamAndBodyScopes(pnodeFnc);
         Scope::RemoveParamScope(pnodeFnc);
     }
+    else
+    {
+        // A param and body scope exist for the same function, they
+        // should both either be using scope slots or scope objects.
+        Assert_FailFast(top->bodyScope->GetIsObject() == top->paramScope->GetIsObject());
+    }
 
     FuncInfo* const parentFunc = byteCodeGenerator->TopFuncInfo();
 

@@ -2493,32 +2493,23 @@ namespace UnifiedRegex
             case 'W':
                 return false;
             case 'c':
-                if (standardEncodedChars->IsLetter(ECLookahead())) // terminating 0 is not a letter
+                if (!standardEncodedChars->IsLetter(ECLookahead())) //Letter set [A-Z, a-z]
+                {
+                    // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term 
+                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape);
+                }
+
+                if (standardEncodedChars->IsWord(ECLookahead())) // word set [A-Z,a-z,0-9,_], terminating 0 is not a word character
                 {
                     singleton = UTC(Chars<EncodedChar>::CTU(ECLookahead()) % 32);
                     ECConsume();
                 }
                 else
                 {
-                    DeferredFailIfUnicode(JSERR_RegExpInvalidEscape); // Fail in unicode mode for non-letter escaped control characters according to 262 Annex-B RegExp grammar spec #prod-annexB-Term
-
-                    if (!IsEOF())
-                    {
-                        EncodedChar ecLookahead = ECLookahead();
-                        switch (ecLookahead)
-                        {
-                        case '-':
-                        case ']':
-                            singleton = c;
-                            break;
-                        default:
-                            singleton = UTC(Chars<EncodedChar>::CTU(ecLookahead) % 32);
-                            ECConsume();
-                            break;
-                        }
-                    }
-                    else
-                        singleton = c;
+                    // If the lookahead is a non-alphanumeric and not an underscore ('_'), then treat '\' and 'c' separately.
+                    //#sec-regular-expression-patterns-semantics 
+                    ECRevert(1); //Put cursor back at 'c' and treat it as a non-escaped character.
+                    singleton = '\\';
                 }
                 return true;
             case 'x':

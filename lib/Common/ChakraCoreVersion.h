@@ -17,7 +17,7 @@
 // ChakraCore version number definitions (used in ChakraCore binary metadata)
 #define CHAKRA_CORE_MAJOR_VERSION 1
 #define CHAKRA_CORE_MINOR_VERSION 11
-#define CHAKRA_CORE_PATCH_VERSION 5
+#define CHAKRA_CORE_PATCH_VERSION 6
 #define CHAKRA_CORE_VERSION_RELEASE_QFE 0 // Redundant with PATCH_VERSION. Keep this value set to 0.
 
 // -------------

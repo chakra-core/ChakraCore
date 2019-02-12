@@ -302,11 +302,11 @@ FunctionJITTimeInfo::GetRuntimeInfo() const
 ObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
 {
-    AssertOrFailFast(index < GetBody()->GetInlineCacheCount());
     if (m_data.objTypeSpecFldInfoArray == nullptr)
     {
         return nullptr;
     }
+    AssertOrFailFast(index < m_data.objTypeSpecFldInfoCount);
 
     return reinterpret_cast<ObjTypeSpecFldInfo *>(m_data.objTypeSpecFldInfoArray[index]);
 }

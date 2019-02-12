@@ -1673,14 +1673,14 @@ Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCac
 
 JITTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
 {
-    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
+    AssertOrFailFast(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(this->constructorCaches != nullptr);
     return this->constructorCaches[profiledCallSiteId];
 }
 
 void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache)
 {
-    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
+    AssertOrFailFast(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(constructorCache != nullptr);
     Assert(this->constructorCaches != nullptr);
     Assert(this->constructorCaches[profiledCallSiteId] == nullptr);

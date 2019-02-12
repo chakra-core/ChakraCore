@@ -2748,11 +2748,14 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                     ChangeValueType(nullptr, value, valueType.SetCanBeTaggedValue(false), true /*preserveSubClassInfo*/);
                     return false;
                 }
-                if (this->byteCodeUses)
+                if (!this->IsLoopPrePass())
                 {
-                    this->InsertByteCodeUses(instr);
+                    if (this->byteCodeUses)
+                    {
+                        this->InsertByteCodeUses(instr);
+                    }
+                    this->currentBlock->RemoveInstr(instr);
                 }
-                this->currentBlock->RemoveInstr(instr);
                 return true;
             }
 
@@ -5435,7 +5438,8 @@ GlobOpt::GetPrepassValueTypeForDst(
     IR::Instr *const instr,
     Value *const src1Value,
     Value *const src2Value,
-    bool const isValueInfoPrecise) const
+    bool const isValueInfoPrecise,
+    bool const isSafeToTransferInPrepass) const
 {
     // Values with definite types can be created in the loop prepass only when it is guaranteed that the value type will be the
     // same on any iteration of the loop. The heuristics currently used are:
@@ -5452,13 +5456,13 @@ GlobOpt::GetPrepassValueTypeForDst(
     Assert(IsLoopPrePass());
     Assert(instr);
 
-    if(!desiredValueType.IsDefinite())
-    {
-        return desiredValueType;
-    }
-
     if(!isValueInfoPrecise)
     {
+        if(!desiredValueType.IsDefinite())
+        {
+            return isSafeToTransferInPrepass ? desiredValueType : desiredValueType.SetCanBeTaggedValue(true);
+        }
+
         // If the desired value type is not precise, the value type of the destination is derived from the value types of the
         // sources. Since the value type of a source sym is not definite, the destination value type also cannot be definite.
         if(desiredValueType.IsInt() && OpCodeAttr::IsInt32(instr->m_opcode))
@@ -5471,6 +5475,7 @@ GlobOpt::GetPrepassValueTypeForDst(
             // The op always produces a number, but not always an int
             return desiredValueType.ToDefiniteAnyNumber();
         }
+        // Note: ToLikely() also sets CanBeTaggedValue
         return desiredValueType.ToLikely();
     }
 
@@ -5747,7 +5752,7 @@ GlobOpt::ValueNumberTransferDstInPrepass(IR::Instr *const instr, Value *const sr
     bool isSafeToTransferInPrepass = false;
     isValueInfoPrecise = IsPrepassSrcValueInfoPrecise(instr, src1Val, nullptr, &isSafeToTransferInPrepass);
 
-    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, isValueInfoPrecise));
+    const ValueType valueType(GetPrepassValueTypeForDst(src1ValueInfo->Type(), instr, src1Val, nullptr, isValueInfoPrecise, isSafeToTransferInPrepass));
     if(isValueInfoPrecise || isSafeToTransferInPrepass)
     {
         Assert(valueType == src1ValueInfo->Type());

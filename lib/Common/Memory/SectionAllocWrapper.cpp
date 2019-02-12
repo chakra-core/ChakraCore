@@ -6,7 +6,10 @@
 
 #if _WIN32
 #if ENABLE_OOP_NATIVE_CODEGEN
-#include "../Core/DelayLoadLibrary.h"
+#include "Core/DelayLoadLibrary.h"
+
+#include "XDataAllocator.h"
+#include "CustomHeap.h"
 
 #ifdef NTDDI_WIN10_RS2
 #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
@@ -603,6 +606,19 @@ SectionAllocWrapper::AllocPages(LPVOID requestAddress, size_t pageCount, DWORD a
         {
             return nullptr;
         }
+
+        // pages could be filled with debugbreak
+        // zero one page at a time to minimize working set impact while zeroing
+        for (size_t i = 0; i < dwSize / AutoSystemInfo::PageSize; ++i)
+        {
+            LPVOID localAddr = AllocLocal((char*)requestAddress + i * AutoSystemInfo::PageSize, AutoSystemInfo::PageSize);
+            if (localAddr == nullptr)
+            {
+                return nullptr;
+            }
+            ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+            FreeLocal(localAddr);
+        }
         address = requestAddress;
     }
 
@@ -677,10 +693,10 @@ BOOL SectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
             {
                 return FALSE;
             }
-            ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+
+            CustomHeap::FillDebugBreak((BYTE*)localAddr, AutoSystemInfo::PageSize);
             FreeLocal(localAddr);
         }
-        UnlockMemory(this->process, lpAddress, dwSize);
     }
 
     return TRUE;
@@ -928,6 +944,19 @@ LPVOID PreReservedSectionAllocWrapper::AllocPages(LPVOID lpAddress, DECLSPEC_GUA
 
             addressToReserve = (char*)lpAddress;
             freeSegmentsBVIndex = (uint)((addressToReserve - (char*)this->preReservedStartAddress) / AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+
+            // pages could be filled with debugbreak
+            // zero one page at a time to minimize working set impact while zeroing
+            for (size_t i = 0; i < dwSize / AutoSystemInfo::PageSize; ++i)
+            {
+                LPVOID localAddr = AllocLocal((char*)lpAddress + i * AutoSystemInfo::PageSize, AutoSystemInfo::PageSize);
+                if (localAddr == nullptr)
+                {
+                    return nullptr;
+                }
+                ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+                FreeLocal(localAddr);
+            }
 #if DBG
             uint numOfSegments = (uint)ceil((double)dwSize / (double)AutoSystemInfo::Data.GetAllocationGranularityPageSize());
             Assert(numOfSegments != 0);
@@ -978,11 +1007,16 @@ PreReservedSectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
         {
             return FALSE;
         }
-        ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+        if ((dwFreeType & MEM_RELEASE) == MEM_RELEASE)
+        {
+            ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+        }
+        else
+        {
+            CustomHeap::FillDebugBreak((BYTE*)localAddr, AutoSystemInfo::PageSize);
+        }
         FreeLocal(localAddr);
     }
-
-    UnlockMemory(this->process, lpAddress, dwSize);
 
     size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
     Assert(requestedNumOfSegments <= MAXUINT32);
@@ -1000,6 +1034,8 @@ PreReservedSectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFr
         AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid Index ?");
         freeSegments.SetRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
         PreReservedHeapTrace(_u("MEM_RELEASE: Address: 0x%p of size: 0x%x * 0x%x bytes\n"), lpAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+
+        UnlockMemory(this->process, lpAddress, dwSize);
     }
 
     return TRUE;

@@ -237,6 +237,11 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
     }
+    else if (inGlobOpt && indexOpnd && !indexOpnd->GetValueType().IsInt() && !currentBlock->globOptData.IsInt32TypeSpecialized(indexOpnd->m_sym))
+    {
+        // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
+        this->KillAllObjectTypes(bv);
+    }
 }
 
 void
@@ -406,7 +411,8 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         KillLiveFields(this->lengthEquivBv, bv);
         if (inGlobOpt)
         {
-            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            // Deleting an item, or pushing a property to a non-array, may change object layout
+            KillAllObjectTypes(bv);
         }
         break;
 
@@ -423,27 +429,32 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::CallDirect:
         fnHelper = instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper;
 
-        // Kill length field for built-ins that can update it.
-        if(fnHelper == IR::JnHelperMethod::HelperArray_Shift 
-           || fnHelper == IR::JnHelperMethod::HelperArray_Splice
-           || fnHelper == IR::JnHelperMethod::HelperArray_Unshift)
+        switch (fnHelper)
         {
-            if (nullptr != this->lengthEquivBv)
-            {
-                KillLiveFields(this->lengthEquivBv, bv);
-            }
-            if (inGlobOpt)
-            {
-                KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
-            }
-        }
+            case IR::JnHelperMethod::HelperArray_Shift:
+            case IR::JnHelperMethod::HelperArray_Splice:
+            case IR::JnHelperMethod::HelperArray_Unshift:
+                // Kill length field for built-ins that can update it.
+                if (nullptr != this->lengthEquivBv)
+                {
+                    KillLiveFields(this->lengthEquivBv, bv);
+                }
+                // fall through
 
-        if ((fnHelper == IR::JnHelperMethod::HelperRegExp_Exec)
-           || (fnHelper == IR::JnHelperMethod::HelperString_Match)
-           || (fnHelper == IR::JnHelperMethod::HelperString_Replace))
-        {
-            // Consider: We may not need to kill all fields here.
-            this->KillAllFields(bv);
+            case IR::JnHelperMethod::HelperArray_Reverse:
+                // Deleting an item may change object layout
+                if (inGlobOpt)
+                {
+                    KillAllObjectTypes(bv);
+                }
+                break;
+
+            case IR::JnHelperMethod::HelperRegExp_Exec:
+            case IR::JnHelperMethod::HelperString_Match:
+            case IR::JnHelperMethod::HelperString_Replace:
+                // Consider: We may not need to kill all fields here.
+                this->KillAllFields(bv);
+                break;
         }
         break;
 
