@@ -320,6 +320,27 @@ namespace Js
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::SimpleDictionaryTypeHandlerBase(Recycler* recycler, SimpleDictionaryTypeHandlerBase * typeHandler) :
+        DynamicTypeHandler(typeHandler),
+        nextPropertyIndex(typeHandler->nextPropertyIndex),
+        singletonInstance(nullptr),
+        _gc_tag(typeHandler->_gc_tag),
+        isUnordered(typeHandler->isUnordered),
+        hasNamelessPropertyId(typeHandler->hasNamelessPropertyId),
+        numDeletedProperties(typeHandler->numDeletedProperties)
+    {
+        Assert(this->GetIsInlineSlotCapacityLocked() == typeHandler->GetIsInlineSlotCapacityLocked());
+        Assert(this->GetSlotCapacity() <= MaxPropertyIndexSize);
+        propertyMap = typeHandler->propertyMap->Clone();
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
+    DynamicTypeHandler * SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, SimpleDictionaryTypeHandlerBase, recycler, this);
+    }
+
+    template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
     template <bool check__proto__>
     DynamicType* SimpleDictionaryTypeHandlerBase<TPropertyIndex, TMapKey, IsNotExtensibleSupported>::InternalCreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType)
     {

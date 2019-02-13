@@ -20,6 +20,11 @@ namespace Js
                                                         // be certain that the type has only writable data properties.
         }
 
+        DeferredTypeHandlerBase(DeferredTypeHandlerBase * typeHandler) : DynamicTypeHandler(typeHandler)
+        {
+            Assert(this->GetIsInlineSlotCapacityLocked() == typeHandler->GetIsInlineSlotCapacityLocked());
+            Assert(this->GetHasOnlyWritableDataProperties() == typeHandler->GetHasOnlyWritableDataProperties());
+        }
     public:
         void ConvertFunction(JavascriptFunction * instance, DynamicTypeHandler * handler);
         void Convert(DynamicObject * instance, DeferredInitializeMode mode, int initSlotCapacity,  BOOL hasAccessor = false);
@@ -75,10 +80,15 @@ namespace Js
 
     private:
         DeferredTypeHandler() : DeferredTypeHandlerBase(isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots), m_initializer(initializer) { }
+        DeferredTypeHandler(DeferredTypeHandler * typeHandler) :
+            DeferredTypeHandlerBase(typeHandler),
+            m_initializer(typeHandler->m_initializer)
+        {}
 
     public:
         static DeferredTypeHandler *GetDefaultInstance() { return &defaultInstance; }
 
+        virtual DynamicTypeHandler * Clone(Recycler* recycler);
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
         virtual int GetPropertyCount() override;
@@ -155,6 +165,12 @@ namespace Js
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
     DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots> DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::defaultInstance;
+
+    template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
+    DynamicTypeHandler * DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, DeferredTypeHandler, this);
+    }
 
     template <DeferredTypeInitializer initializer, typename DeferredTypeFilter, bool isPrototypeTemplate, uint16 _inlineSlotCapacity, uint16 _offsetOfInlineSlots>
     int DeferredTypeHandler<initializer, DeferredTypeFilter, isPrototypeTemplate, _inlineSlotCapacity, _offsetOfInlineSlots>::GetPropertyCount()

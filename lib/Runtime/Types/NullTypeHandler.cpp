@@ -343,6 +343,12 @@ namespace Js
     template<bool IsPrototypeTemplate>
     NullTypeHandler<IsPrototypeTemplate> * NullTypeHandler<IsPrototypeTemplate>::GetDefaultInstance() { return &defaultInstance; }
 
+    template<bool IsPrototypeTemplate>
+    DynamicTypeHandler * NullTypeHandler<IsPrototypeTemplate>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, NullTypeHandler, this);
+    }
+
 #if DBG_DUMP
     template<bool IsPrototypeTemplate>
     void NullTypeHandler<IsPrototypeTemplate>::Dump(unsigned indent) const

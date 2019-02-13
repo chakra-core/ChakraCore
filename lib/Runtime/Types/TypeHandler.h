@@ -60,7 +60,8 @@ namespace Js
             offsetOfInlineSlots(typeHandler->offsetOfInlineSlots),
             isNotPathTypeHandlerOrHasUserDefinedCtor(typeHandler->isNotPathTypeHandlerOrHasUserDefinedCtor),
             unusedBytes(typeHandler->unusedBytes),
-            protoCachesWereInvalidated(false)
+            protoCachesWereInvalidated(false),
+            inlineSlotCapacity(typeHandler->inlineSlotCapacity)
         {
         }
 
@@ -74,6 +75,7 @@ namespace Js
         static DynamicTypeHandler * GetCurrentTypeHandler(DynamicObject * instance);
         static void SetInstanceTypeHandler(DynamicObject * instance, DynamicTypeHandler * typeHandler, bool hasChanged = true);
         static void ReplaceInstanceType(DynamicObject * instance, DynamicType * type);
+        virtual DynamicTypeHandler * Clone(Recycler * recycler) = 0;
 
     private:
         static bool IsObjectHeaderInlined(const uint16 offsetOfInlineSlots);
