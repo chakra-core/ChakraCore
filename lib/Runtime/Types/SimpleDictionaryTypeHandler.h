@@ -87,6 +87,7 @@ namespace Js
         SimpleDictionaryTypeHandlerBase(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
         SimpleDictionaryTypeHandlerBase(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
         SimpleDictionaryTypeHandlerBase(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+        SimpleDictionaryTypeHandlerBase(Recycler* recycler, SimpleDictionaryTypeHandlerBase * typeHandler);
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleDictionaryTypeHandlerBase, DynamicTypeHandler);
 
         typedef PropertyIndexRanges<TPropertyIndex> PropertyIndexRangesType;
@@ -104,6 +105,7 @@ namespace Js
 
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType, bool check__proto__);
 
+        virtual DynamicTypeHandler * Clone(Recycler * recyler);
         virtual BOOL IsStringTypeHandler() const override { return PropertyMapKeyTraits<TMapKey>::IsStringTypeHandler(); }
 
         virtual BOOL IsLockable() const override { return true; }

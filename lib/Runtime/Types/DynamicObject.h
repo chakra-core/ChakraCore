@@ -304,6 +304,7 @@ namespace Js
         virtual BOOL IsCrossSiteObject() const { return FALSE; }
 
         virtual DynamicType* DuplicateType();
+        DynamicType* DuplicateTypeAndTypeHandler();
         virtual void PrepareForConversionToNonPathType();
         static bool IsTypeHandlerCompatibleForObjectHeaderInlining(DynamicTypeHandler * oldTypeHandler, DynamicTypeHandler * newTypeHandler);
 

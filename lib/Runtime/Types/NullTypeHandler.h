@@ -13,9 +13,12 @@ namespace Js
             DynamicTypeHandler(0, 0, 0, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag | (isPrototype ? IsPrototypeFlag : 0)),
             isPrototype(isPrototype) {}
 
+        NullTypeHandlerBase(NullTypeHandlerBase* typeHandler, bool isPrototype) :
+            DynamicTypeHandler(typeHandler), isPrototype(typeHandler->isPrototype)
+        {}
+
         DEFINE_VTABLE_CTOR_NO_REGISTER(NullTypeHandlerBase, DynamicTypeHandler);
 
-    private:
         bool isPrototype;
 
     public:
@@ -89,12 +92,15 @@ namespace Js
 
     private:
         NullTypeHandler() : NullTypeHandlerBase(IsPrototypeTemplate) {}
+        NullTypeHandler(NullTypeHandler * typeHandler) : NullTypeHandlerBase(typeHandler) {}
+
         DEFINE_VTABLE_CTOR_NO_REGISTER(NullTypeHandler, NullTypeHandlerBase);
 
         static NullTypeHandler defaultInstance;
 
     public:
         static NullTypeHandler * GetDefaultInstance();
+        virtual DynamicTypeHandler * Clone(Recycler * recycler);
 
 #if ENABLE_TTD
     public:

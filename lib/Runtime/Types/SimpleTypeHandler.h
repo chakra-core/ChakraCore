@@ -20,14 +20,15 @@ namespace Js
     private:
         SimpleTypeHandler(Recycler*);        // only used by NullTypeHandler
         SimpleTypeHandler(SimpleTypeHandler<size> * typeHandler);
+        SimpleTypeHandler(SimpleTypeHandler<size> * typeHandler, bool unused);
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandler, DynamicTypeHandler);
 
     public:
         SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id), PropertyAttributes attributes = PropertyNone, PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
         // Constructor of a shared typed handler
-
         SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
 
+        virtual DynamicTypeHandler * Clone(Recycler * recycler);
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
         virtual int GetPropertyCount() override;

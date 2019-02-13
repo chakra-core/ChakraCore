@@ -113,6 +113,12 @@ namespace Js
         DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, predecessorType(nullptr), typePath(nullptr), successorInfo(nullptr));
 
     public:
+        virtual DynamicTypeHandler * Clone(Recycler * recycler)
+        {
+            AssertMsg(false, "DynamicTypeHandler::Clone is only called (today) when type handler is not shareable, or may not become shared. Path type handlers don't satisfy either condition");
+            return nullptr;
+        }
+
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
 

@@ -150,7 +150,7 @@ namespace Js
             Assert(this->GetTypeHandler()->IsSharable());
             return true;
         }
-        if (this->GetTypeHandler()->IsSharable())
+        if (this->GetTypeHandler()->IsSharable() && this->GetTypeHandler()->GetMayBecomeShared())
         {
             LockType();
             this->GetTypeHandler()->ShareTypeHandler(this->GetScriptContext());
@@ -158,6 +158,11 @@ namespace Js
             return true;
         }
         return false;
+    }
+
+    DynamicTypeHandler * DynamicType::DuplicateTypeHandler()
+    {
+        return GetTypeHandler()->Clone(this->GetRecycler());
     }
 
     bool

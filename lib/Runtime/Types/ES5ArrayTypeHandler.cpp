@@ -14,6 +14,28 @@ namespace Js
         indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler);
     }
 
+    IndexPropertyDescriptorMap::IndexPropertyDescriptorMap(Recycler* recycler, const IndexPropertyDescriptorMap * const indexPropertyDescriptorMap)
+        : recycler(recycler), lastIndexAt(indexPropertyDescriptorMap->lastIndexAt)
+    {
+        indexList = indexPropertyDescriptorMap->CopyIndexList();
+        indexPropertyMap = indexPropertyDescriptorMap->indexPropertyMap->Clone();
+    }
+
+    IndexPropertyDescriptorMap * IndexPropertyDescriptorMap::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, IndexPropertyDescriptorMap, recycler, this);
+    }
+
+    uint32 * IndexPropertyDescriptorMap::CopyIndexList() const
+    {
+        uint32 * newList = RecyclerNewArrayLeaf(recycler, uint32, Count());
+        for (int i = 0; i < Count(); i++)
+        {
+            newList[i] = this->indexList[i];
+        }
+        return newList;
+    }
+
     void IndexPropertyDescriptorMap::Add(uint32 key, const IndexPropertyDescriptor& value)
     {
         if (indexPropertyMap->Count() >= (INT_MAX / 2))
@@ -213,6 +235,21 @@ namespace Js
         : DictionaryTypeHandlerBase<T>(typeHandler), dataItemAttributes(PropertyDynamicTypeDefaults), lengthWritable(true)
     {
         indexPropertyMap = RecyclerNew(recycler, IndexPropertyDescriptorMap, recycler);
+    }
+
+    template <class T>
+    ES5ArrayTypeHandlerBase<T>::ES5ArrayTypeHandlerBase(Recycler* recycler, ES5ArrayTypeHandlerBase<T>* typeHandler)
+        : DictionaryTypeHandlerBase<T>(recycler, typeHandler)
+    {
+        dataItemAttributes = typeHandler->dataItemAttributes;
+        lengthWritable = typeHandler->lengthWritable;
+        indexPropertyMap = typeHandler->indexPropertyMap->Clone(recycler);
+    }
+
+    template <class T>
+    DynamicTypeHandler * ES5ArrayTypeHandlerBase<T>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, ES5ArrayTypeHandlerBase, recycler, this);
     }
 
     template <class T>
