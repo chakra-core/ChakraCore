@@ -8723,17 +8723,19 @@ namespace Js
 
     }
 
-    LazyBailOutRecord* EntryPointInfo::FindLazyBailoutRecord(size_t codeOffset)
+    BailOutRecord* EntryPointInfo::FindLazyBailoutRecord(size_t instructionPointerOffset)
     {
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())  // OOP JIT
         {
             OOPNativeEntryPointData * oopNativeEntryPointData = this->GetOOPNativeEntryPointData();
             char * nativeDataBuffer = oopNativeEntryPointData->GetNativeDataBuffer();
-            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayOffset());
+
+            // LazyBailOutRecordOffsetArray is stored at the offset LazyBailOutRecordOffsetArrayOffset in nativeDataBuffer.
+            NativeOffsetInlineeFrameRecordOffset* lazyBailOutRecordOffsetArray = (NativeOffsetInlineeFrameRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayOffset());
 
             uint lazyBailOutRecordOffsetArrayCount = oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayCount();
-            if (lazyBailOutRecordOffsetArrayCount == 0)
+            if (lazyBailOutRecordOffsetArrayCount <= 0)
             {
                 return nullptr;
             }
@@ -8743,19 +8745,23 @@ namespace Js
             while (fromIndex <= toIndex)
             {
                 uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
-                auto item = offsets[midIndex];
+                NativeOffsetInlineeFrameRecordOffset lazyBailOutRecordOffset = lazyBailOutRecordOffsetArray[midIndex];
 
-                if (item.offset >= codeOffset)
+                // lazyBailOutRecordOffset.offset is the offset from the nativeAddress.
+                if (lazyBailOutRecordOffset.offset >= instructionPointerOffset)
                 {
-                    if (midIndex == 0 || (midIndex > 0 && offsets[midIndex - 1].offset < codeOffset))
+                    // find the closest entry which is greater than the current offset.
+                    // TODO: refactor
+                    if (midIndex == 0 || (lazyBailOutRecordOffsetArray[midIndex - 1].offset < instructionPointerOffset))
                     {
-                        if (offsets[midIndex].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        uint32 bailOutRecordOffset = lazyBailOutRecordOffsetArray[midIndex].recordOffset;
+                        if (bailOutRecordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
                         {
                             return nullptr;
                         }
                         else
                         {
-                            return (LazyBailOutRecord*)(nativeDataBuffer + offsets[midIndex].recordOffset);
+                            return (BailOutRecord*)(nativeDataBuffer + bailOutRecordOffset);
                         }
                     }
                     else
@@ -8778,9 +8784,9 @@ namespace Js
             int found = sortedLazyBailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
             {
                 // find the closest entry which is greater than the current offset.
-                if (record.offset >= codeOffset)
+                if (record.offset >= instructionPointerOffset)
                 {
-                    if (index == 0 || (index > 0 && sortedLazyBailOutRecordList->Item(index - 1).offset < codeOffset))
+                    if (index == 0 || (index > 0 && sortedLazyBailOutRecordList->Item(index - 1).offset < instructionPointerOffset))
                     {
                         return 0;
                     }
@@ -8794,7 +8800,7 @@ namespace Js
             if (found != -1)
             {
                 LazyBailOutRecord& record = sortedLazyBailOutRecordList->Item(found);
-                return &record;
+                return record.bailOutRecord;
             }
             else
             {
@@ -8820,9 +8826,9 @@ namespace Js
         Js::JavascriptMethod nativeAddress = nativeEntryPointData->GetNativeAddress();
         ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
         Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
-        size_t offset = instructionPointer - (BYTE*)nativeAddress;  
+        size_t instructionPointerOffset = instructionPointer - (BYTE*)nativeAddress;  
 
-        LazyBailOutRecord* record = FindLazyBailoutRecord(offset);
+        BailOutRecord* record = FindLazyBailoutRecord(instructionPointerOffset);
         Assert(record);
 
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
@@ -8839,14 +8845,14 @@ namespace Js
 
             // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
             BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
-            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record->bailOutRecord);
+            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record);
         }
 
 #if DBG
         if (PHASE_TRACE1(Js::LazyBailoutPhase))
         {
-            Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, record->instructionPointer);
-            record->Dump(functionBody);
+            Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer);
+            //record->Dump(functionBody);
             Output::Print(_u("\n"));
         }
 #endif

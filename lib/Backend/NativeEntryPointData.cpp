@@ -595,6 +595,14 @@ OOPNativeEntryPointData::RecordLazyBailOutRecordOffsetsInfo(unsigned int offsets
     this->lazyBailOutRecordOffsetArrayCount = offsetsArrayCount;
 }
 
+void
+OOPNativeEntryPointData::RecordLazyBailOutPropertiesInfo(unsigned int arrayOffset, unsigned int arrayCount)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutPropertiesArrayOffset = arrayOffset;
+    this->lazyBailOutPropertiesArrayCount = arrayCount;
+}
+
 #if !FLOATVAR
 void
 OOPNativeEntryPointData::ProcessNumberPageSegments(ScriptContext * scriptContext)

@@ -1411,7 +1411,7 @@ EncoderMD::FixMaps(uint32 brOffset, int32 bytesSaved, FixUpMapIndex *mapIndices)
 
 
     {
-        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailoutRecordList;
+        ArenaLazyBailoutRecordList *lazyBailOutRecordList = m_encoder->m_sortedLazyBailOutRecordList;
         for (i = mapIndices->lazyBailOutRecordListIndex; i < lazyBailOutRecordList->Count() && lazyBailOutRecordList->Item(i).offset <= brOffset; i++)
         {
             lazyBailOutRecordList->Item(i).offset -= bytesSaved;

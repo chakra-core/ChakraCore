@@ -577,7 +577,7 @@ namespace Js
 
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
-        LazyBailOutRecord* FindLazyBailoutRecord(size_t codeOffset);
+        BailOutRecord* FindLazyBailoutRecord(size_t codeOffset);
         bool HasInlinees();
 
 #if DBG
