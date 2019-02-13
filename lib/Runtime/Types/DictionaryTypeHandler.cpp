@@ -54,6 +54,24 @@ namespace Js
     }
 
     template <typename T>
+    DictionaryTypeHandlerBase<T>::DictionaryTypeHandlerBase(Recycler* recycler, DictionaryTypeHandlerBase * typeHandler) :
+        DynamicTypeHandler(typeHandler),
+        nextPropertyIndex(typeHandler->nextPropertyIndex)
+#if ENABLE_FIXED_FIELDS
+        , singletonInstance(nullptr)
+#endif
+    {
+        Assert(this->GetIsInlineSlotCapacityLocked() == typeHandler->GetIsInlineSlotCapacityLocked());
+        propertyMap = typeHandler->propertyMap->Clone();
+    }
+
+    template <typename T>
+    DynamicTypeHandler * DictionaryTypeHandlerBase<T>::Clone(Recycler * recycler)
+    {
+        return RecyclerNew(recycler, DictionaryTypeHandlerBase, recycler, this);
+    }
+
+    template <typename T>
     int DictionaryTypeHandlerBase<T>::GetPropertyCount()
     {
         return propertyMap->Count();

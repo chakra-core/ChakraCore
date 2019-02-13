@@ -43,9 +43,11 @@ namespace Js
 
     private:
         void EnsureIndexList();
+        uint32 * CopyIndexList() const;
 
     public:
         IndexPropertyDescriptorMap(Recycler* recycler);
+        IndexPropertyDescriptorMap(Recycler* recycler, const IndexPropertyDescriptorMap * const indexPropertyDescriptorMap);
 
         void Add(uint32 key, const IndexPropertyDescriptor& descriptor);
         bool TryGetLastIndex(uint32* lastIndex);
@@ -73,6 +75,7 @@ namespace Js
         {
             return indexPropertyMap->TryGetReference(key, value);
         }
+        IndexPropertyDescriptorMap * Clone(Recycler * recycler);
 
     private:
         static int __cdecl CompareIndex(const void* left, const void* right)
@@ -110,6 +113,7 @@ namespace Js
         ES5ArrayTypeHandlerBase(Recycler* recycler);
         ES5ArrayTypeHandlerBase(Recycler* recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots);
         ES5ArrayTypeHandlerBase(Recycler* recycler, DictionaryTypeHandlerBase<T>* typeHandler);
+        ES5ArrayTypeHandlerBase(Recycler* recycler, ES5ArrayTypeHandlerBase * typeHandler);
         DEFINE_VTABLE_CTOR_NO_REGISTER(ES5ArrayTypeHandlerBase, DictionaryTypeHandlerBase<T>);
 
         // This constructor is used to grow small ES5ArrayTypeHandler into BigES5ArrayTypeHandler. We simply take over all own fields here
@@ -158,6 +162,7 @@ namespace Js
         BOOL GetItemAccessors(ES5Array* arr, DynamicObject* instance, uint32 index, Var* getter, Var* setter);
 
     public:
+        virtual DynamicTypeHandler * Clone(Recycler * recyler);
         virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, bool *noRedecl = nullptr, _Inout_opt_ PropertyValueInfo* info = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;

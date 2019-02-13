@@ -51,6 +51,14 @@ namespace Js
         auxSlots(instance->auxSlots),
         objectArray(instance->objectArray)  // copying the array should copy the array flags and array call site index as well
     {
+        if (deepCopy)
+        {
+            if (!instance->GetDynamicType()->ShareType())
+            {
+                this->type = instance->DuplicateTypeAndTypeHandler();
+            }
+        }
+
         DynamicTypeHandler * typeHandler = this->GetTypeHandler();
 
         // TODO: stack allocate aux Slots
@@ -524,6 +532,13 @@ namespace Js
     DynamicType* DynamicObject::DuplicateType()
     {
         return RecyclerNew(GetRecycler(), DynamicType, this->GetDynamicType());
+    }
+
+    DynamicType* DynamicObject::DuplicateTypeAndTypeHandler()
+    {
+        DynamicType * newType = DuplicateType();
+        newType->typeHandler = newType->DuplicateTypeHandler();
+        return newType;
     }
 
     void DynamicObject::PrepareForConversionToNonPathType()
