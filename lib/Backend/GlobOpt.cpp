@@ -601,7 +601,7 @@ GlobOpt::OptBlock(BasicBlock *block)
 
                     if (block->loop->symsRequiringCompensationToMergedValueInfoMap)
                     {
-                        InsertValueCompensation(block, block->loop->symsRequiringCompensationToMergedValueInfoMap);
+                        InsertValueCompensation(block, succ, block->loop->symsRequiringCompensationToMergedValueInfoMap);
                     }
 
                     // Now that we're done with the liveFields within this loop, trim the set to those syms
@@ -1156,9 +1156,12 @@ void GlobOpt::FieldPRE(Loop *loop)
 
 void GlobOpt::InsertValueCompensation(
     BasicBlock *const predecessor,
+    BasicBlock *const successor,
     const SymToValueInfoMap *symsRequiringCompensationToMergedValueInfoMap)
 {
     Assert(predecessor);
+    Assert(successor);
+    AssertOrFailFast(predecessor != successor);
     Assert(symsRequiringCompensationToMergedValueInfoMap->Count() != 0);
 
     IR::Instr *insertBeforeInstr = predecessor->GetLastInstr();
@@ -1182,7 +1185,7 @@ void GlobOpt::InsertValueCompensation(
     }
 
     GlobOptBlockData &predecessorBlockData = predecessor->globOptData;
-    GlobOptBlockData &successorBlockData = *CurrentBlockData();
+    GlobOptBlockData &successorBlockData = successor->globOptData;
     struct DelayChangeValueInfo
     {
         Value* predecessorValue;
