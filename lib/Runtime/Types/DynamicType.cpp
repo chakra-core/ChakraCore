@@ -487,7 +487,6 @@ namespace Js
         if (this->HasObjectArray())
         {
             arrayObject = this->GetObjectArrayOrFlagsAsArray();
-            Assert(arrayObject->GetPropertyCount() == 0);
         }
         return enumerator->Initialize(prefixEnumerator, arrayObject, this, flags, requestContext, enumeratorCache);
     }
