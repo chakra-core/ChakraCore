@@ -8380,7 +8380,6 @@ namespace Js
             }
         }
 
-
         // in-proc JIT
         if (jitTransferData->equivalentTypeGuardCount > 0)
         {
@@ -8728,7 +8727,7 @@ namespace Js
 #if ENABLE_OOP_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled())  // OOP JIT
         {
-            OOPNativeEntryPointData * oopNativeEntryPointData = this->GetOOPNativeEntryPointData();
+            OOPNativeEntryPointData* oopNativeEntryPointData = GetOOPNativeEntryPointData();
             char * nativeDataBuffer = oopNativeEntryPointData->GetNativeDataBuffer();
 
             // LazyBailOutRecordOffsetArray is stored at the offset LazyBailOutRecordOffsetArrayOffset in nativeDataBuffer.
@@ -8780,13 +8779,13 @@ namespace Js
 #endif
             // in-proc JIT
         {
-            NativeLazyBailOutRecordList * sortedLazyBailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
+            NativeLazyBailOutRecordList* sortedLazyBailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
             int found = sortedLazyBailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
             {
                 // find the closest entry which is greater than the current offset.
-                if (record.offset >= instructionPointerOffset)
+                if (record.nativeAddressOffset >= instructionPointerOffset)
                 {
-                    if (index == 0 || (index > 0 && sortedLazyBailOutRecordList->Item(index - 1).offset < instructionPointerOffset))
+                    if (index == 0 || (index > 0 && sortedLazyBailOutRecordList->Item(index - 1).nativeAddressOffset < instructionPointerOffset))
                     {
                         return 0;
                     }
@@ -8812,50 +8811,37 @@ namespace Js
 
 
 
-    void EntryPointInfo::DoLazyBailout(
-        BYTE **addressOfInstructionPointer,
-        BYTE *framePointer
-#if DBG
-        , Js::FunctionBody *functionBody
-        , const PropertyRecord *propertyRecord
-#endif
-    )
+    void EntryPointInfo::DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *stackFramePointer)
     {
         BYTE* instructionPointer = *addressOfInstructionPointer;
-        NativeEntryPointData * nativeEntryPointData = this->GetNativeEntryPointData();
+        NativeEntryPointData* nativeEntryPointData = GetNativeEntryPointData();
         Js::JavascriptMethod nativeAddress = nativeEntryPointData->GetNativeAddress();
         ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
         Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
         size_t instructionPointerOffset = instructionPointer - (BYTE*)nativeAddress;  
 
-        BailOutRecord* record = FindLazyBailoutRecord(instructionPointerOffset);
-        Assert(record);
+        BailOutRecord* bailOutRecord = FindLazyBailoutRecord(instructionPointerOffset);
+        Assert(bailOutRecord);
 
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
-            Assert(true);
+            OOPNativeEntryPointData* oopNativeEntryPointData = GetOOPNativeEntryPointData();
+            oopNativeEntryPointData->GetLazyBailOutThunkOffset();
         }
         else
         {
-            auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
+            InProcNativeEntryPointData* inProcNativeEntryPointData = GetInProcNativeEntryPointData();
 
-            // Change the instruction pointer of the frame to our thunk so that
-            // when execution returns back to this frame, we will execute the thunk instead
-            *addressOfInstructionPointer = (BYTE *)nativeAddress + inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
+            // Change the instruction pointer of the frame to our thunk so that when
+            // execution returns back to this frame, we will execute the thunk instead.
+            *addressOfInstructionPointer = (BYTE*)nativeAddress + inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
 
-            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
-            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
-            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record);
+            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack.
+            BYTE *addressOfLazyBailOutRecordSlot = stackFramePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
+            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(bailOutRecord);
         }
 
-#if DBG
-        if (PHASE_TRACE1(Js::LazyBailoutPhase))
-        {
-            Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer);
-            //record->Dump(functionBody);
-            Output::Print(_u("\n"));
-        }
-#endif
+
     }
 
     void EntryPointInfo::FreeJitTransferData()

@@ -42,7 +42,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     callSiteToArgumentsOffsetFixupMap(nullptr),
     indexedPropertyGuardCount(0),
     propertiesWrittenTo(nullptr),
-    lazyBailoutProperties(alloc),
+    lazyBailOutProperties(alloc),
     anyPropertyMayBeWrittenTo(false),
 #ifdef PROFILE_EXEC
     m_codeGenProfiler(codeGenProfiler),

@@ -7816,7 +7816,7 @@ Lowerer::CreateTypePropertyGuardForGuardedProperties(JITTypeHolder type, IR::Pro
         {
             if (ShouldDoLazyFixedTypeBailout(this->m_func))
             {
-                this->m_func->lazyBailoutProperties.Item(propertyId);
+                this->m_func->lazyBailOutProperties.Item(propertyId);
             }
             else
             {
@@ -8090,7 +8090,7 @@ Lowerer::GeneratePropertyGuardCheck(IR::Instr *insertPointInstr, IR::PropertySym
 
     if (ShouldDoLazyFixedDataBailout(this->m_func))
     {
-        this->m_func->lazyBailoutProperties.Item(propertySymOpnd->GetPropertyId());
+        this->m_func->lazyBailOutProperties.Item(propertySymOpnd->GetPropertyId());
         return false;
     }
     else

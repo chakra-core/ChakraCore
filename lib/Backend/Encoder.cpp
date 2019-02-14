@@ -1699,22 +1699,28 @@ Encoder::SaveLazyBailOutThunkOffset(uint32 currentOffset)
 void
 Encoder::SaveLazyBailOutJitTransferData()
 {
+    // Things to save: LBORecords, LBOProperties, LBOThunkOffset, RecordSlotOffset
 
-    if (this->m_func->HasLazyBailOut())
+    const int lazyBailOutPropertiesCount = m_func->lazyBailOutProperties.Count();
+    if (this->m_func->HasLazyBailOut() && lazyBailOutPropertiesCount > 0)
     {
-        // Two things to save: LBORecordList and LBOProperties
+        const int sortedLazyBailOutRecordListCount = m_sortedLazyBailOutRecordList->Count();
+        Assert(sortedLazyBailOutRecordListCount > 0);
+        Assert(m_lazyBailOutThunkOffset != 0);
+        Assert(m_func->GetLazyBailOutRecordSlot() != nullptr);
 
-        Assert(this->m_sortedLazyBailOutRecordList->Count() > 0);
-        Assert(this->m_lazyBailOutThunkOffset != 0);
-        Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
+        bool isOOPJIT = m_func->IsOOPJIT();
 
-        if (m_func->IsOOPJIT())
+        // Store the LBORecords
+        InProcNativeEntryPointData* inProcNativeEntryPointData = m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
+
+        if (isOOPJIT)
         {
             // For OOPJIT, m_sortedLazyBailOutRecordList will not be stored nor will any LazyBailoutRecord. All
             // BailOutRecords from m_sortedLazyBailOutRecordList's BailOutRecords have already been stored into
             //  the JitOutput. To keep track of all the BailOutRecords, create and store LazyBailOutRecordOffsets.
             NativeOffsetInlineeFrameRecordOffset* lazyBailOutRecordOffsets = NativeCodeDataNewArrayZNoFixup(
-                m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, m_sortedLazyBailOutRecordList->Count());
+                m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, sortedLazyBailOutRecordListCount);
 
             // Transfer data from m_sortedLazyBailOutRecordList to lazyBailOutRecordOffsets.
             m_sortedLazyBailOutRecordList->Map([&lazyBailOutRecordOffsets](int i, LazyBailOutRecord& lazyBailOutRecord)
@@ -1735,48 +1741,55 @@ Encoder::SaveLazyBailOutJitTransferData()
             // was allocated using NativeCodeDataNewArrayZNoFixup. Store the offset into JitOutput of
             // NativeCodeDataNewArrayZNoFixup along with the amount of entrys in lazyBailOutRecordOffsets.
             m_func->GetJITOutput()->RecordLazyBailOutRecordOffsetsInfo(
-                NativeCodeData::GetDataChunk(lazyBailOutRecordOffsets)->offset, m_sortedLazyBailOutRecordList->Count());
+                NativeCodeData::GetDataChunk(lazyBailOutRecordOffsets)->offset, sortedLazyBailOutRecordListCount);
         }
         else
         {
-            auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
-            nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailOutRecordList);
-            nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
-            nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
+            inProcNativeEntryPointData->SetSortedLazyBailOutRecordList(m_sortedLazyBailOutRecordList);
         }
-    }
 
-    if (this->m_func->lazyBailoutProperties.Count() > 0)
-    {
-        const int count = this->m_func->lazyBailoutProperties.Count();
+        // Store the LBOProperties
         Js::PropertyId* lazyBailoutPropertiesArray;
-        if (m_func->IsOOPJIT())
+        if (isOOPJIT)
         {
-            lazyBailoutPropertiesArray = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), Js::PropertyId, count);
-
-            //lazyBailoutPropertiesArray = (Js::PropertyId*)midl_user_allocate(count * sizeof(Js::PropertyId));
-
+            lazyBailoutPropertiesArray = NativeCodeDataNewArrayZNoFixup(
+                m_func->GetNativeCodeDataAllocator(), Js::PropertyId, lazyBailOutPropertiesCount);
         }
         else
         {
-            lazyBailoutPropertiesArray = HeapNewArrayZ(Js::PropertyId, count);
+            lazyBailoutPropertiesArray = HeapNewArrayZ(Js::PropertyId, lazyBailOutPropertiesCount);
         }
-        
-        Js::PropertyId* dstProperties = lazyBailoutPropertiesArray;
-        this->m_func->lazyBailoutProperties.Map([&](Js::PropertyId propertyId)
+
+        // Populate the lazyBailoutPropertiesArray using data from lazyBailOutProperties.
+        Js::PropertyId* currLazyBailoutPropertiesArrayIndex = lazyBailoutPropertiesArray;
+        m_func->lazyBailOutProperties.Map([&](Js::PropertyId propertyId)
         {
-            *dstProperties++ = propertyId;
+            *currLazyBailoutPropertiesArrayIndex++ = propertyId;
         });
 
-        if (m_func->IsOOPJIT())
+        if (isOOPJIT)
         {
             // Instead of saving LBO properties to this process, we 
             // must transfer the properties to the root process.
-            m_func->GetJITOutput()->RecordLazyBailOutProperties(NativeCodeData::GetDataChunk(lazyBailoutPropertiesArray)->offset, count);
+            m_func->GetJITOutput()->RecordLazyBailOutPropertiesInfo(
+                NativeCodeData::GetDataChunk(lazyBailoutPropertiesArray)->offset, lazyBailOutPropertiesCount);
         }
         else
         {
-            this->m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutPropertiesArray, count);
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(
+                lazyBailoutPropertiesArray, lazyBailOutPropertiesCount);
+        }
+
+        // Store the LBOThunkOffset, RecordSlotOffset
+        if (isOOPJIT)
+        {
+            m_func->GetJITOutput()->RecordLazyBailOutRecordSlotOffset(m_func->GetLazyBailOutRecordSlot()->m_offset);
+            m_func->GetJITOutput()->RecordLazyBailOutThunkOffset(m_lazyBailOutThunkOffset);
+        }
+        else
+        {
+            inProcNativeEntryPointData->SetLazyBailOutRecordSlotOffset(m_func->GetLazyBailOutRecordSlot()->m_offset);
+            inProcNativeEntryPointData->SetLazyBailOutThunkOffset(m_lazyBailOutThunkOffset);
         }
     }
 }

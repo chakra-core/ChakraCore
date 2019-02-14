@@ -200,9 +200,13 @@ public:
     uint GetInlineeFrameOffsetArrayCount();
     uint GetLazyBailOutRecordOffsetArrayOffset();
     uint GetLazyBailOutRecordOffsetArrayCount();
+    uint GetLazyBailOutThunkOffset();
+    int  GetLazyBailOutRecordSlotOffset();
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
     void RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
     void RecordLazyBailOutPropertiesInfo(unsigned int arrayOffset, unsigned int arrayCount);
+    void RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlotOffset);
+    void RecordLazyBailOutThunkOffset(uint lazyBailOutThunkOffset);
 
 #if !FLOATVAR
     void ProcessNumberPageSegments(Js::ScriptContext * scriptContext);
@@ -221,6 +225,8 @@ private:
     Field(uint) lazyBailOutRecordOffsetArrayCount;
     Field(uint) lazyBailOutPropertiesArrayOffset;
     Field(uint) lazyBailOutPropertiesArrayCount;
+    Field(uint) lazyBailOutThunkOffset;
+    Field(int)  lazyBailOutRecordSlotOffset;
     FieldNoBarrier(char *) nativeDataBuffer;
 
 #if !FLOATVAR

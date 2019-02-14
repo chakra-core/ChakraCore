@@ -42,8 +42,9 @@ public:
     void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress);
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
     void RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
-    void RecordLazyBailOutProperties(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
-
+    void RecordLazyBailOutPropertiesInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
+    void RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlot);
+    void RecordLazyBailOutThunkOffset(unsigned int lazyBailOutThunkOffset);
 
 #if TARGET_64
     void RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr);

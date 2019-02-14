@@ -579,13 +579,7 @@ namespace Js
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
         BailOutRecord* FindLazyBailoutRecord(size_t codeOffset);
         bool HasInlinees();
-
-#if DBG
-        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer, Js::FunctionBody *functionBody, const PropertyRecord *propertyRecord);
-#else
         void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer);
-#endif
-
         void CleanupNativeCode(ScriptContext * scriptContext);
 #if DBG_DUMP
     public:

@@ -228,10 +228,22 @@ JITOutput::RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, u
 }
 
 void
-JITOutput::RecordLazyBailOutProperties(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+JITOutput::RecordLazyBailOutPropertiesInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
 {
     m_outputData->lazyBailOutPropertiesArrayOffset = offsetsArrayOffset;
     m_outputData->lazyBailOutPropertiesArrayCount = offsetsArrayCount;
+}
+
+void
+JITOutput::RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlotOffset)
+{
+    m_outputData->lazyBailOutRecordSlotOffset = lazyBailOutRecordSlotOffset;
+}
+
+void
+JITOutput::RecordLazyBailOutThunkOffset(unsigned int lazyBailOutThunkOffset)
+{
+    m_outputData->lazyBailOutThunkOffset = lazyBailOutThunkOffset;
 }
 
 #if TARGET_64

@@ -151,10 +151,6 @@ struct LazyBailOutRecord
         nativeAddressOffset(nativeAddressOffset),
         bailOutRecord(bailOutRecord)
     {}
-
-#if DBG
-    void Dump(Js::FunctionBody* functionBody) const;
-#endif
 };
 
 struct StackFrameConstants

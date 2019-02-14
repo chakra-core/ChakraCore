@@ -1117,8 +1117,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         epInfo->GetOOPNativeEntryPointData()->RecordInlineeFrameOffsetsInfo(jitWriteData.inlineeFrameOffsetArrayOffset, jitWriteData.inlineeFrameOffsetArrayCount);
         epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutRecordOffsetsInfo(jitWriteData.lazyBailOutRecordOffsetArrayOffset, jitWriteData.lazyBailOutRecordOffsetArrayCount);
         epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutPropertiesInfo(jitWriteData.lazyBailOutPropertiesArrayOffset, jitWriteData.lazyBailOutPropertiesArrayCount);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutRecordSlotOffset(jitWriteData.lazyBailOutRecordSlotOffset);
+        epInfo->GetOOPNativeEntryPointData()->RecordLazyBailOutThunkOffset(jitWriteData.lazyBailOutThunkOffset);
 
-        
         epInfo->GetOOPNativeEntryPointData()->GetJitTransferData()->SetLazyBailoutProperties(
             // Offset into jitWriteData to get address of lazyBailOutPropertiesArray.
             (Js::PropertyId*)(jitWriteData.buffer->data + jitWriteData.lazyBailOutPropertiesArrayOffset),

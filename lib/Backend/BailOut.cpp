@@ -2957,14 +2957,6 @@ SharedBailOutRecord::SharedBailOutRecord(uint32 bailOutOffset, uint bailOutCache
     this->type = BailoutRecordType::Shared;
 }
 
-#if DBG
-void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody) const
-{
-    OUTPUT_PRINT(functionBody);
-    Output::Print(_u("Bytecode Offset: #%04x opcode: %s"), this->bailOutRecord->GetBailOutOffset(), Js::OpCodeUtil::GetOpCodeName(this->bailOutRecord->GetBailOutOpCode()));
-}
-#endif
-
 void GlobalBailOutRecordDataTable::Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc)
 {
     GlobalBailOutRecordDataRow *newRows = NativeCodeDataNewArrayZNoFixup(allocator, GlobalBailOutRecordDataRow, length);
