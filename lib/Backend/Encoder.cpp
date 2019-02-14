@@ -1301,7 +1301,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
             // the LBOThunk entry point has been moved due to shortening branches), then keep track of
             // the bytes being saved as these bytes do not count towards the adjustment of
             // m_lazyBailOutThunkOffset made at the end of this function.
-            if ((unsigned char*)reloc.m_ptr - *codeStart > m_lazyBailOutThunkOffset - totalBytesSaved)
+            if ((unsigned char*)reloc.m_ptr - *codeStart > (int32)m_lazyBailOutThunkOffset - totalBytesSaved)
             {
                 bytesSavedAfterLBOThunk += bytesSaved;
             }
@@ -1712,8 +1712,6 @@ Encoder::SaveLazyBailOutJitTransferData()
         bool isOOPJIT = m_func->IsOOPJIT();
 
         // Store the LBORecords
-        InProcNativeEntryPointData* inProcNativeEntryPointData = m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
-
         if (isOOPJIT)
         {
             // For OOPJIT, m_sortedLazyBailOutRecordList will not be stored nor will any LazyBailoutRecord. All
@@ -1745,6 +1743,7 @@ Encoder::SaveLazyBailOutJitTransferData()
         }
         else
         {
+            InProcNativeEntryPointData* inProcNativeEntryPointData = m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
             inProcNativeEntryPointData->SetSortedLazyBailOutRecordList(m_sortedLazyBailOutRecordList);
         }
 
@@ -1788,6 +1787,7 @@ Encoder::SaveLazyBailOutJitTransferData()
         }
         else
         {
+            InProcNativeEntryPointData* inProcNativeEntryPointData = m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
             inProcNativeEntryPointData->SetLazyBailOutRecordSlotOffset(m_func->GetLazyBailOutRecordSlot()->m_offset);
             inProcNativeEntryPointData->SetLazyBailOutThunkOffset(m_lazyBailOutThunkOffset);
         }

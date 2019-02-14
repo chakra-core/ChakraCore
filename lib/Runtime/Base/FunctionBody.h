@@ -305,6 +305,8 @@ namespace Js
 #if ENABLE_OOP_NATIVE_CODEGEN
         OOPNativeEntryPointData * GetOOPNativeEntryPointData();
 #endif
+        NativeEntryPointData * EntryPointInfo::GetProcSpecificNativeEntrypoint();
+
 #endif
 
     protected:
@@ -577,7 +579,7 @@ namespace Js
 
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
-        BailOutRecord* FindLazyBailoutRecord(size_t codeOffset);
+        BailOutRecord* FindLazyBailOutRecord(size_t codeOffset);
         bool HasInlinees();
         void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer);
         void CleanupNativeCode(ScriptContext * scriptContext);

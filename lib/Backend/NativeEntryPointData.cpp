@@ -459,7 +459,7 @@ InProcNativeEntryPointData::SetSortedLazyBailOutRecordList(JsUtil::List<LazyBail
 }
 
 int32
-InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset() const
+InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset()
 {
     Assert(this->lazyBailOutRecordSlotOffset != 0);
     return this->lazyBailOutRecordSlotOffset;
@@ -473,9 +473,10 @@ InProcNativeEntryPointData::SetLazyBailOutRecordSlotOffset(int32 argSlotOffset)
 }
 
 uint32
-InProcNativeEntryPointData::GetLazyBailOutThunkOffset() const
+InProcNativeEntryPointData::GetLazyBailOutThunkOffset()
 {
     Assert(this->lazyBailOutThunkOffset != 0);
+    Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
     return this->lazyBailOutThunkOffset;
 }
 
@@ -579,7 +580,7 @@ OOPNativeEntryPointData::GetLazyBailOutRecordOffsetArrayCount()
     return this->lazyBailOutRecordOffsetArrayCount;
 }
 
-int
+int32
 OOPNativeEntryPointData::GetLazyBailOutRecordSlotOffset()
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());

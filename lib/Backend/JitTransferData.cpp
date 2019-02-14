@@ -43,9 +43,6 @@ void JitTransferData::Cleanup()
 
     if (this->lazyBailoutProperties != nullptr)
     {
-        // should be heapdeleteplus? necessary for inprocjit. for oop, prob
-        // need to delete alloc mem somewhere else, or here but in a different way
-        //
         if (!JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             HeapDeleteArray(this->lazyBailoutPropertyCount, this->lazyBailoutProperties);

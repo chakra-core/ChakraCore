@@ -26,4 +26,4 @@ var b = [];
 f(b);
 f(b);
 
-print("pass")
+print("Pass")

@@ -69,6 +69,9 @@ public:
     void Cleanup(Js::ScriptContext * scriptContext, bool isShutdown, bool reset);
     void ClearTypeRefsAndGuards(Js::ScriptContext * scriptContext);   
 
+    virtual uint32 GetLazyBailOutThunkOffset() = 0;
+    virtual int32 GetLazyBailOutRecordSlotOffset() = 0;
+
 #if PDATA_ENABLED
     XDataAllocation* GetXDataInfo() { return this->xdataInfo; }
     void CleanupXDataInfo();
@@ -160,10 +163,10 @@ public:
     void SetSortedLazyBailOutRecordList(JsUtil::List<LazyBailOutRecord, ArenaAllocator>* sortedLazyBailOutRecordList);
 
     void SetLazyBailOutRecordSlotOffset(int32 argSlotOffset);
-    int32 GetLazyBailOutRecordSlotOffset() const;
+    int32 GetLazyBailOutRecordSlotOffset();
 
     void SetLazyBailOutThunkOffset(uint32 thunkOffset);
-    uint32 GetLazyBailOutThunkOffset() const;
+    uint32 GetLazyBailOutThunkOffset();
 
 #if !FLOATVAR
     void SetNumberChunks(CodeGenNumberChunk* chunks)
@@ -200,8 +203,8 @@ public:
     uint GetInlineeFrameOffsetArrayCount();
     uint GetLazyBailOutRecordOffsetArrayOffset();
     uint GetLazyBailOutRecordOffsetArrayCount();
-    uint GetLazyBailOutThunkOffset();
-    int  GetLazyBailOutRecordSlotOffset();
+    uint32 GetLazyBailOutThunkOffset();
+    int32 GetLazyBailOutRecordSlotOffset();
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
     void RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
     void RecordLazyBailOutPropertiesInfo(unsigned int arrayOffset, unsigned int arrayCount);
