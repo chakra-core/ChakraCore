@@ -1403,6 +1403,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             //
             Js::Arguments generatorArgs = generator->GetArguments();
             Js::InterpreterStackFrame::Setup setup(function, generatorArgs, true, isInlinee);
+            Assert(setup.GetStackAllocationVarCount() == 0);
             size_t varAllocCount = setup.GetAllocationVarCount();
             size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
             DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
@@ -1415,10 +1416,13 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
             Js::Var invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
             memset(invalidVar, 0xFE, sizeof(Js::RecyclableObject));
-            newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, stackAddr, invalidVar);
-#else
-            newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, stackAddr);
 #endif
+
+            newInstance = setup.InitializeAllocation(allocation, nullptr, false, false, loopHeaderArray, stackAddr
+#if DBG
+                , invalidVar
+#endif
+                );
 
             newInstance->m_reader.Create(executeFunction);
 
@@ -1429,18 +1433,28 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     {
         Js::InterpreterStackFrame::Setup setup(function, args, true, isInlinee);
         size_t varAllocCount = setup.GetAllocationVarCount();
-        size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
+        size_t stackVarAllocCount = setup.GetStackAllocationVarCount();
+        size_t varSizeInBytes;
+        Js::Var *stackAllocation = nullptr;
 
         // If the locals area exceeds a certain limit, allocate it from a private arena rather than
         // this frame. The current limit is based on an old assert on the number of locals we would allow here.
-        if (varAllocCount > Js::InterpreterStackFrame::LocalsThreshold)
+        if ((varAllocCount + stackVarAllocCount) > Js::InterpreterStackFrame::LocalsThreshold)
         {
             ArenaAllocator *tmpAlloc = nullptr;
             fReleaseAlloc = functionScriptContext->EnsureInterpreterArena(&tmpAlloc);
+            varSizeInBytes = varAllocCount * sizeof(Js::Var);
             allocation = (Js::Var*)tmpAlloc->Alloc(varSizeInBytes);
+            if (stackVarAllocCount != 0)
+            {
+                size_t stackVarSizeInBytes = stackVarAllocCount * sizeof(Js::Var);
+                PROBE_STACK_PARTIAL_INITIALIZED_BAILOUT_FRAME(functionScriptContext, Js::Constants::MinStackInterpreter + stackVarSizeInBytes, returnAddress);
+                stackAllocation = (Js::Var*)_alloca(stackVarSizeInBytes);
+            }
         }
         else
         {
+            varSizeInBytes = (varAllocCount + stackVarAllocCount) * sizeof(Js::Var);
             PROBE_STACK_PARTIAL_INITIALIZED_BAILOUT_FRAME(functionScriptContext, Js::Constants::MinStackInterpreter + varSizeInBytes, returnAddress);
             allocation = (Js::Var*)_alloca(varSizeInBytes);
         }
@@ -1465,10 +1479,13 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 #if DBG
         Js::Var invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
         memset(invalidStackVar, 0xFE, sizeof(Js::RecyclableObject));
-        newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, frameStackAddr, invalidStackVar);
-#else
-        newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, frameStackAddr);
 #endif
+
+        newInstance = setup.InitializeAllocation(allocation, stackAllocation, false, false, loopHeaderArray, frameStackAddr
+#if DBG
+            , invalidStackVar
+#endif
+            );
 
         newInstance->m_reader.Create(executeFunction);
     }

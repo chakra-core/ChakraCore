@@ -1839,7 +1839,8 @@ bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
     Assert(!funcInfo->IsGlobalFunction());
     bool const doStackNestedFunc = !funcInfo->HasMaybeEscapedNestedFunc() && !IsInDebugMode()
         && !funcInfo->byteCodeFunction->IsCoroutine()
-        && !funcInfo->byteCodeFunction->IsModule();
+        && !funcInfo->byteCodeFunction->IsModule()
+        && !Js::ScriptContext::ExceedsStackNestedFuncCount(funcInfo->root->nestedCount);
     if (!doStackNestedFunc)
     {
         return false;

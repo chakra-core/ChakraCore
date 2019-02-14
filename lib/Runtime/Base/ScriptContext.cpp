@@ -1485,6 +1485,11 @@ namespace Js
         this->GetThreadContext()->RegisterScriptContext(this);
     }
 
+    bool ScriptContext::ExceedsStackNestedFuncCount(uint count)
+    {
+        return count >= (InterpreterStackFrame::LocalsThreshold / (sizeof(StackScriptFunction) / sizeof(Var)));
+    }
+
 #ifdef ENABLE_SCRIPT_DEBUGGING
     ArenaAllocator* ScriptContext::AllocatorForDiagnostics()
     {

@@ -1022,11 +1022,12 @@ namespace Js
         uint forInVarCount = bailedOut ? 0 : (this->executeFunction->GetForInLoopDepth() * (sizeof(Js::ForInObjectEnumerator) / sizeof(Var)));
         this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + forInVarCount +
             extraVarCount + this->executeFunction->GetInnerScopeCount();
+        this->stackVarAllocCount = 0;
 
         if (this->executeFunction->DoStackNestedFunc() && this->executeFunction->GetNestedCount() != 0)
         {
             // Track stack funcs...
-            this->varAllocCount += (sizeof(StackScriptFunction) * this->executeFunction->GetNestedCount()) / sizeof(Var);
+            this->stackVarAllocCount += (sizeof(StackScriptFunction) * this->executeFunction->GetNestedCount()) / sizeof(Var);
             if (!this->bailedOutOfInlinee)
             {
                 // Frame display (if environment depth is statically known)...
@@ -1034,21 +1035,22 @@ namespace Js
                 {
                     uint16 envDepth = this->executeFunction->GetEnvDepth();
                     Assert(envDepth != (uint16)-1);
-                    this->varAllocCount += sizeof(FrameDisplay) / sizeof(Var) + (envDepth + 1);
+                    this->stackVarAllocCount += sizeof(FrameDisplay) / sizeof(Var) + (envDepth + 1);
                 }
                 // ...and scope slots (if any)
                 if (this->executeFunction->DoStackScopeSlots())
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
-                    this->varAllocCount += scopeSlots + Js::ScopeSlots::FirstSlotIndex;
+                    this->stackVarAllocCount += scopeSlots + Js::ScopeSlots::FirstSlotIndex;
                 }
             }
         }
     }
 
     InterpreterStackFrame *
-    InterpreterStackFrame::Setup::InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr
+    InterpreterStackFrame::Setup::InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, __in_ecount(stackVarAllocCount) Var * stackAllocation
+        , bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr
 #if DBG
         , Var invalidStackVar
 #endif
@@ -1183,8 +1185,10 @@ namespace Js
 
         if (this->executeFunction->DoStackNestedFunc() && this->executeFunction->GetNestedCount() != 0)
         {
-            newInstance->InitializeStackFunctions((StackScriptFunction *)nextAllocBytes);
-            nextAllocBytes = nextAllocBytes + sizeof(StackScriptFunction) * this->executeFunction->GetNestedCount();
+            char * stackAllocBytes = (stackAllocation != nullptr) ? (char*)stackAllocation : nextAllocBytes;
+
+            newInstance->InitializeStackFunctions((StackScriptFunction *)stackAllocBytes);
+            stackAllocBytes += sizeof(StackScriptFunction) * this->executeFunction->GetNestedCount();
 
             if (!this->bailedOutOfInlinee)
             {
@@ -1192,19 +1196,23 @@ namespace Js
                 {
                     uint16 envDepth = this->executeFunction->GetEnvDepth();
                     Assert(envDepth != (uint16)-1);
-                    newInstance->localFrameDisplay = (FrameDisplay*)nextAllocBytes;
+                    newInstance->localFrameDisplay = (FrameDisplay*)stackAllocBytes;
                     newInstance->localFrameDisplay->SetLength(0); // Start with no scopes. It will get set in NewFrameDisplay
-                    nextAllocBytes += sizeof(FrameDisplay) + (envDepth + 1) * sizeof(Var);
+                    stackAllocBytes += sizeof(FrameDisplay) + (envDepth + 1) * sizeof(Var);
                 }
 
                 if (this->executeFunction->DoStackScopeSlots())
                 {
                     uint32 scopeSlots = this->executeFunction->scopeSlotArraySize;
                     Assert(scopeSlots != 0);
-                    ScopeSlots((Field(Var)*)nextAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
-                    newInstance->localClosure = nextAllocBytes;
-                    nextAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
+                    ScopeSlots((Field(Var)*)stackAllocBytes).SetCount(0); // Start with count as 0. It will get set in NewScopeSlots
+                    newInstance->localClosure = stackAllocBytes;
+                    stackAllocBytes += (scopeSlots + ScopeSlots::FirstSlotIndex) * sizeof(Var);
                 }
+            }
+            if (stackAllocation == nullptr)
+            {
+                nextAllocBytes = stackAllocBytes;
             }
         }
 #if ENABLE_PROFILE_INFO
@@ -1755,6 +1763,7 @@ skipThunk:
         ScriptContext* functionScriptContext = function->GetScriptContext();
         Arguments generatorArgs = generator->GetArguments();
         InterpreterStackFrame::Setup setup(function, generatorArgs);
+        Assert(setup.GetStackAllocationVarCount() == 0);
         size_t varAllocCount = setup.GetAllocationVarCount();
         size_t varSizeInBytes = varAllocCount * sizeof(Var);
         DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // use any stack address from this frame to ensure correct debugging functionality
@@ -1768,10 +1777,13 @@ skipThunk:
         Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Var);
         AnalysisAssert(invalidVar);
         memset(reinterpret_cast<void*>(invalidVar), 0xFE, sizeof(Js::RecyclableObject));
-        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr, invalidVar);
-#else
-        newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr);
 #endif
+
+        newInstance = setup.InitializeAllocation(allocation, nullptr, executeFunction->GetHasImplicitArgIns(), doProfile, loopHeaderArray, stackAddr
+#if DBG
+            , invalidVar
+#endif
+            );
 
         newInstance->m_reader.Create(executeFunction);
 
@@ -1914,7 +1926,8 @@ skipThunk:
         {
             InterpreterStackFrame::Setup setup(function, args);
             size_t varAllocCount = setup.GetAllocationVarCount();
-            size_t varSizeInBytes = varAllocCount * sizeof(Var);
+            size_t stackVarAllocCount = setup.GetStackAllocationVarCount();
+            size_t varSizeInBytes;
 
             //
             // Allocate a new InterpreterStackFrame instance on the interpreter's virtual stack.
@@ -1922,18 +1935,27 @@ skipThunk:
             DWORD_PTR stackAddr;
 
             Var* allocation;
+            Var* stackAllocation = nullptr;
 
             // If the locals area exceeds a certain limit, allocate it from a private arena rather than
             // this frame. The current limit is based on an old assert on the number of locals we would allow here.
-            if (varAllocCount > InterpreterStackFrame::LocalsThreshold)
+            if ((varAllocCount + stackVarAllocCount) > InterpreterStackFrame::LocalsThreshold)
             {
                 ArenaAllocator *tmpAlloc = nullptr;
                 fReleaseAlloc = functionScriptContext->EnsureInterpreterArena(&tmpAlloc);
+                varSizeInBytes = varAllocCount * sizeof(Var);
                 allocation = (Var*)tmpAlloc->Alloc(varSizeInBytes);
                 stackAddr = reinterpret_cast<DWORD_PTR>(&allocation); // use a stack address so the debugger stepping logic works (step-out, for example, compares stack depths to determine when to complete the step)
+                if (stackVarAllocCount != 0)
+                {
+                    size_t stackVarSizeInBytes = stackVarAllocCount * sizeof(Var);
+                    PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(functionScriptContext, Js::Constants::MinStackInterpreter + stackVarSizeInBytes);
+                    stackAllocation = (Var*)_alloca(stackVarSizeInBytes);
+                }
             }
             else
             {
+                varSizeInBytes = (varAllocCount + stackVarAllocCount) * sizeof(Var);
                 PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(functionScriptContext, Js::Constants::MinStackInterpreter + varSizeInBytes);
                 allocation = (Var*)_alloca(varSizeInBytes);
 #if DBG
@@ -1966,10 +1988,13 @@ skipThunk:
 #if DBG
             Js::RecyclableObject * invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
             memset(reinterpret_cast<void*>(invalidStackVar), 0xFE, sizeof(Js::RecyclableObject));
-            newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns() && !isAsmJs, doProfile, loopHeaderArray, stackAddr, invalidStackVar);
-#else
-            newInstance = setup.InitializeAllocation(allocation, executeFunction->GetHasImplicitArgIns() && !isAsmJs, doProfile, loopHeaderArray, stackAddr);
 #endif
+
+            newInstance = setup.InitializeAllocation(allocation, stackAllocation, executeFunction->GetHasImplicitArgIns() && !isAsmJs, doProfile, loopHeaderArray, stackAddr
+#if DBG
+                , invalidStackVar
+#endif
+                );
 
             newInstance->m_reader.Create(executeFunction);
         }
@@ -2784,22 +2809,32 @@ skipThunk:
         // after reparsing, we want to also use a new interpreter stack frame, as it will have different characteristics than the asm.js version
         InterpreterStackFrame::Setup setup(funcObj, m_inParams, m_inSlotsCount);
         size_t varAllocCount = setup.GetAllocationVarCount();
-        size_t varSizeInBytes = varAllocCount * sizeof(Var);
+        size_t stackVarAllocCount = setup.GetStackAllocationVarCount();
+        size_t varSizeInBytes;
 
         Var* allocation = nullptr;
+        Var* stackAllocation = nullptr;
         DWORD_PTR stackAddr;
         bool fReleaseAlloc = false;
-        if (varAllocCount > InterpreterStackFrame::LocalsThreshold)
+        if ((varAllocCount + stackVarAllocCount) > InterpreterStackFrame::LocalsThreshold)
         {
             ArenaAllocator *tmpAlloc = nullptr;
             fReleaseAlloc = GetScriptContext()->EnsureInterpreterArena(&tmpAlloc);
+            varSizeInBytes = varAllocCount * sizeof(Var);
             allocation = (Var*)tmpAlloc->Alloc(varSizeInBytes);
+            if (stackVarAllocCount != 0)
+            {
+                size_t stackVarSizeInBytes = stackVarAllocCount * sizeof(Var);
+                PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(GetScriptContext(), Js::Constants::MinStackInterpreter + stackVarSizeInBytes);
+                stackAllocation = (Var*)_alloca(stackVarSizeInBytes);
+            }
             // use a stack address so the debugger stepping logic works (step-out, for example, compares stack depths to determine when to complete the step)
             // debugger stepping does not matter here, but it's worth being consistent with normal stack frame
             stackAddr = reinterpret_cast<DWORD_PTR>(&allocation);
         }
         else
         {
+            varSizeInBytes = (varAllocCount + stackVarAllocCount) * sizeof(Var);
             PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(GetScriptContext(), Js::Constants::MinStackInterpreter + varSizeInBytes);
             allocation = (Var*)_alloca(varSizeInBytes);
             stackAddr = reinterpret_cast<DWORD_PTR>(allocation);
@@ -2808,10 +2843,14 @@ skipThunk:
 #if DBG
         Var invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
         memset(invalidStackVar, 0xFE, sizeof(Js::RecyclableObject));
-        InterpreterStackFrame * newInstance = newInstance = setup.InitializeAllocation(allocation, funcObj->GetFunctionBody()->GetHasImplicitArgIns(), doProfile, nullptr, stackAddr, invalidStackVar);
-#else
-        InterpreterStackFrame * newInstance = newInstance = setup.InitializeAllocation(allocation, funcObj->GetFunctionBody()->GetHasImplicitArgIns(), doProfile, nullptr, stackAddr);
 #endif
+
+        InterpreterStackFrame * newInstance = setup.InitializeAllocation(allocation, stackAllocation, funcObj->GetFunctionBody()->GetHasImplicitArgIns(), doProfile, nullptr, stackAddr
+#if DBG
+            , invalidStackVar
+#endif
+            );
+
         newInstance->m_reader.Create(funcObj->GetFunctionBody());
         // now that we have set up the new frame, let's interpret it!
         funcObj->GetFunctionBody()->BeginExecution();
