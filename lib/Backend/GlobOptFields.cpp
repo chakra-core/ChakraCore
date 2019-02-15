@@ -450,9 +450,24 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 break;
 
             case IR::JnHelperMethod::HelperRegExp_Exec:
+            case IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed:
+            case IR::JnHelperMethod::HelperRegExp_ExecResultUsed:
+            case IR::JnHelperMethod::HelperRegExp_ExecResultUsedAndMayBeTemp:
+            case IR::JnHelperMethod::HelperRegExp_MatchResultNotUsed:
+            case IR::JnHelperMethod::HelperRegExp_MatchResultUsed:
+            case IR::JnHelperMethod::HelperRegExp_MatchResultUsedAndMayBeTemp:
+            case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultUsed:
+            case IR::JnHelperMethod::HelperRegExp_ReplaceStringResultNotUsed:
+            case IR::JnHelperMethod::HelperRegExp_SplitResultNotUsed:
+            case IR::JnHelperMethod::HelperRegExp_SplitResultUsed:
+            case IR::JnHelperMethod::HelperRegExp_SplitResultUsedAndMayBeTemp:
+            case IR::JnHelperMethod::HelperRegExp_SymbolSearch:
             case IR::JnHelperMethod::HelperString_Match:
+            case IR::JnHelperMethod::HelperString_Search:
+            case IR::JnHelperMethod::HelperString_Split:
             case IR::JnHelperMethod::HelperString_Replace:
                 // Consider: We may not need to kill all fields here.
+                // We need to kill all the built-in properties that can be written, though, and there are a lot of those.
                 this->KillAllFields(bv);
                 break;
         }
