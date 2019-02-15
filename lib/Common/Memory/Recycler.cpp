@@ -9014,20 +9014,34 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
         return; // NOP at shutdown
     }
 
-    if (objectBeforeCollectCallbackList == nullptr)
+    if (this->objectBeforeCollectCallbackList == nullptr)
     {
         if (callback == nullptr) return;
-        objectBeforeCollectCallbackList = Anew(&this->objectBeforeCollectCallbackArena, ObjectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
+        this->objectBeforeCollectCallbackList = Anew(&this->objectBeforeCollectCallbackArena, ObjectBeforeCollectCallbackList, &this->objectBeforeCollectCallbackArena);
     }
 
-    // only allow 1 callback per object
-    objectBeforeCollectCallbackList->Push(ObjectBeforeCollectCallbackData(object, callbackWrapper, callback, callbackState, threadContext));
-
-    if (callback != nullptr && this->IsInObjectBeforeCollectCallback()) // revive
+    if (callback)
     {
-        this->ScanMemory<false>(&object, sizeof(object));
-        this->ProcessMark(/*background*/false);
+        this->objectBeforeCollectCallbackList->Push(ObjectBeforeCollectCallbackData(object, callbackWrapper, callback, callbackState, threadContext));
+
+        if (this->IsInObjectBeforeCollectCallback()) // revive
+        {
+            this->ScanMemory<false>(&object, sizeof(object));
+            this->ProcessMark(/*background*/false);
+        }
     }
+    else
+    {
+        // null callback means unregister
+        FOREACH_SLIST_ENTRY_EDITING(ObjectBeforeCollectCallbackData, callbackData, this->objectBeforeCollectCallbackList, iter)
+        {
+            if (callbackData.object == object)
+            {
+                iter.RemoveCurrent();
+            }
+        } NEXT_SLIST_ENTRY_EDITING;
+    }
+
 }
 
 void Recycler::SetDOMWrapperTracingCallback(void * state, DOMWrapperTracingCallback tracingCallback, DOMWrapperTracingDoneCallback tracingDoneCallback, DOMWrapperTracingEnterFinalPauseCallback enterFinalPauseCallback)
@@ -9111,10 +9125,19 @@ bool Recycler::ProcessObjectBeforeCollectCallbacks(bool atShutdown/*= false*/)
             *&oldCallbackList = this->objectBeforeCollectCallbackList;
             this->objectBeforeCollectCallbackList = tmp;
 
-            oldCallbackList->Map([&](const ObjectBeforeCollectCallbackData& data)
+            try
             {
-                this->objectBeforeCollectCallbackList->Push(data);
-            });
+                AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_OutOfMemory);
+                oldCallbackList->Map([&](const ObjectBeforeCollectCallbackData& data)
+                {
+                    this->objectBeforeCollectCallbackList->Push(data);
+                });
+            }
+            catch (Js::OutOfMemoryException)
+            {
+                // can't recover from OOM here
+                AssertOrFailFast(UNREACHED);
+            }
         }
     }
 
