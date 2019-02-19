@@ -502,7 +502,7 @@ ServerNewInterpreterThunkBlock(
             ServerThreadContext * threadContext;
         } localAlloc(threadContext);
 
-        OOPEmitBufferManager * emitBufferManager = scriptContext->GetEmitBufferManager(thunkInput->asmJsThunk != FALSE);
+        OOPEmitBufferManagerWithLock * emitBufferManager = scriptContext->GetEmitBufferManager(thunkInput->asmJsThunk != FALSE);
 
         BYTE* runtimeAddress;
         EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = emitBufferManager->AllocateBuffer(InterpreterThunkEmitter::BlockSize, &runtimeAddress);
@@ -573,7 +573,7 @@ ServerIsInterpreterThunkAddr(
         *result = false;
         return RPC_S_INVALID_ARG;
     }
-    OOPEmitBufferManager * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    OOPEmitBufferManagerWithLock * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
     if (manager == nullptr)
     {
         *result = false;

@@ -414,7 +414,7 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::ProtectBufferWith
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
 bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize)
 {
-    Assert(this->criticalSection.IsLocked());
+    AutoRealOrFakeCriticalSection<SyncObject> autoCs(&this->criticalSection);
 
     Assert(allocation != nullptr);
     allocation->bytesUsed += bufferSize;
