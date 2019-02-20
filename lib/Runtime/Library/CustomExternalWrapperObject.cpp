@@ -140,8 +140,7 @@ BOOL CustomExternalWrapperObject::EnsureInitialized(ScriptContext* requestContex
     return TRUE;
 }
 
-CustomExternalWrapperObject*
-CustomExternalWrapperObject::Copy(bool deepCopy)
+CustomExternalWrapperObject* CustomExternalWrapperObject::Copy(bool deepCopy)
 {
     Recycler* recycler = this->GetRecycler();
     CustomExternalWrapperType* externalType = this->GetExternalType();

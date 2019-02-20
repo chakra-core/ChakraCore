@@ -157,8 +157,7 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, 
     return externalObject;
 }
 
-JsrtExternalObject*
-JsrtExternalObject::Copy(bool deepCopy)
+JsrtExternalObject* JsrtExternalObject::Copy(bool deepCopy)
 {
     Recycler* recycler = this->GetRecycler();
     JsrtExternalType* type = this->GetExternalType();

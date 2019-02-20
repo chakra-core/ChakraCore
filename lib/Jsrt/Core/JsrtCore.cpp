@@ -735,10 +735,10 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
     VALIDATE_JSREF(source);
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        Js::JavascriptProxy* proxy = Js::JavascriptOperators::TryFromVar<Js::JavascriptProxy>(source);
-        if (proxy != nullptr)
+
+        while (Js::VarIs<Js::JavascriptProxy>(source))
         {
-            source = proxy->GetTarget();
+            source = Js::UnsafeVarTo<Js::JavascriptProxy>(source)->GetTarget();
         }
 
         // We can currently only clone certain types of dynamic objects
