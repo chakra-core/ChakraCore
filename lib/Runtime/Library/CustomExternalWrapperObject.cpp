@@ -45,6 +45,26 @@ CustomExternalWrapperObject::CustomExternalWrapperObject(CustomExternalWrapperTy
     }
 }
 
+CustomExternalWrapperObject::CustomExternalWrapperObject(CustomExternalWrapperObject * instance, bool deepCopy) :
+    Js::DynamicObject(instance, deepCopy),
+    initialized(instance->initialized)
+{
+    if (instance->GetInlineSlotSize() != 0)
+    {
+        this->slotType = SlotType::Inline;
+        this->u.inlineSlotSize = instance->GetInlineSlotSize();
+        if (instance->GetInlineSlots())
+        {
+            memcpy_s(this->GetInlineSlots(), this->GetInlineSlotSize(), instance->GetInlineSlots(), instance->GetInlineSlotSize());
+        }
+    }
+    else
+    {
+        this->slotType = SlotType::External;
+        this->u.slot = instance->GetInlineSlots();
+    }
+}
+
 /* static */
 CustomExternalWrapperObject* CustomExternalWrapperObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsGetterSetterInterceptor ** getterSetterInterceptor, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext)
 {
@@ -120,32 +140,25 @@ BOOL CustomExternalWrapperObject::EnsureInitialized(ScriptContext* requestContex
     return TRUE;
 }
 
-CustomExternalWrapperObject * CustomExternalWrapperObject::Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext)
+CustomExternalWrapperObject*
+CustomExternalWrapperObject::Copy(bool deepCopy)
 {
-    Js::CustomExternalWrapperType * externalType = source->GetExternalType();
-    Js::JsGetterSetterInterceptor * originalInterceptors = externalType->GetJsGetterSetterInterceptor();
-    Js::JsGetterSetterInterceptor * newInterceptors = originalInterceptors;
-    Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Create(
-        source->GetSlotData(),
-        source->GetInlineSlotSize(),
-        externalType->GetJsTraceCallback(),
-        externalType->GetJsFinalizeCallback(),
-        &newInterceptors,
-        source->GetPrototype(),
-        scriptContext);
-    target->initialized = source->initialized;
+    Recycler* recycler = this->GetRecycler();
+    CustomExternalWrapperType* externalType = this->GetExternalType();
+    int inlineSlotSize = this->GetInlineSlotSize();
 
-    bool success = target->TryCopy(source, true);
-    AssertOrFailFast(success);
-
-    //TODO:akatti: We will always used a cached type, so the following code can be removed.
-    // If we are using type from the cache we don't need to copy the interceptors over.
-    if (newInterceptors != originalInterceptors)
+    if (externalType->GetJsTraceCallback() != nullptr)
     {
-        memcpy_s(newInterceptors, sizeof(Js::JsGetterSetterInterceptor), originalInterceptors, sizeof(Js::JsGetterSetterInterceptor));
+        return RecyclerNewTrackedPlus(recycler, inlineSlotSize, CustomExternalWrapperObject, this, deepCopy);
     }
-
-    return target;
+    else if (externalType->GetJsFinalizeCallback() != nullptr)
+    {
+        return RecyclerNewFinalizedPlus(recycler, inlineSlotSize, CustomExternalWrapperObject, this, deepCopy);
+    }
+    else
+    {
+        return RecyclerNewPlus(recycler, inlineSlotSize, CustomExternalWrapperObject, this, deepCopy);
+    }
 }
 
 BOOL CustomExternalWrapperObject::IsObjectAlive()

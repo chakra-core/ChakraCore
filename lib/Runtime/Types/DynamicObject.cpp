@@ -840,7 +840,7 @@ namespace Js
         return reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + this->GetOffsetOfInlineSlots());
     }
 
-    bool DynamicObject::IsCompatibleForCopy(DynamicObject* from, bool ignoreSideEffects) const
+    bool DynamicObject::IsCompatibleForCopy(DynamicObject* from) const
     {
         if (this->GetTypeHandler()->GetInlineSlotCapacity() != from->GetTypeHandler()->GetInlineSlotCapacity())
         {
@@ -876,7 +876,7 @@ namespace Js
             }
             return false;
         }
-        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors() && !ignoreSideEffects)
+        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -892,7 +892,7 @@ namespace Js
             }
             return false;
         }
-        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable() && !ignoreSideEffects)
+        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -900,7 +900,7 @@ namespace Js
             }
             return false;
         }
-        if (from->IsExternal() && !ignoreSideEffects)
+        if (from->IsExternal())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
@@ -920,7 +920,7 @@ namespace Js
         return true;
     }
 
-    bool DynamicObject::TryCopy(DynamicObject* from, bool ignoreSideEffects)
+    bool DynamicObject::TryCopy(DynamicObject* from)
     {
 #if ENABLE_TTD
         if (from->GetScriptContext()->ShouldPerformRecordOrReplayAction())
@@ -934,7 +934,7 @@ namespace Js
             return false;
         }
         // Validate that objects are compatible
-        if (!this->IsCompatibleForCopy(from, ignoreSideEffects))
+        if (!this->IsCompatibleForCopy(from))
         {
             return false;
         }

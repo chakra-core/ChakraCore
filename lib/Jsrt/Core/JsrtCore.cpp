@@ -735,49 +735,23 @@ CHAKRA_API JsCloneObject(_In_ JsValueRef source, _Out_ JsValueRef* newObject)
     VALIDATE_JSREF(source);
 
     return ContextAPINoScriptWrapper([&](Js::ScriptContext* scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
-        if (Js::VarIs<Js::JavascriptProxy>(source))
+        Js::JavascriptProxy* proxy = Js::JavascriptOperators::TryFromVar<Js::JavascriptProxy>(source);
+        if (proxy != nullptr)
         {
-            source = Js::UnsafeVarTo<Js::JavascriptProxy>(source)->GetTarget();
-        }
-        JsrtExternalObject* externalSource = Js::JavascriptOperators::TryFromVar<JsrtExternalObject>(source);
-        if (externalSource)
-        {
-            JsrtExternalType* externalType = externalSource->GetExternalType();
-            JsrtExternalObject* target = JsrtExternalObject::Create(
-                externalSource->GetSlotData(),
-                externalSource->GetInlineSlotSize(),
-                externalType->GetJsTraceCallback(),
-                externalType->GetJsFinalizeCallback(),
-                externalSource->GetPrototype(),
-                scriptContext,
-                externalType);
-            bool success = target->TryCopy(externalSource, true);
-            AssertOrFailFast(success);
-            *newObject = target;
-            return JsNoError;
-        }
-        else
-        {
-            Js::CustomExternalWrapperObject * externalWrapper = Js::JavascriptOperators::TryFromVar<Js::CustomExternalWrapperObject>(source);
-            if (externalWrapper != nullptr) {
-                Js::CustomExternalWrapperObject * target = Js::CustomExternalWrapperObject::Clone(externalWrapper, scriptContext);
-                Assert(target);
-                *newObject = target;
-                return JsNoError;
-            }
+            source = proxy->GetTarget();
         }
 
-        Js::DynamicObject* objSource = Js::JavascriptOperators::TryFromVar<Js::DynamicObject>(source);
-        if (objSource)
+        // We can currently only clone certain types of dynamic objects
+        // TODO: support other object types
+        if (Js::DynamicObject::IsBaseDynamicObject(source) ||
+            Js::VarIs<JsrtExternalObject>(source) ||
+            Js::VarIs<Js::CustomExternalWrapperObject>(source))
         {
-            if (!objSource->ShareType())
-            {
-                AssertOrFailFast(UNREACHED); // TODO
-                return JsErrorInvalidArgument;
-            }
+            Js::DynamicObject* objSource = Js::UnsafeVarTo<Js::DynamicObject>(source);
             *newObject = objSource->Copy(true);
             return JsNoError;
         }
+
         return JsErrorInvalidArgument;
     });
 }

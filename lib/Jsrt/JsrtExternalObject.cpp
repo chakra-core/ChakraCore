@@ -59,6 +59,25 @@ JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data, uint
     }
 }
 
+JsrtExternalObject::JsrtExternalObject(JsrtExternalObject* instance, bool deepCopy) :
+    Js::DynamicObject(instance, deepCopy)
+{
+    if (instance->GetInlineSlotSize() != 0)
+    {
+        this->slotType = SlotType::Inline;
+        this->u.inlineSlotSize = instance->GetInlineSlotSize();
+        if (instance->GetInlineSlots())
+        {
+            memcpy_s(this->GetInlineSlots(), this->GetInlineSlotSize(), instance->GetInlineSlots(), instance->GetInlineSlotSize());
+        }
+    }
+    else
+    {
+        this->slotType = SlotType::External;
+        this->u.slot = instance->GetInlineSlots();
+    }
+}
+
 #ifdef _CHAKRACOREBUILD
 /* static */
 JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext, JsrtExternalType * type)
@@ -136,6 +155,27 @@ JsrtExternalObject* JsrtExternalObject::Create(void *data, uint inlineSlotSize, 
     }
 
     return externalObject;
+}
+
+JsrtExternalObject*
+JsrtExternalObject::Copy(bool deepCopy)
+{
+    Recycler* recycler = this->GetRecycler();
+    JsrtExternalType* type = this->GetExternalType();
+    int inlineSlotSize = this->GetInlineSlotSize();
+
+    if (type->GetJsTraceCallback() != nullptr)
+    {
+        return RecyclerNewTrackedPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
+    }
+    else if (type->GetJsFinalizeCallback() != nullptr)
+    {
+        return RecyclerNewFinalizedPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
+    }
+    else
+    {
+        return RecyclerNewPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
+    }
 }
 
 void JsrtExternalObject::Mark(Recycler * recycler) 
