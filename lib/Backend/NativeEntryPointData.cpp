@@ -323,10 +323,17 @@ NativeEntryPointData::CleanupXDataInfo()
     {
         XDataAllocator::Unregister(this->xdataInfo);
 #ifdef _WIN32
-        if (this->xdataInfo->functionTable
-            && !DelayDeletingFunctionTable::AddEntry(this->xdataInfo))
+        if (AutoSystemInfo::Data.IsWin8OrLater())
         {
-            DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo);
+            // transfers ownership of xdataInfo object
+            if(!DelayDeletingFunctionTable::AddEntry(this->xdataInfo))
+            {
+                DelayDeletingFunctionTable::DeleteFunctionTable(this->xdataInfo);
+            }
+        }
+        else
+        {
+            HeapDelete(this->xdataInfo);
         }
 #endif
         this->xdataInfo = nullptr;
