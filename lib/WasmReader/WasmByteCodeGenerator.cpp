@@ -483,10 +483,6 @@ void WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptCo
 {
     WasmBytecodeGenerator generator(scriptContext, readerinfo, validateOnly);
     generator.GenerateFunction();
-    if (!generator.GetReader()->IsCurrentFunctionCompleted())
-    {
-        throw WasmCompilationException(_u("Invalid function format"));
-    }
 }
 
 void WasmBytecodeGenerator::ValidateFunction(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
@@ -548,7 +544,12 @@ void WasmBytecodeGenerator::GenerateFunction()
                 gen->m_originalWriter->Reset();
             }
         }
-        void Complete() { gen = nullptr; }
+        void Complete()
+        {
+            gen->m_writer->End();
+            gen->GetReader()->FunctionEnd();
+            gen = nullptr;
+        }
     };
     AutoCleanupGeneratorState autoCleanupGeneratorState(this);
     Js::ByteCodeLabel exitLabel = m_writer->DefineLabel();
@@ -574,8 +575,12 @@ void WasmBytecodeGenerator::GenerateFunction()
     m_writer->MarkAsmJsLabel(exitLabel);
     m_writer->EmptyAsm(Js::OpCodeAsmJs::Ret);
     m_writer->SetCallSiteCount(this->currentProfileId);
-    m_writer->End();
-    GetReader()->FunctionEnd();
+
+    if (!GetReader()->IsCurrentFunctionCompleted())
+    {
+        throw WasmCompilationException(_u("Invalid function format"));
+    }
+
     autoCleanupGeneratorState.Complete();
     // Make sure we don't have any unforeseen exceptions as we finalize the body
     AutoDisableInterrupt autoDisableInterrupt(m_scriptContext->GetThreadContext(), true);
