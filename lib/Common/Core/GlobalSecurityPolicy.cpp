@@ -16,8 +16,10 @@ GlobalSecurityPolicy GlobalSecurityObject;
 // Note:  'volatile' is necessary here otherwise the compiler assumes these are constants initialized to '0' and will constant propagate them...
 __declspec(allocate(".mrdata")) volatile GlobalSecurityPolicy::ReadOnlyData GlobalSecurityPolicy::readOnlyData =
     {
+#if defined(_CONTROL_FLOW_GUARD)
         nullptr,
         nullptr,
+#endif
         false,
         false,
         false
@@ -141,6 +143,7 @@ GlobalSecurityPolicy::IsSetProcessValidCallTargetsAllowed()
     return !readOnlyData.disableSetProcessValidCallTargets;
 }
 
+#if defined(_CONTROL_FLOW_GUARD)
 BOOL 
 DECLSPEC_GUARDNOCF GlobalSecurityPolicy::GetMitigationPolicyForProcess(HANDLE hProcess, PROCESS_MITIGATION_POLICY mitigationPolicy, PVOID lpBuffer, SIZE_T dwLength)
 {
@@ -152,3 +155,4 @@ DECLSPEC_GUARDNOCF GlobalSecurityPolicy::SetProcessValidCallTargets(HANDLE hProc
 {
     return GlobalSecurityPolicy::readOnlyData.pfnSetProcessValidCallTargets(hProcess, virtualAddress, regionSize, numberOfOffsets, offsetInformation);
 }
+#endif //_CONTROL_FLOW_GUARD
