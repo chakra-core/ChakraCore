@@ -110,8 +110,8 @@ namespace Js
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
         template <class Fn, class GetPropertyNameFunc>
-        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn);
-        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, JavascriptString * propertyString, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags);
+        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn, Js::PropertyValueInfo* info);
+        BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, JavascriptString * propertyString, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, Js::PropertyValueInfo* info);
 
         void * GetSlotData() const;
         void SetSlotData(void * data);
@@ -173,10 +173,10 @@ namespace Js
         BOOL GetPropertyDescriptorTrap(PropertyId propertyId, PropertyDescriptor * resultDescriptor, ScriptContext * requestContext);
 
         template <class Fn, class GetPropertyNameFunc>
-        BOOL GetPropertyTrap(Var instance, PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, ScriptContext * requestContext);
+        BOOL GetPropertyTrap(Var instance, PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, ScriptContext * requestContext, Js::PropertyValueInfo* info);
 
         template <class Fn, class GetPropertyNameFunc>
-        BOOL HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName);
+        BOOL HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName, Js::PropertyValueInfo* info);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext * scriptContext, RecyclableObject * trapResultArray, uint32 len, JavascriptArray * trapResult,

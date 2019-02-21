@@ -185,15 +185,6 @@ BOOL CustomExternalWrapperObject::VerifyObjectAlive()
 
 BOOL CustomExternalWrapperObject::Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
 {
-    // Reject implicit call
-    ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        *value = FALSE;
-        return FALSE;
-    }
-
     // We need to implement comparison to other by reference in case the object
     // is in the left side of the comparison, and does not call a toString
     // method (like different objects) when compared to string. For Node, such
@@ -204,15 +195,6 @@ BOOL CustomExternalWrapperObject::Equals(__in Var other, __out BOOL* value, Scri
 
 BOOL CustomExternalWrapperObject::StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext)
 {
-    *value = FALSE;
-    // Reject implicit call
-    ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
-
     // We need to implement comparison to other by reference in case the object
     // is in the left side of the comparison, and does not call a toString
     // method (like different objects) when compared to string. For Node, such
@@ -329,17 +311,11 @@ Js::Var CustomExternalWrapperObject::GetName(Js::ScriptContext* requestContext, 
 }
 
 template <class Fn, class GetPropertyNameFunc>
-BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, Js::ScriptContext * requestContext)
+BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::PropertyDescriptor * propertyDescriptor, Fn fn, GetPropertyNameFunc getPropertyName, Js::ScriptContext * requestContext, Js::PropertyValueInfo* info)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     if (!this->EnsureInitialized(requestContext))
     {
@@ -363,6 +339,8 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
     Js::Var propertyNameNumericValue;
     Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
+    PropertyValueInfo::SetNoCache(info, targetObj);
+    PropertyValueInfo::DisablePrototypeCache(info, targetObj);
     Js::Var getGetResult = threadContext->ExecuteImplicitCall(getGetMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
         return CALL_FUNCTION(threadContext, getGetMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
@@ -379,17 +357,11 @@ BOOL CustomExternalWrapperObject::GetPropertyTrap(Js::Var instance, Js::Property
 }
 
 template <class Fn, class GetPropertyNameFunc>
-BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName)
+BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc getPropertyName, Js::PropertyValueInfo* info)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     // Caller does not pass requestContext. Retrieve from host scriptContext stack.
     Js::ScriptContext* requestContext =
@@ -417,6 +389,8 @@ BOOL CustomExternalWrapperObject::HasPropertyTrap(Fn fn, GetPropertyNameFunc get
     Js::Var propertyNameNumericValue;
     Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
+    PropertyValueInfo::SetNoCache(info, targetObj);
+    PropertyValueInfo::DisablePrototypeCache(info, targetObj);
     Js::Var getHasResult = threadContext->ExecuteImplicitCall(hasMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
     {
         return CALL_FUNCTION(threadContext, hasMethod, Js::CallInfo(Js::CallFlags_Value, 4), targetObj, propertyName, isPropertyNameNumeric, propertyNameNumericValue);
@@ -435,20 +409,14 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::HasPropertyQuery(Js::Propert
     {
         return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
     };
-    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName));
+    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName, info));
 }
 
 BOOL CustomExternalWrapperObject::GetPropertyDescriptorTrap(Js::PropertyId propertyId, Js::PropertyDescriptor* resultDescriptor, Js::ScriptContext* requestContext)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     if (!this->EnsureInitialized(requestContext))
     {
@@ -538,13 +506,7 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
 {
     PROBE_STACK(requestContext, Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     CustomExternalWrapperObject * customObject = VarTo<CustomExternalWrapperObject>(obj);
 
@@ -627,7 +589,7 @@ BOOL CustomExternalWrapperObject::DefineOwnPropertyDescriptor(Js::RecyclableObje
     return hasProperty;
 }
 
-BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags)
+BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, Js::JavascriptString * propertyNameString, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags, Js::PropertyValueInfo* info)
 {
     auto getPropertyName = [&](Js::ScriptContext * requestContext, Js::Var * isPropertyNameNumeric, Js::Var * propertyNameNumericValue)->Js::Var
     {
@@ -642,21 +604,15 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
         newValue = Js::CrossSite::MarshalVar(this->GetScriptContext(), newValue);
         return DynamicObject::SetProperty(propertyNameString, newValue, propertyOperationFlags, nullptr);
     };
-    return SetPropertyTrap(receiver, setPropertyTrapKind, getPropertyName, newValue, requestContext, propertyOperationFlags, FALSE, fn);
+    return SetPropertyTrap(receiver, setPropertyTrapKind, getPropertyName, newValue, requestContext, propertyOperationFlags, FALSE, fn, info);
 }
 
 template <class Fn, class GetPropertyNameFunc>
-BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn)
+BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Js::Var newValue, Js::ScriptContext * requestContext, Js::PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn, Js::PropertyValueInfo* info)
 {
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     if (!this->EnsureInitialized(requestContext))
     {
@@ -680,6 +636,8 @@ BOOL CustomExternalWrapperObject::SetPropertyTrap(Js::Var receiver, SetPropertyT
     Js::Var propertyNameNumericValue;
     Js::Var propertyName = getPropertyName(requestContext, &isPropertyNameNumeric, &propertyNameNumericValue);
 
+    PropertyValueInfo::SetNoCache(info, targetObj);
+    PropertyValueInfo::DisablePrototypeCache(info, targetObj);
     if (nullptr != setMethod)
     {
         Js::Var setPropertyResult = threadContext->ExecuteImplicitCall(setMethod, Js::ImplicitCall_Accessor, [=]()->Js::Var
@@ -708,7 +666,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
     {
         return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
     };
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext, info);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -738,7 +696,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyQuery(Js::Var ori
         return GetName(requestContext, propertyRecord->GetPropertyId(), isPropertyNameNumeric, propertyNameNumericValue);
     };
 
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext, info);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -766,7 +724,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetPropertyReferenceQuery(Js
         return GetName(requestContext, propertyId, isPropertyNameNumeric, propertyNameNumericValue);
     };
 
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext, info);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingPropertyResult();
@@ -791,7 +749,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::HasItemQuery(uint32 index)
         return nullptr;
     };
 
-    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName));
+    return Js::JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyName, nullptr));
 }
 
 BOOL CustomExternalWrapperObject::HasOwnItem(uint32 index)
@@ -806,7 +764,7 @@ BOOL CustomExternalWrapperObject::HasOwnItem(uint32 index)
         return nullptr;
     };
 
-    return HasPropertyTrap(fn, getPropertyName);
+    return HasPropertyTrap(fn, getPropertyName, nullptr);
 }
 
 Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext)
@@ -827,7 +785,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemQuery(Js::Var origina
         return nullptr;
     };
 
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext, nullptr);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingItemResult();
@@ -857,7 +815,7 @@ Js::PropertyQueryFlags CustomExternalWrapperObject::GetItemReferenceQuery(Js::Va
         return nullptr;
     };
 
-    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext);
+    BOOL foundProperty = GetPropertyTrap(originalInstance, &result, fn, getPropertyName, requestContext, nullptr);
     if (!foundProperty)
     {
         *value = requestContext->GetMissingItemResult();
@@ -887,7 +845,7 @@ BOOL CustomExternalWrapperObject::SetItem(uint32 index, Js::Var value, Js::Prope
         value = Js::CrossSite::MarshalVar(this->GetScriptContext(), value);
         return DynamicObject::SetItem(index, value, flags);
     };
-    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetItemKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn);
+    BOOL trapResult = SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetItemKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn, nullptr);
     if (!trapResult)
     {
         // setting the value could be deferred and now we are on a different context from
@@ -910,13 +868,7 @@ BOOL CustomExternalWrapperObject::DeleteItem(uint32 index, Js::PropertyOperation
 BOOL CustomExternalWrapperObject::GetEnumerator(Js::JavascriptStaticEnumerator * enumerator, Js::EnumeratorFlags flags, Js::ScriptContext* requestContext, Js::EnumeratorCache * enumeratorCache)
 {
     if (!this->VerifyObjectAlive()) return FALSE;
-    // Reject implicit call
     ThreadContext* threadContext = requestContext->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     if (!this->EnsureInitialized(requestContext))
     {
@@ -1046,7 +998,7 @@ BOOL CustomExternalWrapperObject::SetProperty(Js::PropertyId propertyId, Js::Var
         return DynamicObject::SetProperty(propertyId, value, flags, info);
     };
 
-    return SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn);
+    return SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn, info);
 }
 
 BOOL CustomExternalWrapperObject::SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info)
@@ -1067,7 +1019,7 @@ BOOL CustomExternalWrapperObject::SetProperty(Js::JavascriptString* propertyName
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     };
 
-    return SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn);
+    return SetPropertyTrap(this, CustomExternalWrapperObject::SetPropertyTrapKind::SetPropertyKind, getPropertyName, value, GetScriptContext(), flags, FALSE, fn, info);
 }
 
 BOOL CustomExternalWrapperObject::EnsureNoRedeclProperty(Js::PropertyId propertyId)
@@ -1080,13 +1032,7 @@ BOOL CustomExternalWrapperObject::InitProperty(PropertyId propertyId, Var value,
 {
     if (!this->VerifyObjectAlive()) return FALSE;
 
-    // Reject implicit call
     ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     // Caller does not pass requestContext. Retrieve from host scriptContext stack.
     Js::ScriptContext* requestContext =
@@ -1109,13 +1055,7 @@ BOOL CustomExternalWrapperObject::DeleteProperty(Js::PropertyId propertyId, Js::
 
     PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-    // Reject implicit call
     ThreadContext* threadContext = GetScriptContext()->GetThreadContext();
-    if (threadContext->IsDisableImplicitCall())
-    {
-        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
-        return FALSE;
-    }
 
     // Caller does not pass requestContext. Retrieve from host scriptContext stack.
     Js::ScriptContext* requestContext =
