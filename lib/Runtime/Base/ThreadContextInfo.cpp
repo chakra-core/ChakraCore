@@ -503,9 +503,9 @@ ThreadContextInfo::SetValidCallTargetInternal(
 #if DBG
         if (isSetValid
 #if ENABLE_OOP_NATIVE_CODEGEN
-			&& !JITManager::GetJITManager()->IsOOPJITEnabled()
+            && !JITManager::GetJITManager()->IsOOPJITEnabled()
 #endif
-			)
+            )
         {
             _guard_check_icall((uintptr_t)callTargetAddress);
         }
