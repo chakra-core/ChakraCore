@@ -51,13 +51,13 @@ GlobalSecurityPolicy::InitIsCFGEnabled()
 
 GlobalSecurityPolicy::GlobalSecurityPolicy()
 {
+#if defined(_CONTROL_FLOW_GUARD)
     AutoCriticalSection autocs(&s_policyCS);
     DWORD oldProtect;
 
     // Make sure this is called only once
     AssertOrFailFast(!readOnlyData.isInitialized);
 
-#if defined(_CONTROL_FLOW_GUARD)
 #if defined(CHAKRA_CORE_DOWN_COMPAT)
     if (AutoSystemInfo::Data.IsWinThresholdOrLater())
 #endif
@@ -105,9 +105,6 @@ GlobalSecurityPolicy::GlobalSecurityPolicy()
 #endif
     }
 
-
-#else
-    return false;
 #endif //_CONTROL_FLOW_GUARD
     }
 
