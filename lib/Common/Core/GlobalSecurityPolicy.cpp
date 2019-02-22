@@ -5,6 +5,8 @@
 
 #include "CommonCorePch.h"
 
+#ifdef _WIN32
+
 #include <VersionHelpers.h>
 
 
@@ -153,3 +155,4 @@ DECLSPEC_GUARDNOCF GlobalSecurityPolicy::SetProcessValidCallTargets(HANDLE hProc
     return GlobalSecurityPolicy::readOnlyData.pfnSetProcessValidCallTargets(hProcess, virtualAddress, regionSize, numberOfOffsets, offsetInformation);
 }
 #endif //_CONTROL_FLOW_GUARD
+#endif // _WIN32

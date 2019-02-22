@@ -9,6 +9,7 @@
 class GlobalSecurityPolicy : private DelayLoadLibrary
 {
 public:
+#ifdef _WIN32
 #if defined(_CONTROL_FLOW_GUARD)
     typedef BOOL FNCGetMitigationPolicyForProcess(HANDLE, PROCESS_MITIGATION_POLICY, PVOID, SIZE_T);
     typedef FNCGetMitigationPolicyForProcess* PFNCGetMitigationPolicyForProcess;
@@ -42,4 +43,7 @@ private:
     } readOnlyData;
 
     static bool InitIsCFGEnabled();
+#else
+    static bool IsCFGEnabled() { return false; }
+#endif
 };
