@@ -8849,18 +8849,21 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
         
         IR::Opnd *inductionVariableOpnd = IR::RegOpnd::New(sym, IRType::TyInt32, localFunc);
         IR::Opnd *tempInductionVariableOpnd = IR::RegOpnd::New(IRType::TyInt32, localFunc);
-        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll);
 
         // The induction variable is restored to a temp register before the MemOp occurs. Once the MemOp is
         // complete, the induction variable's register is set to the value of the temp register. This is done
         // in order to avoid overwriting the induction variable's value after a bailout on the MemOp.
-        IR::Instr* restoreInductionVarToTemp = IR::Instr::New(opCode, tempInductionVariableOpnd, inductionVariableOpnd, sizeOpnd, loop->GetFunc());
-        IR::Instr* restoreInductionVar = IR::Instr::New(Js::OpCode::Ld_A, inductionVariableOpnd, tempInductionVariableOpnd, loop->GetFunc());
+        IR::Instr* restoreInductionVarToTemp = IR::Instr::New(opCode, tempInductionVariableOpnd, inductionVariableOpnd, loop->GetFunc());
 
         // The IR that restores the induction variable's value is placed before the MemOp. Since this IR can
         // bailout to the loop's landing pad, placing this IR before the MemOp avoids performing the MemOp,
         // bailing out because of this IR, and then performing the effects of the loop again.
         loop->landingPad->InsertInstrBefore(restoreInductionVarToTemp, loop->memOpInfo->instr);
+
+        // The amount to be added or subtraced (depends on opCode) to the induction vairable after the MemOp.
+        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll, restoreInductionVarToTemp);
+        restoreInductionVarToTemp->SetSrc2(sizeOpnd);
+        IR::Instr* restoreInductionVar = IR::Instr::New(Js::OpCode::Ld_A, inductionVariableOpnd, tempInductionVariableOpnd, loop->GetFunc());
 
         // If restoring an induction variable results in an overflow, bailout to the loop's landing pad.
         restoreInductionVarToTemp->ConvertToBailOutInstr(loop->bailOutInfo, IR::BailOutOnOverflow);

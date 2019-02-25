@@ -46,4 +46,18 @@
       <files>infinite.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>MemOp.js</files>
+      <compile-flags>-off:simplejit -mic:1 -bgjit-</compile-flags>
+      <baseline>MemOp.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>MemOp.js</files>
+      <compile-flags></compile-flags>
+      <baseline>MemOp.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
