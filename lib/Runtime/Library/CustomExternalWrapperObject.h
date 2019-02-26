@@ -61,12 +61,14 @@ namespace Js
         };
 
         CustomExternalWrapperObject(CustomExternalWrapperType * type, void *data, uint inlineSlotSize);
+        CustomExternalWrapperObject(CustomExternalWrapperObject* instance, bool deepCopy);
 
         BOOL IsObjectAlive();
         BOOL VerifyObjectAlive();
 
         static CustomExternalWrapperObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, JsGetterSetterInterceptor ** getterSetterInterceptor, RecyclableObject * prototype, ScriptContext *scriptContext);
-        static CustomExternalWrapperObject * Clone(CustomExternalWrapperObject * source, ScriptContext * scriptContext);
+
+        virtual CustomExternalWrapperObject* Copy(bool deepCopy) override;
 
         static BOOL GetOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propertyId, ScriptContext* requestContext, PropertyDescriptor* propertyDescriptor);
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject * obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* requestContext);

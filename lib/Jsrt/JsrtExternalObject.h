@@ -60,11 +60,14 @@ protected:
 
 public:
     JsrtExternalObject(JsrtExternalType * type, void *data, uint inlineSlotSize);
+    JsrtExternalObject(JsrtExternalObject* instance, bool deepCopy);
 
 #ifdef _CHAKRACOREBUILD
     static JsrtExternalObject * Create(void *data, uint inlineSlotSize, JsTraceCallback traceCallback, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext, JsrtExternalType * type);
 #endif
     static JsrtExternalObject * Create(void *data, uint inlineSlotSize, JsFinalizeCallback finalizeCallback, Js::RecyclableObject * prototype, Js::ScriptContext *scriptContext, JsrtExternalType * type);
+
+    virtual JsrtExternalObject* Copy(bool deepCopy) override;
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 

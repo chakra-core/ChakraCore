@@ -2723,9 +2723,9 @@ CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (Js::VarIs<Js::JavascriptProxy>(object))
+        while (Js::VarIs<Js::JavascriptProxy>(object))
         {
-            object = Js::VarTo<Js::JavascriptProxy>(object);
+            object = Js::UnsafeVarTo<Js::JavascriptProxy>(object);
         }
         *value = (Js::VarIs<JsrtExternalObject>(object)
 #ifdef _CHAKRACOREBUILD
@@ -2743,18 +2743,18 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (Js::VarIs<Js::JavascriptProxy>(object))
+        while (Js::VarIs<Js::JavascriptProxy>(object))
         {
-            object = Js::VarTo<Js::JavascriptProxy>(object)->GetTarget();
+            object = Js::UnsafeVarTo<Js::JavascriptProxy>(object)->GetTarget();
         }
         if (Js::VarIs<JsrtExternalObject>(object))
         {
-            *data = Js::VarTo<JsrtExternalObject>(object)->GetSlotData();
+            *data = Js::UnsafeVarTo<JsrtExternalObject>(object)->GetSlotData();
         }
 #ifdef _CHAKRACOREBUILD
         else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
         {
-            *data = Js::VarTo<Js::CustomExternalWrapperObject>(object)->GetSlotData();
+            *data = Js::UnsafeVarTo<Js::CustomExternalWrapperObject>(object)->GetSlotData();
         }
 #endif
         else
@@ -2772,18 +2772,18 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
 
     BEGIN_JSRT_NO_EXCEPTION
     {
-        if (Js::VarIs<Js::JavascriptProxy>(object))
+        while (Js::VarIs<Js::JavascriptProxy>(object))
         {
-            object = Js::VarTo<Js::JavascriptProxy>(object)->GetTarget();
+            object = Js::UnsafeVarTo<Js::JavascriptProxy>(object)->GetTarget();
         }
         if (Js::VarIs<JsrtExternalObject>(object))
         {
-            Js::VarTo<JsrtExternalObject>(object)->SetSlotData(data);
+            Js::UnsafeVarTo<JsrtExternalObject>(object)->SetSlotData(data);
         }
 #ifdef _CHAKRACOREBUILD
         else if (Js::VarIs<Js::CustomExternalWrapperObject>(object))
         {
-            Js::VarTo<Js::CustomExternalWrapperObject>(object)->SetSlotData(data);
+            Js::UnsafeVarTo<Js::CustomExternalWrapperObject>(object)->SetSlotData(data);
         }
 #endif
         else

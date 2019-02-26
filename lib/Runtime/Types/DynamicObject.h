@@ -172,7 +172,7 @@ namespace Js
 #endif
 
     private:
-        bool IsCompatibleForCopy(DynamicObject* from, bool ignoreSideEffects) const;
+        bool IsCompatibleForCopy(DynamicObject* from) const;
 
         bool IsObjectHeaderInlinedTypeHandlerUnchecked() const;
     public:
@@ -232,7 +232,7 @@ namespace Js
         void InvalidateHasOnlyWritableDataPropertiesInPrototypeChainCacheIfPrototype();
         void ResetObject(DynamicType* type, BOOL keepProperties);
 
-        bool TryCopy(DynamicObject* from, bool ignoreSideEffects = false);
+        bool TryCopy(DynamicObject* from);
 
         virtual void SetIsPrototype();
 
@@ -334,7 +334,7 @@ namespace Js
 
         void SetObjectArray(ArrayObject* objectArray);
 
-        DynamicObject * Copy(bool deepCopy);
+        virtual DynamicObject* Copy(bool deepCopy);
     protected:
         BOOL GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext, EnumeratorCache * enumeratorCache);
 
@@ -350,6 +350,7 @@ namespace Js
         static DynamicObject * BoxStackInstance(DynamicObject * instance, bool deepCopy);
 
     private:
+
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
 
