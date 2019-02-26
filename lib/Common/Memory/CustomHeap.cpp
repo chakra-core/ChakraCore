@@ -288,7 +288,7 @@ BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadWrite(Allo
 {
     DWORD protectFlags = 0;
 
-    if (AutoSystemInfo::Data.IsCFGEnabled())
+    if (GlobalSecurityPolicy::IsCFGEnabled())
     {
         protectFlags = PAGE_EXECUTE_RW_TARGETS_NO_UPDATE;
     }
@@ -303,7 +303,7 @@ template<typename TAlloc, typename TPreReservedAlloc>
 BOOL Heap<TAlloc, TPreReservedAlloc>::ProtectAllocationWithExecuteReadOnly(__in Allocation *allocation, __in_opt char* addressInPage)
 {
     DWORD protectFlags = 0;
-    if (AutoSystemInfo::Data.IsCFGEnabled())
+    if (GlobalSecurityPolicy::IsCFGEnabled())
     {
         protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
     }
@@ -417,7 +417,7 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::AllocLargeObject(size_t bytes, usho
         if (this->processHandle == GetCurrentProcess())
         {
             DWORD protectFlags = 0;
-            if (AutoSystemInfo::Data.IsCFGEnabled())
+            if (GlobalSecurityPolicy::IsCFGEnabled())
             {
                 protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
             }
@@ -513,7 +513,7 @@ DWORD Heap<TAlloc, TPreReservedAlloc>::EnsureAllocationWriteable(Allocation* all
 template<typename TAlloc, typename TPreReservedAlloc>
 DWORD Heap<TAlloc, TPreReservedAlloc>::EnsureAllocationExecuteWriteable(Allocation* allocation)
 {
-    if (AutoSystemInfo::Data.IsCFGEnabled())
+    if (GlobalSecurityPolicy::IsCFGEnabled())
     {
         return EnsureAllocationReadWrite<PAGE_EXECUTE_RW_TARGETS_NO_UPDATE>(allocation);
     }
@@ -685,7 +685,7 @@ Page* Heap<TAlloc, TPreReservedAlloc>::AllocNewPage(BucketId bucket, bool canAll
 
     DWORD protectFlags = 0;
 
-    if (AutoSystemInfo::Data.IsCFGEnabled())
+    if (GlobalSecurityPolicy::IsCFGEnabled())
     {
         protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
     }
@@ -885,7 +885,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::FreeAllocation(Allocation* object)
 
         DWORD protectFlags = 0;
 
-        if (AutoSystemInfo::Data.IsCFGEnabled())
+        if (GlobalSecurityPolicy::IsCFGEnabled())
         {
             protectFlags = PAGE_EXECUTE_RO_TARGETS_NO_UPDATE;
         }

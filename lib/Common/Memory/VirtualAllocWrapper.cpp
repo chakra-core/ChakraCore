@@ -38,12 +38,12 @@ LPVOID VirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageCount, DWORD
 
 #if defined(_CONTROL_FLOW_GUARD)
     DWORD oldProtectFlags = 0;
-    if (AutoSystemInfo::Data.IsCFGEnabled() && isCustomHeapAllocation)
+    if (GlobalSecurityPolicy::IsCFGEnabled() && isCustomHeapAllocation)
     {
         //We do the allocation in two steps - CFG Bitmap in kernel will be created only on allocation with EXECUTE flag.
         //We again call VirtualProtect to set to the requested protectFlags.
         DWORD allocProtectFlags = 0;
-        if (AutoSystemInfo::Data.IsCFGEnabled())
+        if (GlobalSecurityPolicy::IsCFGEnabled())
         {
             allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
         }
@@ -245,7 +245,7 @@ LPVOID PreReservedVirtualAllocWrapper::EnsurePreReservedRegionInternal()
 #endif // _M_IX86
 #endif
 
-    if (AutoSystemInfo::Data.IsCFGEnabled() && supportPreReservedRegion)
+    if (GlobalSecurityPolicy::IsCFGEnabled() && supportPreReservedRegion)
     {
         startAddress = VirtualAlloc(NULL, bytes, MEM_RESERVE, PAGE_READWRITE);
         PreReservedHeapTrace(_u("Reserving PreReservedSegment For the first time(CFG Enabled). Address: 0x%p\n"), preReservedStartAddress);
@@ -359,19 +359,12 @@ LPVOID PreReservedVirtualAllocWrapper::AllocPages(LPVOID lpAddress, size_t pageC
 #endif
 
 #if defined(_CONTROL_FLOW_GUARD)
-            if (AutoSystemInfo::Data.IsCFGEnabled())
+            if (GlobalSecurityPolicy::IsCFGEnabled())
             {
                 DWORD oldProtect = 0;
                 DWORD allocProtectFlags = 0;
 
-                if (AutoSystemInfo::Data.IsCFGEnabled())
-                {
-                    allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
-                }
-                else
-                {
-                    allocProtectFlags = PAGE_EXECUTE_READWRITE;
-                }
+                allocProtectFlags = PAGE_EXECUTE_RW_TARGETS_INVALID;
 
                 allocatedAddress = (char *)VirtualAlloc(addressToReserve, dwSize, MEM_COMMIT, allocProtectFlags);
                 if (allocatedAddress != nullptr)

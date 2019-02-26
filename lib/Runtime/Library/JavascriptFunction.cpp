@@ -2909,7 +2909,7 @@ LABEL1:
     PropertyQueryFlags JavascriptFunction::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
-        PropertyRecord const* propertyRecord;
+        PropertyRecord const* propertyRecord = nullptr;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
         result = JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)) ? TRUE : FALSE;
@@ -2945,6 +2945,7 @@ LABEL1:
             return true;
         }
 
+        *result = false;
         return false;
     }
 
