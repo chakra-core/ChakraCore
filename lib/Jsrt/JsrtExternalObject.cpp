@@ -163,18 +163,19 @@ JsrtExternalObject* JsrtExternalObject::Copy(bool deepCopy)
     JsrtExternalType* type = this->GetExternalType();
     int inlineSlotSize = this->GetInlineSlotSize();
 
+#ifdef _CHAKRACOREBUILD
     if (type->GetJsTraceCallback() != nullptr)
     {
         return RecyclerNewTrackedPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
     }
-    else if (type->GetJsFinalizeCallback() != nullptr)
+#endif
+
+    if (type->GetJsFinalizeCallback() != nullptr)
     {
         return RecyclerNewFinalizedPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
     }
-    else
-    {
-        return RecyclerNewPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
-    }
+
+    return RecyclerNewPlus(recycler, inlineSlotSize, JsrtExternalObject, this, deepCopy);
 }
 
 void JsrtExternalObject::Mark(Recycler * recycler) 
