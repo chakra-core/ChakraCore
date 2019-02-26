@@ -122,7 +122,9 @@
     JsCreateWeakReference
     JsDetachArrayBuffer
     JsGetArrayBufferExtraInfo
+    JsExternalizeArrayBuffer
     JsGetAndClearExceptionWithMetadata
+    JsGetArrayBufferFreeFunction
     JsGetArrayEntriesFunction
     JsGetArrayForEachFunction
     JsGetArrayKeysFunction
@@ -168,5 +170,4 @@
     JsVarSerializerSetTransferableVars
     JsVarSerializerWriteRawBytes
     JsVarSerializerWriteValue
-    JsGetArrayBufferFreeFunction
 #endif

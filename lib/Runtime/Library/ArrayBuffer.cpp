@@ -637,7 +637,7 @@ namespace Js
     ArrayBufferContentForDelayedFreeBase* ArrayBuffer::CopyBufferContentForDelayedFree(RefCountedBuffer * content, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength)
     {
         Assert(content != nullptr);
-        FreeFn* freeFn = nullptr;
+        FreeFn freeFn = nullptr;
 #if ENABLE_FAST_ARRAYBUFFER
         if (IsValidVirtualBufferLength(bufferLength))
         {
@@ -831,7 +831,7 @@ namespace Js
         return result;
     }
 
-    ArrayBuffer::FreeFn* JavascriptArrayBuffer::GetArrayBufferFreeFn()
+    ArrayBuffer::FreeFn JavascriptArrayBuffer::GetArrayBufferFreeFn()
     {
 #if ENABLE_FAST_ARRAYBUFFER
         if (IsValidVirtualBufferLength(bufferLength))
@@ -847,7 +847,7 @@ namespace Js
 
     ArrayBufferDetachedStateBase* JavascriptArrayBuffer::CreateDetachedState(RefCountedBuffer * content, uint32 bufferLength)
     {
-        FreeFn* freeFn = nullptr;
+        FreeFn freeFn = nullptr;
         ArrayBufferAllocationType allocationType;
 #if ENABLE_FAST_ARRAYBUFFER
         if (IsValidVirtualBufferLength(bufferLength))
@@ -914,14 +914,14 @@ namespace Js
         if (refCount == 0)
         {
             BYTE * buffer = content->GetBuffer();
-            if (buffer)
+            if (buffer && !this->externalized)
             {
                 // Recycler may not be available at Dispose. We need to
                 // free the memory and report that it has been freed at the same
                 // time. Otherwise, AllocationPolicyManager is unable to provide correct feedback
 #if ENABLE_FAST_ARRAYBUFFER
         //AsmJS Virtual Free
-                if (buffer && IsValidVirtualBufferLength(this->bufferLength))
+                if (IsValidVirtualBufferLength(this->bufferLength))
                 {
                     FreeMemAlloc(buffer);
                 }

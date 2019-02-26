@@ -138,7 +138,8 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtVarDeserializerFreePtr)(JsVarDeserializerHandle deserializerHandle);
 
     typedef JsErrorCode(WINAPI *JsrtDetachArrayBufferPtr)(JsValueRef buffer);
-    typedef JsErrorCode(WINAPI* JsrtGetArrayBufferFreeFunction)(JsValueRef buffer, ArrayBufferFreeFn** freeFn);
+    typedef JsErrorCode(WINAPI* JsrtGetArrayBufferFreeFunction)(JsValueRef buffer, ArrayBufferFreeFn* freeFn);
+    typedef JsErrorCode(WINAPI* JsrtExternalizeArrayBufferPtr)(JsValueRef buffer);
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
     JsrtCreateContextPtr pfJsrtCreateContext;
@@ -270,6 +271,7 @@ struct JsAPIHooks
 
     JsrtDetachArrayBufferPtr pfJsrtDetachArrayBuffer;
     JsrtGetArrayBufferFreeFunction pfJsrtGetArrayBufferFreeFunction;
+    JsrtExternalizeArrayBufferPtr pfJsrtExternalizeArrayBuffer;
 #ifdef _WIN32
     JsrtConnectJITProcess pfJsrtConnectJITProcess;
 #endif
@@ -512,7 +514,8 @@ public:
     static JsErrorCode WINAPI JsConnectJITProcess(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId) { return HOOK_JS_API(ConnectJITProcess(processHandle, serverSecurityDescriptor, connectionId)); }
 #endif
 
-    static JsErrorCode WINAPI JsGetArrayBufferFreeFunction(JsValueRef buffer, ArrayBufferFreeFn** freeFn) { return HOOK_JS_API(GetArrayBufferFreeFunction(buffer, freeFn)); }
+    static JsErrorCode WINAPI JsGetArrayBufferFreeFunction(JsValueRef buffer, ArrayBufferFreeFn* freeFn) { return HOOK_JS_API(GetArrayBufferFreeFunction(buffer, freeFn)); }
+    static JsErrorCode WINAPI JsExternalizeArrayBuffer(JsValueRef buffer) { return HOOK_JS_API(ExternalizeArrayBuffer(buffer)); }
 };
 
 class AutoRestoreContext

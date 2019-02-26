@@ -93,10 +93,10 @@ namespace Js
     template <typename FreeFN>
     class ArrayBufferContentForDelayedFree : public ArrayBufferContentForDelayedFreeBase
     {
-        FreeFN* freeFunction;
+        FreeFN freeFunction;
 
     public:
-        ArrayBufferContentForDelayedFree(RefCountedBuffer *content, uint32 len, Recycler *r, FreeFN * freeFunction)
+        ArrayBufferContentForDelayedFree(RefCountedBuffer *content, uint32 len, Recycler *r, FreeFN freeFunction)
             : ArrayBufferContentForDelayedFreeBase( content, len, r), freeFunction(freeFunction)
         {}
 
