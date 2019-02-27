@@ -84,6 +84,11 @@
   </test>
   <test>
     <default>
+      <files>ObjLitGetSet3.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ObjLitGetSetParseOnly.js</files>
       <baseline>ObjLitGetSetParseOnly.baseline</baseline>
     </default>
