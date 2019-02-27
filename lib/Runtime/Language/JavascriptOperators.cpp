@@ -1237,16 +1237,6 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
-#ifdef _CHAKRACOREBUILD
-        else
-        {
-            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
-            if (wrapper)
-            {
-                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
-            }
-        }
-#endif
 
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
     }
@@ -1262,16 +1252,6 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
         }
-#ifdef _CHAKRACOREBUILD
-        else
-        {
-            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
-            if (wrapper)
-            {
-                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
-            }
-        }
-#endif
 
         return JavascriptObject::CreateOwnSymbolPropertiesHelper(object, scriptContext);
     }
@@ -1286,16 +1266,6 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
-#ifdef _CHAKRACOREBUILD
-        else
-        {
-            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(instance);
-            if (wrapper)
-            {
-                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::KeysKind, scriptContext);
-            }
-        }
-#endif
 
         return JavascriptObject::CreateOwnStringSymbolPropertiesHelper(object, scriptContext);
     }
@@ -1331,43 +1301,6 @@ CommonNumber:
             }
             return proxyResultToReturn;
         }
-#ifdef _CHAKRACOREBUILD
-        else
-        {
-            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
-            if (wrapper)
-            {
-                JavascriptArray* wrapperResult = wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::GetOwnEnumerablePropertyNamesKind, scriptContext);
-                JavascriptArray* wrapperResultToReturn = scriptContext->GetLibrary()->CreateArray(0);
-                if (wrapperResult != nullptr)
-                {
-                    // filter enumerable keys
-                    uint32 resultLength = wrapperResult->GetLength();
-                    Var element;
-                    const Js::PropertyRecord *propertyRecord = nullptr;
-                    uint32 index = 0;
-                    for (uint32 i = 0; i < resultLength; i++)
-                    {
-                        element = wrapperResult->DirectGetItem(i);
-
-                        Assert(!VarIs<JavascriptSymbol>(element));
-
-                        PropertyDescriptor propertyDescriptor;
-                        JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord, nullptr);
-                        if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
-                        {
-                            if (propertyDescriptor.IsEnumerable())
-                            {
-                                wrapperResultToReturn->DirectSetItemAt(index++, CrossSite::MarshalVar(scriptContext, element));
-                            }
-                        }
-                    }
-                }
-
-                return wrapperResultToReturn;
-            }
-        }
-#endif
 
         return JavascriptObject::CreateOwnEnumerableStringPropertiesHelper(object, scriptContext);
     }
@@ -1379,16 +1312,6 @@ CommonNumber:
         {
             return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
-#ifdef _CHAKRACOREBUILD
-        else
-        {
-            CustomExternalWrapperObject * wrapper = JavascriptOperators::TryFromVar<CustomExternalWrapperObject>(object);
-            if (wrapper)
-            {
-                return wrapper->PropertyKeysTrap(CustomExternalWrapperObject::KeysTrapKind::EnumerableKeysKind, scriptContext);
-            }
-        }
-#endif
 
         return JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(object, scriptContext);
     }

@@ -113,8 +113,6 @@ namespace Js
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, GetPropertyNameFunc getPropertyName, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags, BOOL skipPrototypeCheck, Fn fn);
         BOOL SetPropertyTrap(Var receiver, SetPropertyTrapKind setPropertyTrapKind, JavascriptString * propertyString, Var newValue, ScriptContext * requestContext, PropertyOperationFlags propertyOperationFlags);
 
-        JavascriptArray * PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext * requestContext);
-
         void * GetSlotData() const;
         void SetSlotData(void * data);
         int GetInlineSlotSize() const;
