@@ -1861,6 +1861,11 @@ namespace Js
 
     BOOL PathTypeHandlerBase::SetAttributesAtIndex(DynamicObject* instance, PropertyId propertyId, PropertyIndex index, PropertyAttributes attributes)
     {
+        if (attributes & PropertyDeleted)
+        {
+            DeleteProperty(instance, propertyId, PropertyOperation_None);
+            return true;
+        }
         return SetAttributesHelper(instance, propertyId, index, GetAttributeArray(), PropertyAttributesToObjectSlotAttributes(attributes));
     }
 

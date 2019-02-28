@@ -171,8 +171,7 @@
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
-            "length": "number 2",
-            "name": "string "
+            "length": "number 2"
           }
         }
       }
@@ -321,8 +320,7 @@
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
-            "length": "number 1",
-            "name": "string "
+            "length": "number 1"
           }
         }
       }
@@ -460,8 +458,7 @@
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
-            "length": "number 1",
-            "name": "string "
+            "length": "number 1"
           },
           "resolvedOptions": {
             "#__proto__": {
