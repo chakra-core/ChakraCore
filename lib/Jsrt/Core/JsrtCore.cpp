@@ -498,6 +498,25 @@ JsSetArrayBufferExtraInfo(
 }
 
 CHAKRA_API
+JsExternalizeArrayBuffer(
+    _In_ JsValueRef arrayBufferVar)
+{
+    VALIDATE_JSREF(arrayBufferVar);
+    return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+
+        Js::ArrayBuffer* arrayBuffer = Js::JavascriptOperators::TryFromVar<Js::ArrayBuffer>(arrayBufferVar);
+        if (!arrayBuffer)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        arrayBuffer->Externalize();
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
 JsDetachArrayBuffer(
     _In_ JsValueRef arrayBuffer)
 {
@@ -1419,7 +1438,7 @@ JsConnectJITProcess(_In_ HANDLE processHandle, _In_opt_ void* serverSecurityDesc
 CHAKRA_API
 JsGetArrayBufferFreeFunction(
     _In_ JsValueRef arrayBuffer,
-    _Out_ ArrayBufferFreeFn** freeFn)
+    _Out_ ArrayBufferFreeFn* freeFn)
 {
   VALIDATE_JSREF(arrayBuffer);
   PARAM_NOT_NULL(freeFn);
@@ -1430,7 +1449,7 @@ JsGetArrayBufferFreeFunction(
           return JsErrorInvalidArgument;
         }
 
-        *freeFn = (ArrayBufferFreeFn*)Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->GetArrayBufferFreeFn();
+        *freeFn = Js::VarTo<Js::ArrayBuffer>(arrayBuffer)->GetArrayBufferFreeFn();
         return JsNoError;
       });
 }

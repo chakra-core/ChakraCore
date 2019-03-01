@@ -44,11 +44,16 @@
 #define INTL_LIBRARY_TEXT ""
 #endif
 
+struct ArrayBufferTransferInfo {
+    byte* buffer;
+    uint length;
+    ArrayBufferFreeFn freeFn;
+};
 struct SerializerBlob
 {
     void *data;
     size_t dataLength;
-    std::vector< std::pair<void *, uint32> > transferableArrays;
+    std::vector<ArrayBufferTransferInfo> transferableArrays;
 };
 
 MessageQueue* WScriptJsrt::messageQueue = nullptr;
@@ -371,13 +376,11 @@ JsValueRef __stdcall WScriptJsrt::SerializeObject(JsValueRef callee, bool isCons
         for (int i = 0; i < transferVarsCount; i++)
         {
             JsValueRef arrayBuffer = transferVarsArray[i];
-            BYTE *buffer = nullptr;
-            uint32 bufferLength = 0;
-            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
-            ArrayBufferFreeFn* freeFn = nullptr;
-            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferFreeFunction(arrayBuffer, &freeFn));
-
-            blob->transferableArrays.push_back(std::make_pair((void*)buffer, bufferLength));
+            ArrayBufferTransferInfo bufferInfo;
+            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &bufferInfo.buffer, &bufferInfo.length));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsExternalizeArrayBuffer(arrayBuffer));
+            IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferFreeFunction(arrayBuffer, &bufferInfo.freeFn));
+            blob->transferableArrays.push_back(bufferInfo);
             IfJsrtErrorSetGo(ChakraRTInterface::JsDetachArrayBuffer(arrayBuffer));
         }
 
@@ -412,6 +415,25 @@ JsValueRef CHAKRA_CALLBACK GetWasmModuleFromId(void * state, uint32_t transfer_i
     return nullptr;
 }
 
+struct BufferFreeFunctionState {
+    ArrayBufferFreeFn freeFn;
+    void* buffer;
+};
+
+void CHAKRA_CALLBACK BufferFreeFunction(void * state)
+{
+    BufferFreeFunctionState* bufferState = (BufferFreeFunctionState*)state;
+    if (!bufferState)
+    {
+        return;
+    }
+    if (bufferState->freeFn)
+    {
+        bufferState->freeFn(bufferState->buffer);
+    }
+    delete bufferState;
+}
+
 JsValueRef __stdcall WScriptJsrt::Deserialize(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     JsErrorCode errorCode = JsNoError;
@@ -442,7 +464,10 @@ JsValueRef __stdcall WScriptJsrt::Deserialize(JsValueRef callee, bool isConstruc
             for (size_t i = 0; i < arraySize; ++i)
             {
                 JsValueRef result = nullptr;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer(blob->transferableArrays[i].first, blob->transferableArrays[i].second, nullptr, nullptr, &result));
+                BufferFreeFunctionState* bufferFreeState = new BufferFreeFunctionState();
+                bufferFreeState->buffer = blob->transferableArrays[i].buffer;
+                bufferFreeState->freeFn = blob->transferableArrays[i].freeFn;
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer(blob->transferableArrays[i].buffer, blob->transferableArrays[i].length, BufferFreeFunction, bufferFreeState, &result));
                 transferables[i] = result;
             }
 

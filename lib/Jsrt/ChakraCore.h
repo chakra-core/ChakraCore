@@ -1887,7 +1887,7 @@ CHAKRA_API
 JsDetachArrayBuffer(
     _In_ JsValueRef arrayBuffer);
 
-typedef void __cdecl ArrayBufferFreeFn(void* ptr);
+typedef void(__cdecl *ArrayBufferFreeFn)(void*);
 
 /// <summary>
 ///     Returns the function which free the underlying buffer of ArrayBuffer
@@ -1901,8 +1901,18 @@ typedef void __cdecl ArrayBufferFreeFn(void* ptr);
 CHAKRA_API
 JsGetArrayBufferFreeFunction(
     _In_ JsValueRef arrayBuffer,
-    _Out_ ArrayBufferFreeFn** freeFn);
+    _Out_ ArrayBufferFreeFn* freeFn);
 
+/// <summary>
+///     Take ownership of current ArrayBuffer
+/// </summary>
+/// <param name="arrayBuffer">An ArrayBuffer to take ownership of</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsExternalizeArrayBuffer(
+    _In_ JsValueRef arrayBuffer);
 
 #ifdef _WIN32
 #include "ChakraCoreWindows.h"
