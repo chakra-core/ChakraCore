@@ -4,8 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 
 let desiredLength = 10 * 1000 * 1000;
-//desiredLength -= 1;
-const json = `"${'a'.repeat(desiredLength - 3)}",`; // "aaa...aaa",
-print(json.length);
-JSON.parse(json);
-print('finished');
+let threw = false;
+const json = `"${'a'.repeat(desiredLength - 3)}",`;
+try {
+    JSON.parse(json);
+} catch(e) {
+    threw = true;
+}
+print(threw ? "Pass" : "Fail");

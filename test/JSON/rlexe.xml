@@ -105,7 +105,6 @@
   <test>
     <default>
       <files>jsonerrorbuffer.js</files>
-      <baseline>jsonerrorbuffer.baseline</baseline>
     </default>
   </test>
 </regress-exe>
