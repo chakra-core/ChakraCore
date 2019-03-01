@@ -1,0 +1,3 @@
+10000000
+SyntaxError: JSON.parse Error: Unexpected input at position:10000000
+   at Global code (E:\test\json.js:5:1)
