@@ -102,4 +102,9 @@
       <files>stackoverflow.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>jsonerrorbuffer.js</files>
+    </default>
+  </test>
 </regress-exe>
