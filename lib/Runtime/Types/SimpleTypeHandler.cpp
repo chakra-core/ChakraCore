@@ -677,7 +677,15 @@ namespace Js
             CompileAssert(_countof(descriptors) == size);
             if (size > 1)
             {
-                SetAttribute(instance, index, PropertyDeleted);
+                if (GetIsLocked())
+                {
+                    // Prevent conversion to path type and then dictionary. Remove this when path types support deleted properties.
+                    this->ConvertToNonSharedSimpleType(instance)->SetAttribute(instance, index, PropertyDeleted);
+                }
+                else
+                {
+                    SetAttribute(instance, index, PropertyDeleted);
+                }
             }
             else
             {
@@ -999,6 +1007,10 @@ namespace Js
                         typeHandler = this->ConvertToNonSharedSimpleType(instance);
                     }
                     Assert(!oldType->GetIsLocked() || instance->GetDynamicType() != oldType);
+                }
+                if (descriptors[index].Attributes & PropertyDeleted)
+                {
+                    instance->GetScriptContext()->InvalidateProtoCaches(propertyId);
                 }
                 typeHandler->descriptors[index].Attributes = attributes;
                 if (attributes & PropertyEnumerable)

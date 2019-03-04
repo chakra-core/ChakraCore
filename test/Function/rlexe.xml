@@ -228,6 +228,11 @@
   </test>
   <test>
     <default>
+      <files>deleteProperty.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>newFunction.js</files>
       <baseline>newFunction.baseline</baseline>
     </default>
