@@ -692,7 +692,7 @@ using namespace Js;
         if(oldInlineSlotCapacity == newInlineSlotCapacity)
         {
             const int oldAuxSlotCapacity = oldTypeHandler->GetSlotCapacity() - oldInlineSlotCapacity;
-            Assert(oldAuxSlotCapacity < newAuxSlotCapacity);
+            AssertOrFailFast(oldAuxSlotCapacity < newAuxSlotCapacity);
             if(oldAuxSlotCapacity > 0)
             {
                 // Copy aux slots to the new array
