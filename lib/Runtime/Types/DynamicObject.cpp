@@ -809,6 +809,16 @@ namespace Js
             mutationBpValue = nullptr;
         }
 
+        Var embedderData = nullptr;
+        if (this->GetInternalProperty(this, InternalPropertyIds::EmbedderData,  &embedderData, nullptr, this->GetScriptContext()))
+        {
+          this->SetInternalProperty(InternalPropertyIds::EmbedderData, nullptr, PropertyOperation_Force, nullptr);
+        }
+        else
+        {
+          embedderData = nullptr;
+        }
+
         // If value of TypeOfPrototypeObjectDictionary was set undefined above, reset it to nullptr so we don't type cast it wrongly to TypeTransitionMap* or we don't marshal the non-Var dictionary below
         Var typeTransitionMap = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::TypeOfPrototypeObjectDictionary, &typeTransitionMap, nullptr, this->GetScriptContext()))
@@ -831,6 +841,10 @@ namespace Js
             if (mutationBpValue)
             {
                 this->SetInternalProperty(InternalPropertyIds::MutationBp, mutationBpValue, PropertyOperation_Force, nullptr);
+            }
+            if (embedderData)
+            {
+              this->SetInternalProperty(InternalPropertyIds::EmbedderData, embedderData, PropertyOperation_Force, nullptr);
             }
         }
     }

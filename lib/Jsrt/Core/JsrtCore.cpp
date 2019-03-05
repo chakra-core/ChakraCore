@@ -497,6 +497,63 @@ JsSetArrayBufferExtraInfo(
     END_JSRT_NO_EXCEPTION
 }
 
+
+CHAKRA_API
+JsGetEmbedderData(
+    _In_ JsValueRef instance,
+    _Out_ JsValueRef* embedderData)
+{
+   VALIDATE_JSREF(instance);
+   PARAM_NOT_NULL(embedderData);
+   return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
+        Js::RecyclableObject* object = Js::JavascriptOperators::TryFromVar<Js::RecyclableObject>(instance);
+        if (!object)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        // Right now we know that we support these many. Lets find out if
+        // there are more.
+        Assert(Js::TypedArrayBase::Is(object->GetTypeId()) ||
+               object->GetTypeId() == Js::TypeIds_ArrayBuffer ||
+               object->GetTypeId() == Js::TypeIds_DataView ||
+               object->GetTypeId() == Js::TypeIds_SharedArrayBuffer);
+
+        if (!object->GetInternalProperty(object, Js::InternalPropertyIds::EmbedderData, embedderData, nullptr, scriptContext))
+        {
+            *embedderData = nullptr;
+        }
+        return JsNoError;
+    });
+}
+
+CHAKRA_API
+JsSetEmbedderData(_In_ JsValueRef instance, _In_ JsValueRef embedderData)
+{
+   VALIDATE_JSREF(instance);
+   return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext* scriptContext) -> JsErrorCode {
+        Js::RecyclableObject* object = Js::JavascriptOperators::TryFromVar<Js::RecyclableObject>(instance);
+        if (!object)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        // Right now we know that we support these many. Lets find out if
+        // there are more.
+        Assert(Js::TypedArrayBase::Is(object->GetTypeId()) ||
+               object->GetTypeId() == Js::TypeIds_ArrayBuffer ||
+               object->GetTypeId() == Js::TypeIds_DataView ||
+               object->GetTypeId() == Js::TypeIds_SharedArrayBuffer);
+
+        if (!object->SetInternalProperty(Js::InternalPropertyIds::EmbedderData, embedderData, Js::PropertyOperationFlags::PropertyOperation_None, nullptr))
+        {
+           return JsErrorInvalidArgument;
+        }
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API
 JsExternalizeArrayBuffer(
     _In_ JsValueRef arrayBufferVar)
