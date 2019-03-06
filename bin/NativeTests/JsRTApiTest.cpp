@@ -252,6 +252,44 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::DeleteObjectIndexedPropertyBug);
     }
 
+    void HasOwnItemTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef object;
+        REQUIRE(JsRunScript(_u("var obj = {a: [1,2], \"1\": 111}; obj.__proto__[3] = 333; obj;"), JS_SOURCE_CONTEXT_NONE, _u(""), &object) == JsNoError);
+
+        JsPropertyIdRef idRef = JS_INVALID_REFERENCE;
+        JsValueRef result = JS_INVALID_REFERENCE;
+        // delete property "a" triggers PathTypeHandler -> SimpleDictionaryTypeHandler
+        REQUIRE(JsGetPropertyIdFromName(_u("a"), &idRef) == JsNoError);
+        REQUIRE(JsGetProperty(object, idRef, &result) == JsNoError);
+        bool hasOwnItem = false;
+        REQUIRE(JsHasOwnItem(result, 0, &hasOwnItem) == JsNoError);
+        CHECK(hasOwnItem);
+
+        REQUIRE(JsHasOwnItem(result, 1, &hasOwnItem) == JsNoError);
+        CHECK(hasOwnItem);
+
+        REQUIRE(JsHasOwnItem(result, 2, &hasOwnItem) == JsNoError);
+        CHECK(!hasOwnItem); // It does not have item on index 2 - so we should not be able to find that.
+
+        REQUIRE(JsHasOwnItem(object, 1, &hasOwnItem) == JsNoError);
+        CHECK(hasOwnItem);
+
+        REQUIRE(JsHasOwnItem(object, 3, &hasOwnItem) == JsNoError);
+        CHECK(!hasOwnItem); // index 3 is on prototype.
+
+        bool has = false;
+        JsValueRef indexRef = JS_INVALID_REFERENCE;
+        REQUIRE(JsIntToNumber(3, &indexRef) == JsNoError);
+        REQUIRE(JsHasIndexedProperty(object, indexRef, &has) == JsNoError);
+        CHECK(has); // index 3 is prototype - so it should be able to find that.
+    }
+
+    TEST_CASE("ApiTest_HasOwnItemTest", "[ApiTest]")
+    {
+      JsRTApiTest::RunWithAttributes(JsRTApiTest::HasOwnItemTest);
+    }
+
     void CALLBACK ExternalObjectFinalizeCallback(void *data)
     {
         CHECK(data == (void *)0xdeadbeef);

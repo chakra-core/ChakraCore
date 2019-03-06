@@ -961,6 +961,25 @@ CHAKRA_API
         _Out_ bool *hasOwnProperty);
 
 /// <summary>
+///     Determines whether an object has a non-inherited property.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="object">The object that may contain the item.</param>
+/// <param name="index">The index to find.</param>
+/// <param name="hasOwnProperty">Whether the object has the non-inherited
+/// property.</param> <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code
+///     otherwise.
+/// </returns>
+CHAKRA_API
+    JsHasOwnItem(
+        _In_ JsValueRef object,
+        _In_ uint32_t index,
+        _Out_ bool* hasOwnItem);
+
+    /// <summary>
 ///     Write JS string value into char string buffer without a null terminator
 /// </summary>
 /// <remarks>

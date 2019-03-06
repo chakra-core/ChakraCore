@@ -517,6 +517,25 @@ JsExternalizeArrayBuffer(
 }
 
 CHAKRA_API
+JsHasOwnItem(_In_ JsValueRef object,
+    _In_ uint32_t index,
+    _Out_ bool* hasOwnItem)
+{
+  return ContextAPIWrapper<true>(
+      [&](Js::ScriptContext* scriptContext,
+          TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        PARAM_NOT_NULL(hasOwnItem);
+
+        *hasOwnItem = !!Js::JavascriptOperators::HasOwnItem(
+            Js::VarTo<Js::RecyclableObject>(object), index);
+
+        return JsNoError;
+      });
+}
+
+CHAKRA_API
 JsDetachArrayBuffer(
     _In_ JsValueRef arrayBuffer)
 {

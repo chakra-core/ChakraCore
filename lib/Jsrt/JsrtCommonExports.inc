@@ -135,6 +135,7 @@
     JsGetPropertyIdSymbolIterator
     JsGetWeakReferenceValue
     JsHasOwnProperty
+    JsHasOwnItem
     JsIsConstructor
     JsObjectDefineProperty
     JsObjectDefinePropertyFull
