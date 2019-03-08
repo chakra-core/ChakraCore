@@ -221,22 +221,31 @@ _Ret_notnull_ Var
 JSONStringifier::ReadValue(_In_ JavascriptString* key, _In_opt_ const PropertyRecord* propertyRecord, _In_ RecyclableObject* holder)
 {
     Var value = nullptr;
-    PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
     PropertyValueInfo info;
-    if (propertyString != nullptr)
-    {
-        PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
-        if (propertyString->TryGetPropertyFromCache<false /* ownPropertyOnly */, false /* OutputExistence */>(holder, holder, &value, this->scriptContext, &info))
-        {
-            return value;
-        }
-    }
 
     if (propertyRecord == nullptr)
     {
         key->GetPropertyRecord(&propertyRecord);
     }
-    JavascriptOperators::GetProperty(holder, propertyRecord->GetPropertyId(), &value, this->scriptContext, &info);
+
+    if (propertyRecord->IsNumeric())
+    {
+        JavascriptOperators::GetItem(holder, propertyRecord->GetNumericValue(), &value, this->scriptContext);
+    }
+    else
+    {
+        PropertyString* propertyString = JavascriptOperators::TryFromVar<PropertyString>(key);
+        if (propertyString != nullptr)
+        {
+            PropertyValueInfo::SetCacheInfo(&info, propertyString, propertyString->GetLdElemInlineCache(), false);
+            if (propertyString->TryGetPropertyFromCache<false /* ownPropertyOnly */, false /* OutputExistence */>(holder, holder, &value, this->scriptContext, &info))
+            {
+                return value;
+            }
+        }
+        JavascriptOperators::GetProperty(holder, propertyRecord->GetPropertyId(), &value, this->scriptContext, &info);
+    }
+
     return value;
 }
 

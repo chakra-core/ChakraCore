@@ -16,6 +16,11 @@
   </test>
   <test>
     <default>
+      <files>cacheassert.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>stringify-replacer.js</files>
       <baseline>stringify-replacer.baseline</baseline>
       <compile-flags>-recyclerstress</compile-flags>
