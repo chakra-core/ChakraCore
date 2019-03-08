@@ -1464,6 +1464,7 @@ private:
         uint SaveSourceNoCopy(Utf8SourceInfo* sourceInfo, int cchLength, bool isCesu8);
 
         Utf8SourceInfo* GetSource(uint sourceIndex);
+        void RemoveSource(uint sourceIndex);
 
         uint SourceCount() const { return (uint)sourceList->Count(); }
         void CleanSourceList() { CleanSourceListInternal(false); }

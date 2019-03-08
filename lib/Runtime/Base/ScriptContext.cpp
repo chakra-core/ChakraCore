@@ -2550,7 +2550,7 @@ ExitTempAllocator:
         SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)
     {
-        uint sourceIndex;
+        uint sourceIndex = Constants::InvalidSourceIndex;
         JavascriptFunction * pFunction = nullptr;
 
         ParseNodeProg * parseTree = ParseScript(parser, script, cb, pSrcInfo,
@@ -2567,7 +2567,11 @@ ExitTempAllocator:
             Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
             pse->Free();
-
+            if (sourceIndex != Constants::InvalidSourceIndex)
+            {
+                // If we registered source, we should remove it or we will register another source info
+                this->RemoveSource(sourceIndex);
+            }
             loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
             return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
                 rootDisplayName, loadScriptFlag, scriptSource);
@@ -2804,6 +2808,12 @@ ExitTempAllocator:
         Utf8SourceInfo* info = this->sourceList->Item(index)->Get();
         Assert(info != nullptr); // Should still be alive if this method is being called
         return info;
+    }
+
+    void ScriptContext::RemoveSource(uint index)
+    {
+        Assert(this->sourceList->IsItemValid(index)); // This assert should be a subset of info != null- if info was null, in the last collect, we'd have invalidated the item
+        this->sourceList->RemoveAt(index);
     }
 
     bool ScriptContext::IsItemValidInSourceList(int index)
