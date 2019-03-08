@@ -101,10 +101,6 @@ GlobalSecurityPolicy::GlobalSecurityPolicy()
         {
             RaiseFailFastException(nullptr, nullptr, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS);
         }
-
-#if defined (NTBUILD)
-        AssertOrFailFast(readOnlyData.isCFGEnabled);
-#endif
     }
 
 #endif //_CONTROL_FLOW_GUARD
