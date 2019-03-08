@@ -260,24 +260,29 @@ SwitchIRBuilder::OnCase(IR::RegOpnd * src1Opnd, IR::Opnd * src2Opnd, uint32 offs
     //
     //  For optimizing, the Load instruction corresponding to the switch instruction is profiled in the interpreter.
     //  Based on the dynamic profile data, optimization technique is decided.
-    if (m_switchIntDynProfile && isIntConst && GlobOpt::IsSwitchOptEnabledForIntTypeSpec(m_func->GetTopFunc()))
+
+    // TODO: support switch opt when breaking out of loops
+    if (!m_func->IsLoopBody() || (targetOffset < m_func->m_workItem->GetLoopHeader()->endOffset && targetOffset >= m_func->m_workItem->GetLoopHeader()->startOffset))
     {
-        CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
-        m_caseNodes->Add(caseNode);
+        if (m_switchIntDynProfile && isIntConst && GlobOpt::IsSwitchOptEnabledForIntTypeSpec(m_func->GetTopFunc()))
+        {
+            CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
+            m_caseNodes->Add(caseNode);
+            return;
+        }
+        else if (m_switchStrDynProfile && isStrConst && GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()))
+        {
+            CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
+            m_caseNodes->Add(caseNode);
+            m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStringConstLocal()->GetLength() == 1;
+            return;
+        }
     }
-    else if (m_switchStrDynProfile && isStrConst && GlobOpt::IsSwitchOptEnabled(m_func->GetTopFunc()))
-    {
-        CaseNode* caseNode = JitAnew(m_tempAlloc, CaseNode, branchInstr, offset, targetOffset, src2Opnd);
-        m_caseNodes->Add(caseNode);
-        m_seenOnlySingleCharStrCaseNodes = m_seenOnlySingleCharStrCaseNodes && caseNode->GetUpperBoundStringConstLocal()->GetLength() == 1;
-    }
-    else
-    {
-        // Otherwise, there are no optimizations to defer, so add the branch for
-        // this case instruction now
-        FlushCases(offset);
-        m_adapter->AddBranchInstr(branchInstr, offset, targetOffset);
-    }
+
+    // Otherwise, there are no optimizations to defer, so add the branch for
+    // this case instruction now
+    FlushCases(offset);
+    m_adapter->AddBranchInstr(branchInstr, offset, targetOffset);
 }
 
 
