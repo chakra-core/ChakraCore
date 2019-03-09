@@ -362,7 +362,7 @@
   <test>
     <default>
       <files>failedasm.js</files>
-      <compile-flags>-dbgbaseline:failedasm.js.dbg.baseline</compile-flags>
+      <compile-flags>-dbgbaseline:emptyJson.dbg.baseline</compile-flags>
     </default>
   </test>
   <test>
