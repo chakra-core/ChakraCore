@@ -247,6 +247,10 @@ var tests = [
 
       // OS 597319: Parens before a default value should not throw
       assert.doesNotThrow(function () { eval("[((((vrh190 )))) = 5184] = []"); }, "Destructured array assignment with parens before a default expression should not throw");
+
+      // Arrow functions as array pattern elements
+      assert.throws(function () { eval("var x; [x => 1] = [1]")}, SyntaxError, "Array pattern with arrow function throws", "Invalid destructuring assignment target");
+      assert.throws(function () { eval("[x => 1] = [1]")}, SyntaxError, "Array pattern with arrow function throws", "Invalid destructuring assignment target");
     }
   },
   {

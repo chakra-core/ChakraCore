@@ -13197,7 +13197,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
 
             // In this destructuring case we can force error here as we cannot assign.
 
-            if (!fCanAssign)
+            if (!fCanAssign || m_token.tk == tkDArrow)
             {
                 Error(ERRInvalidAssignmentTarget);
             }
