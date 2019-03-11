@@ -246,21 +246,8 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
     }
 
 Error:
-    if (errorCode != JsNoError)
-    {
-        JsValueRef errorObject;
-        JsValueRef errorMessageString;
 
-        if (wcscmp(errorMessage, _u("")) == 0) {
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
-        }
-
-        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
-
-        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        ChakraRTInterface::JsSetException(errorObject);
-    }
-
+    SetExceptionIf(errorCode, errorMessage);
     return returnValue;
 }
 
@@ -268,18 +255,23 @@ void WScriptJsrt::SetExceptionIf(JsErrorCode errorCode, LPCWSTR errorMessage)
 {
     if (errorCode != JsNoError)
     {
-        JsValueRef errorObject;
-        JsValueRef errorMessageString;
-
-        if (wcscmp(errorMessage, _u("")) == 0)
+        // If the exception is already is set - no need to create a new exception.
+        bool hasException = false;
+        if (!(ChakraRTInterface::JsHasException(&hasException) == JsNoError && hasException))
         {
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
+            JsValueRef errorObject;
+            JsValueRef errorMessageString;
+
+            if (wcscmp(errorMessage, _u("")) == 0)
+            {
+                errorMessage = ConvertErrorCodeToMessage(errorCode);
+            }
+
+            ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
+
+            ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
+            ChakraRTInterface::JsSetException(errorObject);
         }
-
-        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
-
-        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        ChakraRTInterface::JsSetException(errorObject);
     }
 }
 
@@ -603,30 +595,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
     }
 
 Error:
-    if (errorCode != JsNoError)
-    {
-        // check and clear exception if any
-        bool hasException;
-        if (ChakraRTInterface::JsHasException(&hasException) == JsNoError && hasException)
-        {
-            JsValueRef unusedException = JS_INVALID_REFERENCE;
-            ChakraRTInterface::JsGetAndClearException(&unusedException);
-            unusedException;
-        }
-
-        JsValueRef errorObject;
-        JsValueRef errorMessageString;
-
-        if (wcscmp(errorMessage, _u("")) == 0) {
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
-        }
-
-        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, errorMessageString);
-
-        ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        ChakraRTInterface::JsSetException(errorObject);
-    }
-
+    SetExceptionIf(errorCode, errorMessage);
     return returnValue;
 }
 
@@ -746,7 +715,6 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     JsErrorCode errorCode = JsNoError;
     LPCWSTR errorMessage = _u("Internal error.");
     JsValueRef returnValue = JS_INVALID_REFERENCE;
-    JsErrorCode innerErrorCode = JsNoError;
     JsContextRef currentContext = JS_INVALID_REFERENCE;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
     void *callbackArg = (finalizeCallback != nullptr ? (void*)fileContent : nullptr);
@@ -887,35 +855,7 @@ Error:
     JsValueRef value = returnValue;
     if (errorCode != JsNoError)
     {
-        if (innerErrorCode != JsNoError)
-        {
-            // Failed to retrieve the inner error message, so set a custom error string
-            errorMessage = ConvertErrorCodeToMessage(errorCode);
-        }
-
-        JsValueRef error = JS_INVALID_REFERENCE;
-        JsValueRef messageProperty = JS_INVALID_REFERENCE;
-
-        ERROR_MESSAGE_TO_STRING(errCode, errorMessage, messageProperty);
-
-        if (errCode == JsNoError)
-        {
-            errCode = ChakraRTInterface::JsCreateError(messageProperty, &error);
-            if (errCode == JsNoError)
-            {
-                bool hasException = false;
-                errorCode = ChakraRTInterface::JsHasException(&hasException);
-                if (errorCode == JsNoError && !hasException)
-                {
-                    errCode = ChakraRTInterface::JsSetException(error);
-                }
-                else if (errCode == JsNoError)
-                {
-                    errCode = JsErrorInExceptionState;
-                }
-            }
-        }
-
+        SetExceptionIf(errorCode, errorMessage);
         ChakraRTInterface::JsDoubleToNumber(errorCode, &value);
     }
 
@@ -927,6 +867,8 @@ Error:
 JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     LPCWSTR errorMessage = _u("invalid call to WScript.SetTimeout");
+    JsErrorCode errorCode = JsNoError;
+    HRESULT hr = S_OK;
 
     JsValueRef function;
     JsValueRef timerId;
@@ -936,79 +878,53 @@ JsValueRef WScriptJsrt::SetTimeoutCallback(JsValueRef callee, bool isConstructCa
 
     if (argumentCount != 3)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
 
     function = arguments[1];
 
-    IfJsrtError(ChakraRTInterface::JsNumberToDouble(arguments[2], &tmp));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsNumberToDouble(arguments[2], &tmp));
 
     time = static_cast<int>(tmp);
     msg = new CallbackMessage(time, function);
     messageQueue->InsertSorted(msg);
 
-    IfJsrtError(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(msg->GetId()), &timerId));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsDoubleToNumber(static_cast<double>(msg->GetId()), &timerId));
     return timerId;
 
 Error:
-    JsValueRef errorObject;
-    JsValueRef errorMessageString;
-
-    ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString);
-
-    if (errorCode != JsNoError)
-    {
-        errorCode = ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-
-        if (errorCode != JsNoError)
-        {
-            ChakraRTInterface::JsSetException(errorObject);
-        }
-    }
-
+    SetExceptionIf(errorCode, errorMessage);
     return JS_INVALID_REFERENCE;
 }
 
 JsValueRef WScriptJsrt::ClearTimeoutCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     LPCWSTR errorMessage = _u("invalid call to WScript.ClearTimeout");
+    JsErrorCode errorCode = JsNoError;
+    HRESULT hr = S_OK;
 
     if (argumentCount != 2)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
 
     unsigned int timerId;
     double tmp;
     JsValueRef undef;
-    JsValueRef global;
 
-    IfJsrtError(ChakraRTInterface::JsNumberToDouble(arguments[1], &tmp));
+    if (ChakraRTInterface::JsNumberToDouble(arguments[1], &tmp) == JsNoError)
+    {
+        timerId = static_cast<int>(tmp);
+        messageQueue->RemoveById(timerId);
+    }
 
-    timerId = static_cast<int>(tmp);
-    messageQueue->RemoveById(timerId);
-
-    IfJsrtError(ChakraRTInterface::JsGetGlobalObject(&global));
-    IfJsrtError(ChakraRTInterface::JsGetUndefinedValue(&undef));
-
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&undef));
     return undef;
 
 Error:
-    JsValueRef errorObject;
-    JsValueRef errorMessageString;
-
-    ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString);
-
-    if (errorCode != JsNoError)
-    {
-        errorCode = ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-
-        if (errorCode != JsNoError)
-        {
-            ChakraRTInterface::JsSetException(errorObject);
-        }
-    }
-
+    SetExceptionIf(errorCode, errorMessage);
     return JS_INVALID_REFERENCE;
 }
 
@@ -1021,14 +937,18 @@ void QueueDebugOperation(JsValueRef function, const DebugOperationFunc& operatio
 JsValueRef WScriptJsrt::AttachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     LPCWSTR errorMessage = _u("WScript.Attach requires a function, like WScript.Attach(foo);");
+    JsErrorCode errorCode = JsNoError;
+    HRESULT hr = S_OK;
     JsValueType argumentType = JsUndefined;
     if (argumentCount != 2)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
-    IfJsrtError(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
     if (argumentType != JsFunction)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
     QueueDebugOperation(arguments[1], [](WScriptJsrt::CallbackMessage& msg)
@@ -1045,33 +965,25 @@ JsValueRef WScriptJsrt::AttachCallback(JsValueRef callee, bool isConstructCall, 
         return msg.CallFunction("");
     });
 Error:
-    JsValueRef errorObject;
-    JsValueRef errorMessageString;
-
-    ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString);
-
-    if (errorCode != JsNoError)
-    {
-        errorCode = ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        if (errorCode != JsNoError)
-        {
-            ChakraRTInterface::JsSetException(errorObject);
-        }
-    }
+    SetExceptionIf(errorCode, errorMessage);
     return JS_INVALID_REFERENCE;
 }
 
 JsValueRef WScriptJsrt::DetachCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     LPCWSTR errorMessage = _u("WScript.Detach requires a function, like WScript.Detach(foo);");
+    JsErrorCode errorCode = JsNoError;
+    HRESULT hr = S_OK;
     JsValueType argumentType = JsUndefined;
     if (argumentCount != 2)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
-    IfJsrtError(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetValueType(arguments[1], &argumentType));
     if (argumentType != JsFunction)
     {
+        errorCode = JsErrorInvalidArgument;
         goto Error;
     }
     QueueDebugOperation(arguments[1], [](WScriptJsrt::CallbackMessage& msg)
@@ -1088,19 +1000,7 @@ JsValueRef WScriptJsrt::DetachCallback(JsValueRef callee, bool isConstructCall, 
         return msg.CallFunction("");
     });
 Error:
-    JsValueRef errorObject;
-    JsValueRef errorMessageString;
-
-    ERROR_MESSAGE_TO_STRING(errorCode, errorMessage, errorMessageString);
-
-    if (errorCode != JsNoError)
-    {
-        errorCode = ChakraRTInterface::JsCreateError(errorMessageString, &errorObject);
-        if (errorCode != JsNoError)
-        {
-            ChakraRTInterface::JsSetException(errorObject);
-        }
-    }
+    SetExceptionIf(errorCode, errorMessage);
     return JS_INVALID_REFERENCE;
 }
 
