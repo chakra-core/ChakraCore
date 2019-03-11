@@ -156,6 +156,16 @@ var tests = [
     }
   },
   {
+    name: "Cross-site activation object",
+    body: function () {
+        var tests = [0, 0];  
+        tests.forEach(function() {
+            var eval = WScript.LoadScript(0, "samethread").eval;
+            eval(0);
+        });
+    }
+  },
+  {
     name: "Destructuring declaration should return undefined",
     body: function () {
         assert.areEqual(undefined, eval("var {x} = {};"));
