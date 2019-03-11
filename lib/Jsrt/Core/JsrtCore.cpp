@@ -1392,6 +1392,22 @@ CHAKRA_API JsAllocRawData(_In_ JsRuntimeHandle runtimeHandle, _In_ size_t sizeIn
     });
 }
 
+CHAKRA_API JsIsCallable(_In_ JsValueRef object, _Out_ bool *isCallable)
+{
+    return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+        VALIDATE_INCOMING_OBJECT(object, scriptContext);
+        PARAM_NOT_NULL(isCallable);
+
+        Js::RecyclableObject * instance = Js::VarTo<Js::RecyclableObject>(object);
+        AssertMsg(scriptContext->GetThreadContext()->IsScriptActive(), "Caller is expected to be under ContextAPIWrapper!");
+
+        *isCallable = Js::JavascriptConversion::IsCallable(instance);
+
+        return JsNoError;
+    });
+}
+
 CHAKRA_API JsIsConstructor(_In_ JsValueRef object, _Out_ bool *isConstructor)
 {
     return ContextAPIWrapper<JSRT_MAYBE_TRUE>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {

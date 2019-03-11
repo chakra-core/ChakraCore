@@ -136,6 +136,7 @@
     JsGetWeakReferenceValue
     JsHasOwnProperty
     JsHasOwnItem
+    JsIsCallable
     JsIsConstructor
     JsObjectDefineProperty
     JsObjectDefinePropertyFull
