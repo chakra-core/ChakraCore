@@ -866,7 +866,7 @@ using namespace Js;
         HRESULT hrCodeGen = S_OK;
         CompileScriptException se;
         Js::ParseableFunctionInfo * funcBody = NULL;
-
+        uint sourceIndex = Constants::InvalidSourceIndex;
         BEGIN_LEAVE_SCRIPT_INTERNAL(scriptContext);
         BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
         {
@@ -914,7 +914,7 @@ using namespace Js;
                 Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
 
                 Assert(cchSource < MAXLONG);
-                uint sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, cchSource, true);
+                sourceIndex = scriptContext->SaveSourceNoCopy(sourceInfo, cchSource, true);
 
                 // Tell byte code gen not to attempt to interact with the caller's context if this is indirect eval.
                 // TODO: Handle strict mode.
@@ -958,8 +958,13 @@ using namespace Js;
             }
             else if (hrCodeGen == JSERR_AsmJsCompileError)
             {
-                // if asm.js compilation succeeded, retry with asm.js disabled
+                // if asm.js compilation failed, retry with asm.js disabled
                 grfscr |= fscrNoAsmJs;
+                if (sourceIndex != Constants::InvalidSourceIndex)
+                {
+                    // If we registered source, we should remove it or we will register another source info
+                    scriptContext->RemoveSource(sourceIndex);
+                }
                 return DefaultEvalHelper(scriptContext, source, sourceLength, moduleID, grfscr, pszTitle, registerDocument, isIndirect, strictMode);
             }
             JavascriptError::MapAndThrowError(scriptContext, hrCodeGen);

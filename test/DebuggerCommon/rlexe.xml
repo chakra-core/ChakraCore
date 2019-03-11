@@ -361,6 +361,12 @@
   </test>
   <test>
     <default>
+      <files>failedasm.js</files>
+      <compile-flags>-dbgbaseline:emptyJson.dbg.baseline</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ES6_spread.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:ES6_spread.js.dbg.baseline -es6spread -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
