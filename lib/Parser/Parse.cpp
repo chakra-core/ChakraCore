@@ -13102,6 +13102,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     ParseNodePtr pnodeElem = nullptr;
     int parenCount = 0;
     bool seenRest = false;
+    IdentToken token;
 
     // Save the Block ID prior to the increments, so we can restore it back.
     int originalCurrentBlockId = GetCurrentBlock()->blockId;
@@ -13173,7 +13174,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         if (!isDecl)
         {
             BOOL fCanAssign;
-            IdentToken token;
             // Look for postfix operator
             pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, TRUE, &fCanAssign, &token);
         }
@@ -13190,7 +13190,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         else
         {
             BOOL fCanAssign;
-            IdentToken token;
             // We aren't declaring anything, so scan the ID reference manually.
             pnodeElem = ParseTerm<buildAST>(/* fAllowCall */ m_token.tk != tkSUPER, nullptr /*pNameHint*/, nullptr /*pHintLength*/, nullptr /*pShortNameOffset*/, &token, false,
                 FALSE, &fCanAssign);
@@ -13202,7 +13201,10 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
                 Error(ERRInvalidAssignmentTarget);
             }
 
-            TrackAssignment<buildAST>(pnodeElem, &token);
+            if (buildAST)
+            {
+                TrackAssignment<buildAST>(pnodeElem, nullptr);
+            }
 
             if (buildAST)
             {
@@ -13217,7 +13219,6 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
                 {
                     CheckStrictModeEvalArgumentsUsage(token.pid);
                 }
-                token.tk = tkNone;
             }
         }
     }
@@ -13290,6 +13291,11 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             Error(ERRDestructNoOper);
         }
         Error(ERRsyntax);
+    }
+
+    if (!buildAST && token.tk == tkID)
+    {
+        TrackAssignment<buildAST>(nullptr, &token);
     }
 
     return pnodeElem;

@@ -508,6 +508,20 @@ var tests = [
         };
         test1();
     }
+  },
+  {
+    name: "Destructuring expression : Array expression instead of name ",
+    body: function () {
+        function test1(){
+            assert.throws(function () { eval("({a: b => []} = [2])") }, SyntaxError, 
+                "", "Unexpected operator in destructuring expression");
+            
+            assert.throws(function () { eval("for([a => {}] in []);") }, SyntaxError,
+                "", "Unexpected operator in destructuring expression");
+                        
+        };
+        test1();
+    }
   }
 ];
 
