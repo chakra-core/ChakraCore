@@ -1363,7 +1363,7 @@ namespace Js
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_JS_BUILTINS) || defined(ENABLE_PROJECTION)
         engineInterfaceObject = EngineInterfaceObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_EngineInterfaceObject, objectPrototype, nullptr,
+            DynamicType::New(scriptContext, TypeIds_EngineInterfaceObject, nullValue, nullptr,
             DeferredTypeHandler<InitializeEngineInterfaceObject>::GetDefaultInstance()));
 
 #ifdef ENABLE_INTL_OBJECT
@@ -1373,8 +1373,8 @@ namespace Js
 
 #ifdef ENABLE_JS_BUILTINS
         chakraLibraryObject = DynamicObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
-                DeferredTypeHandler<InitializeChakraLibraryObject>::GetDefaultInstance()));
+            DynamicType::New(scriptContext, TypeIds_Object, nullValue, nullptr,
+            DeferredTypeHandler<InitializeChakraLibraryObject>::GetDefaultInstance()));
         if (CONFIG_FLAG(LdChakraLib)) {
             AddMember(globalObject, PropertyIds::__chakraLibrary, chakraLibraryObject);
         }

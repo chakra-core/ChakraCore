@@ -2985,7 +2985,11 @@ void GlobOpt::DetermineArrayBoundCheckHoistability(
     {
         // The loop count is constant, fold (indexOffset + loopCountMinusOne * maxMagnitudeChange)
         TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 3, _u("Loop count is constant, folding\n"));
-        if(Int32Math::Mul(loopCount->LoopCountMinusOneConstantValue(), maxMagnitudeChange, &offset) ||
+
+        int loopCountMinusOnePlusOne = 0;
+
+        if (Int32Math::Add(loopCount->LoopCountMinusOneConstantValue(), 1, &loopCountMinusOnePlusOne) ||
+            Int32Math::Mul(loopCountMinusOnePlusOne, maxMagnitudeChange, &offset) ||
             Int32Math::Add(offset, indexOffset, &offset))
         {
             TRACE_PHASE_VERBOSE(Js::Phase::BoundCheckHoistPhase, 4, _u("Folding failed\n"));

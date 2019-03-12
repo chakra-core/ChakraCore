@@ -737,7 +737,7 @@ private:
     void                    PreLowerCanonicalize(IR::Instr *instr, Value **pSrc1Val, Value **pSrc2Val);
     void                    ProcessKills(IR::Instr *instr);
     void                    InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
-    void                    InsertValueCompensation(BasicBlock *const predecessor, const SymToValueInfoMap *symsRequiringCompensationToMergedValueInfoMap);
+    void                    InsertValueCompensation(BasicBlock *const predecessor, BasicBlock *const successor, const SymToValueInfoMap *symsRequiringCompensationToMergedValueInfoMap);
     IR::Instr *             ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val);
     void                    ToVar(BVSparse<JitArenaAllocator> *bv, BasicBlock *block);
     IR::Instr *             ToVar(IR::Instr *instr, IR::RegOpnd *regOpnd, BasicBlock *block, Value *val, bool needsUpdate);

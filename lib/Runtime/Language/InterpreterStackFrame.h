@@ -50,14 +50,17 @@ namespace Js
             Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
             Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
+            size_t GetStackAllocationVarCount() const { return stackVarAllocCount; }
 
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
 
+            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, __in_ecount(stackVarAllocCount) Var * stackAllocation
+                                                         , bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr
 #if DBG
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr, Var invalidStackVar);
-#else
-            InterpreterStackFrame * InitializeAllocation(__in_ecount(varAllocCount) Var * allocation, bool initParams, bool profileParams, LoopHeader* loopHeaderArray, DWORD_PTR stackAddr);
+                                                         , Var invalidStackVar
 #endif
+            );
+
             uint GetLocalCount() const { return localCount; }
 
         private:
@@ -75,6 +78,7 @@ namespace Js
             int inSlotsCount;
             uint localCount;
             uint varAllocCount;
+            uint stackVarAllocCount;
             uint inlineCacheCount;
             Js::CallFlags callFlags;
             bool bailedOut;
@@ -186,9 +190,6 @@ namespace Js
 
         // 16-byte aligned
         __declspec(align(16)) Var m_localSlots[0];           // Range of locals and temporaries
-
-        static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
-                                                      // If there are more, we'll use an arena.
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
@@ -365,6 +366,9 @@ namespace Js
         static InterpreterStackFrame* CreateInterpreterStackFrameForGenerator(ScriptFunction* function, FunctionBody* executeFunction, JavascriptGenerator* generator, bool doProfile);
 
         void InitializeClosures();
+
+        static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
+                                                      // If there are more, we'll use an arena.
 
     private:
 #if DYNAMIC_INTERPRETER_THUNK

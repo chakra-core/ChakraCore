@@ -312,6 +312,7 @@ ServerScriptContext::IsClosed() const
 void
 ServerScriptContext::AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper)
 {
+    AutoCriticalSection cs(&m_cs);
     m_domFastPathHelperMap->Add(funcInfoAddr, helper);
 }
 
@@ -327,7 +328,7 @@ ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
     GetEmitBufferManager(asmJsManager)->Decommit();
 }
 
-OOPEmitBufferManager *
+OOPEmitBufferManagerWithLock *
 ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
 {
     if (asmJsManager)
@@ -343,11 +344,11 @@ ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
 IR::JnHelperMethod
 ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 {
+    AutoCriticalSection cs(&m_cs);
+
     IR::JnHelperMethod helper = IR::HelperInvalid;
 
-    m_domFastPathHelperMap->LockResize();
     m_domFastPathHelperMap->TryGetValue(funcInfoAddr, &helper);
-    m_domFastPathHelperMap->UnlockResize();
 
     return helper;
 }
@@ -392,6 +393,7 @@ ServerScriptContext::GetCodeGenAllocators()
 Field(Js::Var)*
 ServerScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
 {
+    AutoCriticalSection cs(&m_cs);
     AssertOrFailFast(m_moduleRecords.ContainsKey(moduleIndex));
     auto record = m_moduleRecords.Item(moduleIndex);
     return record->localExportSlotsAddr;
@@ -406,6 +408,7 @@ ServerScriptContext::SetIsPRNGSeeded(bool value)
 void
 ServerScriptContext::AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr)
 {
+    AutoCriticalSection cs(&m_cs);
     Js::ServerSourceTextModuleRecord* record = HeapNewStructZ(Js::ServerSourceTextModuleRecord);
     record->moduleId = moduleId;
     record->localExportSlotsAddr = (Field(Js::Var)*)localExportSlotsAddr;

@@ -3415,6 +3415,7 @@ case_2:
 
     int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position)
     {
+        Assert(searchLen > 0);
         const char16 searchFirst = searchStr[0];
         uint32 lMatchedJump = searchLen;
         if (jmpTable[searchFirst].shift > 0)
@@ -3423,31 +3424,41 @@ case_2:
         }
         WCHAR c;
         char16 const * p = inputStr + min(len - searchLen, position);
-        while(p >= inputStr)
+
+        while (true)
         {
+            uint32 remaining = (uint32)(p - inputStr);
+            uint32 backwardOffset = 0;
             // first character match, keep checking
             if (*p == searchFirst)
             {
-                if ( wmemcmp(p, searchStr, searchLen) == 0 )
+                if (wmemcmp(p, searchStr, searchLen) == 0)
                 {
-                    break;
+                    return (int)remaining;
                 }
-                p -= lMatchedJump;
+                backwardOffset = lMatchedJump;
             }
             else
             {
                 c = *p;
-                if ( 0 == ( c & ~0x7f ) && jmpTable[c].shift != 0 )
+                if (0 == (c & ~0x7f) && jmpTable[c].shift != 0)
                 {
-                    p -= jmpTable[c].shift;
+                    backwardOffset = jmpTable[c].shift;
                 }
                 else
                 {
-                    p -= searchLen;
+                    backwardOffset = searchLen;
                 }
             }
+            AssertOrFailFast(backwardOffset > 0);
+            if (backwardOffset > remaining)
+            {
+                break;
+            }
+            p -= backwardOffset;
         }
-        return ((p >= inputStr) ? (int)(p - inputStr) : -1);
+
+        return -1;
     }
 
     bool JavascriptString::BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen)

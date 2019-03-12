@@ -169,7 +169,7 @@ namespace Js
         // CommonNativeInterfaces is used as a prototype for the other native interface objects
         // to share the common APIs without requiring everyone to access EngineInterfaceObject.Common.
         this->commonNativeInterfaces = DynamicObject::New(recycler,
-            DynamicType::New(scriptContext, TypeIds_Object, library->GetObjectPrototype(), nullptr,
+            DynamicType::New(scriptContext, TypeIds_Object, library->GetNull(), nullptr,
             DeferredTypeHandler<InitializeCommonNativeInterfaces>::GetDefaultInstance()));
         library->AddMember(this, Js::PropertyIds::Common, this->commonNativeInterfaces);
 

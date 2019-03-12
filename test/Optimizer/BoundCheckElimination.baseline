@@ -8,6 +8,7 @@ Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Elimin
 Testtrace: BoundCheckHoist function testHoistability ( (#1.1), #2): Hoisting array upper bound check out of loop
 Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Eliminating array lower bound check
 Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Eliminating array upper bound check
+Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Separating array lower bound check
 Testtrace: BoundCheckHoist function testHoistability ( (#1.1), #2): Hoisting array upper bound check out of loop
 Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Eliminating array lower bound check
 Testtrace: BoundCheckElimination function testHoistability ( (#1.1), #2): Eliminating array upper bound check
