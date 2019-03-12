@@ -529,6 +529,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 //#include "Language/ModuleNamespace.h"
 #include "Types/ScriptFunctionType.h"
 #include "Library/ScriptFunction.h"
+#include "Library/StackScriptFunction.h"
 
 #ifdef _CHAKRACOREBUILD
 #include "Library/CustomExternalWrapperObject.h"

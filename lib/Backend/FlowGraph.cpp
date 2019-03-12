@@ -5266,7 +5266,7 @@ BasicBlock::MergePredBlocksValueMaps(GlobOpt* globOpt)
             }
             if(symsRequiringCompensationToMergedValueInfoMap.Count() != 0)
             {
-                globOpt->InsertValueCompensation(pred, &symsRequiringCompensationToMergedValueInfoMap);
+                globOpt->InsertValueCompensation(pred, this, &symsRequiringCompensationToMergedValueInfoMap);
             }
         }
     } NEXT_PREDECESSOR_EDGE_EDITING;
