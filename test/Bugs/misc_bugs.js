@@ -210,6 +210,19 @@ var tests = [
         catch (e) {
         }
       }
+  },
+  {
+    name: "calling promise's function as constructor should not be allowed",
+    body: function () {
+        var var_0 = new Promise(function () {});                                           
+        var var_1 = function () {};                                                        
+                                                                                          
+        var_0.then = function (a, b) {                                                     
+          var_2 = b;                                                                       
+        };                                                                                 
+        var_3 = Promise.prototype.finally.call(var_0, var_1);                              
+        assert.throws(() => { new var_2([]).var_3(); },TypeError);
+      }
   }
 
 ];
