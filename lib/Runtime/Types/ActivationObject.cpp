@@ -10,11 +10,16 @@ namespace Js
 {
     template <> bool VarIsImpl<ActivationObject>(RecyclableObject* instance)
     {
-        return VirtualTableInfo<Js::ActivationObject>::HasVirtualTable(instance) ||
-            VirtualTableInfo<Js::ActivationObjectEx>::HasVirtualTable(instance) ||
-            VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance) ||
-            VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance) ||
-            VirtualTableInfo<Js::ConsoleScopeActivationObject>::HasVirtualTable(instance);
+        return VirtualTableInfo<ActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<ActivationObject>>::HasVirtualTable(instance) ||
+            VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<ActivationObjectEx>>::HasVirtualTable(instance) ||
+            VirtualTableInfo<PseudoActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<PseudoActivationObject>>::HasVirtualTable(instance) ||
+            VirtualTableInfo<BlockActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<BlockActivationObject>>::HasVirtualTable(instance) ||
+            VirtualTableInfo<ConsoleScopeActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<ConsoleScopeActivationObject>>::HasVirtualTable(instance);
     }
 
     BOOL ActivationObject::HasOwnPropertyCheckNoRedecl(PropertyId propertyId)
@@ -172,7 +177,8 @@ namespace Js
 
     template <> bool VarIsImpl<BlockActivationObject>(RecyclableObject* instance)
     {
-        return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance);
+        return VirtualTableInfo<Js::BlockActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<BlockActivationObject>>::HasVirtualTable(instance);
     }
 
     BOOL PseudoActivationObject::InitPropertyScoped(PropertyId propertyId, Var value)
@@ -211,7 +217,8 @@ namespace Js
 
     template <> bool VarIsImpl<PseudoActivationObject>(RecyclableObject* instance)
     {
-        return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance);
+        return VirtualTableInfo<Js::PseudoActivationObject>::HasVirtualTable(instance) ||
+            VirtualTableInfo<CrossSiteObject<PseudoActivationObject>>::HasVirtualTable(instance);
     }
 
 #if ENABLE_TTD
