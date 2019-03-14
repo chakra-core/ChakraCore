@@ -26,6 +26,7 @@ WebAssemblySource::WebAssemblySource(byte* source, uint bufferLength, bool creat
 
 void WebAssemblySource::ReadBufferSource(Var val, ScriptContext * scriptContext)
 {
+    printf("%s\n", "here");
     BYTE* srcBuffer;
     if (Js::VarIs<Js::TypedArrayBase>(val))
     {

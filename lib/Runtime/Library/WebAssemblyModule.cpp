@@ -74,7 +74,7 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     return CreateModule(scriptContext, &src);
 }
 
-Var
+Var 
 WebAssemblyModule::EntryExports(RecyclableObject* function, CallInfo callInfo, ...)
 {
     PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

@@ -66,6 +66,7 @@
 
 WASM_PREFIX(Numeric, WASM_PREFIX_NUMERIC, Wasm::WasmNontrapping::IsEnabled(), "WebAssembly nontrapping float-to-int conversion support is not enabled")
 WASM_PREFIX(Threads, WASM_PREFIX_THREADS, Wasm::Threads::IsEnabled(), "WebAssembly Threads support is not enabled")
+WASM_PREFIX(Bulk, WASM_PREFIX_BULK, Wasm::Threads::IsEnabled(), "WebAssembly Threads support is not enabled")
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 // We won't even look at that prefix in release builds
 // Mark the prefix as not implemented so we don't allow it in the binary buffer
@@ -170,7 +171,12 @@ WASM_MEMSTORE_OPCODE(I64StoreMem16, 0x3d, L_IL, true, Js::ArrayBufferView::TYPE_
 WASM_MEMSTORE_OPCODE(I64StoreMem32, 0x3e, L_IL, true, Js::ArrayBufferView::TYPE_INT32_TO_INT64, "i64.store32")
 
 WASM_MISC_OPCODE(MemorySize, 0x3f, I_I, true, "memory.size")
-WASM_MISC_OPCODE(MemoryGrow,    0x40, I_I, true, "memory.grow")
+WASM_MISC_OPCODE(MemoryGrow, 0x40, I_I, true, "memory.grow")
+#ifdef ENABLE_WASM_BULK
+WASM_MISC_OPCODE(MemoryCopy, 0xd1, I_I, true, "memory.copy")
+WASM_MISC_OPCODE(MemoryFill, 0xd2, I_I, true, "memory.fill")
+// Ask MS guy about it.
+#endif
 
 // Constants
 WASM_MISC_OPCODE(I32Const,     0x41, Limit, true, "i32.const")

@@ -20,6 +20,18 @@ bool IsEnabled()
 
 }
 
+namespace Bulk 
+{
+bool IsEnabled()
+{
+#ifdef ENABLE_WASM
+    return CONFIG_FLAG_RELEASE(WasmBulk);
+#else
+    return false;
+#endif
+}
+}
+
 namespace Threads
 {
 bool IsEnabled()
