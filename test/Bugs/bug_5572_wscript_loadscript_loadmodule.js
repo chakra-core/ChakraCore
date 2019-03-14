@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
+function func_0(){ return "" };
 
 var tests = [
   {
@@ -17,7 +18,7 @@ var tests = [
             );        
         }, Error, 
         "Should throw for invalid input to WScript.LoadScript", 
-        "ScriptError");
+        "Unsupported argument type inject type.");
     }
   },
   {
@@ -31,7 +32,7 @@ var tests = [
             );        
         }, Error, 
         "Should throw for invalid input to WScript.LoadScript", 
-        "ScriptError");
+        "Unsupported argument type inject type.");
     }
   },
   {
@@ -45,7 +46,7 @@ var tests = [
             );        
         }, Error, 
         "Should throw for invalid input to WScript.LoadScript", 
-        "ScriptError");
+        "Unsupported argument type inject type.");
     }
   },
   {
@@ -54,12 +55,11 @@ var tests = [
         assert.throws(function () { 
             WScript.LoadModule(``, ``, {
                 toString: function () {
-                    func_0();
+                    func_1();
                 }}
             );        
-        }, Error, 
-        "Should throw for invalid input to WScript.LoadModule", 
-        "ScriptError");
+        }, ReferenceError, 
+        "'func_1' is not defined");
     }
   },
   {
@@ -68,12 +68,12 @@ var tests = [
         assert.throws(function () { 
             WScript.LoadModule(``, {
                 toString: function () {
-                    func_0();
+                    func_1();
                 }}, ``
             );        
-        }, Error, 
+        }, ReferenceError, 
         "Should throw for invalid input to WScript.LoadModule", 
-        "ScriptError");
+        "'func_1' is not defined");
     }
   },
   {
@@ -82,12 +82,12 @@ var tests = [
         assert.throws(function () { 
             WScript.LoadModule({
                 toString: function () {
-                    func_0();
+                    func_1();
                 }}, ``, ``
             );        
-        }, Error, 
+        }, ReferenceError, 
         "Should throw for invalid input to WScript.LoadModule", 
-        "ScriptError");
+        "'func_1' is not defined");
     }
   },
 ];
