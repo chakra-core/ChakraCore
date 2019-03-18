@@ -29,7 +29,7 @@ function testLoadOpsForType(funcname, module, laneValues, expectedResults, start
     
     forEachTestPosition ((pos, i) => {intArray[pos + i]  = laneValues[i];});
     instance[funcname](0);
-    forEachTestPosition((pos, i) => {assertEquals(intArray[pos + i], expectedResults[i]);});
+    forEachTestPosition((pos, i) => {assertEquals(expectedResults[i], intArray[pos + i]);});
 
     const MEM_SIZE_IN_BYTES = 1024 * 64;
 
@@ -76,7 +76,7 @@ const laneValues = [0xAAAAAAAA, 0xFFFFFFFF, 0X80000000, 0x90A762A6];
 const expectedResults = [16, 32, 1, 14]; //i32.popcnt
 const startPositions = [0, 5, 11, 17];
 
-testLoadOpsForType("m128_load_test", module, laneValues, expectedResults,startPositions);
+testLoadOpsForType("m128_load_test", module, laneValues, expectedResults, startPositions);
 
 if (passed) {
     print("Passed");
