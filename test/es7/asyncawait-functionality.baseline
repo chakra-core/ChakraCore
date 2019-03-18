@@ -37,8 +37,9 @@ Executing test #31 - Async and arguments.caller
 Executing test #32 - Async and split scope
 Test #32 - Success initial value of the formal is the same as the default param value
 Test #32 - Success initial value of the body symbol is the same as the default param value
-Executing test #33 - `then` is called with both onFulfilled and onRejected
-Test #33 - then: true, catch: true
+Executing test #33 - `then` is not called when awaiting a non-promise or native promise
+Executing test #34 - `then` is called when awaiting a promise subclass
+Executing test #35 - `then` is called when awaiting a non-promise thenable
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
@@ -85,7 +86,8 @@ Test #28 - Success finally block is executed in async body
 Test #30 - Success async function and arguments.callee
 Test #32 - Success updated value of the formal is the same as the value returned from the second async function
 Test #32 - Success updated value of the body symbol is the same as the value returned from the second async function
-Test #33 - Success caught the expected exception
+Test #34 - Success "then" called on a promise subclass
+Test #35 - Success "then" called on a thenable
 Test #6 - Success await in an async function #1 called with result = '-4'
 Test #6 - Success await in an async function #2 called with result = '2'
 Test #6 - Success await in an async function catch a rejected Promise in 'err'. Error = 'Error: My Error'

@@ -1447,13 +1447,7 @@ namespace Js
         value = JavascriptOperators::GetProperty(next, PropertyIds::value, scriptContext);
         Var promiseVar = CALL_FUNCTION(scriptContext->GetThreadContext(), promiseResolve, CallInfo(CallFlags_Value, 2), library->GetPromiseConstructor(), value);
         JavascriptPromise* promise = VarTo<JavascriptPromise>(promiseVar);
-
-        Var promiseThen = JavascriptOperators::GetProperty(promise, PropertyIds::then, scriptContext);
-        if (!JavascriptConversion::IsCallable(promiseThen))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-        }
-        CALL_FUNCTION(scriptContext->GetThreadContext(), VarTo<RecyclableObject>(promiseThen), CallInfo(CallFlags_Value, 3), promise, successFunction, failFunction);
+        CreateThenPromise(promise, successFunction, failFunction, scriptContext);
 
         END_SAFE_REENTRANT_REGION
     }
