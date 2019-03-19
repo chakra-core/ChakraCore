@@ -493,7 +493,7 @@ ThreadContextInfo::SetValidCallTargetInternal(
 #endif
             )
         {
-            _guard_check_icall((uintptr_t)callTargetAddress);
+            _GUARD_CHECK_ICALL((uintptr_t)callTargetAddress);
         }
 
         if (PHASE_TRACE1(Js::CFGPhase))
