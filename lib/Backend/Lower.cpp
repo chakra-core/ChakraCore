@@ -6223,7 +6223,7 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
 
     // Load the value from the slot, getting the slot ID from the cache.
     uint16 index = propertySymOpnd->GetSlotIndex();
-    Assert(index != -1);
+    AssertOrFailFast(index != (uint16)-1);
 
     if (opndSlotArray->IsRegOpnd())
     {
@@ -7204,7 +7204,7 @@ Lowerer::GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* pr
 
     // Store the value to the slot, getting the slot index from the cache.
     uint16 index = propertySymOpnd->GetSlotIndex();
-    Assert(index != -1);
+    AssertOrFailFast(index != (uint16)-1);
 
 #if defined(RECYCLER_WRITE_BARRIER_JIT) && (defined(_M_IX86) || defined(_M_AMD64))
     if (opndSlotArray->IsRegOpnd())

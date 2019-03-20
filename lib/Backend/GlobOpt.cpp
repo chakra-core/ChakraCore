@@ -3258,10 +3258,14 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         }
         originalPropertySym = sym->AsPropertySym();
 
-        // Dont give a vale to 'arguments' property sym to prevent field copy prop of 'arguments'
+        // Don't give a value to 'arguments' property sym to prevent field copy prop of 'arguments'
         if (originalPropertySym->AsPropertySym()->m_propertyId == Js::PropertyIds::arguments &&
             originalPropertySym->AsPropertySym()->m_fieldKind == PropertyKindData)
         {
+            if (opnd->AsSymOpnd()->IsPropertySymOpnd())
+            {
+                this->FinishOptPropOp(instr, opnd->AsPropertySymOpnd());
+            }
             return nullptr;
         }
 
