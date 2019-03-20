@@ -1324,7 +1324,7 @@ Func::EndPhase(Js::Phase tag, bool dump)
     {
         Assert(!this->isPostLower);
         this->isPostLower = true;
-#ifndef _M_ARM    // Need to verify ARM is clean.
+#if !defined(_M_ARM) && !defined(_M_ARM64) // Need to verify ARM is clean.
         DbCheckPostLower dbCheck(this);
         dbCheck.CheckNestedHelperCalls();
 #endif
