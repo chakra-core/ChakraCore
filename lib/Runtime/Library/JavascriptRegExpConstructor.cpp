@@ -360,6 +360,10 @@ namespace Js
                 EnsureValues(); // The last match info relies on the last input. Use it before it is changed.
                 this->lastInput = tempInput;
             }
+
+            // Set implicit call flags since we are not necessarily making the original stored value available on re-load
+            // and are killing the store that backs two exposed properties.
+            this->GetScriptContext()->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
             *result = true;
             return true;
         case PropertyIds::lastMatch:
