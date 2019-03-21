@@ -494,7 +494,9 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::NewScObjectNoCtor:
         if (inGlobOpt)
         {
-            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            // Opcodes that make an object into a prototype may break object-header-inlining and final type opt.
+            // Kill all known object layouts.
+            KillAllObjectTypes(bv);
         }
         break;
 

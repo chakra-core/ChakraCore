@@ -90,7 +90,7 @@ typedef IDL_DEF([ref]) PSCRIPTCONTEXT_HANDLE * PPSCRIPTCONTEXT_HANDLE;
 typedef struct TypeHandlerIDL
 {
     IDL_Field(boolean) isObjectHeaderInlinedTypeHandler;
-    IDL_Field(boolean) isLocked;
+    IDL_Field(unsigned char) flags;
 
     IDL_Field(unsigned short) inlineSlotCapacity;
     IDL_Field(unsigned short) offsetOfInlineSlots;

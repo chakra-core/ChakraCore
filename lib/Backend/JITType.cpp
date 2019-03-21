@@ -35,7 +35,7 @@ JITType::BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType)
 
         Js::DynamicTypeHandler * handler = dynamicType->GetTypeHandler();
         data->handler.isObjectHeaderInlinedTypeHandler = handler->IsObjectHeaderInlinedTypeHandler();
-        data->handler.isLocked = handler->GetIsLocked();
+        data->handler.flags = handler->GetFlags();
         data->handler.inlineSlotCapacity = handler->GetInlineSlotCapacity();
         data->handler.offsetOfInlineSlots = handler->GetOffsetOfInlineSlots();
         data->handler.slotCapacity = handler->GetSlotCapacity();
