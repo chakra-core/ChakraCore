@@ -9582,6 +9582,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
             Var result = CALL_ENTRYPOINT(threadContext, marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 2), thisVar, putValue);
             Assert(result);
+
+            // Set implicit call flags so we bail out if we're trying to propagate the stored value forward. We can't count on the getter/setter
+            // to produce the stored value on a LdFld.
+            threadContext->AddImplicitCallFlags(ImplicitCall_Accessor);
+
             return nullptr;
         });
     }
