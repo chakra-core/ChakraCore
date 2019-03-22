@@ -16,7 +16,11 @@
 #endif
 
 #if defined(_UCRT) && _CONTROL_FLOW_GUARD
-#include <cfguard.h>
+# if _MSC_VER >= 1913
+#  include <cfguard.h>
+# else
+   extern "C" void __fastcall _guard_check_icall(_In_ uintptr_t _Target);
+# endif
 #endif
 
 ThreadContextInfo::ThreadContextInfo() :
