@@ -1,0 +1,30 @@
+{
+  "name": "walk-sync",
+  "description": "Get an array of recursive directory contents",
+  "version": "0.3.4",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joliss/node-walk-sync"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "dependencies": {
+    "ensure-posix-path": "^1.0.0",
+    "matcher-collection": "^1.0.0"
+  },
+  "devDependencies": {
+    "jshint-tap-simple": "^1.0.2",
+    "rimraf": "^2.4.3",
+    "tap": "^1.0.0"
+  },
+  "scripts": {
+    "test": "tap --timeout 2 ./test/*.js",
+    "test:debug": "tap --debug-brk --timeout 9999 ./test/*.js"
+  }
+}

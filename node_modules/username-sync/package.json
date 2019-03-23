@@ -1,0 +1,20 @@
+{
+  "name": "username-sync",
+  "version": "1.0.2",
+  "description": "username but only sync and for node 0.12",
+  "main": "index.js",
+  "repository": "git@github.com:stefanpenner/username-sync",
+  "scripts": {
+    "test": "mocha test.js",
+    "test:debug": "mocha debug test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.4.1"
+  }
+}

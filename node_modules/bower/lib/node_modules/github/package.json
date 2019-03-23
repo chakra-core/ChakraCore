@@ -1,0 +1,34 @@
+{
+    "name" : "github",
+    "version" : "0.2.4",
+    "description" : "NodeJS wrapper for the GitHub API",
+    "author": "Mike de Boer <info@mikedeboer.nl>",
+    "contributors": [
+        { "name": "Mike de Boer", "email": "info@mikedeboer.nl" },
+        { "name": "Fabian Jakobs", "email": "fabian@c9.io" }
+    ],
+    "homepage": "http://github.com/mikedeboer/node-github",
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/mikedeboer/node-github.git"
+    },
+    "engine" : {
+        "node": ">=0.4.0"
+    },
+    "dependencies": {
+      "mime": "^1.2.11"
+    },
+    "devDependencies": {
+        "oauth": "~0.9.7",
+        "optimist": "~0.6.0",
+        "mocha": "~1.13.0"
+    },
+    "main" : ".",
+    "scripts": {
+        "test": "node ./test/all.js"
+    },
+    "licenses": [{
+        "type": "The MIT License",
+        "url": "http://www.opensource.org/licenses/mit-license.php"
+    }]
+}

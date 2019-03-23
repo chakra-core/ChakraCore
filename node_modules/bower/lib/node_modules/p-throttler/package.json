@@ -1,0 +1,34 @@
+{
+  "name": "p-throttler",
+  "version": "0.1.1",
+  "description": "A promise based throttler capable of limiting execution of parallel tasks",
+  "main": "index.js",
+  "dependencies": {
+    "q": "~0.9.2"
+  },
+  "devDependencies": {
+    "mocha": "~1.10.0",
+    "expect.js": "~0.2.0"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IndigoUnited/node-p-throttler"
+  },
+  "bugs": {
+    "url": "http://github.com/IndigoUnited/node-p-throttler/issues"
+  },
+  "keywords": [
+    "promise",
+    "throttler",
+    "trottle",
+    "deferred",
+    "worker",
+    "tasks",
+    "parallel"
+  ],
+  "author": "IndigoUnited <hello@indigounited.com> (http://indigounited.com)",
+  "license": "MIT"
+}

@@ -1,0 +1,38 @@
+{
+  "name": "fireworm",
+  "version": "0.7.1",
+  "description": "A crawling file watcher.",
+  "main": "fireworm.js",
+  "scripts": {
+    "test": "mocha -u tdd tests/*_tests.js"
+  },
+  "files": [
+    "lib",
+    "index.js",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:airportyh/fireworm.git"
+  },
+  "keywords": [
+    "filewatching",
+    "utility"
+  ],
+  "author": "Toby Ho",
+  "license": "MIT",
+  "devDependencies": {
+    "bodydouble": "~0.1.2",
+    "insist": "~0.1.0",
+    "ispy": "~0.1.2",
+    "mkdirp": "~0.3.5",
+    "mocha": "^2.3.4"
+  },
+  "dependencies": {
+    "async": "~0.2.9",
+    "is-type": "0.0.1",
+    "lodash.debounce": "^3.1.1",
+    "lodash.flatten": "^3.0.2",
+    "minimatch": "^3.0.2"
+  }
+}

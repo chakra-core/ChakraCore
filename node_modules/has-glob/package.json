@@ -1,0 +1,56 @@
+{
+  "name": "has-glob",
+  "description": "Returns `true` if an array has a glob pattern.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/has-glob",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/has-glob",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/has-glob/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-glob": "^2.0.1"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "bash",
+    "braces",
+    "check",
+    "exec",
+    "extglob",
+    "expression",
+    "glob",
+    "globbing",
+    "globstar",
+    "match",
+    "matches",
+    "pattern",
+    "regex",
+    "regular",
+    "string",
+    "test"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "is-glob",
+        "micromatch",
+        "has-glob",
+        "is-valid-glob"
+      ]
+    }
+  }
+}

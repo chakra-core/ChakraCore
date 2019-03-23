@@ -1,0 +1,28 @@
+language: node_js
+node_js:
+  - "6"
+  - "8"
+  - "10"
+  - "11"
+
+cache:
+  yarn: true
+
+before_install:
+  - curl -o- -L https://yarnpkg.com/install.sh | bash
+  - export PATH=$HOME/.yarn/bin:$PATH
+
+install:
+  - yarn install --no-lockfile
+
+script:
+  - yarn test
+
+deploy:
+  provider: npm
+  email: stefan.penner+ember-cli@gmail.com
+  api_key:
+    secure: JW22glZPT//0Ds4FQw0o2G25QJjwwfkmpRBYG0xPb7f4VxRN11jMCLrBzFAgjb7dLOb9qpiDXFgYp2mFnAJPyohwzaQu6tooTl5h7GijOqx1oWpDkq76VhHIDmypy+l9GaVszKLUXEw8sav1caEyOixZz+scCtBMiLINmXhV7SIjIbO36nX4/YbKX0qedf6GOVrNpHkeeHsw5faCIO9PENO/BZSNP/YNx2z5mhrl7tyCpvPyI7X+FsdOUgZAcKt5ocQi6TNp6MtHmHT/WytNPzzgXeZK4Gd9O8/wGcWbDl38/LId8MNaUMbX4mqPh8wIEZhVACsvHmX2LsjnTn31pOObEFvcvXTBaCTuL5v9f8KqKJpz9vgnpWEWAst3U7ffuscip0dcRaBIQJ8FvoM7T9RQulc2RzK+uWn3DTiWLpnUwqwN6XjSUTXthRtydaetxsZ9yizFkDEPDOHN+B1cbqdEkqj1An1K6OKXXiv1WgcC5MfIwdMCP6ybt7yogruBlFDe1X4mjh3B/nWdi9jZkUiUbsqAjr0x+rSWFUCQe3N/8iL9j+HIoAgMCJqPnibwGAZ9VGZA1qJNyGaKUGxpmNYDgDkDmNndzIssy/9fl1C+fmGQL18P4ViaDhKYhi7Dnrvk+VjUx2sBbfIIhBstiLRqEH5Y2QK5XcTpahz74pc=
+  on:
+    tags: true
+    repo: ember-cli/console-ui

@@ -1,0 +1,34 @@
+{
+  "name": "beautify",
+  "version": "0.0.8",
+  "description": "beautify whatever",
+  "author": "Konstantin Gorodinskiy <main@konstantin.io>",
+  "bin": "./bin/beautify.js",
+  "scripts": {
+    "test": "node_modules/.bin/_mocha test/test.js"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gko/beautify"
+  },
+  "keywords": [
+    "json",
+    "js",
+    "css",
+    "html",
+    "xml",
+    "prettify",
+    "beautify"
+  ],
+  "devDependencies": {
+    "commander": "^2.9.0",
+    "mocha": "^3.1.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "cssbeautify": "^0.3.1",
+    "html": "^1.0.0",
+    "js-beautify": "^1.6.4"
+  }
+}

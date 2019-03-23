@@ -1,0 +1,18 @@
+{
+  "requireCurlyBraces": ["if", "else", "for", "while", "do", "try", "catch"],
+  "requireSpaceAfterKeywords": ["if", "else", "for", "while", "do", "switch", "return", "try", "catch"],
+  "disallowLeftStickedOperators": ["?", "+", "-", "/", "*", "=", "==", "===", "!=", "!==", ">", ">=", "<", "<="],
+  "disallowRightStickedOperators": ["?", "+", "/", "*", ":", "=", "==", "===", "!=", "!==", ">", ">=", "<", "<="],
+  "requireRightStickedOperators": ["!"],
+  "requireLeftStickedOperators": [","],
+  "disallowImplicitTypeConversion": ["string"],
+  "disallowKeywords": ["with"],
+  "disallowMultipleLineBreaks": true,
+  "disallowKeywordsOnNewLine": ["else"],
+  "disallowTrailingWhitespace": true,
+  "requireLineFeedAtFileEnd": true,
+  "validateJSDoc": {
+    "checkParamNames": true,
+    "requireParamTypes": true
+  }
+}

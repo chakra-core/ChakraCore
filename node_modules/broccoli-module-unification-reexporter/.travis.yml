@@ -1,0 +1,16 @@
+sudo: false
+dist: trusty
+
+language: node_js
+node_js:
+  - "4"
+  - "6"
+  - "8"
+  - "9"
+
+branches:
+  only:
+    - master
+
+before_install:
+  - npm i -g npm@5

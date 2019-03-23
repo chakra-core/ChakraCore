@@ -1,0 +1,22 @@
+{
+  "name": "process-relative-require",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/process-relative-require.git"
+  },
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ember-cli/process-relative-require/issues"
+  },
+  "homepage": "https://github.com/ember-cli/process-relative-require#readme",
+  "dependencies": {
+    "node-modules-path": "^1.0.0"
+  }
+}

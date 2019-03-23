@@ -1,0 +1,29 @@
+{
+  "name": "clean-up-path",
+  "description": "Make paths absolute and normalize them.",
+  "version": "1.0.0",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccoli/node-clean-up-path"
+  },
+  "keywords": [
+    "fs",
+    "path"
+  ],
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.1",
+    "mocha-eslint": "^4.1.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "test:debug": "mocha debug"
+  }
+}

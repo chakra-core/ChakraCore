@@ -1,0 +1,26 @@
+{
+  "name": "ember-cli-string-utils",
+  "version": "1.1.0",
+  "description": "string utils extracted for other addons and blueprints",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "files": [
+    "index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/ember-cli-string-utils.git"
+  },
+  "author": "ember-cli contributors",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ember-cli/ember-cli-string-utils/issues"
+  },
+  "homepage": "https://github.com/ember-cli/ember-cli-string-utils#readme",
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "mocha": "^3.0.2"
+  }
+}

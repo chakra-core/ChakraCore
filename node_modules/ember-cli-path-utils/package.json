@@ -1,0 +1,26 @@
+{
+  "name": "ember-cli-path-utils",
+  "version": "1.0.0",
+  "description": "path utils extracted for blueprints and addons",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/ember-cli-path-utils.git"
+  },
+  "author": "ember-cli contributors",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ember-cli/ember-cli-path-utils/issues"
+  },
+  "homepage": "https://github.com/ember-cli/ember-cli-path-utils#readme",
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "mocha": "^2.2.5"
+  }
+}

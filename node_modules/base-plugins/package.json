@@ -1,0 +1,70 @@
+{
+  "name": "base-plugins",
+  "description": "Upgrade's plugin support in base applications to allow plugins to be called any time after init.",
+  "version": "0.4.13",
+  "homepage": "https://github.com/node-base/base-plugins",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-plugins",
+  "bugs": {
+    "url": "https://github.com/node-base/base-plugins/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^0.2.5",
+    "is-registered": "^0.1.5",
+    "isobject": "^2.1.0"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.7",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.4.5",
+    "should": "^8.2.2"
+  },
+  "keywords": [
+    "base",
+    "plugin",
+    "plugins"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "base",
+        "base-cli",
+        "base-config",
+        "base-data",
+        "base-fs",
+        "base-option"
+      ]
+    },
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "verb",
+      "base"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

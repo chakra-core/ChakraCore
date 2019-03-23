@@ -1,0 +1,33 @@
+{
+  "name": "simple-concat",
+  "description": "Super-minimalist version of `concat-stream`. Less than 15 lines!",
+  "version": "1.0.0",
+  "author": {
+    "name": "Feross Aboukhadijeh",
+    "email": "feross@feross.org",
+    "url": "http://feross.org/"
+  },
+  "bugs": {
+    "url": "https://github.com/feross/simple-concat/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "standard": "^6.0.8",
+    "tape": "^4.0.0"
+  },
+  "homepage": "https://github.com/feross/simple-concat",
+  "keywords": [
+    "concat",
+    "concat-stream",
+    "concat stream"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/feross/simple-concat.git"
+  },
+  "scripts": {
+    "test": "standard && tape test/*.js"
+  }
+}

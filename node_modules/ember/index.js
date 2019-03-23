@@ -1,0 +1,10 @@
+console.log('====================================================================');
+console.log('');
+console.log('  The `ember` node module is a placeholder, you may be looking for:');
+console.log('');
+console.log('  * `ember-cli` (the command line tool) ');
+console.log('  * `ember-source` (the framework code) ');
+console.log('');
+console.log('  Visit http://emberjs.com/ for more details');
+console.log('');
+console.log('====================================================================');

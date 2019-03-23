@@ -1,0 +1,28 @@
+{
+  "name": "spawn-args",
+  "version": "0.2.0",
+  "description": "Turn a string of command line options into an array for child_process.spawn",
+  "main": "index.js",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/binocarlos/spawn-args.git"
+  },
+  "keywords": [
+    "spawn",
+    "argv",
+    "parser"
+  ],
+  "author": "Kai Davenport",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/binocarlos/spawn-args/issues"
+  },
+  "homepage": "https://github.com/binocarlos/spawn-args",
+  "devDependencies": {
+    "mocha": "~1.12.0",
+    "should": "~1.2.2"
+  }
+}

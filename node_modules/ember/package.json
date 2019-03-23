@@ -1,0 +1,19 @@
+{
+  "name": "ember",
+  "version": "1.0.3",
+  "description": "A framework for creating ambitious web applications.",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emberjs/ember.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/emberjs/ember/issues"
+  },
+  "homepage": "https://github.com/emberjs/ember#readme"
+}

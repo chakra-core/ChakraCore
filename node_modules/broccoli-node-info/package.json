@@ -1,0 +1,30 @@
+{
+  "name": "broccoli-node-info",
+  "description": "Inspect Broccoli nodes; thin wrapper around node.__broccoliGetInfo__()",
+  "version": "1.1.0",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "keywords": [
+    "broccoli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/broccoli-node-info"
+  },
+  "homepage": "https://github.com/broccolijs/broccoli-node-info",
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
+    "mocha-jshint": "^2.3.1",
+    "multidep": "^2.0.1"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "scripts": {
+    "pretest": "multidep test/multidep.json",
+    "test": "mocha"
+  }
+}

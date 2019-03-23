@@ -1,0 +1,14 @@
+{
+  "name": "broccoli-serve-files",
+  "keywords": [
+    "ember-addon"
+  ],
+  "ember-addon": {
+    "after": "broccoli-watcher",
+    "before": "proxy-server-middleware"
+  },
+  "dependencies": {
+    "heimdalljs-logger": "*",
+    "broccoli-middleware": "*"
+  }
+}

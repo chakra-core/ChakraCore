@@ -1,0 +1,19 @@
+{
+  "name": "clean-base-url",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/stefanpenner/clean-base-url.git"
+  },
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stefanpenner/clean-base-url/issues"
+  },
+  "homepage": "https://github.com/stefanpenner/clean-base-url#readme"
+}

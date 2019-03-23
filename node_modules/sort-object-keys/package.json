@@ -1,0 +1,32 @@
+{
+  "name": "sort-object-keys",
+  "version": "1.1.2",
+  "description": "Sort an object's keys, including an optional key list",
+  "keywords": [
+    "keys",
+    "object",
+    "sort"
+  ],
+  "homepage": "https://github.com/keithamus/sort-object-keys#readme",
+  "bugs": {
+    "url": "https://github.com/keithamus/sort-object-keys/issues"
+  },
+  "license": "MIT",
+  "author": "Keith Cirkel <npm@keithcirkel.co.uk> (http://keithcirkel.co.uk/)",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/keithamus/sort-object-keys.git"
+  },
+  "scripts": {
+    "semantic-release": "travis-after-all && semantic-release pre && npm publish && semantic-release post",
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "semantic-release": "^4.3.5",
+    "travis-after-all": "^1.4.4"
+  }
+}

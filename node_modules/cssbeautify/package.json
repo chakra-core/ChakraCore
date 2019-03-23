@@ -1,0 +1,36 @@
+{
+  "name": "cssbeautify",
+  "description": "Reindent and reformat CSS.",
+  "version": "0.3.1",
+  "homepage": "http://cssbeautify.com",
+  "author": {
+    "name": "Ariya Hidayat",
+    "email": "ariya@sencha.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/senchalabs/cssbeautify"
+  },
+  "bugs": {
+    "url": "https://github.com/senchalabs/cssbeautify/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/senchalabs/cssbeautify/blob/master/README.md"
+    }
+  ],
+  "main": "cssbeautify.js",
+  "bin": "bin/cssbeautify",
+  "engines": {
+    "node": "*"
+  },
+  "scripts": {
+    "test": "node test/runner.js"
+  },
+  "keywords": [
+    "cssbeautify",
+    "css",
+    "formatter"
+  ]
+}

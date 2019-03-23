@@ -1,0 +1,23 @@
+{
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "name": "chmodr",
+  "description": "like `chmod -R`",
+  "version": "1.0.2",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/isaacs/chmodr.git"
+  },
+  "main": "chmodr.js",
+  "devDependencies": {
+    "mkdirp": "0.3",
+    "rimraf": "",
+    "tap": "^1.3.2"
+  },
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "license": "ISC",
+  "files": [
+    "chmodr.js"
+  ]
+}

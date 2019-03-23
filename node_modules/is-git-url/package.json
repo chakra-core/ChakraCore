@@ -1,0 +1,64 @@
+{
+  "name": "is-git-url",
+  "description": "Regex to validate that a URL is a git url.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-git-url",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Charlike Mike Reagent (https://i.am.charlike.online)",
+    "Daniel Cadenas <dcadenas@gmail.com> (http://craftedcode.com)",
+    "Emre Unal (https://github.com/quaertym)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Loïc Mahieu (http://iGLOO.be)"
+  ],
+  "repository": "jonschlinkert/is-git-url",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-git-url/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.8"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "git",
+    "github",
+    "is",
+    "regex",
+    "regexp",
+    "test",
+    "url"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "git-branch",
+        "git-repo-name",
+        "git-username",
+        "github-contributors",
+        "parse-github-url"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

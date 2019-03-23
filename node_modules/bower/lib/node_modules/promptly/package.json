@@ -1,0 +1,34 @@
+{
+  "name": "promptly",
+  "version": "0.2.0",
+  "description": "Simple command line prompting utility",
+  "main": "index.js",
+  "dependencies": {
+    "read": "~1.0.4"
+  },
+  "devDependencies": {
+    "mocha": "~1.8.1",
+    "async": "~0.1.22",
+    "expect.js": "~0.2.0"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IndigoUnited/node-promptly"
+  },
+  "bugs": {
+    "url": "http://github.com/IndigoUnited/node-promptly/issues"
+  },
+  "keywords": [
+    "prompt",
+    "choose",
+    "choice",
+    "cli",
+    "command",
+    "line"
+  ],
+  "author": "IndigoUnited <hello@indigounited.com> (http://indigounited.com)",
+  "license": "MIT"
+}

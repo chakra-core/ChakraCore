@@ -1,0 +1,37 @@
+{
+  "name": "is-my-json-valid",
+  "version": "2.19.0",
+  "description": "A JSONSchema validator that uses code generation to be extremely fast",
+  "main": "index.js",
+  "dependencies": {
+    "generate-function": "^2.0.0",
+    "generate-object-property": "^1.1.0",
+    "is-my-ip-valid": "^1.0.0",
+    "jsonpointer": "^4.0.0",
+    "xtend": "^4.0.0"
+  },
+  "devDependencies": {
+    "safe-regex": "^1.1.0",
+    "tape": "^2.13.4",
+    "typescript": "^3.0.1"
+  },
+  "scripts": {
+    "test": "tape test/*.js && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/is-my-json-valid"
+  },
+  "keywords": [
+    "json",
+    "schema",
+    "orderly",
+    "jsonschema"
+  ],
+  "author": "Mathias Buus",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mafintosh/is-my-json-valid/issues"
+  },
+  "homepage": "https://github.com/mafintosh/is-my-json-valid"
+}

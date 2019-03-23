@@ -1,0 +1,33 @@
+{
+  "name": "mktemp",
+  "version": "0.4.0",
+  "author": "sasa+1 <sasaplus1@gmail.com>",
+  "contributors": [
+    "Michael Ficarra <github.public.email@michael.ficarra.me>"
+  ],
+  "description": "mktemp command for node.js",
+  "main": "./index.js",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sasaplus1/mktemp.git"
+  },
+  "directories": {
+    "test": "test/"
+  },
+  "scripts": {
+    "fix": "fixjsstyle --flagfile .closurelinter -r .",
+    "lint": "gjslint --flagfile .closurelinter -r .",
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "intelli-espower-loader": "^0.6.0",
+    "mocha": "^2.1.0",
+    "power-assert": "^0.10.1",
+    "sinon": "^1.12.2"
+  },
+  "engines": {
+    "node": ">0.9"
+  }
+}

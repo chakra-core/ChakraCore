@@ -1,0 +1,94 @@
+{
+  "name": "mout",
+  "description": "Modular Utilities",
+  "version": "0.11.1",
+  "homepage": "http://moutjs.com/",
+  "contributors": [
+    "Adam Nowotny",
+    "André Cruz <amdfcruz@gmail.com>",
+    "Conrad Zimmerman (http://www.conradz.com)",
+    "Friedemann Altrock <frodenius@gmail.com>",
+    "Igor Almeida <igor.p.almeida@gmail.com>",
+    "Jarrod Overson (http://jarrodoverson.com)",
+    "Miller Medeiros <contact@millermedeiros.com> (http://blog.millermedeiros.com)",
+    "Mathias Paumgarten <mail@mathias-paumgarten.com>",
+    "Zach Shipley"
+  ],
+  "keywords": [
+    "utilities",
+    "functional",
+    "amd-utils",
+    "stdlib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mout/mout.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mout/mout/issues/"
+  },
+  "main": "./index.js",
+  "scripts": {
+    "pretest": "node build pkg",
+    "test": "istanbul test tests/runner.js --hook-run-in-context"
+  },
+  "directories": {
+    "doc": "./doc"
+  },
+  "devDependencies": {
+    "istanbul": "~0.1.27",
+    "jasmine-node": "~1.14.5",
+    "requirejs": "2.x",
+    "nodefy": "*",
+    "mdoc": "~0.3.2",
+    "handlebars": "~1.0.6",
+    "commander": "~1.0.5",
+    "rocambole": "~0.2.3",
+    "jshint": "2.x",
+    "rimraf": "2.2.2",
+    "regenerate": "~0.5.4"
+  },
+  "testling": {
+    "preprocess": "node build testling",
+    "browsers": {
+      "ie": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "firefox": [
+        17,
+        "nightly"
+      ],
+      "chrome": [
+        23,
+        "canary"
+      ],
+      "opera": [
+        12,
+        "next"
+      ],
+      "safari": [
+        5.1,
+        6
+      ],
+      "iphone": [
+        6
+      ],
+      "ipad": [
+        6
+      ]
+    },
+    "scripts": [
+      "tests/lib/jasmine/jasmine.js",
+      "tests/lib/jasmine/jasmine.async.js",
+      "tests/lib/jasmine/jasmine-tap.js",
+      "tests/lib/requirejs/require.js",
+      "tests/testling/src.js",
+      "tests/testling/specs.js",
+      "tests/runner.js"
+    ]
+  }
+}

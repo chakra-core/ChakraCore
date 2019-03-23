@@ -1,0 +1,37 @@
+{
+  "name": "tree-sync",
+  "version": "1.4.0",
+  "description": "",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha tests",
+    "test:debug": "mocha debug tests"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefanpenner/tree-sync/"
+  },
+  "author": "Stefan Penner",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^2.2.0",
+    "fs-tree-diff": "^0.5.6",
+    "mkdirp": "^0.5.1",
+    "quick-temp": "^0.1.5",
+    "walk-sync": "^0.3.3"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "glob": "^7.0.0",
+    "mocha": "^2.3.4",
+    "mocha-eslint": "^1.0.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "quick-temp",
+  "description": "Create and remove temporary directories with minimal effort",
+  "version": "0.1.8",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joliss/node-quick-temp"
+  },
+  "dependencies": {
+    "mktemp": "~0.4.0",
+    "rimraf": "^2.5.4",
+    "underscore.string": "~3.3.4"
+  }
+}

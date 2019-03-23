@@ -1,0 +1,25 @@
+{
+  "name": "can-symlink",
+  "version": "1.0.0",
+  "description": "Utility module to determine if fs.symlink commands will succeed. Useful for win32 enviornments where special permission is required for symlinking.",
+  "repository": "https://github.com/raytiley/can-symlink",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/"
+  },
+  "keywords": [
+    "symlink",
+    "windows"
+  ],
+  "author": "raytiley",
+  "license": "MIT",
+  "bin": {
+    "can-symlink": "./can-symlink.js"
+  },
+  "devDependencies": {
+    "mocha": "^2.1.0"
+  },
+  "dependencies": {
+    "tmp": "0.0.28"
+  }
+}

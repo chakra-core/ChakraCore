@@ -1,0 +1,60 @@
+{
+  "name": "is-registered",
+  "description": "Util for Base that optionally prevents a plugin from being registered more than once on an instance",
+  "version": "0.1.5",
+  "homepage": "https://github.com/jonschlinkert/is-registered",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-registered",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-registered/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^0.2.5",
+    "isobject": "^2.1.0"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "app",
+    "base",
+    "baseplugin",
+    "plugin",
+    "registered"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-plugins"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "dag-map",
+  "version": "2.0.2",
+  "description": "A topologically ordered map of key/value pairs with a simple API for adding constraints.",
+  "main": "dag-map.umd.js",
+  "module": "dag-map.js",
+  "jsnext:main": "dag-map.js",
+  "typings": "dag-map.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krisselden/dag-map.git"
+  },
+  "keywords": [
+    "dag",
+    "map",
+    "dependencies"
+  ],
+  "scripts": {
+    "build": "npm run tsc && npm run rollup && npm run sorcery",
+    "tsc": "tsc",
+    "docs": "typedoc --out docs --tsconfig tsconfig.json --excludeNotExported --mode modules --theme minimal",
+    "rollup": "rollup -c",
+    "sorcery": "sorcery -i dag-map.umd.js",
+    "test": "node tests/run.js",
+    "prepublish": "npm run build"
+  },
+  "files": [
+    "dag-map.d.ts",
+    "dag-map.js",
+    "dag-map.js.map",
+    "dag-map.umd.js",
+    "dag-map.umd.js.map"
+  ],
+  "author": "Kris Selden",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "qunitjs": "^2.0.1",
+    "rollup": "^0.34.9",
+    "sorcery": "^0.10.0",
+    "tslint": "^3.14.0",
+    "typescript": "^2.0.0",
+    "typedoc": "^0.5.3"
+  }
+}

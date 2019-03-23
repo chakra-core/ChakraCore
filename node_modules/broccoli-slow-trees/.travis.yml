@@ -1,0 +1,20 @@
+language: node_js
+node_js:
+  - "0.12"
+  - "4"
+  - "5"
+  - "node"
+sudo: false
+
+cache:
+  directories:
+    $HOME/.npm
+
+before_install:
+  # prevent the npm loading indicator
+  - npm config --global set spin false
+  # if npm version is less 3.0.0 (lets say 1.x or 2.x) we should attempt to upgrade to 3
+  - if [[ $(npm -v | cut -d '.' -f 1) -lt 3 ]]; then npm i -g npm@^3; fi
+
+install:
+  - npm install --no-optional

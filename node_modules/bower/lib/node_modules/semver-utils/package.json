@@ -1,0 +1,26 @@
+{
+  "name": "semver-utils",
+  "version": "1.1.1",
+  "description": "Tools for manipulating semver strings and objects",
+  "main": "semver-utils.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/coolaj86/semver-utils.git"
+  },
+  "keywords": [
+    "semver",
+    "parse",
+    "parseRange",
+    "range"
+  ],
+  "author": "AJ ONeal",
+  "license": "APACHEv2",
+  "readmeFilename": "README.md",
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "mocha": "^2.2.5"
+  }
+}

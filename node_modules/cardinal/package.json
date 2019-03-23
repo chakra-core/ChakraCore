@@ -1,0 +1,38 @@
+{
+  "name": "cardinal",
+  "version": "1.0.0",
+  "description": "Syntax highlights JavaScript code with ANSI colors to be printed to the terminal.",
+  "main": "cardinal.js",
+  "scripts": {
+    "test": "tap ./test/*.js",
+    "demo": "node examples/highlight-string.js; node examples/highlight-self; node examples/highlight-self-hide-semicolons;"
+  },
+  "bin": {
+    "cdl": "./bin/cdl.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/thlorenz/cardinal.git"
+  },
+  "keywords": [
+    "syntax",
+    "highlight",
+    "theme",
+    "javascript",
+    "json",
+    "terminal",
+    "console",
+    "print",
+    "output"
+  ],
+  "author": "Thorsten Lorenz <thlorenz@gmx.de> (thlorenz.com)",
+  "license": "MIT",
+  "dependencies": {
+    "ansicolors": "~0.2.1",
+    "redeyed": "~1.0.0"
+  },
+  "devDependencies": {
+    "tap": "~0.3.1",
+    "readdirp": "~0.2.1"
+  }
+}

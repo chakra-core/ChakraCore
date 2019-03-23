@@ -1,0 +1,104 @@
+{
+  "name": "matched",
+  "description": "Adds array support to node-glob, sync and async. Also supports tilde expansion (user home) and resolving to global npm modules.",
+  "version": "0.4.4",
+  "homepage": "https://github.com/jonschlinkert/matched",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/matched",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/matched/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">= 0.12.0"
+  },
+  "scripts": {
+    "report": "nyc report --reporter=html",
+    "test": "nyc mocha test/*.js",
+    "posttest": "eslint *.js test/*.js lib/*.js"
+  },
+  "dependencies": {
+    "arr-union": "^3.1.0",
+    "async-array-reduce": "^0.2.0",
+    "extend-shallow": "^2.0.1",
+    "fs-exists-sync": "^0.1.0",
+    "glob": "^7.0.5",
+    "has-glob": "^0.1.1",
+    "is-valid-glob": "^0.3.0",
+    "lazy-cache": "^2.0.1",
+    "resolve-dir": "^0.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^2.13.1",
+    "mocha": "^3.0.2",
+    "nyc": "^8.1.0",
+    "rimraf": "^2.5.2"
+  },
+  "keywords": [
+    "array",
+    "directories",
+    "exclude",
+    "exclusions",
+    "expand",
+    "files",
+    "filesystem",
+    "find",
+    "fnmatch",
+    "folders",
+    "fs",
+    "glob",
+    "globbing",
+    "globby",
+    "globs",
+    "globstar",
+    "lookup",
+    "match",
+    "matched",
+    "matcher",
+    "matching",
+    "minimatch",
+    "multi",
+    "multimatch",
+    "multiple",
+    "negate",
+    "node",
+    "node-glob",
+    "paths",
+    "pattern",
+    "patterns",
+    "star",
+    "wildcard",
+    "wildcards"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "is-glob",
+        "look-up",
+        "micromatch"
+      ]
+    },
+    "reflinks": [
+      "glob-stream",
+      "verb",
+      "verb-readme-generator",
+      "vinyl"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

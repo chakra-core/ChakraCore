@@ -1,0 +1,20 @@
+{
+  "name": "styled_string",
+  "version": "0.0.1",
+  "description": "Print styled text with a StyledString object that has an interface similar to String.",
+  "main": "index.js",
+  "devDependencies": {
+    "mocha": "*",
+    "chai": "*",
+    "sinon": "*"
+  },
+  "scripts": {
+    "test": "mocha tests.js"
+  },
+  "repository": "",
+  "keywords": [
+    "terminal"
+  ],
+  "author": "Toby Ho",
+  "license": "MIT"
+}

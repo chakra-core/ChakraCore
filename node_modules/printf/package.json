@@ -1,0 +1,58 @@
+{
+  "name": "printf",
+  "version": "0.5.1",
+  "description": "Full implementation of the `printf` family in pure JS.",
+  "keywords": [
+    "printf",
+    "formatting",
+    "sprintf",
+    "format",
+    "output",
+    "print"
+  ],
+  "homepage": "http://www.adaltas.com/projects/node-printf",
+  "license": "BSD-3-Clause",
+  "author": "David Worms <david@adaltas.com>",
+  "maintainers": [
+    "David Worms <david@adaltas.com>"
+  ],
+  "contributors": [
+    "David Worms <david@adaltas.com>",
+    "Aluísio Augusto Silva Gonçalves <aluisio@aasg.name>",
+    "Xavier Mendez <jmendeth@gmail.com>",
+    "LLeo <lleoem@gmail.com>",
+    "Derrell Lipman <https://github.com/derrell>"
+  ],
+  "main": "./lib/printf",
+  "types": "./typings/printf.d.ts",
+  "engines": {
+    "node": ">= 0.9.0"
+  },
+  "directories": {
+    "lib": "./lib",
+    "test": "./test",
+    "doc": "./doc"
+  },
+  "scripts": {
+    "preversion": "grep '## Trunk' CHANGELOG.md && npm test",
+    "version": "version=`grep '^  \"version\": ' package.json | sed 's/.*\"\\([0-9\\.]*\\)\".*/\\1/'` && sed -i \"s/## Trunk/## Version $version/\" CHANGELOG.md && git add CHANGELOG.md",
+    "postversion": "git push origin master && git push origin master --tags && npm publish",
+    "patch": "npm version patch -m 'Bump to version %s'",
+    "minor": "npm version minor -m 'Bump to version %s'",
+    "major": "npm version major -m 'Bump to version %s'",
+    "test": "mocha test/**/*.coffee"
+  },
+  "devDependencies": {
+    "coffeescript": "^2.2.4",
+    "should": "13.2.1",
+    "mocha": "5.1.0",
+    "semver": "5.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adaltas/node-printf.git"
+  },
+  "bugs": {
+    "url": "https://github.com/adaltas/node-printf/issues"
+  }
+}

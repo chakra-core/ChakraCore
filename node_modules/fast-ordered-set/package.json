@@ -1,0 +1,27 @@
+{
+  "name": "fast-ordered-set",
+  "version": "1.0.3",
+  "description": "quick and dirty ordered-set",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "mocha test"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "abstract-set": "0.0.5",
+    "chai": "^3.3.0",
+    "do-you-even-bench": "^1.0.1",
+    "ordered-set": "^1.0.0",
+    "set": "^1.1.1",
+    "set-collection": "^0.1.0",
+    "set-js": "0.0.1",
+    "specialized-set": "0.0.3"
+  },
+  "dependencies": {
+    "blank-object": "^1.0.1"
+  }
+}

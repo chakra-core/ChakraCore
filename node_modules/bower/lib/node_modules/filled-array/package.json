@@ -1,0 +1,37 @@
+{
+  "name": "filled-array",
+  "version": "1.1.0",
+  "description": "Returns an array filled with the specified input",
+  "license": "MIT",
+  "repository": "sindresorhus/filled-array",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "array",
+    "elements",
+    "el",
+    "filled",
+    "repeat",
+    "repeating",
+    "string",
+    "str",
+    "text",
+    "fill"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}

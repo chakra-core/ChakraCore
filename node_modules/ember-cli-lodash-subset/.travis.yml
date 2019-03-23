@@ -1,0 +1,32 @@
+sudo: false
+
+language: node_js
+node_js:
+  - "4"
+  - "6"
+  - "7"
+
+cache:
+  directories:
+    $HOME/.npm
+    $HOME/.cache # includes bowers cache
+
+before_install:
+  # prevent the npm loading indicator
+  - npm config --global set spin false
+  # if npm version is less 3.0.0 (lets say 1.x or 2.x) we should attempt to upgrade to 3
+  - if [[ $(npm -v | cut -d '.' -f 1) -lt 3 ]]; then npm i -g npm@^3; fi
+
+install:
+  - npm install --no-optional
+
+script: npm test
+
+deploy:
+  provider: npm
+  email: stefan.penner+ember-cli@gmail.com
+  api_key:
+    secure: omA2oAPkDu8yI/jm+quACiBSRk+EdnqOz47Aa+tEnDjQkGHaY59L3vW/xKcp+e0+RZgHzC3sLPP+c6/7ahXTRvomD6haNpZGnF4QlK3TBtyWyg5g7efRSS55HW/eB7GBl+1VvGP0yYmu+i3mOzwP4gmY4uvQfttrgKhSsunv7DqyKJ1KdFDjs2kEE32WwvOYDw1Hsep9Av0OmpwkZeHgxJaFCXu7VAB092FOZQMDkmatACvqPBFUPB1FKz/LwllxZv3NQlsHgCx/4AU8npV9LJAQQJzUa/a+4wIsit6mxToxhLmilbr0JfldtBrjjqBA/CVFmtYH4PIzqOpZp9JLbvUz0+3AtJbwf7FBSwwDZ6rikY7ivKYbHlbbhdJPMXpMRpkTLGZaq+EzgItHhp9bahR8Tno3rLGJtQgd2/fCHN5MLODzNAg+jcHqnFtfqZSe4iX82Lkn6yyCWcAYwGdT0XB10Hg/Lbu6NLYM1erAJfVisASb2uIeOL/QfvNMhVrB2IgAJs0kL36M64aQ2AzBZ8+8Jiyy4xFtQLUdmQXveNVq5vBBax8tM8aD/POoLAdzZJno9bRIpgr8e95qR4d3DBy43smrzZnkFVJjBaGNDYuUNtIQEKXIUmZhmDujbEDj2E1SfSPpEs5QtD0U0mZgK1aE6X63gnM+jObzD0SS7iM=
+  on:
+    tags: true
+    repo: ember-cli/ember-cli-lodash-subset

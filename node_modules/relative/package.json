@@ -1,0 +1,53 @@
+{
+  "name": "relative",
+  "description": "Get the relative filepath from path A to path B. Calculates from file-to-directory, file-to-file, directory-to-file, and directory-to-directory.",
+  "version": "3.0.2",
+  "homepage": "https://github.com/jonschlinkert/relative",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/relative",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/relative/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^2.0.0"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": [
+    "absolute",
+    "calculate",
+    "file",
+    "filepath",
+    "fs",
+    "normalize",
+    "path",
+    "path-relative",
+    "relative",
+    "resolve"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "cwd",
+        "export-files",
+        "is-absolute",
+        "is-relative",
+        "is-dotfile",
+        "global-prefix"
+      ]
+    }
+  }
+}

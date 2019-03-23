@@ -1,0 +1,41 @@
+{
+  "name": "broccoli-caching-writer",
+  "version": "3.0.3",
+  "description": "Broccoli plugin that allows simple caching (while still allowing N:N) based on the input tree hash.",
+  "main": "index.js",
+  "author": "Robert Jackson",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ember-cli/broccoli-caching-writer.git"
+  },
+  "files": [
+    "can-use-input-files.js",
+    "index.js",
+    "key.js"
+  ],
+  "scripts": {
+    "test": "mocha tests/",
+    "test:debug": "mocha --no-timeouts debug tests/"
+  },
+  "keywords": [
+    "broccoli-plugin",
+    "javascript"
+  ],
+  "dependencies": {
+    "broccoli-kitchen-sink-helpers": "^0.3.1",
+    "broccoli-plugin": "^1.2.1",
+    "debug": "^2.1.1",
+    "rimraf": "^2.2.8",
+    "rsvp": "^3.0.17",
+    "walk-sync": "^0.3.0"
+  },
+  "devDependencies": {
+    "broccoli": "^0.16.9",
+    "chai": "^3.2.0",
+    "chai-as-promised": "^5.1.0",
+    "chai-files": "^1.2.0",
+    "mocha": "^3.0.2",
+    "mocha-jshint": "~2.3.1"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "charm",
+  "version": "1.0.2",
+  "description": "ansi control sequences for terminal cursor hopping and colors",
+  "main": "index.js",
+  "directories": {
+    "lib": ".",
+    "example": "example",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/substack/node-charm.git"
+  },
+  "keywords": [
+    "terminal",
+    "ansi",
+    "cursor",
+    "color",
+    "console",
+    "control",
+    "escape",
+    "sequence"
+  ],
+  "dependencies": {
+    "inherits": "^2.0.1"
+  },
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT",
+  "engine": {
+    "node": ">=0.4"
+  }
+}

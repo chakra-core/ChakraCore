@@ -1,0 +1,40 @@
+{
+  "name": "intersect",
+  "description": "Find the intersection of two arrays",
+  "version": "1.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/juliangruber/intersect.git"
+  },
+  "homepage": "https://github.com/juliangruber/intersect",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tape": "~2.3.0"
+  },
+  "keywords": [
+    "intersect",
+    "array"
+  ],
+  "author": {
+    "name": "Julian Gruber",
+    "email": "mail@juliangruber.com",
+    "url": "http://juliangruber.com"
+  },
+  "license": "MIT",
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/20..latest",
+      "firefox/10..latest",
+      "safari/5.0.5..latest",
+      "opera/11.0..latest",
+      "iphone/6",
+      "ipad/6"
+    ]
+  }
+}

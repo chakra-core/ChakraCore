@@ -1,0 +1,47 @@
+{
+  "name": "broccoli-clean-css",
+  "version": "1.1.0",
+  "description": "CSS minifier for Broccoli, using clean-css",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "pretest": "eslint --fix --config @shinnn/node-legacy --rule 'no-underscore-dangle: 0' index.js test/test.js",
+    "test": "node --strong_mode --harmony_destructuring --harmony_rest_parameters --throw-deprecation --track-heap-objects test/test.js",
+    "coverage": "node --strong_mode --harmony_destructuring --harmony_rest_parameters node_modules/.bin/istanbul cover --no-default-excludes -x=node_modules/** test/test.js",
+    "coveralls": "${npm_package_scripts_coverage} && istanbul-coveralls"
+  },
+  "repository": "shinnn/broccoli-clean-css",
+  "author": "Shinnosuke Watanabe (https://github.com/shinnn)",
+  "license": "MIT",
+  "keywords": [
+    "broccoli-plugin",
+    "css",
+    "cleancss",
+    "clean-css",
+    "minifier",
+    "minification",
+    "compress",
+    "compressor",
+    "postprocess",
+    "optimization",
+    "optimize",
+    "optimizer",
+    "whitespace"
+  ],
+  "dependencies": {
+    "broccoli-persistent-filter": "^1.1.6",
+    "clean-css-promise": "^0.1.0",
+    "inline-source-map-comment": "^1.0.5",
+    "json-stable-stringify": "^1.0.0"
+  },
+  "devDependencies": {
+    "@shinnn/eslint-config-node-legacy": "^1.0.1",
+    "broccoli": "^0.16.9",
+    "broccoli-funnel": "^1.0.1",
+    "eslint": "^1.10.3",
+    "istanbul": "^0.4.1",
+    "rimraf": "^2.4.4",
+    "tape": "^4.2.2"
+  }
+}

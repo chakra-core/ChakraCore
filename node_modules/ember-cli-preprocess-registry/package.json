@@ -1,0 +1,34 @@
+{
+  "name": "ember-cli-preprocess-registry",
+  "version": "3.3.0",
+  "description": "Preprocessor registry used internally by ember-cli.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/**/*"
+  },
+  "files": [
+    "index.js",
+    "preprocessors.js",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/ember-cli-preprocessor-registry.git"
+  },
+  "author": "ember-cli Contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ember-cli/ember-cli-preprocessor-registry/issues"
+  },
+  "homepage": "https://github.com/ember-cli/ember-cli-preprocessor-registry#readme",
+  "dependencies": {
+    "broccoli-clean-css": "^1.1.0",
+    "broccoli-funnel": "^2.0.1",
+    "debug": "^3.0.1",
+    "process-relative-require": "^1.0.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.2.0"
+  }
+}

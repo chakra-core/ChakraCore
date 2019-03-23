@@ -1,0 +1,40 @@
+{
+  "name": "html",
+  "version": "1.0.0",
+  "description": "HTML pretty printer CLI utility (based on jsbeautifier)",
+  "author": "Max Ogden <max@maxogden.com> (http://maxogden.com)",
+  "contributors": [
+    "Nochum Sossonko <nsossonko@hotmail.com>",
+    "Einar Lielmanis <elfz@laacz.lv>"
+  ],
+  "keywords": [
+    "html",
+    "tabifier",
+    "beautifier",
+    "prettyprinter",
+    "prettifier",
+    "pretty",
+    "command",
+    "shell"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maxogden/commonjs-html-prettyprinter.git"
+  },
+  "bin": {
+    "html": "./bin/html.js"
+  },
+  "main": "lib/html.js",
+  "bugs": {
+    "url": "https://github.com/maxogden/commonjs-html-prettyprinter/issues"
+  },
+  "homepage": "https://github.com/maxogden/commonjs-html-prettyprinter",
+  "dependencies": {
+    "concat-stream": "^1.4.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "BSD"
+}

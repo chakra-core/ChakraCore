@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Build error</title>
+    {{#if liveReloadPath}}
+      <script src="{{liveReloadPath}}"></script>
+    {{/if}}
+  </head>
+  <body>
+    <h1>Build error</h1>
+
+    {{!-- The buildError.message has location and nodeLabel tacked on for easy
+    terminal output, so for structured error pages like this one, we use
+    payload.originalMessage. --}}
+    <pre><b>{{payload.originalMessage}}</b></pre>
+
+    {{#if payload.location.file}}
+      <p>
+        in <b><code>{{payload.location.file}}</code></b>{{#if payload.location.line}}, line <b>{{payload.location.line}}</b>{{/if}}
+        {{#if payload.location.treeDir}}<span style="color: #888">(in <code>{{payload.location.treeDir}}</code>)</span>{{/if}}
+      </p>
+    {{/if}}
+
+    {{#if payload.nodeLabel}}
+      <p>at {{payload.nodeLabel}}</p>
+    {{/if}}
+
+    {{#if stack}}
+      <hr>
+      <pre style="color: #888">{{stack}}</pre>
+    {{/if}}
+  </body>
+</html>

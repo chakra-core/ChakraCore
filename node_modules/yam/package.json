@@ -1,0 +1,36 @@
+{
+  "name": "yam",
+  "description": "Dead simple storage interface",
+  "version": "1.0.0",
+  "keywords": [
+    "storage",
+    "config"
+  ],
+  "engines": {
+    "node": "^4.5 || 6.* || >= 7.*"
+  },
+  "author": {
+    "name": "Alex Navasardyan",
+    "email": "alex.navasardyan@gmail.com",
+    "url": "http://twokul.io"
+  },
+  "main": "lib/yam.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/twokul/yam"
+  },
+  "dependencies": {
+    "fs-extra": "^4.0.2",
+    "lodash.merge": "^4.6.0"
+  },
+  "devDependencies": {
+    "jshint": "~2.3.0",
+    "mocha": "^4.0.0",
+    "chai": "^4.1.2",
+    "rewire": "^3.0.0"
+  },
+  "scripts": {
+    "test": "jshint lib/*.js test/*.js && mocha --reporter spec test/*-test.js"
+  }
+}

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<buildpath>
+	<buildpathentry  kind="src" path=""/>
+	<buildpathentry exported="true" kind="con" path="org.eclipse.dltk.launching.INTERPRETER_CONTAINER"/>
+	<buildpathentry kind="con" path="com.ebay.tools.vjet2.core.SDK_CONTAINER/DEFUALT_SDK"/>
+</buildpath>

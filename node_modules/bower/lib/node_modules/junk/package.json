@@ -1,0 +1,37 @@
+{
+  "name": "junk",
+  "version": "1.0.3",
+  "description": "Filter out OS junk files like .DS_Store and Thumbs.db",
+  "license": "MIT",
+  "repository": "sindresorhus/junk",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "junk",
+    "trash",
+    "garbage",
+    "files",
+    "os",
+    "ignore",
+    "exclude",
+    "filter",
+    "temp",
+    "tmp"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}

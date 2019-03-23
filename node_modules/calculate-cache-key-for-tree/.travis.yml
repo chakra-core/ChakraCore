@@ -1,0 +1,17 @@
+language: node_js
+node_js:
+  - "4"
+  - "6"
+  - "stable"
+
+cache:
+  yarn: true
+  directories:
+    - node_modules
+
+branches:
+  only:
+    - master
+
+before_script:
+  - if [ "${TRAVIS_NODE_VERSION}" != "0.12" ]; then yarn upgrade; fi # ensure we are testing against latest versions of all deps with Yarn
