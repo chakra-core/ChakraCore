@@ -91,7 +91,7 @@ entry.isDirectory() // => true if directory
    *note: this flag is only for `walkSync(..)` not `walkSync.entries(..)`*
 
    ```js
-    const paths = walkSync('project', { includeBaseDir: true });
+    const paths = walkSync('project', { includeBasePath: true });
     // => ['project/one.txt', 'project/subdir/two.txt']
    ```
 

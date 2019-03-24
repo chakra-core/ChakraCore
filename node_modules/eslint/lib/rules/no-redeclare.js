@@ -14,7 +14,8 @@ module.exports = {
         docs: {
             description: "disallow variable redeclaration",
             category: "Best Practices",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-redeclare"
         },
 
         schema: [
@@ -35,7 +36,7 @@ module.exports = {
 
         /**
          * Find variables in a given scope and flag redeclared ones.
-         * @param {Scope} scope - An escope scope object.
+         * @param {Scope} scope - An eslint-scope scope object.
          * @returns {void}
          * @private
          */

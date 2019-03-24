@@ -4,11 +4,13 @@ import {
 } from '../-internal';
 
 /**
-  `RSVP.Promise.reject` returns a promise rejected with the passed `reason`.
+  `Promise.reject` returns a promise rejected with the passed `reason`.
   It is shorthand for the following:
 
   ```javascript
-  let promise = new RSVP.Promise(function(resolve, reject){
+  import Promise from 'rsvp';
+
+  let promise = new Promise(function(resolve, reject){
     reject(new Error('WHOOPS'));
   });
 
@@ -22,7 +24,9 @@ import {
   Instead of writing the above, your code now simply becomes the following:
 
   ```javascript
-  let promise = RSVP.Promise.reject(new Error('WHOOPS'));
+  import Promise from 'rsvp';
+
+  let promise = Promise.reject(new Error('WHOOPS'));
 
   promise.then(function(value){
     // Code here doesn't run because the promise is rejected!
@@ -32,6 +36,7 @@ import {
   ```
 
   @method reject
+  @for Promise
   @static
   @param {*} reason value that the returned promise will be rejected with.
   @param {String} label optional string for identifying the returned promise.

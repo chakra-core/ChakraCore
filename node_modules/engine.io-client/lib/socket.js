@@ -45,7 +45,7 @@ function Socket (uri, opts) {
   }
 
   this.secure = null != opts.secure ? opts.secure
-    : (global.location && 'https:' === location.protocol);
+    : (typeof location !== 'undefined' && 'https:' === location.protocol);
 
   if (opts.hostname && !opts.port) {
     // if no port is specified manually, use the protocol default
@@ -54,8 +54,8 @@ function Socket (uri, opts) {
 
   this.agent = opts.agent || false;
   this.hostname = opts.hostname ||
-    (global.location ? location.hostname : 'localhost');
-  this.port = opts.port || (global.location && location.port
+    (typeof location !== 'undefined' ? location.hostname : 'localhost');
+  this.port = opts.port || (typeof location !== 'undefined' && location.port
       ? location.port
       : (this.secure ? 443 : 80));
   this.query = opts.query || {};
@@ -94,9 +94,11 @@ function Socket (uri, opts) {
   this.rejectUnauthorized = opts.rejectUnauthorized === undefined ? true : opts.rejectUnauthorized;
   this.forceNode = !!opts.forceNode;
 
-  // other options for Node.js client
-  var freeGlobal = typeof global === 'object' && global;
-  if (freeGlobal.global === freeGlobal) {
+  // detect ReactNative environment
+  this.isReactNative = (typeof navigator !== 'undefined' && typeof navigator.product === 'string' && navigator.product.toLowerCase() === 'reactnative');
+
+  // other options for Node.js or ReactNative client
+  if (typeof self === 'undefined' || this.isReactNative) {
     if (opts.extraHeaders && Object.keys(opts.extraHeaders).length > 0) {
       this.extraHeaders = opts.extraHeaders;
     }
@@ -196,7 +198,8 @@ Socket.prototype.createTransport = function (name) {
     forceNode: options.forceNode || this.forceNode,
     localAddress: options.localAddress || this.localAddress,
     requestTimeout: options.requestTimeout || this.requestTimeout,
-    protocols: options.protocols || void (0)
+    protocols: options.protocols || void (0),
+    isReactNative: this.isReactNative
   });
 
   return transport;

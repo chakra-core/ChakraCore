@@ -1,7 +1,8 @@
-# colors.js - get color and style in your node.js console ( and browser ) like what
+# colors.js
 
-<img src="http://i.imgur.com/goJdO.png" border = "0"/>
+## get color and style in your node.js console
 
+<img src="https://github.com/Marak/colors.js/raw/master/screenshots/colors.png"/>
 
 ## Installation
 
@@ -9,34 +10,105 @@
 
 ## colors and styles!
 
-- bold
-- italic
-- underline
-- inverse
-- yellow
-- cyan
-- white
-- magenta
-- green
-- red
-- grey
-- blue
-- rainbow
-- zebra
-- random
+### text colors
+
+  - black
+  - red
+  - green
+  - yellow
+  - blue
+  - magenta
+  - cyan
+  - white
+  - gray
+  - grey
+
+### background colors
+
+
+
+  - bgBlack
+  - bgRed
+  - bgGreen
+  - bgYellow
+  - bgBlue
+  - bgMagenta
+  - bgCyan
+  - bgWhite
+
+### styles
+
+  - reset
+  - bold
+  - dim
+  - italic
+  - underline
+  - inverse
+  - hidden
+  - strikethrough
+
+### extras
+
+  - rainbow
+  - zebra
+  - america
+  - trap
+  - random
+
 
 ## Usage
 
-``` js
-var colors = require('./colors');
+By popular demand, `colors` now ships with two types of usages!
+
+The super nifty way
+
+```js
+var colors = require('colors');
 
 console.log('hello'.green); // outputs green text
 console.log('i like cake and pies'.underline.red) // outputs red underlined text
 console.log('inverse the color'.inverse); // inverses the color
-console.log('OMG Rainbows!'.rainbow); // rainbow (ignores spaces)
+console.log('OMG Rainbows!'.rainbow); // rainbow
+console.log('Run the trap'.trap); // Drops the bass
+
 ```
 
-# Creating Custom themes
+or a slightly less nifty way which doesn't extend `String.prototype`
+
+```js
+var colors = require('colors/safe');
+
+console.log(colors.green('hello')); // outputs green text
+console.log(colors.red.underline('i like cake and pies')) // outputs red underlined text
+console.log(colors.inverse('inverse the color')); // inverses the color
+console.log(colors.rainbow('OMG Rainbows!')); // rainbow
+console.log(colors.trap('Run the trap')); // Drops the bass
+
+```
+
+I prefer the first way. Some people seem to be afraid of extending `String.prototype` and prefer the second way. 
+
+If you are writing good code you will never have an issue with the first approach. If you really don't want to touch `String.prototype`, the second usage will not touch `String` native object.
+
+## Disabling Colors
+
+To disable colors you can pass the following arguments in the command line to your application:
+
+```bash
+node myapp.js --no-color
+```
+
+## Console.log [string substitution](http://nodejs.org/docs/latest/api/console.html#console_console_log_data)
+
+```js
+var name = 'Marak';
+console.log(colors.green('Hello %s'), name);
+// outputs -> 'Hello Marak'
+```
+
+## Custom themes
+
+### Using standard API
 
 ```js
 
@@ -62,16 +134,34 @@ console.log("this is an error".error);
 console.log("this is a warning".warn);
 ```
 
+### Using string safe API
 
-### Contributors 
+```js
+var colors = require('colors/safe');
 
-Marak (Marak Squires)
-Alexis Sellier (cloudhead)
-mmalecki (Maciej Małecki)
-nicoreed (Nico Reed)
-morganrallen (Morgan Allen)
-JustinCampbell (Justin Campbell)
-ded (Dustin Diaz)
+// set single property
+var error = colors.red;
+error('this is red');
 
+// set theme
+colors.setTheme({
+  silly: 'rainbow',
+  input: 'grey',
+  verbose: 'cyan',
+  prompt: 'grey',
+  info: 'green',
+  data: 'grey',
+  help: 'cyan',
+  warn: 'yellow',
+  debug: 'blue',
+  error: 'red'
+});
 
-####  , Marak Squires , Justin Campbell, Dustin Diaz (@ded)
+// outputs red text
+console.log(colors.error("this is an error"));
+
+// outputs yellow text
+console.log(colors.warn("this is a warning"));
+```
+
+*Protip: There is a secret undocumented style in `colors`. If you find the style you can summon him.*

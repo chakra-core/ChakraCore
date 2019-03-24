@@ -33,10 +33,10 @@ function rimraf (p, options, cb) {
   }
 
   assert(p, 'rimraf: missing path')
-  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
-  assert.equal(typeof cb, 'function', 'rimraf: callback function required')
+  assert.strictEqual(typeof p, 'string', 'rimraf: path should be a string')
+  assert.strictEqual(typeof cb, 'function', 'rimraf: callback function required')
   assert(options, 'rimraf: invalid options argument provided')
-  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+  assert.strictEqual(typeof options, 'object', 'rimraf: options should be object')
 
   defaults(options)
 
@@ -45,7 +45,7 @@ function rimraf (p, options, cb) {
       if ((er.code === 'EBUSY' || er.code === 'ENOTEMPTY' || er.code === 'EPERM') &&
           busyTries < options.maxBusyTries) {
         busyTries++
-        let time = busyTries * 100
+        const time = busyTries * 100
         // try again, with the same exact callback as this one.
         return setTimeout(() => rimraf_(p, options, CB), time)
       }
@@ -229,9 +229,9 @@ function rimrafSync (p, options) {
   defaults(options)
 
   assert(p, 'rimraf: missing path')
-  assert.equal(typeof p, 'string', 'rimraf: path should be a string')
+  assert.strictEqual(typeof p, 'string', 'rimraf: path should be a string')
   assert(options, 'rimraf: missing options')
-  assert.equal(typeof options, 'object', 'rimraf: options should be object')
+  assert.strictEqual(typeof options, 'object', 'rimraf: options should be object')
 
   try {
     st = options.lstatSync(p)
@@ -290,24 +290,24 @@ function rmkidsSync (p, options) {
   assert(options)
   options.readdirSync(p).forEach(f => rimrafSync(path.join(p, f), options))
 
-  // We only end up here once we got ENOTEMPTY at least once, and
-  // at this point, we are guaranteed to have removed all the kids.
-  // So, we know that it won't be ENOENT or ENOTDIR or anything else.
-  // try really hard to delete stuff on windows, because it has a
-  // PROFOUNDLY annoying habit of not closing handles promptly when
-  // files are deleted, resulting in spurious ENOTEMPTY errors.
-  const retries = isWindows ? 100 : 1
-  let i = 0
-  do {
-    let threw = true
-    try {
-      const ret = options.rmdirSync(p, options)
-      threw = false
-      return ret
-    } finally {
-      if (++i < retries && threw) continue // eslint-disable-line
-    }
-  } while (true)
+  if (isWindows) {
+    // We only end up here once we got ENOTEMPTY at least once, and
+    // at this point, we are guaranteed to have removed all the kids.
+    // So, we know that it won't be ENOENT or ENOTDIR or anything else.
+    // try really hard to delete stuff on windows, because it has a
+    // PROFOUNDLY annoying habit of not closing handles promptly when
+    // files are deleted, resulting in spurious ENOTEMPTY errors.
+    const startTime = Date.now()
+    do {
+      try {
+        const ret = options.rmdirSync(p, options)
+        return ret
+      } catch (er) { }
+    } while (Date.now() - startTime < 500) // give up after 500ms
+  } else {
+    const ret = options.rmdirSync(p, options)
+    return ret
+  }
 }
 
 module.exports = rimraf

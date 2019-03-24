@@ -10,8 +10,8 @@
 //------------------------------------------------------------------------------
 
 const fs = require("fs"),
+    spawn = require("cross-spawn"),
     path = require("path"),
-    shell = require("shelljs"),
     log = require("../logging");
 
 //------------------------------------------------------------------------------
@@ -29,13 +29,13 @@ function findPackageJson(startDir) {
     let dir = path.resolve(startDir || process.cwd());
 
     do {
-        const pkgfile = path.join(dir, "package.json");
+        const pkgFile = path.join(dir, "package.json");
 
-        if (!shell.test("-f", pkgfile)) {
+        if (!fs.existsSync(pkgFile) || !fs.statSync(pkgFile).isFile()) {
             dir = path.join(dir, "..");
             continue;
         }
-        return pkgfile;
+        return pkgFile;
     } while (dir !== path.resolve(dir, ".."));
     return null;
 }
@@ -50,10 +50,40 @@ function findPackageJson(startDir) {
  * @returns {void}
  */
 function installSyncSaveDev(packages) {
-    if (Array.isArray(packages)) {
-        packages = packages.join(" ");
+    const packageList = Array.isArray(packages) ? packages : [packages];
+    const npmProcess = spawn.sync("npm", ["i", "--save-dev"].concat(packageList),
+        { stdio: "inherit" });
+    const error = npmProcess.error;
+
+    if (error && error.code === "ENOENT") {
+        const pluralS = packageList.length > 1 ? "s" : "";
+
+        log.error(`Could not execute npm. Please install the following package${pluralS} with a package manager of your choice: ${packageList.join(", ")}`);
     }
-    shell.exec(`npm i --save-dev ${packages}`, { stdio: "inherit" });
+}
+
+/**
+ * Fetch `peerDependencies` of the given package by `npm show` command.
+ * @param {string} packageName The package name to fetch peerDependencies.
+ * @returns {Object} Gotten peerDependencies. Returns null if npm was not found.
+ */
+function fetchPeerDependencies(packageName) {
+    const npmProcess = spawn.sync(
+        "npm",
+        ["show", "--json", packageName, "peerDependencies"],
+        { encoding: "utf8" }
+    );
+
+    const error = npmProcess.error;
+
+    if (error && error.code === "ENOENT") {
+        return null;
+    }
+    const fetchedText = npmProcess.stdout.trim();
+
+    return JSON.parse(fetchedText || "{}");
+
+
 }
 
 /**
@@ -140,6 +170,7 @@ function checkPackageJson(startDir) {
 
 module.exports = {
     installSyncSaveDev,
+    fetchPeerDependencies,
     checkDeps,
     checkDevDeps,
     checkPackageJson

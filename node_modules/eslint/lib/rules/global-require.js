@@ -17,7 +17,7 @@ const ACCEPTABLE_PARENTS = [
 ];
 
 /**
- * Finds the escope reference in the given scope.
+ * Finds the eslint-scope reference in the given scope.
  * @param {Object} scope The scope to search.
  * @param {ASTNode} node The identifier node.
  * @returns {Reference|null} Returns the found reference or null if none were found.
@@ -51,7 +51,8 @@ module.exports = {
         docs: {
             description: "require `require()` calls to be placed at top-level module scope",
             category: "Node.js and CommonJS",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/global-require"
         },
 
         schema: []

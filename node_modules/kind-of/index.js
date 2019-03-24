@@ -59,6 +59,9 @@ module.exports = function kindOf(val) {
   if (type === '[object Error]') {
     return 'error';
   }
+  if (type === '[object Promise]') {
+    return 'promise';
+  }
 
   // buffer
   if (isBuffer(val)) {

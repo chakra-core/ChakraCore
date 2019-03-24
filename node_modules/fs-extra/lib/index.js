@@ -1,22 +1,28 @@
 'use strict'
 
-const assign = require('./util/assign')
+module.exports = Object.assign(
+  {},
+  // Export promiseified graceful-fs:
+  require('./fs'),
+  // Export extra methods:
+  require('./copy-sync'),
+  require('./copy'),
+  require('./empty'),
+  require('./ensure'),
+  require('./json'),
+  require('./mkdirs'),
+  require('./move-sync'),
+  require('./move'),
+  require('./output'),
+  require('./path-exists'),
+  require('./remove')
+)
 
-const fs = {}
-
-// Export graceful-fs:
-assign(fs, require('./fs'))
-// Export extra methods:
-assign(fs, require('./copy'))
-assign(fs, require('./copy-sync'))
-assign(fs, require('./mkdirs'))
-assign(fs, require('./remove'))
-assign(fs, require('./json'))
-assign(fs, require('./move'))
-assign(fs, require('./move-sync'))
-assign(fs, require('./empty'))
-assign(fs, require('./ensure'))
-assign(fs, require('./output'))
-assign(fs, require('./path-exists'))
-
-module.exports = fs
+// Export fs.promises as a getter property so that we don't trigger
+// ExperimentalWarning before fs.promises is actually accessed.
+const fs = require('fs')
+if (Object.getOwnPropertyDescriptor(fs, 'promises')) {
+  Object.defineProperty(module.exports, 'promises', {
+    get () { return fs.promises }
+  })
+}

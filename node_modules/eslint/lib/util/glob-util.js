@@ -8,10 +8,10 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-const fs = require("fs"),
+const lodash = require("lodash"),
+    fs = require("fs"),
     path = require("path"),
     GlobSync = require("./glob"),
-    shell = require("shelljs"),
 
     pathUtil = require("./path-util"),
     IgnoredPaths = require("../ignored-paths");
@@ -64,7 +64,7 @@ function processPath(options) {
         let newPath = pathname;
         const resolvedPath = path.resolve(cwd, pathname);
 
-        if (shell.test("-d", resolvedPath)) {
+        if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
             newPath = pathname.replace(/[/\\]$/, "") + suffix;
         }
 
@@ -89,24 +89,31 @@ function resolveFileGlobPatterns(patterns, options) {
     return patterns.filter(p => p.length).map(processPathExtensions);
 }
 
+const dotfilesPattern = /(?:(?:^\.)|(?:[/\\]\.))[^/\\.].*/;
+
 /**
  * Build a list of absolute filesnames on which ESLint will act.
  * Ignored files are excluded from the results, as are duplicates.
  *
- * @param   {string[]} globPatterns            Glob patterns.
- * @param   {Object}   [options]               An options object.
- * @param   {string}   [options.cwd]           CWD (considered for relative filenames)
- * @param   {boolean}  [options.ignore]        False disables use of .eslintignore.
- * @param   {string}   [options.ignorePath]    The ignore file to use instead of .eslintignore.
- * @param   {string}   [options.ignorePattern] A pattern of files to ignore.
+ * @param   {string[]} globPatterns                    Glob patterns.
+ * @param   {Object}   [providedOptions]               An options object.
+ * @param   {string}   [providedOptions.cwd]           CWD (considered for relative filenames)
+ * @param   {boolean}  [providedOptions.ignore]        False disables use of .eslintignore.
+ * @param   {string}   [providedOptions.ignorePath]    The ignore file to use instead of .eslintignore.
+ * @param   {string}   [providedOptions.ignorePattern] A pattern of files to ignore.
  * @returns {string[]} Resolved absolute filenames.
  */
-function listFilesToProcess(globPatterns, options) {
-    options = options || { ignore: true };
-    const files = [],
-        added = {};
+function listFilesToProcess(globPatterns, providedOptions) {
+    const options = providedOptions || { ignore: true };
+    const files = [];
+    const added = {};
 
-    const cwd = (options && options.cwd) || process.cwd();
+    const cwd = options.cwd || process.cwd();
+
+    const getIgnorePaths = lodash.memoize(
+        optionsObj =>
+            new IgnoredPaths(optionsObj)
+    );
 
     /**
      * Executes the linter on a file defined by the `filename`. Skips
@@ -151,16 +158,21 @@ function listFilesToProcess(globPatterns, options) {
     globPatterns.forEach(pattern => {
         const file = path.resolve(cwd, pattern);
 
-        if (shell.test("-f", file)) {
-            const ignoredPaths = new IgnoredPaths(options);
+        if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+            const ignoredPaths = getIgnorePaths(options);
 
-            addFile(fs.realpathSync(file), !shell.test("-d", file), ignoredPaths);
+            addFile(fs.realpathSync(file), true, ignoredPaths);
         } else {
 
             // regex to find .hidden or /.hidden patterns, but not ./relative or ../relative
-            const globIncludesDotfiles = /(?:(?:^\.)|(?:[/\\]\.))[^/\\.].*/.test(pattern);
+            const globIncludesDotfiles = dotfilesPattern.test(pattern);
+            let newOptions = options;
 
-            const ignoredPaths = new IgnoredPaths(Object.assign({}, options, { dotfiles: options.dotfiles || globIncludesDotfiles }));
+            if (!options.dotfiles) {
+                newOptions = Object.assign({}, options, { dotfiles: globIncludesDotfiles });
+            }
+
+            const ignoredPaths = getIgnorePaths(newOptions);
             const shouldIgnore = ignoredPaths.getIgnoredFoldersGlobChecker();
             const globOptions = {
                 nodir: true,

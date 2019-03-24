@@ -13,7 +13,7 @@ const astUtils = require("../ast-utils");
 
 /**
  * Checks whether or not a given variable is a function name.
- * @param {escope.Variable} variable - A variable to check.
+ * @param {eslint-scope.Variable} variable - A variable to check.
  * @returns {boolean} `true` if the variable is a function name.
  */
 function isFunctionName(variable) {
@@ -29,7 +29,8 @@ module.exports = {
         docs: {
             description: "require or disallow named `function` expressions",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/func-names"
         },
 
         schema: [

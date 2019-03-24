@@ -35,6 +35,14 @@ module.exports = function (fork) {
       .field("value", Number)
       .field("raw", String);
 
+    // Babylon 6 differs in AST from Flow
+    // same as NumberLiteralTypeAnnotation
+    def("NumericLiteralTypeAnnotation")
+      .bases("Type")
+      .build("value", "raw")
+      .field("value", Number)
+      .field("raw", String);
+
     def("StringTypeAnnotation")
       .bases("Type")
       .build();

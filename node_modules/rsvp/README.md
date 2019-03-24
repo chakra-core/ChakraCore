@@ -1,27 +1,35 @@
 # RSVP.js  [![Build Status](https://secure.travis-ci.org/tildeio/rsvp.js.svg?branch=master)](http://travis-ci.org/tildeio/rsvp.js) [![Inline docs](http://inch-ci.org/github/tildeio/rsvp.js.svg?branch=master)](http://inch-ci.org/github/tildeio/rsvp.js)
-
 RSVP.js provides simple tools for organizing asynchronous code.
 
 Specifically, it is a tiny implementation of Promises/A+.
 
-It works in node and the browser (IE6+, all the popular evergreen ones).
+It works in node and the browser (IE9+, all the popular evergreen ones).
 
 ## downloads
 
-- [rsvp-latest](http://rsvpjs-builds.s3.amazonaws.com/rsvp-latest.js)
-- [rsvp-latest (minified)](http://rsvpjs-builds.s3.amazonaws.com/rsvp-latest.min.js)
+- rsvp ([latest](https://cdn.jsdelivr.net/npm/rsvp/dist/rsvp.js) | [4.x](https://cdn.jsdelivr.net/npm/rsvp@4/dist/rsvp.js))
+- rsvp minified ([latest](https://cdn.jsdelivr.net/npm/rsvp/dist/rsvp.min.js) | [4.x](https://cdn.jsdelivr.net/npm/rsvp@4/dist/rsvp.min.js))
+
+## CDN
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/rsvp@4/dist/rsvp.min.js"></script>
+```
 
 ## Promises
 
-Although RSVP is ES6 compliant, it does bring along some extra toys. If you would prefer a strict ES6 subset, I would suggest checking out our sibling project https://github.com/stefanpenner/es6-promise, It is RSVP but stripped down to the ES6 spec features.
+Although RSVP is ES6 compliant, it does bring along some extra toys. If you
+would prefer a strict ES6 subset, I would suggest checking out our sibling
+project https://github.com/stefanpenner/es6-promise, It is RSVP but stripped
+down to the ES6 spec features.
 
-## Bower
+## Node
 
-`bower install -S rsvp`
-
-## NPM
-
-`npm install --save rsvp`
+```sh
+yarn add --save rsvp
+# or ...
+npm install --save rsvp
+```
 
 `RSVP.Promise` is an implementation of
 [Promises/A+](http://promises-aplus.github.com/promises-spec/) that passes the
@@ -31,11 +39,11 @@ It delivers all promises asynchronously, even if the value is already
 available, to help you write consistent code that doesn't change if the
 underlying data provider changes from synchronous to asynchronous.
 
-It is compatible with [TaskJS](http://taskjs.org/), a library by Dave
-Herman of Mozilla that uses ES6 generators to allow you to write
-synchronous code with promises. It currently works in Firefox, and will
-work in any browser that adds support for ES6 generators. See the
-section below on TaskJS for more information.
+It is compatible with [TaskJS](https://github.com/mozilla/task.js), a library
+by Dave Herman of Mozilla that uses ES6 generators to allow you to write
+synchronous code with promises. It currently works in Firefox, and will work in
+any browser that adds support for ES6 generators. See the section below on
+TaskJS for more information.
 
 ### Basic Usage
 
@@ -56,8 +64,8 @@ promise.then(function(value) {
 });
 ```
 
-Once a promise has been resolved or rejected, it cannot be resolved or
-rejected again.
+Once a promise has been resolved or rejected, it cannot be resolved or rejected
+again.
 
 Here is an example of a simple XHR2 wrapper written using RSVP.js:
 
@@ -91,12 +99,11 @@ getJSON("/posts.json").then(function(json) {
 
 ### Chaining
 
-One of the really awesome features of Promises/A+ promises are that they
-can be chained together. In other words, the return value of the first
+One of the really awesome features of Promises/A+ promises are that they can be
+chained together. In other words, the return value of the first
 resolve handler will be passed to the second resolve handler.
 
-If you return a regular value, it will be passed, as is, to the next
-handler.
+If you return a regular value, it will be passed, as is, to the next handler.
 
 ```javascript
 getJSON("/posts.json").then(function(json) {
@@ -106,8 +113,7 @@ getJSON("/posts.json").then(function(json) {
 });
 ```
 
-The really awesome part comes when you return a promise from the first
-handler:
+The really awesome part comes when you return a promise from the first handler:
 
 ```javascript
 getJSON("/post/1.json").then(function(post) {
@@ -118,9 +124,9 @@ getJSON("/post/1.json").then(function(post) {
 });
 ```
 
-This allows you to flatten out nested callbacks, and is the main feature
-of promises that prevents "rightward drift" in programs with a lot of
-asynchronous code.
+This allows you to flatten out nested callbacks, and is the main feature of
+promises that prevents "rightward drift" in programs with a lot of asynchronous
+code.
 
 Errors also propagate:
 
@@ -133,9 +139,9 @@ getJSON("/posts.json").then(function(posts) {
 });
 ```
 
-You can use this to emulate `try/catch` logic in synchronous code.
-Simply chain as many resolve callbacks as a you want, and add a failure
-handler at the end to catch errors.
+You can use this to emulate `try/catch` logic in synchronous code. Simply chain
+as many resolve callbacks as you want, and add a failure handler at the end to
+catch errors.
 
 ```javascript
 getJSON("/post/1.json").then(function(post) {
@@ -149,14 +155,14 @@ getJSON("/post/1.json").then(function(post) {
 
 ## Error Handling
 
-There are times when dealing with promises that it seems like any errors
-are being 'swallowed', and not properly raised. This makes it extremely
-difficult to track down where a given issue is coming from. Thankfully,
-`RSVP` has a solution for this problem built in.
+There are times when dealing with promises that it seems like any errors are
+being 'swallowed', and not properly raised. This makes it extremely difficult
+to track down where a given issue is coming from. Thankfully, `RSVP` has a
+solution for this problem built in.
 
-You can register functions to be called when an uncaught error occurs
-within your promises. These callback functions can be anything, but a common
-practice is to call `console.assert` to dump the error to the console.
+You can register functions to be called when an uncaught error occurs within
+your promises. These callback functions can be anything, but a common practice
+is to call `console.assert` to dump the error to the console.
 
 ```javascript
 RSVP.on('error', function(reason) {
@@ -178,8 +184,8 @@ RSVP.on('error', function(reason, label) {
 ```
 
 
-**NOTE:** promises do allow for errors to be handled asynchronously, so
-this callback may result in false positives.
+**NOTE:** promises do allow for errors to be handled asynchronously, so this
+callback may result in false positives.
 
 ## Finally
 
@@ -197,11 +203,10 @@ findAuthor().catch(function(reason){
 
 ## Arrays of promises
 
-Sometimes you might want to work with many promises at once. If you
-pass an array of promises to the `all()` method it will return a new
-promise that will be fulfilled when all of the promises in the array
-have been fulfilled; or rejected immediately if any promise in the array
-is rejected.
+Sometimes you might want to work with many promises at once. If you pass an
+array of promises to the `all()` method it will return a new promise that will
+be fulfilled when all of the promises in the array have been fulfilled; or
+rejected immediately if any promise in the array is rejected.
 
 ```javascript
 var promises = [2, 3, 5, 7, 11, 13].map(function(id){
@@ -218,15 +223,15 @@ RSVP.all(promises).then(function(posts) {
 ## Hash of promises
 
 If you need to reference many promises at once (like `all()`), but would like
-to avoid encoding the actual promise order you can use `hash()`. If you pass
-an object literal (where the values are promises) to the `hash()` method it will
+to avoid encoding the actual promise order you can use `hash()`. If you pass an
+object literal (where the values are promises) to the `hash()` method it will
 return a new promise that will be fulfilled when all of the promises have been
 fulfilled; or rejected immediately if any promise is rejected.
 
 The key difference to the `all()` function is that both the fulfillment value
-and the argument to the `hash()` function are object literals. This allows
-you to simply reference the results directly off the returned object without
-having to remember the initial order like you would with `all()`.
+and the argument to the `hash()` function are object literals. This allows you
+to simply reference the results directly off the returned object without having
+to remember the initial order like you would with `all()`.
 
 ```javascript
 var promises = {
@@ -244,12 +249,12 @@ RSVP.hash(promises).then(function(results) {
 
 Sometimes you want to work with several promises at once, but instead of
 rejecting immediately if any promise is rejected, as with `all()` or `hash()`,
-you want to be able to inspect the results of all your promises, whether
-they fulfill or reject. For this purpose, you can use `allSettled()` and
-`hashSettled()`. These work exactly like `all()` and `hash()`, except that
-they fulfill with an array or hash (respectively) of the constituent promises'
-result states. Each state object will either indicate fulfillment or
-rejection, and provide the corresponding value or reason. The states will take
+you want to be able to inspect the results of all your promises, whether they
+fulfill or reject. For this purpose, you can use `allSettled()` and
+`hashSettled()`. These work exactly like `all()` and `hash()`, except that they
+fulfill with an array or hash (respectively) of the constituent promises'
+result states. Each state object will either indicate fulfillment or rejection,
+and provide the corresponding value or reason. The states will take
 one of the following formats:
 
 ```javascript
@@ -265,8 +270,9 @@ one of the following formats:
 > properties of deferred are needed.
 
 Sometimes one needs to create a deferred object, without immediately specifying
-how it will be resolved. These deferred objects are essentially a wrapper around
-a promise, whilst providing late access to the `resolve()` and `reject()` methods.
+how it will be resolved. These deferred objects are essentially a wrapper
+around a promise, whilst providing late access to the `resolve()` and
+`reject()` methods.
 
 A deferred object has this form: `{ promise, resolve(x), reject(r) }`.
 
@@ -281,7 +287,7 @@ deferred.resolve();
 
 ## TaskJS
 
-The [TaskJS](http://taskjs.org/) library makes it possible to take
+The [TaskJS](https://github.com/mozilla/task.js) library makes it possible to take
 promises-oriented code and make it synchronous using ES6 generators.
 
 Let's review an earlier example:
@@ -311,11 +317,11 @@ spawn(function *() {
 ```
 
 In the above example, `function *` is new syntax in ES6 for
-[generators](http://wiki.ecmascript.org/doku.php?id=harmony:generators).
-Inside a generator, `yield` pauses the generator, returning control to
-the function that invoked the generator. In this case, the invoker is a
-special function that understands the semantics of Promises/A, and will
-automatically resume the generator as soon as the promise is resolved.
+[generators](http://wiki.ecmascript.org/doku.php?id=harmony:generators). Inside
+a generator, `yield` pauses the generator, returning control to the function
+that invoked the generator. In this case, the invoker is a special function
+that understands the semantics of Promises/A, and will automatically resume the
+generator as soon as the promise is resolved.
 
 The cool thing here is the same promises that work with current
 JavaScript using `.then` will work seamlessly with TaskJS once a browser

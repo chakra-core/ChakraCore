@@ -222,7 +222,7 @@ User specified `isEqual` will often want to use the default `isEqual`, so it is 
 Example
 
 ```js
-var defaultIsEqual = FSTtreeDiff.isEqual;
+var defaultIsEqual = FSTree.defaultIsEqual;
 
 function isEqualCheckingMeta(a, b) {
   return defaultIsEqual(a, b) && isMetaEqual(a, b);

@@ -79,7 +79,8 @@ module.exports = {
         docs: {
             description: "disallow the use of `eval()`",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-eval"
         },
 
         schema: [
@@ -90,7 +91,11 @@ module.exports = {
                 },
                 additionalProperties: false
             }
-        ]
+        ],
+
+        messages: {
+            unexpected: "eval can be harmful."
+        }
     },
 
     create(context) {
@@ -146,27 +151,26 @@ module.exports = {
          * @returns {void}
          */
         function report(node) {
-            let locationNode = node;
             const parent = node.parent;
+            const locationNode = node.type === "MemberExpression"
+                ? node.property
+                : node;
 
-            if (node.type === "MemberExpression") {
-                locationNode = node.property;
-            }
-            if (parent.type === "CallExpression" && parent.callee === node) {
-                node = parent;
-            }
+            const reportNode = parent.type === "CallExpression" && parent.callee === node
+                ? parent
+                : node;
 
             context.report({
-                node,
+                node: reportNode,
                 loc: locationNode.loc.start,
-                message: "eval can be harmful."
+                messageId: "unexpected"
             });
         }
 
         /**
          * Reports accesses of `eval` via the global object.
          *
-         * @param {escope.Scope} globalScope - The global scope.
+         * @param {eslint-scope.Scope} globalScope - The global scope.
          * @returns {void}
          */
         function reportAccessingEvalViaGlobalObject(globalScope) {
@@ -200,7 +204,7 @@ module.exports = {
         /**
          * Reports all accesses of `eval` (excludes direct calls to eval).
          *
-         * @param {escope.Scope} globalScope - The global scope.
+         * @param {eslint-scope.Scope} globalScope - The global scope.
          * @returns {void}
          */
         function reportAccessingEval(globalScope) {

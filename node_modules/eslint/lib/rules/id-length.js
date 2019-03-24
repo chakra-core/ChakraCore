@@ -15,7 +15,8 @@ module.exports = {
         docs: {
             description: "enforce minimum and maximum identifier lengths",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/id-length"
         },
 
         schema: [
@@ -96,7 +97,7 @@ module.exports = {
                 const isLong = name.length > maxLength;
 
                 if (!(isShort || isLong) || exceptions[name]) {
-                    return;  // Nothing to report
+                    return; // Nothing to report
                 }
 
                 const isValidExpression = SUPPORTED_EXPRESSIONS[parent.type];

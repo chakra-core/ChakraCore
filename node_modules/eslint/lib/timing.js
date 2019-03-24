@@ -84,21 +84,19 @@ function display(data) {
         }
     });
 
-    const table = rows.map(row =>
+    const table = rows.map(row => (
         row
             .map((cell, index) => ALIGN[index](cell, widths[index]))
             .join(" | ")
-    );
+    ));
 
-    table.splice(1, 0, widths.map((w, index) => {
-        if (index !== 0 && index !== widths.length - 1) {
-            w++;
-        }
+    table.splice(1, 0, widths.map((width, index) => {
+        const extraAlignment = index !== 0 && index !== widths.length - 1 ? 2 : 1;
 
-        return ALIGN[index](":", w + 1, "-");
+        return ALIGN[index](":", width + extraAlignment, "-");
     }).join("|"));
 
-    console.log(table.join("\n"));      // eslint-disable-line no-console
+    console.log(table.join("\n")); // eslint-disable-line no-console
 }
 
 /* istanbul ignore next */

@@ -1,3 +1,13 @@
+### Version 0.4.0 (2015-11-12) ###
+
+- Changed: sourceMappingURL comments used to be matched only when placed at
+  the end of the script. However, since several commonly used JavaScript
+  libraries do not follow this convention and all popular web browsers accept
+  non-trailing comments, this has been revised.
+
+  So now non-trailing SourceMappingURL comments are matched as well.
+
+
 ### Version 0.3.0 (2014-08-16) ###
 
 - Changed: sourceMappingURL comments used to be matched only if they appeared

@@ -16,7 +16,8 @@ module.exports = {
         docs: {
             description: "disallow specified warning terms in comments",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-warning-comments"
         },
 
         schema: [
@@ -40,7 +41,8 @@ module.exports = {
 
     create(context) {
 
-        const configuration = context.options[0] || {},
+        const sourceCode = context.getSourceCode(),
+            configuration = context.options[0] || {},
             warningTerms = configuration.terms || ["todo", "fixme", "xxx"],
             location = configuration.location || "start",
             selfConfigRegEx = /\bno-warning-comments\b/;
@@ -128,8 +130,11 @@ module.exports = {
         }
 
         return {
-            BlockComment: checkComment,
-            LineComment: checkComment
+            Program() {
+                const comments = sourceCode.getAllComments();
+
+                comments.filter(token => token.type !== "Shebang").forEach(checkComment);
+            }
         };
     }
 };

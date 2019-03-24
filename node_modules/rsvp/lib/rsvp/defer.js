@@ -1,13 +1,13 @@
 import Promise from "./promise";
 
 /**
-  `RSVP.defer` returns an object similar to jQuery's `$.Deferred`.
-  `RSVP.defer` should be used when porting over code reliant on `$.Deferred`'s
-  interface. New code should use the `RSVP.Promise` constructor instead.
+  `defer` returns an object similar to jQuery's `$.Deferred`.
+  `defer` should be used when porting over code reliant on `$.Deferred`'s
+  interface. New code should use the `Promise` constructor instead.
 
-  The object returned from `RSVP.defer` is a plain object with three properties:
+  The object returned from `defer` is a plain object with three properties:
 
-  * promise - an `RSVP.Promise`.
+  * promise - an `Promise`.
   * reject - a function that causes the `promise` property on this object to
     become rejected
   * resolve - a function that causes the `promise` property on this object to
@@ -16,7 +16,7 @@ import Promise from "./promise";
   Example:
 
    ```javascript
-   let deferred = RSVP.defer();
+   let deferred = defer();
 
    deferred.resolve("Success!");
 
@@ -26,8 +26,9 @@ import Promise from "./promise";
    ```
 
   @method defer
+  @public
   @static
-  @for RSVP
+  @for rsvp
   @param {String} label optional string for labeling the promise.
   Useful for tooling.
   @return {Object}

@@ -1,4 +1,3 @@
-
 /**
  * Module requirements.
  */
@@ -32,6 +31,15 @@ var callbacks;
 function empty () { }
 
 /**
+ * Until https://github.com/tc39/proposal-global is shipped.
+ */
+function glob () {
+  return typeof self !== 'undefined' ? self
+      : typeof window !== 'undefined' ? window
+      : typeof global !== 'undefined' ? global : {};
+}
+
+/**
  * JSONP Polling constructor.
  *
  * @param {Object} opts.
@@ -47,8 +55,8 @@ function JSONPPolling (opts) {
   // we do this here (lazily) to avoid unneeded global pollution
   if (!callbacks) {
     // we need to consider multiple engines in the same page
-    if (!global.___eio) global.___eio = [];
-    callbacks = global.___eio;
+    var global = glob();
+    callbacks = global.___eio = (global.___eio || []);
   }
 
   // callback identifier
@@ -64,8 +72,8 @@ function JSONPPolling (opts) {
   this.query.j = this.index;
 
   // prevent spurious errors from being emitted when the window is unloaded
-  if (global.document && global.addEventListener) {
-    global.addEventListener('beforeunload', function () {
+  if (typeof addEventListener === 'function') {
+    addEventListener('beforeunload', function () {
       if (self.script) self.script.onerror = empty;
     }, false);
   }

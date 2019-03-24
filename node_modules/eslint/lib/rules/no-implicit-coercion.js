@@ -6,7 +6,6 @@
 "use strict";
 
 const astUtils = require("../ast-utils");
-const esUtils = require("esutils");
 
 //------------------------------------------------------------------------------
 // Helpers
@@ -21,7 +20,6 @@ const ALLOWABLE_OPERATORS = ["~", "!!", "+", "*"];
  * @returns {Object} The parsed and normalized option object.
  */
 function parseOptions(options) {
-    options = options || {};
     return {
         boolean: "boolean" in options ? Boolean(options.boolean) : true,
         number: "number" in options ? Boolean(options.number) : true,
@@ -157,7 +155,8 @@ module.exports = {
         docs: {
             description: "disallow shorthand type conversions",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-implicit-coercion"
         },
 
         fixable: "code",
@@ -186,19 +185,17 @@ module.exports = {
     },
 
     create(context) {
-        const options = parseOptions(context.options[0]);
+        const options = parseOptions(context.options[0] || {});
         const sourceCode = context.getSourceCode();
 
         /**
-        * Reports an error and autofixes the node
-        * @param {ASTNode} node - An ast node to report the error on.
-        * @param {string} recommendation - The recommended code for the issue
-        * @param {bool} shouldFix - Whether this report should fix the node
-        * @returns {void}
-        */
+         * Reports an error and autofixes the node
+         * @param {ASTNode} node - An ast node to report the error on.
+         * @param {string} recommendation - The recommended code for the issue
+         * @param {bool} shouldFix - Whether this report should fix the node
+         * @returns {void}
+         */
         function report(node, recommendation, shouldFix) {
-            shouldFix = typeof shouldFix === "undefined" ? true : shouldFix;
-
             context.report({
                 node,
                 message: "use `{{recommendation}}` instead.",
@@ -215,8 +212,7 @@ module.exports = {
                     if (
                         tokenBefore &&
                         tokenBefore.range[1] === node.range[0] &&
-                        esUtils.code.isIdentifierPartES6(tokenBefore.value.slice(-1).charCodeAt(0)) &&
-                        esUtils.code.isIdentifierPartES6(recommendation.charCodeAt(0))
+                        !astUtils.canTokensBeAdjacent(tokenBefore, recommendation)
                     ) {
                         return fixer.replaceText(node, ` ${recommendation}`);
                     }
@@ -234,7 +230,7 @@ module.exports = {
                 if (!operatorAllowed && options.boolean && isDoubleLogicalNegating(node)) {
                     const recommendation = `Boolean(${sourceCode.getText(node.argument.argument)})`;
 
-                    report(node, recommendation);
+                    report(node, recommendation, true);
                 }
 
                 // ~foo.indexOf(bar)
@@ -250,7 +246,7 @@ module.exports = {
                 if (!operatorAllowed && options.number && node.operator === "+" && !isNumeric(node.argument)) {
                     const recommendation = `Number(${sourceCode.getText(node.argument)})`;
 
-                    report(node, recommendation);
+                    report(node, recommendation, true);
                 }
             },
 
@@ -265,7 +261,7 @@ module.exports = {
                 if (nonNumericOperand) {
                     const recommendation = `Number(${sourceCode.getText(nonNumericOperand)})`;
 
-                    report(node, recommendation);
+                    report(node, recommendation, true);
                 }
 
                 // "" + foo
@@ -273,7 +269,7 @@ module.exports = {
                 if (!operatorAllowed && options.string && isConcatWithEmptyString(node)) {
                     const recommendation = `String(${sourceCode.getText(getNonEmptyOperand(node))})`;
 
-                    report(node, recommendation);
+                    report(node, recommendation, true);
                 }
             },
 
@@ -286,7 +282,7 @@ module.exports = {
                     const code = sourceCode.getText(getNonEmptyOperand(node));
                     const recommendation = `${code} = String(${code})`;
 
-                    report(node, recommendation);
+                    report(node, recommendation, true);
                 }
             }
         };

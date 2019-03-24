@@ -1,11 +1,12 @@
 import Promise from "./promise";
 
 /**
-  This is a convenient alias for `RSVP.Promise.all`.
+  This is a convenient alias for `Promise.all`.
 
   @method all
+  @public
   @static
-  @for RSVP
+  @for rsvp
   @param {Array} array Array of promises.
   @param {String} label An optional label. This is useful
   for tooling.

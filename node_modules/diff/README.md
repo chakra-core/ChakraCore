@@ -12,10 +12,6 @@ Based on the algorithm proposed in
 ```bash
 npm install diff --save
 ```
-or
-```bash
-bower install jsdiff --save
-```
 
 ## API
 
@@ -132,7 +128,7 @@ Many of the methods above return change objects. These objects consist of the fo
 
 * `value`: Text content
 * `added`: True if the value was inserted into the new string
-* `removed`: True of the value was removed from the old string
+* `removed`: True if the value was removed from the old string
 
 Note that some cases may omit a particular flag field. Comparison on the flag fields should always be done in a truthy or falsy manner.
 

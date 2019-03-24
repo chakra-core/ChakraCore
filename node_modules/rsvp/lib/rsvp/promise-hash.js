@@ -5,8 +5,6 @@ import {
   fulfill
 } from './-internal';
 
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-
 export default class PromiseHash extends Enumerator {
   constructor(Constructor, object, abortOnReject = true, label) {
     super(Constructor, object, abortOnReject, label);
@@ -14,33 +12,23 @@ export default class PromiseHash extends Enumerator {
 
   _init(Constructor, object) {
     this._result = {};
-
     this._enumerate(object);
-    if (this._remaining === 0) {
-      fulfill(this.promise, this._result);
-    }
   }
 
   _enumerate(input) {
-    let promise    = this.promise;
-    let results    = [];
+    let keys = Object.keys(input);
 
-    for (let key in input) {
-      if (hasOwnProperty.call(input, key)) {
-        results.push({
-          position: key,
-          entry: input[key]
-        });
-      }
-    }
-
-    let length = results.length;
+    let length = keys.length;
+    let promise = this.promise;
     this._remaining = length;
-    let result;
 
+    let key, val;
     for (let i = 0; promise._state === PENDING && i < length; i++) {
-      result = results[i];
-      this._eachEntry(result.entry, result.position);
+      key = keys[i];
+      val = input[key];
+      this._eachEntry(val, key, true);
     }
+
+    this._checkFullfillment();
   }
 }

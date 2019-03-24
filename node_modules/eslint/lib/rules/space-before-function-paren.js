@@ -19,7 +19,8 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing before `function` definition opening parenthesis",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/space-before-function-paren"
         },
 
         fixable: "whitespace",
@@ -87,9 +88,7 @@ module.exports = {
 
                 // Always ignore non-async functions and arrow functions without parens, e.g. async foo => bar
                 if (node.async && astUtils.isOpeningParenToken(sourceCode.getFirstToken(node, { skip: 1 }))) {
-
-                    // For backwards compatibility, the base config does not apply to async arrow functions.
-                    return overrideConfig.asyncArrow || "ignore";
+                    return overrideConfig.asyncArrow || baseConfig;
                 }
             } else if (isNamedFunction(node)) {
                 return overrideConfig.named || baseConfig;

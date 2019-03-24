@@ -24,7 +24,8 @@ module.exports = {
         docs: {
             description: "require parentheses when invoking a constructor with no arguments",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/new-parens"
         },
 
         schema: [],
@@ -38,7 +39,7 @@ module.exports = {
         return {
             NewExpression(node) {
                 if (node.arguments.length !== 0) {
-                    return;  // shortcut: if there are arguments, there have to be parens
+                    return; // shortcut: if there are arguments, there have to be parens
                 }
 
                 const lastToken = sourceCode.getLastToken(node);

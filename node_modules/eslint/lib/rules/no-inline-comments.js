@@ -15,7 +15,8 @@ module.exports = {
         docs: {
             description: "disallow inline comments after code",
             category: "Stylistic Issues",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-inline-comments"
         },
 
         schema: []
@@ -55,10 +56,11 @@ module.exports = {
         //--------------------------------------------------------------------------
 
         return {
+            Program() {
+                const comments = sourceCode.getAllComments();
 
-            LineComment: testCodeAroundComment,
-            BlockComment: testCodeAroundComment
-
+                comments.filter(token => token.type !== "Shebang").forEach(testCodeAroundComment);
+            }
         };
     }
 };

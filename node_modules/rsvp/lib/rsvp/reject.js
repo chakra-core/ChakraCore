@@ -1,11 +1,12 @@
 import Promise from './promise';
 
 /**
-  This is a convenient alias for `RSVP.Promise.reject`.
+  This is a convenient alias for `Promise.reject`.
 
   @method reject
+  @public
   @static
-  @for RSVP
+  @for rsvp
   @param {*} reason value that the returned promise will be rejected with.
   @param {String} label optional string for identifying the returned promise.
   Useful for tooling.

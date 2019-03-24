@@ -13,7 +13,8 @@ module.exports = {
         docs: {
             description: "disallow the use of `undefined` as an identifier",
             category: "Variables",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-undefined"
         },
 
         schema: []
@@ -36,7 +37,7 @@ module.exports = {
         /**
          * Checks the given scope for references to `undefined` and reports
          * all references found.
-         * @param {escope.Scope} scope The scope to check.
+         * @param {eslint-scope.Scope} scope The scope to check.
          * @returns {void}
          */
         function checkScope(scope) {

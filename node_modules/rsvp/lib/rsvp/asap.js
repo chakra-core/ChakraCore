@@ -83,8 +83,7 @@ function flush() {
 
 function attemptVertex() {
   try {
-    let r = require;
-    let vertx = r('vertx');
+    const vertx = Function('return this')().require('vertx');
     vertxNext = vertx.runOnLoop || vertx.runOnContext;
     return useVertxTimer();
   } catch(e) {

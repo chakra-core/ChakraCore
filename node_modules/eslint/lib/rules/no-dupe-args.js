@@ -14,10 +14,15 @@ module.exports = {
         docs: {
             description: "disallow duplicate arguments in `function` definitions",
             category: "Possible Errors",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-dupe-args"
         },
 
-        schema: []
+        schema: [],
+
+        messages: {
+            unexpected: "Duplicate param '{{name}}'."
+        }
     },
 
     create(context) {
@@ -28,7 +33,7 @@ module.exports = {
 
         /**
          * Checks whether or not a given definition is a parameter's.
-         * @param {escope.DefEntry} def - A definition to check.
+         * @param {eslint-scope.DefEntry} def - A definition to check.
          * @returns {boolean} `true` if the definition is a parameter's.
          */
         function isParameter(def) {
@@ -53,7 +58,7 @@ module.exports = {
                 if (defs.length >= 2) {
                     context.report({
                         node,
-                        message: "Duplicate param '{{name}}'.",
+                        messageId: "unexpected",
                         data: { name: variable.name }
                     });
                 }

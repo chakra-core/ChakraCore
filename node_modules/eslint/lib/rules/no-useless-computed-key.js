@@ -9,7 +9,6 @@
 //------------------------------------------------------------------------------
 
 const astUtils = require("../ast-utils");
-const esUtils = require("esutils");
 
 //------------------------------------------------------------------------------
 // Rule Definition
@@ -22,7 +21,8 @@ module.exports = {
         docs: {
             description: "disallow unnecessary computed property keys in object literals",
             category: "ECMAScript 6",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-useless-computed-key"
         },
 
         schema: [],
@@ -51,7 +51,8 @@ module.exports = {
                             const rightSquareBracket = sourceCode.getFirstTokenBetween(node.key, node.value, astUtils.isClosingBracketToken);
                             const tokensBetween = sourceCode.getTokensBetween(leftSquareBracket, rightSquareBracket, 1);
 
-                            if (tokensBetween.slice(0, -1).some((token, index) => sourceCode.getText().slice(token.range[1], tokensBetween[index + 1].range[0]).trim())) {
+                            if (tokensBetween.slice(0, -1).some((token, index) =>
+                                sourceCode.getText().slice(token.range[1], tokensBetween[index + 1].range[0]).trim())) {
 
                                 // If there are comments between the brackets and the property name, don't do a fix.
                                 return null;
@@ -61,8 +62,7 @@ module.exports = {
 
                             // Insert a space before the key to avoid changing identifiers, e.g. ({ get[2]() {} }) to ({ get2() {} })
                             const needsSpaceBeforeKey = tokenBeforeLeftBracket.range[1] === leftSquareBracket.range[0] &&
-                                esUtils.code.isIdentifierPartES6(tokenBeforeLeftBracket.value.slice(-1).charCodeAt(0)) &&
-                                esUtils.code.isIdentifierPartES6(key.raw.charCodeAt(0));
+                                !astUtils.canTokensBeAdjacent(tokenBeforeLeftBracket, sourceCode.getFirstToken(key));
 
                             const replacementKey = (needsSpaceBeforeKey ? " " : "") + key.raw;
 

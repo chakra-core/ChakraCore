@@ -19,7 +19,8 @@ module.exports = {
         docs: {
             description: "disallow confusing multiline expressions",
             category: "Possible Errors",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-unexpected-multiline"
         },
 
         schema: []
@@ -30,6 +31,9 @@ module.exports = {
         const FUNCTION_MESSAGE = "Unexpected newline between function and ( of function call.";
         const PROPERTY_MESSAGE = "Unexpected newline between object and [ of property access.";
         const TAGGED_TEMPLATE_MESSAGE = "Unexpected newline between template tag and template literal.";
+        const DIVISION_MESSAGE = "Unexpected newline between numerator and division operator.";
+
+        const REGEX_FLAG_MATCHER = /^[gimsuy]+$/;
 
         const sourceCode = context.getSourceCode();
 
@@ -75,6 +79,19 @@ module.exports = {
                     return;
                 }
                 checkForBreakAfter(node.callee, FUNCTION_MESSAGE);
+            },
+
+            "BinaryExpression[operator='/'] > BinaryExpression[operator='/'].left"(node) {
+                const secondSlash = sourceCode.getTokenAfter(node, token => token.value === "/");
+                const tokenAfterOperator = sourceCode.getTokenAfter(secondSlash);
+
+                if (
+                    tokenAfterOperator.type === "Identifier" &&
+                    REGEX_FLAG_MATCHER.test(tokenAfterOperator.value) &&
+                    secondSlash.range[1] === tokenAfterOperator.range[0]
+                ) {
+                    checkForBreakAfter(node.left, DIVISION_MESSAGE);
+                }
             }
         };
 

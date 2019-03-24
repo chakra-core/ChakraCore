@@ -2,16 +2,30 @@
 
 ## Development
 
-[Commits](https://github.com/kpdecker/jsdiff/compare/v3.5.0...master)
+[Commits](https://github.com/kpdecker/jsdiff/compare/v4.0.1...master)
 
-## v3.5.0 - March 4th, 2018
-- Omit redundant slice in join method of diffArrays - 1023590
-- Support patches with empty lines - fb0f208
-- Accept a custom JSON replacer function for JSON diffing - 69c7f0a
-- Optimize parch header parser - 2aec429
-- Fix typos - e89c832
+## v4.0.1 - January 6th, 2019
+- Fix main reference path - b826104
 
-[Commits](https://github.com/kpdecker/jsdiff/compare/v3.5.0...v3.5.0)
+[Commits](https://github.com/kpdecker/jsdiff/compare/v4.0.0...v4.0.1)
+
+## v4.0.0 - January 5th, 2019
+- [#94](https://github.com/kpdecker/jsdiff/issues/94) - Missing "No newline at end of file" when comparing two texts that do not end in newlines ([@federicotdn](https://api.github.com/users/federicotdn))
+- [#227](https://github.com/kpdecker/jsdiff/issues/227) - Licence
+- [#199](https://github.com/kpdecker/jsdiff/issues/199) - Import statement for jsdiff
+- [#159](https://github.com/kpdecker/jsdiff/issues/159) - applyPatch affecting wrong line number with with new lines
+- [#8](https://github.com/kpdecker/jsdiff/issues/8) - A new state "replace"
+- Drop ie9 from karma targets - 79c31bd
+- Upgrade deps. Convert from webpack to rollup - 2c1a29c
+- Make ()[]"' as word boundaries between each other - f27b899
+- jsdiff: Replaced phantomJS by chrome - ec3114e
+- Add yarn.lock to .npmignore - 29466d8
+
+Compatibility notes:
+- Bower and Component packages no longer supported
+
+
+[Commits](https://github.com/kpdecker/jsdiff/compare/v3.5.0...v4.0.0)
 
 ## v3.5.0 - March 4th, 2018
 - Omit redundant slice in join method of diffArrays - 1023590

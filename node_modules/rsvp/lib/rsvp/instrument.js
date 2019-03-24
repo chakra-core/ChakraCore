@@ -1,5 +1,4 @@
 import { config } from './config';
-import { now } from './utils';
 
 const queue = [];
 
@@ -32,7 +31,7 @@ export default function instrument(eventName, promise, child) {
       detail: promise._result,
       childId: child && child._id,
       label: promise._label,
-      timeStamp: now(),
+      timeStamp: Date.now(),
       error: config["instrument-with-stack"] ? new Error(promise._label) : null
     }})) {
       scheduleFlush();

@@ -93,7 +93,8 @@ module.exports = {
         docs: {
             description: "disallow empty functions",
             category: "Best Practices",
-            recommended: false
+            recommended: false,
+            url: "https://eslint.org/docs/rules/no-empty-function"
         },
 
         schema: [
@@ -108,7 +109,11 @@ module.exports = {
                 },
                 additionalProperties: false
             }
-        ]
+        ],
+
+        messages: {
+            unexpected: "Unexpected empty {{name}}."
+        }
     },
 
     create(context) {
@@ -132,16 +137,20 @@ module.exports = {
         function reportIfEmpty(node) {
             const kind = getKind(node);
             const name = astUtils.getFunctionNameWithKind(node);
+            const innerComments = sourceCode.getTokens(node.body, {
+                includeComments: true,
+                filter: astUtils.isCommentToken
+            });
 
             if (allowed.indexOf(kind) === -1 &&
                 node.body.type === "BlockStatement" &&
                 node.body.body.length === 0 &&
-                sourceCode.getComments(node.body).trailing.length === 0
+                innerComments.length === 0
             ) {
                 context.report({
                     node,
                     loc: node.body.loc.start,
-                    message: "Unexpected empty {{name}}.",
+                    messageId: "unexpected",
                     data: { name }
                 });
             }

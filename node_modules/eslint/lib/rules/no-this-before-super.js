@@ -39,7 +39,8 @@ module.exports = {
         docs: {
             description: "disallow `this`/`super` before calling `super()` in constructors",
             category: "ECMAScript 6",
-            recommended: true
+            recommended: true,
+            url: "https://eslint.org/docs/rules/no-this-before-super"
         },
 
         schema: []
@@ -89,7 +90,7 @@ module.exports = {
          */
         function isBeforeCallOfSuper() {
             return (
-                isInConstructorOfDerivedClass(funcInfo) &&
+                isInConstructorOfDerivedClass() &&
                 !funcInfo.codePath.currentSegments.every(isCalled)
             );
         }
@@ -206,7 +207,7 @@ module.exports = {
              * @returns {void}
              */
             onCodePathSegmentStart(segment) {
-                if (!isInConstructorOfDerivedClass(funcInfo)) {
+                if (!isInConstructorOfDerivedClass()) {
                     return;
                 }
 
@@ -230,7 +231,7 @@ module.exports = {
              * @returns {void}
              */
             onCodePathSegmentLoop(fromSegment, toSegment) {
-                if (!isInConstructorOfDerivedClass(funcInfo)) {
+                if (!isInConstructorOfDerivedClass()) {
                     return;
                 }
 
