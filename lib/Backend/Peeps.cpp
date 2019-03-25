@@ -438,6 +438,25 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
         //
         // Remove branch-to-next
         //
+        IR::Instr * instrSkip = instrNext;
+        while (instrSkip != targetInstr && instrSkip->IsLabelInstr())
+        {
+            // Skip adjacent labels
+            instrSkip = instrSkip->GetNextRealInstrOrLabel();
+        }
+        if (instrSkip->IsLabelInstr())
+        {
+            if (instrNext == instrSkip)
+            {
+                instrSkip = nullptr;
+            }
+            else
+            {
+                IR::Instr *instrTmp = instrSkip;
+                instrSkip = instrNext;
+                instrNext = instrTmp;
+            }
+        }
         if (targetInstr == instrNext)
         {
             if (!branchInstr->IsLowered())
@@ -532,7 +551,14 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
                 // The branch removal could have exposed a branch to next opportunity.
                 return Peeps::PeepBranch(instrPrev->AsBranchInstr());
             }
-            return instrNext;
+            if (instrSkip)
+            {
+                return instrSkip;
+            }
+            else
+            {
+                return instrNext;
+            }
         }
     }
     else if (branchInstr->IsConditional())
