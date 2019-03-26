@@ -24,5 +24,31 @@
     "typescript": "^3.3.4000",
     "uglify": "^0.1.5",
     "vue": "^2.6.10"
-  }
+  },
+  "name": "chakracore",
+  "description": "[![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "yarn watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edwinfrc/ChakraCore.git"
+  },
+  "keywords": [
+    "npm",
+    "run",
+    "test"
+  ],
+  "author": "edwinfrc",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/edwinfrc/ChakraCore/issues"
+  },
+  "homepage": "https://github.com/edwinfrc/ChakraCore#readme"
 }
