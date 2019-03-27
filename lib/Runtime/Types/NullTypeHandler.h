@@ -19,7 +19,7 @@ namespace Js
 
         DEFINE_VTABLE_CTOR_NO_REGISTER(NullTypeHandlerBase, DynamicTypeHandler);
 
-        bool isPrototype;
+        FieldNoBarrier(bool) isPrototype;
 
     public:
         DEFINE_GETCPPNAME();
