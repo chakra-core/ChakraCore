@@ -74,9 +74,23 @@ class RollingFileWriteStream extends Writable {
       currentIndex: 0,
       currentSize: 0
     };
+
+    if (this.options.flags === 'a') {
+      this.state.currentSize = this._getExistingSize();
+    }
+
     debug(`create new file with no hot file. name=${this.justTheFile}, state=${JSON.stringify(this.state)}`);
     this._renewWriteStream();
 
+  }
+
+  _getExistingSize() {
+    try {
+      return fs.statSync(this.filename).size;
+    } catch (e) {
+      //file does not exist, that's fine - move along
+      return 0;
+    }
   }
 
   _parseOption(rawOptions) {

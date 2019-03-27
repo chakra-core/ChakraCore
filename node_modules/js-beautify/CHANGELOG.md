@@ -1,4 +1,14 @@
 # Changelog
+## v1.9.1
+
+### Description
+
+
+### Closed Issues
+* nested table not beautified correctly ([#1649](https://github.com/beautify-web/js-beautify/issues/1649))
+* Add an option to preserve indentation on empty lines ([#1322](https://github.com/beautify-web/js-beautify/issues/1322))
+
+
 ## v1.9.0
 
 ### Description

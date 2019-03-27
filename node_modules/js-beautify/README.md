@@ -61,17 +61,17 @@ JS Beautifier is hosted on two CDN services: [cdnjs](https://cdnjs.com/libraries
 
 To pull the latest version from one of these services include one set of the script tags below in your document:
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify-css.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify-html.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify-css.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify-html.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify-css.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.0/beautify-html.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.9.1/beautify-html.min.js"></script>
 
-<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.0/js/lib/beautify.js"></script>
-<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.0/js/lib/beautify-css.js"></script>
-<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.0/js/lib/beautify-html.js"></script>
+<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.1/js/lib/beautify.js"></script>
+<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.1/js/lib/beautify-css.js"></script>
+<script src="https://cdn.rawgit.com/beautify-web/js-beautify/v1.9.1/js/lib/beautify-html.js"></script>
 ```
 
 Older versions are available by changing the version number.
@@ -190,6 +190,7 @@ Beautifier Options:
   --good-stuff                      Warm the cockles of Crockford's heart
   -C, --comma-first                 Put commas at the beginning of new line instead of end
   -O, --operator-position           Set operator position (before-newline|after-newline|preserve-newline) [before-newline]
+  --indent-empty-lines              Keep indentation on empty lines
 ```
 
 Which correspond to the underscored option keys for both library interfaces
@@ -219,7 +220,8 @@ Which correspond to the underscored option keys for both library interfaces
     "wrap_line_length": 0,
     "e4x": false,
     "comma_first": false,
-    "operator_position": "before-newline"
+    "operator_position": "before-newline",
+    "indent_empty_lines": false
 }
 ```
 
@@ -316,6 +318,7 @@ CSS Beautifier Options:
   -n, --end-with-newline             End output with newline
   -L, --selector-separator-newline   Add a newline between multiple selectors
   -N, --newline-between-rules        Add a newline between CSS rules
+  --indent-empty-lines               Keep indentation on empty lines
 
 HTML Beautifier Options:
   -s, --indent-size                  Indentation size [4]
@@ -338,16 +341,37 @@ HTML Beautifier Options:
   --editorconfig                     Use EditorConfig to set up the options
   --indent_scripts                   Sets indent level inside script tags ("normal", "keep", "separate")
   --unformatted_content_delimiter    Keep text content together between this string [""]
+  --indent-empty-lines               Keep indentation on empty lines
 ```
 
-## Directives to Ignore or Preserve sections (Javascript beautifier only)
+## Directives
 
-Beautifier for  supports directives in comments inside the file.
-This allows you to tell the beautifier to preserve the formatting of or completely ignore part of a file.
-The example input below will remain changed after beautification
+Directives let you control the behavior of the Beautifier from within your source files. Directives are placed in comments inside the file.  Directives are in the format `/* beautify {name}:{value} */` in CSS and JavaScript. In HTML they are formatted as `<!-- beautify {name}:{value} -->`. 
+
+### Ignore directive
+
+The `ignore` directive makes the beautifier completely ignore part of a file, treating it as literal text that is not parsed.  
+The input below will remain unchanged after beautification:
 
 ```js
-// Use preserve when the content is not javascript, but you don't want it reformatted.
+// Use ignore when the content is not parsable in the current language, JavaScript in this case.
+var a =  1;
+/* beautify ignore:start */
+ {This is some strange{template language{using open-braces?
+/* beautify ignore:end */
+```
+
+### Preserve directive 
+
+NOTE: this directive only works in HTML and JavaScript, not CSS. 
+
+The `preserve` directive makes the Beautifier parse and then keep the existing formatting of a section of code.
+
+The input below will remain unchanged after beautification:
+
+```js
+// Use preserve when the content is valid syntax in the current language, JavaScript in this case.
+// This will parse the code and preserve the existing formatting.
 /* beautify preserve:start */
 {
     browserName: 'internet explorer',
@@ -355,12 +379,6 @@ The example input below will remain changed after beautification
     version:     '8'
 }
 /* beautify preserve:end */
-
-// Use ignore when the content is not parsable as javascript.
-var a =  1;
-/* beautify ignore:start */
- {This is some strange{template language{using open-braces?
-/* beautify ignore:end */
 ```
 
 # License
@@ -378,4 +396,4 @@ Thanks also to Jason Diamond, Patrick Hof, Nochum Sossonko, Andreas Schneider, D
 Vasilevsky, Vital Batmanov, Ron Baldwin, Gabriel Harrison, Chris J. Shull,
 Mathias Bynens, Vittorio Gambaletta and others.
 
-(README.md: js-beautify@1.9.0)
+(README.md: js-beautify@1.9.1)

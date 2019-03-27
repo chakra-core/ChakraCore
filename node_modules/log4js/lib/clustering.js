@@ -1,7 +1,7 @@
+const cluster = require('cluster');
 const debug = require('debug')('log4js:clustering');
 const LoggingEvent = require('./LoggingEvent');
 const configuration = require('./configuration');
-const cluster = require('cluster');
 
 const listeners = [];
 

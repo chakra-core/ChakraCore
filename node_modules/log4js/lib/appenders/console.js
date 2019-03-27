@@ -1,5 +1,6 @@
 'use strict';
 
+// eslint-disable-next-line no-console
 const consoleLog = console.log.bind(console);
 
 function consoleAppender(layout, timezoneOffset) {

@@ -43,12 +43,12 @@ function colorize(str, style) {
 function timestampLevelAndCategory(loggingEvent, colour) {
   return colorize(
     util.format(
-      '[%s] [%s] %s - '
-      , dateFormat.asString(loggingEvent.startTime)
-      , loggingEvent.level
-      , loggingEvent.categoryName
-    )
-    , colour
+      '[%s] [%s] %s - ',
+      dateFormat.asString(loggingEvent.startTime),
+      loggingEvent.level,
+      loggingEvent.categoryName
+    ),
+    colour
   );
 }
 

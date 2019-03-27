@@ -31,11 +31,11 @@ const tryLoading = (modulePath, config) => {
   }
 };
 
-const loadAppenderModule = (type, config) => coreAppenders.get(type) ||
-  tryLoading(`./${type}`, config) ||
-  tryLoading(type, config) ||
-  (require.main && tryLoading(path.join(path.dirname(require.main.filename), type), config)) ||
-  tryLoading(path.join(process.cwd(), type), config);
+const loadAppenderModule = (type, config) => coreAppenders.get(type)
+  || tryLoading(`./${type}`, config)
+  || tryLoading(type, config)
+  || (require.main && tryLoading(path.join(path.dirname(require.main.filename), type), config))
+  || tryLoading(path.join(process.cwd(), type), config);
 
 const createAppender = (name, config) => {
   const appenderConfig = config.appenders[name];

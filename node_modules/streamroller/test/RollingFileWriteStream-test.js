@@ -699,6 +699,66 @@ describe('RollingFileWriteStream', () => {
     });
   });
 
+  describe('when old files exist with contents', () => {
+    const fileObj = generateTestFile();
+    let s;
+
+    before(done => {
+      fakeNow = new Date(2012, 8, 12, 10, 37, 11);
+      fs.ensureFileSync(fileObj.path);
+      fs.writeFileSync(fileObj.path, 'This is exactly 30 bytes long\n');
+      s = new RollingFileWriteStream(fileObj.path, { maxSize: 35 });
+      s.write('one\n', 'utf8'); //34
+      s.write('two\n', 'utf8'); //38 - file should be rotated next time
+      s.write('three\n', 'utf8', done); // this should be in a new file.
+    });
+
+    after(() => {
+      s.end();
+      fs.removeSync(fileObj.dir);
+    });
+
+    it('should respect the existing file size', () => {
+      const files = fs.readdirSync(fileObj.dir);
+      const expectedFileList = [fileObj.base, fileObj.base + '.1'];
+      files.length.should.equal(expectedFileList.length);
+      files.should.containDeep(expectedFileList);
+
+      fs.readFileSync(path.format(fileObj)).toString().should.equal('three\n');
+      fs.readFileSync(path.join(fileObj.dir, fileObj.base + '.1')).toString().should.equal('This is exactly 30 bytes long\none\ntwo\n');
+
+    });
+  });
+
+  describe('when old files exist with contents and stream created with overwrite flag', () => {
+    const fileObj = generateTestFile();
+    let s;
+
+    before(done => {
+      fakeNow = new Date(2012, 8, 12, 10, 37, 11);
+      fs.ensureFileSync(fileObj.path);
+      fs.writeFileSync(fileObj.path, 'This is exactly 30 bytes long\n');
+      s = new RollingFileWriteStream(fileObj.path, { maxSize: 35, flags: 'w' });
+      s.write('there should only be this\n', 'utf8', done);
+    });
+
+    after(() => {
+      s.end();
+      fs.removeSync(fileObj.dir);
+    });
+
+    it('should ignore the existing file size', () => {
+      const files = fs.readdirSync(fileObj.dir);
+      const expectedFileList = [fileObj.base];
+      files.length.should.equal(expectedFileList.length);
+      files.should.containDeep(expectedFileList);
+
+      s.state.currentSize.should.equal(26);
+
+      fs.readFileSync(path.format(fileObj)).toString().should.equal('there should only be this\n');
+    });
+  });
+
   describe('when dir does not exist', () => {
     const fileObj = generateTestFile();
     let s;

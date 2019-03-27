@@ -65,6 +65,7 @@ function configure(configurationFileOrObject) {
 
   enabled = true;
 
+  // eslint-disable-next-line no-use-before-define
   return log4js;
 }
 

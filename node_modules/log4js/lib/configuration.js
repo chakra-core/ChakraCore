@@ -22,8 +22,8 @@ const throwExceptionIf = (config, checks, message) => {
   const tests = Array.isArray(checks) ? checks : [checks];
   tests.forEach((test) => {
     if (test) {
-      throw new Error(`Problem with log4js configuration: (${util.inspect(config, { depth: 5 })})` +
-        ` - ${message}`);
+      throw new Error(`Problem with log4js configuration: (${util.inspect(config, { depth: 5 })})`
+        + ` - ${message}`);
     }
   });
 };

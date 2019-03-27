@@ -4,21 +4,20 @@
 
 const levels = require('./levels');
 
-const DEFAULT_FORMAT = ':remote-addr - -' +
-  ' ":method :url HTTP/:http-version"' +
-  ' :status :content-length ":referrer"' +
-  ' ":user-agent"';
+const DEFAULT_FORMAT = ':remote-addr - -'
+  + ' ":method :url HTTP/:http-version"'
+  + ' :status :content-length ":referrer"'
+  + ' ":user-agent"';
 
-  /**
-   * Return request url path,
-   * adding this function prevents the Cyclomatic Complexity,
-   * for the assemble_tokens function at low, to pass the tests.
-   *
-   * @param  {IncomingMessage} req
-   * @return {String}
-   * @api private
-   */
-
+/**
+ * Return request url path,
+ * adding this function prevents the Cyclomatic Complexity,
+ * for the assemble_tokens function at low, to pass the tests.
+ *
+ * @param  {IncomingMessage} req
+ * @return {String}
+ * @api private
+ */
 function getUrl(req) {
   return req.originalUrl || req.url;
 }
@@ -67,21 +66,21 @@ function assembleTokens(req, res, customTokens) {
   });
   defaultTokens.push({
     token: ':remote-addr',
-    replacement: req.headers['x-forwarded-for'] ||
-      req.ip ||
-      req._remoteAddress ||
-      (req.socket &&
-        (req.socket.remoteAddress ||
-          (req.socket.socket && req.socket.socket.remoteAddress)
+    replacement: req.headers['x-forwarded-for']
+      || req.ip
+      || req._remoteAddress
+      || (req.socket
+        && (req.socket.remoteAddress
+          || (req.socket.socket && req.socket.socket.remoteAddress)
         )
       )
   });
   defaultTokens.push({ token: ':user-agent', replacement: req.headers['user-agent'] });
   defaultTokens.push({
     token: ':content-length',
-    replacement: res.getHeader('content-length') ||
-      (res.__headers && res.__headers['Content-Length']) ||
-      '-'
+    replacement: res.getHeader('content-length')
+      || (res.__headers && res.__headers['Content-Length'])
+      || '-'
   });
   defaultTokens.push({
     token: /:req\[([^\]]+)]/g,

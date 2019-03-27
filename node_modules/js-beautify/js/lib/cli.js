@@ -92,6 +92,7 @@ var path = require('path'),
         "end_with_newline": Boolean,
         "comma_first": Boolean,
         "operator_position": ["before-newline", "after-newline", "preserve-newline"],
+        "indent_empty_lines": Boolean,
         // CSS-only
         "selector_separator_newline": Boolean,
         "newline_between_rules": Boolean,
@@ -177,6 +178,7 @@ var path = require('path'),
         "q": ["--quiet"]
         // no shorthand for "config"
         // no shorthand for "editorconfig"
+        // no shorthand for "indent_empty_lines"
     });
 
 function verifyExists(fullPath) {
@@ -346,6 +348,7 @@ function usage(err) {
         '  -e, --eol                         Character(s) to use as line terminators.',
         '                                    [first newline in file, otherwise "\\n]',
         '  -n, --end-with-newline            End output with newline',
+        '  --indent-empty-lines              Keep indentation on empty lines',
         '  --editorconfig                    Use EditorConfig to set up the options'
     ];
 

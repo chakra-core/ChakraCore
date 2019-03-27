@@ -1,5 +1,8 @@
 # Streamroller Changelog
 
+## 1.0.4
+  * [Fix for initial size when appending to existing file](https://github.com/log4js-node/streamroller/pull/35)
+  
 ## 1.0.3
   * [Fix for crash when pattern is all digits](https://github.com/log4js-node/streamroller/pull/33)
 

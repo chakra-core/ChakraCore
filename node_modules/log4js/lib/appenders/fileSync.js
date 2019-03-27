@@ -71,7 +71,8 @@ class RollingFileSync {
     function byIndex(a, b) {
       if (index(a) > index(b)) {
         return 1;
-      } else if (index(a) < index(b)) {
+      }
+      if (index(a) < index(b)) {
         return -1;
       }
 

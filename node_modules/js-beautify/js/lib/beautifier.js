@@ -1808,7 +1808,11 @@ OutputLine.prototype.trim = function() {
 
 OutputLine.prototype.toString = function() {
   var result = '';
-  if (!this.is_empty()) {
+  if (this.is_empty()) {
+    if (this.__parent.indent_empty_lines) {
+      result = this.__parent.get_indent_string(this.__indent_count);
+    }
+  } else {
     result = this.__parent.get_indent_string(this.__indent_count, this.__alignment_count);
     result += this.__items.join('');
   }
@@ -1885,6 +1889,7 @@ function Output(options, baseIndentString) {
   this._end_with_newline = options.end_with_newline;
   this.indent_size = options.indent_size;
   this.wrap_line_length = options.wrap_line_length;
+  this.indent_empty_lines = options.indent_empty_lines;
   this.__lines = [];
   this.previous_line = null;
   this.current_line = null;
@@ -2359,6 +2364,7 @@ function Options(options, merge_child_field) {
   // Backwards compat with 1.3.x
   this.wrap_line_length = this._get_number('wrap_line_length', this._get_number('max_char'));
 
+  this.indent_empty_lines = this._get_boolean('indent_empty_lines');
 }
 
 Options.prototype._get_array = function(name, default_value) {
@@ -5346,8 +5352,8 @@ Beautifier.prototype._do_optional_end_element = function(parser_token) {
   } else if (parser_token.tag_name === 'th' || parser_token.tag_name === 'td') {
     // A td element’s end tag may be omitted if the td element is immediately followed by a td or th element, or if there is no more content in the parent element.
     // A th element’s end tag may be omitted if the th element is immediately followed by a td or th element, or if there is no more content in the parent element.
-    result = result || this._tag_stack.try_pop('td', ['tr']);
-    result = result || this._tag_stack.try_pop('th', ['tr']);
+    result = result || this._tag_stack.try_pop('td', ['table', 'thead', 'tbody', 'tfoot', 'tr']);
+    result = result || this._tag_stack.try_pop('th', ['table', 'thead', 'tbody', 'tfoot', 'tr']);
   }
 
   // Start element omission not handled currently

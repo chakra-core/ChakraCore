@@ -1,7 +1,7 @@
+const debug = require('debug')('log4js:categories');
 const configuration = require('./configuration');
 const levels = require('./levels');
 const appenders = require('./appenders');
-const debug = require('debug')('log4js:categories');
 
 const categories = new Map();
 
@@ -53,8 +53,8 @@ configuration.addListener((config) => {
     configuration.throwExceptionIf(
       config,
       configuration.not(levels.getLevel(category.level)),
-      `category "${name}" is not valid (level "${category.level}" not recognised;` +
-        ` valid levels are ${levels.levels.join(', ')})`
+      `category "${name}" is not valid (level "${category.level}" not recognised;`
+        + ` valid levels are ${levels.levels.join(', ')})`
     );
   });
 
@@ -108,8 +108,8 @@ const setLevelForCategory = (category, level) => {
   debug(`setLevelForCategory: found ${categoryConfig} for ${category}`);
   if (!categoryConfig) {
     const sourceCategoryConfig = configForCategory(category);
-    debug('setLevelForCategory: no config found for category, ' +
-      `found ${sourceCategoryConfig} for parents of ${category}`);
+    debug('setLevelForCategory: no config found for category, '
+      + `found ${sourceCategoryConfig} for parents of ${category}`);
     categoryConfig = { appenders: sourceCategoryConfig.appenders };
   }
   categoryConfig.level = level;

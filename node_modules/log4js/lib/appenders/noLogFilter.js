@@ -27,8 +27,8 @@ function noLogFilter(filters, appender) {
     }
     filters = removeNullOrEmptyRegexp(filters);
     const regex = new RegExp(filters.join('|'), 'i');
-    if (filters.length === 0 ||
-      logEvent.data.findIndex(value => regex.test(value)) < 0) {
+    if (filters.length === 0
+      || logEvent.data.findIndex(value => regex.test(value)) < 0) {
       debug('Not excluded, sending to appender');
       appender(logEvent);
     }

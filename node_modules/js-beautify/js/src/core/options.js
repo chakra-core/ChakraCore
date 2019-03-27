@@ -65,6 +65,7 @@ function Options(options, merge_child_field) {
   // Backwards compat with 1.3.x
   this.wrap_line_length = this._get_number('wrap_line_length', this._get_number('max_char'));
 
+  this.indent_empty_lines = this._get_boolean('indent_empty_lines');
 }
 
 Options.prototype._get_array = function(name, default_value) {
