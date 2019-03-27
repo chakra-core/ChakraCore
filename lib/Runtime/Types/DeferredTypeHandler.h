@@ -150,7 +150,7 @@ namespace Js
     private:
         static DeferredTypeHandler defaultInstance;
 
-        DeferredTypeInitializer m_initializer;
+        FieldNoBarrier(DeferredTypeInitializer) m_initializer;
 
         bool EnsureObjectReady(DynamicObject* instance, DeferredInitializeMode mode);
         virtual BOOL FreezeImpl(DynamicObject *instance, bool isConvertedType) override;
