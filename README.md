@@ -12,72 +12,17 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 
 |                               | __Debug__ | __Test__ | __Release__ |
 |:-----------------------------:|:---------:|:--------:|:-----------:|
-| __Windows (x64)__             | [![x64debug][x64dbgicon]][x64dbglink] | [![x64test][x64testicon]][x64testlink] | [![x64release][x64relicon]][x64rellink] |
-| __Windows (x86)__             | [![x86debug][x86dbgicon]][x86dbglink] | [![x86test][x86testicon]][x86testlink] | [![x86release][x86relicon]][x86rellink] |
-| __Windows (ARM)__             | [![armdebug][armdbgicon]][armdbglink] | [![armtest][armtesticon]][armtestlink] | [![armrelease][armrelicon]][armrellink] |
-| __Ubuntu 16.04 (x64)<sup>[a]</sup>__     | [![linux_a_debug][linux_a_dbgicon]][linux_a_dbglink] | [![linux_a_test][linux_a_testicon]][linux_a_testlink] | [![linux_a_release][linux_a_relicon]][linux_a_rellink] |
-| __Ubuntu 16.04 (x64)<sup>[s]</sup>__     | [![linux_s_debug][linux_s_dbgicon]][linux_s_dbglink] | [![linux_s_test][linux_s_testicon]][linux_s_testlink] | [![linux_s_release][linux_s_relicon]][linux_s_rellink] |
-| __Ubuntu 16.04 (x64)<sup>[s][n]</sup>__  | * | [![linux_sn_test][linux_sn_testicon]][linux_sn_testlink] | * |
-| __OS X 10.9 (x64)<sup>[a]</sup>__        | [![osx_a_debug][osx_a_dbgicon]][osx_a_dbglink] | [![osx_a_test][osx_a_testicon]][osx_a_testlink] | [![osx_a_release][osx_a_relicon]][osx_a_rellink] |
-| __OS X 10.9 (x64)<sup>[s][n]</sup>__     | * | [![osx_sn_test][osx_sn_testicon]][osx_sn_testlink] | * |
+| __Windows 10 (x64)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x64_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
+| __Windows 10 (x86)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=x86_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
+| __Windows 10 (ARM)__             | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
+| __Windows 10 (ARM64)__           | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Windows%2010%20-%20daily?branchName=master&jobName=Build%5Cscripts%5C*.ps1&configuration=arm64_release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=50&branchName=master) |
+| __Ubuntu 16.04 (x64)<sup>[a]</sup>__     | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=static%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) |
+| __Ubuntu 16.04 (x64)<sup>[s]</sup>__     | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=shared%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) |
+| __Ubuntu 16.04 (x64)<sup>[s][n]</sup>__  | * | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/Linux%20(Ubuntu%2016.04)%20-%20daily?branchName=master&jobName=no%20jit%20shared%20test%20)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=51&branchName=master) | * |
+| __macOS 10.13 (x64)<sup>[a]</sup>__        | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20debug)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20test)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=static%20release)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) |
+| __macOS 10.13 (x64)<sup>[s][n]</sup>__     | * | [![Build Status](https://chakrateam.visualstudio.com/Push_Build_Runner/_apis/build/status/daily/macOS%20-%20daily?branchName=master&jobName=no%20jit%20shared%20test%20)](https://chakrateam.visualstudio.com/Push_Build_Runner/_build/latest?definitionId=52&branchName=master) | * |
 
 <sup>[a]</sup> Static | <sup>[s]</sup> Shared | <sup>[n]</sup> NoJIT | * Omitted
-
-[x64dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
-[x64dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
-[x64testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
-[x64testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
-[x64relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
-[x64rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
-
-[x86dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
-[x86dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
-[x86testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
-[x86testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
-[x86relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
-[x86rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
-
-[armdbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
-[armdbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
-[armtesticon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
-[armtestlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
-[armrelicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
-[armrellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
-
-[linux_a_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/badge/icon
-[linux_a_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_debug/
-[linux_a_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/badge/icon
-[linux_a_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_test/
-[linux_a_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/badge/icon
-[linux_a_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_ubuntu_linux_release/
-
-[linux_s_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/badge/icon
-[linux_s_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_debug/
-[linux_s_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/badge/icon
-[linux_s_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_test/
-[linux_s_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/badge/icon
-[linux_s_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/shared_ubuntu_linux_release/
-
-[linux_sn_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/badge/icon
-[linux_sn_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_debug/
-[linux_sn_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/badge/icon
-[linux_sn_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_test/
-[linux_sn_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/badge/icon
-[linux_sn_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_ubuntu_linux_release/
-
-[osx_a_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/badge/icon
-[osx_a_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_debug/
-[osx_a_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/badge/icon
-[osx_a_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_test/
-[osx_a_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/badge/icon
-[osx_a_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/static_osx_osx_release/
-
-[osx_sn_dbgicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/badge/icon
-[osx_sn_dbglink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_debug/
-[osx_sn_testicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/badge/icon
-[osx_sn_testlink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_test/
-[osx_sn_relicon]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/badge/icon
-[osx_sn_rellink]: https://ci2.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/
 
 Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds and additional details.
 
