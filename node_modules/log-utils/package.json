@@ -1,0 +1,93 @@
+{
+  "name": "log-utils",
+  "description": "Basic logging utils: colors, symbols and timestamp.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/jonschlinkert/log-utils",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/log-utils",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/log-utils/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ansi-colors": "^0.2.0",
+    "error-symbol": "^0.1.0",
+    "info-symbol": "^0.1.0",
+    "log-ok": "^0.1.1",
+    "success-symbol": "^0.1.0",
+    "time-stamp": "^1.0.1",
+    "warning-symbol": "^0.1.0"
+  },
+  "devDependencies": {
+    "clear-require": "^1.0.1",
+    "gulp-format-md": "^0.1.7",
+    "mocha": "^2.4.5",
+    "verb-generate-readme": "^0.1.21"
+  },
+  "keywords": [
+    "ansi",
+    "chalk",
+    "check",
+    "checkmark",
+    "cli",
+    "color",
+    "colors",
+    "command",
+    "console",
+    "cyan",
+    "error",
+    "green",
+    "info",
+    "line",
+    "log",
+    "red",
+    "stamp",
+    "success",
+    "terminal",
+    "time",
+    "time-stamp",
+    "timestamp",
+    "util",
+    "utility",
+    "utils",
+    "warn",
+    "warning",
+    "yellow"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "ansi-colors",
+        "error-symbol",
+        "info-symbol",
+        "success-symbol",
+        "warning-symbol"
+      ]
+    },
+    "layout": "default",
+    "reflinks": [
+      "ansi-colors",
+      "time-diff",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ]
+  },
+  "lintDeps": {
+    "ignore": []
+  }
+}

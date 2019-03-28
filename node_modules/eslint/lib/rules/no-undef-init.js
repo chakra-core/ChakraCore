@@ -16,8 +16,7 @@ module.exports = {
         docs: {
             description: "disallow initializing variables to `undefined`",
             category: "Variables",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-undef-init"
+            recommended: false
         },
 
         schema: [],
@@ -44,10 +43,6 @@ module.exports = {
                         message: "It's not necessary to initialize '{{name}}' to undefined.",
                         data: { name },
                         fix(fixer) {
-                            if (node.parent.kind === "var") {
-                                return null;
-                            }
-
                             if (node.id.type === "ArrayPattern" || node.id.type === "ObjectPattern") {
 
                                 // Don't fix destructuring assignment to `undefined`.

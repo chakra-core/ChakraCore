@@ -68,8 +68,7 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing before and after keywords",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/keyword-spacing"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -108,10 +107,13 @@ module.exports = {
          * Reports a given token if there are not space(s) before the token.
          *
          * @param {Token} token - A token to report.
-         * @param {RegExp} pattern - A pattern of the previous token to check.
+         * @param {RegExp|undefined} pattern - Optional. A pattern of the previous
+         *      token to check.
          * @returns {void}
          */
         function expectSpaceBefore(token, pattern) {
+            pattern = pattern || PREV_TOKEN;
+
             const prevToken = sourceCode.getTokenBefore(token);
 
             if (prevToken &&
@@ -135,10 +137,13 @@ module.exports = {
          * Reports a given token if there are space(s) before the token.
          *
          * @param {Token} token - A token to report.
-         * @param {RegExp} pattern - A pattern of the previous token to check.
+         * @param {RegExp|undefined} pattern - Optional. A pattern of the previous
+         *      token to check.
          * @returns {void}
          */
         function unexpectSpaceBefore(token, pattern) {
+            pattern = pattern || PREV_TOKEN;
+
             const prevToken = sourceCode.getTokenBefore(token);
 
             if (prevToken &&
@@ -162,10 +167,13 @@ module.exports = {
          * Reports a given token if there are not space(s) after the token.
          *
          * @param {Token} token - A token to report.
-         * @param {RegExp} pattern - A pattern of the next token to check.
+         * @param {RegExp|undefined} pattern - Optional. A pattern of the next
+         *      token to check.
          * @returns {void}
          */
         function expectSpaceAfter(token, pattern) {
+            pattern = pattern || NEXT_TOKEN;
+
             const nextToken = sourceCode.getTokenAfter(token);
 
             if (nextToken &&
@@ -189,10 +197,13 @@ module.exports = {
          * Reports a given token if there are space(s) after the token.
          *
          * @param {Token} token - A token to report.
-         * @param {RegExp} pattern - A pattern of the next token to check.
+         * @param {RegExp|undefined} pattern - Optional. A pattern of the next
+         *      token to check.
          * @returns {void}
          */
         function unexpectSpaceAfter(token, pattern) {
+            pattern = pattern || NEXT_TOKEN;
+
             const nextToken = sourceCode.getTokenAfter(token);
 
             if (nextToken &&
@@ -262,7 +273,7 @@ module.exports = {
          * @returns {void}
          */
         function checkSpacingBefore(token, pattern) {
-            checkMethodMap[token.value].before(token, pattern || PREV_TOKEN);
+            checkMethodMap[token.value].before(token, pattern);
         }
 
         /**
@@ -275,7 +286,7 @@ module.exports = {
          * @returns {void}
          */
         function checkSpacingAfter(token, pattern) {
-            checkMethodMap[token.value].after(token, pattern || NEXT_TOKEN);
+            checkMethodMap[token.value].after(token, pattern);
         }
 
         /**
@@ -424,12 +435,7 @@ module.exports = {
          * @returns {void}
          */
         function checkSpacingForForOfStatement(node) {
-            if (node.await) {
-                checkSpacingBefore(sourceCode.getFirstToken(node, 0));
-                checkSpacingAfter(sourceCode.getFirstToken(node, 1));
-            } else {
-                checkSpacingAroundFirstToken(node);
-            }
+            checkSpacingAroundFirstToken(node);
             checkSpacingAround(sourceCode.getTokenBefore(node.right, astUtils.isNotOpeningParenToken));
         }
 

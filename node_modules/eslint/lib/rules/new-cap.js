@@ -77,8 +77,7 @@ module.exports = {
         docs: {
             description: "require constructor names to begin with a capital letter",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/new-cap"
+            recommended: false
         },
 
         schema: [
@@ -179,8 +178,7 @@ module.exports = {
 
                 // char has no uppercase variant, so it's non-alphabetic
                 return "non-alpha";
-            }
-            if (firstChar === firstCharLower) {
+            } else if (firstChar === firstCharLower) {
                 return "lower";
             }
             return "upper";

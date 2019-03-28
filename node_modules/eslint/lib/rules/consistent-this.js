@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "enforce consistent naming when capturing the current execution context",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/consistent-this"
+            recommended: false
         },
 
         schema: {
@@ -24,11 +23,6 @@ module.exports = {
                 minLength: 1
             },
             uniqueItems: true
-        },
-
-        messages: {
-            aliasNotAssignedToThis: "Designated alias '{{name}}' is not assigned to 'this'.",
-            unexpectedAlias: "Unexpected alias '{{name}}' for 'this'."
         }
     },
 
@@ -45,11 +39,11 @@ module.exports = {
          * Reports that a variable declarator or assignment expression is assigning
          * a non-'this' value to the specified alias.
          * @param {ASTNode} node - The assigning node.
-         * @param {string}  name - the name of the alias that was incorrectly used.
+         * @param {string} alias - the name of the alias that was incorrectly used.
          * @returns {void}
          */
-        function reportBadAssignment(node, name) {
-            context.report({ node, messageId: "aliasNotAssignedToThis", data: { name } });
+        function reportBadAssignment(node, alias) {
+            context.report({ node, message: "Designated alias '{{alias}}' is not assigned to 'this'.", data: { alias } });
         }
 
         /**
@@ -68,7 +62,7 @@ module.exports = {
                     reportBadAssignment(node, name);
                 }
             } else if (isThis) {
-                context.report({ node, messageId: "unexpectedAlias", data: { name } });
+                context.report({ node, message: "Unexpected alias '{{name}}' for 'this'.", data: { name } });
             }
         }
 
@@ -92,10 +86,8 @@ module.exports = {
                 return;
             }
 
-            /*
-             * The alias has been declared and not assigned: check it was
-             * assigned later in the same scope.
-             */
+            // The alias has been declared and not assigned: check it was
+            // assigned later in the same scope.
             if (!variable.references.some(reference => {
                 const write = reference.writeExpr;
 

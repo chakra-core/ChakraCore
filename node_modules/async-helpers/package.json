@@ -1,0 +1,78 @@
+{
+  "name": "async-helpers",
+  "description": "Use async helpers in templates with engines that typically only handle sync helpers. Handlebars and Lodash have been tested.",
+  "version": "0.3.17",
+  "homepage": "https://github.com/doowb/async-helpers",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Nils Knappmeier (https://blog.knappi.org)"
+  ],
+  "repository": "doowb/async-helpers",
+  "bugs": {
+    "url": "https://github.com/doowb/async-helpers/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "co": "^4.6.0",
+    "kind-of": "^6.0.0"
+  },
+  "devDependencies": {
+    "async": "^2.5.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "handlebars": "^4.0.11",
+    "lodash": "^4.17.4",
+    "mocha": "^3.5.2"
+  },
+  "keywords": [
+    "async",
+    "engine",
+    "handlebars",
+    "helper",
+    "helpers",
+    "lodash",
+    "template",
+    "templates",
+    "underscore"
+  ],
+  "verb": {
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "generate",
+        "templates",
+        "update",
+        "verb"
+      ]
+    },
+    "reflinks": [
+      "co",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

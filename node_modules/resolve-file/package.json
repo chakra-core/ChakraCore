@@ -1,0 +1,71 @@
+{
+  "name": "resolve-file",
+  "description": "Resolve an absolute file path from local directories, local node_modules or global node_modules.",
+  "version": "0.3.0",
+  "homepage": "https://github.com/doowb/resolve-file",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "repository": "doowb/resolve-file",
+  "bugs": {
+    "url": "https://github.com/doowb/resolve-file/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "cwd": "^0.10.0",
+    "expand-tilde": "^2.0.2",
+    "extend-shallow": "^2.0.1",
+    "fs-exists-sync": "^0.1.0",
+    "homedir-polyfill": "^1.0.1",
+    "lazy-cache": "^2.0.2",
+    "resolve": "^1.2.0"
+  },
+  "devDependencies": {
+    "global-modules": "^0.2.3",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.0",
+    "mocha": "^3.2.0",
+    "npm-install-global": "^0.1.2"
+  },
+  "keywords": [
+    "file",
+    "resolve"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "cwd",
+        "expand-tilde",
+        "look-up",
+        "resolve"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb"
+    ]
+  }
+}

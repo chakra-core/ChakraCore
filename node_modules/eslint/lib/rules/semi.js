@@ -20,8 +20,7 @@ module.exports = {
         docs: {
             description: "require or disallow semicolons instead of ASI",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/semi"
+            recommended: false
         },
 
         fixable: "code",
@@ -33,19 +32,10 @@ module.exports = {
                     items: [
                         {
                             enum: ["never"]
-                        },
-                        {
-                            type: "object",
-                            properties: {
-                                beforeStatementContinuationChars: {
-                                    enum: ["always", "any", "never"]
-                                }
-                            },
-                            additionalProperties: false
                         }
                     ],
                     minItems: 0,
-                    maxItems: 2
+                    maxItems: 1
                 },
                 {
                     type: "array",
@@ -72,10 +62,9 @@ module.exports = {
 
         const OPT_OUT_PATTERN = /^[-[(/+`]/; // One of [(/+-`
         const options = context.options[1];
-        const never = context.options[0] === "never";
-        const exceptOneLine = Boolean(options && options.omitLastInOneLineBlock);
-        const beforeStatementContinuationChars = (options && options.beforeStatementContinuationChars) || "any";
-        const sourceCode = context.getSourceCode();
+        const never = context.options[0] === "never",
+            exceptOneLine = options && options.omitLastInOneLineBlock === true,
+            sourceCode = context.getSourceCode();
 
         //--------------------------------------------------------------------------
         // Helpers
@@ -104,11 +93,9 @@ module.exports = {
                 loc = loc.start;
                 fix = function(fixer) {
 
-                    /*
-                     * Expand the replacement range to include the surrounding
-                     * tokens to avoid conflicting with no-extra-semi.
-                     * https://github.com/eslint/eslint/issues/7928
-                     */
+                    // Expand the replacement range to include the surrounding
+                    // tokens to avoid conflicting with no-extra-semi.
+                    // https://github.com/eslint/eslint/issues/7928
                     return new FixTracker(fixer, sourceCode)
                         .retainSurroundingTokens(lastToken)
                         .remove(lastToken);
@@ -125,115 +112,29 @@ module.exports = {
         }
 
         /**
-         * Check whether a given semicolon token is redandant.
-         * @param {Token} semiToken A semicolon token to check.
-         * @returns {boolean} `true` if the next token is `;` or `}`.
-         */
-        function isRedundantSemi(semiToken) {
-            const nextToken = sourceCode.getTokenAfter(semiToken);
-
-            return (
-                !nextToken ||
-                astUtils.isClosingBraceToken(nextToken) ||
-                astUtils.isSemicolonToken(nextToken)
-            );
-        }
-
-        /**
-         * Check whether a given token is the closing brace of an arrow function.
-         * @param {Token} lastToken A token to check.
-         * @returns {boolean} `true` if the token is the closing brace of an arrow function.
-         */
-        function isEndOfArrowBlock(lastToken) {
-            if (!astUtils.isClosingBraceToken(lastToken)) {
-                return false;
-            }
-            const node = sourceCode.getNodeByRangeIndex(lastToken.range[0]);
-
-            return (
-                node.type === "BlockStatement" &&
-                node.parent.type === "ArrowFunctionExpression"
-            );
-        }
-
-        /**
-         * Check whether a given node is on the same line with the next token.
-         * @param {Node} node A statement node to check.
-         * @returns {boolean} `true` if the node is on the same line with the next token.
-         */
-        function isOnSameLineWithNextToken(node) {
-            const prevToken = sourceCode.getLastToken(node, 1);
-            const nextToken = sourceCode.getTokenAfter(node);
-
-            return !!nextToken && astUtils.isTokenOnSameLine(prevToken, nextToken);
-        }
-
-        /**
-         * Check whether a given node can connect the next line if the next line is unreliable.
-         * @param {Node} node A statement node to check.
-         * @returns {boolean} `true` if the node can connect the next line.
-         */
-        function maybeAsiHazardAfter(node) {
-            const t = node.type;
-
-            if (t === "DoWhileStatement" ||
-                t === "BreakStatement" ||
-                t === "ContinueStatement" ||
-                t === "DebuggerStatement" ||
-                t === "ImportDeclaration" ||
-                t === "ExportAllDeclaration"
-            ) {
-                return false;
-            }
-            if (t === "ReturnStatement") {
-                return Boolean(node.argument);
-            }
-            if (t === "ExportNamedDeclaration") {
-                return Boolean(node.declaration);
-            }
-            if (isEndOfArrowBlock(sourceCode.getLastToken(node, 1))) {
-                return false;
-            }
-
-            return true;
-        }
-
-        /**
-         * Check whether a given token can connect the previous statement.
-         * @param {Token} token A token to check.
-         * @returns {boolean} `true` if the token is one of `[`, `(`, `/`, `+`, `-`, ```, `++`, and `--`.
-         */
-        function maybeAsiHazardBefore(token) {
-            return (
-                Boolean(token) &&
-                OPT_OUT_PATTERN.test(token.value) &&
-                token.value !== "++" &&
-                token.value !== "--"
-            );
-        }
-
-        /**
-         * Check if the semicolon of a given node is unnecessary, only true if:
-         *   - next token is a valid statement divider (`;` or `}`).
-         *   - next token is on a new line and the node is not connectable to the new line.
-         * @param {Node} node A statement node to check.
+         * Check if a semicolon is unnecessary, only true if:
+         *   - next token is on a new line and is not one of the opt-out tokens
+         *   - next token is a valid statement divider
+         * @param {Token} lastToken last token of current node.
          * @returns {boolean} whether the semicolon is unnecessary.
          */
-        function canRemoveSemicolon(node) {
-            if (isRedundantSemi(sourceCode.getLastToken(node))) {
-                return true; // `;;` or `;}`
-            }
-            if (isOnSameLineWithNextToken(node)) {
-                return false; // One liner.
-            }
-            if (beforeStatementContinuationChars === "never" && !maybeAsiHazardAfter(node)) {
-                return true; // ASI works. This statement doesn't connect to the next.
-            }
-            if (!maybeAsiHazardBefore(sourceCode.getTokenAfter(node))) {
-                return true; // ASI works. The next token doesn't connect to this statement.
+        function isUnnecessarySemicolon(lastToken) {
+            if (!astUtils.isSemicolonToken(lastToken)) {
+                return false;
             }
 
-            return false;
+            const nextToken = sourceCode.getTokenAfter(lastToken);
+
+            if (!nextToken) {
+                return true;
+            }
+
+            const lastTokenLine = lastToken.loc.end.line;
+            const nextTokenLine = nextToken.loc.start.line;
+            const isOptOutToken = OPT_OUT_PATTERN.test(nextToken.value) && nextToken.value !== "++" && nextToken.value !== "--";
+            const isDivider = (astUtils.isClosingBraceToken(nextToken) || astUtils.isSemicolonToken(nextToken));
+
+            return (lastTokenLine !== nextTokenLine && !isOptOutToken) || isDivider;
         }
 
         /**
@@ -242,17 +143,16 @@ module.exports = {
          * @returns {boolean} whether the node is in a one-liner block statement.
          */
         function isOneLinerBlock(node) {
-            const parent = node.parent;
             const nextToken = sourceCode.getTokenAfter(node);
 
             if (!nextToken || nextToken.value !== "}") {
                 return false;
             }
-            return (
-                !!parent &&
-                parent.type === "BlockStatement" &&
-                parent.loc.start.line === parent.loc.end.line
-            );
+
+            const parent = node.parent;
+
+            return parent && parent.type === "BlockStatement" &&
+              parent.loc.start.line === parent.loc.end.line;
         }
 
         /**
@@ -261,21 +161,21 @@ module.exports = {
          * @returns {void}
          */
         function checkForSemicolon(node) {
-            const isSemi = astUtils.isSemicolonToken(sourceCode.getLastToken(node));
+            const lastToken = sourceCode.getLastToken(node);
 
             if (never) {
-                if (isSemi && canRemoveSemicolon(node)) {
+                if (isUnnecessarySemicolon(lastToken)) {
                     report(node, true);
-                } else if (!isSemi && beforeStatementContinuationChars === "always" && maybeAsiHazardBefore(sourceCode.getTokenAfter(node))) {
-                    report(node);
                 }
             } else {
-                const oneLinerBlock = (exceptOneLine && isOneLinerBlock(node));
-
-                if (isSemi && oneLinerBlock) {
-                    report(node, true);
-                } else if (!isSemi && !oneLinerBlock) {
-                    report(node);
+                if (!astUtils.isSemicolonToken(lastToken)) {
+                    if (!exceptOneLine || !isOneLinerBlock(node)) {
+                        report(node);
+                    }
+                } else {
+                    if (exceptOneLine && isOneLinerBlock(node)) {
+                        report(node, true);
+                    }
                 }
             }
         }
@@ -286,7 +186,9 @@ module.exports = {
          * @returns {void}
          */
         function checkForSemicolonForVariableDeclaration(node) {
-            const parent = node.parent;
+            const ancestors = context.getAncestors(),
+                parentIndex = ancestors.length - 1,
+                parent = ancestors[parentIndex];
 
             if ((parent.type !== "ForStatement" || parent.init !== node) &&
                 (!/^For(?:In|Of)Statement/.test(parent.type) || parent.left !== node)

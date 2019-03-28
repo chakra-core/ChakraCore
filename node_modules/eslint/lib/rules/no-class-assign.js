@@ -16,15 +16,10 @@ module.exports = {
         docs: {
             description: "disallow reassigning class members",
             category: "ECMAScript 6",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-class-assign"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            class: "'{{name}}' is a class."
-        }
+        schema: []
     },
 
     create(context) {
@@ -36,7 +31,7 @@ module.exports = {
          */
         function checkVariable(variable) {
             astUtils.getModifyingReferences(variable.references).forEach(reference => {
-                context.report({ node: reference.identifier, messageId: "class", data: { name: reference.identifier.name } });
+                context.report({ node: reference.identifier, message: "'{{name}}' is a class.", data: { name: reference.identifier.name } });
 
             });
         }

@@ -1,0 +1,84 @@
+{
+  "name": "cache-base",
+  "description": "Basic object cache with `get`, `set`, `del`, and `has` methods for node.js/javascript projects.",
+  "version": "0.8.5",
+  "homepage": "https://github.com/jonschlinkert/cache-base",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "<wtgtybhertgeghgtwtg@gmail.com> (https://github.com/wtgtybhertgeghgtwtg)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/cache-base",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/cache-base/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "collection-visit": "^0.2.1",
+    "component-emitter": "^1.2.1",
+    "get-value": "^2.0.5",
+    "has-value": "^0.3.1",
+    "isobject": "^3.0.0",
+    "lazy-cache": "^2.0.1",
+    "set-value": "^0.4.2",
+    "to-object-path": "^0.3.0",
+    "union-value": "^0.2.3",
+    "unset-value": "^0.1.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.8",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "base",
+    "cache",
+    "config",
+    "data",
+    "get",
+    "has",
+    "hash",
+    "hasown",
+    "object",
+    "set",
+    "store"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highligh": "base",
+      "list": [
+        "base-methods",
+        "get-value",
+        "has-value",
+        "option-cache",
+        "set-value",
+        "unset-value"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

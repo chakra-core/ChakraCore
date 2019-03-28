@@ -1,0 +1,97 @@
+{
+  "name": "question-cache",
+  "description": "A wrapper around inquirer that makes it easy to create and selectively reuse questions.",
+  "version": "0.4.0",
+  "homepage": "https://github.com/jonschlinkert/question-cache",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/question-cache",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/question-cache/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1",
+    "arr-union": "^3.1.0",
+    "async": "1.5.2",
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "get-value": "^2.0.5",
+    "has-value": "^0.3.1",
+    "inquirer2": "^0.1.1",
+    "is-answer": "^0.1.0",
+    "isobject": "^2.0.0",
+    "lazy-cache": "^1.0.3",
+    "mixin-deep": "^1.1.3",
+    "omit-empty": "^0.3.6",
+    "option-cache": "^3.3.5",
+    "os-homedir": "^1.0.1",
+    "project-name": "^0.2.4",
+    "set-value": "^0.3.3",
+    "to-choices": "^0.2.0",
+    "use": "^1.1.2"
+  },
+  "devDependencies": {
+    "ansi-green": "^0.1.1",
+    "ansi-red": "^0.1.1",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.0.0",
+    "gulp-format-md": "^0.1.7",
+    "gulp-istanbul": "^0.10.2",
+    "gulp-mocha": "^2.1.3",
+    "gulp-unused": "^0.1.2",
+    "helper-example": "^0.1.0",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "answer",
+    "ask",
+    "cli",
+    "generate",
+    "generator",
+    "generators",
+    "inquirer",
+    "question",
+    "questions",
+    "util",
+    "yeoman"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "ask-for-github-auth",
+        "ask-once",
+        "generate",
+        "question-helper"
+      ]
+    },
+    "reflinks": [
+      "generate",
+      "inquirer2",
+      "verb",
+      "yeoman"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "helpers": [
+      "helper-example"
+    ]
+  }
+}

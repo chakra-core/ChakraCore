@@ -1,0 +1,47 @@
+{
+  "name": "engine-utils",
+  "description": "Utilities from consolidate.js for normalizing engine formats.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/engine-utils",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/engine-utils.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/engine-utils/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jonschlinkert/engine-utils/blob/master/LICENSE"
+    }
+  ],
+  "files": ["index.js"],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "consolidate",
+    "engine",
+    "engines",
+    "express",
+    "file",
+    "render",
+    "renderFile",
+    "renderer",
+    "rendering",
+    "templates",
+    "utils"
+  ]
+}

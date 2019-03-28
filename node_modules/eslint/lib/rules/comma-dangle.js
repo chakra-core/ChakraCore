@@ -79,62 +79,58 @@ module.exports = {
         docs: {
             description: "require or disallow trailing commas",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/comma-dangle"
-        },
-        fixable: "code",
-        schema: {
-            definitions: {
-                value: {
-                    enum: [
-                        "always-multiline",
-                        "always",
-                        "never",
-                        "only-multiline"
-                    ]
-                },
-                valueWithIgnore: {
-                    enum: [
-                        "always-multiline",
-                        "always",
-                        "ignore",
-                        "never",
-                        "only-multiline"
-                    ]
-                }
-            },
-            type: "array",
-            items: [
-                {
-                    oneOf: [
-                        {
-                            $ref: "#/definitions/value"
-                        },
-                        {
-                            type: "object",
-                            properties: {
-                                arrays: { $ref: "#/definitions/valueWithIgnore" },
-                                objects: { $ref: "#/definitions/valueWithIgnore" },
-                                imports: { $ref: "#/definitions/valueWithIgnore" },
-                                exports: { $ref: "#/definitions/valueWithIgnore" },
-                                functions: { $ref: "#/definitions/valueWithIgnore" }
-                            },
-                            additionalProperties: false
-                        }
-                    ]
-                }
-            ]
+            recommended: false
         },
 
-        messages: {
-            unexpected: "Unexpected trailing comma.",
-            missing: "Missing trailing comma."
-        }
+        fixable: "code",
+
+        schema: [
+            {
+                defs: {
+                    value: {
+                        enum: [
+                            "always",
+                            "always-multiline",
+                            "only-multiline",
+                            "never"
+                        ]
+                    },
+                    valueWithIgnore: {
+                        anyOf: [
+                            {
+                                $ref: "#/defs/value"
+                            },
+                            {
+                                enum: ["ignore"]
+                            }
+                        ]
+                    }
+                },
+                anyOf: [
+                    {
+                        $ref: "#/defs/value"
+                    },
+                    {
+                        type: "object",
+                        properties: {
+                            arrays: { $refs: "#/defs/valueWithIgnore" },
+                            objects: { $refs: "#/defs/valueWithIgnore" },
+                            imports: { $refs: "#/defs/valueWithIgnore" },
+                            exports: { $refs: "#/defs/valueWithIgnore" },
+                            functions: { $refs: "#/defs/valueWithIgnore" }
+                        },
+                        additionalProperties: false
+                    }
+                ]
+            }
+        ]
     },
 
     create(context) {
         const options = normalizeOptions(context.options[0]);
         const sourceCode = context.getSourceCode();
+        const UNEXPECTED_MESSAGE = "Unexpected trailing comma.";
+        const MISSING_MESSAGE = "Missing trailing comma.";
 
         /**
          * Gets the last item of the given node.
@@ -233,7 +229,7 @@ module.exports = {
                 context.report({
                     node: lastItem,
                     loc: trailingToken.loc.start,
-                    messageId: "unexpected",
+                    message: UNEXPECTED_MESSAGE,
                     fix(fixer) {
                         return fixer.remove(trailingToken);
                     }
@@ -270,7 +266,7 @@ module.exports = {
                 context.report({
                     node: lastItem,
                     loc: trailingToken.loc.end,
-                    messageId: "missing",
+                    message: MISSING_MESSAGE,
                     fix(fixer) {
                         return fixer.insertTextAfter(trailingToken, ",");
                     }

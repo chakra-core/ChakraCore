@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow `new` operators with calls to `require`",
             category: "Node.js and CommonJS",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-new-require"
+            recommended: false
         },
 
         schema: []

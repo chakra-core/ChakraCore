@@ -1,0 +1,50 @@
+{
+  "name": "helper-cache",
+  "description": "Easily register and get helper functions to be passed to any template engine or node.js application. Methods for both sync and async helpers.",
+  "version": "0.7.2",
+  "homepage": "https://github.com/jonschlinkert/helper-cache",
+  "repository": "jonschlinkert/helper-cache",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    {
+      "name": "Brian Woodward",
+      "url": "https://github.com/doowb"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/helper-cache/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "consolidate",
+    "engine",
+    "helper",
+    "helpers",
+    "template",
+    "lo-dash",
+    "lodash"
+  ],
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "lazy-cache": "^0.2.3",
+    "lodash.bind": "^3.1.0"
+  },
+  "devDependencies": {
+    "globby": "^2.0.0",
+    "kind-of": "^2.0.0",
+    "loader-cache": "^0.4.0",
+    "mocha": "^2.2.5",
+    "object.reduce": "^0.1.7",
+    "should": "^6.0.3"
+  }
+}

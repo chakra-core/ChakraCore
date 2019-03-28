@@ -16,8 +16,7 @@ module.exports = {
         docs: {
             description: "enforce consistent newlines before and after dots",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/dot-location"
+            recommended: false
         },
 
         schema: [
@@ -26,12 +25,7 @@ module.exports = {
             }
         ],
 
-        fixable: "code",
-
-        messages: {
-            expectedDotAfterObject: "Expected dot to be on same line as object.",
-            expectedDotBeforeProperty: "Expected dot to be on same line as property."
-        }
+        fixable: "code"
     },
 
     create(context) {
@@ -63,7 +57,7 @@ module.exports = {
                         context.report({
                             node,
                             loc: dot.loc.start,
-                            messageId: "expectedDotAfterObject",
+                            message: "Expected dot to be on same line as object.",
                             fix: fixer => fixer.replaceTextRange([obj.range[1], prop.range[0]], `${neededTextAfterObj}.${textBeforeDot}${textAfterDot}`)
                         });
                     }
@@ -71,7 +65,7 @@ module.exports = {
                     context.report({
                         node,
                         loc: dot.loc.start,
-                        messageId: "expectedDotBeforeProperty",
+                        message: "Expected dot to be on same line as property.",
                         fix: fixer => fixer.replaceTextRange([obj.range[1], prop.range[0]], `${textBeforeDot}${textAfterDot}.`)
                     });
                 }

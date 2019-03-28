@@ -1,0 +1,58 @@
+{
+  "name": "is-valid-instance",
+  "description": "Returns true if a value is a valid instance of Base.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/is-valid-instance",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-valid-instance",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-valid-instance/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^2.1.0",
+    "pascalcase": "^0.1.1"
+  },
+  "devDependencies": {
+    "base": "^0.11.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3",
+    "templates": "^0.22.5",
+    "vinyl": "^1.1.1"
+  },
+  "keywords": [
+    "app",
+    "base",
+    "instance",
+    "valid"
+  ],
+  "verb": {
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-app"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "base",
+      "templates",
+      "verb-readme-generator"
+    ]
+  }
+}

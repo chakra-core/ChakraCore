@@ -20,8 +20,7 @@ module.exports = {
         docs: {
             description: "disallow multiline strings",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-multi-str"
+            recommended: false
         },
 
         schema: []

@@ -1,22 +1,22 @@
 /*!
  * is-data-descriptor <https://github.com/jonschlinkert/is-data-descriptor>
  *
- * Copyright (c) 2015, Jon Schlinkert.
- * Licensed under the MIT License.
+ * Copyright (c) 2015-2017, Jon Schlinkert.
+ * Released under the MIT License.
  */
 
 'use strict';
 
 var typeOf = require('kind-of');
 
-// data descriptor properties
-var data = {
-  configurable: 'boolean',
-  enumerable: 'boolean',
-  writable: 'boolean'
-};
+module.exports = function isDataDescriptor(obj, prop) {
+  // data descriptor properties
+  var data = {
+    configurable: 'boolean',
+    enumerable: 'boolean',
+    writable: 'boolean'
+  };
 
-function isDataDescriptor(obj, prop) {
   if (typeOf(obj) !== 'object') {
     return false;
   }
@@ -46,10 +46,4 @@ function isDataDescriptor(obj, prop) {
     }
   }
   return true;
-}
-
-/**
- * Expose `isDataDescriptor`
- */
-
-module.exports = isDataDescriptor;
+};

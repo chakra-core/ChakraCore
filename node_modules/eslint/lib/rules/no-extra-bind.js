@@ -19,17 +19,12 @@ module.exports = {
         docs: {
             description: "disallow unnecessary calls to `.bind()`",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-extra-bind"
+            recommended: false
         },
 
         schema: [],
 
-        fixable: "code",
-
-        messages: {
-            unexpected: "The function binding is unnecessary."
-        }
+        fixable: "code"
     },
 
     create(context) {
@@ -45,7 +40,7 @@ module.exports = {
         function report(node) {
             context.report({
                 node: node.parent.parent,
-                messageId: "unexpected",
+                message: "The function binding is unnecessary.",
                 loc: node.parent.property.loc.start,
                 fix(fixer) {
                     const firstTokenToRemove = context.getSourceCode()

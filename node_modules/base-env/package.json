@@ -1,0 +1,81 @@
+{
+  "name": "base-env",
+  "description": "Base plugin, creates a normalized environment object from a function, filepath or instance of base.",
+  "version": "0.3.1",
+  "homepage": "https://github.com/base/base-env",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "base/base-env",
+  "bugs": {
+    "url": "https://github.com/base/base-env/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "base-namespace": "^0.2.0",
+    "contains-path": "^0.1.0",
+    "debug": "^2.2.0",
+    "extend-shallow": "^2.0.1",
+    "fs-exists-sync": "^0.1.0",
+    "global-modules": "^0.2.2",
+    "is-absolute": "^0.2.5",
+    "is-valid-app": "^0.1.0",
+    "is-valid-instance": "^0.1.0",
+    "kind-of": "^3.0.3",
+    "os-homedir": "^1.0.1",
+    "resolve-file": "^0.3.0"
+  },
+  "devDependencies": {
+    "base": "^0.9.0",
+    "base-option": "^0.8.2",
+    "base-plugins": "^0.4.13",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "gulp-unused": "^0.1.2",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "base",
+    "env"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-generators",
+        "base-runner"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

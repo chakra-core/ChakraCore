@@ -19,8 +19,7 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing before and after the arrow in arrow functions",
             category: "ECMAScript 6",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/arrow-spacing"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -38,15 +37,7 @@ module.exports = {
                 },
                 additionalProperties: false
             }
-        ],
-
-        messages: {
-            expectedBefore: "Missing space before =>.",
-            unexpectedBefore: "Unexpected space before =>.",
-
-            expectedAfter: "Missing space after =>.",
-            unexpectedAfter: "Unexpected space after =>."
-        }
+        ]
     },
 
     create(context) {
@@ -104,7 +95,7 @@ module.exports = {
                 if (countSpace.before === 0) {
                     context.report({
                         node: tokens.before,
-                        messageId: "expectedBefore",
+                        message: "Missing space before =>.",
                         fix(fixer) {
                             return fixer.insertTextBefore(tokens.arrow, " ");
                         }
@@ -116,7 +107,7 @@ module.exports = {
                 if (countSpace.before > 0) {
                     context.report({
                         node: tokens.before,
-                        messageId: "unexpectedBefore",
+                        message: "Unexpected space before =>.",
                         fix(fixer) {
                             return fixer.removeRange([tokens.before.range[1], tokens.arrow.range[0]]);
                         }
@@ -130,7 +121,7 @@ module.exports = {
                 if (countSpace.after === 0) {
                     context.report({
                         node: tokens.after,
-                        messageId: "expectedAfter",
+                        message: "Missing space after =>.",
                         fix(fixer) {
                             return fixer.insertTextAfter(tokens.arrow, " ");
                         }
@@ -142,7 +133,7 @@ module.exports = {
                 if (countSpace.after > 0) {
                     context.report({
                         node: tokens.after,
-                        messageId: "unexpectedAfter",
+                        message: "Unexpected space after =>.",
                         fix(fixer) {
                             return fixer.removeRange([tokens.arrow.range[1], tokens.after.range[0]]);
                         }

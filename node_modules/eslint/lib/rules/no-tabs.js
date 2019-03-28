@@ -19,8 +19,7 @@ module.exports = {
         docs: {
             description: "disallow all tabs",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-tabs"
+            recommended: false
         },
         schema: []
     },
@@ -28,18 +27,14 @@ module.exports = {
     create(context) {
         return {
             Program(node) {
-                context.getSourceCode().getLines().forEach((line, index) => {
+                context.getSourceLines().forEach((line, index) => {
                     const match = regex.exec(line);
 
                     if (match) {
-                        context.report({
-                            node,
-                            loc: {
-                                line: index + 1,
-                                column: match.index + 1
-                            },
-                            message: "Unexpected tab character."
-                        });
+                        context.report({ node, loc: {
+                            line: index + 1,
+                            column: match.index + 1
+                        }, message: "Unexpected tab character." });
                     }
                 });
             }

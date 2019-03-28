@@ -1,0 +1,80 @@
+{
+  "name": "base-argv",
+  "description": "Plugin that post-processes the argv object from simplify how args are mapped to options, tasks and generators.",
+  "version": "0.4.5",
+  "homepage": "https://github.com/node-base/base-argv",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-argv",
+  "bugs": {
+    "url": "https://github.com/node-base/base-argv/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-diff": "^2.0.0",
+    "arr-union": "^3.1.0",
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "expand-args": "^0.4.1",
+    "extend-shallow": "^2.0.1",
+    "lazy-cache": "^1.0.3"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "base-task": "^0.4.2",
+    "gulp-format-md": "^0.1.7",
+    "minimist": "^1.2.0",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "arguments",
+    "argv",
+    "base",
+    "base-methods",
+    "baseplugin",
+    "cli",
+    "command",
+    "command-line",
+    "line",
+    "methods",
+    "plugin",
+    "terminal"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "base",
+        "base-cli",
+        "base-config",
+        "base-option",
+        "base-plugins"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "run": true,
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "base"
+    ]
+  }
+}

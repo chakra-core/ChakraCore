@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "disallow `if` statements as the only statement in `else` blocks",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-lonely-if"
+            recommended: false
         },
 
         schema: [],
@@ -46,8 +45,7 @@ module.exports = {
                             const lastIfToken = sourceCode.getLastToken(node.consequent);
                             const sourceText = sourceCode.getText();
 
-                            if (sourceText.slice(openingElseCurly.range[1],
-                                node.range[0]).trim() || sourceText.slice(node.range[1], closingElseCurly.range[0]).trim()) {
+                            if (sourceText.slice(openingElseCurly.range[1], node.range[0]).trim() || sourceText.slice(node.range[1], closingElseCurly.range[0]).trim()) {
 
                                 // Don't fix if there are any non-whitespace characters interfering (e.g. comments)
                                 return null;

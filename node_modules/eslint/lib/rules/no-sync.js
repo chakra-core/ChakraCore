@@ -16,30 +16,17 @@ module.exports = {
         docs: {
             description: "disallow synchronous methods",
             category: "Node.js and CommonJS",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-sync"
+            recommended: false
         },
 
-        schema: [
-            {
-                type: "object",
-                properties: {
-                    allowAtRootLevel: {
-                        type: "boolean"
-                    }
-                },
-                additionalProperties: false
-            }
-        ]
+        schema: []
     },
 
     create(context) {
-        const selector = context.options[0] && context.options[0].allowAtRootLevel
-            ? ":function MemberExpression[property.name=/.*Sync$/]"
-            : "MemberExpression[property.name=/.*Sync$/]";
 
         return {
-            [selector](node) {
+
+            "MemberExpression[property.name=/.*Sync$/]"(node) {
                 context.report({
                     node,
                     message: "Unexpected sync method: '{{propertyName}}'.",

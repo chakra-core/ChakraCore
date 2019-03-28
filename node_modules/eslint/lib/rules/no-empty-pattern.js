@@ -13,27 +13,22 @@ module.exports = {
         docs: {
             description: "disallow empty destructuring patterns",
             category: "Best Practices",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-empty-pattern"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Unexpected empty {{type}} pattern."
-        }
+        schema: []
     },
 
     create(context) {
         return {
             ObjectPattern(node) {
                 if (node.properties.length === 0) {
-                    context.report({ node, messageId: "unexpected", data: { type: "object" } });
+                    context.report({ node, message: "Unexpected empty object pattern." });
                 }
             },
             ArrayPattern(node) {
                 if (node.elements.length === 0) {
-                    context.report({ node, messageId: "unexpected", data: { type: "array" } });
+                    context.report({ node, message: "Unexpected empty array pattern." });
                 }
             }
         };

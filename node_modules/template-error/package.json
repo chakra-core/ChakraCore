@@ -1,0 +1,45 @@
+{
+  "name": "template-error",
+  "description": "Make template errors easy to understand and fix.",
+  "version": "0.1.2",
+  "homepage": "https://github.com/jonschlinkert/template-error",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/template-error",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/template-error/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "engine": "^0.1.5",
+    "kind-of": "^2.0.1",
+    "lazy-cache": "^0.2.3",
+    "rethrow": "^0.2.3"
+  },
+  "devDependencies": {
+    "extend-shallow": "^2.0.1",
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": [
+    "error",
+    "rethrow",
+    "template"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "rethrow"
+      ]
+    }
+  }
+}

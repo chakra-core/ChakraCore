@@ -1,0 +1,41 @@
+{
+  "name": "reserved",
+  "description": "Reserved words that may not be used as variables, functions, methods, or object identifiers, since ECMAScript specifies special behavior for them.",
+  "version": "0.1.2",
+  "homepage": "https://github.com/jonschlinkert/reserved",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/reserved.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/reserved/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jonschlinkert/reserved/blob/master/LICENSE-MIT"
+    }
+  ],
+  "keywords": [
+    "reserved",
+    "words",
+    "javascript",
+    "ECMAScript"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.8"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "devDependencies": {
+    "verb": "~0.2.0",
+    "chai": "~1.9.1",
+    "mocha": "~1.18.2"
+  }
+}

@@ -15,8 +15,7 @@ module.exports = {
             description: "require `Reflect` methods where applicable",
             category: "ECMAScript 6",
             recommended: false,
-            replacedBy: [],
-            url: "https://eslint.org/docs/rules/prefer-reflect"
+            replacedBy: []
         },
 
         deprecated: true,
@@ -84,14 +83,10 @@ module.exports = {
          * @returns {void}
          */
         function report(node, existing, substitute) {
-            context.report({
-                node,
-                message: "Avoid using {{existing}}, instead use {{substitute}}.",
-                data: {
-                    existing,
-                    substitute
-                }
-            });
+            context.report({ node, message: "Avoid using {{existing}}, instead use {{substitute}}.", data: {
+                existing,
+                substitute
+            } });
         }
 
         return {

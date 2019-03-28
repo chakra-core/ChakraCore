@@ -1,32 +1,37 @@
 'use strict';
 
-const fs = require('fs');
-const shebangCommand = require('shebang-command');
+var fs = require('fs');
+var LRU = require('lru-cache');
+var shebangCommand = require('shebang-command');
+
+var shebangCache = new LRU({ max: 50, maxAge: 30 * 1000 });  // Cache just for 30sec
 
 function readShebang(command) {
-    // Read the first 150 bytes from the file
-    const size = 150;
-    let buffer;
+    var buffer;
+    var fd;
+    var shebang;
 
-    if (Buffer.alloc) {
-        // Node.js v4.5+ / v5.10+
-        buffer = Buffer.alloc(size);
-    } else {
-        // Old Node.js API
-        buffer = new Buffer(size);
-        buffer.fill(0); // zero-fill
+    // Check if it is in the cache first
+    if (shebangCache.has(command)) {
+        return shebangCache.get(command);
     }
 
-    let fd;
+    // Read the first 150 bytes from the file
+    buffer = new Buffer(150);
 
     try {
         fd = fs.openSync(command, 'r');
-        fs.readSync(fd, buffer, 0, size, 0);
+        fs.readSync(fd, buffer, 0, 150, 0);
         fs.closeSync(fd);
-    } catch (e) { /* Empty */ }
+    } catch (e) { /* empty */ }
 
     // Attempt to extract shebang (null is returned if not a shebang)
-    return shebangCommand(buffer.toString());
+    shebang = shebangCommand(buffer.toString());
+
+    // Store the shebang in the cache
+    shebangCache.set(command, shebang);
+
+    return shebang;
 }
 
 module.exports = readShebang;

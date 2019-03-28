@@ -14,15 +14,10 @@ module.exports = {
         docs: {
             description: "disallow the use of `arguments.caller` or `arguments.callee`",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-caller"
+            recommended: false
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Avoid arguments.{{prop}}."
-        }
+        schema: []
     },
 
     create(context) {
@@ -34,7 +29,7 @@ module.exports = {
                     propertyName = node.property.name;
 
                 if (objectName === "arguments" && !node.computed && propertyName && propertyName.match(/^calle[er]$/)) {
-                    context.report({ node, messageId: "unexpected", data: { prop: propertyName } });
+                    context.report({ node, message: "Avoid arguments.{{property}}.", data: { property: propertyName } });
                 }
 
             }

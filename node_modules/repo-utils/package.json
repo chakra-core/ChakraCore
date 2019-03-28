@@ -1,0 +1,91 @@
+{
+  "name": "repo-utils",
+  "description": "Utils for normalizing and formatting repo data.",
+  "version": "0.3.7",
+  "homepage": "https://github.com/jonschlinkert/repo-utils",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Charlike Mike Reagent (http://www.tunnckocore.tk)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/repo-utils",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/repo-utils/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "get-value": "^2.0.6",
+    "git-config-path": "^1.0.1",
+    "is-absolute": "^0.2.6",
+    "kind-of": "^3.0.4",
+    "lazy-cache": "^2.0.1",
+    "mixin-deep": "^1.1.3",
+    "omit-empty": "^0.4.1",
+    "parse-author": "^1.0.0",
+    "parse-git-config": "^1.0.2",
+    "parse-github-url": "^0.3.2",
+    "project-name": "^0.2.6"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "gulp-unused": "^0.1.2",
+    "helper-coverage": "^0.1.3",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "git",
+    "github",
+    "repo",
+    "repo-utils",
+    "repository",
+    "url",
+    "utilities",
+    "utility",
+    "utils"
+  ],
+  "verb": {
+    "helpers": [
+      "helper-coverage"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "verb"
+    ],
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "lint": {
+      "reflinks": true
+    },
+    "tasks": [
+      "readme"
+    ],
+    "related": {
+      "highlight": "parse-git-config",
+      "list": [
+        "git-config-path",
+        "parse-author",
+        "parse-git-config",
+        "project-name"
+      ]
+    }
+  }
+}

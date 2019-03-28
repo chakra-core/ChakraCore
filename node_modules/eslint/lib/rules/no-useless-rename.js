@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow renaming import, export, and destructured assignments to the same name",
             category: "ECMAScript 6",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-useless-rename"
+            recommended: false
         },
         fixable: "code",
         schema: [

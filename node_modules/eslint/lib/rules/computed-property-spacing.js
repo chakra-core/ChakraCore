@@ -15,8 +15,7 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing inside computed property brackets",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/computed-property-spacing"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -25,15 +24,7 @@ module.exports = {
             {
                 enum: ["always", "never"]
             }
-        ],
-
-        messages: {
-            unexpectedSpaceBefore: "There should be no space before '{{tokenValue}}'.",
-            unexpectedSpaceAfter: "There should be no space after '{{tokenValue}}'.",
-
-            missingSpaceBefore: "A space is required before '{{tokenValue}}'.",
-            missingSpaceAfter: "A space is required after '{{tokenValue}}'."
-        }
+        ]
     },
 
     create(context) {
@@ -45,17 +36,17 @@ module.exports = {
         //--------------------------------------------------------------------------
 
         /**
-         * Reports that there shouldn't be a space after the first token
-         * @param {ASTNode} node - The node to report in the event of an error.
-         * @param {Token} token - The token to use for the report.
-         * @param {Token} tokenAfter - The token after `token`.
-         * @returns {void}
-         */
+        * Reports that there shouldn't be a space after the first token
+        * @param {ASTNode} node - The node to report in the event of an error.
+        * @param {Token} token - The token to use for the report.
+        * @param {Token} tokenAfter - The token after `token`.
+        * @returns {void}
+        */
         function reportNoBeginningSpace(node, token, tokenAfter) {
             context.report({
                 node,
                 loc: token.loc.start,
-                messageId: "unexpectedSpaceAfter",
+                message: "There should be no space after '{{tokenValue}}'.",
                 data: {
                     tokenValue: token.value
                 },
@@ -66,17 +57,17 @@ module.exports = {
         }
 
         /**
-         * Reports that there shouldn't be a space before the last token
-         * @param {ASTNode} node - The node to report in the event of an error.
-         * @param {Token} token - The token to use for the report.
-         * @param {Token} tokenBefore - The token before `token`.
-         * @returns {void}
-         */
+        * Reports that there shouldn't be a space before the last token
+        * @param {ASTNode} node - The node to report in the event of an error.
+        * @param {Token} token - The token to use for the report.
+        * @param {Token} tokenBefore - The token before `token`.
+        * @returns {void}
+        */
         function reportNoEndingSpace(node, token, tokenBefore) {
             context.report({
                 node,
                 loc: token.loc.start,
-                messageId: "unexpectedSpaceBefore",
+                message: "There should be no space before '{{tokenValue}}'.",
                 data: {
                     tokenValue: token.value
                 },
@@ -87,16 +78,16 @@ module.exports = {
         }
 
         /**
-         * Reports that there should be a space after the first token
-         * @param {ASTNode} node - The node to report in the event of an error.
-         * @param {Token} token - The token to use for the report.
-         * @returns {void}
-         */
+        * Reports that there should be a space after the first token
+        * @param {ASTNode} node - The node to report in the event of an error.
+        * @param {Token} token - The token to use for the report.
+        * @returns {void}
+        */
         function reportRequiredBeginningSpace(node, token) {
             context.report({
                 node,
                 loc: token.loc.start,
-                messageId: "missingSpaceAfter",
+                message: "A space is required after '{{tokenValue}}'.",
                 data: {
                     tokenValue: token.value
                 },
@@ -107,16 +98,16 @@ module.exports = {
         }
 
         /**
-         * Reports that there should be a space before the last token
-         * @param {ASTNode} node - The node to report in the event of an error.
-         * @param {Token} token - The token to use for the report.
-         * @returns {void}
-         */
+        * Reports that there should be a space before the last token
+        * @param {ASTNode} node - The node to report in the event of an error.
+        * @param {Token} token - The token to use for the report.
+        * @returns {void}
+        */
         function reportRequiredEndingSpace(node, token) {
             context.report({
                 node,
                 loc: token.loc.start,
-                messageId: "missingSpaceBefore",
+                message: "A space is required before '{{tokenValue}}'.",
                 data: {
                     tokenValue: token.value
                 },

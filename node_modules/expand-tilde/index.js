@@ -5,8 +5,8 @@
  * Licensed under the MIT license.
  */
 
+var homedir = require('homedir-polyfill');
 var path = require('path');
-var homedir = require('os-homedir');
 
 module.exports = function expandTilde(filepath) {
   var home = homedir();

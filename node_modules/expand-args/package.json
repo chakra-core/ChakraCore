@@ -1,0 +1,75 @@
+{
+  "name": "expand-args",
+  "description": "Expand parsed command line arguments using expand-object.",
+  "version": "0.4.3",
+  "homepage": "https://github.com/jonschlinkert/expand-args",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/expand-args",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/expand-args/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "expand-object": "^0.4.2",
+    "kind-of": "^3.0.3",
+    "lazy-cache": "^2.0.1",
+    "minimist": "^1.2.0",
+    "mixin-deep": "^1.1.3",
+    "omit-empty": "^0.4.1",
+    "set-value": "^0.3.3"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.4.5",
+    "should": "^8.3.1"
+  },
+  "keywords": [
+    "arg",
+    "args",
+    "arguments",
+    "cli",
+    "command",
+    "command-line",
+    "expand",
+    "expand-object",
+    "line",
+    "object"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "expand-object",
+        "map-config"
+      ]
+    },
+    "reflinks": [
+      "expand-object",
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

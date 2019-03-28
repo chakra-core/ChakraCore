@@ -1,0 +1,65 @@
+{
+  "name": "delimiter-regex",
+  "description": "Create regex for template delimiters.",
+  "version": "2.0.0",
+  "homepage": "https://github.com/jonschlinkert/delimiter-regex",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/delimiter-regex",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/delimiter-regex/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^1.1.2",
+    "isobject": "^2.1.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "*"
+  },
+  "keywords": [
+    "delim",
+    "delimiter",
+    "delimiters",
+    "delims",
+    "expression",
+    "expressions",
+    "regex",
+    "regexp",
+    "regular",
+    "syntax",
+    "template"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "related": {
+      "list": []
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

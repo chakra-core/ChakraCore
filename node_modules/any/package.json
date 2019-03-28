@@ -1,0 +1,71 @@
+{
+  "name": "any",
+  "description": "Returns `true` if a value exists in the given string, array or object.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/any",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/any.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/any/issues"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/jonschlinkert/any/blob/master/LICENSE"
+  },
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "for-own": "^0.1.2",
+    "make-iterator": "^0.1.0"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "^5.0.1"
+  },
+  "keywords": [
+    "array",
+    "check",
+    "contains",
+    "detect",
+    "find",
+    "has",
+    "has-own",
+    "hasown",
+    "is",
+    "is-object",
+    "isobject",
+    "key",
+    "keys",
+    "lookup",
+    "object",
+    "own",
+    "pick",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "string",
+    "type",
+    "type-of",
+    "typeof",
+    "util",
+    "utilities",
+    "utility",
+    "utils",
+    "value"
+  ]
+}

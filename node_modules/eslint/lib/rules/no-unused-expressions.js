@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "disallow unused expressions",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-unused-expressions"
+            recommended: false
         },
 
         schema: [

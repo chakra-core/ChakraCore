@@ -5,13 +5,6 @@
 "use strict";
 
 //------------------------------------------------------------------------------
-// Helpers
-//------------------------------------------------------------------------------
-
-const DEFAULT_MESSAGE_TEMPLATE = "Unexpected use of '{{name}}'.",
-    CUSTOM_MESSAGE_TEMPLATE = "Unexpected use of '{{name}}'. {{customMessage}}";
-
-//------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
@@ -20,49 +13,25 @@ module.exports = {
         docs: {
             description: "disallow specified global variables",
             category: "Variables",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-restricted-globals"
+            recommended: false
         },
 
         schema: {
             type: "array",
             items: {
-                oneOf: [
-                    {
-                        type: "string"
-                    },
-                    {
-                        type: "object",
-                        properties: {
-                            name: { type: "string" },
-                            message: { type: "string" }
-                        },
-                        required: ["name"],
-                        additionalProperties: false
-                    }
-                ]
+                type: "string"
             },
-            uniqueItems: true,
-            minItems: 0
+            uniqueItems: true
         }
     },
 
     create(context) {
+        const restrictedGlobals = context.options;
 
-        // If no globals are restricted, we don't need to do anything
-        if (context.options.length === 0) {
+        // if no globals are restricted we don't need to check
+        if (restrictedGlobals.length === 0) {
             return {};
         }
-
-        const restrictedGlobalMessages = context.options.reduce((memo, option) => {
-            if (typeof option === "string") {
-                memo[option] = null;
-            } else {
-                memo[option.name] = option.message;
-            }
-
-            return memo;
-        }, {});
 
         /**
          * Report a variable to be used as a restricted global.
@@ -71,20 +40,9 @@ module.exports = {
          * @private
          */
         function reportReference(reference) {
-            const name = reference.identifier.name,
-                customMessage = restrictedGlobalMessages[name],
-                message = customMessage
-                    ? CUSTOM_MESSAGE_TEMPLATE
-                    : DEFAULT_MESSAGE_TEMPLATE;
-
-            context.report({
-                node: reference.identifier,
-                message,
-                data: {
-                    name,
-                    customMessage
-                }
-            });
+            context.report({ node: reference.identifier, message: "Unexpected use of '{{name}}'.", data: {
+                name: reference.identifier.name
+            } });
         }
 
         /**
@@ -94,7 +52,7 @@ module.exports = {
          * @private
          */
         function isRestricted(name) {
-            return restrictedGlobalMessages.hasOwnProperty(name);
+            return restrictedGlobals.indexOf(name) >= 0;
         }
 
         return {

@@ -5,11 +5,9 @@
 
 "use strict";
 
-/*
- *
- * Set of bitwise operators.
- *
- */
+//
+// Set of bitwise operators.
+//
 const BITWISE_OPERATORS = [
     "^", "|", "&", "<<", ">>", ">>>",
     "^=", "|=", "&=", "<<=", ">>=", ">>>=",
@@ -25,8 +23,7 @@ module.exports = {
         docs: {
             description: "disallow bitwise operators",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-bitwise"
+            recommended: false
         },
 
         schema: [
@@ -46,11 +43,7 @@ module.exports = {
                 },
                 additionalProperties: false
             }
-        ],
-
-        messages: {
-            unexpected: "Unexpected use of '{{operator}}'."
-        }
+        ]
     },
 
     create(context) {
@@ -64,7 +57,7 @@ module.exports = {
          * @returns {void}
          */
         function report(node) {
-            context.report({ node, messageId: "unexpected", data: { operator: node.operator } });
+            context.report({ node, message: "Unexpected use of '{{operator}}'.", data: { operator: node.operator } });
         }
 
         /**

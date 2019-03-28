@@ -14,18 +14,14 @@ module.exports = {
         docs: {
             description: "enforce placing object properties on separate lines",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/object-property-newline"
+            recommended: false
         },
 
         schema: [
             {
                 type: "object",
                 properties: {
-                    allowAllPropertiesOnSameLine: {
-                        type: "boolean"
-                    },
-                    allowMultiplePropertiesPerLine: { // Deprecated
+                    allowMultiplePropertiesPerLine: {
                         type: "boolean"
                     }
                 },
@@ -37,10 +33,7 @@ module.exports = {
     },
 
     create(context) {
-        const allowSameLine = context.options[0] && (
-            Boolean(context.options[0].allowAllPropertiesOnSameLine) ||
-            Boolean(context.options[0].allowMultiplePropertiesPerLine) // Deprecated
-        );
+        const allowSameLine = context.options[0] && Boolean(context.options[0].allowMultiplePropertiesPerLine);
         const errorMessage = allowSameLine
             ? "Object properties must go on a new line if they aren't all on the same line."
             : "Object properties must go on a new line.";

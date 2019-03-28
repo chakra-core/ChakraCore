@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow dangling underscores in identifiers",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-underscore-dangle"
+            recommended: false
         },
 
         schema: [
@@ -33,9 +32,6 @@ module.exports = {
                     },
                     allowAfterSuper: {
                         type: "boolean"
-                    },
-                    enforceInMethodNames: {
-                        type: "boolean"
                     }
                 },
                 additionalProperties: false
@@ -49,7 +45,6 @@ module.exports = {
         const ALLOWED_VARIABLES = options.allow ? options.allow : [];
         const allowAfterThis = typeof options.allowAfterThis !== "undefined" ? options.allowAfterThis : false;
         const allowAfterSuper = typeof options.allowAfterSuper !== "undefined" ? options.allowAfterSuper : false;
-        const enforceInMethodNames = typeof options.enforceInMethodNames !== "undefined" ? options.enforceInMethodNames : false;
 
         //-------------------------------------------------------------------------
         // Helpers
@@ -167,27 +162,6 @@ module.exports = {
             }
         }
 
-        /**
-         * Check if method declaration or method property has a underscore at the end
-         * @param {ASTNode} node node to evaluate
-         * @returns {void}
-         * @private
-         */
-        function checkForTrailingUnderscoreInMethod(node) {
-            const identifier = node.key.name;
-            const isMethod = node.type === "MethodDefinition" || node.type === "Property" && node.method;
-
-            if (typeof identifier !== "undefined" && enforceInMethodNames && isMethod && hasTrailingUnderscore(identifier)) {
-                context.report({
-                    node,
-                    message: "Unexpected dangling '_' in '{{identifier}}'.",
-                    data: {
-                        identifier
-                    }
-                });
-            }
-        }
-
         //--------------------------------------------------------------------------
         // Public API
         //--------------------------------------------------------------------------
@@ -195,9 +169,7 @@ module.exports = {
         return {
             FunctionDeclaration: checkForTrailingUnderscoreInFunctionDeclaration,
             VariableDeclarator: checkForTrailingUnderscoreInVariableExpression,
-            MemberExpression: checkForTrailingUnderscoreInMemberExpression,
-            MethodDefinition: checkForTrailingUnderscoreInMethod,
-            Property: checkForTrailingUnderscoreInMethod
+            MemberExpression: checkForTrailingUnderscoreInMemberExpression
         };
 
     }

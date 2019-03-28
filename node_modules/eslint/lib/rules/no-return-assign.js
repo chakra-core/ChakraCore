@@ -25,8 +25,7 @@ module.exports = {
         docs: {
             description: "disallow assignment operators in `return` statements",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-return-assign"
+            recommended: false
         },
 
         schema: [
@@ -46,12 +45,11 @@ module.exports = {
                     return;
                 }
 
-                let currentChild = node;
-                let parent = currentChild.parent;
+                let parent = node.parent;
 
                 // Find ReturnStatement or ArrowFunctionExpression in ancestors.
                 while (parent && !SENTINEL_TYPE.test(parent.type)) {
-                    currentChild = parent;
+                    node = parent;
                     parent = parent.parent;
                 }
 
@@ -61,7 +59,7 @@ module.exports = {
                         node: parent,
                         message: "Return statement should not contain assignment."
                     });
-                } else if (parent && parent.type === "ArrowFunctionExpression" && parent.body === currentChild) {
+                } else if (parent && parent.type === "ArrowFunctionExpression" && parent.body === node) {
                     context.report({
                         node: parent,
                         message: "Arrow function should not return assignment."

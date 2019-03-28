@@ -1,0 +1,98 @@
+{
+  "name": "normalize-pkg",
+  "description": "Normalize values in package.json using the map-schema library.",
+  "version": "0.3.20",
+  "homepage": "https://github.com/jonschlinkert/normalize-pkg",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Peter deHaan (http://about.me/peterdehaan)"
+  ],
+  "repository": "jonschlinkert/normalize-pkg",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/normalize-pkg/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "cli.js",
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "bin": {
+    "normalize-pkg": "cli.js"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-union": "^3.1.0",
+    "array-unique": "^0.3.2",
+    "component-emitter": "^1.2.1",
+    "export-files": "^2.1.1",
+    "extend-shallow": "^2.0.1",
+    "fs-exists-sync": "^0.1.0",
+    "get-value": "^2.0.6",
+    "kind-of": "^3.0.4",
+    "lazy-cache": "^2.0.1",
+    "map-schema": "^0.2.3",
+    "minimist": "^1.2.0",
+    "mixin-deep": "^1.1.3",
+    "omit-empty": "^0.4.1",
+    "parse-git-config": "^1.0.2",
+    "repo-utils": "^0.3.6",
+    "semver": "^5.3.0",
+    "stringify-author": "^0.1.3",
+    "write-json": "^0.2.2"
+  },
+  "devDependencies": {
+    "delete": "^0.3.2",
+    "gitty": "^3.5.0",
+    "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.0",
+    "mocha": "^3.1.2"
+  },
+  "keywords": [
+    "config",
+    "fix",
+    "json",
+    "normalize",
+    "package",
+    "package-json",
+    "pkg",
+    "properties",
+    "values"
+  ],
+  "verb": {
+    "run": true,
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "update"
+      ]
+    },
+    "reflinks": [
+      "map-schema",
+      "project-name",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

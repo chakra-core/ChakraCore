@@ -1,0 +1,58 @@
+{
+  "name": "engine-base",
+  "description": "Default engine for Template.",
+  "version": "0.1.3",
+  "homepage": "https://github.com/jonschlinkert/engine-base",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/engine-base",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/engine-base/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "component-emitter": "^1.2.1",
+    "delimiter-regex": "^2.0.0",
+    "engine": "^0.1.12",
+    "engine-utils": "^0.1.1",
+    "lazy-cache": "^2.0.2",
+    "mixin-deep": "^1.1.3",
+    "object.omit": "^2.0.1",
+    "object.pick": "^1.2.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-jshint": "^2.0.4",
+    "gulp-mocha": "^3.0.1",
+    "jshint-stylish": "^2.2.1",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "base",
+    "engine"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "engine-cache",
+        "engine-handlebars",
+        "engine-less",
+        "engine-lodash",
+        "helper-cache",
+        "template",
+        "template-helpers"
+      ]
+    }
+  }
+}

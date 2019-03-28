@@ -1,0 +1,177 @@
+# en-route [![NPM version](https://img.shields.io/npm/v/en-route.svg)](https://www.npmjs.com/package/en-route) [![Build Status](https://img.shields.io/travis/jonschlinkert/en-route.svg)](https://travis-ci.org/jonschlinkert/en-route)
+
+> Routing for static site generators, build systems and task runners, heavily based on express.js routes but works with file objects. Used by Assemble, Verb, and Template.
+
+## Install
+
+Install with [npm](https://www.npmjs.com/):
+
+```sh
+$ npm i en-route --save
+```
+
+## API
+
+### [Router](lib/index.js#L21)
+
+Initialize a new `Router` with the given `options`.
+
+**Params**
+
+* **{Object}**: options
+* `returns` **{Router}**: which is an callable function
+
+### [.param](lib/index.js#L78)
+
+Map the given param placeholder `name`(s) to the given callback.
+
+Parameter mapping is used to provide pre-conditions to routes
+which use normalized placeholders. For example a `:user_id` parameter
+could automatically load a user's information from the database without
+any additional code,
+The callback uses the same signature as middleware, the only difference
+being that the value of the placeholder is passed, in this case the _id_
+
+of the user. Once the `next()` function is invoked, just like middleware
+it will continue on to execute the route, or subsequent parameter functions.
+
+**Params**
+
+* `name` **{String}**
+* `fn` **{Function}**
+* `returns` **{Router}** `Object`: for chaining
+
+**Example**
+
+```js
+app.param('user_id', function(file, next, id) {
+  User.find(id, function(err, user) {
+    if (err) {
+      return next(err);
+    } else if (!user) {
+      return next(new Error('failed to load user'));
+    }
+    file.user = user;
+    next();
+  });
+});
+```
+
+### [.use](lib/index.js#L383)
+
+Use the given middleware function, with optional path, defaulting to `/`.
+
+The other difference is that _route_ path is stripped and not visible
+to the handler function. The main effect of this feature is that mounted
+handlers can operate without any code changes regardless of the `prefix`
+pathname.
+
+**Params**
+
+* `fn` **{Function}**
+
+**Example**
+
+```js
+var router = new Router();
+
+router.use(function(file, next) {
+  false.should.be.true;
+  next();
+});
+```
+
+### [.route](lib/index.js#L443)
+
+Create a new Route for the given path. Each route contains a separate middleware stack.
+
+See the Route api documentation for details on adding handlers
+and middleware to routes.
+
+**Params**
+
+* `path` **{String}**
+* `returns` **{Object}** `Route`: for chaining
+
+### [.method](lib/index.js#L470)
+
+Add additional methods to the current router instance.
+
+**Params**
+
+* `methods` **{String|Array}**: New methods to add to the router.
+* `returns` **{Object}**: the router to enable chaining
+
+**Example**
+
+```
+var router = new Router();
+router.method('post');
+router.post('.hbs', function(file, next) {
+  next();
+});
+```
+
+### [.all](lib/route.js#L108)
+
+Add a handler for all methods to this route.
+
+Behaves just like middleware and can respond or call `next`
+to continue processing.
+You can use multiple `.all` call to add multiple handlers.
+
+**Params**
+
+* `handler` **{Function}**
+* `returns` **{Object}** `Route`: for chaining
+
+**Example**
+
+```js
+function checkSomething(file, next) {
+  next();
+};
+
+function validateUser(file, next) {
+  next();
+};
+
+route
+  .all(validateUser)
+  .all(checkSomething)
+  .get(function(file, next) {
+    file.data.message = "Hello, World!";
+  });
+```
+
+## Related
+
+* [assemble](https://www.npmjs.com/package/assemble): Static site generator for Grunt.js, Yeoman and Node.js. Used by Zurb Foundation, Zurb Ink, H5BP/Effeckt,… [more](https://www.npmjs.com/package/assemble) | [homepage](http://assemble.io)
+* [gulp-routes](https://www.npmjs.com/package/gulp-routes): Add middleware to run for specified routes in your gulp pipeline. | [homepage](https://github.com/assemble/gulp-routes)
+* [template](https://www.npmjs.com/package/template): Render templates using any engine. Supports, layouts, pages, partials and custom template types. Use template… [more](https://www.npmjs.com/package/template) | [homepage](https://github.com/jonschlinkert/template)
+* [verb](https://www.npmjs.com/package/verb): Documentation generator for GitHub projects. Verb is extremely powerful, easy to use, and is used… [more](https://www.npmjs.com/package/verb) | [homepage](https://github.com/verbose/verb)
+
+## Authors
+
+**Jon Schlinkert**
+
+* [github/jonschlinkert](https://github.com/jonschlinkert)
+* [twitter/jonschlinkert](http://twitter.com/jonschlinkert)
+
+**Brian Woodward**
+
+* [github/doowb](https://github.com/doowb)
+* [twitter/doowb](http://twitter.com/doowb)
+
+## License
+
+Copyright © 2016 [Jon Schlinkert](https://github.com/jonschlinkert)
+Released under the MIT license.
+
+Based on previous work by:
+Copyright (c) 2009-2014 TJ Holowaychuk [tj@vision-media.ca](mailto:tj@vision-media.ca)
+Copyright (c) 2012-2013 Jared Hanson [http://jaredhanson.net/](http://jaredhanson.net/)
+
+***
+
+_This file was generated by [verb](https://github.com/verbose/verb) on January 01, 2016._

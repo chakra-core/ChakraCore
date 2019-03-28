@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow the use of `eval()`-like methods",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-implied-eval"
+            recommended: false
         },
 
         schema: []
@@ -126,8 +125,7 @@ module.exports = {
             "CallExpression:exit"(node) {
                 if (node === last(last(impliedEvalAncestorsStack))) {
 
-                    /*
-                     * Destroys the entire sub-stack, rather than just using
+                    /* Destroys the entire sub-stack, rather than just using
                      * last(impliedEvalAncestorsStack).pop(), as a CallExpression is
                      * always the bottom of a impliedEvalAncestorsStack substack.
                      */

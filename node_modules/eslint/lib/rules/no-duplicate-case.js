@@ -15,15 +15,10 @@ module.exports = {
         docs: {
             description: "disallow duplicate case labels",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-duplicate-case"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Duplicate case label."
-        }
+        schema: []
     },
 
     create(context) {
@@ -37,7 +32,7 @@ module.exports = {
                     const key = sourceCode.getText(switchCase.test);
 
                     if (mapping[key]) {
-                        context.report({ node: switchCase, messageId: "unexpected" });
+                        context.report({ node: switchCase, message: "Duplicate case label." });
                     } else {
                         mapping[key] = switchCase;
                     }

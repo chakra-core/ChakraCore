@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "require spacing around infix operators",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/space-infix-ops"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -107,13 +106,14 @@ module.exports = {
          * @private
          */
         function checkBinary(node) {
-            const leftNode = (node.left.typeAnnotation) ? node.left.typeAnnotation : node.left;
-            const rightNode = node.right;
+            if (node.left.typeAnnotation) {
+                return;
+            }
 
-            const nonSpacedNode = getFirstNonSpacedToken(leftNode, rightNode);
+            const nonSpacedNode = getFirstNonSpacedToken(node.left, node.right);
 
             if (nonSpacedNode) {
-                if (!(int32Hint && sourceCode.getText(node).endsWith("|0"))) {
+                if (!(int32Hint && sourceCode.getText(node).substr(-2) === "|0")) {
                     report(node, nonSpacedNode);
                 }
             }
@@ -143,11 +143,8 @@ module.exports = {
          * @private
          */
         function checkVar(node) {
-            const leftNode = (node.id.typeAnnotation) ? node.id.typeAnnotation : node.id;
-            const rightNode = node.init;
-
-            if (rightNode) {
-                const nonSpacedNode = getFirstNonSpacedToken(leftNode, rightNode);
+            if (node.init) {
+                const nonSpacedNode = getFirstNonSpacedToken(node.id, node.init);
 
                 if (nonSpacedNode) {
                     report(node, nonSpacedNode);

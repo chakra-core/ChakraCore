@@ -5,7 +5,7 @@
 
 ## Install
 
-```sh
+```
 $ npm install --save camelcase
 ```
 
@@ -13,42 +13,43 @@ $ npm install --save camelcase
 ## Usage
 
 ```js
-var camelCase = require('camelcase');
+const camelCase = require('camelcase');
 
 camelCase('foo-bar');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('foo_bar');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('Foo-Bar');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('--foo.bar');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('__foo__bar__');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('foo bar');
-//=> fooBar
+//=> 'fooBar'
 
 console.log(process.argv[3]);
-//=> --foo-bar
+//=> '--foo-bar'
 camelCase(process.argv[3]);
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('foo', 'bar');
-//=> fooBar
+//=> 'fooBar'
 
 camelCase('__foo__', '--bar');
-//=> fooBar
+//=> 'fooBar'
 ```
 
 
 ## Related
 
-See [`decamelize`](https://github.com/sindresorhus/decamelize) for the inverse.
+- [decamelize](https://github.com/sindresorhus/decamelize) - The inverse of this module
+- [uppercamelcase](https://github.com/SamVerschueren/uppercamelcase) - Like this module, but to PascalCase instead of camelCase
 
 
 ## License

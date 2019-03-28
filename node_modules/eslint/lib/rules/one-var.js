@@ -14,30 +14,26 @@ module.exports = {
         docs: {
             description: "enforce variables to be declared either together or separately in functions",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/one-var"
+            recommended: false
         },
 
         schema: [
             {
                 oneOf: [
                     {
-                        enum: ["always", "never", "consecutive"]
+                        enum: ["always", "never"]
                     },
                     {
                         type: "object",
                         properties: {
-                            separateRequires: {
-                                type: "boolean"
-                            },
                             var: {
-                                enum: ["always", "never", "consecutive"]
+                                enum: ["always", "never"]
                             },
                             let: {
-                                enum: ["always", "never", "consecutive"]
+                                enum: ["always", "never"]
                             },
                             const: {
-                                enum: ["always", "never", "consecutive"]
+                                enum: ["always", "never"]
                             }
                         },
                         additionalProperties: false
@@ -46,10 +42,10 @@ module.exports = {
                         type: "object",
                         properties: {
                             initialized: {
-                                enum: ["always", "never", "consecutive"]
+                                enum: ["always", "never"]
                             },
                             uninitialized: {
-                                enum: ["always", "never", "consecutive"]
+                                enum: ["always", "never"]
                             }
                         },
                         additionalProperties: false
@@ -60,28 +56,27 @@ module.exports = {
     },
 
     create(context) {
-        const MODE_ALWAYS = "always";
-        const MODE_NEVER = "never";
-        const MODE_CONSECUTIVE = "consecutive";
+
+        const MODE_ALWAYS = "always",
+            MODE_NEVER = "never";
+
         const mode = context.options[0] || MODE_ALWAYS;
 
-        const options = {};
+        const options = {
+        };
 
         if (typeof mode === "string") { // simple options configuration with just a string
             options.var = { uninitialized: mode, initialized: mode };
             options.let = { uninitialized: mode, initialized: mode };
             options.const = { uninitialized: mode, initialized: mode };
         } else if (typeof mode === "object") { // options configuration is an object
-            if (mode.hasOwnProperty("separateRequires")) {
-                options.separateRequires = !!mode.separateRequires;
-            }
-            if (mode.hasOwnProperty("var")) {
+            if (mode.hasOwnProperty("var") && typeof mode.var === "string") {
                 options.var = { uninitialized: mode.var, initialized: mode.var };
             }
-            if (mode.hasOwnProperty("let")) {
+            if (mode.hasOwnProperty("let") && typeof mode.let === "string") {
                 options.let = { uninitialized: mode.let, initialized: mode.let };
             }
-            if (mode.hasOwnProperty("const")) {
+            if (mode.hasOwnProperty("const") && typeof mode.const === "string") {
                 options.const = { uninitialized: mode.const, initialized: mode.const };
             }
             if (mode.hasOwnProperty("uninitialized")) {
@@ -163,17 +158,7 @@ module.exports = {
         }
 
         /**
-         * Check if a variable declaration is a require.
-         * @param {ASTNode} decl variable declaration Node
-         * @returns {bool} if decl is a require, return true; else return false.
-         * @private
-         */
-        function isRequire(decl) {
-            return decl.init && decl.init.type === "CallExpression" && decl.init.callee.name === "require";
-        }
-
-        /**
-         * Records whether initialized/uninitialized/required variables are defined in current scope.
+         * Records whether initialized or uninitialized variables are defined in current scope.
          * @param {string} statementType node.kind, one of: "var", "let", or "const"
          * @param {ASTNode[]} declarations List of declarations
          * @param {Object} currentScope The scope being investigated
@@ -188,11 +173,7 @@ module.exports = {
                     }
                 } else {
                     if (options[statementType] && options[statementType].initialized === MODE_ALWAYS) {
-                        if (options.separateRequires && isRequire(declarations[i])) {
-                            currentScope.required = true;
-                        } else {
-                            currentScope.initialized = true;
-                        }
+                        currentScope.initialized = true;
                     }
                 }
             }
@@ -247,7 +228,6 @@ module.exports = {
             const declarationCounts = countDeclarations(declarations);
             const currentOptions = options[statementType] || {};
             const currentScope = getCurrentScope(statementType);
-            const hasRequires = declarations.some(isRequire);
 
             if (currentOptions.uninitialized === MODE_ALWAYS && currentOptions.initialized === MODE_ALWAYS) {
                 if (currentScope.uninitialized || currentScope.initialized) {
@@ -265,154 +245,10 @@ module.exports = {
                     return false;
                 }
             }
-            if (currentScope.required && hasRequires) {
-                return false;
-            }
             recordTypes(statementType, declarations, currentScope);
             return true;
         }
 
-        /**
-         * Checks a given VariableDeclaration node for errors.
-         * @param {ASTNode} node The VariableDeclaration node to check
-         * @returns {void}
-         * @private
-         */
-        function checkVariableDeclaration(node) {
-            const parent = node.parent;
-            const type = node.kind;
-
-            if (!options[type]) {
-                return;
-            }
-
-            const declarations = node.declarations;
-            const declarationCounts = countDeclarations(declarations);
-            const mixedRequires = declarations.some(isRequire) && !declarations.every(isRequire);
-
-            if (options[type].initialized === MODE_ALWAYS) {
-                if (options.separateRequires && mixedRequires) {
-                    context.report({
-                        node,
-                        message: "Split requires to be separated into a single block."
-                    });
-                }
-            }
-
-            // consecutive
-            const nodeIndex = (parent.body && parent.body.length > 0 && parent.body.indexOf(node)) || 0;
-
-            if (nodeIndex > 0) {
-                const previousNode = parent.body[nodeIndex - 1];
-                const isPreviousNodeDeclaration = previousNode.type === "VariableDeclaration";
-
-                if (isPreviousNodeDeclaration && previousNode.kind === type) {
-                    const previousDeclCounts = countDeclarations(previousNode.declarations);
-
-                    if (options[type].initialized === MODE_CONSECUTIVE && options[type].uninitialized === MODE_CONSECUTIVE) {
-                        context.report({
-                            node,
-                            message: "Combine this with the previous '{{type}}' statement.",
-                            data: {
-                                type
-                            }
-                        });
-                    } else if (options[type].initialized === MODE_CONSECUTIVE && declarationCounts.initialized > 0 && previousDeclCounts.initialized > 0) {
-                        context.report({
-                            node,
-                            message: "Combine this with the previous '{{type}}' statement with initialized variables.",
-                            data: {
-                                type
-                            }
-                        });
-                    } else if (options[type].uninitialized === MODE_CONSECUTIVE &&
-                            declarationCounts.uninitialized > 0 &&
-                            previousDeclCounts.uninitialized > 0) {
-                        context.report({
-                            node,
-                            message: "Combine this with the previous '{{type}}' statement with uninitialized variables.",
-                            data: {
-                                type
-                            }
-                        });
-                    }
-                }
-            }
-
-            // always
-            if (!hasOnlyOneStatement(type, declarations)) {
-                if (options[type].initialized === MODE_ALWAYS && options[type].uninitialized === MODE_ALWAYS) {
-                    context.report({
-                        node,
-                        message: "Combine this with the previous '{{type}}' statement.",
-                        data: {
-                            type
-                        }
-                    });
-                } else {
-                    if (options[type].initialized === MODE_ALWAYS && declarationCounts.initialized > 0) {
-                        context.report({
-                            node,
-                            message: "Combine this with the previous '{{type}}' statement with initialized variables.",
-                            data: {
-                                type
-                            }
-                        });
-                    }
-                    if (options[type].uninitialized === MODE_ALWAYS && declarationCounts.uninitialized > 0) {
-                        if (node.parent.left === node && (node.parent.type === "ForInStatement" || node.parent.type === "ForOfStatement")) {
-                            return;
-                        }
-                        context.report({
-                            node,
-                            message: "Combine this with the previous '{{type}}' statement with uninitialized variables.",
-                            data: {
-                                type
-                            }
-                        });
-                    }
-                }
-            }
-
-            // never
-            if (parent.type !== "ForStatement" || parent.init !== node) {
-                const totalDeclarations = declarationCounts.uninitialized + declarationCounts.initialized;
-
-                if (totalDeclarations > 1) {
-                    if (options[type].initialized === MODE_NEVER && options[type].uninitialized === MODE_NEVER) {
-
-                        // both initialized and uninitialized
-                        context.report({
-                            node,
-                            message: "Split '{{type}}' declarations into multiple statements.",
-                            data: {
-                                type
-                            }
-                        });
-                    } else if (options[type].initialized === MODE_NEVER && declarationCounts.initialized > 0) {
-
-                        // initialized
-                        context.report({
-                            node,
-                            message: "Split initialized '{{type}}' declarations into multiple statements.",
-                            data: {
-                                type
-                            }
-                        });
-                    } else if (options[type].uninitialized === MODE_NEVER && declarationCounts.uninitialized > 0) {
-
-                        // uninitialized
-                        context.report({
-                            node,
-                            message: "Split uninitialized '{{type}}' declarations into multiple statements.",
-                            data: {
-                                type
-                            }
-                        });
-                    }
-                }
-            }
-        }
 
         //--------------------------------------------------------------------------
         // Public API
@@ -428,7 +264,94 @@ module.exports = {
             ForInStatement: startBlock,
             ForOfStatement: startBlock,
             SwitchStatement: startBlock,
-            VariableDeclaration: checkVariableDeclaration,
+
+            VariableDeclaration(node) {
+                const parent = node.parent;
+                const type = node.kind;
+
+                if (!options[type]) {
+                    return;
+                }
+
+                const declarations = node.declarations;
+                const declarationCounts = countDeclarations(declarations);
+
+                // always
+                if (!hasOnlyOneStatement(type, declarations)) {
+                    if (options[type].initialized === MODE_ALWAYS && options[type].uninitialized === MODE_ALWAYS) {
+                        context.report({
+                            node,
+                            message: "Combine this with the previous '{{type}}' statement.",
+                            data: {
+                                type
+                            }
+                        });
+                    } else {
+                        if (options[type].initialized === MODE_ALWAYS) {
+                            context.report({
+                                node,
+                                message: "Combine this with the previous '{{type}}' statement with initialized variables.",
+                                data: {
+                                    type
+                                }
+                            });
+                        }
+                        if (options[type].uninitialized === MODE_ALWAYS) {
+                            if (node.parent.left === node && (node.parent.type === "ForInStatement" || node.parent.type === "ForOfStatement")) {
+                                return;
+                            }
+                            context.report({
+                                node,
+                                message: "Combine this with the previous '{{type}}' statement with uninitialized variables.",
+                                data: {
+                                    type
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // never
+                if (parent.type !== "ForStatement" || parent.init !== node) {
+                    const totalDeclarations = declarationCounts.uninitialized + declarationCounts.initialized;
+
+                    if (totalDeclarations > 1) {
+
+                        if (options[type].initialized === MODE_NEVER && options[type].uninitialized === MODE_NEVER) {
+
+                            // both initialized and uninitialized
+                            context.report({
+                                node,
+                                message: "Split '{{type}}' declarations into multiple statements.",
+                                data: {
+                                    type
+                                }
+                            });
+                        } else if (options[type].initialized === MODE_NEVER && declarationCounts.initialized > 0) {
+
+                            // initialized
+                            context.report({
+                                node,
+                                message: "Split initialized '{{type}}' declarations into multiple statements.",
+                                data: {
+                                    type
+                                }
+                            });
+                        } else if (options[type].uninitialized === MODE_NEVER && declarationCounts.uninitialized > 0) {
+
+                            // uninitialized
+                            context.report({
+                                node,
+                                message: "Split uninitialized '{{type}}' declarations into multiple statements.",
+                                data: {
+                                    type
+                                }
+                            });
+                        }
+                    }
+                }
+            },
+
             "ForStatement:exit": endBlock,
             "ForOfStatement:exit": endBlock,
             "ForInStatement:exit": endBlock,

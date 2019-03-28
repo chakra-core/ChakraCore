@@ -71,10 +71,8 @@ function isTargetMethod(node) {
  * @returns {boolean} `true` if the node is the callback of an array method.
  */
 function isCallbackOfArrayMethod(node) {
-    let currentNode = node;
-
-    while (currentNode) {
-        const parent = currentNode.parent;
+    while (node) {
+        const parent = node.parent;
 
         switch (parent.type) {
 
@@ -84,43 +82,39 @@ function isCallbackOfArrayMethod(node) {
              */
             case "LogicalExpression":
             case "ConditionalExpression":
-                currentNode = parent;
+                node = parent;
                 break;
 
-            /*
-             * If the upper function is IIFE, checks the destination of the return value.
-             * e.g.
-             *   foo.every((function() {
-             *     // setup...
-             *     return function callback() { ... };
-             *   })());
-             */
+            // If the upper function is IIFE, checks the destination of the return value.
+            // e.g.
+            //   foo.every((function() {
+            //     // setup...
+            //     return function callback() { ... };
+            //   })());
             case "ReturnStatement": {
                 const func = astUtils.getUpperFunction(parent);
 
                 if (func === null || !astUtils.isCallee(func)) {
                     return false;
                 }
-                currentNode = func.parent;
+                node = func.parent;
                 break;
             }
 
-            /*
-             * e.g.
-             *   Array.from([], function() {});
-             *   list.every(function() {});
-             */
+            // e.g.
+            //   Array.from([], function() {});
+            //   list.every(function() {});
             case "CallExpression":
                 if (astUtils.isArrayFromMethod(parent.callee)) {
                     return (
                         parent.arguments.length >= 2 &&
-                        parent.arguments[1] === currentNode
+                        parent.arguments[1] === node
                     );
                 }
                 if (isTargetMethod(parent.callee)) {
                     return (
                         parent.arguments.length >= 1 &&
-                        parent.arguments[0] === currentNode
+                        parent.arguments[0] === node
                     );
                 }
                 return false;
@@ -144,33 +138,13 @@ module.exports = {
         docs: {
             description: "enforce `return` statements in callbacks of array methods",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/array-callback-return"
+            recommended: false
         },
 
-        schema: [
-            {
-                type: "object",
-                properties: {
-                    allowImplicit: {
-                        type: "boolean"
-                    }
-                },
-                additionalProperties: false
-            }
-        ],
-
-        messages: {
-            expectedAtEnd: "Expected to return a value at the end of {{name}}.",
-            expectedInside: "Expected to return a value in {{name}}.",
-            expectedReturnValue: "{{name}} expected a return value."
-        }
+        schema: []
     },
 
     create(context) {
-
-        const options = context.options[0] || { allowImplicit: false };
-
         let funcInfo = {
             upper: null,
             codePath: null,
@@ -196,9 +170,9 @@ module.exports = {
                 context.report({
                     node,
                     loc: getLocation(node, context.getSourceCode()).loc.start,
-                    messageId: funcInfo.hasReturn
-                        ? "expectedAtEnd"
-                        : "expectedInside",
+                    message: funcInfo.hasReturn
+                        ? "Expected to return a value at the end of {{name}}."
+                        : "Expected to return a value in {{name}}.",
                     data: {
                         name: astUtils.getFunctionNameWithKind(funcInfo.node)
                     }
@@ -234,11 +208,10 @@ module.exports = {
                 if (funcInfo.shouldCheck) {
                     funcInfo.hasReturn = true;
 
-                    // if allowImplicit: false, should also check node.argument
-                    if (!options.allowImplicit && !node.argument) {
+                    if (!node.argument) {
                         context.report({
                             node,
-                            messageId: "expectedReturnValue",
+                            message: "{{name}} expected a return value.",
                             data: {
                                 name: lodash.upperFirst(astUtils.getFunctionNameWithKind(funcInfo.node))
                             }

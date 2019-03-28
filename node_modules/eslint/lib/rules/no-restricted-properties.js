@@ -16,8 +16,7 @@ module.exports = {
         docs: {
             description: "disallow certain properties on certain objects",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-restricted-properties"
+            recommended: false
         },
 
         schema: {
@@ -93,12 +92,12 @@ module.exports = {
         });
 
         /**
-         * Checks to see whether a property access is restricted, and reports it if so.
-         * @param {ASTNode} node The node to report
-         * @param {string} objectName The name of the object
-         * @param {string} propertyName The name of the property
-         * @returns {undefined}
-         */
+        * Checks to see whether a property access is restricted, and reports it if so.
+        * @param {ASTNode} node The node to report
+        * @param {string} objectName The name of the object
+        * @param {string} propertyName The name of the property
+        * @returns {undefined}
+        */
         function checkPropertyAccess(node, objectName, propertyName) {
             if (propertyName === null) {
                 return;
@@ -110,36 +109,28 @@ module.exports = {
             if (matchedObjectProperty) {
                 const message = matchedObjectProperty.message ? ` ${matchedObjectProperty.message}` : "";
 
-                context.report({
-                    node,
-                    // eslint-disable-next-line eslint-plugin/report-message-format
-                    message: "'{{objectName}}.{{propertyName}}' is restricted from being used.{{message}}",
-                    data: {
-                        objectName,
-                        propertyName,
-                        message
-                    }
-                });
+                // eslint-disable-next-line eslint-plugin/report-message-format
+                context.report({ node, message: "'{{objectName}}.{{propertyName}}' is restricted from being used.{{message}}", data: {
+                    objectName,
+                    propertyName,
+                    message
+                } });
             } else if (globalMatchedProperty) {
                 const message = globalMatchedProperty.message ? ` ${globalMatchedProperty.message}` : "";
 
-                context.report({
-                    node,
-                    // eslint-disable-next-line eslint-plugin/report-message-format
-                    message: "'{{propertyName}}' is restricted from being used.{{message}}",
-                    data: {
-                        propertyName,
-                        message
-                    }
-                });
+                // eslint-disable-next-line eslint-plugin/report-message-format
+                context.report({ node, message: "'{{propertyName}}' is restricted from being used.{{message}}", data: {
+                    propertyName,
+                    message
+                } });
             }
         }
 
         /**
-         * Checks property accesses in a destructuring assignment expression, e.g. `var foo; ({foo} = bar);`
-         * @param {ASTNode} node An AssignmentExpression or AssignmentPattern node
-         * @returns {undefined}
-         */
+        * Checks property accesses in a destructuring assignment expression, e.g. `var foo; ({foo} = bar);`
+        * @param {ASTNode} node An AssignmentExpression or AssignmentPattern node
+        * @returns {undefined}
+        */
         function checkDestructuringAssignment(node) {
             if (node.right.type === "Identifier") {
                 const objectName = node.right.name;

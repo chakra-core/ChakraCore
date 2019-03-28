@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "require or disallow spacing around the `*` in `yield*` expressions",
             category: "ECMAScript 6",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/yield-star-spacing"
+            recommended: false
         },
 
         fixable: "whitespace",

@@ -15,8 +15,7 @@ module.exports = {
         docs: {
             description: "disallow specified identifiers",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/id-blacklist"
+            recommended: false
         },
 
         schema: {
@@ -68,13 +67,9 @@ module.exports = {
          * @private
          */
         function report(node) {
-            context.report({
-                node,
-                message: "Identifier '{{name}}' is blacklisted.",
-                data: {
-                    name: node.name
-                }
-            });
+            context.report({ node, message: "Identifier '{{name}}' is blacklisted.", data: {
+                name: node.name
+            } });
         }
 
         return {

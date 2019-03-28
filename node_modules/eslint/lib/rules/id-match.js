@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "require identifiers to match a specified regular expression",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/id-match"
+            recommended: false
         },
 
         schema: [
@@ -76,14 +75,10 @@ module.exports = {
          * @private
          */
         function report(node) {
-            context.report({
-                node,
-                message: "Identifier '{{name}}' does not match the pattern '{{pattern}}'.",
-                data: {
-                    name: node.name,
-                    pattern
-                }
-            });
+            context.report({ node, message: "Identifier '{{name}}' does not match the pattern '{{pattern}}'.", data: {
+                name: node.name,
+                pattern
+            } });
         }
 
         return {

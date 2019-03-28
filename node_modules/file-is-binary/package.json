@@ -1,0 +1,59 @@
+{
+  "name": "file-is-binary",
+  "description": "Returns true if a file is binary. Checks the actual contents, since extensions are not reliable. Basic wrapper for isbinaryfile to support vinyl files.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/file-is-binary",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/file-is-binary",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/file-is-binary/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-binary-buffer": "^1.0.0",
+    "isobject": "^3.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.1",
+    "vinyl": "^2.0.2"
+  },
+  "keywords": [
+    "binary",
+    "file",
+    "is",
+    "vinyl"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "file-contents",
+        "file-stat",
+        "gulp-is-binary"
+      ]
+    },
+    "reflinks": [
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

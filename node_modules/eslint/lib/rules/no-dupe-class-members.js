@@ -14,15 +14,10 @@ module.exports = {
         docs: {
             description: "disallow duplicate class members",
             category: "ECMAScript 6",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-dupe-class-members"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Duplicate name '{{name}}'."
-        }
+        schema: []
     },
 
     create(context) {
@@ -106,7 +101,7 @@ module.exports = {
                 }
 
                 if (isDuplicate) {
-                    context.report({ node, messageId: "unexpected", data: { name } });
+                    context.report({ node, message: "Duplicate name '{{name}}'.", data: { name } });
                 }
             }
         };

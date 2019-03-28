@@ -1,0 +1,48 @@
+{
+  "name": "strip-bom-buffer",
+  "description": "Strip a byte order mark (BOM) from a buffer.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/strip-bom-buffer",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/strip-bom-buffer",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/strip-bom-buffer/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-buffer": "^1.1.0",
+    "is-utf8": "^0.2.0"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "bom",
+    "byte-order-mark",
+    "file",
+    "fs",
+    "nl",
+    "normalize",
+    "buffer"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "cr",
+        "has-bom",
+        "read-file",
+        "strip-bom-string"
+      ]
+    }
+  }
+}

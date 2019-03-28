@@ -1,0 +1,48 @@
+{
+  "name": "nanoseconds",
+  "description": "Convert the process.hrtime array to a single nanoseconds value.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/jonschlinkert/nanoseconds",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/nanoseconds",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/nanoseconds/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "conversion",
+    "convert",
+    "format",
+    "formatting",
+    "nano",
+    "nanosecond",
+    "ns",
+    "second",
+    "stamp",
+    "time",
+    "unit"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "pretty-time",
+        "timescale",
+        "time-stamp",
+        "o-clock"
+      ]
+    }
+  }
+}

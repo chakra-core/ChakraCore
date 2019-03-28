@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow magic numbers",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-magic-numbers"
+            recommended: false
         },
 
         schema: [{
@@ -101,32 +100,25 @@ module.exports = {
 
         return {
             Literal(node) {
+                let parent = node.parent,
+                    value = node.value,
+                    raw = node.raw;
                 const okTypes = detectObjects ? [] : ["ObjectExpression", "Property", "AssignmentExpression"];
 
                 if (!isNumber(node)) {
                     return;
                 }
 
-                let fullNumberNode;
-                let parent;
-                let value;
-                let raw;
-
                 // For negative magic numbers: update the value and parent node
-                if (node.parent.type === "UnaryExpression" && node.parent.operator === "-") {
-                    fullNumberNode = node.parent;
-                    parent = fullNumberNode.parent;
-                    value = -node.value;
-                    raw = `-${node.raw}`;
-                } else {
-                    fullNumberNode = node;
+                if (parent.type === "UnaryExpression" && parent.operator === "-") {
+                    node = parent;
                     parent = node.parent;
-                    value = node.value;
-                    raw = node.raw;
+                    value = -value;
+                    raw = `-${raw}`;
                 }
 
                 if (shouldIgnoreNumber(value) ||
-                    shouldIgnoreParseInt(parent, fullNumberNode) ||
+                    shouldIgnoreParseInt(parent, node) ||
                     shouldIgnoreArrayIndexes(parent) ||
                     shouldIgnoreJSXNumbers(parent)) {
                     return;
@@ -135,7 +127,7 @@ module.exports = {
                 if (parent.type === "VariableDeclarator") {
                     if (enforceConst && parent.parent.kind !== "const") {
                         context.report({
-                            node: fullNumberNode,
+                            node,
                             message: "Number constants declarations must use 'const'."
                         });
                     }
@@ -144,7 +136,7 @@ module.exports = {
                     (parent.type === "AssignmentExpression" && parent.left.type === "Identifier")
                 ) {
                     context.report({
-                        node: fullNumberNode,
+                        node,
                         message: "No magic number: {{raw}}.",
                         data: {
                             raw

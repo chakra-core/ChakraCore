@@ -1,11 +1,11 @@
 # get-stdin [![Build Status](https://travis-ci.org/sindresorhus/get-stdin.svg?branch=master)](https://travis-ci.org/sindresorhus/get-stdin)
 
-> Easier stdin
+> Get [stdin](https://nodejs.org/api/process.html#process_process_stdin) as a string or buffer
 
 
 ## Install
 
-```sh
+```
 $ npm install --save get-stdin
 ```
 
@@ -14,15 +14,15 @@ $ npm install --save get-stdin
 
 ```js
 // example.js
-var stdin = require('get-stdin');
+const getStdin = require('get-stdin');
 
-stdin(function (data) {
-	console.log(data);
-	//=> unicorns
+getStdin().then(str => {
+	console.log(str);
+	//=> 'unicorns'
 });
 ```
 
-```sh
+```
 $ echo unicorns | node example.js
 unicorns
 ```
@@ -30,13 +30,24 @@ unicorns
 
 ## API
 
-### stdin(callback)
+Both methods returns a promise that is resolved when the `end` event fires on the `stdin` stream, indicating that there is no more data to be read.
+
+### getStdin()
 
 Get `stdin` as a string.
 
-### stdin.buffer(callback)
+In a TTY context, a promise that resolves to an empty string is returned.
+
+### getStdin.buffer()
 
 Get `stdin` as a buffer.
+
+In a TTY context, a promise that resolves to an empty buffer is returned.
+
+
+## Related
+
+- [get-stream](https://github.com/sindresorhus/get-stream) - Get a stream as a string or buffer
 
 
 ## License

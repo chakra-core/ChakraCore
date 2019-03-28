@@ -1,0 +1,66 @@
+{
+  "name": "inquirer2",
+  "description": "Lighter, faster alternative to inquirer. A collection of common interactive command line user interfaces.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/inquirer2",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/inquirer2",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/inquirer2/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib/"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "test": "gulp"
+  },
+  "dependencies": {
+    "ansi-escapes": "^1.1.1",
+    "ansi-regex": "^2.0.0",
+    "arr-flatten": "^1.0.1",
+    "arr-pluck": "^0.1.0",
+    "array-unique": "^0.2.1",
+    "chalk": "^1.1.1",
+    "cli-cursor": "^1.0.2",
+    "cli-width": "^1.1.0",
+    "extend-shallow": "^2.0.1",
+    "figures": "^1.4.0",
+    "is-number": "^2.1.0",
+    "is-plain-object": "^2.0.1",
+    "lazy-cache": "^1.0.3",
+    "lodash.where": "^3.1.0",
+    "readline2": "^1.0.1",
+    "run-async": "^0.1.0",
+    "rx-lite": "^4.0.7",
+    "strip-color": "^0.1.0",
+    "through2": "^2.0.0"
+  },
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "cmdify": "^0.0.4",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.1.1",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-mocha": "^2.2.0",
+    "lodash": "^3.10.1",
+    "mocha": "*",
+    "mockery": "^1.4.0",
+    "sinon": "^1.12.1"
+  },
+  "keywords": [
+    "cli",
+    "command",
+    "menu",
+    "prompt",
+    "stdin",
+    "tty"
+  ],
+  "verb": {
+    "related": {
+      "list": []
+    }
+  }
+}

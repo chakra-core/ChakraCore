@@ -19,8 +19,7 @@ module.exports = {
         docs: {
             description: "disallow trailing whitespace at the end of lines",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-trailing-spaces"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -30,9 +29,6 @@ module.exports = {
                 type: "object",
                 properties: {
                     skipBlankLines: {
-                        type: "boolean"
-                    },
-                    ignoreComments: {
                         type: "boolean"
                     }
                 },
@@ -49,8 +45,7 @@ module.exports = {
             NONBLANK = `${BLANK_CLASS}+$`;
 
         const options = context.options[0] || {},
-            skipBlankLines = options.skipBlankLines || false,
-            ignoreComments = typeof options.ignoreComments === "boolean" && options.ignoreComments;
+            skipBlankLines = options.skipBlankLines || false;
 
         /**
          * Report the error message
@@ -77,22 +72,6 @@ module.exports = {
             });
         }
 
-        /**
-         * Given a list of comment nodes, return the line numbers for those comments.
-         * @param {Array} comments An array of comment nodes.
-         * @returns {number[]} An array of line numbers containing comments.
-         */
-        function getCommentLineNumbers(comments) {
-            const lines = new Set();
-
-            comments.forEach(comment => {
-                for (let i = comment.loc.start.line; i <= comment.loc.end.line; i++) {
-                    lines.add(i);
-                }
-            });
-
-            return lines;
-        }
 
         //--------------------------------------------------------------------------
         // Public
@@ -102,29 +81,22 @@ module.exports = {
 
             Program: function checkTrailingSpaces(node) {
 
-                /*
-                 * Let's hack. Since Espree does not return whitespace nodes,
-                 * fetch the source code and do matching via regexps.
-                 */
+                // Let's hack. Since Espree does not return whitespace nodes,
+                // fetch the source code and do matching via regexps.
 
                 const re = new RegExp(NONBLANK),
                     skipMatch = new RegExp(SKIP_BLANK),
                     lines = sourceCode.lines,
-                    linebreaks = sourceCode.getText().match(astUtils.createGlobalLinebreakMatcher()),
-                    comments = sourceCode.getAllComments(),
-                    commentLineNumbers = getCommentLineNumbers(comments);
-
+                    linebreaks = sourceCode.getText().match(astUtils.createGlobalLinebreakMatcher());
                 let totalLength = 0,
                     fixRange = [];
 
                 for (let i = 0, ii = lines.length; i < ii; i++) {
                     const matches = re.exec(lines[i]);
 
-                    /*
-                     * Always add linebreak length to line length to accommodate for line break (\n or \r\n)
-                     * Because during the fix time they also reserve one spot in the array.
-                     * Usually linebreak length is 2 for \r\n (CRLF) and 1 for \n (LF)
-                     */
+                    // Always add linebreak length to line length to accommodate for line break (\n or \r\n)
+                    // Because during the fix time they also reserve one spot in the array.
+                    // Usually linebreak length is 2 for \r\n (CRLF) and 1 for \n (LF)
                     const linebreakLength = linebreaks && linebreaks[i] ? linebreaks[i].length : 1;
                     const lineLength = lines[i].length + linebreakLength;
 
@@ -145,20 +117,15 @@ module.exports = {
                             continue;
                         }
 
-                        /*
-                         * If the line has only whitespace, and skipBlankLines
-                         * is true, don't report it
-                         */
+                        // If the line has only whitespace, and skipBlankLines
+                        // is true, don't report it
                         if (skipBlankLines && skipMatch.test(lines[i])) {
                             totalLength += lineLength;
                             continue;
                         }
 
                         fixRange = [rangeStart, rangeEnd];
-
-                        if (!ignoreComments || !commentLineNumbers.has(location.line)) {
-                            report(node, location, fixRange);
-                        }
+                        report(node, location, fixRange);
                     }
 
                     totalLength += lineLength;

@@ -20,8 +20,7 @@ module.exports = {
         docs: {
             description: "require quotes around object literal property names",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/quote-props"
+            recommended: false
         },
 
         schema: {
@@ -105,19 +104,19 @@ module.exports = {
         }
 
         /**
-         * Returns a string representation of a property node with quotes removed
-         * @param {ASTNode} key Key AST Node, which may or may not be quoted
-         * @returns {string} A replacement string for this property
-         */
+        * Returns a string representation of a property node with quotes removed
+        * @param {ASTNode} key Key AST Node, which may or may not be quoted
+        * @returns {string} A replacement string for this property
+        */
         function getUnquotedKey(key) {
             return key.type === "Identifier" ? key.name : key.value;
         }
 
         /**
-         * Returns a string representation of a property node with quotes added
-         * @param {ASTNode} key Key AST Node, which may or may not be quoted
-         * @returns {string} A replacement string for this property
-         */
+        * Returns a string representation of a property node with quotes added
+        * @param {ASTNode} key Key AST Node, which may or may not be quoted
+        * @returns {string} A replacement string for this property
+        */
         function getQuotedKey(key) {
             if (key.type === "Literal" && typeof key.value === "string") {
 
@@ -136,14 +135,13 @@ module.exports = {
          */
         function checkUnnecessaryQuotes(node) {
             const key = node.key;
+            let tokens;
 
             if (node.method || node.computed || node.shorthand) {
                 return;
             }
 
             if (key.type === "Literal" && typeof key.value === "string") {
-                let tokens;
-
                 try {
                     tokens = espree.tokenize(key.value);
                 } catch (e) {
@@ -217,6 +215,7 @@ module.exports = {
 
             node.properties.forEach(property => {
                 const key = property.key;
+                let tokens;
 
                 if (!key || property.method || property.computed || property.shorthand) {
                     return;
@@ -227,8 +226,6 @@ module.exports = {
                     quotedProps.push(property);
 
                     if (checkQuotesRedundancy) {
-                        let tokens;
-
                         try {
                             tokens = espree.tokenize(key.value);
                         } catch (e) {

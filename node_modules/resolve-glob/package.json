@@ -1,0 +1,74 @@
+{
+  "name": "resolve-glob",
+  "description": "Ensures that absolute file paths are always returned from a glob pattern or array of glob patterns.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/resolve-glob",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/resolve-glob",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/resolve-glob/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "is-valid-glob": "^1.0.0",
+    "matched": "^1.0.2",
+    "relative": "^3.0.2",
+    "resolve-dir": "^1.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "is-absolute": "^1.0.0",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "absolute",
+    "dir",
+    "directory",
+    "expand",
+    "expansion",
+    "file",
+    "filepath",
+    "glob",
+    "is",
+    "is-absolute",
+    "is-glob",
+    "pattern",
+    "resolve",
+    "tilde"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "has-glob",
+        "is-glob",
+        "is-valid-glob"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "matched",
+      "resolve-dir"
+    ]
+  }
+}

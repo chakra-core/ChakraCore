@@ -20,8 +20,7 @@ module.exports = {
         docs: {
             description: "disallow comma operators",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-sequences"
+            recommended: false
         },
 
         schema: []
@@ -41,12 +40,10 @@ module.exports = {
             WithStatement: "object",
             ArrowFunctionExpression: "body"
 
-            /*
-             * Omitting CallExpression - commas are parsed as argument separators
-             * Omitting NewExpression - commas are parsed as argument separators
-             * Omitting ForInStatement - parts aren't individually parenthesised
-             * Omitting ForStatement - parts aren't individually parenthesised
-             */
+            // Omitting CallExpression - commas are parsed as argument separators
+            // Omitting NewExpression - commas are parsed as argument separators
+            // Omitting ForInStatement - parts aren't individually parenthesised
+            // Omitting ForStatement - parts aren't individually parenthesised
         };
 
         /**

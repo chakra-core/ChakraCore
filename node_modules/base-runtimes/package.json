@@ -1,0 +1,99 @@
+{
+  "name": "base-runtimes",
+  "description": "Plugin for adding composer-runtimes to base applications, complementing the base-tasks and base-generators plugins.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/node-base/base-runtimes",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-runtimes",
+  "bugs": {
+    "url": "https://github.com/node-base/base-runtimes/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "is-valid-app": "^0.2.0",
+    "lazy-cache": "^2.0.1",
+    "log-utils": "^0.1.4",
+    "micromatch": "^2.3.10",
+    "time-diff": "^0.3.1"
+  },
+  "devDependencies": {
+    "base": "^0.11.1",
+    "base-app": "^0.2.6",
+    "base-task": "^0.6.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "baseplugin",
+    "building-blocks",
+    "composer",
+    "create",
+    "diff",
+    "end",
+    "finish",
+    "framework",
+    "generate",
+    "generator",
+    "plugin",
+    "plugins",
+    "runtimes",
+    "start",
+    "task",
+    "time",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "lintDeps": {
+    "ignore": []
+  },
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highlight": "base-task",
+      "list": [
+        "base",
+        "base-fs",
+        "base-generators",
+        "base-pipeline",
+        "base-plugins",
+        "base-task"
+      ]
+    },
+    "reflinks": [
+      "composer",
+      "composer-runtimes",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

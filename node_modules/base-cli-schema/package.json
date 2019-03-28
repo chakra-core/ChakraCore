@@ -1,0 +1,91 @@
+{
+  "name": "base-cli-schema",
+  "description": "Schema for the base-cli plugin, used for normalizing argv values before passing them to cli.process().",
+  "version": "0.1.19",
+  "homepage": "https://github.com/jonschlinkert/base-cli-schema",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/base-cli-schema",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/base-cli-schema/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1",
+    "array-unique": "^0.2.1",
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "export-files": "^2.1.1",
+    "extend-shallow": "^2.0.1",
+    "falsey": "^0.3.0",
+    "fs-exists-sync": "^0.1.0",
+    "has-glob": "^0.1.1",
+    "has-value": "^0.3.1",
+    "kind-of": "^3.0.3",
+    "lazy-cache": "^2.0.1",
+    "map-schema": "^0.2.3",
+    "merge-deep": "^3.0.0",
+    "mixin-deep": "^1.1.3",
+    "resolve": "^1.1.7",
+    "tableize-object": "^0.1.0"
+  },
+  "devDependencies": {
+    "assemble-core": "^0.21.0",
+    "base": "^0.10.0",
+    "base-argv": "^0.5.0",
+    "base-cwd": "^0.2.0",
+    "base-data": "^0.5.0",
+    "base-pkg": "^0.2.3",
+    "delete": "^0.3.2",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "gulp-unused": "^0.1.2",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "base",
+    "baseplugin",
+    "cli",
+    "normalize",
+    "plugin",
+    "schema"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-cli",
+        "base-cli-process",
+        "base-option"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

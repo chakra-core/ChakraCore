@@ -16,20 +16,17 @@ module.exports = {
         docs: {
             description: "enforce newlines between operands of ternary expressions",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/multiline-ternary"
+            recommended: false
         },
         schema: [
             {
-                enum: ["always", "always-multiline", "never"]
+                enum: ["always", "never"]
             }
         ]
     },
 
     create(context) {
-        const option = context.options[0];
-        const multiline = option !== "never";
-        const allowSingleLine = option === "always-multiline";
+        const multiline = context.options[0] !== "never";
 
         //--------------------------------------------------------------------------
         // Helpers
@@ -72,10 +69,6 @@ module.exports = {
                         reportError(node.consequent, node, false);
                     }
                 } else {
-                    if (allowSingleLine && node.loc.start.line === node.loc.end.line) {
-                        return;
-                    }
-
                     if (areTestAndConsequentOnSameLine) {
                         reportError(node.test, node, true);
                     }

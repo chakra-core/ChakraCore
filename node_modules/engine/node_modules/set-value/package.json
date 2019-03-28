@@ -1,0 +1,56 @@
+{
+  "name": "set-value",
+  "description": "Create nested values and any intermediaries using dot notation (`'a.b.c'`) paths.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/set-value",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/set-value.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/set-value/issues"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/jonschlinkert/set-value/blob/master/LICENSE"
+  },
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^1.0.0",
+    "noncharacters": "^1.1.0"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "^5.2.0"
+  },
+  "keywords": [
+    "get",
+    "has",
+    "hasown",
+    "key",
+    "keys",
+    "nested",
+    "notation",
+    "object",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "set",
+    "value",
+    "values"
+  ]
+}

@@ -36,10 +36,10 @@ function isUnreachable(segment) {
 }
 
 /**
- * Checks whether a given node is a `constructor` method in an ES6 class
- * @param {ASTNode} node A node to check
- * @returns {boolean} `true` if the node is a `constructor` method
- */
+* Checks whether a given node is a `constructor` method in an ES6 class
+* @param {ASTNode} node A node to check
+* @returns {boolean} `true` if the node is a `constructor` method
+*/
 function isClassConstructor(node) {
     return node.type === "FunctionExpression" &&
         node.parent &&
@@ -56,8 +56,7 @@ module.exports = {
         docs: {
             description: "require `return` statements to either always or never specify values",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/consistent-return"
+            recommended: false
         },
 
         schema: [{
@@ -68,13 +67,7 @@ module.exports = {
                 }
             },
             additionalProperties: false
-        }],
-
-        messages: {
-            missingReturn: "Expected to return a value at the end of {{name}}.",
-            missingReturnValue: "{{name}} expected a return value.",
-            unexpectedReturnValue: "{{name}} expected no return value."
-        }
+        }]
     },
 
     create(context) {
@@ -135,7 +128,7 @@ module.exports = {
             context.report({
                 node,
                 loc,
-                messageId: "missingReturn",
+                message: "Expected to return a value at the end of {{name}}.",
                 data: { name }
             });
         }
@@ -149,7 +142,7 @@ module.exports = {
                     codePath,
                     hasReturn: false,
                     hasReturnValue: false,
-                    messageId: "",
+                    message: "",
                     node
                 };
             },
@@ -169,16 +162,17 @@ module.exports = {
                 if (!funcInfo.hasReturn) {
                     funcInfo.hasReturn = true;
                     funcInfo.hasReturnValue = hasReturnValue;
-                    funcInfo.messageId = hasReturnValue ? "missingReturnValue" : "unexpectedReturnValue";
+                    funcInfo.message = "{{name}} expected {{which}} return value.";
                     funcInfo.data = {
                         name: funcInfo.node.type === "Program"
                             ? "Program"
-                            : lodash.upperFirst(astUtils.getFunctionNameWithKind(funcInfo.node))
+                            : lodash.upperFirst(astUtils.getFunctionNameWithKind(funcInfo.node)),
+                        which: hasReturnValue ? "a" : "no"
                     };
                 } else if (funcInfo.hasReturnValue !== hasReturnValue) {
                     context.report({
                         node,
-                        messageId: funcInfo.messageId,
+                        message: funcInfo.message,
                         data: funcInfo.data
                     });
                 }

@@ -15,8 +15,7 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing inside parentheses",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/space-in-parens"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -46,7 +45,8 @@ module.exports = {
         const MISSING_SPACE_MESSAGE = "There must be a space inside this paren.",
             REJECTED_SPACE_MESSAGE = "There should be no spaces inside this paren.",
             ALWAYS = context.options[0] === "always",
-            exceptionsArrayOptions = (context.options[1] && context.options[1].exceptions) || [],
+
+            exceptionsArrayOptions = (context.options.length === 2) ? context.options[1].exceptions : [],
             options = {};
         let exceptions;
 

@@ -56,14 +56,12 @@ function isRemovable(node) {
  * @returns {boolean} `true` if the node is in a `finally` block.
  */
 function isInFinally(node) {
-    for (
-        let currentNode = node;
-        currentNode && currentNode.parent && !astUtils.isFunction(currentNode);
-        currentNode = currentNode.parent
-    ) {
-        if (currentNode.parent.type === "TryStatement" && currentNode.parent.finalizer === currentNode) {
+    while (node && node.parent && !astUtils.isFunction(node)) {
+        if (node.parent.type === "TryStatement" && node.parent.finalizer === node) {
             return true;
         }
+
+        node = node.parent;
     }
 
     return false;
@@ -78,8 +76,7 @@ module.exports = {
         docs: {
             description: "disallow redundant return statements",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-useless-return"
+            recommended: false
         },
         fixable: "code",
         schema: []
@@ -118,12 +115,13 @@ module.exports = {
          *
          * @param {ASTNode[]} uselessReturns - The collected return statements.
          * @param {CodePathSegment[]} prevSegments - The previous segments to traverse.
-         * @param {WeakSet<CodePathSegment>} [providedTraversedSegments] A set of segments that have already been traversed in this call
+         * @param {WeakSet<CodePathSegment>} [traversedSegments] A set of segments that have already been traversed in this call
          * @returns {ASTNode[]} `uselessReturns`.
          */
-        function getUselessReturns(uselessReturns, prevSegments, providedTraversedSegments) {
-            const traversedSegments = providedTraversedSegments || new WeakSet();
-
+        function getUselessReturns(uselessReturns, prevSegments, traversedSegments) {
+            if (!traversedSegments) {
+                traversedSegments = new WeakSet();
+            }
             for (const segment of prevSegments) {
                 if (!segment.reachable) {
                     if (!traversedSegments.has(segment)) {
@@ -224,12 +222,10 @@ module.exports = {
                         fix(fixer) {
                             if (isRemovable(node)) {
 
-                                /*
-                                 * Extend the replacement range to include the
-                                 * entire function to avoid conflicting with
-                                 * no-else-return.
-                                 * https://github.com/eslint/eslint/issues/8026
-                                 */
+                                // Extend the replacement range to include the
+                                // entire function to avoid conflicting with
+                                // no-else-return.
+                                // https://github.com/eslint/eslint/issues/8026
                                 return new FixTracker(fixer, context.getSourceCode())
                                     .retainEnclosingFunction(node)
                                     .remove(node);
@@ -242,10 +238,8 @@ module.exports = {
                 scopeInfo = scopeInfo.upper;
             },
 
-            /*
-             * Initializes segments.
-             * NOTE: This event is notified for only reachable segments.
-             */
+            // Initializes segments.
+            // NOTE: This event is notified for only reachable segments.
             onCodePathSegmentStart(segment) {
                 const info = {
                     uselessReturns: getUselessReturns([], segment.allPrevSegments),
@@ -276,10 +270,8 @@ module.exports = {
                 scopeInfo.uselessReturns.push(node);
             },
 
-            /*
-             * Registers for all statement nodes except FunctionDeclaration, BlockStatement, BreakStatement.
-             * Removes return statements of the current segments from the useless return statement list.
-             */
+            // Registers for all statement nodes except FunctionDeclaration, BlockStatement, BreakStatement.
+            // Removes return statements of the current segments from the useless return statement list.
             ClassDeclaration: markReturnStatementsOnCurrentSegmentsAsUsed,
             ContinueStatement: markReturnStatementsOnCurrentSegmentsAsUsed,
             DebuggerStatement: markReturnStatementsOnCurrentSegmentsAsUsed,

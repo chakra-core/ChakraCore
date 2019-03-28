@@ -87,15 +87,10 @@ module.exports = {
         docs: {
             description: "disallow duplicate keys in object literals",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-dupe-keys"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Duplicate key '{{name}}'."
-        }
+        schema: []
     },
 
     create(context) {
@@ -127,7 +122,7 @@ module.exports = {
                     context.report({
                         node: info.node,
                         loc: node.key.loc,
-                        messageId: "unexpected",
+                        message: "Duplicate key '{{name}}'.",
                         data: { name }
                     });
                 }

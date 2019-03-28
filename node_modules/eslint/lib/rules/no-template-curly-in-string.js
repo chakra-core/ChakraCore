@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "disallow template literal placeholder syntax in regular strings",
             category: "Possible Errors",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-template-curly-in-string"
+            recommended: false
         },
 
         schema: []

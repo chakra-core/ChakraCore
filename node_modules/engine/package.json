@@ -1,0 +1,86 @@
+{
+  "name": "engine",
+  "description": "Template engine based on Lo-Dash template, but adds features like the ability to register helpers and more easily set data to be used as context in templates.",
+  "version": "0.1.12",
+  "homepage": "https://github.com/jonschlinkert/engine",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/engine",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/engine/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "assign-deep": "^0.4.3",
+    "collection-visit": "^0.2.0",
+    "get-value": "^1.2.1",
+    "kind-of": "^2.0.1",
+    "lazy-cache": "^0.2.3",
+    "object.omit": "^2.0.0",
+    "set-value": "^0.2.0"
+  },
+  "devDependencies": {
+    "ansi-red": "^0.1.1",
+    "extend-shallow": "^2.0.1",
+    "for-in": "^0.1.4",
+    "gulp-format-md": "^0.1.9",
+    "lodash": "^3.10.1",
+    "mocha": "*",
+    "shallow-clone": "^0.1.1",
+    "should": "*",
+    "template-helpers": "^0.3.2",
+    "time-require": "jonschlinkert/time-require"
+  },
+  "keywords": [
+    "compile",
+    "data",
+    "engine",
+    "erb",
+    "helper",
+    "helpers",
+    "lodash",
+    "register",
+    "render",
+    "renderer",
+    "template",
+    "templates",
+    "underscore"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "template",
+        "template-helpers",
+        "verb"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

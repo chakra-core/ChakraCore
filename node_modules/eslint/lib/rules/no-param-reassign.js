@@ -15,8 +15,7 @@ module.exports = {
         docs: {
             description: "disallow reassigning `function` parameters",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-param-reassign"
+            recommended: false
         },
 
         schema: [
@@ -128,10 +127,8 @@ module.exports = {
             if (identifier &&
                 !reference.init &&
 
-                /*
-                 * Destructuring assignments can have multiple default value,
-                 * so possibly there are multiple writeable references for the same identifier.
-                 */
+                // Destructuring assignments can have multiple default value,
+                // so possibly there are multiple writeable references for the same identifier.
                 (index === 0 || references[index - 1].identifier !== identifier)
             ) {
                 if (reference.isWrite()) {

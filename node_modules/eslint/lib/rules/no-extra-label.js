@@ -20,17 +20,12 @@ module.exports = {
         docs: {
             description: "disallow unnecessary labels",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-extra-label"
+            recommended: false
         },
 
         schema: [],
 
-        fixable: "code",
-
-        messages: {
-            unexpected: "This label '{{name}}' is unnecessary."
-        }
+        fixable: "code"
     },
 
     create(context) {
@@ -113,7 +108,7 @@ module.exports = {
                     if (info.breakable && info.label && info.label.name === labelNode.name) {
                         context.report({
                             node: labelNode,
-                            messageId: "unexpected",
+                            message: "This label '{{name}}' is unnecessary.",
                             data: labelNode,
                             fix: fixer => fixer.removeRange([sourceCode.getFirstToken(node).range[1], labelNode.range[1]])
                         });

@@ -19,8 +19,7 @@ module.exports = {
         docs: {
             description: "disallow labeled statements",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-labels"
+            recommended: false
         },
 
         schema: [

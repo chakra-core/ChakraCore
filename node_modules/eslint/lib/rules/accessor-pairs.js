@@ -58,11 +58,11 @@ function isPropertyDescriptor(node) {
      * Object.defineProperties(obj, {foo: {set: ...}})
      * Object.create(proto, {foo: {set: ...}})
      */
-    const grandparent = node.parent.parent;
+    node = node.parent.parent;
 
-    return grandparent.type === "ObjectExpression" && (
-        isArgumentOfMethodCall(grandparent, 1, "Object", "create") ||
-        isArgumentOfMethodCall(grandparent, 1, "Object", "defineProperties")
+    return node.type === "ObjectExpression" && (
+        isArgumentOfMethodCall(node, 1, "Object", "create") ||
+        isArgumentOfMethodCall(node, 1, "Object", "defineProperties")
     );
 }
 
@@ -75,8 +75,7 @@ module.exports = {
         docs: {
             description: "enforce getter and setter pairs in objects",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/accessor-pairs"
+            recommended: false
         },
         schema: [{
             type: "object",
@@ -89,11 +88,7 @@ module.exports = {
                 }
             },
             additionalProperties: false
-        }],
-        messages: {
-            getter: "Getter is not present.",
-            setter: "Setter is not present."
-        }
+        }]
     },
     create(context) {
         const config = context.options[0] || {};
@@ -144,9 +139,9 @@ module.exports = {
             }
 
             if (checkSetWithoutGet && isSetPresent && !isGetPresent) {
-                context.report({ node, messageId: "getter" });
+                context.report({ node, message: "Getter is not present." });
             } else if (checkGetWithoutSet && isGetPresent && !isSetPresent) {
-                context.report({ node, messageId: "setter" });
+                context.report({ node, message: "Setter is not present." });
             }
         }
 

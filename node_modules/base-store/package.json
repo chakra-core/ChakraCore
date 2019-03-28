@@ -1,0 +1,84 @@
+{
+  "name": "base-store",
+  "description": "Plugin for getting and persisting config values with your base-methods application. Adds a 'store' object that exposes all of the methods from the data-store library. Also now supports sub-stores!",
+  "version": "0.4.4",
+  "homepage": "https://github.com/node-base/base-store",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-store",
+  "bugs": {
+    "url": "https://github.com/node-base/base-store/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "data-store": "^0.16.0",
+    "debug": "^2.2.0",
+    "extend-shallow": "^2.0.1",
+    "is-registered": "^0.1.4",
+    "is-valid-instance": "^0.1.0",
+    "lazy-cache": "^2.0.1",
+    "project-name": "^0.2.5"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.4.5",
+    "should": "^8.3.1"
+  },
+  "keywords": [
+    "app",
+    "base",
+    "baseplugin",
+    "cache",
+    "config",
+    "data",
+    "extend",
+    "merge",
+    "method",
+    "plugin",
+    "store"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highlight": "base-data",
+      "description": "Other plugins for extending your [base][] application:",
+      "list": [
+        "base",
+        "base-options",
+        "base-questions",
+        "base-pipeline",
+        "base-plugins"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

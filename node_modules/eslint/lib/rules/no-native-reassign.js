@@ -16,8 +16,7 @@ module.exports = {
             description: "disallow assignments to native objects or read-only global variables",
             category: "Best Practices",
             recommended: false,
-            replacedBy: ["no-global-assign"],
-            url: "https://eslint.org/docs/rules/no-native-reassign"
+            replacedBy: ["no-global-assign"]
         },
 
         deprecated: true,
@@ -54,10 +53,8 @@ module.exports = {
             if (reference.init === false &&
                 reference.isWrite() &&
 
-                /*
-                 * Destructuring assignments can have multiple default value,
-                 * so possibly there are multiple writeable references for the same identifier.
-                 */
+                // Destructuring assignments can have multiple default value,
+                // so possibly there are multiple writeable references for the same identifier.
                 (index === 0 || references[index - 1].identifier !== identifier)
             ) {
                 context.report({

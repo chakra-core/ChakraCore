@@ -16,15 +16,10 @@ module.exports = {
         docs: {
             description: "disallow reassigning exceptions in `catch` clauses",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-ex-assign"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Do not assign to the exception parameter."
-        }
+        schema: []
     },
 
     create(context) {
@@ -36,7 +31,7 @@ module.exports = {
          */
         function checkVariable(variable) {
             astUtils.getModifyingReferences(variable.references).forEach(reference => {
-                context.report({ node: reference.identifier, messageId: "unexpected" });
+                context.report({ node: reference.identifier, message: "Do not assign to the exception parameter." });
             });
         }
 

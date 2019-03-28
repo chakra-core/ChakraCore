@@ -11,30 +11,32 @@
 const envs = require("../../conf/environments");
 
 //------------------------------------------------------------------------------
+// Private
+//------------------------------------------------------------------------------
+
+let environments = new Map();
+
+/**
+ * Loads the default environments.
+ * @returns {void}
+ * @private
+ */
+function load() {
+    Object.keys(envs).forEach(envName => {
+        environments.set(envName, envs[envName]);
+    });
+}
+
+// always load default environments upfront
+load();
+
+//------------------------------------------------------------------------------
 // Public Interface
 //------------------------------------------------------------------------------
 
-class Environments {
+module.exports = {
 
-    /**
-     * create env context
-     */
-    constructor() {
-        this._environments = new Map();
-
-        this.load();
-    }
-
-    /**
-     * Loads the default environments.
-     * @returns {void}
-     * @private
-     */
-    load() {
-        Object.keys(envs).forEach(envName => {
-            this._environments.set(envName, envs[envName]);
-        });
-    }
+    load,
 
     /**
      * Gets the environment with the given name.
@@ -42,19 +44,8 @@ class Environments {
      * @returns {Object?} The environment object or null if not found.
      */
     get(name) {
-        return this._environments.get(name) || null;
-    }
-
-    /**
-     * Gets all the environment present
-     * @returns {Object} The environment object for each env name
-     */
-    getAll() {
-        return Array.from(this._environments).reduce((coll, env) => {
-            coll[env[0]] = env[1];
-            return coll;
-        }, {});
-    }
+        return environments.get(name) || null;
+    },
 
     /**
      * Defines an environment.
@@ -63,8 +54,8 @@ class Environments {
      * @returns {void}
      */
     define(name, env) {
-        this._environments.set(name, env);
-    }
+        environments.set(name, env);
+    },
 
     /**
      * Imports all environments from a plugin.
@@ -78,7 +69,14 @@ class Environments {
                 this.define(`${pluginName}/${envName}`, plugin.environments[envName]);
             });
         }
-    }
-}
+    },
 
-module.exports = Environments;
+    /**
+     * Resets all environments. Only use for tests!
+     * @returns {void}
+     */
+    testReset() {
+        environments = new Map();
+        load();
+    }
+};

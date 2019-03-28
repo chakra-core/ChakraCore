@@ -14,15 +14,10 @@ module.exports = {
         docs: {
             description: "disallow division operators explicitly at the beginning of regular expressions",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-div-regex"
+            recommended: false
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "A regular expression literal can be confused with '/='."
-        }
+        schema: []
     },
 
     create(context) {
@@ -34,7 +29,7 @@ module.exports = {
                 const token = sourceCode.getFirstToken(node);
 
                 if (token.type === "RegularExpression" && token.value[1] === "=") {
-                    context.report({ node, messageId: "unexpected" });
+                    context.report({ node, message: "A regular expression literal can be confused with '/='." });
                 }
             }
         };

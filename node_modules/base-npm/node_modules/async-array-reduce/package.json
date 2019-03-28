@@ -1,0 +1,41 @@
+{
+  "name": "async-array-reduce",
+  "description": "Async reduce.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/jonschlinkert/async-array-reduce",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/async-array-reduce",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/async-array-reduce/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": [
+    "array",
+    "async",
+    "reduce"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "arr-reduce",
+        "arr-filter",
+        "arr-flatten",
+        "array-unique"
+      ]
+    }
+  }
+}

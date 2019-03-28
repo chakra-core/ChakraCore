@@ -1,0 +1,2 @@
+# <%= ask("name", "Document name?") %>
+

@@ -1,0 +1,27 @@
+{
+  "name": "install-script",
+  "version": "1.0.0",
+  "description": "Generate install scripts for your CLIs",
+  "license": "MIT",
+  "main": "index.js",
+  "repository": "vdemedes/install-script",
+  "author": {
+    "name": "Vadim",
+    "email": "vdemedes@gmail.com",
+    "url": "https://github.com/vdemedes"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "dependencies": {
+    "ejs": "^2.3.4"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "mz": "^2.0.0"
+  },
+  "files": [
+    "index.js",
+    "template.ejs"
+  ]
+}

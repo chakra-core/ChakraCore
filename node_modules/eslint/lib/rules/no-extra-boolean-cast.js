@@ -20,18 +20,12 @@ module.exports = {
         docs: {
             description: "disallow unnecessary boolean casts",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-extra-boolean-cast"
+            recommended: true
         },
 
         schema: [],
 
-        fixable: "code",
-
-        messages: {
-            unexpectedCall: "Redundant Boolean call.",
-            unexpectedNegation: "Redundant double negation."
-        }
+        fixable: "code"
     },
 
     create(context) {
@@ -87,7 +81,7 @@ module.exports = {
                 ) {
                     context.report({
                         node,
-                        messageId: "unexpectedNegation",
+                        message: "Redundant double negation.",
                         fix: fixer => fixer.replaceText(parent, sourceCode.getText(node.argument))
                     });
                 }
@@ -102,7 +96,7 @@ module.exports = {
                 if (isInBooleanContext(node, parent)) {
                     context.report({
                         node,
-                        messageId: "unexpectedCall",
+                        message: "Redundant Boolean call.",
                         fix: fixer => {
                             if (!node.arguments.length) {
                                 return fixer.replaceText(parent, "true");

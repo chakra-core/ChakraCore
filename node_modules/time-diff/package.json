@@ -1,0 +1,76 @@
+{
+  "name": "time-diff",
+  "description": "Returns the formatted, high-resolution time difference between `start` and `end` times.",
+  "version": "0.3.1",
+  "homepage": "https://github.com/jonschlinkert/time-diff",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/time-diff",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/time-diff/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "is-number": "^2.1.0",
+    "log-utils": "^0.1.0",
+    "pretty-time": "^0.2.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "minimist": "^1.2.0",
+    "mocha": "^2.4.5",
+    "strip-color": "^0.1.0"
+  },
+  "keywords": [
+    "console",
+    "diff",
+    "difference",
+    "elapse",
+    "elapsed",
+    "log",
+    "pretty",
+    "terminal",
+    "time",
+    "time-diff",
+    "timer"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "pretty-time",
+      "verb",
+      "minimist"
+    ],
+    "related": {
+      "list": [
+        "ansi-colors",
+        "log-utils",
+        "pretty-time",
+        "time-diff"
+      ]
+    },
+    "layout": "default",
+    "toc": {
+      "render": false
+    },
+    "run": true,
+    "lint": {
+      "reflinks": true
+    },
+    "tasks": [
+      "readme"
+    ]
+  }
+}

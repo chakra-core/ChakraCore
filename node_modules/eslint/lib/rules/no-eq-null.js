@@ -15,15 +15,10 @@ module.exports = {
         docs: {
             description: "disallow `null` comparisons without type-checking operators",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-eq-null"
+            recommended: false
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Use '===' to compare with null."
-        }
+        schema: []
     },
 
     create(context) {
@@ -35,7 +30,7 @@ module.exports = {
 
                 if (node.right.type === "Literal" && node.right.raw === "null" && badOperator ||
                         node.left.type === "Literal" && node.left.raw === "null" && badOperator) {
-                    context.report({ node, messageId: "unexpected" });
+                    context.report({ node, message: "Use ‘===’ to compare with ‘null’." });
                 }
             }
         };

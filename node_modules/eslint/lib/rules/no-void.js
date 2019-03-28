@@ -13,8 +13,7 @@ module.exports = {
         docs: {
             description: "disallow `void` operators",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-void"
+            recommended: false
         },
 
         schema: []

@@ -1,0 +1,36 @@
+{
+  "name": "async-settle",
+  "version": "0.2.1",
+  "description": "Settle your async functions - when you need to know all your parallel functions are complete (success or failure)",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tap ./test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/phated/async-settle"
+  },
+  "keywords": [
+    "settle",
+    "async",
+    "async-done",
+    "complete",
+    "error",
+    "parallel"
+  ],
+  "author": "Blaine Bublitz <blaine@iceddev.com> (http://iceddev.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/phated/async-settle/issues"
+  },
+  "homepage": "https://github.com/phated/async-settle",
+  "devDependencies": {
+    "tap": "^0.4.8"
+  },
+  "dependencies": {
+    "async-done": "^0.4.0"
+  }
+}

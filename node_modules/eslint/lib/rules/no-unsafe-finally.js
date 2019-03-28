@@ -23,8 +23,7 @@ module.exports = {
         docs: {
             description: "disallow control flow statements in `finally` blocks",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-unsafe-finally"
+            recommended: true
         },
 
         schema: []
@@ -60,20 +59,17 @@ module.exports = {
                 sentinelNodeType = SENTINEL_NODE_TYPE_RETURN_THROW;
             }
 
-            for (
-                let currentNode = node;
-                currentNode && !sentinelNodeType.test(currentNode.type);
-                currentNode = currentNode.parent
-            ) {
-                if (currentNode.parent.label && label && (currentNode.parent.label.name === label.name)) {
+            while (node && !sentinelNodeType.test(node.type)) {
+                if (node.parent.label && label && (node.parent.label.name === label.name)) {
                     labelInside = true;
                 }
-                if (isFinallyBlock(currentNode)) {
+                if (isFinallyBlock(node)) {
                     if (label && labelInside) {
                         return false;
                     }
                     return true;
                 }
+                node = node.parent;
             }
             return false;
         }

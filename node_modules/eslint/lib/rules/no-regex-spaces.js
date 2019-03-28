@@ -16,8 +16,7 @@ module.exports = {
         docs: {
             description: "disallow multiple spaces in regular expressions",
             category: "Possible Errors",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-regex-spaces"
+            recommended: true
         },
 
         schema: [],
@@ -33,16 +32,16 @@ module.exports = {
          * @param {ASTNode} node node to validate
          * @param {string} value regular expression to validate
          * @param {number} valueStart The start location of the regex/string literal. It will always be the case that
-         * `sourceCode.getText().slice(valueStart, valueStart + value.length) === value`
+         `sourceCode.getText().slice(valueStart, valueStart + value.length) === value`
          * @returns {void}
          * @private
          */
         function checkRegex(node, value, valueStart) {
-            const multipleSpacesRegex = /( {2,})( [+*{?]|[^+*{?]|$)/,
+            const multipleSpacesRegex = /( {2,})+?/,
                 regexResults = multipleSpacesRegex.exec(value);
 
             if (regexResults !== null) {
-                const count = regexResults[1].length;
+                const count = regexResults[0].length;
 
                 context.report({
                     node,
@@ -75,7 +74,7 @@ module.exports = {
                 nodeValue = token.value;
 
             if (nodeType === "RegularExpression") {
-                checkRegex(node, nodeValue, token.range[0]);
+                checkRegex(node, nodeValue, token.start);
             }
         }
 
@@ -101,7 +100,7 @@ module.exports = {
             const shadowed = regExpVar && regExpVar.defs.length > 0;
 
             if (node.callee.type === "Identifier" && node.callee.name === "RegExp" && isString(node.arguments[0]) && !shadowed) {
-                checkRegex(node, node.arguments[0].value, node.arguments[0].range[0] + 1);
+                checkRegex(node, node.arguments[0].value, node.arguments[0].start + 1);
             }
         }
 

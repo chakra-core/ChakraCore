@@ -1,0 +1,65 @@
+{
+  "name": "expand-object",
+  "description": "Expand a string into a JavaScript object using a simple notation. Use the CLI or as a node.js lib.",
+  "version": "0.4.2",
+  "homepage": "https://github.com/jonschlinkert/expand-object",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/expand-object",
+  "bugs": {
+    "bugs": "https://github.com/jonschlinkert/expand-object/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "cli.js",
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "bin": {
+    "expand-object": "cli.js"
+  },
+  "dependencies": {
+    "get-stdin": "^5.0.1",
+    "is-number": "^2.1.0",
+    "minimist": "^1.2.0",
+    "set-value": "^0.3.3"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.5",
+    "mocha": "*"
+  },
+  "keywords": [
+    "get",
+    "has",
+    "hasown",
+    "key",
+    "keys",
+    "nested",
+    "notation",
+    "object",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "set",
+    "value",
+    "values"
+  ],
+  "verb": {
+    "related": {
+      "list": "expand-args"
+    },
+    "reflinks": [
+      "collapse-object"
+    ],
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ]
+  }
+}

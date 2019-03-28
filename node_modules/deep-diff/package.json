@@ -1,0 +1,79 @@
+{
+  "name": "deep-diff",
+  "description": "Javascript utility for calculating deep difference, capturing changes, and applying changes across objects; for nodejs and the browser.",
+  "version": "0.3.8",
+  "license": "MIT",
+  "keywords": [
+    "diff",
+    "difference",
+    "compare",
+    "change-tracking"
+  ],
+  "author": "Phillip Clark <phillip@flitbit.com>",
+  "contributors": [
+    "Simen Bekkhus <sbekkhus91@gmail.com>",
+    "Paul Pflugradt <paulpflugradt@googlemail.com>",
+    "wooorm <tituswormer@gmail.com>",
+    "Nicholas Calugar <njcalugar@gmail.com>",
+    "Yandell <hyandell@amazon.com>",
+    "Thiago Santos <thia.mdossantos@gmail.com>",
+    "Steve Mao <maochenyan@gmail.com>",
+    "Mats Bryntse <mats.dev@bryntum.com>",
+    "Phillip Clark <pclark@leisurelink.com>",
+    "ZauberNerd <zaubernerd@zaubernerd.de>",
+    "ravishivt <javishi@gmail.com>",
+    "Daniel Spangler <daniel.spangler@gmail.com>",
+    "Sam Beran <sberan@gmail.com>",
+    "Thomas de Barochez <thomas.barochez+github@gmail.com>",
+    "Morton Fox <github@qslw.com>",
+    "Amila Welihinda <amilajack@users.noreply.github.com>",
+    "Will Biddy <willbiddy@gmail.com>",
+    "icesoar <icesoar@hotmail.com>",
+    "Serkan Serttop <serkanserttop@yahoo.com>",
+    "orlando <operri@opentable.com>",
+    "Tom MacWright <tmcw@users.noreply.github.com>",
+    "Denning <denningj@amazon.com>",
+    "Dan Drinkard <dan.drinkard@gmail.com>",
+    "Elad Efrat <elad@iNNU.ORG>",
+    "caasi Huang <caasi.igd@gmail.com>",
+    "Tom Ashworth <tashworth@twitter.com>"
+  ],
+  "files": [
+    "index.js",
+    "index.es.js",
+    "releases/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/flitbit/diff.git"
+  },
+  "main": "./index.js",
+  "module": "./index.es.js",
+  "jsnext:main": "/index.es.js",
+  "directories": {
+    "examples": "./examples",
+    "releases": "./releases",
+    "test": "./test"
+  },
+  "devDependencies": {
+    "deep-equal": "~1.0.0",
+    "expect.js": "^0.3.1",
+    "jscs": "^1.12.0",
+    "jshint": "^2.6.3",
+    "mocha": "^2.2.1",
+    "rollup": "^0.41.6",
+    "uglifyjs": "^2.4.10"
+  },
+  "scripts": {
+    "lint": "jscs index.es.js test/ -e && jshint index.es.js test/",
+    "build": "rollup index.es.js -f umd -o index.js -n DeepDiff",
+    "test": "mocha test/",
+    "release": "uglifyjs index.js -o releases/deep-diff-$npm_package_version.min.js  -r '$,require,exports,module,window,global' -m  --comments '/^!/'",
+
+    "prepublish": "npm run build",
+    "prerelease": "npm test",
+    "prebuild": "npm run lint",
+    "pretest": "npm run build"
+
+  }
+}

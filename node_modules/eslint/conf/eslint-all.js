@@ -10,8 +10,7 @@
 //------------------------------------------------------------------------------
 
 const load = require("../lib/load-rules"),
-    Rules = require("../lib/rules");
-const rules = new Rules();
+    rules = require("../lib/rules");
 
 //------------------------------------------------------------------------------
 // Helpers

@@ -1,22 +1,27 @@
-/*! is-windows v0.2.0 | MIT LICENSE (c) 2015 | https://github.com/jonschlinkert/is-windows */
-(function (root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    // AMD
-    define(factory);
-  } else if (typeof exports === 'object') {
-    // Node.js
-    module.exports = factory;
-  } else {
-    // Browser
-    root.isWindows = factory;
-  }
-}(this, function () {
-  'use strict';
+/*!
+ * is-windows <https://github.com/jonschlinkert/is-windows>
+ *
+ * Copyright © 2015-2018, Jon Schlinkert.
+ * Released under the MIT License.
+ */
 
-  return (function isWindows() {
-    if (typeof process === 'undefined' || !process) {
-      return false;
-    }
-    return process.platform === 'win32';
-  }());
-}));
+(function(factory) {
+  if (exports && typeof exports === 'object' && typeof module !== 'undefined') {
+    module.exports = factory();
+  } else if (typeof define === 'function' && define.amd) {
+    define([], factory);
+  } else if (typeof window !== 'undefined') {
+    window.isWindows = factory();
+  } else if (typeof global !== 'undefined') {
+    global.isWindows = factory();
+  } else if (typeof self !== 'undefined') {
+    self.isWindows = factory();
+  } else {
+    this.isWindows = factory();
+  }
+})(function() {
+  'use strict';
+  return function isWindows() {
+    return process && (process.platform === 'win32' || /^(msys|cygwin)$/.test(process.env.OSTYPE));
+  };
+});

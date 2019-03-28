@@ -1,0 +1,65 @@
+{
+  "name": "to-choices",
+  "description": "Easily create a normalized inquirer choices question. Supports all of the `choices` question types: checkbox, list, rawlist, expand",
+  "version": "0.2.0",
+  "homepage": "https://github.com/generate/to-choices",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "generate/to-choices",
+  "bugs": {
+    "url": "https://github.com/generate/to-choices/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ansi-gray": "^0.1.1",
+    "mixin-deep": "^1.1.3"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "inquirer2": "^0.1.1",
+    "mocha": "*"
+  },
+  "keywords": [
+    "array",
+    "ask",
+    "choice",
+    "choices",
+    "cli",
+    "inquirer",
+    "prompt",
+    "question"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "question-store",
+        "answer-store"
+      ]
+    },
+    "reflinks": [
+      "inquirer2",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

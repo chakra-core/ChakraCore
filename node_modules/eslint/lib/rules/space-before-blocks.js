@@ -16,8 +16,7 @@ module.exports = {
         docs: {
             description: "enforce consistent spacing before blocks",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/space-before-blocks"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -83,11 +82,11 @@ module.exports = {
          */
         function checkPrecedingSpace(node) {
             const precedingToken = sourceCode.getTokenBefore(node);
+            let requireSpace;
 
             if (precedingToken && !isConflicted(precedingToken) && astUtils.isTokenOnSameLine(precedingToken, node)) {
                 const hasSpace = sourceCode.isSpaceBetweenTokens(precedingToken, node);
                 const parent = context.getAncestors().pop();
-                let requireSpace;
 
                 if (parent.type === "FunctionExpression" || parent.type === "FunctionDeclaration") {
                     requireSpace = checkFunctions;

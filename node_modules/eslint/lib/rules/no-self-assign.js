@@ -114,16 +114,12 @@ function eachSelfAssignment(left, right, props, report) {
         right.properties.length >= 1
     ) {
 
-        /*
-         * Gets the index of the last spread property.
-         * It's possible to overwrite properties followed by it.
-         */
+        // Gets the index of the last spread property.
+        // It's possible to overwrite properties followed by it.
         let startJ = 0;
 
         for (let i = right.properties.length - 1; i >= 0; --i) {
-            const propType = right.properties[i].type;
-
-            if (propType === "SpreadElement" || propType === "ExperimentalSpreadProperty") {
+            if (right.properties[i].type === "ExperimentalSpreadProperty") {
                 startJ = i + 1;
                 break;
             }
@@ -168,8 +164,7 @@ module.exports = {
         docs: {
             description: "disallow assignments where both sides are exactly the same",
             category: "Best Practices",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-self-assign"
+            recommended: true
         },
 
         schema: [

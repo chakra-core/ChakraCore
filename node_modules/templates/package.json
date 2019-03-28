@@ -1,0 +1,145 @@
+{
+  "name": "templates",
+  "description": "System for creating and managing template collections, and rendering templates with any node.js template engine. Can be used as the basis for creating a static site generator or blog framework.",
+  "version": "1.2.9",
+  "homepage": "https://github.com/jonschlinkert/templates",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Anderson (http://jander.land)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/templates",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/templates/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "ci": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage"
+  },
+  "dependencies": {
+    "array-sort": "^0.1.2",
+    "async-each": "^1.0.1",
+    "base": "^0.11.1",
+    "base-data": "^0.6.0",
+    "base-engines": "^0.2.0",
+    "base-helpers": "^0.2.0",
+    "base-option": "^0.8.4",
+    "base-plugins": "^0.4.13",
+    "base-routes": "^0.2.2",
+    "debug": "^2.6.0",
+    "deep-bind": "^0.3.0",
+    "define-property": "^0.2.5",
+    "engine-base": "^0.1.2",
+    "export-files": "^2.1.1",
+    "extend-shallow": "^2.0.1",
+    "falsey": "^0.3.0",
+    "get-value": "^2.0.6",
+    "get-view": "^0.1.3",
+    "group-array": "^0.3.1",
+    "has-glob": "^1.0.0",
+    "has-value": "^0.3.1",
+    "inflection": "^1.12.0",
+    "is-valid-app": "^0.2.1",
+    "layouts": "^0.12.1",
+    "lazy-cache": "^2.0.2",
+    "match-file": "^0.2.1",
+    "mixin-deep": "^1.1.3",
+    "paginationator": "^0.1.4",
+    "pascalcase": "^0.1.1",
+    "set-value": "^0.4.0",
+    "template-error": "^0.1.2",
+    "vinyl-item": "^1.0.0",
+    "vinyl-view": "^2.0.0"
+  },
+  "devDependencies": {
+    "ansi-red": "^0.1.1",
+    "base-test-runner": "^0.2.0",
+    "base-test-suite": "^0.4.1",
+    "ent": "^2.2.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.1",
+    "helper-changelog": "^0.3.0",
+    "remarkable": "^1.7.1",
+    "yargs-parser": "^4.2.1"
+  },
+  "keywords": [
+    "compile",
+    "consolidate",
+    "engine",
+    "engines",
+    "haml-coffee",
+    "handlebars",
+    "helpers",
+    "lodash",
+    "process",
+    "render",
+    "template",
+    "templates"
+  ],
+  "lintDeps": {
+    "ignore": [
+      "coverage",
+      "examples/*"
+    ]
+  },
+  "verb": {
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "helpers": [
+      "helper-changelog"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "en-route",
+        "engine",
+        "layouts",
+        "verb"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "array-sort",
+      "assemble-permalinks",
+      "base",
+      "base-data",
+      "base-engine",
+      "base-helpers",
+      "base-routes",
+      "engine-cache",
+      "engine-handlebars",
+      "engine-lodash",
+      "engine-nunjucks",
+      "group-array",
+      "paginationator",
+      "route-api",
+      "verb",
+      "verb-generate-readme",
+      "vinyl",
+      "vinyl-item",
+      "vinyl-view"
+    ]
+  }
+}

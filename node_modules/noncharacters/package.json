@@ -1,0 +1,35 @@
+{
+  "name": "noncharacters",
+  "description": "34 non-character code points (labeled <not a character>), that are set aside and guaranteed to never be used for a character. Perfect to use for placeholders or temporary replacements during string transformations.",
+  "version": "1.1.0",
+  "homepage": "https://github.com/jonschlinkert/noncharacters",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/noncharacters.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/noncharacters/issues"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/jonschlinkert/noncharacters/blob/master/LICENSE"
+  },
+  "files": ["index.js"],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": []
+}

@@ -1,0 +1,113 @@
+'use strict';
+
+var utils = require('../utils/');
+var util = require('./readline');
+
+// Prevent crashes on environments where the width can't be properly detected
+utils.cliWidth.defaultWidth = 80;
+
+var ScreenManager = module.exports = function(rl) {
+  // These variables are keeping information to allow correct prompt re-rendering
+  this.height = 0;
+  this.extraLinesUnderPrompt = 0;
+
+  this.rl = rl;
+};
+
+ScreenManager.prototype.render = function(content, opt) {
+  opt = utils.extend({
+    cursor: 0
+  }, opt || {});
+  var cursorPos = this.rl._getCursorPos();
+
+  this.rl.output.unmute();
+  this.clean(this.extraLinesUnderPrompt);
+
+  /**
+   * Write message to screen and setPrompt to control backspace
+   */
+
+  var lines = content.split(/\n/);
+  var promptLine = lines[lines.length - 1 - opt.cursor];
+  var rawPromptLine = utils.stripColor(promptLine);
+
+  // Remove the rl.line from our prompt. We can't rely on the content of
+  // rl.line (mainly because of the password prompt), so just rely on it's
+  // length.
+  var prompt = promptLine;
+  if (this.rl.line.length) {
+    prompt = prompt.slice(0, -this.rl.line.length);
+  }
+  this.rl.setPrompt(prompt);
+  var rawPrompt = utils.stripColor(prompt);
+
+  // Manually insert an extra line if we're at the end of the line.
+  // This prevent the cursor from appearing at the beginning of the
+  // current line.
+
+  var breakedLines = breakLines(lines);
+  var actualLines = utils.flatten(breakedLines);
+  if (rawPromptLine.length % utils.cliWidth() === 0) {
+    actualLines.push('');
+  }
+  this.rl.output.write(actualLines.join('\n'));
+
+  /**
+   * Re-adjust the cursor at the correct position.
+   */
+
+  var promptLineUpDiff = Math.floor(rawPromptLine.length / utils.cliWidth()) - cursorPos.rows;
+  if (opt.cursor + promptLineUpDiff > 0) {
+    util.up(this.rl, opt.cursor + promptLineUpDiff);
+  }
+
+  // Reset cursor at the beginning of the line
+  var last = actualLines[actualLines.length - 1];
+  util.left(this.rl, utils.stripColor(last).length);
+
+  // Adjust cursor on the right
+  var rightPos = cursorPos.cols;
+  if (cursorPos.rows === 0) {
+    rightPos = Math.max(rightPos, rawPrompt.length);
+  }
+  util.right(this.rl, rightPos);
+
+  /**
+   * Set up state for next re-rendering
+   */
+
+  var bottomSection = breakedLines.slice(breakedLines.length - opt.cursor - promptLineUpDiff);
+  this.extraLinesUnderPrompt = utils.flatten(bottomSection).length;
+  this.height = actualLines.length;
+
+  this.rl.output.mute();
+};
+
+ScreenManager.prototype.clean = function(extraLines) {
+  if (extraLines > 0) {
+    util.down(this.rl, extraLines);
+  }
+  util.clearLine(this.rl, this.height);
+};
+
+ScreenManager.prototype.done = function() {
+  this.rl.setPrompt('');
+  this.rl.output.unmute();
+  this.rl.output.write('\n');
+};
+
+function breakLines(lines) {
+  // Break lines who're longuer than the cli width so we can normalize the natural line
+  // returns behavior accross terminals.
+  var width = utils.cliWidth();
+  var regex = new RegExp(
+    '(?:(?:\\033\[[0-9;]*m)*.?){1,' + width + '}',
+    'g'
+  );
+  return lines.map(function(line) {
+    var chunk = line.match(regex);
+    // last match is always empty
+    chunk.pop();
+    return chunk || '';
+  });
+}

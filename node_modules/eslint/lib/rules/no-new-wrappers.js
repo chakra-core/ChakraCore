@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow `new` operators with the `String`, `Number`, and `Boolean` objects",
             category: "Best Practices",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-new-wrappers"
+            recommended: false
         },
 
         schema: []

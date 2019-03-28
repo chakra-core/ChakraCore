@@ -1,0 +1,50 @@
+{
+  "name": "trim-leading-lines",
+  "description": "Trim leading lines from a string when they are 100% whitespace or empty.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/trim-leading-lines",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/trim-leading-lines",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/trim-leading-lines/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "leading",
+    "lines",
+    "trim"
+  ],
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "related": {
+      "list": []
+    },
+    "reflinks": [
+      "verb-generate-readme",
+      "verb"
+    ]
+  },
+  "dependencies": {
+    "is-whitespace": "^0.3.0"
+  }
+}

@@ -11,12 +11,9 @@ var typeOf = require('kind-of');
 
 module.exports = function isNumber(num) {
   var type = typeOf(num);
-
-  if (type === 'string') {
-    if (!num.trim()) return false;
-  } else if (type !== 'number') {
+  if (type !== 'number' && type !== 'string') {
     return false;
   }
-
-  return (num - num + 1) >= 0;
+  var n = +num;
+  return (n - n + 1) >= 0 && num !== '';
 };

@@ -1,0 +1,45 @@
+{
+  "name": "sort-object-arrays",
+  "description": "Recursively sort the array values in an object.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/sort-object-arrays",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/sort-object-arrays",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/sort-object-arrays/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^3.0.2"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "arrays",
+    "object",
+    "sort"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "group-object",
+        "sort-object",
+        "extend-shallow"
+      ]
+    }
+  }
+}

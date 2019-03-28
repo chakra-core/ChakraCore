@@ -48,18 +48,20 @@ function convertPathToPosix(filepath) {
  * @returns {string} Relative filepath
  */
 function getRelativePath(filepath, baseDir) {
-    const absolutePath = path.isAbsolute(filepath)
-        ? filepath
-        : path.resolve(filepath);
+    let relativePath;
 
+    if (!path.isAbsolute(filepath)) {
+        filepath = path.resolve(filepath);
+    }
     if (baseDir) {
         if (!path.isAbsolute(baseDir)) {
             throw new Error("baseDir should be an absolute path");
         }
-        return path.relative(baseDir, absolutePath);
+        relativePath = path.relative(baseDir, filepath);
+    } else {
+        relativePath = filepath.replace(/^\//, "");
     }
-    return absolutePath.replace(/^\//, "");
-
+    return relativePath;
 }
 
 //------------------------------------------------------------------------------

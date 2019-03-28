@@ -1,0 +1,63 @@
+{
+  "name": "base-namespace",
+  "description": "Plugin that adds a `namespace` getter to a Base instance.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/base-namespace",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/base-namespace",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/base-namespace/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-valid-app": "^0.1.0"
+  },
+  "devDependencies": {
+    "base": "^0.9.0",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "base",
+    "namespace"
+  ],
+  "lintDeps": {
+    "ignore": []
+  },
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-generators",
+        "base-env",
+        "base-task"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "base"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

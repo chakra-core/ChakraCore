@@ -1,0 +1,47 @@
+{
+  "name": "is-binary-buffer",
+  "description": "Returns true if a buffer is binary. Takes a buffer and does not read from the file system.",
+  "version": "1.0.0",
+  "homepage": "https://github.com/jonschlinkert/is-binary-buffer",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-binary-buffer",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-binary-buffer/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-buffer": "^1.1.5"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.1"
+  },
+  "keywords": [
+    "binary",
+    "buffer",
+    "is"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

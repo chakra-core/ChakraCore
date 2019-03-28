@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "disallow `require` calls to be mixed with regular variable declarations",
             category: "Node.js and CommonJS",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/no-mixed-requires"
+            recommended: false
         },
 
         schema: [
@@ -105,16 +104,14 @@ module.exports = {
 
                 // "var x = require('util');"
                 return DECL_REQUIRE;
-            }
-            if (allowCall &&
+            } else if (allowCall &&
                 initExpression.type === "CallExpression" &&
                 initExpression.callee.type === "CallExpression"
             ) {
 
                 // "var x = require('diagnose')('sub-module');"
                 return getDeclarationType(initExpression.callee);
-            }
-            if (initExpression.type === "MemberExpression") {
+            } else if (initExpression.type === "MemberExpression") {
 
                 // "var x = require('glob').Glob;"
                 return getDeclarationType(initExpression.object);
@@ -134,8 +131,7 @@ module.exports = {
 
                 // "var x = require('glob').Glob;"
                 return inferModuleType(initExpression.object);
-            }
-            if (initExpression.arguments.length === 0) {
+            } else if (initExpression.arguments.length === 0) {
 
                 // "var x = require();"
                 return REQ_COMPUTED;
@@ -153,8 +149,7 @@ module.exports = {
 
                 // "var fs = require('fs');"
                 return REQ_CORE;
-            }
-            if (/^\.{0,2}\//.test(arg.value)) {
+            } else if (/^\.{0,2}\//.test(arg.value)) {
 
                 // "var utils = require('./utils');"
                 return REQ_FILE;

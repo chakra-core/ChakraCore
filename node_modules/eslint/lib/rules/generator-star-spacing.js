@@ -9,29 +9,12 @@
 // Rule Definition
 //------------------------------------------------------------------------------
 
-const OVERRIDE_SCHEMA = {
-    oneOf: [
-        {
-            enum: ["before", "after", "both", "neither"]
-        },
-        {
-            type: "object",
-            properties: {
-                before: { type: "boolean" },
-                after: { type: "boolean" }
-            },
-            additionalProperties: false
-        }
-    ]
-};
-
 module.exports = {
     meta: {
         docs: {
             description: "enforce consistent spacing around `*` operators in generator functions",
             category: "ECMAScript 6",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/generator-star-spacing"
+            recommended: false
         },
 
         fixable: "whitespace",
@@ -46,10 +29,7 @@ module.exports = {
                         type: "object",
                         properties: {
                             before: { type: "boolean" },
-                            after: { type: "boolean" },
-                            named: OVERRIDE_SCHEMA,
-                            anonymous: OVERRIDE_SCHEMA,
-                            method: OVERRIDE_SCHEMA
+                            after: { type: "boolean" }
                         },
                         additionalProperties: false
                     }
@@ -60,39 +40,17 @@ module.exports = {
 
     create(context) {
 
-        const optionDefinitions = {
-            before: { before: true, after: false },
-            after: { before: false, after: true },
-            both: { before: true, after: true },
-            neither: { before: false, after: false }
-        };
-
-        /**
-         * Returns resolved option definitions based on an option and defaults
-         *
-         * @param {any} option - The option object or string value
-         * @param {Object} defaults - The defaults to use if options are not present
-         * @returns {Object} the resolved object definition
-         */
-        function optionToDefinition(option, defaults) {
-            if (!option) {
-                return defaults;
+        const mode = (function(option) {
+            if (!option || typeof option === "string") {
+                return {
+                    before: { before: true, after: false },
+                    after: { before: false, after: true },
+                    both: { before: true, after: true },
+                    neither: { before: false, after: false }
+                }[option || "before"];
             }
-
-            return typeof option === "string"
-                ? optionDefinitions[option]
-                : Object.assign({}, defaults, option);
-        }
-
-        const modes = (function(option) {
-            const defaults = optionToDefinition(option, optionDefinitions.before);
-
-            return {
-                named: optionToDefinition(option.named, defaults),
-                anonymous: optionToDefinition(option.anonymous, defaults),
-                method: optionToDefinition(option.method, defaults)
-            };
-        }(context.options[0] || {}));
+            return option;
+        }(context.options[0]));
 
         const sourceCode = context.getSourceCode();
 
@@ -121,8 +79,6 @@ module.exports = {
 
         /**
          * Checks the spacing between two tokens before or after the star token.
-         *
-         * @param {string} kind Either "named", "anonymous", or "method"
          * @param {string} side Either "before" or "after".
          * @param {Token} leftToken `function` keyword token if side is "before", or
          *     star token if side is "after".
@@ -130,10 +86,10 @@ module.exports = {
          *     token if side is "after".
          * @returns {void}
          */
-        function checkSpacing(kind, side, leftToken, rightToken) {
-            if (!!(rightToken.range[0] - leftToken.range[1]) !== modes[kind][side]) {
+        function checkSpacing(side, leftToken, rightToken) {
+            if (!!(rightToken.range[0] - leftToken.range[1]) !== mode[side]) {
                 const after = leftToken.value === "*";
-                const spaceRequired = modes[kind][side];
+                const spaceRequired = mode[side];
                 const node = after ? leftToken : rightToken;
                 const type = spaceRequired ? "Missing" : "Unexpected";
                 const message = "{{type}} space {{side}} *.";
@@ -161,7 +117,6 @@ module.exports = {
 
         /**
          * Enforces the spacing around the star if node is a generator function.
-         *
          * @param {ASTNode} node A function expression or declaration node.
          * @returns {void}
          */
@@ -171,23 +126,17 @@ module.exports = {
             }
 
             const starToken = getStarToken(node);
-            const prevToken = sourceCode.getTokenBefore(starToken);
-            const nextToken = sourceCode.getTokenAfter(starToken);
-
-            let kind = "named";
-
-            if (node.parent.type === "MethodDefinition" || (node.parent.type === "Property" && node.parent.method)) {
-                kind = "method";
-            } else if (!node.id) {
-                kind = "anonymous";
-            }
 
             // Only check before when preceded by `function`|`static` keyword
-            if (!(kind === "method" && starToken === sourceCode.getFirstToken(node.parent))) {
-                checkSpacing(kind, "before", prevToken, starToken);
+            const prevToken = sourceCode.getTokenBefore(starToken);
+
+            if (prevToken.value === "function" || prevToken.value === "static") {
+                checkSpacing("before", prevToken, starToken);
             }
 
-            checkSpacing(kind, "after", starToken, nextToken);
+            const nextToken = sourceCode.getTokenAfter(starToken);
+
+            checkSpacing("after", starToken, nextToken);
         }
 
         return {

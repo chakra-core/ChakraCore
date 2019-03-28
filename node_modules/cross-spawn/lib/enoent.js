@@ -1,37 +1,43 @@
 'use strict';
 
-const isWin = process.platform === 'win32';
+var isWin = process.platform === 'win32';
+var resolveCommand = require('./util/resolveCommand');
 
-function notFoundError(original, syscall) {
-    return Object.assign(new Error(`${syscall} ${original.command} ENOENT`), {
-        code: 'ENOENT',
-        errno: 'ENOENT',
-        syscall: `${syscall} ${original.command}`,
-        path: original.command,
-        spawnargs: original.args,
-    });
+var isNode10 = process.version.indexOf('v0.10.') === 0;
+
+function notFoundError(command, syscall) {
+    var err;
+
+    err = new Error(syscall + ' ' + command + ' ENOENT');
+    err.code = err.errno = 'ENOENT';
+    err.syscall = syscall + ' ' + command;
+
+    return err;
 }
 
 function hookChildProcess(cp, parsed) {
+    var originalEmit;
+
     if (!isWin) {
         return;
     }
 
-    const originalEmit = cp.emit;
-
+    originalEmit = cp.emit;
     cp.emit = function (name, arg1) {
+        var err;
+
         // If emitting "exit" event and exit code is 1, we need to check if
         // the command exists and emit an "error" instead
-        // See https://github.com/IndigoUnited/node-cross-spawn/issues/16
+        // See: https://github.com/IndigoUnited/node-cross-spawn/issues/16
         if (name === 'exit') {
-            const err = verifyENOENT(arg1, parsed, 'spawn');
+            err = verifyENOENT(arg1, parsed, 'spawn');
 
             if (err) {
                 return originalEmit.call(cp, 'error', err);
             }
         }
 
-        return originalEmit.apply(cp, arguments); // eslint-disable-line prefer-rest-params
+        return originalEmit.apply(cp, arguments);
     };
 }
 
@@ -48,12 +54,20 @@ function verifyENOENTSync(status, parsed) {
         return notFoundError(parsed.original, 'spawnSync');
     }
 
+    // If we are in node 10, then we are using spawn-sync; if it exited
+    // with -1 it probably means that the command does not exist
+    if (isNode10 && status === -1) {
+        parsed.file = isWin ? parsed.file : resolveCommand(parsed.original);
+
+        if (!parsed.file) {
+            return notFoundError(parsed.original, 'spawnSync');
+        }
+    }
+
     return null;
 }
 
-module.exports = {
-    hookChildProcess,
-    verifyENOENT,
-    verifyENOENTSync,
-    notFoundError,
-};
+module.exports.hookChildProcess = hookChildProcess;
+module.exports.verifyENOENT = verifyENOENT;
+module.exports.verifyENOENTSync = verifyENOENTSync;
+module.exports.notFoundError = notFoundError;

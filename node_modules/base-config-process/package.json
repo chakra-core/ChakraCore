@@ -1,0 +1,106 @@
+{
+  "name": "base-config-process",
+  "description": "Commonly used config mappings for the base-config plugin. Also pre-processes the given object with base-config-schema before calling `.process()`",
+  "version": "0.1.9",
+  "homepage": "https://github.com/jonschlinkert/base-config-process",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/base-config-process",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/base-config-process/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "base-config": "^0.5.2",
+    "base-config-schema": "^0.1.18",
+    "base-cwd": "^0.3.4",
+    "base-option": "^0.8.4",
+    "debug": "^2.2.0",
+    "export-files": "^2.1.1",
+    "is-valid-app": "^0.2.0",
+    "lazy-cache": "^2.0.1",
+    "micromatch": "^2.3.10",
+    "mixin-deep": "^1.1.3"
+  },
+  "devDependencies": {
+    "assemble-core": "^0.25.0",
+    "base": "^0.11.1",
+    "base-data": "^0.6.0",
+    "base-pipeline": "^0.3.2",
+    "engine-base": "^0.1.2",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^1.0.0",
+    "gulp-mocha": "^2.2.0",
+    "gulp-unused": "^0.1.2",
+    "helper-coverage": "^0.1.3",
+    "helper-example": "^0.1.0",
+    "map-schema": "^0.2.3",
+    "mocha": "^2.5.3",
+    "verb-reflinks": "^0.1.1"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "args",
+    "base",
+    "base-config",
+    "baseplugin",
+    "building-blocks",
+    "cli",
+    "commands",
+    "config",
+    "create",
+    "framework",
+    "normalize",
+    "plugin",
+    "plugins",
+    "process",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "middleware": {
+      "prePipeline": ["verb-reflinks"]
+    },
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base-cli",
+        "base-config",
+        "base-config-schema"
+      ]
+    },
+    "reflinks": [
+      "base-config",
+      "base-config-schema",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

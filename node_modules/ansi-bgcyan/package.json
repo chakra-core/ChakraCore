@@ -1,0 +1,55 @@
+{
+  "name": "ansi-bgcyan",
+  "description": "The color bgcyan, in ansi.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/ansi-bgcyan",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/ansi-bgcyan",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/ansi-bgcyan/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ansi-wrap": "0.1.0"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "bgcyan",
+    "256",
+    "ansi",
+    "cli",
+    "color",
+    "colors",
+    "colour",
+    "command",
+    "command-line",
+    "console",
+    "format",
+    "formatting",
+    "iterm",
+    "log",
+    "logging",
+    "rgb",
+    "shell",
+    "string",
+    "style",
+    "styles",
+    "styling",
+    "terminal",
+    "text",
+    "tty",
+    "xterm"
+  ]
+}

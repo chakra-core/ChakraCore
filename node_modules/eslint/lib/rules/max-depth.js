@@ -14,8 +14,7 @@ module.exports = {
         docs: {
             description: "enforce a maximum depth that blocks can be nested",
             category: "Stylistic Issues",
-            recommended: false,
-            url: "https://eslint.org/docs/rules/max-depth"
+            recommended: false
         },
 
         schema: [

@@ -1,0 +1,68 @@
+{
+  "name": "is-valid-app",
+  "description": "Wrapper around is-valid-instance and is-registered for validating `base` plugins. Returns true if `app` is a valid instance of base and a plugin is not registered yet.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/node-base/is-valid-app",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward <brian.woodward@gmail.com> (https://github.com/doowb)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "node-base/is-valid-app",
+  "bugs": {
+    "url": "https://github.com/node-base/is-valid-app/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "debug": "^2.2.0",
+    "is-registered": "^0.1.5",
+    "is-valid-instance": "^0.2.0",
+    "lazy-cache": "^2.0.1"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "app",
+    "is",
+    "valid"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "is-registered",
+        "is-valid-instance"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

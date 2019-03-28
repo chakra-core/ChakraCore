@@ -13,15 +13,10 @@ module.exports = {
         docs: {
             description: "disallow lexical declarations in case clauses",
             category: "Best Practices",
-            recommended: true,
-            url: "https://eslint.org/docs/rules/no-case-declarations"
+            recommended: true
         },
 
-        schema: [],
-
-        messages: {
-            unexpected: "Unexpected lexical declaration in case block."
-        }
+        schema: []
     },
 
     create(context) {
@@ -51,7 +46,7 @@ module.exports = {
                     if (isLexicalDeclaration(statement)) {
                         context.report({
                             node,
-                            messageId: "unexpected"
+                            message: "Unexpected lexical declaration in case block."
                         });
                     }
                 }

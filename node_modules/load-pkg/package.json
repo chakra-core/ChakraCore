@@ -1,0 +1,48 @@
+{
+  "name": "load-pkg",
+  "description": "Loads the package.json from the root of the user's current project.",
+  "version": "3.0.1",
+  "homepage": "https://github.com/jonschlinkert/load-pkg",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/load-pkg",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/load-pkg/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "find-pkg": "^0.1.0"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "config",
+    "json",
+    "load",
+    "package",
+    "package-json",
+    "pkg"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "cwd",
+        "find-pkg",
+        "look-up"
+      ]
+    }
+  }
+}
