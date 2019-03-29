@@ -480,6 +480,7 @@ namespace Js
 
     inline void JavascriptArray::GenericDirectSetItemAt(const uint32 index, Var newValue)
     {
+        newValue = CrossSite::MarshalVar(this->GetScriptContext(), newValue);
         this->DirectSetItemAt(index, newValue);
     }
 
