@@ -119,6 +119,16 @@ using namespace Js;
         ScriptFunction* scriptFunc = ScriptFunction::OP_NewScFunc(environment, infoRef);
         scriptFunc->SetHomeObj(homeObj);
 
+        // After setting homeobject we need to set the name if the object is ready.
+        if ((*infoRef)->GetFunctionProxy()->GetUndeferredFunctionType())
+        {
+            if (!scriptFunc->IsAnonymousFunction() && !scriptFunc->GetFunctionProxy()->EnsureDeserialized()->GetIsStaticNameFunction())
+            {
+                JavascriptString * functionName = scriptFunc->GetDisplayNameImpl();
+                scriptFunc->SetPropertyWithAttributes(PropertyIds::name, functionName, PropertyConfigurable, nullptr);
+            }
+        }
+
         return scriptFunc;
         JIT_HELPER_END(ScrFunc_OP_NewScFuncHomeObj);
     }

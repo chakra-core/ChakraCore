@@ -233,6 +233,25 @@ var tests = [
         var_3 = Promise.prototype.finally.call(var_0, var_1);                              
         assert.throws(() => { new var_2([]).var_3(); },TypeError);
       }
+  },
+  {
+    name: "class name should not change if calling multiple times",
+    body: function () {
+        function getClass() {
+          class A {
+            constructor() {
+
+            }
+          };
+          return A;
+        }
+        let f1 = getClass();
+        let f2 = getClass();
+        let f3 = getClass();
+        assert.areEqual("A", f1.name);
+        assert.areEqual("A", f2.name);
+        assert.areEqual("A", f3.name);
+      }
   }
 
 ];
