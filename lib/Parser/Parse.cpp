@@ -11442,13 +11442,24 @@ ULONG Parser::GetDeferralThreshold(bool isProfileLoaded)
 
 void Parser::FinishDeferredFunction(ParseNodeBlock * pnodeScopeList)
 {
-    uint saveNextBlockId = m_nextBlockId;
+    ParseContext parseContext;
+    this->CaptureContext(&parseContext);
+
     m_nextBlockId = pnodeScopeList->blockId + 1;
 
     FinishFunctionsInScope(pnodeScopeList,
-        [this](ParseNodeFnc * pnodeFnc)
+        [this, &parseContext](ParseNodeFnc * pnodeFnc)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
+
+        // We need to scan this function based on the already known limits of the function declaration as some of
+        // the state such as fAllowIn may not be available at this point. Some of this state depends on the context
+        // of the function declaration. For example, a function declaration may be inside a for..in statement's var
+        // declaration. It may not be appropriate/possible to try and save all such context information. Functions
+        // that actually get deferred achieve this by going through the ParseSourceWithOffset code path.
+        this->GetScanner()->Clear();
+        this->GetScanner()->SetText(parseContext.pszSrc, pnodeFnc->cbMin /*+ this->m_scan.m_cMinTokMultiUnits*/, pnodeFnc->LengthInBytes(), pnodeFnc->ichMin, parseContext.isUtf8, parseContext.grfscr, pnodeFnc->lineNumber);
+        this->GetScanner()->Scan();
 
         // Non-simple params (such as default) require a good amount of logic to put vars on appropriate scopes. ParseFncDecl handles it
         // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
@@ -11601,7 +11612,7 @@ void Parser::FinishDeferredFunction(ParseNodeBlock * pnodeScopeList)
         }
     });
 
-    m_nextBlockId = saveNextBlockId;
+    this->RestoreContext(&parseContext);
 }
 
 void Parser::InitPids()
