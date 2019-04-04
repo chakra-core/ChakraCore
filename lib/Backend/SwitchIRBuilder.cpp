@@ -163,7 +163,7 @@ SwitchIRBuilder::BeginSwitch()
 void
 SwitchIRBuilder::EndSwitch(uint32 offset, uint32 targetOffset)
 {
-    FlushCases(targetOffset);
+    FlushCases(offset);
     AssertMsg(m_caseNodes->Count() == 0, "Not all switch case nodes built by end of switch");
 
     // only generate the final unconditional jump at the end of the switch
