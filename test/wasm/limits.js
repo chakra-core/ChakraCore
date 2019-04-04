@@ -283,7 +283,7 @@ const tests = [
   // todo:: test MaxBrTableElems
 ];
 
-WScript.LoadScriptFile("../UnitTestFrameWork/yargs.js");
+WScript.LoadScriptFile("../UnitTestFramework/yargs.js");
 const argv = yargsParse(WScript.Arguments, {
   boolean: ["valid", "invalid", "verbose"],
   number: ["start", "end"],
