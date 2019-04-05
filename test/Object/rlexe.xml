@@ -45,6 +45,7 @@
   <test>
     <default>
       <files>bigconstructorbug.js</files>
+      <tags>Slow</tags>
     </default>
   </test>
   <test>
