@@ -197,7 +197,7 @@ namespace Js
     NUMBER_UTIL_INLINE float NumberUtilities::ReinterpretBits(int value)
     {
 #if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
-        return _mm_cvtss_f32(_mm_castsi128_ps(_mm_cvtsi32_si128(x)));
+        return _mm_cvtss_f32(_mm_castsi128_ps(_mm_cvtsi32_si128(value)));
 #elif defined(_M_ARM32_OR_ARM64)
         return _CopyFloatFromInt32(value);
 #else
