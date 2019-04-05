@@ -8845,7 +8845,11 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
             opCode = Js::OpCode::Sub_I4;
         }
         Func *localFunc = loop->GetFunc();
-        StackSym *sym = localFunc->m_symTable->FindStackSym(symId)->GetInt32EquivSym(localFunc);
+        StackSym *sym = localFunc->m_symTable->FindStackSym(symId);
+        if (!sym->IsInt32())
+        {
+            sym = sym->GetInt32EquivSym(localFunc);
+        }
         
         IR::Opnd *inductionVariableOpnd = IR::RegOpnd::New(sym, IRType::TyInt32, localFunc);
         IR::Opnd *tempInductionVariableOpnd = IR::RegOpnd::New(IRType::TyInt32, localFunc);
@@ -8929,7 +8933,7 @@ BackwardPass::IsEmptyLoopAfterMemOp(Loop *loop)
                         {
                             Assert(instr->GetDst());
                             if (instr->GetDst()->GetStackSym()
-                                && loop->memOpInfo->inductionVariablesUsedAfterLoop->Test(globOpt->GetVarSymID(instr->GetDst()->GetStackSym())))
+                                && loop->memOpInfo->inductionVariablesUsedAfterLoop->Test(instr->GetDst()->GetStackSym()->m_id))
                             {
                                 // We have use after the loop for a variable defined inside the loop. So the loop can't be removed.
                                 return false;
