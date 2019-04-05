@@ -138,31 +138,8 @@ namespace Js{
 
     bool ASMLink::CheckArrayLibraryMethod(ScriptContext* scriptContext, const Var stdlib, const AsmJSTypedArrayBuiltinFunction arrayLibMethod)
     {
-        Var arrayFuncObj;
         switch (arrayLibMethod)
         {
-        case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_byteLength:
-            arrayFuncObj = JavascriptOperators::OP_GetProperty(stdlib, PropertyIds::byteLength, scriptContext);
-            if (VarIs<JavascriptFunction>(arrayFuncObj))
-            {
-                JavascriptFunction* arrayLibFunc = (JavascriptFunction*)arrayFuncObj;
-                if (arrayLibFunc->IsBoundFunction())
-                {
-                    BoundFunction* boundFunc = (BoundFunction*)arrayLibFunc;
-                    RecyclableObject* thisObj = boundFunc->GetBoundThis();
-                    if (VarIs<JavascriptFunction>(thisObj))
-                    {
-                        JavascriptFunction * thisFunc = (JavascriptFunction*)thisObj;
-                        if (thisFunc->GetFunctionInfo()->GetOriginalEntryPoint() != (&ArrayBuffer::EntryInfo::GetterByteLength)->GetOriginalEntryPoint())
-                        {
-                            return false;
-                        }
-                    }
-                    JavascriptFunction* targetFunc = boundFunc->GetTargetFunction();
-                    return targetFunc->GetFunctionInfo()->GetOriginalEntryPoint() == (&JavascriptFunction::EntryInfo::Call)->GetOriginalEntryPoint();
-                }
-            }
-            break;
 #define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) case AsmJSTypedArrayBuiltinFunction::AsmJSTypedArrayBuiltin_##name: \
             return CheckIsBuiltinFunction(scriptContext, stdlib, PropertyIds::##propertyName, propertyName##::EntryInfo::NewInstance);
 #include "AsmJsBuiltInNames.h"

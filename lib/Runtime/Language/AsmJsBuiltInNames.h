@@ -21,12 +21,8 @@
 #define ASMJS_MATH_DOUBLE_CONST_NAMES(name, propertyName, value) ASMJS_MATH_CONST_NAMES(name, propertyName, value)
 #endif
 
-#ifndef ASMJS_ARRAY_NAMES
-#define ASMJS_ARRAY_NAMES(name, propertyName)
-#endif
-
 #ifndef ASMJS_TYPED_ARRAY_NAMES
-#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) ASMJS_ARRAY_NAMES(name, propertyName)
+#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName)
 #endif
 
 #ifdef ENABLE_JS_BUILTINS
@@ -73,12 +69,10 @@ ASMJS_TYPED_ARRAY_NAMES(Uint32Array,  Uint32Array)
 ASMJS_TYPED_ARRAY_NAMES(Int32Array,   Int32Array)
 ASMJS_TYPED_ARRAY_NAMES(Float32Array, Float32Array)
 ASMJS_TYPED_ARRAY_NAMES(Float64Array, Float64Array)
-ASMJS_ARRAY_NAMES(byteLength,   byteLength)
 
 // help the caller to undefine all the macros
 #undef ASMJS_JSBUILTIN_MATH_FUNC_NAMES
 #undef ASMJS_MATH_FUNC_NAMES
 #undef ASMJS_MATH_CONST_NAMES
 #undef ASMJS_MATH_DOUBLE_CONST_NAMES
-#undef ASMJS_ARRAY_NAMES
 #undef ASMJS_TYPED_ARRAY_NAMES
