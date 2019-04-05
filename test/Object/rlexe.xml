@@ -44,6 +44,11 @@
   </test>
   <test>
     <default>
+      <files>bigconstructorbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>Object.js</files>
       <baseline>Object.baseline</baseline>
     </default>
