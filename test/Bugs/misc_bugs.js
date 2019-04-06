@@ -247,6 +247,18 @@ var tests = [
       }
   },
   {
+    name: "Init box javascript array : OS : 20517662",
+    body: function () {
+      var obj = {};
+      obj[0] = 11;
+      obj[1] = {};
+      obj[17] = 222;
+      obj[35] = 333; // This is will increase the size past the inline segment
+      
+      Object.assign({}, obj); // The InitBoxedInlineSegments will be called due to this call.
+    }
+  },
+  {
     name: "calling promise's function as constructor should not be allowed",
     body: function () {
         var var_0 = new Promise(function () {});                                           
