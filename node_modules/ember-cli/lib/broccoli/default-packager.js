@@ -1081,6 +1081,7 @@ module.exports = class DefaultPackager {
       footerFiles: ['vendor/ember-cli/app-config.js', 'vendor/ember-cli/tests-suffix.js'],
       outputFile: this.distPaths.testJsFile,
       annotation: 'Concat: App Tests',
+      sourceMapConfig: this.sourcemaps,
     });
   }
 
@@ -1144,6 +1145,7 @@ module.exports = class DefaultPackager {
       outputFile: testSupportPath,
       annotation: 'Concat: Test Support JS',
       allowNone: true,
+      sourceMapConfig: this.sourcemaps,
     });
 
     let testemPath = path.join(__dirname, 'testem');
@@ -1165,6 +1167,7 @@ module.exports = class DefaultPackager {
           headerFiles: this.vendorTestStaticStyles,
           outputFile: this.distPaths.testSupportCssFile,
           annotation: 'Concat: Test Support CSS',
+          sourceMapConfig: this.sourcemaps,
         })
       );
     }

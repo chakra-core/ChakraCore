@@ -1,21 +1,21 @@
-var util      = require('./util');
-var types     = require('./types');
-var sets      = require('./sets');
-var positions = require('./positions');
+const util      = require('./util');
+const types     = require('./types');
+const sets      = require('./sets');
+const positions = require('./positions');
 
 
-module.exports = function(regexpStr) {
+module.exports = (regexpStr) => {
   var i = 0, l, c,
-      start = { type: types.ROOT, stack: []},
+    start = { type: types.ROOT, stack: []},
 
-      // Keep track of last clause/group and stack.
-      lastGroup = start,
-      last = start.stack,
-      groupStack = [];
+    // Keep track of last clause/group and stack.
+    lastGroup = start,
+    last = start.stack,
+    groupStack = [];
 
 
-  var repeatErr = function(i) {
-    util.error(regexpStr, 'Nothing to repeat at column ' + (i - 1));
+  var repeatErr = (i) => {
+    util.error(regexpStr, `Nothing to repeat at column ${i - 1}`);
   };
 
   // Decode a few escaped characters.
@@ -81,11 +81,11 @@ module.exports = function(regexpStr) {
 
       // Positionals.
       case '^':
-          last.push(positions.begin());
+        last.push(positions.begin());
         break;
 
       case '$':
-          last.push(positions.end());
+        last.push(positions.end());
         break;
 
 
@@ -108,7 +108,7 @@ module.exports = function(regexpStr) {
         last.push({
           type: types.SET,
           set: classTokens[0],
-          not: not,
+          not,
         });
 
         break;
@@ -146,8 +146,8 @@ module.exports = function(regexpStr) {
 
           } else if (c !== ':') {
             util.error(regexpStr,
-              'Invalid group, character \'' + c +
-              '\' after \'?\' at column ' + (i - 1));
+              `Invalid group, character '${c}'` +
+              ` after '?' at column ${i - 1}`);
           }
 
           group.remember = false;
@@ -168,7 +168,7 @@ module.exports = function(regexpStr) {
       // Pop group out of stack.
       case ')':
         if (groupStack.length === 0) {
-          util.error(regexpStr, 'Unmatched ) at column ' + (i - 1));
+          util.error(regexpStr, `Unmatched ) at column ${i - 1}`);
         }
         lastGroup = groupStack.pop();
 
@@ -212,8 +212,8 @@ module.exports = function(regexpStr) {
 
           last.push({
             type: types.REPETITION,
-            min: min,
-            max: max,
+            min,
+            max,
             value: last.pop(),
           });
         } else {

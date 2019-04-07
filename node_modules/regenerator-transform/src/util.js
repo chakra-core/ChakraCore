@@ -1,30 +1,16 @@
 /**
- * Copyright (c) 2014-present, Facebook, Inc.
+ * Copyright (c) 2014, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * https://raw.github.com/facebook/regenerator/master/LICENSE file. An
+ * additional grant of patent rights can be found in the PATENTS file in
+ * the same directory.
  */
 
-let currentTypes = null;
-
-export function wrapWithTypes(types, fn) {
-  return function (...args) {
-    const oldTypes = currentTypes;
-    currentTypes = types;
-    try {
-      return fn.apply(this, args);
-    } finally {
-      currentTypes = oldTypes;
-    }
-  };
-}
-
-export function getTypes() {
-  return currentTypes;
-}
+import * as t from "babel-types";
 
 export function runtimeProperty(name) {
-  const t = getTypes();
   return t.memberExpression(
     t.identifier("regeneratorRuntime"),
     t.identifier(name),

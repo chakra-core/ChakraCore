@@ -1,0 +1,24 @@
+{
+  "name": "cli-list",
+  "author": "Jamen Marzonie",
+  "description": "Break CLI lists into arrays",
+  "version": "0.2.0",
+  "license": "MIT",
+  "scripts": {
+    "test": "tape 'test/**.js' | tap-spec"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "devDependencies": {
+    "eslint": "^2.9.0",
+    "eslint-config-google": "^0.5.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jamen/cli-list"
+  }
+}

@@ -1,11 +1,10 @@
 {
   "name": "pluralize",
-  "version": "1.2.1",
+  "version": "7.0.0",
   "description": "Pluralize and singularize any word",
   "main": "pluralize.js",
   "files": [
-    "pluralize.js",
-    "LICENSE"
+    "pluralize.js"
   ],
   "scripts": {
     "lint": "semistandard",
@@ -19,7 +18,8 @@
     "plurals",
     "pluralize",
     "singular",
-    "singularize"
+    "singularize",
+    "inflection"
   ],
   "author": {
     "name": "Blake Embrey",
@@ -28,11 +28,13 @@
   },
   "license": "MIT",
   "readmeFilename": "Readme.md",
+  "engines": {
+    "node": ">=4"
+  },
   "devDependencies": {
-    "chai": "^1.9.1",
-    "istanbul": "^0.3.0",
-    "mocha": "^1.21.4",
-    "pre-commit": "^1.0.10",
-    "semistandard": "^7.0.2"
+    "chai": "^4.0.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "semistandard": "^11.0.0"
   }
 }

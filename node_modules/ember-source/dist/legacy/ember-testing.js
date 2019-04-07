@@ -6,7 +6,7 @@
  *            Portions Copyright 2008-2011 Apple Inc. All rights reserved.
  * @license   Licensed under MIT license
  *            See https://raw.github.com/emberjs/ember.js/master/LICENSE
- * @version   3.8.0
+ * @version   3.9.0
  */
 
 /*globals process */
@@ -2310,7 +2310,7 @@ enifed("ember-testing/lib/test/promise", ["exports", "ember-babel", "@ember/-int
       var _this;
 
       _this = _RSVP$Promise.apply(this, arguments) || this;
-      lastPromise = (0, _emberBabel.assertThisInitialized)((0, _emberBabel.assertThisInitialized)(_this));
+      lastPromise = (0, _emberBabel.assertThisInitialized)(_this);
       return _this;
     }
 

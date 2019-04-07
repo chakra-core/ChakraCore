@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../src/c/index.js"],"names":["module","exports","require"],"mappings":";;AAAAA,OAAOC,OAAP,CAAe,MAAf,IAAyBC,QAAQ,QAAR,CAAzB;AACAF,OAAOC,OAAP,CAAe,OAAf,IAA0BC,QAAQ,SAAR,CAA1B","file":"index.js","sourcesContent":["module.exports['math'] = require('./math')\nmodule.exports['stdio'] = require('./stdio')\n"]}

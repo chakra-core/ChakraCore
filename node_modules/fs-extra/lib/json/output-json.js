@@ -1,7 +1,9 @@
-var fs = require('graceful-fs')
-var path = require('path')
-var jsonFile = require('./jsonfile')
-var mkdir = require('../mkdirs')
+'use strict'
+
+const path = require('path')
+const mkdir = require('../mkdirs')
+const pathExists = require('../path-exists').pathExists
+const jsonFile = require('./jsonfile')
 
 function outputJson (file, data, options, callback) {
   if (typeof options === 'function') {
@@ -9,12 +11,13 @@ function outputJson (file, data, options, callback) {
     options = {}
   }
 
-  var dir = path.dirname(file)
+  const dir = path.dirname(file)
 
-  fs.exists(dir, function (itDoes) {
+  pathExists(dir, (err, itDoes) => {
+    if (err) return callback(err)
     if (itDoes) return jsonFile.writeJson(file, data, options, callback)
 
-    mkdir.mkdirs(dir, function (err) {
+    mkdir.mkdirs(dir, err => {
       if (err) return callback(err)
       jsonFile.writeJson(file, data, options, callback)
     })

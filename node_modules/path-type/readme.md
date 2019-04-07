@@ -6,7 +6,7 @@
 ## Install
 
 ```
-$ npm install --save path-type
+$ npm install path-type
 ```
 
 

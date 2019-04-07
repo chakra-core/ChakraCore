@@ -1,4 +1,4 @@
-.Dd May 13, 2016
+.Dd October 25, 2013
 .Dt jsesc 1
 .Sh NAME
 .Nm jsesc
@@ -11,11 +11,9 @@
 .br
 .Op Fl w | -wrap Ar string
 .br
-.Op Fl e | -escape-everything Ar string
-.br
 .Op Fl 6 | -es6 Ar string
 .br
-.Op Fl l | -lowercase-hex Ar string
+.Op Fl e | -escape-everything Ar string
 .br
 .Op Fl j | -json Ar string
 .br
@@ -32,9 +30,9 @@ escapes strings for use in JavaScript string literals while generating the short
 .Sh OPTIONS
 .Bl -ohang -offset
 .It Sy "-s, --single-quotes"
-Escape any occurrences of ' in the input string as \\', so that the output can be used in a JavaScript string literal wrapped in single quotes.
+Escape any occurences of ' in the input string as \\', so that the output can be used in a JavaScript string literal wrapped in single quotes.
 .It Sy "-d, --double-quotes"
-Escape any occurrences of " in the input string as \\", so that the output can be used in a JavaScript string literal wrapped in double quotes.
+Escape any occurences of " in the input string as \\", so that the output can be used in a JavaScript string literal wrapped in double quotes.
 .It Sy "-w, --wrap"
 Make sure the output is a valid JavaScript string literal wrapped in quotes. The type of quotes can be specified using the
 .Ar -s | --single-quotes
@@ -55,8 +53,6 @@ settings.
 Treat the input as a JavaScript object rather than a string. Accepted values are flat arrays containing only string values, and flat objects containing only string values.
 .It Sy "-p, --pretty"
 Pretty-print the output for objects, using whitespace to make it more readable. Setting this flag enables the
-.It Sy "-l, --lowercase-hex"
-Use lowercase for alphabetical hexadecimal digits in escape sequences.
 .Ar -o | --object
 setting.
 .It Sy "-v, --version"
@@ -89,6 +85,6 @@ Print an escaped version of the string that gets piped in.
 .Sh BUGS
 jsesc's bug tracker is located at <https://github.com/mathiasbynens/jsesc/issues>.
 .Sh AUTHOR
-Mathias Bynens <https://mathiasbynens.be/>
+Mathias Bynens <http://mathiasbynens.be/>
 .Sh WWW
-<https://mths.be/jsesc>
+<http://mths.be/jsesc>

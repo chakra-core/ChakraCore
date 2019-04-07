@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/c/stdio/index.js"],"names":["module","exports","require"],"mappings":";;AAAAA,OAAOC,OAAP,CAAe,SAAf,IAA4BC,QAAQ,WAAR,CAA5B","file":"index.js","sourcesContent":["module.exports['sprintf'] = require('./sprintf')\n"]}

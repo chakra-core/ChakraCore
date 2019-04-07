@@ -1,0 +1,39 @@
+{
+  "name": "typewise",
+  "version": "1.0.3",
+  "description": "Typewise-structured sorting for arbitrarily complex data structures",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test | faucet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deanlandolt/typewise.git"
+  },
+  "keywords": [
+    "typewise",
+    "types",
+    "compare",
+    "sort",
+    "order",
+    "collation",
+    "complex",
+    "structures",
+    "leveldb",
+    "indexeddb",
+    "keyvalue"
+  ],
+  "author": "Dean Landolt <dean@deanlandolt.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/deanlandolt/bytewise/issues"
+  },
+  "homepage": "https://github.com/deanlandolt/typewise",
+  "dependencies": {
+    "typewise-core": "^1.2.0"
+  },
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^1.0.0"
+  }
+}

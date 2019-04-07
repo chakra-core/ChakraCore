@@ -1,5 +1,21 @@
 # ember-cli Changelog
 
+## v3.8.2
+
+#### Blueprint Changes
+
+- [`ember new` diff](https://github.com/ember-cli/ember-new-output/compare/v3.8.1...v3.8.2)
+- [`ember addon` diff](https://github.com/ember-cli/ember-addon-output/compare/v3.8.1...v3.8.2)
+
+#### Community Contributions
+
+- [#8482](https://github.com/ember-cli/ember-cli/pull/8482) Update `ember-ajax` in blueprints and tests [@boris-petrov](https://github.com/boris-petrov)
+- [#8370](https://github.com/ember-cli/ember-cli/pull/8370) Use `moduleName()` for templates [@pzuraq](https://github.com/pzuraq)
+- [#8556](https://github.com/ember-cli/ember-cli/pull/8556) Ensure packager respects source map config when concatting [@stefanpenner](https://github.com/stefanpenner)
+
+Thank you to all who took the time to contribute!
+
+
 ## v3.8.1
 
 #### Blueprint Changes

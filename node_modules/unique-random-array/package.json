@@ -1,0 +1,41 @@
+{
+  "name": "unique-random-array",
+  "version": "1.0.1",
+  "description": "Get consecutively unique elements from an array",
+  "keywords": [
+    "unique",
+    "uniq",
+    "random",
+    "rand",
+    "number",
+    "single",
+    "generate",
+    "non-repeating",
+    "array",
+    "arr",
+    "item",
+    "element"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "files": [
+    "index.js"
+  ],
+  "repository": "sindresorhus/unique-random-array",
+  "scripts": {
+    "test": "ava"
+  },
+  "dependencies": {
+    "unique-random": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}

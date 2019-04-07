@@ -1,0 +1,9 @@
+{
+  "connections": {
+    "default": {
+      "routes": {
+        "cors": false
+      }
+    }
+  }
+}

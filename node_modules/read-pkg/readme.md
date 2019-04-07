@@ -14,7 +14,7 @@
 ## Install
 
 ```
-$ npm install --save read-pkg
+$ npm install read-pkg
 ```
 
 
@@ -53,7 +53,7 @@ Returns the parsed JSON.
 #### path
 
 Type: `string`<br>
-Default: `.`
+Default: `process.cwd()`
 
 Path to a `package.json` file or its directory.
 

@@ -1,0 +1,41 @@
+{
+  "name": "sort-asc",
+  "description": "Sort array elements in ascending order.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/sort-asc",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/sort-asc",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/sort-asc/issues"
+  },
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "array",
+    "arr",
+    "asc",
+    "ascend",
+    "ascending",
+    "element",
+    "elements",
+    "order",
+    "ordered",
+    "sort",
+    "sorted",
+    "sorting"
+  ],
+  "verb": {
+    "related": {
+      "list": ["sort-asc", "sort-desc", "sort-object"]
+    }
+  }
+}

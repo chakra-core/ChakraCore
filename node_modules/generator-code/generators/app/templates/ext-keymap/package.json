@@ -1,0 +1,20 @@
+{
+    "name": <%- JSON.stringify(name) %>,
+    "displayName": <%- JSON.stringify(displayName) %>,
+    "description": <%- JSON.stringify(description) %>,
+    "version": "0.0.1",
+    "engines": {
+        "vscode": <%- JSON.stringify(vsCodeEngine) %>
+    },
+    "categories": [
+        "Keymaps"
+    ],
+    "contributes": {
+        "keybindings": [
+            {
+                "key": "ctrl+.",
+                "command": "workbench.action.showCommands"
+            }
+        ]
+    }
+}

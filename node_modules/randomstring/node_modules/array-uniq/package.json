@@ -1,0 +1,36 @@
+{
+  "name": "array-uniq",
+  "version": "1.0.2",
+  "description": "Create an array without duplicates",
+  "license": "MIT",
+  "repository": "sindresorhus/array-uniq",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "http://sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "array",
+    "arr",
+    "set",
+    "uniq",
+    "unique",
+    "es6",
+    "duplicate",
+    "remove"
+  ],
+  "devDependencies": {
+    "es6-set": "^0.1.0",
+    "mocha": "*",
+    "require-uncached": "^1.0.2"
+  }
+}

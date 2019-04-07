@@ -30,7 +30,7 @@ It's a [Transform stream](http://nodejs.org/api/stream.html#stream_class_stream_
 
 ## Related
 
-- [strip-bom](https://github.com/sindresorhus/strip-bom-stream) - Strip UTF-8 byte order mark (BOM) from a string/buffer
+- [strip-bom](https://github.com/sindresorhus/strip-bom) - Strip UTF-8 byte order mark (BOM) from a string/buffer
 - [strip-bom-cli](https://github.com/sindresorhus/strip-bom-cli) - CLI for this module
 
 

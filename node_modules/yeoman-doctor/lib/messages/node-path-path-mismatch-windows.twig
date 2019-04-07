@@ -1,0 +1,11 @@
+{{ "npm global root value is not in your NODE_PATH" | red }}
+
+[{{ "Info" | cyan }}]
+  NODE_PATH = {{ path }}
+  npm root  = {{ npmroot }}
+
+[{{ "Fix" | cyan}}] Append the npm root value to your NODE_PATH variable
+  If you're using cmd.exe, run this command to fix the issue:
+    {{ 'setx NODE_PATH "%NODE_PATH%;' | magenta }}{{ npmroot | magenta }}{{ '"' | magenta }}
+  Then restart your command-line. Otherwise, you can setup NODE_PATH manually:
+    {{ "https://github.com/sindresorhus/guides/blob/master/set-environment-variables.md#windows" | magenta }}

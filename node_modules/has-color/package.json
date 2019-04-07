@@ -1,0 +1,43 @@
+{
+  "name": "has-color",
+  "version": "0.1.7",
+  "description": "Detect whether a terminal supports color",
+  "license": "MIT",
+  "repository": "sindresorhus/has-color",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "http://sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "color",
+    "colour",
+    "colors",
+    "terminal",
+    "console",
+    "cli",
+    "ansi",
+    "styles",
+    "tty",
+    "rgb",
+    "256",
+    "shell",
+    "xterm",
+    "command-line",
+    "support",
+    "capability",
+    "detect"
+  ],
+  "devDependencies": {
+    "mocha": "*"
+  }
+}

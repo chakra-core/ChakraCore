@@ -1,11 +1,15 @@
 /**
- * Copyright (c) 2014-present, Facebook, Inc.
+ * Copyright (c) 2014, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * https://raw.github.com/facebook/regenerator/master/LICENSE file. An
+ * additional grant of patent rights can be found in the PATENTS file in
+ * the same directory.
  */
 
 import assert from "assert";
+import * as t from "babel-types";
 import * as leap from "./leap";
 import * as meta from "./meta";
 import * as util from "./util";
@@ -14,8 +18,7 @@ let hasOwn = Object.prototype.hasOwnProperty;
 
 function Emitter(contextId) {
   assert.ok(this instanceof Emitter);
-
-  util.getTypes().assertIdentifier(contextId);
+  t.assertIdentifier(contextId);
 
   // Used to generate unique temporary names.
   this.nextTempId = 0;
@@ -34,11 +37,9 @@ function Emitter(contextId) {
   // that have been marked as branch/jump targets.
   this.marked = [true];
 
-  this.insertedLocs = new Set();
-
   // The last location will be marked when this.getDispatchLoop is
   // called.
-  this.finalLoc = this.loc();
+  this.finalLoc = loc();
 
   // A list of all leap.TryEntry statements emitted.
   this.tryEntries = [];
@@ -57,24 +58,14 @@ exports.Emitter = Emitter;
 // the amazingly convenient benefit of allowing the exact value of the
 // location to be determined at any time, even after generating code that
 // refers to the location.
-Ep.loc = function() {
-  const l = util.getTypes().numericLiteral(-1)
-  this.insertedLocs.add(l);
-  return l;
-}
-
-Ep.getInsertedLocs = function() {
-  return this.insertedLocs;
-}
-
-Ep.getContextId = function() {
-  return util.getTypes().clone(this.contextId);
+function loc() {
+  return t.numericLiteral(-1);
 }
 
 // Sets the exact value of the given location to the offset of the next
 // Statement emitted.
 Ep.mark = function(loc) {
-  util.getTypes().assertLiteral(loc);
+  t.assertLiteral(loc);
   let index = this.listing.length;
   if (loc.value === -1) {
     loc.value = index;
@@ -88,8 +79,6 @@ Ep.mark = function(loc) {
 };
 
 Ep.emit = function(node) {
-  const t = util.getTypes();
-
   if (t.isExpression(node)) {
     node = t.expressionStatement(node);
   }
@@ -107,17 +96,15 @@ Ep.emitAssign = function(lhs, rhs) {
 
 // Shorthand for an assignment statement.
 Ep.assign = function(lhs, rhs) {
-  const t = util.getTypes();
   return t.expressionStatement(
-    t.assignmentExpression("=", t.cloneDeep(lhs), rhs));
+    t.assignmentExpression("=", lhs, rhs));
 };
 
 // Convenience function for generating expressions like context.next,
 // context.sent, and context.rval.
 Ep.contextProperty = function(name, computed) {
-  const t = util.getTypes();
   return t.memberExpression(
-    this.getContextId(),
+    this.contextId,
     computed ? t.stringLiteral(name) : t.identifier(name),
     !!computed
   );
@@ -133,7 +120,7 @@ Ep.stop = function(rval) {
 };
 
 Ep.setReturnValue = function(valuePath) {
-  util.getTypes().assertExpression(valuePath.value);
+  t.assertExpression(valuePath.value);
 
   this.emitAssign(
     this.contextProperty("rval"),
@@ -142,13 +129,11 @@ Ep.setReturnValue = function(valuePath) {
 };
 
 Ep.clearPendingException = function(tryLoc, assignee) {
-  const t = util.getTypes();
-
   t.assertLiteral(tryLoc);
 
   let catchCall = t.callExpression(
     this.contextProperty("catch", true),
-    [t.clone(tryLoc)]
+    [tryLoc]
   );
 
   if (assignee) {
@@ -162,13 +147,11 @@ Ep.clearPendingException = function(tryLoc, assignee) {
 // exact value of the location is not yet known.
 Ep.jump = function(toLoc) {
   this.emitAssign(this.contextProperty("next"), toLoc);
-  this.emit(util.getTypes().breakStatement());
+  this.emit(t.breakStatement());
 };
 
 // Conditional jump.
 Ep.jumpIf = function(test, toLoc) {
-  const t = util.getTypes();
-
   t.assertExpression(test);
   t.assertLiteral(toLoc);
 
@@ -183,8 +166,6 @@ Ep.jumpIf = function(test, toLoc) {
 
 // Conditional jump, with the condition negated.
 Ep.jumpIfNot = function(test, toLoc) {
-  const t = util.getTypes();
-
   t.assertExpression(test);
   t.assertLiteral(toLoc);
 
@@ -216,11 +197,9 @@ Ep.makeTempVar = function() {
 };
 
 Ep.getContextFunction = function(id) {
-  const t = util.getTypes();
-
   return t.functionExpression(
     id || null/*Anonymous*/,
-    [this.getContextId()],
+    [this.contextId],
     t.blockStatement([this.getDispatchLoop()]),
     false, // Not a generator anymore!
     false // Nor an expression.
@@ -239,8 +218,7 @@ Ep.getContextFunction = function(id) {
 // Each marked location in this.listing will correspond to one generated
 // case statement.
 Ep.getDispatchLoop = function() {
-  const self = this;
-  const t = util.getTypes();
+  let self = this;
   let cases = [];
   let current;
 
@@ -302,7 +280,6 @@ Ep.getTryLocsList = function() {
     return null;
   }
 
-  const t = util.getTypes();
   let lastLocValue = 0;
 
   return t.arrayExpression(
@@ -325,7 +302,7 @@ Ep.getTryLocsList = function() {
         locs[3] = fe.afterLoc;
       }
 
-      return t.arrayExpression(locs.map(loc => loc && t.clone(loc)));
+      return t.arrayExpression(locs);
     })
   );
 };
@@ -338,7 +315,6 @@ Ep.getTryLocsList = function() {
 // No destructive modification of AST nodes.
 
 Ep.explode = function(path, ignoreResult) {
-  const t = util.getTypes();
   let node = path.node;
   let self = this;
 
@@ -386,7 +362,6 @@ function getDeclError(node) {
 }
 
 Ep.explodeStatement = function(path, labelId) {
-  const t = util.getTypes();
   let stmt = path.node;
   let self = this;
   let before, after, head;
@@ -424,7 +399,7 @@ Ep.explodeStatement = function(path, labelId) {
     break;
 
   case "LabeledStatement":
-    after = this.loc();
+    after = loc();
 
     // Did you know you can break from any labeled block statement or
     // control structure? Well, you can! Note: when a labeled loop is
@@ -458,8 +433,8 @@ Ep.explodeStatement = function(path, labelId) {
     break;
 
   case "WhileStatement":
-    before = this.loc();
-    after = this.loc();
+    before = loc();
+    after = loc();
 
     self.mark(before);
     self.jumpIfNot(self.explodeExpression(path.get("test")), after);
@@ -473,9 +448,9 @@ Ep.explodeStatement = function(path, labelId) {
     break;
 
   case "DoWhileStatement":
-    let first = this.loc();
-    let test = this.loc();
-    after = this.loc();
+    let first = loc();
+    let test = loc();
+    after = loc();
 
     self.mark(first);
     self.leapManager.withEntry(
@@ -489,9 +464,9 @@ Ep.explodeStatement = function(path, labelId) {
     break;
 
   case "ForStatement":
-    head = this.loc();
-    let update = this.loc();
-    after = this.loc();
+    head = loc();
+    let update = loc();
+    after = loc();
 
     if (stmt.init) {
       // We pass true here to indicate that if stmt.init is an expression
@@ -530,8 +505,8 @@ Ep.explodeStatement = function(path, labelId) {
     return self.explodeExpression(path.get("expression"));
 
   case "ForInStatement":
-    head = this.loc();
-    after = this.loc();
+    head = loc();
+    after = loc();
 
     let keyIterNextFn = self.makeTempVar();
     self.emitAssign(
@@ -550,7 +525,7 @@ Ep.explodeStatement = function(path, labelId) {
         t.assignmentExpression(
           "=",
           keyInfoTmpVar,
-          t.callExpression(t.cloneDeep(keyIterNextFn), [])
+          t.callExpression(keyIterNextFn, [])
         ),
         t.identifier("done"),
         false
@@ -561,7 +536,7 @@ Ep.explodeStatement = function(path, labelId) {
     self.emitAssign(
       stmt.left,
       t.memberExpression(
-        t.cloneDeep(keyInfoTmpVar),
+        keyInfoTmpVar,
         t.identifier("value"),
         false
       )
@@ -602,8 +577,8 @@ Ep.explodeStatement = function(path, labelId) {
       self.explodeExpression(path.get("discriminant"))
     );
 
-    after = this.loc();
-    let defaultLoc = this.loc();
+    after = loc();
+    let defaultLoc = loc();
     let condition = defaultLoc;
     let caseLocs = [];
 
@@ -616,8 +591,8 @@ Ep.explodeStatement = function(path, labelId) {
 
       if (c.test) {
         condition = t.conditionalExpression(
-          t.binaryExpression("===", t.cloneDeep(disc), c.test),
-          caseLocs[i] = this.loc(),
+          t.binaryExpression("===", disc, c.test),
+          caseLocs[i] = loc(),
           condition
         );
       } else {
@@ -652,8 +627,8 @@ Ep.explodeStatement = function(path, labelId) {
     break;
 
   case "IfStatement":
-    let elseLoc = stmt.alternate && this.loc();
-    after = this.loc();
+    let elseLoc = stmt.alternate && loc();
+    after = loc();
 
     self.jumpIfNot(
       self.explodeExpression(path.get("test")),
@@ -684,17 +659,17 @@ Ep.explodeStatement = function(path, labelId) {
     throw new Error("WithStatement not supported in generator functions.");
 
   case "TryStatement":
-    after = this.loc();
+    after = loc();
 
     let handler = stmt.handler;
 
-    let catchLoc = handler && this.loc();
+    let catchLoc = handler && loc();
     let catchEntry = catchLoc && new leap.CatchEntry(
       catchLoc,
       handler.param
     );
 
-    let finallyLoc = stmt.finalizer && this.loc();
+    let finallyLoc = stmt.finalizer && loc();
     let finallyEntry = finallyLoc &&
       new leap.FinallyEntry(finallyLoc, after);
 
@@ -730,7 +705,7 @@ Ep.explodeStatement = function(path, labelId) {
         self.clearPendingException(tryEntry.firstLoc, safeParam);
 
         bodyPath.traverse(catchParamVisitor, {
-          getSafeParam: () => t.cloneDeep(safeParam),
+          safeParam: safeParam,
           catchParamName: handler.param.name
         });
 
@@ -774,7 +749,7 @@ Ep.explodeStatement = function(path, labelId) {
 let catchParamVisitor = {
   Identifier: function(path, state) {
     if (path.node.name === state.catchParamName && util.isReference(path)) {
-      util.replaceWithOrRemove(path, state.getSafeParam());
+      util.replaceWithOrRemove(path, state.safeParam);
     }
   },
 
@@ -801,22 +776,17 @@ Ep.emitAbruptCompletion = function(record) {
     "normal completions are not abrupt"
   );
 
-  const t = util.getTypes();
   let abruptArgs = [t.stringLiteral(record.type)];
 
   if (record.type === "break" ||
       record.type === "continue") {
     t.assertLiteral(record.target);
-    abruptArgs[1] = this.insertedLocs.has(record.target)
-      ? record.target
-      : t.cloneDeep(record.target);
+    abruptArgs[1] = record.target;
   } else if (record.type === "return" ||
              record.type === "throw") {
     if (record.value) {
       t.assertExpression(record.value);
-      abruptArgs[1] = this.insertedLocs.has(record.value)
-        ? record.value
-        : t.cloneDeep(record.value);
+      abruptArgs[1] = record.value;
     }
   }
 
@@ -840,7 +810,7 @@ function isValidCompletion(record) {
   if (type === "break" ||
       type === "continue") {
     return !hasOwn.call(record, "value")
-        && util.getTypes().isLiteral(record.target);
+        && t.isLiteral(record.target);
   }
 
   if (type === "return" ||
@@ -863,7 +833,7 @@ function isValidCompletion(record) {
 // targets, but minimizing the number of switch cases keeps the generated
 // code shorter.
 Ep.getUnmarkedCurrentLoc = function() {
-  return util.getTypes().numericLiteral(this.listing.length);
+  return t.numericLiteral(this.listing.length);
 };
 
 // The context.prev property takes the value of context.next whenever we
@@ -877,7 +847,6 @@ Ep.getUnmarkedCurrentLoc = function() {
 // precision at all times, but we don't have that luxury here, as it would
 // be costly and verbose to set context.prev before every statement.
 Ep.updateContextPrevLoc = function(loc) {
-  const t = util.getTypes();
   if (loc) {
     t.assertLiteral(loc);
 
@@ -901,7 +870,6 @@ Ep.updateContextPrevLoc = function(loc) {
 };
 
 Ep.explodeExpression = function(path, ignoreResult) {
-  const t = util.getTypes();
   let expr = path.node;
   if (expr) {
     t.assertExpression(expr);
@@ -1026,7 +994,7 @@ Ep.explodeExpression = function(path, ignoreResult) {
 
         newCallee = t.memberExpression(
           t.memberExpression(
-            t.cloneDeep(newObject),
+            newObject,
             newProperty,
             calleePath.node.computed
           ),
@@ -1052,7 +1020,7 @@ Ep.explodeExpression = function(path, ignoreResult) {
         // object.
         newCallee = t.sequenceExpression([
           t.numericLiteral(0),
-          t.cloneDeep(newCallee)
+          newCallee
         ]);
       }
     }
@@ -1063,7 +1031,7 @@ Ep.explodeExpression = function(path, ignoreResult) {
 
     return finish(t.callExpression(
       newCallee,
-      newArgs.map(arg => t.cloneDeep(arg))
+      newArgs
     ));
 
   case "NewExpression":
@@ -1110,7 +1078,7 @@ Ep.explodeExpression = function(path, ignoreResult) {
     return result;
 
   case "LogicalExpression":
-    after = this.loc();
+    after = loc();
 
     if (!ignoreResult) {
       result = self.makeTempVar();
@@ -1132,8 +1100,8 @@ Ep.explodeExpression = function(path, ignoreResult) {
     return result;
 
   case "ConditionalExpression":
-    let elseLoc = this.loc();
-    after = this.loc();
+    let elseLoc = loc();
+    after = loc();
     let test = self.explodeExpression(path.get("test"));
 
     self.jumpIfNot(test, elseLoc);
@@ -1169,40 +1137,10 @@ Ep.explodeExpression = function(path, ignoreResult) {
     ));
 
   case "AssignmentExpression":
-    if (expr.operator === "=") {
-      // If this is a simple assignment, the left hand side does not need
-      // to be read before the right hand side is evaluated, so we can
-      // avoid the more complicated logic below.
-      return finish(t.assignmentExpression(
-        expr.operator,
-        self.explodeExpression(path.get("left")),
-        self.explodeExpression(path.get("right"))
-      ));
-    }
-
-    const lhs = self.explodeExpression(path.get("left"));
-    const temp = self.emitAssign(self.makeTempVar(), lhs);
-
-    // For example,
-    //
-    //   x += yield y
-    //
-    // becomes
-    //
-    //   context.t0 = x
-    //   x = context.t0 += yield y
-    //
-    // so that the left-hand side expression is read before the yield.
-    // Fixes https://github.com/facebook/regenerator/issues/345.
-
     return finish(t.assignmentExpression(
-      "=",
-      t.cloneDeep(lhs),
-      t.assignmentExpression(
-        expr.operator,
-        t.cloneDeep(temp),
-        self.explodeExpression(path.get("right"))
-      )
+      expr.operator,
+      self.explodeExpression(path.get("left")),
+      self.explodeExpression(path.get("right"))
     ));
 
   case "UpdateExpression":
@@ -1213,35 +1151,27 @@ Ep.explodeExpression = function(path, ignoreResult) {
     ));
 
   case "YieldExpression":
-    after = this.loc();
+    after = loc();
     let arg = expr.argument && self.explodeExpression(path.get("argument"));
 
     if (arg && expr.delegate) {
       let result = self.makeTempVar();
 
-      let ret = t.returnStatement(t.callExpression(
-        self.contextProperty("delegateYield"),
-        [
+      self.emit(t.returnStatement(t.callExpression(
+        self.contextProperty("delegateYield"), [
           arg,
           t.stringLiteral(result.property.name),
           after
         ]
-      ));
-      ret.loc = expr.loc;
+      )));
 
-      self.emit(ret);
       self.mark(after);
 
       return result;
     }
 
     self.emitAssign(self.contextProperty("next"), after);
-
-    let ret = t.returnStatement(t.cloneDeep(arg) || null);
-    // Preserve the `yield` location so that source mappings for the statements
-    // link back to the yield properly.
-    ret.loc = expr.loc;
-    self.emit(ret);
+    self.emit(t.returnStatement(arg || null));
     self.mark(after);
 
     return self.contextProperty("sent");

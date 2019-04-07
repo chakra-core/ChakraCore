@@ -6,7 +6,7 @@
 ## Install
 
 ```
-$ npm install --save package-json
+$ npm install package-json
 ```
 
 
@@ -15,16 +15,13 @@ $ npm install --save package-json
 ```js
 const packageJson = require('package-json');
 
-packageJson('ava').then(json => {
-	console.log(json);
+(async () => {
+	console.log(await packageJson('ava'));
 	//=> {name: 'ava', ...}
-});
 
-// Also works with scoped packages
-packageJson('@sindresorhus/df').then(json => {
-	console.log(json);
-	//=> {name: '@sindresorhus/df', ...}
-});
+	// Also works with scoped packages
+	console.log(await packageJson('@sindresorhus/df'));
+})();
 ```
 
 
@@ -51,10 +48,10 @@ Package version such as `1.0.0` or a [dist tag](https://docs.npmjs.com/cli/dist-
 
 The version can also be in any format supported by the [semver](https://github.com/npm/node-semver) module. For example:
 
-- `1` - get the latest `1.x.x`
-- `1.2` - get the latest `1.2.x`
-- `^1.2.3` - get the latest `1.x.x` but at least `1.2.3`
-- `~1.2.3` - get the latest `1.2.x` but at least `1.2.3`
+- `1` - Get the latest `1.x.x`
+- `1.2` - Get the latest `1.2.x`
+- `^1.2.3` - Get the latest `1.x.x` but at least `1.2.3`
+- `~1.2.3` - Get the latest `1.2.x` but at least `1.2.3`
 
 ##### fullMetadata
 

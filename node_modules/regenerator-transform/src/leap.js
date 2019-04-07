@@ -1,14 +1,16 @@
 /**
- * Copyright (c) 2014-present, Facebook, Inc.
+ * Copyright (c) 2014, Facebook, Inc.
+ * All rights reserved.
  *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
+ * This source code is licensed under the BSD-style license found in the
+ * https://raw.github.com/facebook/regenerator/master/LICENSE file. An
+ * additional grant of patent rights can be found in the PATENTS file in
+ * the same directory.
  */
 
 import assert from "assert";
-import { Emitter } from "./emit";
+import * as t from "babel-types";
 import { inherits } from "util";
-import { getTypes } from "./util";
 
 function Entry() {
   assert.ok(this instanceof Entry);
@@ -16,7 +18,7 @@ function Entry() {
 
 function FunctionEntry(returnLoc) {
   Entry.call(this);
-  getTypes().assertLiteral(returnLoc);
+  t.assertLiteral(returnLoc);
   this.returnLoc = returnLoc;
 }
 
@@ -25,8 +27,6 @@ exports.FunctionEntry = FunctionEntry;
 
 function LoopEntry(breakLoc, continueLoc, label) {
   Entry.call(this);
-
-  const t = getTypes();
 
   t.assertLiteral(breakLoc);
   t.assertLiteral(continueLoc);
@@ -47,7 +47,7 @@ exports.LoopEntry = LoopEntry;
 
 function SwitchEntry(breakLoc) {
   Entry.call(this);
-  getTypes().assertLiteral(breakLoc);
+  t.assertLiteral(breakLoc);
   this.breakLoc = breakLoc;
 }
 
@@ -57,7 +57,6 @@ exports.SwitchEntry = SwitchEntry;
 function TryEntry(firstLoc, catchEntry, finallyEntry) {
   Entry.call(this);
 
-  const t = getTypes();
   t.assertLiteral(firstLoc);
 
   if (catchEntry) {
@@ -86,8 +85,6 @@ exports.TryEntry = TryEntry;
 function CatchEntry(firstLoc, paramId) {
   Entry.call(this);
 
-  const t = getTypes();
-
   t.assertLiteral(firstLoc);
   t.assertIdentifier(paramId);
 
@@ -100,7 +97,6 @@ exports.CatchEntry = CatchEntry;
 
 function FinallyEntry(firstLoc, afterLoc) {
   Entry.call(this);
-  const t = getTypes();
   t.assertLiteral(firstLoc);
   t.assertLiteral(afterLoc);
   this.firstLoc = firstLoc;
@@ -112,8 +108,6 @@ exports.FinallyEntry = FinallyEntry;
 
 function LabeledEntry(breakLoc, label) {
   Entry.call(this);
-
-  const t = getTypes();
 
   t.assertLiteral(breakLoc);
   t.assertIdentifier(label);
@@ -128,6 +122,7 @@ exports.LabeledEntry = LabeledEntry;
 function LeapManager(emitter) {
   assert.ok(this instanceof LeapManager);
 
+  let Emitter = require("./emit").Emitter;
   assert.ok(emitter instanceof Emitter);
 
   this.emitter = emitter;

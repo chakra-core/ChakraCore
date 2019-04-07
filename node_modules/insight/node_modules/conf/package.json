@@ -1,0 +1,54 @@
+{
+	"name": "conf",
+	"version": "1.4.0",
+	"description": "Simple config handling for your app or module",
+	"license": "MIT",
+	"repository": "sindresorhus/conf",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"config",
+		"store",
+		"app",
+		"storage",
+		"conf",
+		"configuration",
+		"settings",
+		"preferences",
+		"json",
+		"data",
+		"persist",
+		"persistent",
+		"save",
+		"load",
+		"read",
+		"write",
+		"cache"
+	],
+	"dependencies": {
+		"dot-prop": "^4.1.0",
+		"env-paths": "^1.0.0",
+		"make-dir": "^1.0.0",
+		"pkg-up": "^2.0.0",
+		"write-file-atomic": "^2.3.0"
+	},
+	"devDependencies": {
+		"ava": "*",
+		"clear-module": "^2.1.0",
+		"del": "^3.0.0",
+		"tempy": "^0.2.1",
+		"xo": "*"
+	}
+}

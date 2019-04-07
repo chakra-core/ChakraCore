@@ -1,5 +1,38 @@
 # Change Log
 
+## v5.15.0
+
+- [api] `WalkContext` and `AbstractWalker` type parameter defaults to `void` (#2600)
+- [bugfix] [`no-void-expression`](https://palantir.github.io/tslint/rules/no-void-expression/) now allows conditional expressions (#4606)
+- [bugfix] fix linebreak handling in [`ordered-imports`](https://palantir.github.io/tslint/rules/ordered-imports/) (#4583)
+- [bugfix] fix [`static-this`](https://palantir.github.io/tslint/rules/static-this/) false positive for higher order components (#4580)
+- [bugfix] Fixed crash in [`unnecessary-else`](https://palantir.github.io/tslint/rules/unnecessary-else/) from blank `if` statements (#4603)
+- [bugfix] Fixed false positive in [`unnecessary-else`](https://palantir.github.io/tslint/rules/unnecessary-else/) after non-jumping statement (#4603)
+- [bugfix] [`interface-name`](https://palantir.github.io/tslint/rules/interface-name/) now handles interface starting with "I18n" correctly (#4486)
+- [bugfix] [`no-string-throw`](https://palantir.github.io/tslint/rules/no-string-throw/) fix inserts whitespace if not present after `throw` keyword (#4540)
+- [bugfix] [`quotemark`](https://palantir.github.io/tslint/rules/quotemark/): fix some edge cases for `backtick` option (#4618)
+- [bugfix] [`unnecessary-constructor`](https://palantir.github.io/tslint/rules/unnecessary-constructor/): don't flag non-private constructors that are actually necessary (#4619)
+- [enhancement] Upgrade js-yaml to avoid security issue (#4595)
+- [new-rule-option] `allow-single-line-comments` option for [`file-header`](https://palantir.github.io/tslint/rules/file-header/) rule (#4560)
+- [new-rule-option] `ignore-rest-args` option for [`no-any`](https://palantir.github.io/tslint/rules/no-any/) rule (#4581)
+- [new-rule] [`no-null-undefined-union`](https://palantir.github.io/tslint/rules/no-null-undefined-union/) (#4589)
+
+Thanks to our contributors!
+
+- Max Belsky
+- Steve Moser
+- Christian Flach
+- Roman Rogowski
+- Terry
+- Luke
+- Andy Hanson
+- Vitalij Krotov
+- Josh Goldberg
+- Vincent Langlet
+- Neha Rathi
+- Eric Ferreira
+
+
 ## v5.14.0
 
 - [bugfix] `backtick` option for [`quotemark`](https://palantir.github.io/tslint/rules/quotemark/) rule no longer incorrectly flags string literals that must use single/double quotes (#4535)

@@ -40,7 +40,7 @@ $ babel --plugins regenerator-transform script.js
 ### Via Node API
 
 ```javascript
-require("@babel/core").transformSync("code", {
+require("babel-core").transform("code", {
   plugins: ["regenerator-transform"]
 });
 ```

@@ -1,0 +1,38 @@
+{
+  "name": "titleize",
+  "version": "1.0.1",
+  "description": "Capitalize every word in a string: unicorn cake → Unicorn Cake",
+  "license": "MIT",
+  "repository": "sindresorhus/titleize",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "titleize",
+    "title",
+    "capitalize",
+    "uppercase",
+    "case",
+    "dash",
+    "hyphen",
+    "string",
+    "str",
+    "text",
+    "convert"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}

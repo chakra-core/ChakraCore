@@ -7,7 +7,15 @@ function type(fn, fn2, fp) {
 		return Promise.reject(new TypeError(`Expected a string, got ${typeof fp}`));
 	}
 
-	return pify(fs[fn])(fp).then(stats => stats[fn2]());
+	return pify(fs[fn])(fp)
+		.then(stats => stats[fn2]())
+		.catch(err => {
+			if (err.code === 'ENOENT') {
+				return false;
+			}
+
+			throw err;
+		});
 }
 
 function typeSync(fn, fn2, fp) {
@@ -15,7 +23,15 @@ function typeSync(fn, fn2, fp) {
 		throw new TypeError(`Expected a string, got ${typeof fp}`);
 	}
 
-	return fs[fn](fp)[fn2]();
+	try {
+		return fs[fn](fp)[fn2]();
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			return false;
+		}
+
+		throw err;
+	}
 }
 
 exports.file = type.bind(null, 'stat', 'isFile');

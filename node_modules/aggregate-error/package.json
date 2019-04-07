@@ -1,0 +1,40 @@
+{
+  "name": "aggregate-error",
+  "version": "1.0.0",
+  "description": "Create an error from multiple errors",
+  "license": "MIT",
+  "repository": "sindresorhus/aggregate-error",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "aggregate",
+    "error",
+    "err",
+    "combine",
+    "multiple",
+    "many",
+    "collection",
+    "iterable",
+    "iterator"
+  ],
+  "dependencies": {
+    "clean-stack": "^1.0.0",
+    "indent-string": "^3.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "webapp": {
+    "options": {
+      "insertTokenIds": true
+    }
+  }
+}

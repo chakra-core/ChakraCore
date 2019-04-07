@@ -1,0 +1,16 @@
+{
+    "name": <%- JSON.stringify(name) %>,
+    "displayName": <%- JSON.stringify(displayName) %>,
+    "description": <%- JSON.stringify(description) %>,
+    "version": "0.0.1",
+    "engines": {
+        "vscode": <%- JSON.stringify(vsCodeEngine) %>
+    },
+    "categories": [
+        "Extension Packs"
+    ],
+    "extensionPack": [ <% for (i=0; i<extensionList.length-1; i++) { %>
+        "<%- extensionList[i] %>", <%}%>
+        "<%- extensionList[extensionList.length-1]%>"
+    ]
+}

@@ -5,7 +5,7 @@
 Unless stated otherwise all works are:
 
 <ul><li>Copyright &copy; 2012+ <a href="http://bevry.me">Bevry Pty Ltd</a></li>
-<li>Copyright &copy; 2011 <a href="https://balupton.com">Benjamin Lupton</a></li></ul>
+<li>Copyright &copy; 2011 <a href="http://balupton.com">Benjamin Lupton</a></li></ul>
 
 and licensed under:
 

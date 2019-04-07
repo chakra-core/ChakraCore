@@ -23,7 +23,7 @@ module.exports = {
 
     let baseTemplatesPath = path.join(this.root, 'addon/templates');
 
-    if (dep.satisfies('>= 1.13.0') {
+    if (dep.satisfies('>= 1.13.0')) {
       return this.treeGenerator(path.join(baseTemplatesPath, 'current'));
     } else {
       return this.treeGenerator(path.join(baseTemplatesPath, 'legacy'));

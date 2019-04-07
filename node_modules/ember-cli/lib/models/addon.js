@@ -1150,7 +1150,7 @@ let addonProto = {
     if (addonTemplates) {
       standardTemplates = new Funnel(addonTemplates, {
         srcDir: '/',
-        destDir: `${this.name}/templates`,
+        destDir: `${this.moduleName()}/templates`,
         annotation: `Addon#_addonTemplateFiles (${this.name})`,
       });
 
@@ -1163,7 +1163,7 @@ let addonProto = {
 
       let podTemplates = new Funnel(addonTree, {
         include: includePatterns,
-        destDir: `${this.name}/`,
+        destDir: `${this.moduleName()}/`,
         annotation: 'Funnel: Addon Pod Templates',
       });
 

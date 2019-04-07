@@ -1,0 +1,51 @@
+{
+  "author": "John Roepke <john@justjohn.us> (http://john.sh/)",
+  "name": "twig",
+  "description": "JS port of the Twig templating language.",
+  "version": "1.13.2",
+  "homepage": "https://github.com/twigjs/twig.js",
+  "licenses": [
+    {
+      "type": "BSD-2-Clause",
+      "url": "https://raw.github.com/twigjs/twig.js/master/LICENSE"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/twigjs/twig.js.git"
+  },
+  "main": "twig.js",
+  "engines": {
+    "node": ">=6.0"
+  },
+  "bin": {
+    "twigjs": "./bin/twigjs"
+  },
+  "scripts": {
+    "preversion": "npm test && git diff --exit-code --quiet",
+    "postversion": "git push origin master && git push origin master --tags",
+    "test": "npm run build && mocha -r should",
+    "build-node": "webpack",
+    "build-browser": "WEBPACK_ENV=browser webpack",
+    "build": "npm run build-node && npm run build-browser"
+  },
+  "dependencies": {
+    "minimatch": "3.0.x",
+    "locutus": "^2.0.5",
+    "walk": "2.3.x"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^4.1.0",
+    "should": "11.1.x",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^2.8.0",
+    "tokenizer": "1.1.x",
+    "uglifyjs-webpack-plugin": "^2.0.1",
+    "webpack": "^4.12.0",
+    "webpack-cli": "^3.0.3"
+  },
+  "browser": {
+    "fs": false
+  }
+}

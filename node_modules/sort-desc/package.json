@@ -1,0 +1,43 @@
+{
+  "name": "sort-desc",
+  "description": "Sort array elements in descending order.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/sort-desc",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/sort-desc",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/sort-desc/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "array",
+    "desc",
+    "descend",
+    "descending",
+    "element",
+    "elements",
+    "order",
+    "ordered",
+    "sort",
+    "sorted",
+    "sorting"
+  ],
+  "verb": {
+    "related": {
+      "list": ["sort-asc", "sort-desc", "sort-object"]
+    }
+  }
+}

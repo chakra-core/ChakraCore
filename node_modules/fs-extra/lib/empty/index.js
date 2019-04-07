@@ -1,47 +1,48 @@
-var fs = require('fs')
-var path = require('path')
-var mkdir = require('../mkdirs')
-var remove = require('../remove')
+'use strict'
 
-function emptyDir (dir, callback) {
+const u = require('universalify').fromCallback
+const fs = require('fs')
+const path = require('path')
+const mkdir = require('../mkdirs')
+const remove = require('../remove')
+
+const emptyDir = u(function emptyDir (dir, callback) {
   callback = callback || function () {}
-  fs.readdir(dir, function (err, items) {
+  fs.readdir(dir, (err, items) => {
     if (err) return mkdir.mkdirs(dir, callback)
 
-    items = items.map(function (item) {
-      return path.join(dir, item)
-    })
+    items = items.map(item => path.join(dir, item))
 
     deleteItem()
 
     function deleteItem () {
-      var item = items.pop()
+      const item = items.pop()
       if (!item) return callback()
-      remove.remove(item, function (err) {
+      remove.remove(item, err => {
         if (err) return callback(err)
         deleteItem()
       })
     }
   })
-}
+})
 
 function emptyDirSync (dir) {
-  var items
+  let items
   try {
     items = fs.readdirSync(dir)
   } catch (err) {
     return mkdir.mkdirsSync(dir)
   }
 
-  items.forEach(function (item) {
+  items.forEach(item => {
     item = path.join(dir, item)
     remove.removeSync(item)
   })
 }
 
 module.exports = {
-  emptyDirSync: emptyDirSync,
+  emptyDirSync,
   emptydirSync: emptyDirSync,
-  emptyDir: emptyDir,
+  emptyDir,
   emptydir: emptyDir
 }

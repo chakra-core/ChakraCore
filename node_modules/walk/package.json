@@ -1,0 +1,43 @@
+{
+  "name": "walk",
+  "description": "A node port of python's os.walk",
+  "url": "http://git.coolaj86.com/coolaj86/fs-walk.js",
+  "keywords": [
+    "util",
+    "os",
+    "sys",
+    "fs",
+    "walk",
+    "walkSync"
+  ],
+  "author": "AJ ONeal <coolaj86@gmail.com>",
+  "contributors": [],
+  "dependencies": {
+    "foreachasync": "^3.0.0"
+  },
+  "lib": ".",
+  "main": "./lib/walk.js",
+  "version": "2.3.14",
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "url": "https://git.coolaj86.com/coolaj86/fs-walk.js.git"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "bugs": {
+    "url": "https://git.coolaj86.com/coolaj86/fs-walk.js/issues"
+  },
+  "homepage": "https://git.coolaj86.com/coolaj86/fs-walk.js",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {},
+  "scripts": {
+    "test": "./test/walk-test.sh"
+  }
+}

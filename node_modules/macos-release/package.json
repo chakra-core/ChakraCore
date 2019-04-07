@@ -1,0 +1,38 @@
+{
+  "name": "macos-release",
+  "version": "1.1.0",
+  "description": "Get the name and version of a macOS release from the Darwin version",
+  "license": "MIT",
+  "repository": "sindresorhus/macos-release",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "os",
+    "macos",
+    "osx",
+    "darwin",
+    "operating",
+    "system",
+    "platform",
+    "name",
+    "title",
+    "release",
+    "version"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}

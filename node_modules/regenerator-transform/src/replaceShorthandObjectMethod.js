@@ -1,10 +1,4 @@
-/**
- * Copyright (c) 2014-present, Facebook, Inc.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
+import * as t from "babel-types";
 import * as util from "./util";
 
 // this function converts a shorthand object generator method into a normal
@@ -36,8 +30,6 @@ import * as util from "./util";
 // If this function is called with an AST node path that is not a Function (or with an
 // argument that isn't an AST node path), it will throw an error.
 export default function replaceShorthandObjectMethod(path) {
-  const t = util.getTypes();
-
   if (!path.node || !t.isFunction(path.node)) {
     throw new Error("replaceShorthandObjectMethod can only be called on Function AST node paths.");
   }

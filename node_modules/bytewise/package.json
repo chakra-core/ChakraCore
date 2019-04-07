@@ -1,0 +1,35 @@
+{
+  "name": "bytewise",
+  "version": "1.1.0",
+  "description": "Binary serialization which sorts bytewise for arbirarily complex data structures",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test | faucet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deanlandolt/bytewise.git"
+  },
+  "keywords": [
+    "binary",
+    "sort",
+    "collation",
+    "serialization",
+    "leveldb",
+    "indexeddb"
+  ],
+  "author": "Dean Landolt <dean@deanlandolt.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/deanlandolt/bytewise/issues"
+  },
+  "homepage": "https://github.com/deanlandolt/bytewise",
+  "dependencies": {
+    "bytewise-core": "^1.2.2",
+    "typewise": "^1.0.3"
+  },
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^1.0.0"
+  }
+}

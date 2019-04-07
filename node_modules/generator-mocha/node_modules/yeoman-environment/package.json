@@ -1,0 +1,66 @@
+{
+  "name": "yeoman-environment",
+  "version": "1.6.6",
+  "description": "Handles the lifecyle and bootstrapping of generators in a specific environment",
+  "homepage": "http://yeoman.io",
+  "author": "Yeoman",
+  "files": [
+    "lib"
+  ],
+  "main": "lib/environment.js",
+  "keywords": [
+    "development",
+    "dev",
+    "build",
+    "tool",
+    "cli",
+    "scaffold",
+    "scaffolding",
+    "generate",
+    "generator",
+    "yeoman",
+    "app"
+  ],
+  "license": "BSD-2-Clause",
+  "repository": "yeoman/environment",
+  "scripts": {
+    "test": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
+    "doc": "jsdoc -c ./jsdoc.json ./readme.md",
+    "benchmark": "matcha benchmark/**",
+    "prepublish": "gulp prepublish"
+  },
+  "dependencies": {
+    "chalk": "^1.0.0",
+    "debug": "^2.0.0",
+    "diff": "^2.1.2",
+    "escape-string-regexp": "^1.0.2",
+    "globby": "^4.0.0",
+    "grouped-queue": "^0.3.0",
+    "inquirer": "^1.0.2",
+    "lodash": "^4.11.1",
+    "log-symbols": "^1.0.1",
+    "mem-fs": "^1.1.0",
+    "text-table": "^0.2.0",
+    "untildify": "^2.0.0"
+  },
+  "devDependencies": {
+    "coveralls": "^2.11.6",
+    "gulp": "^3.6.0",
+    "gulp-coveralls": "^0.1.0",
+    "gulp-eslint": "^2.0.0",
+    "gulp-exclude-gitignore": "^1.0.0",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-jscs": "^3.0.0",
+    "gulp-mocha": "^2.0.0",
+    "gulp-nsp": "^2.1.0",
+    "gulp-plumber": "^1.0.0",
+    "istanbul": "^0.4.1",
+    "jsdoc": "^3.3.0-alpha9",
+    "matcha": "^0.7.0",
+    "mocha": "^2.3.4",
+    "shelljs": "^0.7.0",
+    "sinon": "^1.9.1",
+    "yeoman-assert": "^2.1.1",
+    "yeoman-generator": "^0.22.1"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "yeoman-welcome",
+  "version": "1.0.1",
+  "description": "Yeoman welcome message used in generators",
+  "license": "MIT",
+  "repository": "yeoman/yeoman-welcome",
+  "author": "Yeoman",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "yeoman",
+    "character",
+    "welcome",
+    "message",
+    "msg",
+    "ascii",
+    "ansi"
+  ],
+  "dependencies": {
+    "chalk": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "0.0.4"
+  }
+}

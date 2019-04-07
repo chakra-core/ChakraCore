@@ -1,0 +1,20 @@
+language: node_js
+node_js:
+  - "node"
+  - "10"
+  - "9"
+  - "6"
+
+cache:
+  npm: true
+  directories:
+    - node_modules
+
+sudo: false
+
+os:
+  - linux
+  - osx
+
+matrix:
+  fast_finish: true

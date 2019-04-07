@@ -6,7 +6,7 @@
  *            Portions Copyright 2008-2011 Apple Inc. All rights reserved.
  * @license   Licensed under MIT license
  *            See https://raw.github.com/emberjs/ember.js/master/LICENSE
- * @version   3.8.0
+ * @version   3.9.0
  */
 
 /*globals process */
@@ -1727,6 +1727,18 @@ enifed("@ember/-internals/environment", ["exports"], function (_exports) {
       @private
     */
     _JQUERY_INTEGRATION: true,
+
+    /**
+      Controls the maximum number of scheduled rerenders without "settling". In general,
+      applications should not need to modify this environment variable, but please
+      open an issue so that we can determine if a better default value is needed.
+         @property _RERENDER_LOOP_LIMIT
+      @for EmberENV
+      @type number
+      @default 1000
+      @private
+     */
+    _RERENDER_LOOP_LIMIT: 1000,
     EMBER_LOAD_HOOKS: {},
     FEATURES: {}
   };
@@ -2945,7 +2957,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
       if (false
       /* DEBUG */
       ) {
-          _this3.tag = _TwoWayFlushDetectionTag.create((0, _metal.tagForProperty)(parentValue, propertyKey), propertyKey, (0, _emberBabel.assertThisInitialized)((0, _emberBabel.assertThisInitialized)(_this3)));
+          _this3.tag = _TwoWayFlushDetectionTag.create((0, _metal.tagForProperty)(parentValue, propertyKey), propertyKey, (0, _emberBabel.assertThisInitialized)(_this3));
         } else {
         _this3.tag = (0, _metal.tagForProperty)(parentValue, propertyKey);
       }
@@ -3002,7 +3014,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
       /* DEBUG */
       ) {
           var tag = (0, _reference.combine)([parentReferenceTag, parentObjectTag]);
-          _this4.tag = _TwoWayFlushDetectionTag.create(tag, propertyKey, (0, _emberBabel.assertThisInitialized)((0, _emberBabel.assertThisInitialized)(_this4)));
+          _this4.tag = _TwoWayFlushDetectionTag.create(tag, propertyKey, (0, _emberBabel.assertThisInitialized)(_this4));
         } else {
         _this4.tag = (0, _reference.combine)([parentReferenceTag, parentObjectTag]);
       }
@@ -3356,68 +3368,84 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
   */
 
   /**
-    A `Component` is a view that is completely
-    isolated. Properties accessed in its templates go
-    to the view object and actions are targeted at
-    the view object. There is no access to the
-    surrounding context or outer controller; all
-    contextual information must be passed in.
+    A component is an isolated piece of UI, represented by a template and an
+    optional class. When a component has a class, its template's `this` value
+    is an instance of the component class.
   
-    The easiest way to create a `Component` is via
-    a template. If you name a template
-    `app/templates/components/my-foo.hbs`, you will be able to use
-    `<MyFoo />` or `{{my-foo}}` in other templates, which will make
-    an instance of the isolated component.
+    ## Template-only Components
   
-    ```app/templates/components/my-foo.hbs
+    The simplest way to create a component is to create a template file in
+    `app/templates/components`. For example, if you name a template
+    `app/templates/components/person-profile.hbs`:
+  
+    ```app/templates/components/person-profile.hbs
+    <h1>{{@person.name}}</h1>
+    <img src={{@person.avatar}}>
+    <p class='signature'>{{@person.signature}}</p>
+    ```
+  
+    You will be able to use `<PersonProfile />` to invoke this component elsewhere
+    in your application:
+  
+    ```app/templates/application.hbs
     <PersonProfile @person={{this.currentUser}} />
     ```
   
-    or
+    Note that component names are capitalized here in order to distinguish them
+    from regular HTML elements, but they are dasherized in the file system.
   
-    ```app/templates/components/my-foo.hbs
+    While the angle bracket invocation form is generally preferred, it is also
+    possible to invoke the same component with the `{{person-profile}}` syntax:
+  
+    ```app/templates/application.hbs
     {{person-profile person=this.currentUser}}
     ```
   
-    ```app/templates/components/person-profile.hbs
-    <h1>{{person.title}}</h1>
-    <img src={{person.avatar}}>
-    <p class='signature'>{{person.signature}}</p>
+    Note that with this syntax, you use dashes in the component name and
+    arguments are passed without the `@` sign.
+  
+    In both cases, Ember will render the content of the component template we
+    created above. The end result will be something like this:
+  
+    ```html
+    <h1>Tomster</h1>
+    <img src="https://emberjs.com/tomster.jpg">
+    <p class='signature'>Out of office this week</p>
     ```
   
-    You can use `yield` inside a template to
-    include the **contents** of any block attached to
-    the component. The block will be executed in the
-    context of the surrounding context or outer controller:
+    ## Yielding Contents
+  
+    You can use `yield` inside a template to include the **contents** of any block
+    attached to the component. The block will be executed in its original context:
   
     ```handlebars
     <PersonProfile @person={{this.currentUser}}>
       <p>Admin mode</p>
-      {{! Executed in the controller's context. }}
+      {{! Executed in the current context. }}
     </PersonProfile>
     ```
   
     or
+  
     ```handlebars
     {{#person-profile person=this.currentUser}}
       <p>Admin mode</p>
-      {{! Executed in the controller's context. }}
+      {{! Executed in the current context. }}
     {{/person-profile}}
     ```
   
     ```app/templates/components/person-profile.hbs
     <h1>{{person.title}}</h1>
-    {{! Executed in the component's context. }}
-    {{yield}} {{! block contents }}
+    {{yield}}
     ```
   
-    If you want to customize the component, in order to
-    handle events or actions, you implement a subclass
-    of `Component` named after the name of the
-    component.
+    ## Customizing Components With JavaScript
   
-    For example, you could implement the action
-    `hello` for the `person-profile` component:
+    If you want to customize the component in order to handle events, transform
+    arguments or maintain internal state, you implement a subclass of `Component`.
+  
+    For example, you could implement the action `hello` for the `person-profile`
+    component:
   
     ```app/components/person-profile.js
     import Component from '@ember/component';
@@ -3441,16 +3469,20 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     </button>
     ```
   
-    Components must have a `-` in their name to avoid
-    conflicts with built-in controls that wrap HTML
-    elements. This is consistent with the same
-    requirement in web components.
+    When the user clicks the button, Ember will invoke the `hello` action,
+    passing in the current value of `person.name` as an argument.
   
-    ## HTML Tag
+    For historical reasons, components must have a `-` in their name when invoked
+    using the `{{` syntax.
   
-    The default HTML tag name used for a component's DOM representation is `div`.
+    ## Customizing a Component's HTML Element in JavaScript
+  
+    ### HTML Tag
+  
+    The default HTML tag name used for a component's HTML representation is `div`.
     This can be customized by setting the `tagName` property.
-    The following component class:
+  
+    Consider the following component class:
   
     ```app/components/emphasized-paragraph.js
     import Component from '@ember/component';
@@ -3460,13 +3492,14 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Would result in instances with the following HTML:
+    When invoked, this component would produce output that looks something like
+    this:
   
     ```html
     <em id="ember1" class="ember-view"></em>
     ```
   
-    ## HTML `class` Attribute
+    ### HTML `class` Attribute
   
     The HTML `class` attribute of a component's tag can be set by providing a
     `classNames` property that is set to an array of strings:
@@ -3479,16 +3512,16 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce output that looks like this:
   
     ```html
     <div id="ember1" class="ember-view my-class my-other-class"></div>
     ```
   
     `class` attribute values can also be set by providing a `classNameBindings`
-    property set to an array of properties names for the component. The return value
-    of these properties will be added as part of the value for the components's `class`
-    attribute. These properties can be computed properties:
+    property set to an array of properties names for the component. The return
+    value of these properties will be added as part of the value for the
+    components's `class` attribute. These properties can be computed properties:
   
     ```app/components/my-widget.js
     import Component from '@ember/component';
@@ -3504,15 +3537,15 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view from-a from-b"></div>
     ```
   
     If the value of a class name binding returns a boolean the property name
-    itself will be used as the class name if the property is true.
-    The class name will not be added if the value is `false` or `undefined`.
+    itself will be used as the class name if the property is true. The class name
+    will not be added if the value is `false` or `undefined`.
   
     ```app/components/my-widget.js
     import Component from '@ember/component';
@@ -3524,11 +3557,13 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view hovered"></div>
     ```
+  
+    ### Custom Class Names for Boolean Values
   
     When using boolean class name bindings you can supply a string value other
     than the property name for use as the `class` HTML attribute by appending the
@@ -3544,7 +3579,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view so-very-cool"></div>
@@ -3563,7 +3598,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view is-urgent"></div>
@@ -3585,7 +3620,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view empty"></div>
@@ -3604,14 +3639,13 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view enabled"></div>
     ```
   
-    When isEnabled is `false`, the resulting HTML representation looks like
-    this:
+    When isEnabled is `false`, the resulting HTML representation looks like this:
   
     ```html
     <div id="ember1" class="ember-view disabled"></div>
@@ -3629,23 +3663,25 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component when the `isEnabled` property is true will produce
+    HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view"></div>
     ```
   
-    When the `isEnabled` property on the component is set to `false`, it will result
-    in component instances with an HTML representation of:
+    Invoking it when the `isEnabled` property on the component is `false` will
+    produce HTML that looks like:
   
     ```html
     <div id="ember1" class="ember-view disabled"></div>
     ```
   
-    Updates to the value of a class name binding will result in automatic
-    update of the  HTML `class` attribute in the component's rendered HTML
+    Updates to the value of a class name binding will result in automatic update
+    of the  HTML `class` attribute in the component's rendered HTML
     representation. If the value becomes `false` or `undefined` the class name
     will be removed.
+  
     Both `classNames` and `classNameBindings` are concatenated properties. See
     [EmberObject](/api/ember/release/classes/EmberObject) documentation for more
     information about concatenated properties.
@@ -3668,7 +3704,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <a id="ember1" class="ember-view" href="http://google.com"></a>
@@ -3688,7 +3724,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <a id="ember1" class="ember-view" href="http://google.com"></a>
@@ -3708,14 +3744,14 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in component instances with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <use xlink:href="#triangle"></use>
     ```
   
-    If the return value of an `attributeBindings` monitored property is a boolean
-    the attribute will be present or absent depending on the value:
+    If the value of a property monitored by `attributeBindings` is a boolean, the
+    attribute will be present or absent depending on the value:
   
     ```app/components/my-text-input.js
     import Component from '@ember/component';
@@ -3728,7 +3764,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     });
     ```
   
-    Will result in a component instance with an HTML representation of:
+    Invoking this component will produce HTML that looks like:
   
     ```html
     <input id="ember1" class="ember-view" />
@@ -3755,7 +3791,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     ```
   
     To prevent setting an attribute altogether, use `null` or `undefined` as the
-    return value of the `attributeBindings` monitored property:
+    value of the property used in `attributeBindings`:
   
     ```app/components/my-text-input.js
     import Component from '@ember/component';
@@ -3768,22 +3804,27 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     ```
   
     Updates to the property of an attribute binding will result in automatic
-    update of the  HTML attribute in the component's rendered HTML representation.
-    `attributeBindings` is a concatenated property. See [EmberObject](/api/ember/release/classes/EmberObject)
-    documentation for more information about concatenated properties.
+    update of the  HTML attribute in the component's HTML output.
+  
+    `attributeBindings` is a concatenated property. See
+    [EmberObject](/api/ember/release/classes/EmberObject) documentation for more
+    information about concatenated properties.
   
     ## Layouts
   
-    See [Ember.Templates.helpers.yield](/api/ember/release/classes/Ember.Templates.helpers/methods/yield?anchor=yield)
-    for more information.
+    The `layout` property can be used to dynamically specify a template associated
+    with a component class, instead of relying on Ember to link together a
+    component class and a template based on file names.
   
-    Layout can be used to wrap content in a component. In addition
-    to wrapping content in a Component's template, you can also use
-    the public layout API in your Component JavaScript.
+    In general, applications should not use this feature, but it's commonly used
+    in addons for historical reasons.
+  
+    The `layout` property should be set to the default export of a template
+    module, which is the name of a template file without the `.hbs` extension.
   
     ```app/templates/components/person-profile.hbs
-      <h1>Person's Title</h1>
-      <div class='details'>{{yield}}</div>
+    <h1>Person's Title</h1>
+    <div class='details'>{{yield}}</div>
     ```
   
     ```app/components/person-profile.js
@@ -3795,34 +3836,35 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
       });
     ```
   
-    If you call the `person-profile` component like so:
+    If you invoke the component:
   
-   ```handlebars
-   <PersonProfile>
-       <h2>Chief Basket Weaver</h2>
-       <h3>Fisherman Industries</h3>
-   </PersonProfile>
-   ```
+    ```handlebars
+    <PersonProfile>
+      <h2>Chief Basket Weaver</h2>
+      <h3>Fisherman Industries</h3>
+    </PersonProfile>
+    ```
   
-   or
+    or
   
-   ```handlebars
+    ```handlebars
     {{#person-profile}}
       <h2>Chief Basket Weaver</h2>
       <h3>Fisherman Industries</h3>
     {{/person-profile}}
     ```
+  
     It will result in the following HTML output:
   
     ```html
-      <h1>Person's Title</h1>
+    <h1>Person's Title</h1>
       <div class="details">
-        <h2>Chief Basket Weaver</h2>
-        <h3>Fisherman Industries</h3>
-      </div>
+      <h2>Chief Basket Weaver</h2>
+      <h3>Fisherman Industries</h3>
+    </div>
     ```
   
-    ## Responding to Browser Events
+    ## Handling Browser Events
   
     Components can respond to user-initiated events in one of three ways: method
     implementation, through an event manager, and through `{{action}}` helper use
@@ -3831,16 +3873,16 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     ### Method Implementation
   
     Components can respond to user-initiated events by implementing a method that
-    matches the event name. A `jQuery.Event` object will be passed as the
-    argument to this method.
+    matches the event name. An event object will be passed as the argument to this
+    method.
   
     ```app/components/my-widget.js
     import Component from '@ember/component';
   
     export default Component.extend({
       click(event) {
-        // will be called when an instance's
-        // rendered element is clicked
+        // will be called with a browser event when an instance's rendered element
+        // is clicked
       }
     });
     ```
@@ -5288,16 +5330,17 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
 
     ObjectIterator.fromIndexable = function fromIndexable(obj, keyFor) {
       var keys = Object.keys(obj);
-      var values = [];
       var length = keys.length;
-
-      for (var i = 0; i < length; i++) {
-        values.push((0, _metal.get)(obj, keys[i]));
-      }
 
       if (length === 0) {
         return EMPTY_ITERATOR;
       } else {
+        var values = [];
+
+        for (var i = 0; i < length; i++) {
+          values.push((0, _metal.get)(obj, keys[i]));
+        }
+
         return new this(keys, values, length, keyFor);
       }
     };
@@ -5849,7 +5892,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
       _this15.isInteractive = _this15.owner.lookup('-environment:main').isInteractive; // can be removed once https://github.com/tildeio/glimmer/pull/305 lands
 
       _this15.destroyedComponents = [];
-      installProtocolForURL((0, _emberBabel.assertThisInitialized)((0, _emberBabel.assertThisInitialized)(_this15)));
+      installProtocolForURL((0, _emberBabel.assertThisInitialized)(_this15));
 
       if (false
       /* DEBUG */
@@ -7298,7 +7341,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
   function loopEnd() {
     for (var i = 0; i < renderers.length; i++) {
       if (!renderers[i]._isValid()) {
-        if (loops > 10) {
+        if (loops > _environment2.ENV._RERENDER_LOOP_LIMIT) {
           loops = 0; // TODO: do something better
 
           renderers[i].destroy();
@@ -8032,43 +8075,45 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     this.manager = MANAGER;
   };
 
-  var ComponentAssertionReference =
-  /*#__PURE__*/
-  function () {
-    function ComponentAssertionReference(component, message) {
-      this.component = component;
-      this.message = message;
-      this.tag = component.tag;
-    }
+  var helper$1;
 
-    var _proto51 = ComponentAssertionReference.prototype;
+  if (false
+  /* DEBUG */
+  ) {
+      var ComponentAssertionReference =
+      /*#__PURE__*/
+      function () {
+        function ComponentAssertionReference(component, message) {
+          this.component = component;
+          this.message = message;
+          this.tag = component.tag;
+        }
 
-    _proto51.value = function value() {
-      var value = this.component.value();
+        var _proto51 = ComponentAssertionReference.prototype;
 
-      if (typeof value === 'string') {
-        throw new TypeError(this.message);
-      }
+        _proto51.value = function value() {
+          var value = this.component.value();
+          false && !(typeof value !== 'string') && (0, _debug.assert)(this.message, typeof value !== 'string');
+          return value;
+        };
 
-      return value;
-    };
+        _proto51.get = function get(property) {
+          return this.component.get(property);
+        };
 
-    _proto51.get = function get(property) {
-      return this.component.get(property);
-    };
+        return ComponentAssertionReference;
+      }();
 
-    return ComponentAssertionReference;
-  }();
-
-  var componentAssertionHelper = function (_vm, args) {
-    if (false
-    /* DEBUG */
-    ) {
+      helper$1 = function (_vm, args) {
         return new ComponentAssertionReference(args.positional.at(0), args.positional.at(1).value());
-      } else {
+      };
+    } else {
+    helper$1 = function (_vm, args) {
       return args.positional.at(0);
-    }
-  };
+    };
+  }
+
+  var componentAssertionHelper = helper$1;
 
   function classHelper(_ref18) {
     var positional = _ref18.positional;
@@ -8567,7 +8612,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
      @param {Array} options
      @return {Array} Array
      @category array-helper
-     @since 3.7.0
+     @since 3.8.0
      @public
    */
 
@@ -8605,7 +8650,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     or for angle bracket invocation, you actually don't need concat at all.
   
     ```handlebars
-    <SomeComponent @name="{{firstName lastName}}" />
+    <SomeComponent @name="{{firstName}} {{lastName}}" />
     ```
   
     @public
@@ -9666,7 +9711,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
   }
   /**
     The `{{input}}` helper lets you create an HTML `<input />` component.
-    It causes an `TextField` component to be rendered.  For more info,
+    It causes a `TextField` component to be rendered.  For more info,
     see the [TextField](/api/ember/release/classes/TextField) docs and
     the [templates guide](https://guides.emberjs.com/release/templates/input-helpers/).
   
@@ -10605,8 +10650,6 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     var _proto64 = RuntimeResolver.prototype;
 
     _proto64.lookupComponentDefinition = function lookupComponentDefinition(name, meta) {
-      false && !(name !== 'textarea') && (0, _debug.assert)('You cannot use `textarea` as a component name.', name !== 'textarea');
-      false && !(name !== 'input') && (0, _debug.assert)('You cannot use `input` as a component name.', name !== 'input');
       var handle = this.lookupComponentHandle(name, meta);
 
       if (handle === null) {
@@ -10759,7 +10802,7 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
         var helper$$1 = factory.create();
 
         if (isSimpleHelper(helper$$1)) {
-          return new SimpleHelperReference(helper$$1.compute, args.capture());
+          return SimpleHelperReference.create(helper$$1.compute, args.capture());
         }
 
         vm.newDestroyable(helper$$1);
@@ -10814,6 +10857,8 @@ enifed("@ember/-internals/glimmer", ["exports", "node-module", "ember-babel", "@
     };
 
     _proto64._lookupComponentDefinition = function _lookupComponentDefinition(_name, meta) {
+      false && !(_name !== 'textarea') && (0, _debug.assert)('You cannot use `textarea` as a component name.', _name !== 'textarea');
+      false && !(_name !== 'input') && (0, _debug.assert)('You cannot use `input` as a component name.', _name !== 'input');
       var name = _name;
       var namespace = undefined;
 
@@ -11495,7 +11540,6 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
     _proto.forEachInDeps = function forEachInDeps(subkey, fn) {
       var pointer = this;
       var seen;
-      var calls;
 
       while (pointer !== null) {
         var map = pointer._deps;
@@ -11504,15 +11548,14 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
           var innerMap = map[subkey];
 
           if (innerMap !== undefined) {
-            for (var innerKey in innerMap) {
-              seen = seen === undefined ? new Set() : seen;
+            seen = seen === undefined ? new Set() : seen;
 
+            for (var innerKey in innerMap) {
               if (!seen.has(innerKey)) {
                 seen.add(innerKey);
 
                 if (innerMap[innerKey] > 0) {
-                  calls = calls || [];
-                  calls.push(innerKey);
+                  fn(innerKey);
                 }
               }
             }
@@ -11520,12 +11563,6 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
         }
 
         pointer = pointer.parent;
-      }
-
-      if (calls !== undefined) {
-        for (var i = 0; i < calls.length; i++) {
-          fn(calls[i]);
-        }
       }
     };
 
@@ -11660,9 +11697,8 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
         var map = pointer._descriptors;
 
         if (map !== undefined) {
+          seen = seen === undefined ? new Set() : seen;
           map.forEach(function (value, key) {
-            seen = seen === undefined ? new Set() : seen;
-
             if (!seen.has(key)) {
               seen.add(key);
 
@@ -12168,7 +12204,7 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
   /**
     Check whether a value is a CP descriptor.
   
-    @method descriptorFor
+    @method isDescriptor
     @param {any} possibleDesc the value to check
     @return {boolean}
     @private
@@ -12194,7 +12230,7 @@ enifed("@ember/-internals/meta/lib/meta", ["exports", "ember-babel", "@ember/-in
     return -1;
   }
 });
-enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills", "@ember/-internals/utils", "@ember/-internals/meta", "@ember/debug", "@ember/runloop", "@glimmer/reference", "@ember/error", "ember/version", "@ember/-internals/environment", "@ember/-internals/owner"], function (_exports, _emberBabel, _polyfills, _utils, _meta2, _debug, _runloop, _reference, _error, _version, _environment, _owner) {
+enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills", "@ember/-internals/utils", "@ember/-internals/meta", "@ember/debug", "@ember/runloop", "@glimmer/reference", "@ember/error", "ember/version", "@ember/-internals/environment", "@ember/deprecated-features", "@ember/-internals/owner"], function (_exports, _emberBabel, _polyfills, _utils, _meta2, _debug, _runloop, _reference, _error, _version, _environment, _deprecatedFeatures, _owner) {
   "use strict";
 
   _exports.computed = computed;
@@ -12248,7 +12284,6 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   _exports.expandProperties = expandProperties;
   _exports.addObserver = addObserver;
   _exports.removeObserver = removeObserver;
-  _exports.aliasMethod = aliasMethod;
   _exports.mixin = mixin;
   _exports.observer = observer;
   _exports.applyMixin = applyMixin;
@@ -12267,7 +12302,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   _exports.removeNamespace = removeNamespace;
   _exports.isNamespaceSearchDisabled = isSearchDisabled;
   _exports.setNamespaceSearchDisabled = setSearchDisabled;
-  _exports.NAMESPACES_BY_ID = _exports.NAMESPACES = _exports.assertNotRendered = _exports.didRender = _exports.runInTransaction = _exports.InjectedProperty = _exports.Mixin = _exports.Libraries = _exports.libraries = _exports.ChainNode = _exports.Descriptor = _exports.PROPERTY_DID_CHANGE = _exports.PROXY_CONTENT = _exports._globalsComputed = _exports.ComputedProperty = void 0;
+  _exports.NAMESPACES_BY_ID = _exports.NAMESPACES = _exports.assertNotRendered = _exports.didRender = _exports.runInTransaction = _exports.InjectedProperty = _exports.aliasMethod = _exports.Mixin = _exports.Libraries = _exports.libraries = _exports.ChainNode = _exports.Descriptor = _exports.PROPERTY_DID_CHANGE = _exports.PROXY_CONTENT = _exports._globalsComputed = _exports.ComputedProperty = void 0;
   var COMPUTED_PROPERTY_CACHED_VALUES = new WeakMap();
   var COMPUTED_PROPERTY_LAST_REVISION = false
   /* EMBER_METAL_TRACKED_PROPERTIES */
@@ -12630,7 +12665,9 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   }
 
   function tagForProperty(object, propertyKey, _meta) {
-    if (typeof object !== 'object' || object === null) {
+    var objectType = typeof object;
+
+    if (objectType !== 'function' && (objectType !== 'object' || object === null)) {
       return _reference.CONSTANT_TAG;
     }
 
@@ -14990,6 +15027,11 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     var _proto8 = ComputedProperty.prototype;
 
     _proto8.volatile = function volatile() {
+      false && !false && (0, _debug.deprecate)('Setting a computed property as volatile has been deprecated. Instead, consider using a native getter with native class syntax.', false, {
+        id: 'computed-property.volatile',
+        until: '4.0.0',
+        url: 'https://emberjs.com/deprecations/v3.x#toc_computed-property-volatile'
+      });
       this._volatile = true;
       return this;
     }
@@ -15045,6 +15087,18 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     ;
 
     _proto8.property = function property() {
+      false && !false && (0, _debug.deprecate)('Setting dependency keys using the `.property()` modifier has been deprecated. Pass the dependency keys directly to computed as arguments instead. If you are using `.property()` on a computed property macro, consider refactoring your macro to receive additional dependent keys in its initial declaration.', false, {
+        id: 'computed-property.property',
+        until: '4.0.0',
+        url: 'https://emberjs.com/deprecations/v3.x#toc_computed-property-property'
+      });
+
+      this._property.apply(this, arguments);
+
+      return this;
+    };
+
+    _proto8._property = function _property() {
       var args = [];
 
       function addArg(property) {
@@ -15204,6 +15258,11 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     };
 
     _proto8.clobberSet = function clobberSet(obj, keyName, value) {
+      false && !false && (0, _debug.deprecate)("The " + (0, _utils.toString)(obj) + "#" + keyName + " computed property was just overriden. This removes the computed property and replaces it with a plain value, and has been deprecated. If you want this behavior, consider defining a setter which does it manually.", false, {
+        id: 'computed-property.override',
+        until: '4.0.0',
+        url: 'https://emberjs.com/deprecations/v3.x#toc_computed-property-override'
+      });
       var cachedValue = getCachedValueFor(obj, keyName);
       defineProperty(obj, keyName, null, cachedValue);
 
@@ -15384,7 +15443,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     var cp = new ComputedProperty(func);
 
     if (args.length > 0) {
-      cp.property.apply(cp, args);
+      cp._property.apply(cp, args);
     }
 
     return cp;
@@ -15914,7 +15973,53 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
       }
     });
     return properties;
-  } // TODO, this only depends on context, otherwise it could be in utils
+  }
+
+  function descriptor(desc) {
+    return new NativeDescriptor(desc);
+  }
+  /**
+    A wrapper for a native ES5 descriptor. In an ideal world, we wouldn't need
+    this at all, however, the way we currently flatten/merge our mixins require
+    a special value to denote a descriptor.
+  
+    @class NativeDescriptor
+    @private
+  */
+
+
+  var NativeDescriptor =
+  /*#__PURE__*/
+  function (_Descriptor3) {
+    (0, _emberBabel.inheritsLoose)(NativeDescriptor, _Descriptor3);
+
+    function NativeDescriptor(desc) {
+      var _this3;
+
+      _this3 = _Descriptor3.call(this) || this;
+      _this3.desc = desc;
+      _this3.enumerable = desc.enumerable !== false;
+      _this3.configurable = desc.configurable !== false;
+      return _this3;
+    }
+
+    var _proto11 = NativeDescriptor.prototype;
+
+    _proto11.setup = function setup(obj, key, meta$$1) {
+      Object.defineProperty(obj, key, this.desc);
+      meta$$1.writeDescriptors(key, this);
+    };
+
+    _proto11.get = function get(obj, key) {
+      return obj[key];
+    };
+
+    _proto11.set = function set(obj, key, value) {
+      return obj[key] = value;
+    };
+
+    return NativeDescriptor;
+  }(Descriptor); // TODO, this only depends on context, otherwise it could be in utils
   // move into its own package
   // it is needed by Mixin for classToString
   // maybe move it into environment
@@ -16128,6 +16233,36 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     return 'function' === typeof obj && obj.isMethod !== false && obj !== Boolean && obj !== Object && obj !== Number && obj !== Array && obj !== Date && obj !== String;
   }
 
+  function isAccessor(desc) {
+    return typeof desc.get === 'function' || typeof desc.set === 'function';
+  }
+
+  function extractAccessors(properties) {
+    if (properties !== undefined) {
+      var descriptors = (0, _utils.getOwnPropertyDescriptors)(properties);
+      var keys = Object.keys(descriptors);
+      var hasAccessors = keys.some(function (key) {
+        return isAccessor(descriptors[key]);
+      });
+
+      if (hasAccessors) {
+        var extracted = {};
+        keys.forEach(function (key) {
+          var descriptor$$1 = descriptors[key];
+
+          if (isAccessor(descriptor$$1)) {
+            extracted[key] = descriptor(descriptor$$1);
+          } else {
+            extracted[key] = properties[key];
+          }
+        });
+        return extracted;
+      }
+    }
+
+    return properties;
+  }
+
   var CONTINUE = {};
 
   function mixinProperties(mixinsMeta, mixin) {
@@ -16336,24 +16471,28 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     }
   }
 
-  function followMethodAlias(obj, _desc, descs, values) {
-    var altKey = _desc.methodName;
-    var possibleDesc;
-    var desc = descs[altKey];
-    var value = values[altKey];
+  var followMethodAlias;
 
-    if (desc !== undefined || value !== undefined) {// do nothing
-    } else if ((possibleDesc = (0, _meta2.descriptorFor)(obj, altKey)) !== undefined) {
-      desc = possibleDesc;
-      value = undefined;
-    } else {
-      desc = undefined;
-      value = obj[altKey];
-    }
+  if (_deprecatedFeatures.ALIAS_METHOD) {
+    followMethodAlias = function (obj, alias, descs, values) {
+      var altKey = alias.methodName;
+      var possibleDesc;
+      var desc = descs[altKey];
+      var value = values[altKey];
 
-    return {
-      desc: desc,
-      value: value
+      if (desc !== undefined || value !== undefined) {// do nothing
+      } else if ((possibleDesc = (0, _meta2.descriptorFor)(obj, altKey)) !== undefined) {
+        desc = possibleDesc;
+        value = undefined;
+      } else {
+        desc = undefined;
+        value = obj[altKey];
+      }
+
+      return {
+        desc: desc,
+        value: value
+      };
     };
   }
 
@@ -16403,10 +16542,12 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
       desc = descs[key];
       value = values[key];
 
-      while (desc && desc instanceof Alias) {
-        var followed = followMethodAlias(obj, desc, descs, values);
-        desc = followed.desc;
-        value = followed.value;
+      if (_deprecatedFeatures.ALIAS_METHOD) {
+        while (value && value instanceof AliasImpl) {
+          var followed = followMethodAlias(obj, value, descs, values);
+          desc = followed.desc;
+          value = followed.value;
+        }
       }
 
       if (desc === undefined && value === undefined) {
@@ -16529,7 +16670,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   /*#__PURE__*/
   function () {
     function Mixin(mixins, properties) {
-      this.properties = properties;
+      this.properties = extractAccessors(properties);
       this.mixins = buildMixinsArray(mixins);
       this.ownerConstructor = undefined;
       this._without = undefined;
@@ -16595,9 +16736,9 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     */
     ;
 
-    var _proto11 = Mixin.prototype;
+    var _proto12 = Mixin.prototype;
 
-    _proto11.reopen = function reopen() {
+    _proto12.reopen = function reopen() {
       for (var _len6 = arguments.length, args = new Array(_len6), _key6 = 0; _key6 < _len6; _key6++) {
         args[_key6] = arguments[_key6];
       }
@@ -16625,11 +16766,11 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     */
     ;
 
-    _proto11.apply = function apply(obj) {
+    _proto12.apply = function apply(obj) {
       return applyMixin(obj, [this]);
     };
 
-    _proto11.applyPartial = function applyPartial(obj) {
+    _proto12.applyPartial = function applyPartial(obj) {
       return applyMixin(obj, [this]);
     }
     /**
@@ -16640,7 +16781,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     */
     ;
 
-    _proto11.detect = function detect(obj) {
+    _proto12.detect = function detect(obj) {
       if (typeof obj !== 'object' || obj === null) {
         return false;
       }
@@ -16658,7 +16799,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
       return meta$$1.hasMixin(this);
     };
 
-    _proto11.without = function without() {
+    _proto12.without = function without() {
       var ret = new Mixin([this]);
 
       for (var _len7 = arguments.length, args = new Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
@@ -16669,11 +16810,11 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
       return ret;
     };
 
-    _proto11.keys = function keys() {
+    _proto12.keys = function keys() {
       return _keys(this);
     };
 
-    _proto11.toString = function toString() {
+    _proto12.toString = function toString() {
       return '(unknown mixin)';
     };
 
@@ -16762,35 +16903,13 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     return ret;
   }
 
-  var Alias =
-  /*#__PURE__*/
-  function (_Descriptor3) {
-    (0, _emberBabel.inheritsLoose)(Alias, _Descriptor3);
+  var AliasImpl;
 
-    function Alias(methodName) {
-      var _this3;
-
-      _this3 = _Descriptor3.call(this) || this;
-      _this3.methodName = methodName;
-      return _this3;
-    }
-
-    var _proto12 = Alias.prototype;
-
-    _proto12.teardown = function teardown(_obj, _keyName, _meta) {
-      throw new Error('Method not implemented.');
+  if (_deprecatedFeatures.ALIAS_METHOD) {
+    AliasImpl = function AliasImpl(methodName) {
+      this.methodName = methodName;
     };
-
-    _proto12.get = function get(_obj, _keyName) {
-      throw new Error('Method not implemented.');
-    };
-
-    _proto12.set = function set(_obj, _keyName, _value) {
-      throw new Error('Method not implemented.');
-    };
-
-    return Alias;
-  }(Descriptor);
+  }
   /**
     Makes a method available via an additional name.
   
@@ -16816,14 +16935,25 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   
     @method aliasMethod
     @static
+    @deprecated Use a shared utility method instead
     @for @ember/object
     @param {String} methodName name of the method to alias
     @public
   */
 
 
-  function aliasMethod(methodName) {
-    return new Alias(methodName);
+  var aliasMethod;
+  _exports.aliasMethod = aliasMethod;
+
+  if (_deprecatedFeatures.ALIAS_METHOD) {
+    _exports.aliasMethod = aliasMethod = function aliasMethod(methodName) {
+      false && !false && (0, _debug.deprecate)("You attempted to alias '" + methodName + ", but aliasMethod has been deprecated. Consider extracting the method into a shared utility function.", false, {
+        id: 'object.alias-method',
+        until: '4.0.0',
+        url: 'https://emberjs.com/deprecations/v3.x#toc_object-alias-method'
+      });
+      return new AliasImpl(methodName);
+    };
   } // ..........................................................
   // OBSERVER HELPER
   //
@@ -16907,7 +17037,7 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
     function InjectedProperty(type, name, options) {
       var _this4;
 
-      _this4 = _ComputedProperty.call(this, injectedPropertyGet) || this;
+      _this4 = _ComputedProperty.call(this, injectedPropertyDesc) || this;
       _this4.type = type;
       _this4.name = name;
 
@@ -16937,65 +17067,23 @@ enifed("@ember/-internals/metal", ["exports", "ember-babel", "@ember/polyfills",
   }(ComputedProperty);
 
   _exports.InjectedProperty = InjectedProperty;
+  var injectedPropertyDesc = {
+    get: function (keyName) {
+      var desc = (0, _meta2.descriptorFor)(this, keyName);
+      var owner = (0, _owner.getOwner)(this) || this.container; // fallback to `container` for backwards compat
 
-  function injectedPropertyGet(keyName) {
-    var desc = (0, _meta2.descriptorFor)(this, keyName);
-    var owner = (0, _owner.getOwner)(this) || this.container; // fallback to `container` for backwards compat
-
-    false && !(desc && desc.type) && (0, _debug.assert)("InjectedProperties should be defined with the inject computed property macros.", desc && desc.type);
-    false && !Boolean(owner) && (0, _debug.assert)("Attempting to lookup an injected property on an object without a container, ensure that the object was instantiated via a container.", Boolean(owner));
-    var specifier = desc.type + ":" + (desc.name || keyName);
-    return owner.lookup(specifier, {
-      source: desc.source,
-      namespace: desc.namespace
-    });
-  }
-
-  function descriptor(desc) {
-    return new NativeDescriptor(desc);
-  }
-  /**
-    A wrapper for a native ES5 descriptor. In an ideal world, we wouldn't need
-    this at all, however, the way we currently flatten/merge our mixins require
-    a special value to denote a descriptor.
-  
-    @class NativeDescriptor
-    @private
-  */
-
-
-  var NativeDescriptor =
-  /*#__PURE__*/
-  function (_Descriptor4) {
-    (0, _emberBabel.inheritsLoose)(NativeDescriptor, _Descriptor4);
-
-    function NativeDescriptor(desc) {
-      var _this5;
-
-      _this5 = _Descriptor4.call(this) || this;
-      _this5.desc = desc;
-      _this5.enumerable = desc.enumerable !== false;
-      _this5.configurable = desc.configurable !== false;
-      return _this5;
+      false && !(desc && desc.type) && (0, _debug.assert)("InjectedProperties should be defined with the inject computed property macros.", desc && desc.type);
+      false && !Boolean(owner) && (0, _debug.assert)("Attempting to lookup an injected property on an object without a container, ensure that the object was instantiated via a container.", Boolean(owner));
+      var specifier = desc.type + ":" + (desc.name || keyName);
+      return owner.lookup(specifier, {
+        source: desc.source,
+        namespace: desc.namespace
+      });
+    },
+    set: function (keyName, value) {
+      defineProperty(this, keyName, null, value);
     }
-
-    var _proto13 = NativeDescriptor.prototype;
-
-    _proto13.setup = function setup(obj, key, meta$$1) {
-      Object.defineProperty(obj, key, this.desc);
-      meta$$1.writeDescriptors(key, this);
-    };
-
-    _proto13.get = function get(obj, key) {
-      return obj[key];
-    };
-
-    _proto13.set = function set(obj, key, value) {
-      return obj[key] = value;
-    };
-
-    return NativeDescriptor;
-  }(Descriptor);
+  };
 });
 enifed("@ember/-internals/owner/index", ["exports", "@ember/-internals/utils"], function (_exports, _utils) {
   "use strict";
@@ -18830,7 +18918,7 @@ enifed("@ember/-internals/routing/lib/services/router", ["exports", "ember-babel
         },
 
         /**
-         A RouteInfo that represents the current leaf route.
+         A `RouteInfo` that represents the current leaf route.
          It is guaranteed to change whenever a route transition
          happens (even when that transition only changes parameters
          and doesn't change the active route)
@@ -19408,7 +19496,7 @@ enifed("@ember/-internals/routing/lib/system/route-info", [], function () {
   /**
     The ordered list of the names of the params
     required for this route. It will contain the same
-    strings as Object.keys(params), but here the order
+    strings as `Object.keys(params)`, but here the order
     is significant. This allows users to correctly pass
     params into routes programmatically.
     @property {Array} paramNames
@@ -19519,9 +19607,9 @@ enifed("@ember/-internals/routing/lib/system/route-info", [], function () {
   */
 
   /**
-    The values of the route's parametes. These are the
+    The values of the route's parameters. These are the
     same params that are received as arguments to the
-    route's model hook. Contains only the parameters
+    route's `model` hook. Contains only the parameters
     valid for this route, if any (params for parent or
     child routes are not merged).
     @property {Object} params
@@ -19548,7 +19636,7 @@ enifed("@ember/-internals/routing/lib/system/route-info", [], function () {
   */
 
   /**
-    A reference to the parent route's RouteInfo.
+    A reference to the parent route's `RouteInfo`.
     This can be used to traverse upward to the topmost
     `RouteInfo`.
     @property {RouteInfo|null} parent
@@ -19557,7 +19645,7 @@ enifed("@ember/-internals/routing/lib/system/route-info", [], function () {
   */
 
   /**
-    A reference to the child route's RouteInfo.
+    A reference to the child route's `RouteInfo`.
     This can be used to traverse downward to the
     leafmost `RouteInfo`.
     @property {RouteInfo|null} child
@@ -19568,7 +19656,9 @@ enifed("@ember/-internals/routing/lib/system/route-info", [], function () {
     of `RouteInfo`s from the topmost to leafmost.
     Returns the first `RouteInfo` in the linked list
     for which the callback returns true.
-  
+  */
+
+  /**
       This method is similar to the `find()` method
       defined in ECMAScript 2015.
   
@@ -21498,24 +21588,29 @@ enifed("@ember/-internals/routing/lib/system/route", ["exports", "@ember/polyfil
       @type {Object}
       @private
     */
-    store: (0, _metal.computed)(function () {
-      var owner = (0, _owner.getOwner)(this);
-      var routeName = this.routeName;
-      var namespace = (0, _metal.get)(this, '_router.namespace');
-      return {
-        find: function (name, value) {
-          var modelClass = owner.factoryFor("model:" + name);
-          false && !Boolean(modelClass) && (0, _debug.assert)("You used the dynamic segment " + name + "_id in your route " + routeName + ", but " + namespace + "." + (0, _string.classify)(name) + " did not exist and you did not override your route's `model` hook.", Boolean(modelClass));
+    store: (0, _metal.computed)({
+      get: function () {
+        var owner = (0, _owner.getOwner)(this);
+        var routeName = this.routeName;
+        var namespace = (0, _metal.get)(this, '_router.namespace');
+        return {
+          find: function (name, value) {
+            var modelClass = owner.factoryFor("model:" + name);
+            false && !Boolean(modelClass) && (0, _debug.assert)("You used the dynamic segment " + name + "_id in your route " + routeName + ", but " + namespace + "." + (0, _string.classify)(name) + " did not exist and you did not override your route's `model` hook.", Boolean(modelClass));
 
-          if (!modelClass) {
-            return;
+            if (!modelClass) {
+              return;
+            }
+
+            modelClass = modelClass.class;
+            false && !(typeof modelClass.find === 'function') && (0, _debug.assert)((0, _string.classify)(name) + " has no method `find`.", typeof modelClass.find === 'function');
+            return modelClass.find(value);
           }
-
-          modelClass = modelClass.class;
-          false && !(typeof modelClass.find === 'function') && (0, _debug.assert)((0, _string.classify)(name) + " has no method `find`.", typeof modelClass.find === 'function');
-          return modelClass.find(value);
-        }
-      };
+        };
+      },
+      set: function (key, value) {
+        (0, _metal.defineProperty)(this, key, null, value);
+      }
     }),
 
     /**
@@ -23494,17 +23589,37 @@ enifed("@ember/-internals/routing/lib/system/router", ["exports", "ember-babel",
       return;
     }
 
-    if (!('currentPath' in appController)) {
-      (0, _metal.defineProperty)(appController, 'currentPath');
+    if (_deprecatedFeatures.APP_CTRL_ROUTER_PROPS) {
+      if (!('currentPath' in appController)) {
+        Object.defineProperty(appController, 'currentPath', {
+          get: function () {
+            false && !false && (0, _debug.deprecate)('Accessing `currentPath` on `controller:application` is deprecated, use the `currentPath` property on `service:router` instead.', false, {
+              id: 'application-controller.router-properties',
+              until: '4.0.0',
+              url: 'https://emberjs.com/deprecations/v3.x#toc_application-controller-router-properties'
+            });
+            return (0, _metal.get)(router, 'currentPath');
+          }
+        });
+      }
+
+      (0, _metal.notifyPropertyChange)(appController, 'currentPath');
+
+      if (!('currentRouteName' in appController)) {
+        Object.defineProperty(appController, 'currentRouteName', {
+          get: function () {
+            false && !false && (0, _debug.deprecate)('Accessing `currentRouteName` on `controller:application` is deprecated, use the `currentRouteName` property on `service:router` instead.', false, {
+              id: 'application-controller.router-properties',
+              until: '4.0.0',
+              url: 'https://emberjs.com/deprecations/v3.x#toc_application-controller-router-properties'
+            });
+            return (0, _metal.get)(router, 'currentRouteName');
+          }
+        });
+      }
+
+      (0, _metal.notifyPropertyChange)(appController, 'currentRouteName');
     }
-
-    (0, _metal.set)(appController, 'currentPath', path);
-
-    if (!('currentRouteName' in appController)) {
-      (0, _metal.defineProperty)(appController, 'currentRouteName');
-    }
-
-    (0, _metal.set)(appController, 'currentRouteName', currentRouteName);
   }
 
   EmberRouter.reopenClass({
@@ -23705,13 +23820,15 @@ enifed("@ember/-internals/routing/lib/system/router", ["exports", "ember-babel",
          ```javascript
       import config from './config/environment';
       import EmberRouter from '@ember/routing/router';
+      import { inject as service } from '@ember/service';
          let Router = EmberRouter.extend({
         location: config.locationType,
+           router: service(),
            didTransition: function() {
           this._super(...arguments);
-             return ga('send', 'pageview', {
-            'page': this.get('url'),
-            'title': this.get('url')
+             ga('send', 'pageview', {
+            page: this.router.currentURL,
+            title: this.router.currentRouteName,
           });
         }
       });
@@ -23958,7 +24075,7 @@ enifed("@ember/-internals/routing/lib/system/transition", [], function () {
    * This property is a `RouteInfo` object that represents
    * where the router is transitioning to. It's important
    * to note that a `RouteInfo` is a linked list and this
-   * property is simply represents leafmost route.
+   * property represents the leafmost route.
    * @property {RouteInfo|RouteInfoWithAttributes} to
    * @public
    * @category ember-routing-router-service
@@ -23968,8 +24085,8 @@ enifed("@ember/-internals/routing/lib/system/transition", [], function () {
    * This property is a `RouteInfo` object that represents
    * where transition originated from. It's important
    * to note that a `RouteInfo` is a linked list and this
-   * property is simply represents head node of the list.
-   * In the case of an initial render, from will be set to
+   * property represents the head node of the list.
+   * In the case of an initial render, `from` will be set to
    * `null`.
    * @property {RouteInfoWithAttributes} from
    * @public
@@ -25468,6 +25585,12 @@ enifed("@ember/-internals/runtime/lib/mixins/array", ["exports", "@ember/-intern
 
     property.enumerable = false;
     return property;
+  }
+
+  function mapBy(key) {
+    return this.map(function (next) {
+      return (0, _metal.get)(next, key);
+    });
   } // ..........................................................
   // ARRAY
   //
@@ -25587,7 +25710,7 @@ enifed("@ember/-internals/runtime/lib/mixins/array", ["exports", "@ember/-intern
     }
 
     return this;
-  }, _Mixin$create.getEach = (0, _metal.aliasMethod)('mapBy'), _Mixin$create.setEach = function (key, value) {
+  }, _Mixin$create.getEach = mapBy, _Mixin$create.setEach = function (key, value) {
     return this.forEach(function (item) {
       return (0, _metal.set)(item, key, value);
     });
@@ -25599,11 +25722,7 @@ enifed("@ember/-internals/runtime/lib/mixins/array", ["exports", "@ember/-intern
       return ret[idx] = callback.call(target, x, idx, i);
     });
     return ret;
-  }, _Mixin$create.mapBy = function (key) {
-    return this.map(function (next) {
-      return (0, _metal.get)(next, key);
-    });
-  }, _Mixin$create.filter = function (callback) {
+  }, _Mixin$create.mapBy = mapBy, _Mixin$create.filter = function (callback) {
     var target = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
     false && !(typeof callback === 'function') && (0, _debug.assert)('`filter` expects a function as first argument.', typeof callback === 'function');
     var ret = A();
@@ -26458,11 +26577,11 @@ enifed("@ember/-internals/runtime/lib/mixins/evented", ["exports", "@ember/-inte
        An optional target can be passed in as the 2nd argument that will
       be set as the "this" for the callback. This is a good way to give your
       function access to the object triggering the event. When the target
-      parameter is used the callback becomes the third argument.
+      parameter is used the callback method becomes the third argument.
        @method on
       @param {String} name The name of the event
       @param {Object} [target] The "this" binding for the callback
-      @param {Function} method The callback to execute
+      @param {Function|String} method A function or the name of a function to be called on `target`
       @return this
       @public
     */
@@ -26476,12 +26595,12 @@ enifed("@ember/-internals/runtime/lib/mixins/evented", ["exports", "@ember/-inte
       after the first time the event is triggered. It is good to use ``one`` when
       you only care about the first time an event has taken place.
        This function takes an optional 2nd argument that will become the "this"
-      value for the callback. If this argument is passed then the 3rd argument
-      becomes the function.
+      value for the callback. When the target parameter is used the callback method
+      becomes the third argument.
        @method one
       @param {String} name The name of the event
       @param {Object} [target] The "this" binding for the callback
-      @param {Function} method The callback to execute
+      @param {Function|String} method A function or the name of a function to be called on `target`
       @return this
       @public
     */
@@ -26519,7 +26638,7 @@ enifed("@ember/-internals/runtime/lib/mixins/evented", ["exports", "@ember/-inte
        @method off
       @param {String} name The name of the event
       @param {Object} target The target of the subscription
-      @param {Function} method The function of the subscription
+      @param {Function|String} method The function or the name of a function of the subscription
       @return this
       @public
     */
@@ -27811,12 +27930,8 @@ enifed("@ember/-internals/runtime/lib/system/array_proxy", ["exports", "ember-ba
         dirtyIndex += length + removedCnt - addedCnt;
       }
 
-      if (this._objectsDirtyIndex === -1) {
+      if (this._objectsDirtyIndex === -1 || this._objectsDirtyIndex > dirtyIndex) {
         this._objectsDirtyIndex = dirtyIndex;
-      } else {
-        if (this._objectsDirtyIndex > dirtyIndex) {
-          this._objectsDirtyIndex = dirtyIndex;
-        }
       }
 
       this._lengthDirty = true;
@@ -29251,7 +29366,7 @@ enifed("@ember/-internals/utils", ["exports", "@ember/polyfills"], function (_ex
   _exports.toString = toString;
   _exports.isProxy = isProxy;
   _exports.setProxy = setProxy;
-  _exports.Cache = _exports.HAS_NATIVE_PROXY = _exports.HAS_NATIVE_SYMBOL = _exports.ROOT = _exports.checkHasSuper = _exports.GUID_KEY = _exports.NAME_KEY = void 0;
+  _exports.Cache = _exports.HAS_NATIVE_PROXY = _exports.HAS_NATIVE_SYMBOL = _exports.ROOT = _exports.checkHasSuper = _exports.GUID_KEY = _exports.getOwnPropertyDescriptors = _exports.NAME_KEY = void 0;
 
   /**
     Strongly hint runtimes to intern the provided string.
@@ -29375,7 +29490,7 @@ enifed("@ember/-internals/utils", ["exports", "@ember/polyfills"], function (_ex
     @final
   */
 
-  var GUID_KEY = intern("__ember" + Number(new Date()));
+  var GUID_KEY = intern("__ember" + Date.now());
   /**
     Generates a new guid, optionally saving the guid to the object that you
     pass in. You will rarely need to use this method. Instead you should
@@ -29466,7 +29581,7 @@ enifed("@ember/-internals/utils", ["exports", "@ember/polyfills"], function (_ex
     // TODO: Investigate using platform symbols, but we do not
     // want to require non-enumerability for this API, which
     // would introduce a large cost.
-    var id = GUID_KEY + Math.floor(Math.random() * Number(new Date()));
+    var id = GUID_KEY + Math.floor(Math.random() * Date.now());
     var symbol = intern("__" + debugName + id + "__");
     GENERATED_SYMBOLS.push(symbol);
     return symbol;
@@ -29484,6 +29599,22 @@ enifed("@ember/-internals/utils", ["exports", "@ember/polyfills"], function (_ex
     return dict;
   }
 
+  var getOwnPropertyDescriptors;
+
+  if (Object.getOwnPropertyDescriptors !== undefined) {
+    getOwnPropertyDescriptors = Object.getOwnPropertyDescriptors;
+  } else {
+    getOwnPropertyDescriptors = function (obj) {
+      var descriptors = {};
+      Object.keys(obj).forEach(function (key) {
+        descriptors[key] = Object.getOwnPropertyDescriptor(obj, key);
+      });
+      return descriptors;
+    };
+  }
+
+  var getOwnPropertyDescriptors$1 = getOwnPropertyDescriptors;
+  _exports.getOwnPropertyDescriptors = getOwnPropertyDescriptors$1;
   var HAS_SUPER_PATTERN = /\.(_super|call\(this|apply\(this)/;
   var fnToString = Function.prototype.toString;
 
@@ -30762,7 +30893,7 @@ enifed("@ember/-internals/views/lib/mixins/view_state_support", ["exports", "@em
 
   _exports.default = _default;
 });
-enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-internals/utils", "@ember/-internals/meta", "@ember/-internals/metal", "@ember/debug", "@ember/-internals/browser-environment", "@ember/-internals/views/lib/system/utils", "@ember/-internals/views/lib/system/jquery"], function (_exports, _utils, _meta, _metal, _debug, _browserEnvironment, _utils2, _jquery) {
+enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-internals/utils", "@ember/-internals/meta", "@ember/-internals/metal", "@ember/debug", "@ember/-internals/browser-environment", "@ember/-internals/views/lib/system/utils", "@ember/-internals/views/lib/system/jquery", "@ember/deprecated-features"], function (_exports, _utils, _meta, _metal, _debug, _browserEnvironment, _utils2, _jquery, _deprecatedFeatures) {
   "use strict";
 
   _exports.default = void 0;
@@ -30770,53 +30901,47 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
   function K() {
     return this;
   }
-  /**
-   @class ViewMixin
-   @namespace Ember
-   @private
-  */
 
-
-  var _default = _metal.Mixin.create({
+  var mixin = {
     /**
-      A list of properties of the view to apply as attributes. If the property
-      is a string value, the value of that string will be applied as the value
-      for an attribute of the property's name.
-       The following example creates a tag like `<div priority="high" />`.
-       ```app/components/my-component.js
-      import Component from '@ember/component';
-       export default Component.extend({
+     A list of properties of the view to apply as attributes. If the property
+     is a string value, the value of that string will be applied as the value
+     for an attribute of the property's name.
+      The following example creates a tag like `<div priority="high" />`.
+      ```app/components/my-component.js
+     import Component from '@ember/component';
+      export default Component.extend({
         attributeBindings: ['priority'],
         priority: 'high'
       });
-      ```
-       If the value of the property is a Boolean, the attribute is treated as
-      an HTML Boolean attribute. It will be present if the property is `true`
-      and omitted if the property is `false`.
-       The following example creates markup like `<div visible />`.
-       ```app/components/my-component.js
-      import Component from '@ember/component';
-       export default Component.extend({
+     ```
+      If the value of the property is a Boolean, the attribute is treated as
+     an HTML Boolean attribute. It will be present if the property is `true`
+     and omitted if the property is `false`.
+      The following example creates markup like `<div visible />`.
+      ```app/components/my-component.js
+     import Component from '@ember/component';
+      export default Component.extend({
         attributeBindings: ['visible'],
         visible: true
       });
-      ```
-       If you would prefer to use a custom value instead of the property name,
-      you can create the same markup as the last example with a binding like
-      this:
-       ```app/components/my-component.js
-      import Component from '@ember/component';
-       export default Component.extend({
+     ```
+      If you would prefer to use a custom value instead of the property name,
+     you can create the same markup as the last example with a binding like
+     this:
+      ```app/components/my-component.js
+     import Component from '@ember/component';
+      export default Component.extend({
         attributeBindings: ['isVisible:visible'],
         isVisible: true
       });
-      ```
-       This list of attributes is inherited from the component's superclasses,
-      as well.
-       @property attributeBindings
-      @type Array
-      @default []
-      @public
+     ```
+      This list of attributes is inherited from the component's superclasses,
+     as well.
+      @property attributeBindings
+     @type Array
+     @default []
+     @public
      */
     concatenatedProperties: ['attributeBindings'],
     // ..........................................................
@@ -30824,15 +30949,15 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     //
 
     /**
-      Return the nearest ancestor that is an instance of the provided
-      class or mixin.
-       @method nearestOfType
-      @param {Class,Mixin} klass Subclass of Ember.View (or Ember.View itself),
-             or an instance of Mixin.
-      @return Ember.View
-      @deprecated use `yield` and contextual components for composition instead.
-      @private
-    */
+     Return the nearest ancestor that is an instance of the provided
+     class or mixin.
+      @method nearestOfType
+     @param {Class,Mixin} klass Subclass of Ember.View (or Ember.View itself),
+     or an instance of Mixin.
+     @return Ember.View
+     @deprecated use `yield` and contextual components for composition instead.
+     @private
+     */
     nearestOfType: function (klass) {
       var view = this.parentView;
       var isOfType = klass instanceof _metal.Mixin ? function (view) {
@@ -30851,13 +30976,13 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     },
 
     /**
-      Return the nearest ancestor that has a given property.
-       @method nearestWithProperty
-      @param {String} property A property name
-      @return Ember.View
-      @deprecated use `yield` and contextual components for composition instead.
-      @private
-    */
+     Return the nearest ancestor that has a given property.
+      @method nearestWithProperty
+     @param {String} property A property name
+     @return Ember.View
+     @deprecated use `yield` and contextual components for composition instead.
+     @private
+     */
     nearestWithProperty: function (property) {
       var view = this.parentView;
 
@@ -30871,19 +30996,19 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     },
 
     /**
-      Renders the view again. This will work regardless of whether the
-      view is already in the DOM or not. If the view is in the DOM, the
-      rendering process will be deferred to give bindings a chance
-      to synchronize.
-       If children were added during the rendering process using `appendChild`,
-      `rerender` will remove them, because they will be added again
-      if needed by the next `render`.
-       In general, if the display of your view changes, you should modify
-      the DOM element directly instead of manually calling `rerender`, which can
-      be slow.
-       @method rerender
-      @public
-    */
+     Renders the view again. This will work regardless of whether the
+     view is already in the DOM or not. If the view is in the DOM, the
+     rendering process will be deferred to give bindings a chance
+     to synchronize.
+      If children were added during the rendering process using `appendChild`,
+     `rerender` will remove them, because they will be added again
+     if needed by the next `render`.
+      In general, if the display of your view changes, you should modify
+     the DOM element directly instead of manually calling `rerender`, which can
+     be slow.
+      @method rerender
+     @public
+     */
     rerender: function () {
       return this._currentState.rerender(this);
     },
@@ -30892,11 +31017,11 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     //
 
     /**
-      Returns the current DOM element for the view.
-       @property element
-      @type DOMElement
-      @public
-    */
+     Returns the current DOM element for the view.
+      @property element
+     @type DOMElement
+     @public
+     */
     element: (0, _metal.descriptor)({
       configurable: false,
       enumerable: false,
@@ -30906,39 +31031,19 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     }),
 
     /**
-      Returns a jQuery object for this view's element. If you pass in a selector
-      string, this method will return a jQuery object, using the current element
-      as its buffer.
-       For example, calling `view.$('li')` will return a jQuery object containing
-      all of the `li` elements inside the DOM element of this view.
-       @method $
-      @param {String} [selector] a jQuery-compatible selector string
-      @return {jQuery} the jQuery object for the DOM node
-      @public
-    */
-    $: function (sel) {
-      false && !(this.tagName !== '') && (0, _debug.assert)("You cannot access this.$() on a component with `tagName: ''` specified.", this.tagName !== '');
-      false && !!_jquery.jQueryDisabled && (0, _debug.assert)('You cannot access this.$() with `jQuery` disabled.', !_jquery.jQueryDisabled);
-
-      if (this.element) {
-        return sel ? (0, _jquery.default)(sel, this.element) : (0, _jquery.default)(this.element);
-      }
-    },
-
-    /**
-      Appends the view's element to the specified parent element.
-       Note that this method just schedules the view to be appended; the DOM
-      element will not be appended to the given element until all bindings have
-      finished synchronizing.
-       This is not typically a function that you will need to call directly when
-      building your application. If you do need to use `appendTo`, be sure that
-      the target element you are providing is associated with an `Application`
-      and does not have an ancestor element that is associated with an Ember view.
-       @method appendTo
-      @param {String|DOMElement|jQuery} A selector, element, HTML string, or jQuery object
-      @return {Ember.View} receiver
-      @private
-    */
+     Appends the view's element to the specified parent element.
+      Note that this method just schedules the view to be appended; the DOM
+     element will not be appended to the given element until all bindings have
+     finished synchronizing.
+      This is not typically a function that you will need to call directly when
+     building your application. If you do need to use `appendTo`, be sure that
+     the target element you are providing is associated with an `Application`
+     and does not have an ancestor element that is associated with an Ember view.
+      @method appendTo
+     @param {String|DOMElement|jQuery} A selector, element, HTML string, or jQuery object
+     @return {Ember.View} receiver
+     @private
+     */
     appendTo: function (selector) {
       var target;
 
@@ -30982,101 +31087,101 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     },
 
     /**
-      Appends the view's element to the document body. If the view does
-      not have an HTML representation yet
-      the element will be generated automatically.
-       If your application uses the `rootElement` property, you must append
-      the view within that element. Rendering views outside of the `rootElement`
-      is not supported.
-       Note that this method just schedules the view to be appended; the DOM
-      element will not be appended to the document body until all bindings have
-      finished synchronizing.
-       @method append
-      @return {Ember.View} receiver
-      @private
-    */
+     Appends the view's element to the document body. If the view does
+     not have an HTML representation yet
+     the element will be generated automatically.
+      If your application uses the `rootElement` property, you must append
+     the view within that element. Rendering views outside of the `rootElement`
+     is not supported.
+      Note that this method just schedules the view to be appended; the DOM
+     element will not be appended to the document body until all bindings have
+     finished synchronizing.
+      @method append
+     @return {Ember.View} receiver
+     @private
+     */
     append: function () {
       return this.appendTo(document.body);
     },
 
     /**
-      The HTML `id` of the view's element in the DOM. You can provide this
-      value yourself but it must be unique (just as in HTML):
-       ```handlebars
-        {{my-component elementId="a-really-cool-id"}}
-      ```
-       If not manually set a default value will be provided by the framework.
-       Once rendered an element's `elementId` is considered immutable and you
-      should never change it. If you need to compute a dynamic value for the
-      `elementId`, you should do this when the component or element is being
-      instantiated:
-       ```app/components/my-component.js
-      import Component from '@ember/component';
-       export default Component.extend({
+     The HTML `id` of the view's element in the DOM. You can provide this
+     value yourself but it must be unique (just as in HTML):
+      ```handlebars
+     {{my-component elementId="a-really-cool-id"}}
+     ```
+      If not manually set a default value will be provided by the framework.
+      Once rendered an element's `elementId` is considered immutable and you
+     should never change it. If you need to compute a dynamic value for the
+     `elementId`, you should do this when the component or element is being
+     instantiated:
+      ```app/components/my-component.js
+     import Component from '@ember/component';
+      export default Component.extend({
         init() {
           this._super(...arguments);
           let index = this.get('index');
           this.set('elementId', 'component-id' + index);
         }
       });
-      ```
-       @property elementId
-      @type String
-      @public
-    */
+     ```
+      @property elementId
+     @type String
+     @public
+     */
     elementId: null,
 
     /**
-      Attempts to discover the element in the parent element. The default
-      implementation looks for an element with an ID of `elementId` (or the
-      view's guid if `elementId` is null). You can override this method to
-      provide your own form of lookup. For example, if you want to discover your
-      element using a CSS class name instead of an ID.
-       @method findElementInParentElement
-      @param {DOMElement} parentElement The parent's DOM element
-      @return {DOMElement} The discovered element
-      @private
-    */
+     Attempts to discover the element in the parent element. The default
+     implementation looks for an element with an ID of `elementId` (or the
+     view's guid if `elementId` is null). You can override this method to
+     provide your own form of lookup. For example, if you want to discover your
+     element using a CSS class name instead of an ID.
+      @method findElementInParentElement
+     @param {DOMElement} parentElement The parent's DOM element
+     @return {DOMElement} The discovered element
+     @private
+     */
     findElementInParentElement: function (parentElem) {
       var id = "#" + this.elementId;
       return (0, _jquery.default)(id)[0] || (0, _jquery.default)(id, parentElem)[0];
     },
 
     /**
-      Called when a view is going to insert an element into the DOM.
-       @event willInsertElement
-      @public
-    */
+     Called when a view is going to insert an element into the DOM.
+      @event willInsertElement
+     @public
+     */
     willInsertElement: K,
 
     /**
-      Called when the element of the view has been inserted into the DOM.
-      Override this function to do any set up that requires an element
-      in the document body.
-       When a view has children, didInsertElement will be called on the
-      child view(s) first and on itself afterwards.
-       @event didInsertElement
-      @public
-    */
+     Called when the element of the view has been inserted into the DOM.
+     Override this function to do any set up that requires an element
+     in the document body.
+      When a view has children, didInsertElement will be called on the
+     child view(s) first and on itself afterwards.
+      @event didInsertElement
+     @public
+     */
     didInsertElement: K,
 
     /**
-      Called when the view is about to rerender, but before anything has
-      been torn down. This is a good opportunity to tear down any manual
-      observers you have installed based on the DOM state
-       @event willClearRender
-      @public
-    */
+     Called when the view is about to rerender, but before anything has
+     been torn down. This is a good opportunity to tear down any manual
+     observers you have installed based on the DOM state
+      @event willClearRender
+     @public
+     */
     willClearRender: K,
 
     /**
-      You must call `destroy` on a view to destroy the view (and all of its
-      child views). This will remove the view from any parent node, then make
-      sure that the DOM element managed by the view can be released by the
-      memory manager.
-       @method destroy
-      @private
-    */
+     You must call `destroy` on a view to destroy the view (and all of its
+     child views). This will remove the view from any parent node, then make
+     sure that the DOM element managed by the view can be released by the
+     memory manager.
+      @method destroy
+     @private
+     */
     destroy: function () {
       this._super.apply(this, arguments);
 
@@ -31084,43 +31189,49 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     },
 
     /**
-      Called when the element of the view is going to be destroyed. Override
-      this function to do any teardown that requires an element, like removing
-      event listeners.
-       Please note: any property changes made during this event will have no
-      effect on object observers.
-       @event willDestroyElement
-      @public
-    */
+     Called when the element of the view is going to be destroyed. Override
+     this function to do any teardown that requires an element, like removing
+     event listeners.
+      Please note: any property changes made during this event will have no
+     effect on object observers.
+      @event willDestroyElement
+     @public
+     */
     willDestroyElement: K,
 
     /**
-      Called after the element of the view is destroyed.
-       @event willDestroyElement
-      @public
-    */
+     Called after the element of the view is destroyed.
+      @event willDestroyElement
+     @public
+     */
     didDestroyElement: K,
 
     /**
-      Called when the parentView property has changed.
-       @event parentViewDidChange
-      @private
-    */
+     Called when the parentView property has changed.
+      @event parentViewDidChange
+     @private
+     */
     parentViewDidChange: K,
     // ..........................................................
     // STANDARD RENDER PROPERTIES
     //
 
     /**
-      Tag name for the view's outer element. The tag name is only used when an
-      element is first created. If you change the `tagName` for an element, you
-      must destroy and recreate the view element.
-       By default, the render buffer will use a `<div>` tag for views.
-       @property tagName
-      @type String
-      @default null
-      @public
-    */
+     Tag name for the view's outer element. The tag name is only used when an
+     element is first created. If you change the `tagName` for an element, you
+     must destroy and recreate the view element.
+      By default, the render buffer will use a `<div>` tag for views.
+     
+     If the tagName is `''`, the view will be tagless, with no outer element.
+     Component properties that depend on the presence of an outer element, such
+     as `classNameBindings` and `attributeBindings`, do not work with tagless
+     components. Tagless components cannot implement methods to handle events,
+     and have no associated jQuery object to return with `$()`.
+      @property tagName
+     @type String
+     @default null
+     @public
+     */
     // We leave this null by default so we can tell the difference between
     // the default case and a user-specified tag.
     tagName: null,
@@ -31129,13 +31240,13 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     //
 
     /**
-      Setup a view, but do not finish waking it up.
-       * configure `childViews`
-      * register the view with the global views hash, which is used for event
-        dispatch
-       @method init
-      @private
-    */
+     Setup a view, but do not finish waking it up.
+      * configure `childViews`
+     * register the view with the global views hash, which is used for event
+     dispatch
+      @method init
+     @private
+     */
     init: function () {
       this._super.apply(this, arguments); // tslint:disable-next-line:max-line-length
 
@@ -31155,16 +31266,52 @@ enifed("@ember/-internals/views/lib/mixins/view_support", ["exports", "@ember/-i
     //
 
     /**
-      Handle events from `EventDispatcher`
-       @method handleEvent
-      @param eventName {String}
-      @param evt {Event}
-      @private
-    */
+     Handle events from `EventDispatcher`
+      @method handleEvent
+     @param eventName {String}
+     @param evt {Event}
+     @private
+     */
     handleEvent: function (eventName, evt) {
       return this._currentState.handleEvent(this, eventName, evt);
     }
-  });
+  };
+
+  if (_deprecatedFeatures.JQUERY_INTEGRATION) {
+    /**
+     Returns a jQuery object for this view's element. If you pass in a selector
+     string, this method will return a jQuery object, using the current element
+     as its buffer.
+      For example, calling `view.$('li')` will return a jQuery object containing
+     all of the `li` elements inside the DOM element of this view.
+      @method $
+     @param {String} [selector] a jQuery-compatible selector string
+     @return {jQuery} the jQuery object for the DOM node
+     @public
+     @deprecated
+     */
+    mixin.$ = function $(sel) {
+      false && !(this.tagName !== '') && (0, _debug.assert)("You cannot access this.$() on a component with `tagName: ''` specified.", this.tagName !== '');
+      false && !!_jquery.jQueryDisabled && (0, _debug.assert)('You cannot access this.$() with `jQuery` disabled.', !_jquery.jQueryDisabled);
+      false && !false && (0, _debug.deprecate)('Using this.$() in a component has been deprecated, consider using this.element', false, {
+        id: 'ember-views.curly-components.jquery-element',
+        until: '4.0.0',
+        url: 'https://emberjs.com/deprecations/v3.x#toc_jquery-apis'
+      });
+
+      if (this.element) {
+        return sel ? (0, _jquery.default)(sel, this.element) : (0, _jquery.default)(this.element);
+      }
+    };
+  }
+  /**
+   @class ViewMixin
+   @namespace Ember
+   @private
+  */
+
+
+  var _default = _metal.Mixin.create(mixin);
 
   _exports.default = _default;
 });
@@ -31188,7 +31335,7 @@ enifed("@ember/-internals/views/lib/system/action_manager", ["exports"], functio
 
   ActionManager.registeredActions = {};
 });
-enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@ember/-internals/owner", "@ember/polyfills", "@ember/debug", "@ember/-internals/metal", "@ember/-internals/runtime", "@ember/-internals/views/lib/system/jquery", "@ember/-internals/views/lib/system/action_manager", "@ember/-internals/views/lib/compat/fallback-view-registry", "@ember/-internals/views/lib/system/jquery_event_deprecation", "@ember/-internals/views/lib/system/utils"], function (_exports, _owner, _polyfills, _debug, _metal, _runtime, _jquery, _action_manager, _fallbackViewRegistry, _jquery_event_deprecation, _utils) {
+enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@ember/-internals/owner", "@ember/polyfills", "@ember/debug", "@ember/-internals/metal", "@ember/-internals/runtime", "@ember/-internals/views/lib/system/jquery", "@ember/-internals/views/lib/system/action_manager", "@ember/-internals/views/lib/compat/fallback-view-registry", "@ember/-internals/views/lib/system/jquery_event_deprecation", "@ember/-internals/views/lib/system/utils", "@ember/deprecated-features"], function (_exports, _owner, _polyfills, _debug, _metal, _runtime, _jquery, _action_manager, _fallbackViewRegistry, _jquery_event_deprecation, _utils, _deprecatedFeatures) {
   "use strict";
 
   _exports.default = void 0;
@@ -31321,7 +31468,7 @@ enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@embe
       var rootElementSelector = (0, _metal.get)(this, 'rootElement');
       var rootElement;
 
-      if (_jquery.jQueryDisabled) {
+      if (!_deprecatedFeatures.JQUERY_INTEGRATION || _jquery.jQueryDisabled) {
         if (typeof rootElementSelector !== 'string') {
           rootElement = rootElementSelector;
         } else {
@@ -31396,7 +31543,7 @@ enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@embe
         return;
       }
 
-      if (_jquery.jQueryDisabled) {
+      if (!_deprecatedFeatures.JQUERY_INTEGRATION || _jquery.jQueryDisabled) {
         var viewHandler = function (target, event) {
           var view = viewRegistry[target.id];
           var result = true;
@@ -31564,7 +31711,7 @@ enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@embe
         return;
       }
 
-      if (_jquery.jQueryDisabled) {
+      if (!_deprecatedFeatures.JQUERY_INTEGRATION || _jquery.jQueryDisabled) {
         for (var event in this._eventHandlers) {
           rootElement.removeEventListener(event, this._eventHandlers[event]);
         }
@@ -31582,15 +31729,15 @@ enifed("@ember/-internals/views/lib/system/event_dispatcher", ["exports", "@embe
 
   _exports.default = _default;
 });
-enifed("@ember/-internals/views/lib/system/jquery", ["exports", "@ember/-internals/environment", "@ember/-internals/browser-environment"], function (_exports, _environment, _browserEnvironment) {
+enifed("@ember/-internals/views/lib/system/jquery", ["exports", "@ember/-internals/environment", "@ember/-internals/browser-environment", "@ember/deprecated-features"], function (_exports, _environment, _browserEnvironment, _deprecatedFeatures) {
   "use strict";
 
   _exports.default = _exports.jQueryDisabled = void 0;
   var jQuery;
-  var jQueryDisabled = _environment.ENV._JQUERY_INTEGRATION === false;
+  var jQueryDisabled = !_deprecatedFeatures.JQUERY_INTEGRATION || _environment.ENV._JQUERY_INTEGRATION === false;
   _exports.jQueryDisabled = jQueryDisabled;
 
-  if (_browserEnvironment.hasDOM) {
+  if (_deprecatedFeatures.JQUERY_INTEGRATION && _browserEnvironment.hasDOM) {
     jQuery = _environment.context.imports.jQuery;
 
     if (!jQueryDisabled && jQuery) {
@@ -31613,66 +31760,66 @@ enifed("@ember/-internals/views/lib/system/jquery", ["exports", "@ember/-interna
 
   _exports.default = _default;
 });
-enifed("@ember/-internals/views/lib/system/jquery_event_deprecation", ["exports", "@ember/debug", "@ember/-internals/environment", "@ember/-internals/utils"], function (_exports, _debug, _environment, _utils) {
+enifed("@ember/-internals/views/lib/system/jquery_event_deprecation", ["exports", "@ember/debug", "@ember/-internals/environment", "@ember/-internals/utils", "@ember/deprecated-features"], function (_exports, _debug, _environment, _utils, _deprecatedFeatures) {
   "use strict";
 
   _exports.default = addJQueryEventDeprecation;
 
   /* global Proxy */
   function addJQueryEventDeprecation(jqEvent) {
-    if (!false
+    if (false
     /* DEBUG */
-    || !_utils.HAS_NATIVE_PROXY) {
-      return jqEvent;
+    && _deprecatedFeatures.JQUERY_INTEGRATION && _utils.HAS_NATIVE_PROXY) {
+      var boundFunctions = new Map(); // wrap the jQuery event in a Proxy to add the deprecation message for originalEvent, according to RFC#294
+      // we need a native Proxy here, so we can make sure that the internal use of originalEvent in jQuery itself does
+      // not trigger a deprecation
+
+      return new Proxy(jqEvent, {
+        get: function (target, name) {
+          switch (name) {
+            case 'originalEvent':
+              false && !function (EmberENV) {
+                // this deprecation is intentionally checking `global.EmberENV` /
+                // `global.ENV` so that we can ensure we _only_ deprecate in the
+                // case where jQuery integration is enabled implicitly (e.g.
+                // "defaulted" to enabled) as opposed to when the user explicitly
+                // opts in to using jQuery
+                if (typeof EmberENV !== 'object' || EmberENV === null) return false;
+                return EmberENV._JQUERY_INTEGRATION === true;
+              }(_environment.global.EmberENV || _environment.global.ENV) && (0, _debug.deprecate)('Accessing jQuery.Event specific properties is deprecated. Either use the ember-jquery-legacy addon to normalize events to native events, or explicitly opt into jQuery integration using @ember/optional-features.', function (EmberENV) {
+                if (typeof EmberENV !== 'object' || EmberENV === null) return false;
+                return EmberENV._JQUERY_INTEGRATION === true;
+              }(_environment.global.EmberENV || _environment.global.ENV), {
+                id: 'ember-views.event-dispatcher.jquery-event',
+                until: '4.0.0',
+                url: 'https://emberjs.com/deprecations/v3.x#toc_jquery-event'
+              });
+              return target[name];
+            // provide an escape hatch for ember-jquery-legacy to access originalEvent without a deprecation
+
+            case '__originalEvent':
+              return target.originalEvent;
+
+            default:
+              if (typeof target[name] === 'function') {
+                // cache functions for reuse
+                if (!boundFunctions.has(name)) {
+                  // for jQuery.Event methods call them with `target` as the `this` context, so they will access
+                  // `originalEvent` from the original jQuery event, not our proxy, thus not trigger the deprecation
+                  boundFunctions.set(name, target[name].bind(target));
+                }
+
+                return boundFunctions.get(name);
+              } // same for jQuery's getter functions for simple properties
+
+
+              return target[name];
+          }
+        }
+      });
     }
 
-    var boundFunctions = new Map(); // wrap the jQuery event in a Proxy to add the deprecation message for originalEvent, according to RFC#294
-    // we need a native Proxy here, so we can make sure that the internal use of originalEvent in jQuery itself does
-    // not trigger a deprecation
-
-    return new Proxy(jqEvent, {
-      get: function (target, name) {
-        switch (name) {
-          case 'originalEvent':
-            false && !function (EmberENV) {
-              // this deprecation is intentionally checking `global.EmberENV` /
-              // `global.ENV` so that we can ensure we _only_ deprecate in the
-              // case where jQuery integration is enabled implicitly (e.g.
-              // "defaulted" to enabled) as opposed to when the user explicitly
-              // opts in to using jQuery
-              if (typeof EmberENV !== 'object' || EmberENV === null) return false;
-              return EmberENV._JQUERY_INTEGRATION === true;
-            }(_environment.global.EmberENV || _environment.global.ENV) && (0, _debug.deprecate)('Accessing jQuery.Event specific properties is deprecated. Either use the ember-jquery-legacy addon to normalize events to native events, or explicitly opt into jQuery integration using @ember/optional-features.', function (EmberENV) {
-              if (typeof EmberENV !== 'object' || EmberENV === null) return false;
-              return EmberENV._JQUERY_INTEGRATION === true;
-            }(_environment.global.EmberENV || _environment.global.ENV), {
-              id: 'ember-views.event-dispatcher.jquery-event',
-              until: '4.0.0',
-              url: 'https://emberjs.com/deprecations/v3.x#toc_jquery-event'
-            });
-            return target[name];
-          // provide an escape hatch for ember-jquery-legacy to access originalEvent without a deprecation
-
-          case '__originalEvent':
-            return target.originalEvent;
-
-          default:
-            if (typeof target[name] === 'function') {
-              // cache functions for reuse
-              if (!boundFunctions.has(name)) {
-                // for jQuery.Event methods call them with `target` as the `this` context, so they will access
-                // `originalEvent` from the original jQuery event, not our proxy, thus not trigger the deprecation
-                boundFunctions.set(name, target[name].bind(target));
-              }
-
-              return boundFunctions.get(name);
-            } // same for jQuery's getter functions for simple properties
-
-
-            return target[name];
-        }
-      }
-    });
+    return jqEvent;
   }
 });
 enifed("@ember/-internals/views/lib/system/lookup_partial", ["exports", "@ember/debug", "@ember/error"], function (_exports, _debug, _error) {
@@ -33174,7 +33321,7 @@ enifed("@ember/application/instance", ["exports", "@ember/polyfills", "@ember/-i
   var _default = ApplicationInstance;
   _exports.default = _default;
 });
-enifed("@ember/application/lib/application", ["exports", "ember-babel", "@ember/-internals/utils", "@ember/-internals/environment", "@ember/-internals/browser-environment", "@ember/debug", "@ember/runloop", "@ember/-internals/metal", "@ember/application/lib/lazy_load", "@ember/-internals/runtime", "@ember/-internals/views", "@ember/-internals/routing", "@ember/application/instance", "@ember/engine", "@ember/-internals/container", "@ember/-internals/glimmer"], function (_exports, _emberBabel, _utils, _environment, _browserEnvironment, _debug, _runloop, _metal, _lazy_load, _runtime, _views, _routing, _instance, _engine, _container, _glimmer) {
+enifed("@ember/application/lib/application", ["exports", "ember-babel", "@ember/-internals/utils", "@ember/-internals/environment", "@ember/-internals/browser-environment", "@ember/debug", "@ember/runloop", "@ember/-internals/metal", "@ember/application/lib/lazy_load", "@ember/-internals/runtime", "@ember/-internals/views", "@ember/-internals/routing", "@ember/application/instance", "@ember/engine", "@ember/-internals/container", "@ember/-internals/glimmer", "@ember/deprecated-features"], function (_exports, _emberBabel, _utils, _environment, _browserEnvironment, _debug, _runloop, _metal, _lazy_load, _runtime, _views, _routing, _instance, _engine, _container, _glimmer, _deprecatedFeatures) {
   "use strict";
 
   _exports.default = void 0;
@@ -34150,7 +34297,7 @@ enifed("@ember/application/lib/application", ["exports", "ember-babel", "@ember/
     if (!librariesRegistered) {
       librariesRegistered = true;
 
-      if (_browserEnvironment.hasDOM && !_views.jQueryDisabled) {
+      if (_deprecatedFeatures.JQUERY_INTEGRATION && _browserEnvironment.hasDOM && !_views.jQueryDisabled) {
         _metal.libraries.registerCoreLibrary('jQuery', (0, _views.jQuery)().jquery);
       }
     }
@@ -35124,9 +35271,11 @@ enifed("@ember/debug/lib/warn", ["exports", "@ember/debug/index", "@ember/debug/
 enifed("@ember/deprecated-features/index", ["exports"], function (_exports) {
   "use strict";
 
-  _exports.COMPONENT_MANAGER_STRING_LOOKUP = _exports.TRANSITION_STATE = _exports.ROUTER_EVENTS = _exports.HANDLER_INFOS = _exports.MERGE = _exports.LOGGER = _exports.RUN_SYNC = _exports.EMBER_EXTEND_PROTOTYPES = _exports.SEND_ACTION = void 0;
+  _exports.APP_CTRL_ROUTER_PROPS = _exports.ALIAS_METHOD = _exports.JQUERY_INTEGRATION = _exports.COMPONENT_MANAGER_STRING_LOOKUP = _exports.TRANSITION_STATE = _exports.ROUTER_EVENTS = _exports.HANDLER_INFOS = _exports.MERGE = _exports.LOGGER = _exports.RUN_SYNC = _exports.EMBER_EXTEND_PROTOTYPES = _exports.SEND_ACTION = void 0;
 
   /* eslint-disable no-implicit-coercion */
+  // These versions should be the version that the deprecation was _introduced_,
+  // not the version that the feature will be removed.
   var SEND_ACTION = !!'3.4.0';
   _exports.SEND_ACTION = SEND_ACTION;
   var EMBER_EXTEND_PROTOTYPES = !!'3.2.0-beta.5';
@@ -35143,8 +35292,14 @@ enifed("@ember/deprecated-features/index", ["exports"], function (_exports) {
   _exports.ROUTER_EVENTS = ROUTER_EVENTS;
   var TRANSITION_STATE = !!'3.9.0';
   _exports.TRANSITION_STATE = TRANSITION_STATE;
-  var COMPONENT_MANAGER_STRING_LOOKUP = !!'4.0.0';
+  var COMPONENT_MANAGER_STRING_LOOKUP = !!'3.8.0';
   _exports.COMPONENT_MANAGER_STRING_LOOKUP = COMPONENT_MANAGER_STRING_LOOKUP;
+  var JQUERY_INTEGRATION = !!'3.9.0';
+  _exports.JQUERY_INTEGRATION = JQUERY_INTEGRATION;
+  var ALIAS_METHOD = !!'3.9.0';
+  _exports.ALIAS_METHOD = ALIAS_METHOD;
+  var APP_CTRL_ROUTER_PROPS = !!'4.0.0';
+  _exports.APP_CTRL_ROUTER_PROPS = APP_CTRL_ROUTER_PROPS;
 });
 enifed("@ember/engine/index", ["exports", "ember-babel", "@ember/engine/lib/engine-parent", "@ember/-internals/utils", "@ember/controller", "@ember/-internals/runtime", "@ember/-internals/container", "dag-map", "@ember/debug", "@ember/-internals/metal", "@ember/application/globals-resolver", "@ember/engine/instance", "@ember/-internals/routing", "@ember/-internals/extension-support", "@ember/-internals/views", "@ember/-internals/glimmer"], function (_exports, _emberBabel, _engineParent, _utils, _controller, _runtime, _container, _dagMap, _debug, _metal, _globalsResolver, _instance, _routing, _extensionSupport, _views, _glimmer) {
   "use strict";
@@ -35997,11 +36152,8 @@ enifed("@ember/instrumentation/index", ["exports", "@ember/-internals/environmen
 
   var time = function () {
     var perf = 'undefined' !== typeof window ? window.performance || {} : {};
-    var fn = perf.now || perf.mozNow || perf.webkitNow || perf.msNow || perf.oNow; // fn.bind will be available in all the browsers that support the advanced window.performance... ;-)
-
-    return fn ? fn.bind(perf) : function () {
-      return Number(new Date());
-    };
+    var fn = perf.now || perf.mozNow || perf.webkitNow || perf.msNow || perf.oNow;
+    return fn ? fn.bind(perf) : Date.now;
   }();
 
   function instrument(name, p1, p2, p3) {
@@ -37195,7 +37347,7 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
     return cp;
   }
 
-  function arrayMacro(dependentKey, callback) {
+  function arrayMacro(dependentKey, additionalDependentKeys, callback) {
     // This is a bit ugly
     var propertyName;
 
@@ -37206,7 +37358,7 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
       dependentKey += '.[]';
     }
 
-    var cp = new _metal.ComputedProperty(function () {
+    return _metal.computed.apply(void 0, [dependentKey].concat(additionalDependentKeys, [function () {
       var value = (0, _metal.get)(this, propertyName);
 
       if ((0, _runtime.isArray)(value)) {
@@ -37214,12 +37366,7 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
       } else {
         return (0, _runtime.A)();
       }
-    }, {
-      readOnly: true
-    });
-    cp.property(dependentKey); // this forces to expand properties GH #15855
-
-    return cp;
+    }])).readOnly();
   }
 
   function multiArrayMacro(_dependentKeys, callback, name) {
@@ -37394,18 +37541,54 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
     hamster.get('excitingChores'); // ['CLEAN!', 'WRITE MORE UNIT TESTS!']
     ```
   
+    You can optionally pass an array of additional dependent keys as the second
+    parameter to the macro, if your map function relies on any external values:
+  
+    ```javascript
+    import { map } from '@ember/object/computed';
+    import EmberObject from '@ember/object';
+  
+    let Hamster = EmberObject.extend({
+      excitingChores: map('chores', ['shouldUpperCase'], function(chore, index) {
+        if (this.shouldUpperCase) {
+          return chore.toUpperCase() + '!';
+        } else {
+          return chore + '!';
+        }
+      })
+    });
+  
+    let hamster = Hamster.create({
+      shouldUpperCase: false,
+  
+      chores: ['clean', 'write more unit tests']
+    });
+  
+    hamster.get('excitingChores'); // ['clean!', 'write more unit tests!']
+    hamster.set('shouldUpperCase', true);
+    hamster.get('excitingChores'); // ['CLEAN!', 'WRITE MORE UNIT TESTS!']
+    ```
+  
     @method map
     @for @ember/object/computed
     @static
     @param {String} dependentKey
+    @param {Array} [additionalDependentKeys] optional array of additional dependent keys
     @param {Function} callback
     @return {ComputedProperty} an array mapped via the callback
     @public
   */
 
 
-  function map(dependentKey, callback) {
-    return arrayMacro(dependentKey, function (value) {
+  function map(dependentKey, additionalDependentKeys, callback) {
+    if (callback === undefined && typeof additionalDependentKeys === 'function') {
+      callback = additionalDependentKeys;
+      additionalDependentKeys = [];
+    }
+
+    false && !(typeof callback === 'function') && (0, _debug.assert)('The final parameter provided to map must be a callback function', typeof callback === 'function');
+    false && !Array.isArray(additionalDependentKeys) && (0, _debug.assert)('The second parameter provided to map must either be the callback or an array of additional dependent keys', Array.isArray(additionalDependentKeys));
+    return arrayMacro(dependentKey, additionalDependentKeys, function (value) {
       return value.map(callback, this);
     });
   }
@@ -37510,19 +37693,53 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
     hamster.get('remainingChores'); // []
     ```
   
+    Finally, you can optionally pass an array of additional dependent keys as the
+    second parameter to the macro, if your filter function relies on any external
+    values:
+  
+    ```javascript
+    import { filter } from '@ember/object/computed';
+    import EmberObject from '@ember/object';
+  
+    let Hamster = EmberObject.extend({
+      remainingChores: filter('chores', ['doneKey'], function(chore, index, array) {
+        return !chore[this.doneKey];
+      })
+    });
+  
+    let hamster = Hamster.create({
+      doneKey: 'finished'
+  
+      chores: [
+        { name: 'cook', finished: true },
+        { name: 'clean', finished: true },
+        { name: 'write more unit tests', finished: false }
+      ]
+    });
+  
+    hamster.get('remainingChores'); // [{name: 'write more unit tests', finished: false}]
+    ```
   
     @method filter
     @for @ember/object/computed
     @static
     @param {String} dependentKey
+    @param {Array} [additionalDependentKeys] optional array of additional dependent keys
     @param {Function} callback
     @return {ComputedProperty} the filtered array
     @public
   */
 
 
-  function filter(dependentKey, callback) {
-    return arrayMacro(dependentKey, function (value) {
+  function filter(dependentKey, additionalDependentKeys, callback) {
+    if (callback === undefined && typeof additionalDependentKeys === 'function') {
+      callback = additionalDependentKeys;
+      additionalDependentKeys = [];
+    }
+
+    false && !(typeof callback === 'function') && (0, _debug.assert)('The final parameter provided to filter must be a callback function', typeof callback === 'function');
+    false && !Array.isArray(additionalDependentKeys) && (0, _debug.assert)('The second parameter provided to filter must either be the callback or an array of additional dependent keys', Array.isArray(additionalDependentKeys));
+    return arrayMacro(dependentKey, additionalDependentKeys, function (value) {
       return value.filter(callback, this);
     });
   }
@@ -37902,9 +38119,13 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
   /**
     A computed property which returns a new array with all the
     properties from the first dependent array sorted based on a property
-    or sort function.
+    or sort function. The sort macro can be used in two different ways:
   
-    The callback method you provide should have the following signature:
+    1. By providing a sort callback function
+    2. By providing an array of keys to sort the array
+  
+    In the first form, the callback method you provide should have the following
+    signature:
   
     ```javascript
     function(itemA, itemB);
@@ -37913,14 +38134,81 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
     - `itemA` the first item to compare.
     - `itemB` the second item to compare.
   
-    This function should return negative number (e.g. `-1`) when `itemA` should come before
-    `itemB`. It should return positive number (e.g. `1`) when `itemA` should come after
-    `itemB`. If the `itemA` and `itemB` are equal this function should return `0`.
+    This function should return negative number (e.g. `-1`) when `itemA` should
+    come before `itemB`. It should return positive number (e.g. `1`) when `itemA`
+    should come after `itemB`. If the `itemA` and `itemB` are equal this function
+    should return `0`.
   
-    Therefore, if this function is comparing some numeric values, simple `itemA - itemB` or
-    `itemA.get( 'foo' ) - itemB.get( 'foo' )` can be used instead of series of `if`.
+    Therefore, if this function is comparing some numeric values, simple `itemA -
+    itemB` or `itemA.get( 'foo' ) - itemB.get( 'foo' )` can be used instead of
+    series of `if`.
   
     Example
+  
+    ```javascript
+    import { sort } from '@ember/object/computed';
+    import EmberObject from '@ember/object';
+  
+    let ToDoList = EmberObject.extend({
+      // using a custom sort function
+      priorityTodos: sort('todos', function(a, b){
+        if (a.priority > b.priority) {
+          return 1;
+        } else if (a.priority < b.priority) {
+          return -1;
+        }
+  
+        return 0;
+      })
+    });
+  
+    let todoList = ToDoList.create({
+      todos: [
+        { name: 'Unit Test', priority: 2 },
+        { name: 'Documentation', priority: 3 },
+        { name: 'Release', priority: 1 }
+      ]
+    });
+  
+    todoList.get('priorityTodos');    // [{ name:'Release', priority:1 }, { name:'Unit Test', priority:2 }, { name:'Documentation', priority:3 }]
+    ```
+  
+    You can also optionally pass an array of additional dependent keys as the
+    second parameter, if your sort function is dependent on additional values that
+    could changes:
+  
+    ```js
+    import { sort } from '@ember/object/computed';
+    import EmberObject from '@ember/object';
+  
+    let ToDoList = EmberObject.extend({
+      // using a custom sort function
+      sortedTodos: sort('todos', ['sortKey'] function(a, b){
+        if (a[this.sortKey] > b[this.sortKey]) {
+          return 1;
+        } else if (a[this.sortKey] < b[this.sortKey]) {
+          return -1;
+        }
+  
+        return 0;
+      })
+    });
+  
+    let todoList = ToDoList.create({
+      sortKey: 'priority',
+  
+      todos: [
+        { name: 'Unit Test', priority: 2 },
+        { name: 'Documentation', priority: 3 },
+        { name: 'Release', priority: 1 }
+      ]
+    });
+  
+    todoList.get('priorityTodos');    // [{ name:'Release', priority:1 }, { name:'Unit Test', priority:2 }, { name:'Documentation', priority:3 }]
+    ```
+  
+    In the second form, you should provide the key of the array of sort values as
+    the second parameter:
   
     ```javascript
     import { sort } from '@ember/object/computed';
@@ -37934,34 +38222,25 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
       // using descending sort
       todosSortingDesc: Object.freeze(['name:desc']),
       sortedTodosDesc: sort('todos', 'todosSortingDesc'),
-  
-      // using a custom sort function
-      priorityTodos: sort('todos', function(a, b){
-        if (a.priority > b.priority) {
-          return 1;
-        } else if (a.priority < b.priority) {
-          return -1;
-        }
-  
-        return 0;
-      })
     });
   
-    let todoList = ToDoList.create({todos: [
-      { name: 'Unit Test', priority: 2 },
-      { name: 'Documentation', priority: 3 },
-      { name: 'Release', priority: 1 }
-    ]});
+    let todoList = ToDoList.create({
+      todos: [
+        { name: 'Unit Test', priority: 2 },
+        { name: 'Documentation', priority: 3 },
+        { name: 'Release', priority: 1 }
+      ]
+    });
   
     todoList.get('sortedTodos');      // [{ name:'Documentation', priority:3 }, { name:'Release', priority:1 }, { name:'Unit Test', priority:2 }]
     todoList.get('sortedTodosDesc');  // [{ name:'Unit Test', priority:2 }, { name:'Release', priority:1 }, { name:'Documentation', priority:3 }]
-    todoList.get('priorityTodos');    // [{ name:'Release', priority:1 }, { name:'Unit Test', priority:2 }, { name:'Documentation', priority:3 }]
     ```
   
     @method sort
     @for @ember/object/computed
     @static
     @param {String} itemsKey
+    @param {Array} [additionalDependentKeys] optional array of additional dependent keys
     @param {String or Function} sortDefinition a dependent key to an
     array of sort properties (add `:desc` to the arrays sort properties to sort descending) or a function to use when sorting
     @return {ComputedProperty} computes a new sorted array based
@@ -37970,18 +38249,37 @@ enifed("@ember/object/lib/computed/reduce_computed_macros", ["exports", "@ember/
   */
 
 
-  function sort(itemsKey, sortDefinition) {
-    false && !(arguments.length === 2) && (0, _debug.assert)('`computed.sort` requires two arguments: an array key to sort and ' + 'either a sort properties key or sort function', arguments.length === 2);
+  function sort(itemsKey, additionalDependentKeys, sortDefinition) {
+    if (false
+    /* DEBUG */
+    ) {
+        var argumentsValid = false;
+
+        if (arguments.length === 2) {
+          argumentsValid = typeof itemsKey === 'string' && (typeof additionalDependentKeys === 'string' || typeof additionalDependentKeys === 'function');
+        }
+
+        if (arguments.length === 3) {
+          argumentsValid = typeof itemsKey === 'string' && Array.isArray(additionalDependentKeys) && typeof sortDefinition === 'function';
+        }
+
+        false && !argumentsValid && (0, _debug.assert)('`computed.sort` can either be used with an array of sort properties or with a sort function. If used with an array of sort properties, it must receive exactly two arguments: the key of the array to sort, and the key of the array of sort properties. If used with a sort function, it may recieve up to three arguments: the key of the array to sort, an optional additional array of dependent keys for the computed property, and the sort function.', argumentsValid);
+      }
+
+    if (sortDefinition === undefined && !Array.isArray(additionalDependentKeys)) {
+      sortDefinition = additionalDependentKeys;
+      additionalDependentKeys = [];
+    }
 
     if (typeof sortDefinition === 'function') {
-      return customSort(itemsKey, sortDefinition);
+      return customSort(itemsKey, additionalDependentKeys, sortDefinition);
     } else {
       return propertySort(itemsKey, sortDefinition);
     }
   }
 
-  function customSort(itemsKey, comparator) {
-    return arrayMacro(itemsKey, function (value) {
+  function customSort(itemsKey, additionalDependentKeys, comparator) {
+    return arrayMacro(itemsKey, additionalDependentKeys, function (value) {
       var _this4 = this;
 
       return value.slice().sort(function (x, y) {
@@ -41808,7 +42106,7 @@ enifed("@glimmer/opcode-compiler", ["exports", "@ember/polyfills", "ember-babel"
 
       _this4 = _StdOpcodeBuilder.call(this, compiler, containingLayout ? containingLayout.block.symbols.length : 0) || this;
       _this4.containingLayout = containingLayout;
-      _this4.component = new ComponentBuilder((0, _emberBabel.assertThisInitialized)((0, _emberBabel.assertThisInitialized)(_this4)));
+      _this4.component = new ComponentBuilder((0, _emberBabel.assertThisInitialized)(_this4));
       _this4.expressionCompiler = expressionCompiler();
       _this4.isComponentAttrs = false;
       _this4.constants = compiler.constants;
@@ -50829,35 +51127,45 @@ enifed("backburner", ["exports", "ember-babel"], function (_exports, _emberBabel
 
   var NOOP = function () {};
 
-  function buildPlatform(flush) {
-    var next;
-    var clearNext = NOOP;
-
-    if (typeof MutationObserver === 'function') {
+  function buildNext(flush) {
+    // Using "promises first" here to:
+    //
+    // 1) Ensure more consistent experience on browsers that
+    //    have differently queued microtasks (separate queues for
+    //    MutationObserver vs Promises).
+    // 2) Ensure better debugging experiences (it shows up in Chrome
+    //    call stack as "Promise.then (async)") which is more consistent
+    //    with user expectations
+    //
+    // When Promise is unavailable use MutationObserver (mostly so that we
+    // still get microtasks on IE11), and when neither MutationObserver and
+    // Promise are present use a plain old setTimeout.
+    if (typeof Promise === 'function') {
+      var autorunPromise = Promise.resolve();
+      return function () {
+        return autorunPromise.then(flush);
+      };
+    } else if (typeof MutationObserver === 'function') {
       var iterations = 0;
       var observer = new MutationObserver(flush);
       var node = document.createTextNode('');
       observer.observe(node, {
         characterData: true
       });
-
-      next = function () {
+      return function () {
         iterations = ++iterations % 2;
         node.data = '' + iterations;
         return iterations;
       };
-    } else if (typeof Promise === 'function') {
-      var autorunPromise = Promise.resolve();
-
-      next = function () {
-        return autorunPromise.then(flush);
-      };
     } else {
-      next = function () {
+      return function () {
         return SET_TIMEOUT(flush, 0);
       };
     }
+  }
 
+  function buildPlatform(flush) {
+    var clearNext = NOOP;
     return {
       setTimeout: function (fn, ms) {
         return setTimeout(fn, ms);
@@ -50868,7 +51176,7 @@ enifed("backburner", ["exports", "ember-babel"], function (_exports, _emberBabel
       now: function () {
         return Date.now();
       },
-      next: next,
+      next: buildNext(flush),
       clearNext: clearNext
     };
   }
@@ -52082,6 +52390,8 @@ enifed("backburner", ["exports", "ember-babel"], function (_exports, _emberBabel
   }();
 
   Backburner.Queue = Queue;
+  Backburner.buildPlatform = buildPlatform;
+  Backburner.buildNext = buildNext;
   var _default = Backburner;
   _exports.default = _default;
 });
@@ -52856,8 +53166,19 @@ enifed("ember/index", ["exports", "require", "@ember/-internals/environment", "n
 
   Ember.VERSION = _version.default; // ****@ember/-internals/views****
 
-  if (!views.jQueryDisabled) {
-    Ember.$ = views.jQuery;
+  if (_deprecatedFeatures.JQUERY_INTEGRATION && !views.jQueryDisabled) {
+    Object.defineProperty(Ember, '$', {
+      get: function () {
+        false && !false && (0, EmberDebug.deprecate)("Using Ember.$() has been deprecated, use `import jQuery from 'jquery';` instead", false, {
+          id: 'ember-views.curly-components.jquery-element',
+          until: '4.0.0',
+          url: 'https://emberjs.com/deprecations/v3.x#toc_jquery-apis'
+        });
+        return views.jQuery;
+      },
+      configurable: true,
+      enumerable: true
+    });
   }
 
   Ember.ViewUtils = {
@@ -52937,7 +53258,7 @@ enifed("ember/version", ["exports"], function (_exports) {
   "use strict";
 
   _exports.default = void 0;
-  var _default = "3.8.0";
+  var _default = "3.9.0";
   _exports.default = _default;
 });
 /*global enifed, module */
@@ -53949,15 +54270,15 @@ enifed("router_js", ["exports", "@ember/polyfills", "ember-babel", "rsvp", "rout
 
 
   function _log(router) {
-    for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-      args[_key - 1] = arguments[_key];
-    }
-
     if (!router.log) {
       return;
     }
 
-    if (arguments.length === 2) {
+    for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      args[_key - 1] = arguments[_key];
+    }
+
+    if (args.length === 2) {
       var sequence = args[0],
           msg = args[1];
       router.log('Transition #' + sequence + ': ' + msg);
@@ -54641,6 +54962,7 @@ enifed("router_js", ["exports", "@ember/polyfills", "ember-babel", "rsvp", "rout
     };
 
     _proto2.updateRoute = function updateRoute(route) {
+      route._internalName = this.name;
       return this.route = route;
     };
 
@@ -55081,7 +55403,7 @@ enifed("router_js", ["exports", "@ember/polyfills", "ember-babel", "rsvp", "rout
 
       if (this.pivotHandler) {
         for (i = 0, len = parsedHandlers.length; i < len; ++i) {
-          if (parsedHandlers[i].handler === this.pivotHandler.routeName) {
+          if (parsedHandlers[i].handler === this.pivotHandler._internalName) {
             invalidateIndex = i;
             break;
           }

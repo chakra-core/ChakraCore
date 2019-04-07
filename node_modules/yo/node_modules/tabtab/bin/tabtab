@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+process.env.DEBUG = process.env.DEBUG || 'tabtab*';
+require('../src/cli');

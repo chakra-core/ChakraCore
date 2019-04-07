@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/c/math/index.js"],"names":["module","exports","require"],"mappings":";;AAAAA,OAAOC,OAAP,CAAe,KAAf,IAAwBC,QAAQ,OAAR,CAAxB;AACAF,OAAOC,OAAP,CAAe,OAAf,IAA0BC,QAAQ,SAAR,CAA1B","file":"index.js","sourcesContent":["module.exports['abs'] = require('./abs')\nmodule.exports['frexp'] = require('./frexp')\n"]}

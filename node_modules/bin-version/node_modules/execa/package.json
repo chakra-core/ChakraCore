@@ -1,0 +1,46 @@
+{
+  "name": "execa",
+  "version": "0.1.1",
+  "description": "A better child_process.{execFile,exec}",
+  "license": "MIT",
+  "repository": "sindresorhus/execa",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.12"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "exec",
+    "execute",
+    "fork",
+    "child",
+    "process",
+    "execfile",
+    "file",
+    "bin",
+    "binary"
+  ],
+  "dependencies": {
+    "cross-spawn-async": "^2.1.1",
+    "object-assign": "^4.0.1",
+    "strip-eof": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "ignores": [
+      "test.js"
+    ]
+  }
+}

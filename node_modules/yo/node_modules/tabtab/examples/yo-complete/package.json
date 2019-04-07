@@ -1,0 +1,66 @@
+{
+  "name": "yo-complete",
+  "description": "tabtab completion for Yeoman",
+  "author": "mklabs",
+  "license": "MIT",
+  "homepage": "https://github.com/mklabs/node-tabtab/tree/master/examples/yo-complete#readme",
+  "version": "0.0.1",
+  "bin": {
+    "yo-complete": "index.js"
+  },
+  "scripts": {
+    "install": "tabtab install --name yo --completer yo-complete",
+    "test": "export cmd=\"yo\" && DEBUG=\"tabtab*\" COMP_POINT=\"4\" COMP_LINE=\"$cmd\" COMP_CWORD=\"$cmd\" yo-complete completion -- yo $cmd"
+  },
+  "dependencies": {
+    "parse-help": "^0.1.0",
+    "tabtab": "^1.0.5",
+    "yeoman-environment": "^1.5.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mklabs/node-tabtab.git"
+  },
+  "keywords": [
+    "yo",
+    "yeoman",
+    "completion",
+    "tabtab",
+    "tabtab-plugin"
+  ],
+  "bugs": {
+    "url": "https://github.com/mklabs/node-tabtab/issues"
+  },
+  "tabtab": {
+    "yo": [
+      "-f",
+      "--force",
+      "--version",
+      "--no-color",
+      "--no-insight",
+      "--insight",
+      "--generators",
+      "--loglevel"
+    ],
+    "angular": [
+      "common",
+      "constant",
+      "controller",
+      "decorator",
+      "directive",
+      "factory",
+      "filter",
+      "main",
+      "provider",
+      "route",
+      "service",
+      "value",
+      "view"
+    ],
+    "--loglevel": [
+      "error",
+      "warn",
+      "warm"
+    ]
+  }
+}

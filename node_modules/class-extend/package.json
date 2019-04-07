@@ -1,0 +1,27 @@
+{
+  "name": "class-extend",
+  "version": "0.1.2",
+  "description": "Backbone like Class.extend utility for Node",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": "SBoudrias/class-extend",
+  "keywords": [
+    "inheritance",
+    "oop",
+    "class",
+    "extend"
+  ],
+  "author": "Simon Boudrias",
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "object-assign": "^2.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^2.1.0",
+    "sinon": "^1.12.2"
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../src/php/pcre/index.js"],"names":["module","exports","require"],"mappings":";;AAAAA,OAAOC,OAAP,CAAe,YAAf,IAA+BC,QAAQ,cAAR,CAA/B;AACAF,OAAOC,OAAP,CAAe,aAAf,IAAgCC,QAAQ,eAAR,CAAhC","file":"index.js","sourcesContent":["module.exports['preg_quote'] = require('./preg_quote')\nmodule.exports['sql_regcase'] = require('./sql_regcase')\n"]}

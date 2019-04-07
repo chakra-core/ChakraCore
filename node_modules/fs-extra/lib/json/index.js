@@ -1,9 +1,16 @@
-var jsonFile = require('./jsonfile')
+'use strict'
 
+const u = require('universalify').fromCallback
+const jsonFile = require('./jsonfile')
+
+jsonFile.outputJson = u(require('./output-json'))
 jsonFile.outputJsonSync = require('./output-json-sync')
-jsonFile.outputJson = require('./output-json')
 // aliases
-jsonFile.outputJSONSync = require('./output-json-sync')
-jsonFile.outputJSON = require('./output-json')
+jsonFile.outputJSON = jsonFile.outputJson
+jsonFile.outputJSONSync = jsonFile.outputJsonSync
+jsonFile.writeJSON = jsonFile.writeJson
+jsonFile.writeJSONSync = jsonFile.writeJsonSync
+jsonFile.readJSON = jsonFile.readJson
+jsonFile.readJSONSync = jsonFile.readJsonSync
 
 module.exports = jsonFile

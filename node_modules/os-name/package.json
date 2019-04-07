@@ -1,0 +1,43 @@
+{
+  "name": "os-name",
+  "version": "2.0.1",
+  "description": "Get the name of the current operating system. Example: macOS Sierra",
+  "license": "MIT",
+  "repository": "sindresorhus/os-name",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "os",
+    "operating",
+    "system",
+    "platform",
+    "name",
+    "title",
+    "release",
+    "version",
+    "macos",
+    "osx",
+    "windows",
+    "linux"
+  ],
+  "dependencies": {
+    "macos-release": "^1.0.0",
+    "win-release": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+}
