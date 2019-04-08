@@ -6666,7 +6666,8 @@ GlobOpt::CanProveConditionalBranch(IR::Instr *instr, Value *src1Val, Value *src2
             {
                 return undefinedCmp;
             }
-            return val1->GetValueInfo()->IsPrimitive() && val1->GetValueInfo()->IsNotFloat();
+            ValueInfo * valInfo = val1->GetValueInfo();
+            return !valInfo->HasBeenUndefined() && valInfo->IsPrimitive() && valInfo->IsNotFloat();
         }
         return false;
     };

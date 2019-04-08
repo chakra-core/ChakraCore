@@ -1569,6 +1569,14 @@
   </test>
   <test>
     <default>
+      <files>bugconstfoldundefined.js</files>
+      <baseline>bugconstfoldundefined.baseline</baseline>
+      <compile-flags>-maxinterpretcount:6 -maxsimplejitruncount:4 -werexceptionsupport -oopjit-  -mic:1 -off:simplejit -forcejitloopbody</compile-flags>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bcebug.js</files>
       <compile-flags>-mic:1 -off:simplejit -bgjit- -lic:1</compile-flags>
     </default>
