@@ -90,7 +90,7 @@ namespace Js
     };
     enum AsmJSTypedArrayBuiltinFunction
     {
-#define ASMJS_ARRAY_NAMES(name, propertyName) AsmJSTypedArrayBuiltin_##name,
+#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) AsmJSTypedArrayBuiltin_##name,
 #include "AsmJsBuiltInNames.h"
         AsmJSTypedArrayBuiltin_COUNT
     };

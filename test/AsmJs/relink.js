@@ -14,7 +14,6 @@ function foo(stdlib, imports, heap)
     const b = 3.5;
     var inf = stdlib.Infinity;
     var I8=stdlib.Int8Array;
-    var len = stdlib.byteLength;
     var ln2 = stdlib.Math.LN2;
     var i8= new I8(heap);
     var c = fr(4);
@@ -48,7 +47,6 @@ function foo(stdlib, imports, heap)
     var table1 = [f, g, f, g];
     return {fExp:f, gExp:g};
 }
-this['byteLength'] = Function.prototype.call.bind(Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get);
 var buffer = new ArrayBuffer(1<<24);
 var module1 = foo(this, {bar: function f(c){print("import func, val " + c)}, c: 4.5, d: 12}, buffer);
 var module2 = foo(this, {bar: function f(c){print("import2 func, val " + c)}, c: 5.5, d: 13}, new ArrayBuffer(1<<25));

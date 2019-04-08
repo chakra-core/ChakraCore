@@ -1001,27 +1001,6 @@ namespace Js
         return nullptr;
     }
 
-    bool AsmJsModuleCompiler::CheckByteLengthCall(ParseNode * callNode, ParseNode * bufferDecl)
-    {
-        if (callNode->nop != knopCall || callNode->AsParseNodeCall()->pnodeTarget->nop != knopName)
-        {
-            return false;
-        }
-        AsmJsTypedArrayFunction* arrayFunc = LookupIdentifier<AsmJsTypedArrayFunction>(callNode->AsParseNodeCall()->pnodeTarget->name());
-        if (!arrayFunc)
-        {
-            return false;
-        }
-
-        return callNode->AsParseNodeCall()->argCount == 1 &&
-            !callNode->AsParseNodeCall()->isApplyCall &&
-            !callNode->AsParseNodeCall()->isEvalCall &&
-            callNode->AsParseNodeCall()->spreadArgCount == 0 &&
-            arrayFunc->GetArrayBuiltInFunction() == AsmJSTypedArrayBuiltin_byteLength &&
-            callNode->AsParseNodeCall()->pnodeArgs->nop == knopName &&
-            callNode->AsParseNodeCall()->pnodeArgs->name()->GetPropertyId() == bufferDecl->name()->GetPropertyId();
-    }
-
     bool AsmJsModuleCompiler::Fail(ParseNode* usepn, const wchar *error)
     {
         AsmJSCompiler::OutputError(GetScriptContext(), error);
@@ -1203,7 +1182,6 @@ namespace Js
         arrayFunctions[AsmJSTypedArrayBuiltin_Uint32Array] = ArrayFunc(PropertyIds::Uint32Array, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Uint32Array, ArrayBufferView::TYPE_UINT32));
         arrayFunctions[AsmJSTypedArrayBuiltin_Float32Array] = ArrayFunc(PropertyIds::Float32Array, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Float32Array, ArrayBufferView::TYPE_FLOAT32));
         arrayFunctions[AsmJSTypedArrayBuiltin_Float64Array] = ArrayFunc(PropertyIds::Float64Array, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_Float64Array, ArrayBufferView::TYPE_FLOAT64));
-        arrayFunctions[AsmJSTypedArrayBuiltin_byteLength] = ArrayFunc(PropertyIds::byteLength, Anew(&mAllocator, AsmJsTypedArrayFunction, nullptr, &mAllocator, AsmJSTypedArrayBuiltin_byteLength, ArrayBufferView::TYPE_COUNT));
 
         for (int i = 0; i < AsmJSTypedArrayBuiltin_COUNT; i++)
         {
@@ -1917,7 +1895,7 @@ namespace Js
             case AsmJsSymbol::TypedArrayBuiltinFunction:
                 switch (asmSlot->builtinArrayFunc)
                 {
-#define ASMJS_ARRAY_NAMES(name, propertyName) \
+#define ASMJS_TYPED_ARRAY_NAMES(name, propertyName) \
             case AsmJSTypedArrayBuiltin_##name: \
                 value = JavascriptOperators::OP_GetProperty(stdLibObj, PropertyIds::##propertyName, scriptContext); \
                 break;
