@@ -37,7 +37,10 @@ namespace Js
             ParseNode* rhs = GetBinaryRight( body );
             if( rhs && rhs->nop == knopList )
             {
-                AssertMsg( lhs->nop == knopStr, "this should be use asm" );
+                if (lhs->nop != knopStr)
+                {
+                    return false;
+                }
                 *var = rhs;
                 return true;
             }

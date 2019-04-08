@@ -1004,6 +1004,13 @@
   </test>
   <test>
     <default>
+      <files>useasmbug.js</files>
+      <baseline>useasmbug.baseline</baseline>
+      <compile-flags>-testtrace:asmjs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>lambda.js</files>
       <baseline>lambda.baseline</baseline>
       <compile-flags>-testtrace:asmjs</compile-flags>
