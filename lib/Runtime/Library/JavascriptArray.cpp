@@ -5365,6 +5365,11 @@ Case0:
     Var JavascriptArray::EntryPushJavascriptArray(ScriptContext * scriptContext, Var * args, uint argCount)
     {
         JavascriptArray * arr = JavascriptArray::FromAnyArray(args[0]);
+
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
+#endif
+
         uint n = arr->length;
         ThrowTypeErrorOnFailureHelper h(scriptContext, _u("Array.prototype.push"));
 
