@@ -44,6 +44,12 @@
   </test>
   <test>
     <default>
+      <files>bigconstructorbug.js</files>
+      <tags>Slow</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>Object.js</files>
       <baseline>Object.baseline</baseline>
     </default>
