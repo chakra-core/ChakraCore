@@ -742,6 +742,15 @@ var tests = [
             assert.isTrue(set.has(value), "1.0 should be equal to the value 1 and set has it");
         }
     },
+    {
+        name: "-NaN and +NaN in set should not assert (github #6063)",
+        body: function() {
+            let set = new Set([+NaN, -NaN, "asdf"]);
+            assert.isTrue(set.has(-NaN));
+            assert.isTrue(set.has(NaN));
+            assert.isTrue(set.has("asdf"));
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

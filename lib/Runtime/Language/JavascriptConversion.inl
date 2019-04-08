@@ -303,9 +303,10 @@ namespace Js {
            if (typeId == TypeIds_Number)
            {
                double numberValue = JavascriptNumber::GetValue(value);
+               // NaN and -NaN do not canonicalize to the same value, but they are equal, so only allow +NaN
                return JavascriptNumber::IsNan(numberValue)
                    ? JavascriptNumber::IsNegative(numberValue)
-                        ? JavascriptNumber::ToVar(JavascriptNumber::NegativeNaN)
+                        ? nullptr
                         : JavascriptNumber::ToVar(JavascriptNumber::NaN)
                    : value;
            }
