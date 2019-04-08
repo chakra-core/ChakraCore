@@ -29,6 +29,11 @@
   </test>
   <test>
     <default>
+      <files>arguments.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>replacerFunction.js</files>
       <timeout>300</timeout>
     </default>

@@ -21,6 +21,7 @@ namespace Js
         ArgumentsObjectPrefixEnumerator(ArgumentsObject* argumentsObject, EnumeratorFlags flags, ScriptContext* requestContext);
         virtual void Reset() override;
         virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
+        virtual uint32 GetCurrentItemIndex()  override { return formalArgIndex; }
     };
 
     class ES5ArgumentsObjectEnumerator : public ArgumentsObjectPrefixEnumerator
