@@ -11,7 +11,7 @@
 // This helps compilers.
 
 #if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
-#include <immintrin.h>
+#include <Intrin.h>
 #endif
 
 #if !defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__)
