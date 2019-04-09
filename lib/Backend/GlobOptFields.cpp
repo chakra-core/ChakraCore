@@ -237,10 +237,17 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
     }
-    else if (inGlobOpt && indexOpnd && !indexOpnd->GetValueType().IsInt() && !currentBlock->globOptData.IsInt32TypeSpecialized(indexOpnd->m_sym))
+    else if (inGlobOpt)
     {
-        // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
-        this->KillAllObjectTypes(bv);
+        Value * indexValue = indexOpnd ? this->currentBlock->globOptData.FindValue(indexOpnd->GetSym()) : nullptr;
+        ValueInfo * indexValueInfo = indexValue ? indexValue->GetValueInfo() : nullptr;
+        int indexLowerBound = 0;
+
+        if (indirOpnd->GetOffset() < 0 || (indexOpnd && (!indexValueInfo || !indexValueInfo->TryGetIntConstantLowerBound(&indexLowerBound, false) || indexLowerBound < 0)))
+        {
+            // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
+            this->KillAllObjectTypes(bv);
+        }
     }
 }
 
@@ -487,7 +494,9 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::NewScObjectNoCtor:
         if (inGlobOpt)
         {
-            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            // Opcodes that make an object into a prototype may break object-header-inlining and final type opt.
+            // Kill all known object layouts.
+            KillAllObjectTypes(bv);
         }
         break;
 

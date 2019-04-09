@@ -6223,7 +6223,7 @@ Lowerer::GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHel
 
     // Load the value from the slot, getting the slot ID from the cache.
     uint16 index = propertySymOpnd->GetSlotIndex();
-    Assert(index != -1);
+    AssertOrFailFast(index != (uint16)-1);
 
     if (opndSlotArray->IsRegOpnd())
     {
@@ -7204,7 +7204,7 @@ Lowerer::GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* pr
 
     // Store the value to the slot, getting the slot index from the cache.
     uint16 index = propertySymOpnd->GetSlotIndex();
-    Assert(index != -1);
+    AssertOrFailFast(index != (uint16)-1);
 
 #if defined(RECYCLER_WRITE_BARRIER_JIT) && (defined(_M_IX86) || defined(_M_AMD64))
     if (opndSlotArray->IsRegOpnd())
@@ -7353,6 +7353,19 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
     {
         Assert(labelTypeCheckFailed == nullptr && labelBothTypeChecksFailed == nullptr);
         AssertMsg(!instrStFld->HasBailOutInfo(), "Why does a direct field store have bailout?");
+
+        if (propertySymOpnd->HasInitialType() && propertySymOpnd->HasFinalType())
+        {
+            bool isPrototypeTypeHandler = propertySymOpnd->GetInitialType()->GetTypeHandler()->IsPrototype();
+            if (isPrototypeTypeHandler)
+            {
+                LoadScriptContext(instrStFld);
+                m_lowererMD.LoadHelperArgument(instrStFld, IR::IntConstOpnd::New(propertySymOpnd->GetPropertyId(), TyInt32, m_func, true));
+                IR::Instr * invalidateCallInstr = IR::Instr::New(Js::OpCode::Call, m_func);
+                instrStFld->InsertBefore(invalidateCallInstr);
+                m_lowererMD.ChangeToHelperCall(invalidateCallInstr, IR::HelperInvalidateProtoCaches);
+            }
+        }
         instrStFld->Remove();
         return true;
     }
@@ -8177,6 +8190,16 @@ Lowerer::GenerateFieldStoreWithTypeChange(IR::Instr * instrStFld, IR::PropertySy
 
     // Now do the store.
     GenerateDirectFieldStore(instrStFld, propertySymOpnd);
+
+    bool isPrototypeTypeHandler = initialType->GetTypeHandler()->IsPrototype();
+    if (isPrototypeTypeHandler)
+    {
+        LoadScriptContext(instrStFld);
+        m_lowererMD.LoadHelperArgument(instrStFld, IR::IntConstOpnd::New(propertySymOpnd->GetPropertyId(), TyInt32, m_func, true));
+        IR::Instr * invalidateCallInstr = IR::Instr::New(Js::OpCode::Call, m_func);
+        instrStFld->InsertBefore(invalidateCallInstr);
+        m_lowererMD.ChangeToHelperCall(invalidateCallInstr, IR::HelperInvalidateProtoCaches);
+    }
 }
 
 bool
