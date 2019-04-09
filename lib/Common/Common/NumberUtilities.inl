@@ -174,7 +174,7 @@ namespace Js
 
     NUMBER_UTIL_INLINE uint64 NumberUtilities::ToSpecial(double value)
     {
-#if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
+#if defined(_AMD64_)
         return _mm_cvtsi128_si64(_mm_castpd_si128(_mm_set_sd(value)));
 #elif defined(_M_ARM32_OR_ARM64)
         return _CopyInt64FromDouble(value);
@@ -207,7 +207,7 @@ namespace Js
 
     NUMBER_UTIL_INLINE double NumberUtilities::ReinterpretBits(int64 value)
     {
-#if defined(_AMD64_) || _M_IX86_FP >= 2 || defined(__AVX__)
+#if defined(_AMD64_)
         return _mm_cvtsd_f64(_mm_castsi128_pd(_mm_cvtsi64_si128(value)));
 #elif defined(_M_ARM32_OR_ARM64)
         return _CopyDoubleFromInt64(value);
