@@ -1,0 +1,53 @@
+{
+  "name": "write-json",
+  "description": "Write a JSON file to disk, also creates intermediate directories in the destination path if they don't already exist.",
+  "version": "0.2.2",
+  "homepage": "https://github.com/jonschlinkert/write-json",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/write-json",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/write-json/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "write": "^0.2.1"
+  },
+  "devDependencies": {
+    "delete": "^0.2.1",
+    "mocha": "*"
+  },
+  "keywords": [
+    "file",
+    "fs",
+    "json",
+    "object",
+    "package",
+    "path",
+    "pkg",
+    "stringify",
+    "write"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "delete",
+        "write",
+        "write-yaml",
+        "read-yaml",
+        "read-json",
+        "read-data"
+      ],
+      "description": ""
+    }
+  }
+}

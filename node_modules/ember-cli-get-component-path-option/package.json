@@ -1,0 +1,23 @@
+{
+  "name": "ember-cli-get-component-path-option",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/ember-cli-get-component-path-option.git"
+  },
+  "author": "Stefan Penner",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ember-cli/ember-cli-get-component-path-option/issues"
+  },
+  "homepage": "https://github.com/ember-cli/ember-cli-get-component-path-option#readme",
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "mocha": "^2.3.3"
+  }
+}

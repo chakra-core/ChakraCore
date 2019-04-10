@@ -1,0 +1,78 @@
+{
+  "name": "parse-author",
+  "description": "Parse an author, contributor, maintainer or other 'person' string into an object with name, email and url properties following npm conventions.",
+  "version": "2.0.0",
+  "homepage": "https://github.com/jonschlinkert/parse-author",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Sean Lang <slang800@gmail.com> (http://slang.cx)",
+    "Tim Oram <mitmaro@gmail.com> (http://www.mitmaro.ca)"
+  ],
+  "repository": "jonschlinkert/parse-author",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/parse-author/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "author-regex": "^1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "author",
+    "authors",
+    "contributor",
+    "exec",
+    "expression",
+    "extract",
+    "maintainer",
+    "maintainers",
+    "match",
+    "package",
+    "parse",
+    "person",
+    "pkg",
+    "re",
+    "regex",
+    "regexp",
+    "regular",
+    "somebody"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "author-regex",
+        "parse-authors",
+        "stringify-author",
+        "stringify-authors"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

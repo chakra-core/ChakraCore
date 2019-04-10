@@ -1,0 +1,71 @@
+{
+  "name": "map-visit",
+  "description": "Map `visit` over an array of objects.",
+  "version": "0.1.5",
+  "homepage": "https://github.com/jonschlinkert/map-visit",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/map-visit",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/map-visit/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "lazy-cache": "^2.0.1",
+    "object-visit": "^0.3.4"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.10",
+    "lodash": "^4.14.1",
+    "mocha": "^3.0.1",
+    "should": "^10.0.0"
+  },
+  "keywords": [
+    "array",
+    "arrays",
+    "function",
+    "helper",
+    "invoke",
+    "key",
+    "map",
+    "method",
+    "object",
+    "objects",
+    "value",
+    "visit",
+    "visitor"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "collection-visit",
+        "object-visit"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+var randomstring = require('..');
+
+var options = {};
+
+for (var i = 2, ii = process.argv.length; i < ii; i++) {
+  var arg = process.argv[i];
+  
+  if (arg.search('length') >= 0) {
+    var length = arg.split('=')[1];
+    
+    if (length)
+      options.length = parseInt(length);
+  }
+  else if (arg.search('readable') >= 0) {
+    options.readable = true;
+  }
+  else if (arg.search('charset') >= 0) {
+    var charset = arg.split('=')[1];
+    
+    if (charset)
+      options.charset = charset;
+  }
+  else if (arg.search('capitalization') >= 0) {
+    var capitalization = arg.split('=')[1];
+    
+    if (capitalization)
+      options.capitalization = capitalization;
+  }
+  // If only a number is given as an arg, parse it as the length
+  else if (arg.search(/\D/ig) < 0) {
+    options.length = parseInt(arg);
+  }
+};
+
+var result = randomstring.generate(options);
+
+console.log(result)

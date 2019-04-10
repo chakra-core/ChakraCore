@@ -1,0 +1,74 @@
+{
+  "name": "project-name",
+  "description": "Get the name of a project, from package.json, git config, or basename of the current working directory.",
+  "version": "0.2.6",
+  "homepage": "https://github.com/jonschlinkert/project-name",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/project-name",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/project-name/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "cli.js",
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "bin": {
+    "project-name": "cli.js"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "find-pkg": "^0.1.2",
+    "git-repo-name": "^0.6.0",
+    "minimist": "^1.2.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "app",
+    "detect",
+    "dir",
+    "directory",
+    "dirname",
+    "match",
+    "name",
+    "project",
+    "resolve",
+    "root"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "git-repo-name",
+        "git-user-email",
+        "git-user-name",
+        "git-username"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-readme-generator"
+    ]
+  }
+}

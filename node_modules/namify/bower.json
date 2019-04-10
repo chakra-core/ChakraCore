@@ -1,0 +1,7 @@
+{
+  "name": "namify",
+  "version": "0.1.3",
+  "main": [
+    "index.js"
+  ]
+}

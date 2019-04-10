@@ -1,0 +1,121 @@
+{
+  "name": "base-cli-process",
+  "description": "Normalizers for common argv commands handled by the base-cli plugin. Also pre-processes the given object with base-cli-schema before calling `.process()`",
+  "version": "0.1.19",
+  "homepage": "https://github.com/node-base/base-cli-process",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)",
+    "Sean Lang <slang800@gmail.com> (http://slang.cx)"
+  ],
+  "repository": "node-base/base-cli-process",
+  "bugs": {
+    "url": "https://github.com/node-base/base-cli-process/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-union": "^3.1.0",
+    "arrayify-compact": "^0.2.0",
+    "base-cli": "^0.5.0",
+    "base-cli-schema": "^0.1.19",
+    "base-config-process": "^0.1.9",
+    "base-cwd": "^0.3.4",
+    "base-option": "^0.8.4",
+    "base-pkg": "^0.2.4",
+    "debug": "^2.6.2",
+    "export-files": "^2.1.1",
+    "fs-exists-sync": "^0.1.0",
+    "is-valid-app": "^0.2.1",
+    "kind-of": "^3.1.0",
+    "lazy-cache": "^2.0.2",
+    "log-utils": "^0.2.1",
+    "merge-deep": "^3.0.0",
+    "mixin-deep": "^1.2.0",
+    "object.pick": "^1.2.0",
+    "pad-right": "^0.2.2",
+    "union-value": "^1.0.0"
+  },
+  "devDependencies": {
+    "assemble-core": "^0.31.0",
+    "base": "^0.11.1",
+    "base-data": "^0.6.0",
+    "base-pipeline": "^0.3.2",
+    "base-store": "^0.4.4",
+    "delete": "^0.3.2",
+    "engine-base": "^0.1.3",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.0",
+    "gulp-unused": "^0.2.1",
+    "helper-coverage": "^0.1.3",
+    "helper-example": "^0.1.0",
+    "map-schema": "^0.2.4",
+    "minimist": "^1.2.0",
+    "mocha": "^3.2.0",
+    "verb-generate-readme": "^0.4.3"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "base-plugin",
+    "baseplugin",
+    "building-blocks",
+    "cli",
+    "command-line",
+    "commands",
+    "create",
+    "framework",
+    "plugin",
+    "plugins",
+    "process",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-cli",
+        "base-config"
+      ]
+    },
+    "reflinks": [
+      "base-cli",
+      "base-cli-schema",
+      "base-data",
+      "base-option",
+      "base-pipeline",
+      "templates",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

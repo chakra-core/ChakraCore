@@ -1,0 +1,86 @@
+{
+  "name": "parser-front-matter",
+  "description": "Front matter parsing middleware based on gray-matter.",
+  "version": "1.6.4",
+  "homepage": "https://github.com/jonschlinkert/parser-front-matter",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    "Brian Woodward (https://github.com/doowb)"
+  ],
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/parser-front-matter",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/parser-front-matter/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "file-is-binary": "^1.0.0",
+    "gray-matter": "^3.0.2",
+    "isobject": "^3.0.1",
+    "lazy-cache": "^2.0.2",
+    "mixin-deep": "^1.2.0",
+    "trim-leading-lines": "^0.1.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.4.2",
+    "vinyl": "^2.1.0"
+  },
+  "keywords": [
+    "consolidate",
+    "data",
+    "front",
+    "front-matter",
+    "gray-matter",
+    "matter",
+    "meta",
+    "metadata",
+    "parse",
+    "parser",
+    "parsers",
+    "yaml"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "gray-matter",
+        "parser-cache",
+        "parser-csv"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "assemble",
+      "generate",
+      "gray-matter",
+      "update",
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

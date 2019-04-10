@@ -1,0 +1,13 @@
+{
+  "author": "Darren DeRidder",
+  "name": "python",
+  "main": "./lib/python.js",
+  "description": "Interact with a long-running python child process",
+  "version": "0.0.4",
+  "homepage": "https://github.com/73rhodes/node-python",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/73rhodes/node-python.git"
+  },
+  "engines": { "node": ">= 0.4.1" }
+}

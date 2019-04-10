@@ -1,0 +1,48 @@
+{
+  "name": "randexp",
+  "description": "Create random strings that match a given regular expression.",
+  "keywords": [
+    "regex",
+    "regexp",
+    "regular expression",
+    "random",
+    "test"
+  ],
+  "version": "0.4.9",
+  "homepage": "http://fent.github.io/randexp.js/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fent/randexp.js.git"
+  },
+  "author": "fent (https://github.com/fent)",
+  "main": "./lib/randexp.js",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "version": "gulp build && git add build",
+    "test": "istanbul cover node_modules/.bin/_mocha -- test/*-test.js"
+  },
+  "directories": {
+    "lib": "./lib"
+  },
+  "dependencies": {
+    "drange": "^1.0.0",
+    "ret": "^0.2.0"
+  },
+  "devDependencies": {
+    "browserify": "^15.2.0",
+    "gulp": "^3.9.0",
+    "gulp-header": "^2.0.1",
+    "gulp-insert": "^0.5.0",
+    "gulp-uglify": "^3.0.0",
+    "istanbul": "*",
+    "mocha": "^5.0.0",
+    "vinyl-buffer": "^1.0.1",
+    "vinyl-source-stream": "^1.1.2"
+  },
+  "engines": {
+    "node": ">=4"
+  },
+  "license": "MIT"
+}

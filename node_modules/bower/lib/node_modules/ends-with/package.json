@@ -1,0 +1,51 @@
+{
+  "name": "ends-with",
+  "description": "Returns `true` if the given `string` or `array` ends with `suffix` using strict equality for comparisons.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/ends-with",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/ends-with.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/ends-with/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jonschlinkert/ends-with/blob/master/LICENSE-MIT"
+    }
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "^4.0.4",
+    "verb": ">= 0.2.6",
+    "ansi": "^0.3.0",
+    "benchmark": "^1.0.0",
+    "verb-tag-jscomments": ">= 0.2.0"
+  },
+  "keywords": [
+    "array",
+    "end",
+    "ends",
+    "javascript",
+    "js",
+    "string",
+    "suffix",
+    "util",
+    "utility",
+    "utils"
+  ],
+  "dependencies": {}
+}

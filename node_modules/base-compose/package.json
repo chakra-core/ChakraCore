@@ -1,0 +1,77 @@
+{
+  "name": "base-compose",
+  "description": "Selectively merge values from one or more generators onto the current application instance.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/node-base/base-compose",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "repository": "node-base/base-compose",
+  "bugs": {
+    "url": "https://github.com/node-base/base-compose/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "copy-task": "^0.1.0",
+    "lazy-cache": "^2.0.1",
+    "mixin-deep": "^1.1.3"
+  },
+  "devDependencies": {
+    "assemble-core": "^0.21.0",
+    "base": "^0.11.0",
+    "base-generators": "^0.4.0",
+    "base-pipeline": "^0.3.1",
+    "base-questions": "^0.6.6",
+    "engine-base": "^0.1.2",
+    "engine-handlebars": "^0.8.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^1.0.0",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "base",
+    "compose"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "base",
+        "generate",
+        "verb"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "base-generators",
+      "base-pipeline",
+      "base-questions",
+      "base-task",
+      "templates",
+      "verb",
+      "verb-readme-generator"
+    ]
+  }
+}

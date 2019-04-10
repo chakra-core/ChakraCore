@@ -1,0 +1,36 @@
+Usage: yo GENERATOR [args] [options]
+
+General options:
+  --help         # Print this info and generator's options and usage
+  -f, --force    # Overwrite files that already exist
+  --version      # Print version
+  --no-color     # Disable colors
+  --[no-]insight # Toggle anonymous tracking
+  --generators	 # Print available generators
+
+Install a generator:
+
+  Generators can be installed through npm.
+
+  $ npm install generator-angular
+  $ yo angular --help
+
+Run local generators:
+  
+  Additionally, you can also run local generators without installing via npm.
+
+  $ yo ./path/to/some/generator
+
+Completion:
+
+  To enable shell completion for the yo command, try running
+
+  $ yo completion
+
+Troubleshooting:
+
+  For any issues, try running
+
+  $ yo doctor
+
+Full Documentation: http://yeoman.io

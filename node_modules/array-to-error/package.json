@@ -1,0 +1,45 @@
+{
+  "name": "array-to-error",
+  "version": "1.1.1",
+  "description": "Create an error from an array of error messages",
+  "repository": "shinnn/array-to-error",
+  "author": "Shinnosuke Watanabe (https://github.com/shinnn)",
+  "scripts": {
+    "pretest": "bower install --production && eslint --fix --config @shinnn --ignore-path .gitignore .",
+    "test": "node --strong_mode --throw-deprecation --track-heap-objects test.js | tap-spec",
+    "coverage": "istanbul cover -x=bower_components/array-to-sentence/* test.js"
+  },
+  "license": "MIT",
+  "jsnext:main": "index.jsnext.js",
+  "files": [
+    "index.js",
+    "index.jsnext.js"
+  ],
+  "keywords": [
+    "err",
+    "error",
+    "arr",
+    "array",
+    "convert",
+    "join",
+    "concat",
+    "concatenate",
+    "concatenation",
+    "browser"
+  ],
+  "dependencies": {
+    "array-to-sentence": "^1.1.0"
+  },
+  "devDependencies": {
+    "@shinnn/eslint-config": "^2.4.0",
+    "bower": "^1.7.9",
+    "eslint": "^2.13.1",
+    "istanbul": "^0.4.4",
+    "require-bower-files": "^3.0.0",
+    "require-from-string": "^1.2.0",
+    "rollup": "^0.32.0",
+    "rollup-plugin-node-resolve": "^1.7.0",
+    "tap-spec": "^4.1.1",
+    "tape": "^4.6.0"
+  }
+}

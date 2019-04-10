@@ -1,0 +1,10 @@
+{
+  "name": "amd-transform",
+  "keywords": [
+    "ember-addon"
+  ],
+  "ember-addon": {},
+  "dependencies": {
+    "broccoli-stew": "*"
+  }
+}

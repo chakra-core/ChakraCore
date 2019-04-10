@@ -1,0 +1,77 @@
+{
+  "name": "en-route",
+  "description": "Routing for static site generators, build systems and task runners, heavily based on express.js routes but works with file objects. Used by Assemble, Verb, and Template.",
+  "version": "0.7.5",
+  "homepage": "https://github.com/jonschlinkert/en-route",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    "Brian Woodward",
+    "Jon Schlinkert"
+  ],
+  "repository": "jonschlinkert/en-route",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/en-route/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib/"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1",
+    "debug": "^2.2.0",
+    "extend-shallow": "^2.0.1",
+    "kind-of": "^3.0.2",
+    "lazy-cache": "^1.0.3",
+    "path-to-regexp": "^1.2.1"
+  },
+  "devDependencies": {
+    "after": "^0.8.1",
+    "gulp": "^3.9.0",
+    "gulp-eslint": "^1.1.1",
+    "gulp-format-md": "^0.1.4",
+    "gulp-istanbul": "^0.10.3",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "*"
+  },
+  "keywords": [
+    "app",
+    "assemble",
+    "express",
+    "file",
+    "filepath",
+    "kerouac",
+    "middleware",
+    "path",
+    "regex",
+    "regexp",
+    "route",
+    "router",
+    "routes",
+    "routing",
+    "site",
+    "static",
+    "task",
+    "tasks"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "assemble",
+        "gulp-routes",
+        "template",
+        "verb"
+      ]
+    },
+    "plugins": [
+      "gulp-format-md"
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "name": "option-cache",
+  "description": "Simple API for managing options in JavaScript applications.",
+  "version": "3.5.0",
+  "homepage": "https://github.com/jonschlinkert/option-cache",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Charlike Mike Reagent (https://i.am.charlike.online)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/option-cache",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/option-cache/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "docs": "verb"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.3",
+    "collection-visit": "^1.0.0",
+    "component-emitter": "^1.2.1",
+    "get-value": "^2.0.6",
+    "has-value": "^0.3.1",
+    "kind-of": "^3.2.2",
+    "lazy-cache": "^2.0.2",
+    "set-value": "^0.4.3",
+    "to-object-path": "^0.3.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.12",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "mocha": "^3.4.1"
+  },
+  "keywords": [
+    "add",
+    "boolean",
+    "cache",
+    "config",
+    "configuration",
+    "default",
+    "defaults",
+    "define",
+    "disable",
+    "disabled",
+    "emit",
+    "enable",
+    "enabled",
+    "event",
+    "false",
+    "fillin",
+    "get",
+    "has",
+    "is",
+    "listener",
+    "listeners",
+    "merge",
+    "off",
+    "once",
+    "opt",
+    "option",
+    "options",
+    "opts",
+    "remove",
+    "set",
+    "settings",
+    "true",
+    "visit"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "cache-base",
+        "config-cache",
+        "map-cache"
+      ]
+    }
+  }
+}

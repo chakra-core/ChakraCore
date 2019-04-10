@@ -1,0 +1,5 @@
+node_modules
+tmp
+test/fixtures
+test/tmp
+test/multidep

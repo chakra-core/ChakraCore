@@ -1,0 +1,89 @@
+{
+  "name": "base-task",
+  "description": "base plugin that provides a very thin wrapper around <https://github.com/doowb/composer> for adding task methods to your application.",
+  "version": "0.6.2",
+  "homepage": "https://github.com/node-base/base-task",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward <brian.woodward@gmail.com> (https://github.com/doowb)",
+    "Dave Quick <dq@dq.gg> (http://dq.gg)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "node-base/base-task",
+  "bugs": {
+    "url": "https://github.com/node-base/base-task/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "composer": "^0.13.0",
+    "is-valid-app": "^0.1.0"
+  },
+  "devDependencies": {
+    "base": "^0.8.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "baseplugin",
+    "build",
+    "building-blocks",
+    "composer",
+    "control",
+    "create",
+    "flow",
+    "framework",
+    "generate",
+    "plugin",
+    "plugins",
+    "run",
+    "task",
+    "tasks",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highlight": "base-watch",
+      "description": "Other base plugins you might be interested in:",
+      "list": [
+        "base",
+        "base-cli",
+        "base-generators",
+        "base-option",
+        "base-plugins",
+        "base-store"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "base-generators",
+      "base-watch",
+      "composer",
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

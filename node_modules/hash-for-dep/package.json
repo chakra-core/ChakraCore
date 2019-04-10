@@ -1,0 +1,33 @@
+{
+  "name": "hash-for-dep",
+  "version": "1.5.1",
+  "description": "generates a hash that represents a module and its depenencies uniqueness",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/**/*-test.js",
+    "test:debug": "mocha debug tests/**/*-test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stefanpenner/hash-for-dep.git"
+  },
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stefanpenner/hash-for-dep/issues"
+  },
+  "homepage": "https://github.com/stefanpenner/hash-for-dep#readme",
+  "dependencies": {
+    "broccoli-kitchen-sink-helpers": "^0.3.1",
+    "heimdalljs": "^0.2.3",
+    "heimdalljs-logger": "^0.1.7",
+    "path-root": "^0.1.1",
+    "resolve": "^1.10.0",
+    "resolve-package-path": "^1.0.11"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.2.4",
+    "mocha-jshint": "^1.0.0"
+  }
+}

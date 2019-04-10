@@ -1,0 +1,8 @@
+{
+  "name": "pad",
+  "repo": "component/pad",
+  "version": "0.0.1",
+  "description": "Pad strings to a given length",
+  "keywords": ["string", "trim", "utility"],
+  "scripts": ["index.js"]
+}

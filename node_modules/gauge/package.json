@@ -1,0 +1,34 @@
+{
+  "name": "gauge",
+  "version": "1.2.7",
+  "description": "A terminal based horizontal guage",
+  "main": "progress-bar.js",
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iarna/gauge"
+  },
+  "keywords": [
+    "progressbar",
+    "progress",
+    "gauge"
+  ],
+  "author": "Rebecca Turner <me@re-becca.org>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iarna/gauge/issues"
+  },
+  "homepage": "https://github.com/iarna/gauge",
+  "dependencies": {
+    "ansi": "^0.3.0",
+    "has-unicode": "^2.0.0",
+    "lodash.pad": "^4.1.0",
+    "lodash.padend": "^4.1.0",
+    "lodash.padstart": "^4.1.0"
+  },
+  "devDependencies": {
+    "tap": "^5.6.0"
+  }
+}

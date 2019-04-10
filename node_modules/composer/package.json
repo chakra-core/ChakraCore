@@ -1,0 +1,100 @@
+{
+  "name": "composer",
+  "description": "API-first task runner with three methods: task, run and watch.",
+  "version": "0.13.0",
+  "homepage": "https://github.com/doowb/composer",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward <brian.woodward@gmail.com> (https://github.com/doowb)",
+    "Jon Schlinkert <github@sellside.com> (https://github.com/jonschlinkert)"
+  ],
+  "repository": "doowb/composer",
+  "bugs": {
+    "url": "https://github.com/doowb/composer/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "array-unique": "^0.2.1",
+    "bach": "^0.5.0",
+    "co": "^4.6.0",
+    "component-emitter": "^1.2.1",
+    "define-property": "^0.2.5",
+    "extend-shallow": "^2.0.1",
+    "is-generator": "^1.0.3",
+    "is-glob": "^2.0.1",
+    "isobject": "^2.1.0",
+    "lazy-cache": "^2.0.1",
+    "micromatch": "^2.3.8",
+    "nanoseconds": "^0.1.0"
+  },
+  "devDependencies": {
+    "assemble-loader": "^0.4.0",
+    "assemble-render-file": "^0.5.3",
+    "assemble-streams": "^0.5.0",
+    "async": "^1.5.2",
+    "bluebird": "^3.3.5",
+    "composer-runtimes": "^0.7.0",
+    "engine-handlebars": "^0.8.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-extname": "^0.2.2",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "mocha": "^2.4.5",
+    "parser-front-matter": "^1.3.0",
+    "templates": "^0.17.2",
+    "through2": "^2.0.1",
+    "write": "^0.3.1"
+  },
+  "keywords": [
+    "build",
+    "build-system",
+    "compose",
+    "flow",
+    "run",
+    "system",
+    "task",
+    "workflow"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "base-tasks",
+        "generate",
+        "update",
+        "verb"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "base-tasks",
+      "composer",
+      "verb",
+      "base",
+      "base-watch"
+    ]
+  }
+}

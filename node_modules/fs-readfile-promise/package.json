@@ -1,0 +1,36 @@
+{
+	"name": "fs-readfile-promise",
+	"version": "3.0.1",
+	"description": "Promise version of fs.readFile",
+	"repository": "shinnn/fs-readfile-promise",
+	"author": "Shinnosuke Watanabe (https://github.com/shinnn)",
+	"scripts": {
+		"pretest": "eslint --fix --format=codeframe index.js test.js",
+		"test": "nyc node test.js"
+	},
+	"license": "ISC",
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"fs",
+		"read",
+		"file",
+		"promise",
+		"promises",
+		"then",
+		"thenable"
+	],
+	"dependencies": {
+		"graceful-fs": "^4.1.11"
+	},
+	"devDependencies": {
+		"@shinnn/eslint-config-node": "^5.0.0",
+		"eslint": "^4.14.0",
+		"nyc": "^11.4.1",
+		"tape": "^4.8.0"
+	},
+	"eslintConfig": {
+		"extends": "@shinnn/node"
+	}
+}

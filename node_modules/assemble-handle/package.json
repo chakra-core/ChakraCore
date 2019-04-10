@@ -1,0 +1,86 @@
+{
+  "name": "assemble-handle",
+  "description": "Assemble pipeline plugin for handling custom middleware stages.",
+  "version": "0.1.4",
+  "homepage": "https://github.com/assemble/assemble-handle",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "assemble/assemble-handle",
+  "bugs": {
+    "url": "https://github.com/assemble/assemble-handle/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "through2": "^2.0.3"
+  },
+  "devDependencies": {
+    "assemble-core": "^0.31.0",
+    "delete": "^1.0.1",
+    "gulp-format-md": "^0.1.12",
+    "mocha": "^3.4.2",
+    "vinyl": "^2.0.2"
+  },
+  "keywords": [
+    "assemble",
+    "assembleplugin",
+    "boilerplate",
+    "build",
+    "cli",
+    "cli-app",
+    "command-line",
+    "create",
+    "dev",
+    "development",
+    "framework",
+    "front",
+    "frontend",
+    "handle",
+    "handler",
+    "middleware",
+    "plugin",
+    "project",
+    "projects",
+    "run",
+    "scaffold",
+    "scaffolder",
+    "scaffolding",
+    "stage",
+    "template",
+    "templates",
+    "use",
+    "webapp",
+    "yeoman",
+    "yo"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "assemble",
+        "assemble-core",
+        "assemble-fs",
+        "assemble-streams"
+      ]
+    },
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

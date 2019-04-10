@@ -1,0 +1,59 @@
+{
+  "name": "tap-parser",
+  "version": "7.0.0",
+  "description": "parse the test anything protocol",
+  "main": "index.js",
+  "bin": {
+    "tap-parser": "bin/cmd.js"
+  },
+  "dependencies": {
+    "events-to-array": "^1.0.1",
+    "js-yaml": "^3.2.7",
+    "minipass": "^2.2.0"
+  },
+  "devDependencies": {
+    "glob": "^7.0.5",
+    "tap": "^10.3.3"
+  },
+  "scripts": {
+    "test": "tap test/*.js --100 -J",
+    "regen-fixtures": "node scripts/generate-test.js test/fixtures/*.tap",
+    "preversion": "npm test",
+    "postversion": "npm publish",
+    "postpublish": "git push origin --all; git push origin --tags"
+  },
+  "testling": {
+    "files": "test/*.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/10",
+      "chrome/latest",
+      "firefox/3.5",
+      "firefox/latest",
+      "opera/latest",
+      "safari/latest"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/substack/tap-parser.git"
+  },
+  "homepage": "https://github.com/substack/tap-parser",
+  "keywords": [
+    "tap",
+    "test",
+    "parser"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "license": "MIT",
+  "optionalDependencies": {},
+  "files": [
+    "index.js",
+    "bin/cmd.js",
+    "bin/usage.txt"
+  ]
+}

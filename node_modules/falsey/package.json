@@ -1,0 +1,64 @@
+{
+  "name": "falsey",
+  "description": "Returns true if `value` is falsey. Works for strings, arrays and `arguments` objects with a length of `0`, and objects with no own enumerable properties are considered falsey.",
+  "version": "0.3.2",
+  "homepage": "https://github.com/jonschlinkert/falsey",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/falsey",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/falsey/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "kind-of": "^5.0.2"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^1.0.0",
+    "mocha": "*"
+  },
+  "keywords": [
+    "args",
+    "arguments",
+    "array",
+    "boolean",
+    "check",
+    "false",
+    "falsey",
+    "null",
+    "object",
+    "type",
+    "undefined",
+    "value"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "is-number",
+        "is-primitive",
+        "isobject",
+        "kind-of"
+      ]
+    },
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

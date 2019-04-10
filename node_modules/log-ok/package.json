@@ -1,0 +1,57 @@
+{
+  "name": "log-ok",
+  "description": "just `console.log` prefixed with a green check",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/log-ok",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/log-ok",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/log-ok/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ansi-green": "^0.1.1",
+    "success-symbol": "^0.1.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "log",
+    "ok"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "log-utils",
+        "ansi-colors"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

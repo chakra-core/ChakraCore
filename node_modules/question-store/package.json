@@ -1,0 +1,100 @@
+{
+  "name": "question-store",
+  "description": "Ask questions, persist the answers. Basic support for i18n and storing answers based on current working directory.",
+  "version": "0.11.1",
+  "homepage": "https://github.com/jonschlinkert/question-store",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/question-store",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/question-store/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "common-config": "^0.1.0",
+    "data-store": "^0.16.1",
+    "debug": "^2.2.0",
+    "is-answer": "^0.1.0",
+    "lazy-cache": "^2.0.1",
+    "project-name": "^0.2.6",
+    "question-cache": "^0.5.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^1.0.0",
+    "gulp-mocha": "^2.2.0",
+    "gulp-unused": "^0.1.2",
+    "minimist": "^1.2.0",
+    "mocha": "^2.5.3",
+    "question-force": "^0.1.0",
+    "question-match": "^0.1.2"
+  },
+  "keywords": [
+    "answer",
+    "ask",
+    "cli",
+    "command",
+    "command-line",
+    "console",
+    "create",
+    "generate",
+    "generator",
+    "generators",
+    "init",
+    "inquirer",
+    "menu",
+    "project",
+    "prompt",
+    "prompts",
+    "question",
+    "questions",
+    "scaffold",
+    "stdin",
+    "store",
+    "terminal",
+    "tty",
+    "util",
+    "yeoman"
+  ],
+  "verb": {
+    "run": true,
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "answer-store",
+        "base-questions",
+        "inquirer",
+        "question-cache"
+      ]
+    },
+    "reflinks": [
+      "question-cache",
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

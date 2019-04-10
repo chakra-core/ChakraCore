@@ -1,0 +1,29 @@
+{
+  "name": "instant-icons",
+  "version": "1.0.0",
+  "description": "Clientside script that aliases Glyphicon and Font Awesome tags",
+  "main": "icons.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lancey6/instant-icons.git"
+  },
+  "keywords": [
+    "icons",
+    "font-awesome",
+    "glyphicons",
+    "bootstrap",
+    "clientside"
+  ],
+  "author": "David Reeve",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Lancey6/instant-icons/issues"
+  },
+  "homepage": "https://github.com/Lancey6/instant-icons#readme"
+}

@@ -1,0 +1,34 @@
+{
+  "name": "empty-dir",
+  "description": "Check if a directory is empty.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/js-cli/js-empty-dir",
+  "author": "Tyler Kellen <http://goingslowly.com/>",
+  "repository": "js-cli/js-empty-dir",
+  "bugs": {
+    "url": "https://github.com/js-cli/js-empty-dir/issues"
+  },
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "fs-exists-sync": "^0.1.0"
+  },
+  "devDependencies": {
+    "chai": "~1.9.1",
+    "mocha": "~1.18.2"
+  },
+  "keywords": [
+    "empty directory",
+    "empty dir",
+    "empty folder"
+  ]
+}

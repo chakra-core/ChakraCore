@@ -1,0 +1,47 @@
+{
+  "name": "defaults-deep",
+  "description": "Like `extend` but recursively copies only the missing properties/values to the target object.",
+  "version": "0.2.4",
+  "homepage": "https://github.com/jonschlinkert/defaults-deep",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/defaults-deep",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/defaults-deep/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "for-own": "^0.1.3",
+    "is-extendable": "^0.1.1",
+    "lazy-cache": "^0.2.3"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": [
+    "copy",
+    "default",
+    "defaults",
+    "extend",
+    "merge",
+    "object",
+    "properties",
+    "property",
+    "value",
+    "values",
+    "javascript",
+    "js",
+    "util",
+    "utils"
+  ]
+}

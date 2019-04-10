@@ -1,0 +1,1296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="956cfca4-a1b1-4ac7-ae2a-5e4983d7b3c8" name="Default" comment="3">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/assocPath.js" afterPath="$PROJECT_DIR$/src/assocPath.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/lensPath.js" afterPath="$PROJECT_DIR$/src/lensPath.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/path.js" afterPath="$PROJECT_DIR$/src/path.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test/assocPath.js" afterPath="$PROJECT_DIR$/test/assocPath.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test/lensPath.js" afterPath="$PROJECT_DIR$/test/lensPath.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test/path.js" afterPath="$PROJECT_DIR$/test/path.js" />
+    </list>
+    <ignored path="ramda.iws" />
+    <ignored path=".idea/workspace.xml" />
+    <ignored path=".idea/dataSources.local.xml" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="TRACKING_ENABLED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CreatePatchCommitExecutor">
+    <option name="PATCH_PATH" value="" />
+  </component>
+  <component name="DatabaseView">
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_TABLE_DETAILS" value="true" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
+  <component name="FavoritesManager">
+    <favorites_list name="ramda" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="assocPath.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/assocPath.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="450">
+              <caret line="30" column="39" lean-forward="false" selection-start-line="30" selection-start-column="39" selection-end-line="30" selection-end-column="39" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lensIndex.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lensIndex.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="405">
+              <caret line="27" column="15" lean-forward="false" selection-start-line="27" selection-start-column="15" selection-end-line="27" selection-end-column="15" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="nth.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/nth.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lensPath.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test/lensPath.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="735">
+              <caret line="49" column="15" lean-forward="false" selection-start-line="49" selection-start-column="15" selection-end-line="49" selection-end-column="15" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="update.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/update.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="420">
+              <caret line="28" column="12" lean-forward="false" selection-start-line="28" selection-start-column="12" selection-end-line="28" selection-end-column="12" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="adjust.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/adjust.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="assocPath.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test/assocPath.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="450">
+              <caret line="30" column="75" lean-forward="false" selection-start-line="30" selection-start-column="75" selection-end-line="30" selection-end-column="75" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="path.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/test/path.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="435">
+              <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="31" selection-end-column="5" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="path.js" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/path.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="360">
+              <caret line="24" column="36" lean-forward="false" selection-start-line="24" selection-start-column="36" selection-end-line="24" selection-end-column="36" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="lensPath.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/lensPath.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="210">
+              <caret line="14" column="8" lean-forward="false" selection-start-line="14" selection-start-column="8" selection-end-line="14" selection-end-column="8" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="Git.Settings">
+    <option name="UPDATE_TYPE" value="REBASE" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="around" />
+      </map>
+    </option>
+  </component>
+  <component name="GulpTreeLayoutManager">
+    <layout place="tools.popup">
+      <scroll-view-position x="0" y="0" />
+    </layout>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/scratch.js" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_5.es6" />
+        <option value="$PROJECT_DIR$/src/unfold.js" />
+        <option value="$PROJECT_DIR$/dist/ramda.js" />
+        <option value="$PROJECT_DIR$/src/mergeDeepWith.js" />
+        <option value="$PROJECT_DIR$/src/mergeDeepWithKey.js" />
+        <option value="$PROJECT_DIR$/test/mergeDeep.js" />
+        <option value="$PROJECT_DIR$/test/mergeDeepWithKey.js" />
+        <option value="$PROJECT_DIR$/test/mergeDeepWith.js" />
+        <option value="$PROJECT_DIR$/src/mergeWith.js" />
+        <option value="$PROJECT_DIR$/src/mergeWithKey.js" />
+        <option value="$PROJECT_DIR$/src/mergeDeep.js" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_8.es6" />
+        <option value="$PROJECT_DIR$/src/internal/type/_Identity.js" />
+        <option value="$PROJECT_DIR$/src/internal/type/_Const.js" />
+        <option value="$PROJECT_DIR$/src/internal/type/_Last.js" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_20.txt" />
+        <option value="$PROJECT_DIR$/src/internal/_IdentityType.js" />
+        <option value="$PROJECT_DIR$/src/traversed.js" />
+        <option value="$PROJECT_DIR$/src/view.js" />
+        <option value="$PROJECT_DIR$/src/internal/_ConstType.js" />
+        <option value="$PROJECT_DIR$/src/traverseView.js" />
+        <option value="$PROJECT_DIR$/lens-scratch.js" />
+        <option value="$PROJECT_DIR$/src/over.js" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_10.es6" />
+        <option value="$PROJECT_DIR$/src/mergeDeepRight.js" />
+        <option value="$PROJECT_DIR$/test/mergeDeepLeft.js" />
+        <option value="$PROJECT_DIR$/test/mergeDeepRight.js" />
+        <option value="$PROJECT_DIR$/src/merge.js" />
+        <option value="$PROJECT_DIR$/src/mergeDeepLeft.js" />
+        <option value="$PROJECT_DIR$/src/around.js" />
+        <option value="$PROJECT_DIR$/src/pathEq.js" />
+        <option value="$PROJECT_DIR$/src/pathOr.js" />
+        <option value="$PROJECT_DIR$/src/pathSatisfies.js" />
+        <option value="$PROJECT_DIR$/test/pathSatisfies.js" />
+        <option value="$PROJECT_DIR$/test/pathOr.js" />
+        <option value="$PROJECT_DIR$/test/pathEq.js" />
+        <option value="$PROJECT_DIR$/src/internal/_isInteger.js" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_32.txt" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_33.txt" />
+        <option value="$APPLICATION_CONFIG_DIR$/scratches/scratch_34.txt" />
+        <option value="$PROJECT_DIR$/src/pipeK.js" />
+        <option value="$PROJECT_DIR$/test/composeK.js" />
+        <option value="$PROJECT_DIR$/test/pipeK.js" />
+        <option value="$PROJECT_DIR$/src/composeK.js" />
+        <option value="$PROJECT_DIR$/test/path.js" />
+        <option value="$PROJECT_DIR$/test/assocPath.js" />
+        <option value="$PROJECT_DIR$/test/lensPath.js" />
+        <option value="$PROJECT_DIR$/src/assocPath.js" />
+        <option value="$PROJECT_DIR$/src/lensPath.js" />
+        <option value="$PROJECT_DIR$/src/path.js" />
+      </list>
+    </option>
+  </component>
+  <component name="JsBuildToolGruntFileManager" detection-done="true" sorting="DEFINITION_ORDER" />
+  <component name="JsBuildToolPackageJson" detection-done="true" sorting="DEFINITION_ORDER">
+    <package-json value="$PROJECT_DIR$/package.json" />
+  </component>
+  <component name="JsGruntFileManager">
+    <initial>false</initial>
+  </component>
+  <component name="JsGulpfileManager">
+    <detection-done>true</detection-done>
+    <sorting>DEFINITION_ORDER</sorting>
+  </component>
+  <component name="JsbtTreeLayoutManager">
+    <layout place="tools.popupnpm">
+      <scroll-view-position x="0" y="0" />
+      <selected-paths>
+        <path>
+          <id value="$PROJECT_DIR$/package.json" />
+          <id value="test" />
+        </path>
+      </selected-paths>
+    </layout>
+  </component>
+  <component name="NamedScopeManager">
+    <scope name="Excluding node_modules" pattern="!file[ramda]:node_modules//*" />
+  </component>
+  <component name="NodeJsMochaPackageDirSetting">
+    <data>$PROJECT_DIR$/node_modules/mocha</data>
+  </component>
+  <component name="NodeModulesDirectoryManager">
+    <handled-path value="$PROJECT_DIR$/node_modules" />
+  </component>
+  <component name="PhpServers">
+    <servers />
+  </component>
+  <component name="PhpWorkspaceProjectConfiguration" backward_compatibility_performed="true" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="4" />
+    <option name="width" value="1436" />
+    <option name="height" value="900" />
+  </component>
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>General</id>
+          </State>
+          <State>
+            <id>XPath</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>Blade files</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
+      <pane id="ProjectPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.jetbrains.php.projectView.PhpTreeStructureProvider$1" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.jetbrains.php.projectView.PhpTreeStructureProvider$1" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="test" />
+              <option name="myItemType" value="com.jetbrains.php.projectView.PhpTreeStructureProvider$1" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ramda" />
+              <option name="myItemType" value="com.jetbrains.php.projectView.PhpTreeStructureProvider$1" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="src" />
+              <option name="myItemType" value="com.jetbrains.php.projectView.PhpTreeStructureProvider$1" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="options.lastSelected" value="preferences.sourceCode" />
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth0" value="249" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth1" value="266" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth2" value="269" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatWidth3" value="1064" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_flatOrder3" value="3" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth0" value="357" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder0" value="0" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth1" value="358" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder1" value="1" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth2" value="360" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder2" value="2" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeWidth3" value="773" />
+    <property name="FileHistory.git4idea.history.GitHistoryProvider_treeOrder3" value="3" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../sanctuary-collections" />
+    <property name="recentsLimit" value="5" />
+    <property name="com.intellij.ide.scratch.ScratchpadManager" value="JavaScript&#10;TEXT&#10;JSON" />
+    <property name="JavaScriptLanguageLevel" value="ES6" />
+    <property name="JavaScriptPreferStrict" value="false" />
+    <property name="JavaScriptWeakerCompletionTypeGuess" value="true" />
+    <property name="LayoutCode.rearrangeEntriesECMAScript 6" value="false" />
+    <property name="settings.editor.selected.configurable" value="vcs.Git" />
+    <property name="com.intellij.ide.scratch.NewScratchFileAction" value="ECMAScript 6&#10;TEXT&#10;JavaScript" />
+    <property name="settings.editor.splitter.proportion" value="0.2" />
+    <property name="js-jscs-nodeInterpreter" value="/usr/local/bin/node" />
+    <property name="js-jscs-package" value="$PROJECT_DIR$/node_modules/jscs" />
+    <property name="Node.Profiling.V8Profiler.Path" value="" />
+    <property name="com.intellij.ide.scratch.LRUPopupBuilder$2/Languages" value="JSX Harmony&#10;TEXT&#10;ECMAScript 6&#10;JavaScript" />
+    <property name="javascript.nodejs.core.library.configured.version" value="5.0.0" />
+    <property name="HbShouldOpenHtmlAsHb" value="" />
+    <property name="nodejs.mocha.node_interpreter_path" value="/usr/local/bin/node" />
+    <property name="nodejs.mocha.mocha_node_package_dir" value="$PROJECT_DIR$/node_modules/mocha" />
+    <property name="nodejs_interpreter_path" value="/usr/local/bin/node" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/test" />
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$APPLICATION_CONFIG_DIR$/scratches" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/internal" />
+      <recent name="$PROJECT_DIR$/src/_IdentityType" />
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$/__scratch" />
+      <recent name="$PROJECT_DIR$/test" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Mocha.test/assocPath.js">
+    <configuration default="false" name="test-thing.js" type="NodeJSConfigurationType" factoryName="Node.js" temporary="true" path-to-node="project" path-to-js-file="test-thing.js" node-parameters="--harmony" working-dir="$PROJECT_DIR$">
+      <profiling v8-profiler-path="" />
+      <EXTENSION ID="com.jetbrains.nodejs.run.NodeJSProfilingRunConfigurationExtension">
+        <profiling v8-profiler-path="" />
+      </EXTENSION>
+      <method />
+    </configuration>
+    <configuration default="false" name="scratch.js" type="NodeJSConfigurationType" factoryName="Node.js" temporary="true" path-to-node="project" path-to-js-file="scratch.js" working-dir="$PROJECT_DIR$">
+      <profiling v8-profiler-path="" />
+      <EXTENSION ID="com.jetbrains.nodejs.run.NodeJSProfilingRunConfigurationExtension">
+        <profiling v8-profiler-path="" />
+      </EXTENSION>
+      <method />
+    </configuration>
+    <configuration default="false" name="test/assocPath.js" type="mocha-javascript-test-runner" factoryName="Mocha" temporary="true" nameIsGenerated="true">
+      <node-interpreter>/usr/local/bin/node</node-interpreter>
+      <node-options />
+      <working-directory>$PROJECT_DIR$</working-directory>
+      <pass-parent-env>true</pass-parent-env>
+      <envs />
+      <ui>bdd</ui>
+      <extra-mocha-options />
+      <test-kind>TEST_FILE</test-kind>
+      <test-file>$PROJECT_DIR$/test/assocPath.js</test-file>
+      <method />
+    </configuration>
+    <configuration default="true" type="JavaScriptTestRunnerProtractor" factoryName="Protractor">
+      <config-file value="" />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug">
+      <method />
+    </configuration>
+    <configuration default="true" type="NodeJSConfigurationType" factoryName="Node.js" path-to-node="project" working-dir="">
+      <profiling v8-profiler-path="" />
+      <EXTENSION ID="com.jetbrains.nodejs.run.NodeJSProfilingRunConfigurationExtension">
+        <profiling v8-profiler-path="" />
+      </EXTENSION>
+      <method />
+    </configuration>
+    <configuration default="true" type="PHPUnitRunConfigurationType" factoryName="PHPUnit">
+      <TestRunner />
+      <method />
+    </configuration>
+    <configuration default="true" type="PhpBehatConfigurationType" factoryName="Behat">
+      <BehatRunner />
+      <method />
+    </configuration>
+    <configuration default="true" type="PhpLocalRunConfigurationType" factoryName="PHP Console">
+      <method />
+    </configuration>
+    <configuration default="true" type="PhpSpecConfigurationType" factoryName="PHPSpec">
+      <PhpTestRunnerSettings />
+      <method />
+    </configuration>
+    <configuration default="true" type="PhpUnitRemoteRunConfigurationType" factoryName="PHPUnit on Server">
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.gulp" factoryName="Gulp.js">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <gulpfile />
+      <tasks />
+      <arguments />
+      <pass-parent-envs>true</pass-parent-envs>
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="js.build_tools.npm" factoryName="npm">
+      <command value="run-script" />
+      <scripts />
+      <node-interpreter value="project" />
+      <envs />
+      <method />
+    </configuration>
+    <configuration default="true" type="mocha-javascript-test-runner" factoryName="Mocha">
+      <node-interpreter>/usr/local/bin/node</node-interpreter>
+      <node-options />
+      <working-directory>$PROJECT_DIR$</working-directory>
+      <pass-parent-env>true</pass-parent-env>
+      <envs />
+      <ui>bdd</ui>
+      <extra-mocha-options />
+      <test-kind>DIRECTORY</test-kind>
+      <test-directory />
+      <recursive>false</recursive>
+      <method />
+    </configuration>
+    <configuration default="false" name="All tests" type="mocha-javascript-test-runner" factoryName="Mocha">
+      <node-interpreter>/usr/local/bin/node</node-interpreter>
+      <node-options />
+      <working-directory>$PROJECT_DIR$</working-directory>
+      <pass-parent-env>true</pass-parent-env>
+      <envs />
+      <ui>bdd</ui>
+      <extra-mocha-options />
+      <test-kind>DIRECTORY</test-kind>
+      <test-directory>$PROJECT_DIR$/test</test-directory>
+      <recursive>false</recursive>
+      <method>
+        <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_npm clean" />
+        <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_npm build" />
+      </method>
+    </configuration>
+    <list size="4">
+      <item index="0" class="java.lang.String" itemvalue="Mocha.All tests" />
+      <item index="1" class="java.lang.String" itemvalue="Node.js.test-thing.js" />
+      <item index="2" class="java.lang.String" itemvalue="Node.js.scratch.js" />
+      <item index="3" class="java.lang.String" itemvalue="Mocha.test/assocPath.js" />
+    </list>
+    <recent_temporary>
+      <list size="3">
+        <item index="0" class="java.lang.String" itemvalue="Mocha.test/assocPath.js" />
+        <item index="1" class="java.lang.String" itemvalue="Node.js.scratch.js" />
+        <item index="2" class="java.lang.String" itemvalue="Node.js.test-thing.js" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="956cfca4-a1b1-4ac7-ae2a-5e4983d7b3c8" name="Default" comment="" />
+      <created>1427065285882</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1427065285882</updated>
+      <workItem from="1458893779406" duration="1195000" />
+      <workItem from="1459048927997" duration="52000" />
+      <workItem from="1459764418786" duration="3527000" />
+      <workItem from="1459806818495" duration="268000" />
+      <workItem from="1461146806429" duration="1277000" />
+      <workItem from="1461185528455" duration="1381000" />
+      <workItem from="1461188443046" duration="3225000" />
+      <workItem from="1461194126309" duration="429000" />
+      <workItem from="1461625512247" duration="5115000" />
+      <workItem from="1461651444670" duration="2230000" />
+      <workItem from="1461662830919" duration="2375000" />
+      <workItem from="1463046437513" duration="2875000" />
+      <workItem from="1463090734068" duration="1973000" />
+      <workItem from="1466463217944" duration="3441000" />
+      <workItem from="1466551455980" duration="524000" />
+      <workItem from="1466637773835" duration="552000" />
+      <workItem from="1466725567924" duration="146000" />
+      <workItem from="1466729233533" duration="133000" />
+      <workItem from="1466893132312" duration="553000" />
+      <workItem from="1466984385471" duration="206000" />
+      <workItem from="1467070229431" duration="888000" />
+      <workItem from="1467155860578" duration="13000" />
+      <workItem from="1467243182770" duration="1198000" />
+      <workItem from="1468807583412" duration="4714000" />
+      <workItem from="1468885038223" duration="3424000" />
+      <workItem from="1468902933321" duration="599000" />
+      <workItem from="1469076230587" duration="1316000" />
+      <workItem from="1469146046322" duration="612000" />
+      <workItem from="1469269037069" duration="779000" />
+      <workItem from="1469404392323" duration="598000" />
+      <workItem from="1469421589468" duration="2619000" />
+      <workItem from="1469489440767" duration="617000" />
+      <workItem from="1469573399784" duration="1196000" />
+      <workItem from="1469578606995" duration="634000" />
+      <workItem from="1469662186499" duration="1619000" />
+      <workItem from="1469748378004" duration="598000" />
+      <workItem from="1470009516547" duration="1194000" />
+      <workItem from="1470094791126" duration="1885000" />
+      <workItem from="1470102953882" duration="435000" />
+      <workItem from="1470191036703" duration="859000" />
+      <workItem from="1470200528115" duration="10000" />
+      <workItem from="1470357594790" duration="651000" />
+      <workItem from="1470787713175" duration="734000" />
+      <workItem from="1471430593442" duration="5506000" />
+      <workItem from="1471474057480" duration="6347000" />
+      <workItem from="1471560716333" duration="13915000" />
+      <workItem from="1471998029127" duration="4116000" />
+      <workItem from="1472081355314" duration="604000" />
+      <workItem from="1472166446814" duration="30000" />
+      <workItem from="1472166498119" duration="8098000" />
+      <workItem from="1472426460493" duration="5000" />
+      <workItem from="1472430797018" duration="2167000" />
+      <workItem from="1472599565249" duration="615000" />
+      <workItem from="1472638774351" duration="603000" />
+      <workItem from="1472684822007" duration="608000" />
+      <workItem from="1472771680154" duration="1816000" />
+      <workItem from="1472891157578" duration="1166000" />
+      <workItem from="1472957146825" duration="38000" />
+      <workItem from="1473041971601" duration="680000" />
+      <workItem from="1473937675930" duration="1070000" />
+      <workItem from="1473978907757" duration="8000" />
+      <workItem from="1474263630227" duration="724000" />
+      <workItem from="1474265428210" duration="5000" />
+      <workItem from="1475204100175" duration="6285000" />
+      <workItem from="1475280512208" duration="7192000" />
+      <workItem from="1475361608621" duration="4000" />
+      <workItem from="1477605552339" duration="1773000" />
+      <workItem from="1477640879999" duration="598000" />
+      <workItem from="1477799258723" duration="539000" />
+      <workItem from="1477874963678" duration="5193000" />
+      <workItem from="1477945031406" duration="2957000" />
+      <workItem from="1478129705591" duration="606000" />
+      <workItem from="1478143617872" duration="2494000" />
+      <workItem from="1478214483687" duration="610000" />
+      <workItem from="1478474909569" duration="610000" />
+      <workItem from="1478558153661" duration="1724000" />
+      <workItem from="1478730493188" duration="609000" />
+      <workItem from="1478832795340" duration="1226000" />
+      <workItem from="1479077289788" duration="170000" />
+      <workItem from="1479164758979" duration="825000" />
+      <workItem from="1479243863104" duration="60000" />
+      <workItem from="1479869419619" duration="2379000" />
+      <workItem from="1479939417455" duration="2711000" />
+      <workItem from="1480028200240" duration="1219000" />
+      <workItem from="1480032493163" duration="303000" />
+      <workItem from="1480032817858" duration="1337000" />
+      <workItem from="1480053798385" duration="531000" />
+      <workItem from="1480212305180" duration="2000" />
+      <workItem from="1480477851231" duration="6018000" />
+      <workItem from="1480544938632" duration="1754000" />
+      <workItem from="1480630495297" duration="601000" />
+      <workItem from="1480816776507" duration="1000" />
+      <workItem from="1480822436582" duration="2817000" />
+      <workItem from="1480976003750" duration="171000" />
+      <workItem from="1481020658062" duration="110000" />
+    </task>
+    <task id="LOCAL-00001" summary="Adds lensIndex, lensProp, composeL &amp; pipeL&#10;&#10;This change introduces 2 new helpers for generating lenses,&#10;`lensIndex` and `lensProp`, where `lensIndex` is used to&#10;create a new lens with a focus on an array index, while&#10;`lensProp` is used to create a new lens with a focus on an&#10;object property.&#10;&#10;```js&#10;var phraseLens = R.lensProp('phrase');&#10;var obj1 = { phrase: 'Absolute filth . . . and I LOVED it!'};&#10;phraseLens(obj1); // =&gt; 'Absolute filth . . . and I LOVED it!'&#10;phraseLens.set('Ooh Betty', obj1); //=&gt; { phrase: 'Ooh Betty'}&#10;&#10;var headLens = R.lensIndex(0);&#10;headLens([10, 20, 30, 40]); //=&gt; 10&#10;headLens.set('mu', [10, 20, 30, 40]); //=&gt; ['mu', 20, 30, 40]&#10;```&#10;&#10;This change also introduces `composeL` and `pipeL` which&#10;are used to compose lenses together, resulting in a new lens&#10;which can be used to access and update nested properties&#10;of a target object.&#10;&#10;```js&#10;var headLens = R.lensIndex(0);&#10;var secondLens = R.lensIndex(1);&#10;var xLens = R.lensProp('x');&#10;var secondOfXOfHeadLens = R.composeL(secondLens, xLens, headLens);&#10;&#10;var source = [{x: [0, 1], y: [2, 3]}, {x: [4, 5], y: [6, 7]}];&#10;secondOfXOfHeadLens(source); //=&gt; 1&#10;secondOfXOfHeadLens.set(123, source); //=&gt; [{x: [0, 123], y: [2, 3]}, {x: [4, 5], y: [6, 7]}]&#10;```&#10;">
+      <created>1427236904001</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1427236904001</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Adds `constant`, `adjust` and `update`&#10;&#10;This change introduces a `constant` function, which creates&#10;a function that always returns a constant value (useful to pass&#10;to higher order functions such as `R.map`).&#10;&#10;```js&#10;R.constant(1)(2);     //=&gt; 1&#10;```&#10;&#10;Furthermore, 2 new list functions `adjust` and `update` are&#10;introduced, providing the ability to modify values at a given&#10;index of a list. `adjust` applies a given function to replace&#10;the value, while `update` is the specialised form, updating&#10;the array with a new explicit value.&#10;&#10;```js&#10;R.adjust(R.add(10))(1)([0, 1, 2]);  //=&gt; [0, 11, 2]&#10;R.update(1)(11)([0, 1, 2]);         //=&gt; [0, 11, 2]&#10;```">
+      <created>1427248023154</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1427248023154</updated>
+    </task>
+    <task id="LOCAL-00003" summary="`adjust` now returns the same list instance if the value does not change">
+      <created>1427930832922</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1427930832922</updated>
+    </task>
+    <task id="LOCAL-00004" summary="`adjust` and `assoc` now returns the same instance if the value does not change&#10;">
+      <created>1428272375621</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1428272375621</updated>
+    </task>
+    <task id="LOCAL-00005" summary="`adjust` and `assoc` now returns the same instance if the value does not change&#10;">
+      <created>1428291075913</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1428291075913</updated>
+    </task>
+    <task id="LOCAL-00006" summary="`adjust` and `assoc` now returns the same instance if the value does not change&#10;">
+      <created>1428291117982</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1428291117982</updated>
+    </task>
+    <task id="LOCAL-00007" summary="`adjust` and `assoc` now returns the same instance if the value does not change&#10;">
+      <created>1428291142256</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1428291142256</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Adds stderr logging to `scripts/build`">
+      <created>1433633876410</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1433633876410</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Prisms WIP">
+      <created>1442409123366</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1442409123366</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Test curry arg is an `Object` before accessing placeholder property.&#10;&#10;Also rearranges conditional logic in `_curry*` functions to reduce repeated tests.">
+      <created>1447243222997</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1447243222997</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Utilise `Set` if available for `uniqBy` and `_contains`&#10;&#10;Handles special cases such as +0/-0 to follow the existing equality semantics, falling back to the previous implementation where `Set` cannot be utilised.">
+      <created>1447243737710</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1447243737710</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Include browser tests in the build again&#10;&#10;- Removes redundant build scripts&#10;- Generates test bundle for browser using browserify&#10;- Refactor `clone` implementation to use `valueOf` for `Date` objects to address issue in Firefox (~version 35)&#10;- Refactor `_equals` for `Error` instances to no longer compare properties other than `name` and `message`&#10;  - Safari's `Error` has `line` and `column` properties which will rarely be equal unless they're identical&#10;- Enable strict mode in `isEmpty(arguments)` test to workaround bug in Safari">
+      <created>1447454213382</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1447454213382</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
+    <servers />
+  </component>
+  <component name="TestHistory">
+    <history-entry file="All_tests - 2016.06.21 at 09h 21m 53s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 09h 22m 06s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 09h 22m 28s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 09h 23m 17s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 16h 23m 24s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 16h 23m 34s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="All_tests - 2016.06.21 at 16h 25m 05s.xml">
+      <configuration name="All tests" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="test_assocPath_js - 2016.10.01 at 11h 14m 35s.xml">
+      <configuration name="test/assocPath.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="test_assocPath_js - 2016.10.01 at 11h 22m 46s.xml">
+      <configuration name="test/assocPath.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+    <history-entry file="test_assocPath_js - 2016.10.01 at 11h 30m 02s.xml">
+      <configuration name="test/assocPath.js" configurationId="mocha-javascript-test-runner" />
+    </history-entry>
+  </component>
+  <component name="TimeTrackingManager">
+    <option name="totallyTimeSpent" value="160219000" />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="4" y="0" width="1436" height="900" extended-state="6" />
+    <editor active="false" />
+    <layout>
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19368723" sideWeight="0.4924406" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="true" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32960597" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.5676768" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="npm" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.18938307" sideWeight="0.5075594" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.40717822" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
+      <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.380182" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3271605" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="REST Client" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32929292" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.44534412" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Grunt" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.50123763" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="V8 CPU Profiling" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.6625259" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43316832" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+    </layout>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="processedProjectFiles" value="true" />
+  </component>
+  <component name="Vcs.Log.UiProperties">
+    <option name="RECENTLY_FILTERED_USER_GROUPS">
+      <collection />
+    </option>
+    <option name="RECENTLY_FILTERED_BRANCH_GROUPS">
+      <collection>
+        <UserGroup>
+          <option name="users">
+            <list>
+              <option value="browser-tests" />
+            </list>
+          </option>
+        </UserGroup>
+      </collection>
+    </option>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="WRAP_WHEN_TYPING_REACHES_RIGHT_MARGIN" value="true" />
+    <MESSAGE value="Adds lensIndex, lensProp, composeL &amp; pipeL&#10;&#10;This change introduces 2 new helpers for generating lenses,&#10;`lensIndex` and `lensProp`, where `lensIndex` is used to&#10;create a new lens with a focus on an array index, while&#10;`lensProp` is used to create a new lens with a focus on an&#10;object property.&#10;&#10;```js&#10;var phraseLens = R.lensProp('phrase');&#10;var obj1 = { phrase: 'Absolute filth . . . and I LOVED it!'};&#10;phraseLens(obj1); // =&gt; 'Absolute filth . . . and I LOVED it!'&#10;phraseLens.set('Ooh Betty', obj1); //=&gt; { phrase: 'Ooh Betty'}&#10;&#10;var headLens = R.lensIndex(0);&#10;headLens([10, 20, 30, 40]); //=&gt; 10&#10;headLens.set('mu', [10, 20, 30, 40]); //=&gt; ['mu', 20, 30, 40]&#10;```&#10;&#10;This change also introduces `composeL` and `pipeL` which&#10;are used to compose lenses together, resulting in a new lens&#10;which can be used to access and update nested properties&#10;of a target object.&#10;&#10;```js&#10;var headLens = R.lensIndex(0);&#10;var secondLens = R.lensIndex(1);&#10;var xLens = R.lensProp('x');&#10;var secondOfXOfHeadLens = R.composeL(secondLens, xLens, headLens);&#10;&#10;var source = [{x: [0, 1], y: [2, 3]}, {x: [4, 5], y: [6, 7]}];&#10;secondOfXOfHeadLens(source); //=&gt; 1&#10;secondOfXOfHeadLens.set(123, source); //=&gt; [{x: [0, 123], y: [2, 3]}, {x: [4, 5], y: [6, 7]}]&#10;```&#10;" />
+    <MESSAGE value="Adds `constant`, `adjust` and `update`&#10;&#10;This change introduces a `constant` function, which creates&#10;a function that always returns a constant value (useful to pass&#10;to higher order functions such as `R.map`).&#10;&#10;```js&#10;R.constant(1)(2);     //=&gt; 1&#10;```&#10;&#10;Furthermore, 2 new list functions `adjust` and `update` are&#10;introduced, providing the ability to modify values at a given&#10;index of a list. `adjust` applies a given function to replace&#10;the value, while `update` is the specialised form, updating&#10;the array with a new explicit value.&#10;&#10;```js&#10;R.adjust(R.add(10))(1)([0, 1, 2]);  //=&gt; [0, 11, 2]&#10;R.update(1)(11)([0, 1, 2]);         //=&gt; [0, 11, 2]&#10;```" />
+    <MESSAGE value="`adjust` now returns the same list instance if the value does not change" />
+    <MESSAGE value="`adjust` and `assoc` now returns the same instance if the value does not change&#10;" />
+    <MESSAGE value="Adds logging to `scripts/build`" />
+    <MESSAGE value="Adds stderr logging to `scripts/build`" />
+    <MESSAGE value="Prisms WIP" />
+    <MESSAGE value="Test curry arg is an `Object` before accessing placeholder property.&#10;&#10;Also rearranges conditional logic in `_curry*` functions to reduce repeated tests." />
+    <MESSAGE value="Utilise `Set` if available for `uniqBy` and `_contains`&#10;&#10;Handles special cases such as +0/-0 to follow the existing equality semantics, falling back to the previous implementation where `Set` cannot be utilised." />
+    <MESSAGE value="Include browser tests in the build again&#10;&#10;- Removes redundant build scripts&#10;- Generates test bundle for browser using browserify&#10;- Refactor `clone` implementation to use `valueOf` for `Date` objects to address issue in Firefox (~version 35)&#10;- Refactor `_equals` for `Error` instances to no longer compare properties other than `name` and `message`&#10;  - Safari's `Error` has `line` and `column` properties which will rarely be equal unless they're identical&#10;- Enable strict mode in `isEmpty(arguments)` test to workaround bug in Safari" />
+    <option name="LAST_COMMIT_MESSAGE" value="Include browser tests in the build again&#10;&#10;- Removes redundant build scripts&#10;- Generates test bundle for browser using browserify&#10;- Refactor `clone` implementation to use `valueOf` for `Date` objects to address issue in Firefox (~version 35)&#10;- Refactor `_equals` for `Error` instances to no longer compare properties other than `name` and `message`&#10;  - Safari's `Error` has `line` and `column` properties which will rarely be equal unless they're identical&#10;- Enable strict mode in `isEmpty(arguments)` test to workaround bug in Safari" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4579</line>
+          <option name="timeStamp" value="108" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4586</line>
+          <option name="timeStamp" value="109" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4589</line>
+          <option name="timeStamp" value="110" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4591</line>
+          <option name="timeStamp" value="111" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4598</line>
+          <option name="timeStamp" value="112" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4602</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4608</line>
+          <option name="timeStamp" value="115" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4610</line>
+          <option name="timeStamp" value="116" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4616</line>
+          <option name="timeStamp" value="117" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4627</line>
+          <option name="timeStamp" value="120" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4618</line>
+          <option name="timeStamp" value="121" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4622</line>
+          <option name="timeStamp" value="122" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4599</line>
+          <option name="timeStamp" value="123" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4601</line>
+          <option name="timeStamp" value="124" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4606</line>
+          <option name="timeStamp" value="125" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4607</line>
+          <option name="timeStamp" value="126" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4614</line>
+          <option name="timeStamp" value="127" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4615</line>
+          <option name="timeStamp" value="128" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/node_modules/lodash/lodash.js</url>
+          <line>4621</line>
+          <option name="timeStamp" value="129" />
+        </line-breakpoint>
+      </breakpoints>
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
+      <option name="time" value="140" />
+    </breakpoint-manager>
+    <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/pathOr.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="14" column="25" lean-forward="false" selection-start-line="14" selection-start-column="25" selection-end-line="14" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pathSatisfies.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="38" lean-forward="false" selection-start-line="13" selection-start-column="38" selection-end-line="13" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/pathSatisfies.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" column="81" lean-forward="false" selection-start-line="9" selection-start-column="81" selection-end-line="9" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/pathOr.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-8">
+          <caret line="26" column="34" lean-forward="false" selection-start-line="26" selection-start-column="34" selection-end-line="26" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/pathEq.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="9" lean-forward="false" selection-start-line="7" selection-start-column="9" selection-end-line="7" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/assoc.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/compose.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="25" lean-forward="false" selection-start-line="0" selection-start-column="25" selection-end-line="0" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_pipe.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_isArray.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_isInteger.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="9" column="23" lean-forward="false" selection-start-line="9" selection-start-column="23" selection-end-line="9" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/dist/ramda.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="552" column="6" lean-forward="false" selection-start-line="552" selection-start-column="6" selection-end-line="552" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_clone.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-257">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_concat.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_reduce.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_slice.js" />
+    <entry file="file://$PROJECT_DIR$/src/init.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/last.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_map.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_34.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="45">
+          <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_33.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_32.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="465">
+          <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/map.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="756">
+          <caret line="59" column="0" lean-forward="false" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_2.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/reduced.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="28" column="0" lean-forward="false" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/reduceRight.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="570">
+          <caret line="41" column="20" lean-forward="false" selection-start-line="41" selection-start-column="20" selection-end-line="41" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/head.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/reduce.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-124">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/tail.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="31" lean-forward="true" selection-start-line="1" selection-start-column="31" selection-end-line="1" selection-end-column="31" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/slice.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pipe.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="435">
+          <caret line="29" column="34" lean-forward="true" selection-start-line="29" selection-start-column="34" selection-end-line="32" selection-end-column="3" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pipeP.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/pipe.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="356">
+          <caret line="41" column="0" lean-forward="false" selection-start-line="41" selection-start-column="0" selection-end-line="49" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/shared/eq.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/aperture.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="28" column="0" lean-forward="false" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/into.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/transduce.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="2" lean-forward="false" selection-start-line="10" selection-start-column="2" selection-end-line="10" selection-end-column="2" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/composeK.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="18" lean-forward="false" selection-start-line="16" selection-start-column="18" selection-end-line="16" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/pipeK.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="57" lean-forward="false" selection-start-line="16" selection-start-column="57" selection-end-line="16" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/pipeK.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="19" lean-forward="false" selection-start-line="13" selection-start-column="19" selection-end-line="13" selection-end-column="74" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/composeK.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="486">
+          <caret line="43" column="0" lean-forward="false" selection-start-line="43" selection-start-column="0" selection-end-line="43" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/internal/_has.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/assocPath.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="450">
+          <caret line="30" column="75" lean-forward="false" selection-start-line="30" selection-start-column="75" selection-end-line="30" selection-end-column="75" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/update.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="28" column="12" lean-forward="false" selection-start-line="28" selection-start-column="12" selection-end-line="28" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/adjust.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/lensPath.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="735">
+          <caret line="49" column="15" lean-forward="false" selection-start-line="49" selection-start-column="15" selection-end-line="49" selection-end-column="15" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lensIndex.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="405">
+          <caret line="27" column="15" lean-forward="false" selection-start-line="27" selection-start-column="15" selection-end-line="27" selection-end-column="15" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/nth.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/assocPath.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="450">
+          <caret line="30" column="39" lean-forward="false" selection-start-line="30" selection-start-column="39" selection-end-line="30" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/test/path.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="435">
+          <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="31" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/path.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="360">
+          <caret line="24" column="36" lean-forward="false" selection-start-line="24" selection-start-column="36" selection-end-line="24" selection-end-column="36" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/lensPath.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="14" column="8" lean-forward="false" selection-start-line="14" selection-start-column="8" selection-end-line="14" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ScopeChooserConfigurable.UI">
+        <settings>
+          <last-edited>Excluding node_modules</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+          <order>
+            <scope name="Excluding node_modules" />
+          </order>
+        </settings>
+      </state>
+    </states>
+  </component>
+</project>

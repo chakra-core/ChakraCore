@@ -1,0 +1,105 @@
+{
+  "name": "base-config-schema",
+  "description": "Schema for the base-config plugin, used for normalizing config values before passing them to config.process().",
+  "version": "0.1.24",
+  "homepage": "https://github.com/node-base/base-config-schema",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-config-schema",
+  "bugs": {
+    "url": "https://github.com/node-base/base-config-schema/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.12.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.3",
+    "array-unique": "^0.3.2",
+    "base-pkg": "^0.2.4",
+    "camel-case": "^3.0.0",
+    "debug": "^2.6.6",
+    "define-property": "^1.0.0",
+    "export-files": "^2.1.1",
+    "extend-shallow": "^2.0.1",
+    "has-glob": "^1.0.0",
+    "has-value": "^0.3.1",
+    "inflection": "^1.12.0",
+    "kind-of": "^3.2.0",
+    "lazy-cache": "^2.0.2",
+    "load-templates": "^1.0.2",
+    "map-schema": "^0.2.4",
+    "matched": "^0.4.4",
+    "mixin-deep": "^1.2.0",
+    "resolve": "^1.3.3"
+  },
+  "devDependencies": {
+    "base": "^0.13.0",
+    "base-config": "^0.5.2",
+    "base-plugins": "^1.0.0",
+    "engine-base": "^0.1.3",
+    "engine-handlebars": "^0.8.2",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.12",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.0",
+    "gulp-unused": "^0.2.1",
+    "helper-coverage": "^0.1.3",
+    "helper-example": "^0.1.0",
+    "mocha": "^3.3.0",
+    "through2": "^2.0.3",
+    "verb-reflinks": "^0.1.7"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "base-plugin",
+    "baseplugin",
+    "building-blocks",
+    "config",
+    "create",
+    "framework",
+    "normalize",
+    "plugin",
+    "plugins",
+    "schema",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base-cli",
+        "base-config",
+        "base-option"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

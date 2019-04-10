@@ -1,0 +1,42 @@
+{
+  "name": "read-file",
+  "description": "Thin wrapper around fs.readFile and fs.readFileSync that also strips byte order marks when `utf8` encoding is chosen. Also optionally replaces windows newlines with unix newlines.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/read-file",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/read-file",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/read-file/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.8"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "keywords": [
+    "bom",
+    "file",
+    "fs",
+    "path",
+    "read",
+    "util",
+    "readfile",
+    "readfilesync"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "read-yaml",
+        "read-data",
+        "write",
+        "copy"
+      ]
+    }
+  }
+}

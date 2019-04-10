@@ -1,0 +1,52 @@
+{
+  "name": "requireg",
+  "version": "0.1.7",
+  "description": "Require and resolve global modules like a boss",
+  "homepage": "http://github.com/h2non/requireg",
+  "bugs": "https://github.com/h2non/requireg/issues",
+  "contributors": [
+    {
+      "name": "Tomas Aparicio",
+      "email": "tomas@aparicio.me"
+    },
+    {
+      "name": "Eugene Sharygin",
+      "url": "https://github.com/eush77"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/h2non/requireg.git"
+  },
+  "licenses": "MIT",
+  "main": "lib/requireg",
+  "directories": {
+    "lib": "./lib"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "scripts": {
+    "test": "mocha -u tdd --ui exports --reporter spec --slow 2000ms --bail"
+  },
+  "keywords": [
+    "global",
+    "npm",
+    "modules",
+    "module",
+    "require",
+    "import",
+    "resolve"
+  ],
+  "dependencies": {
+    "nested-error-stacks": "~2.0.0",
+    "rc": "~1.0.0",
+    "resolve": "~0.6.1"
+  },
+  "devDependencies": {
+    "mocha": "~1.15.1",
+    "expect.js": "~0.2.0",
+    "rewire": "~2.3.1",
+    "semver": "~2.2.1"
+  }
+}

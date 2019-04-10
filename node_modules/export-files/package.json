@@ -1,0 +1,56 @@
+{
+  "name": "export-files",
+  "description": "node.js utility for exporting a directory of files as modules.",
+  "version": "2.1.1",
+  "homepage": "https://github.com/jonschlinkert/export-files",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/export-files",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/export-files/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "lazy-cache": "^1.0.3"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.5",
+    "mocha": "*",
+    "should": "*"
+  },
+  "keywords": [
+    "export",
+    "exports",
+    "file",
+    "files",
+    "module",
+    "modules"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "export-dirs",
+        "file-reader",
+        "map-files",
+        "to-exports"
+      ]
+    },
+    "reflinks": [
+      "to-exports"
+    ],
+    "layout": "default",
+    "plugins": [
+      "gulp-format-md"
+    ]
+  }
+}

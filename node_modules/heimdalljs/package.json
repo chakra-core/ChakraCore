@@ -1,0 +1,55 @@
+{
+  "name": "heimdalljs",
+  "version": "0.2.6",
+  "description": "Structured instrumentation library",
+  "main": "dist/heimdalljs.cjs.js",
+  "jsnext:main": "dist/heimdalljs.es.js",
+  "scripts": {
+    "build": "npm run build:node && npm run build:browser && npm run build:test",
+    "build:node": "rollup --no-strict -c node.config.js",
+    "build:browser": "rollup --no-strict -c browser.config.js",
+    "build:test": "rollup --no-strict -c test.config.js",
+    "test": "npm run build:node && npm run build:test && mocha dist/tests/bundle.cjs",
+    "test:debug": "mocha --no-timeouts debug dist/tests/bundle.cjs",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heimdalljs/heimdalljs-lib.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hjdivad/heimdalljs-lib/issues"
+  },
+  "homepage": "https://github.com/hjdivad/heimdalljs-lib#readme",
+  "keywords": [
+    "javascript"
+  ],
+  "files": [
+    "dist/heimdalljs.cjs.js",
+    "dist/heimdalljs.es.js",
+    "dist/heimdalljs.iife.js",
+    "dist/heimdalljs.umd.js",
+    "heimdall.js"
+  ],
+  "devDependencies": {
+    "babel-plugin-external-helpers": "^6.18.0",
+    "babel-plugin-transform-runtime": "^6.15.0",
+    "babel-preset-es2015": "^6.18.0",
+    "broccoli": "^0.16.9",
+    "chai": "^3.2.0",
+    "chai-as-promised": "^5.1.0",
+    "chai-files": "^1.2.0",
+    "mocha": "^2.2.5",
+    "mocha-jshint": "~2.2.3",
+    "rollup": "^0.37.0",
+    "rollup-plugin-babel": "^2.7.0",
+    "rollup-plugin-commonjs": "^5.0.5",
+    "rollup-plugin-json": "^2.0.2",
+    "rollup-plugin-node-resolve": "^2.0.0"
+  },
+  "dependencies": {
+    "rsvp": "~3.2.1"
+  }
+}

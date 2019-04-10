@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<title>Test'em</title>
+<script src="//code.jquery.com/qunit/qunit-1.20.0.js"></script>
+<script src="/testem.js"></script>
+{{#scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/scripts}}
+<link rel="stylesheet" href="//code.jquery.com/qunit/qunit-1.20.0.css"/>
+{{#styles}}<link rel="stylesheet" href="{{.}}">{{/styles}}
+</head>
+<body>
+<div id="qunit"></div>
+<div id="qunit-fixture"></div>
+</body>
+{{#footer_scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/footer_scripts}}
+</html>

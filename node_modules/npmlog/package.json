@@ -1,0 +1,26 @@
+{
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "name": "npmlog",
+  "description": "logger for npm",
+  "version": "2.0.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/npm/npmlog.git"
+  },
+  "main": "log.js",
+  "files": [
+    "log.js"
+  ],
+  "scripts": {
+    "test": "tap test/*.js"
+  },
+  "dependencies": {
+    "ansi": "~0.3.1",
+    "are-we-there-yet": "~1.1.2",
+    "gauge": "~1.2.5"
+  },
+  "devDependencies": {
+    "tap": "~5.7.0"
+  },
+  "license": "ISC"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "typewise-core",
+  "version": "1.2.0",
+  "description": "Core typewise type system functionality",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test | faucet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deanlandolt/typewise-core.git"
+  },
+  "keywords": [
+    "typewise",
+    "types",
+    "compare",
+    "sort",
+    "order",
+    "collation",
+    "complex",
+    "structures",
+    "leveldb",
+    "indexeddb",
+    "keyvalue"
+  ],
+  "author": "Dean Landolt <dean@deanlandolt.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/deanlandolt/typewise/issues"
+  },
+  "homepage": "https://github.com/deanlandolt/typewise-core",
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^1.0"
+  }
+}

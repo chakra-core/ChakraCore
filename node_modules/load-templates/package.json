@@ -1,0 +1,71 @@
+{
+  "name": "load-templates",
+  "description": "Load templates/views using globs, file paths, objects, arrays, or key-value pairs.",
+  "version": "1.0.2",
+  "homepage": "https://github.com/jonschlinkert/load-templates",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/load-templates",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/load-templates/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "extend-shallow": "^2.0.1",
+    "file-contents": "^1.0.0",
+    "glob-parent": "^3.1.0",
+    "is-glob": "^3.1.0",
+    "kind-of": "^3.1.0",
+    "lazy-cache": "^2.0.2",
+    "matched": "^0.4.4",
+    "vinyl": "^2.0.1"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "gulp-unused": "^0.2.1",
+    "mocha": "^3.2.0",
+    "should": "^11.2.0"
+  },
+  "keywords": [
+    "file",
+    "file-system",
+    "glob",
+    "load",
+    "loader",
+    "pattern",
+    "template",
+    "templates",
+    "view",
+    "views"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "assemble",
+        "templates",
+        "verb"
+      ]
+    },
+    "reflinks": [
+      "matched"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "layout": "default"
+  }
+}

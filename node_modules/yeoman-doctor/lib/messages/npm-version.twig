@@ -1,0 +1,10 @@
+
+{{ 'Your npm version is outdated.' | red }}
+
+Upgrade to the latest version by running:
+{{ 'npm install -g npm' | magenta }}
+{% if isWin %}
+
+See this guide if you're having trouble upgrading:
+{{ 'https://github.com/npm/npm/wiki/Troubleshooting#upgrading-on-windows' | blue | underline }}
+{% endif %}

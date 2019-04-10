@@ -1,0 +1,91 @@
+{
+  "name": "file-contents",
+  "description": "Set the `contents` property on a file object. Abstraction from vinyl-fs to support stream or non-stream usage.",
+  "version": "1.0.1",
+  "homepage": "https://github.com/jonschlinkert/file-contents",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/file-contents",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/file-contents/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^0.2.5",
+    "extend-shallow": "^2.0.1",
+    "is-buffer": "^1.1.4",
+    "kind-of": "^3.1.0",
+    "lazy-cache": "^2.0.2",
+    "strip-bom-buffer": "^0.1.1",
+    "strip-bom-string": "^0.1.2",
+    "through2": "^2.0.3"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "mocha": "^3.2.0",
+    "vinyl": "^2.0.1"
+  },
+  "keywords": [
+    "buffer",
+    "content",
+    "contents",
+    "directory",
+    "file",
+    "filepath",
+    "fs",
+    "is",
+    "is-directory",
+    "is-file",
+    "path",
+    "plugin",
+    "read",
+    "read-file",
+    "readdir",
+    "stat",
+    "stats",
+    "stream",
+    "through",
+    "vinyl"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "file-stat",
+        "file-symlinks",
+        "stream-loader",
+        "vinyl",
+        "vinyl-fs"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-readme-generator",
+      "vinyl-fs"
+    ]
+  }
+}

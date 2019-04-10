@@ -1,0 +1,32 @@
+{
+  "name": "walkdir",
+  "description": "Find files simply. Walks a directory tree emitting events based on what it finds. Presents a familiar callback/emitter/a+sync interface. Walk a tree of any depth.",
+  "version": "0.0.11",
+  "author": "Ryan Day <soldair@gmail.com>",
+  "keywords": [
+    "find",
+    "walk",
+    "tree",
+    "files",
+    "fs"
+  ],
+  "main": "./walkdir.js",
+  "homepage": "http://github.com/soldair/node-walkdir",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/soldair/node-walkdir.git"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "devDependencies": {
+    "tape": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=0.6.0"
+  },
+  "license": "MIT",
+  "contributors": [
+    "tjfontaine"
+  ]
+}

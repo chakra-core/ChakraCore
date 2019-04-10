@@ -1,0 +1,31 @@
+{
+  "name": "foreachasync",
+  "version": "3.0.0",
+  "description": "A node- and browser-ready async counterpart of Array.prototype.forEach",
+  "homepage": "https://github.com/FuturesJS/forEachAsync",
+  "main": "forEachAsync.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/FuturesJS/forEachAsync.git"
+  },
+  "keywords": [
+    "futuresjs",
+    "forEach",
+    "for",
+    "forEachAsync",
+    "async",
+    "futures",
+    "each"
+  ],
+  "author": "AJ ONeal <coolaj86@gmail.com> (http://coolaj86.com/)",
+  "license": "Apache2",
+  "bugs": {
+    "url": "https://github.com/FuturesJS/forEachAsync/issues"
+  }
+}

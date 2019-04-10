@@ -1,0 +1,92 @@
+{
+  "name": "array-sort",
+  "description": "Fast and powerful array sorting. Sort an array of objects by one or more properties. Any number of nested properties or custom comparison functions may be used.",
+  "version": "0.1.4",
+  "homepage": "https://github.com/jonschlinkert/array-sort",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Kevin Ward (https://github.com/wkevina)"
+  ],
+  "repository": "jonschlinkert/array-sort",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/array-sort/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "default-compare": "^1.0.0",
+    "get-value": "^2.0.6",
+    "kind-of": "^5.0.2"
+  },
+  "devDependencies": {
+    "ansi-bold": "^0.1.1",
+    "benchmarked": "^0.1.5",
+    "glob": "^7.0.3",
+    "gulp-format-md": "^0.1.8",
+    "lodash.sortbyorder": "^3.4.4",
+    "mocha": "^2.4.5",
+    "should": "^8.3.1"
+  },
+  "keywords": [
+    "arr",
+    "array",
+    "asc",
+    "ascend",
+    "ascending",
+    "desc",
+    "descend",
+    "descending",
+    "dot",
+    "element",
+    "elements",
+    "get",
+    "multiple",
+    "nested",
+    "obj",
+    "object",
+    "order",
+    "ordered",
+    "path",
+    "prop",
+    "properties",
+    "property",
+    "sort",
+    "sorted",
+    "sorting"
+  ],
+  "verb": {
+    "reflinks": [
+      "verb"
+    ],
+    "related": {
+      "list": [
+        "get-value",
+        "set-value",
+        "sort-asc",
+        "sort-desc",
+        "sort-object"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

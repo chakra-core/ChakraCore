@@ -1,0 +1,33 @@
+{
+  "name": "unique-random",
+  "version": "1.0.0",
+  "description": "Generate random numbers that are consecutively unique",
+  "keywords": [
+    "unique",
+    "random",
+    "rand",
+    "number",
+    "single",
+    "generate",
+    "non-repeating"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "http://sindresorhus.com"
+  },
+  "files": [
+    "index.js"
+  ],
+  "repository": "sindresorhus/unique-random",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  }
+}

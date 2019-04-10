@@ -1,0 +1,51 @@
+{
+  "name": "yosay",
+  "version": "1.2.1",
+  "description": "Tell Yeoman what to say",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "cli-app",
+    "cli",
+    "bin",
+    "yeoman",
+    "yo",
+    "cowsay",
+    "say",
+    "box",
+    "message",
+    "ansi"
+  ],
+  "homepage": "yeoman.io",
+  "author": "Yeoman",
+  "repository": "yeoman/yosay",
+  "bin": "cli.js",
+  "files": [
+    "index.js",
+    "cli.js"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && mocha"
+  },
+  "dependencies": {
+    "ansi-regex": "^2.0.0",
+    "ansi-styles": "^2.0.0",
+    "chalk": "^1.0.0",
+    "cli-boxes": "^1.0.0",
+    "pad-component": "0.0.1",
+    "repeating": "^2.0.0",
+    "string-width": "^1.0.0",
+    "strip-ansi": "^3.0.0",
+    "taketalk": "^1.0.0",
+    "wrap-ansi": "^2.0.0"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "space": true
+  }
+}

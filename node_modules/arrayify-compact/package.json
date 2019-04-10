@@ -1,0 +1,59 @@
+{
+  "name": "arrayify-compact",
+  "description": "Casts the given value to a flatten array, and removes falsey items (similar to lodash compact).",
+  "version": "0.2.0",
+  "homepage": "https://github.com/jonschlinkert/arrayify-compact",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/arrayify-compact.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/arrayify-compact/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "verb": "^0.8.6"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1"
+  },
+  "verbiage": {
+    "related": {
+      "description": "Other utils for working with arrays.",
+      "list": [
+        "arr-flatten",
+        "arr-reduce",
+        "arr-pluck",
+        "arr-map",
+        "arr-union",
+        "array-unique",
+        "utils"
+      ]
+    }
+  },
+  "keywords": [
+    "array",
+    "arrayify",
+    "boolean",
+    "compact",
+    "falsey",
+    "flat",
+    "flatten",
+    "flattened",
+    "to-array",
+    "toArray",
+    "values"
+  ]
+}

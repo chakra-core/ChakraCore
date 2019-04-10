@@ -1,0 +1,45 @@
+{
+  "name": "ember-cli-version-checker",
+  "version": "3.1.3",
+  "description": "Determine if your addon is being used by a minimum version of Ember CLI.",
+  "homepage": "https://github.com/rwjblue/ember-cli-version-checker",
+  "bugs": {
+    "url": "https://github.com/rwjblue/ember-cli-version-checker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rwjblue/ember-cli-version-checker.git"
+  },
+  "license": "MIT",
+  "author": "Robert Jackson <me@rwjblue.com>",
+  "files": [
+    "src",
+    "index.js"
+  ],
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha tests",
+    "test:debug": "mocha debug tests",
+    "changelog": "lerna-changelog"
+  },
+  "dependencies": {
+    "resolve-package-path": "^1.2.6",
+    "semver": "^5.6.0"
+  },
+  "devDependencies": {
+    "broccoli-test-helper": "^2.0.0",
+    "co": "^4.6.0",
+    "eslint-config-prettier": "^4.1.0",
+    "eslint-plugin-prettier": "^3.0.1",
+    "lerna-changelog": "^0.8.2",
+    "mocha": "^6.0.2",
+    "mocha-eslint": "^5.0.0",
+    "prettier": "^1.16.4"
+  },
+  "engines": {
+    "node": "6.* || 8.* || >= 10.*"
+  }
+}

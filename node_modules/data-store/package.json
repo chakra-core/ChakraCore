@@ -1,0 +1,99 @@
+{
+  "name": "data-store",
+  "description": "Easily get, set and persist config data.",
+  "version": "0.16.1",
+  "homepage": "https://github.com/jonschlinkert/data-store",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/data-store",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/data-store/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "cache-base": "^0.8.4",
+    "clone-deep": "^0.2.4",
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "extend-shallow": "^2.0.1",
+    "graceful-fs": "^4.1.4",
+    "has-own-deep": "^0.1.4",
+    "lazy-cache": "^2.0.1",
+    "mkdirp": "^0.5.1",
+    "project-name": "^0.2.5",
+    "resolve-dir": "^0.1.0",
+    "rimraf": "^2.5.3",
+    "union-value": "^0.2.3"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.9",
+    "gulp-istanbul": "^1.0.0",
+    "gulp-mocha": "^2.2.0",
+    "verb-generate-readme": "^0.1.21"
+  },
+  "keywords": [
+    "app",
+    "cache",
+    "config",
+    "config-store",
+    "configstore",
+    "data",
+    "defaults",
+    "get",
+    "has",
+    "has-own",
+    "hash",
+    "json",
+    "local",
+    "object",
+    "options",
+    "own",
+    "save",
+    "set",
+    "storage",
+    "store",
+    "union",
+    "write"
+  ],
+  "verb": {
+    "run": true,
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "highlight": "base-store",
+      "list": [
+        "base-store",
+        "cache-base",
+        "get-value",
+        "set-value"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "acorn-node",
+  "description": "the acorn javascript parser, preloaded with plugins for syntax parity with recent node versions",
+  "version": "1.6.2",
+  "author": "Renée Kooi <renee@kooi.me>",
+  "bugs": {
+    "url": "https://github.com/browserify/acorn-node/issues"
+  },
+  "dependencies": {
+    "acorn": "^6.0.2",
+    "acorn-dynamic-import": "^4.0.0",
+    "acorn-walk": "^6.1.0",
+    "xtend": "^4.0.1"
+  },
+  "devDependencies": {
+    "acorn-bigint": "^0.3.1",
+    "acorn-import-meta": "^0.3.0",
+    "buble": "^0.19.6",
+    "mkdirp": "^0.5.1",
+    "standard": "^11.0.1",
+    "tape": "^4.9.1"
+  },
+  "homepage": "https://github.com/browserify/acorn-node",
+  "keywords": [
+    "acorn",
+    "browserify",
+    "javascript",
+    "parser"
+  ],
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/browserify/acorn-node.git"
+  },
+  "scripts": {
+    "test": "standard && node test/index.js",
+    "prepublishOnly": "npm run build",
+    "build": "node build.js"
+  },
+  "standard": {
+    "ignore": [
+      "lib/*/*.js"
+    ]
+  }
+}

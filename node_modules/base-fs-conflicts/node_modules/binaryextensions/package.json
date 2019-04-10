@@ -1,0 +1,67 @@
+{
+  "title": "The Definitive List of Binary Extensions",
+  "name": "binaryextensions",
+  "version": "1.0.1",
+  "description": "A package that contains an array of every single file extension there is for binary files",
+  "homepage": "https://github.com/bevry/binaryextensions",
+  "license": "MIT",
+  "keywords": [
+    "binary",
+    "extensions"
+  ],
+  "badges": {
+    "list": [
+      "npmversion",
+      "npmdownloads",
+      "daviddm",
+      "daviddmdev",
+      "---",
+      "slackin",
+      "patreon",
+      "gratipay",
+      "flattr",
+      "paypal",
+      "bitcoin",
+      "wishlist"
+    ],
+    "config": {
+      "patreonUsername": "bevry",
+      "gratipayUsername": "bevry",
+      "flattrUsername": "balupton",
+      "paypalURL": "https://bevry.me/paypal",
+      "bitcoinURL": "https://bevry.me/bitcoin",
+      "wishlistURL": "https://bevry.me/wishlist",
+      "slackinURL": "https://slack.bevry.me"
+    }
+  },
+  "author": "2013+ Bevry Pty Ltd <us@bevry.me> (http://bevry.me)",
+  "maintainers": [
+    "Benjamin Lupton <b@lupton.cc> (https://balupton.com)"
+  ],
+  "contributors": [
+    "Benjamin Lupton <b@lupton.cc> (https://balupton.com)"
+  ],
+  "bugs": {
+    "url": "https://github.com/bevry/binaryextensions/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/bevry/binaryextensions.git"
+  },
+  "engines": {},
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "projectz": "^1.0.0"
+  },
+  "scripts": {
+    "meta": "npm run meta:projectz",
+    "meta:docs": "documentation build -f html -g --shallow ./source/**.js -o ./docs",
+    "meta:projectz": "projectz compile",
+    "prepare": "npm run meta",
+    "release": "npm run prepare && npm run release:publish && npm run release:tag && npm run release:push",
+    "release:publish": "npm publish",
+    "release:tag": "git tag v$npm_package_version -a",
+    "release:push": "git push origin master && git push origin --tags"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "base-pkg",
+  "description": "Plugin for adding a `pkg` method that exposes pkg-store to your base application.",
+  "version": "0.2.5",
+  "homepage": "https://github.com/node-base/base-pkg",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-pkg",
+  "bugs": {
+    "url": "https://github.com/node-base/base-pkg/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "cache-base": "^1.0.0",
+    "debug": "^2.6.8",
+    "define-property": "^1.0.0",
+    "expand-pkg": "^0.1.8",
+    "extend-shallow": "^2.0.1",
+    "is-valid-app": "^0.3.0",
+    "log-utils": "^0.2.1",
+    "pkg-store": "^0.2.2"
+  },
+  "devDependencies": {
+    "base": "^0.13.0",
+    "base-cwd": "^0.3.4",
+    "gulp-format-md": "^1.0.0",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "base-plugin",
+    "baseplugin",
+    "building-blocks",
+    "create",
+    "framework",
+    "pkg",
+    "plugin",
+    "plugins",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-options",
+        "cache-base",
+        "pkg-store"
+      ]
+    },
+    "reflinks": [
+      "cache-base",
+      "data-store",
+      "expand-pkg",
+      "pkg-store",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

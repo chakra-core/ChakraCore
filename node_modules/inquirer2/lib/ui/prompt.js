@@ -1,0 +1,126 @@
+'use strict';
+
+var util = require('util');
+var async = require('../utils/async');
+var utils = require('../utils/');
+var Base = require('./baseUI');
+
+/**
+ * Base interface class other can inherits from
+ */
+
+var PromptUI = module.exports = function(prompts, opt) {
+  Base.call(this, opt);
+  this.prompts = prompts;
+};
+
+util.inherits(PromptUI, Base);
+
+PromptUI.prototype.run = function(questions, allDone) {
+  // Keep global reference to the answers
+  this.answers = {};
+  this.completed = allDone;
+
+  // Make sure questions is an array.
+  if (utils.isPlainObject(questions)) {
+    questions = [questions];
+  }
+
+  // Create an observable, unless we received one as parameter.
+  // Note: As this is a public interface, we cannot do an instanceof check as we won't
+  // be using the exact same object in memory.
+  var obs = Array.isArray(questions)
+    ? utils.rx.Observable.from(questions)
+    : questions;
+
+  this.process = obs
+    .concatMap(this.processQuestion.bind(this))
+    .publish(); // `publish` creates a hot Observable. It prevents duplicating prompts.
+
+  this.process.subscribe(utils.noop, function(err) {
+    throw err;
+  }, this.onCompletion.bind(this));
+
+  return this.process.connect();
+};
+
+/**
+ * Once all prompt are over
+ */
+
+PromptUI.prototype.onCompletion = function() {
+  this.close();
+  if (typeof this.completed === 'function') {
+    this.completed(this.answers);
+  }
+};
+
+PromptUI.prototype.processQuestion = function(question) {
+  return utils.rx.Observable.defer(function() {
+    var obs = utils.rx.Observable.create(function(obs) {
+      obs.onNext(question);
+      obs.onCompleted();
+    });
+
+    return obs
+      .concatMap(this.setDefaultType.bind(this))
+      .concatMap(this.filterIfRunnable.bind(this))
+      .concatMap(async.fetchAsyncQuestionProperty.bind(null, question, 'message', this.answers))
+      .concatMap(async.fetchAsyncQuestionProperty.bind(null, question, 'default', this.answers))
+      .concatMap(async.fetchAsyncQuestionProperty.bind(null, question, 'choices', this.answers))
+      .concatMap(this.fetchAnswer.bind(this));
+  }.bind(this));
+};
+
+PromptUI.prototype.fetchAnswer = function(question) {
+  var Prompt = this.prompts[question.type];
+  var prompt = new Prompt(question, this.rl, this.answers);
+  var answers = this.answers;
+  return async.createObservableFromAsync(function() {
+    var done = this.async();
+    prompt.run(function(answer) {
+      answers[question.name] = answer;
+      done({
+        name: question.name,
+        answer: answer
+      });
+    });
+  });
+};
+
+PromptUI.prototype.setDefaultType = function(question) {
+  // Default type to input
+  if (!this.prompts[question.type]) {
+    question.type = 'input';
+  }
+  return utils.rx.Observable.defer(function() {
+    return utils.rx.Observable.return(question);
+  });
+};
+
+PromptUI.prototype.filterIfRunnable = function(question) {
+  if (question.when == null) {
+    return utils.rx.Observable.return(question);
+  }
+
+  var handleResult = function(obs, shouldRun) {
+    if (shouldRun) {
+      obs.onNext(question);
+    }
+    obs.onCompleted();
+  };
+
+  var answers = this.answers;
+  return utils.rx.Observable.defer(function() {
+    return utils.rx.Observable.create(function(obs) {
+      if (typeof question.when === 'boolean') {
+        handleResult(obs, question.when);
+        return;
+      }
+
+      utils.runAsync(question.when, function(shouldRun) {
+        handleResult(obs, shouldRun);
+      }, answers);
+    });
+  });
+};

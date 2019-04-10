@@ -1,0 +1,7 @@
+/dir1
+/dir1/file1.txt
+/dir2
+/dir2/file2.png
+/dir2/file3.txt
+/emptyfile.txt
+/file0.txt

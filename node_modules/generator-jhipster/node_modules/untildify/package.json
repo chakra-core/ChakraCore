@@ -1,0 +1,44 @@
+{
+  "name": "untildify",
+  "version": "3.0.3",
+  "description": "Convert a tilde path to an absolute path: ~/dev => /Users/sindresorhus/dev",
+  "license": "MIT",
+  "repository": "sindresorhus/untildify",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "contributors": [
+    "silverwind <me@silverwind.io> (https://silverwind.io)"
+  ],
+  "engines": {
+    "node": ">=4"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "tilde",
+    "expansion",
+    "expand",
+    "untildify",
+    "path",
+    "home",
+    "dir",
+    "directory",
+    "user",
+    "shell",
+    "bash"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  },
+  "xo": {
+    "esnext": true
+  }
+}

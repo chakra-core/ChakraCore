@@ -1,0 +1,39 @@
+{
+  "name": "ext-name",
+  "version": "3.0.0",
+  "description": "Get the file extension and MIME type from a file",
+  "license": "MIT",
+  "repository": "kevva/ext-name",
+  "author": {
+    "name": "Kevin Mårtensson",
+    "email": "kevinmartensson@gmail.com",
+    "url": "https://github.com/kevva"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "bin": {
+    "ext-name": "cli.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "cli.js",
+    "index.js"
+  ],
+  "keywords": [
+    "ext",
+    "extname",
+    "mime"
+  ],
+  "dependencies": {
+    "ends-with": "^0.2.0",
+    "ext-list": "^2.0.0",
+    "meow": "^3.1.0",
+    "sort-keys-length": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "^0.0.4"
+  }
+}

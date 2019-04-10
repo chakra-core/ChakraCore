@@ -1,0 +1,31 @@
+{
+  "name": "find-index",
+  "version": "1.1.1",
+  "description": "finds an item in an array matching a predicate function, and returns its index",
+  "main": "index.js",
+  "keywords": [
+    "array",
+    "findindex",
+    "es6",
+    "es2015",
+    "ponyfill",
+    "polyfill",
+    "find"
+  ],
+  "scripts": {
+    "test": "tap test"
+  },
+  "devDependencies": {
+    "array-findindex": "0.1.0",
+    "lodash.findindex": "^4.6.0",
+    "tap": "^1.0.4"
+  },
+  "homepage": "https://github.com/jsdf/find-index",
+  "bugs": "https://github.com/jsdf/find-index/issues",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jsdf/find-index.git"
+  },
+  "author": "James Friend <james@jsdf.co> (http://jsdf.co/)",
+  "license": "MIT"
+}

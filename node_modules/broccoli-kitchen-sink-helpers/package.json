@@ -1,0 +1,16 @@
+{
+  "name": "broccoli-kitchen-sink-helpers",
+  "description": "Collection of helpers that need to be extracted into separate packages",
+  "version": "0.3.1",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/broccoli-kitchen-sink-helpers"
+  },
+  "dependencies": {
+    "mkdirp": "^0.5.1",
+    "glob": "^5.0.10"
+  }
+}

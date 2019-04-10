@@ -1,0 +1,66 @@
+{
+  "name": "get-value",
+  "description": "Use property paths (`a.b.c`) to get a nested value from an object.",
+  "version": "1.3.1",
+  "homepage": "https://github.com/jonschlinkert/get-value",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/get-value",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/get-value/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1",
+    "is-extendable": "^0.1.1",
+    "lazy-cache": "^0.2.4",
+    "noncharacters": "^1.1.0"
+  },
+  "devDependencies": {
+    "ansi-bold": "^0.1.1",
+    "arr-reduce": "^1.0.1",
+    "benchmarked": "^0.1.4",
+    "getobject": "^0.1.0",
+    "isobject": "^2.0.0",
+    "matched": "^0.3.2",
+    "minimist": "^1.2.0",
+    "mocha": "^2.3.3",
+    "should": "^7.1.1"
+  },
+  "keywords": [
+    "get",
+    "key",
+    "nested",
+    "object",
+    "path",
+    "paths",
+    "prop",
+    "properties",
+    "property",
+    "props",
+    "segment",
+    "value",
+    "values"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "unset-value",
+        "has-value",
+        "set-value",
+        "has-any",
+        "has-any-deep"
+      ]
+    }
+  }
+}

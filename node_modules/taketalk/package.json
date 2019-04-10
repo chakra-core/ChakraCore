@@ -1,0 +1,27 @@
+{
+  "name": "taketalk",
+  "version": "1.0.0",
+  "description": "Ever wanted a bin for your node module?",
+  "repository": "stephenplusplus/taketalk",
+  "keywords": [
+    "cli",
+    "bin",
+    "node",
+    "npm"
+  ],
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Stephen Sawchuk",
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "dependencies": {
+    "get-stdin": "^4.0.1",
+    "minimist": "^1.1.0"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "name": "root-check",
+  "version": "1.0.0",
+  "description": "Try to downgrade the permissions of a process with root privileges and block access if it fails",
+  "license": "MIT",
+  "repository": "sindresorhus/root-check",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "sudo",
+    "root",
+    "user",
+    "permissions",
+    "uid",
+    "block",
+    "prevent",
+    "stop",
+    "downgrade",
+    "drop",
+    "privileges",
+    "check"
+  ],
+  "dependencies": {
+    "downgrade-root": "^1.0.0",
+    "sudo-block": "^1.1.0"
+  },
+  "devDependencies": {
+    "ava": "0.0.4"
+  }
+}

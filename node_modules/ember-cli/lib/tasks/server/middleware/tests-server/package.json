@@ -1,0 +1,13 @@
+{
+  "name": "tests-server-middleware",
+  "keywords": [
+    "ember-addon"
+  ],
+  "ember-addon": {
+    "before": "history-support-middleware"
+  },
+  "dependencies": {
+    "clean-base-url": "*",
+    "heimdalljs-logger": "*"
+  }
+}

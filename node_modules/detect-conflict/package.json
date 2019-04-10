@@ -1,0 +1,26 @@
+{
+  "name": "detect-conflict",
+  "version": "1.0.1",
+  "description": "Small utility library that check if a new file content can be merged safely in the on-disk existing file.",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SBoudrias/detect-conflict"
+  },
+  "author": "Simon Boudrias",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SBoudrias/detect-conflict/issues"
+  },
+  "homepage": "https://github.com/SBoudrias/detect-conflict",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "^1.21.5"
+  }
+}

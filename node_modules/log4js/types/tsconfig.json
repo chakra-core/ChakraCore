@@ -1,0 +1,9 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noEmit": true
+  }
+}

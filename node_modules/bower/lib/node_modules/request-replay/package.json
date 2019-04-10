@@ -1,0 +1,33 @@
+{
+  "name": "request-replay",
+  "version": "0.2.0",
+  "description": "Replays a request when a network error occurs",
+  "main": "index.js",
+  "dependencies": {
+    "retry": "~0.6.0"
+  },
+  "devDependencies": {
+    "mocha": "~1.12.0",
+    "expect.js": "~0.2.0",
+    "request": "~2"
+  },
+  "scripts": {
+    "test": "mocha -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/IndigoUnited/node-request-replay"
+  },
+  "bugs": {
+    "url": "http://github.com/IndigoUnited/node-request-replay/issues"
+  },
+  "keywords": [
+    "retry",
+    "replay",
+    "request",
+    "mikeal",
+    "network"
+  ],
+  "author": "IndigoUnited <hello@indigounited.com> (http://indigounited.com)",
+  "license": "MIT"
+}

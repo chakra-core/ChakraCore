@@ -1,0 +1,126 @@
+{
+  "name": "ansi-colors",
+  "description": "Collection of ansi colors and styles.",
+  "version": "0.2.0",
+  "homepage": "https://github.com/doowb/ansi-colors",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "repository": "doowb/ansi-colors",
+  "bugs": {
+    "url": "https://github.com/doowb/ansi-colors/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "ansi-bgblack": "^0.1.1",
+    "ansi-bgblue": "^0.1.1",
+    "ansi-bgcyan": "^0.1.1",
+    "ansi-bggreen": "^0.1.1",
+    "ansi-bgmagenta": "^0.1.1",
+    "ansi-bgred": "^0.1.1",
+    "ansi-bgwhite": "^0.1.1",
+    "ansi-bgyellow": "^0.1.1",
+    "ansi-black": "^0.1.1",
+    "ansi-blue": "^0.1.1",
+    "ansi-bold": "^0.1.1",
+    "ansi-cyan": "^0.1.1",
+    "ansi-dim": "^0.1.1",
+    "ansi-gray": "^0.1.1",
+    "ansi-green": "^0.1.1",
+    "ansi-grey": "^0.1.1",
+    "ansi-hidden": "^0.1.1",
+    "ansi-inverse": "^0.1.1",
+    "ansi-italic": "^0.1.1",
+    "ansi-magenta": "^0.1.1",
+    "ansi-red": "^0.1.1",
+    "ansi-reset": "^0.1.1",
+    "ansi-strikethrough": "^0.1.1",
+    "ansi-underline": "^0.1.1",
+    "ansi-white": "^0.1.1",
+    "ansi-yellow": "^0.1.1",
+    "lazy-cache": "^2.0.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb-readme-generator",
+      "verb"
+    ]
+  },
+  "keywords": [
+    "ansi-bgblack",
+    "ansi-bgblue",
+    "ansi-bgcyan",
+    "ansi-bggreen",
+    "ansi-bgmagenta",
+    "ansi-bgred",
+    "ansi-bgwhite",
+    "ansi-bgyellow",
+    "ansi-black",
+    "ansi-blue",
+    "ansi-bold",
+    "ansi-cyan",
+    "ansi-dim",
+    "ansi-gray",
+    "ansi-green",
+    "ansi-grey",
+    "ansi-hidden",
+    "ansi-inverse",
+    "ansi-italic",
+    "ansi-magenta",
+    "ansi-red",
+    "ansi-reset",
+    "ansi-strikethrough",
+    "ansi-underline",
+    "ansi-white",
+    "ansi-yellow",
+    "bgblack",
+    "bgblue",
+    "bgcyan",
+    "bggreen",
+    "bgmagenta",
+    "bgred",
+    "bgwhite",
+    "bgyellow",
+    "black",
+    "blue",
+    "bold",
+    "cyan",
+    "dim",
+    "gray",
+    "green",
+    "grey",
+    "hidden",
+    "inverse",
+    "italic",
+    "magenta",
+    "red",
+    "reset",
+    "strikethrough",
+    "underline",
+    "white",
+    "yellow"
+  ]
+}

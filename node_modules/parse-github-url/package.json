@@ -1,0 +1,62 @@
+{
+  "name": "parse-github-url",
+  "description": "Parse a github URL into an object.",
+  "version": "0.3.2",
+  "homepage": "https://github.com/jonschlinkert/parse-github-url",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/parse-github-url",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/parse-github-url/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.7",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "branch",
+    "git",
+    "github",
+    "match",
+    "parse",
+    "regex",
+    "repo",
+    "test",
+    "url",
+    "user",
+    "username"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "github-short-url-regex",
+        "is-git-url",
+        "parse-github-short-url"
+      ]
+    },
+    "toc": false,
+    "lint": {
+      "reflinks": true
+    },
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "reflinks": [
+      "verb"
+    ]
+  }
+}

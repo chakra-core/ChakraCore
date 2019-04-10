@@ -1,0 +1,36 @@
+{
+  "name": "amd-name-resolver",
+  "version": "1.3.1",
+  "description": "AMD module name resolver algorithm",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "relative-module-paths.js"
+  ],
+  "scripts": {
+    "changelog": "lerna-changelog",
+    "test": "mocha -R dot test.js"
+  },
+  "keywords": [
+    "amd"
+  ],
+  "author": "Ember CLI contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chadhietala/amd-name-resolver.git"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "broccoli-babel-transpiler": "^5.7.1",
+    "chai": "^4.2.0",
+    "lerna-changelog": "^0.8.2",
+    "mocha": "^5.2.0"
+  },
+  "dependencies": {
+    "ensure-posix-path": "^1.0.1",
+    "object-hash": "^1.3.1"
+  },
+  "engines": {
+    "node": "6.* || 8.* || >= 10.*"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "error-symbol",
+  "description": "Cross-platform error symbol.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/jonschlinkert/error-symbol",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/error-symbol",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/error-symbol/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "error",
+    "256",
+    "ansi",
+    "cli",
+    "symbol",
+    "symbols",
+    "colour",
+    "command",
+    "command-line",
+    "console",
+    "format",
+    "formatting",
+    "iterm",
+    "log",
+    "logging",
+    "rgb",
+    "shell",
+    "string",
+    "style",
+    "styles",
+    "styling",
+    "terminal",
+    "text",
+    "tty",
+    "xterm"
+  ]
+}

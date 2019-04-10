@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test'em</title>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jasmine/1.3.1/jasmine.js"></script>
+  <script src="/testem.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/jasmine/1.3.1/jasmine-html.js"></script>
+  <script>
+    (function() {
+      var jasmineEnv = jasmine.getEnv()
+      jasmineEnv.addReporter(new jasmine.HtmlReporter)
+
+      window.onload = function() {
+        jasmineEnv.execute()
+      };
+    })();
+  </script>
+
+  {{#scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/scripts}}
+
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jasmine/1.3.1/jasmine.css">
+
+  {{#styles}}<link rel="stylesheet" href="{{.}}">{{/styles}}
+</head>
+<body>
+  <div id="jasmine_content"></div>
+</body>
+{{#footer_scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/footer_scripts}}
+</html>

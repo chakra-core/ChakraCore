@@ -1,0 +1,115 @@
+{
+  "name": "engine-cache",
+  "description": "express.js inspired template-engine manager.",
+  "version": "0.19.4",
+  "homepage": "https://github.com/jonschlinkert/engine-cache",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    "Brian Woodward (https://github.com/doowb)"
+  ],
+  "contributors": [
+    "Brian Woodward (https://github.com/doowb)"
+  ],
+  "repository": "jonschlinkert/engine-cache",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/engine-cache/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "async-helpers": "^0.3.9",
+    "extend-shallow": "^2.0.1",
+    "helper-cache": "^0.7.2",
+    "isobject": "^3.0.0",
+    "lazy-cache": "^2.0.2",
+    "mixin-deep": "^1.1.3"
+  },
+  "devDependencies": {
+    "consolidate": "^0.14.5",
+    "engine-base": "^0.1.2",
+    "engine-handlebars": "^0.8.0",
+    "engines": "^0.4.0",
+    "gulp": "^3.9.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-jshint": "^2.0.4",
+    "gulp-mocha": "^3.0.1",
+    "handlebars": "^4.0.6",
+    "jshint-stylish": "^2.2.1",
+    "lodash": "^4.17.4",
+    "mocha": "^3.2.0",
+    "swig": "^1.4.2",
+    "underscore": "^1.8.3"
+  },
+  "keywords": [
+    "assemble",
+    "cache",
+    "compile",
+    "consolidate",
+    "content",
+    "data",
+    "delimiters",
+    "delims",
+    "docs",
+    "documentation",
+    "engine",
+    "engines",
+    "express",
+    "front",
+    "generate",
+    "generator",
+    "lo-dash",
+    "lodash",
+    "markdown",
+    "matter",
+    "noop",
+    "parse",
+    "parser",
+    "parsers",
+    "pass-through",
+    "process",
+    "render",
+    "template",
+    "templates",
+    "underscore",
+    "verb",
+    "yaml"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "assemble",
+        "async-helpers",
+        "engines",
+        "helper-cache",
+        "templates"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "helper-cache",
+      "verb",
+      "verb-readme-generator"
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "name": "bach",
+  "version": "0.5.0",
+  "description": "Compose your async functions with elegance",
+  "author": "Blaine Bublitz <blaine@iceddev.com> (http://iceddev.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine@iceddev.com> (http://iceddev.com/)",
+    "Pawel Kozlowski <pkozlowski.opensource@gmail.com>",
+    "Benjamin Tan <demoneaux@gmail.com> (https://d10.github.io/)"
+  ],
+  "repository": "gulpjs/bach",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 0.10"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "LICENSE"
+  ],
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "lab -cv",
+    "lint": "eslint . && jscs *.js lib/ test/"
+  },
+  "dependencies": {
+    "async-done": "^1.1.1",
+    "async-settle": "^0.2.1",
+    "lodash.filter": "^4.1.0",
+    "lodash.flatten": "^4.0.0",
+    "lodash.foreach": "^4.0.0",
+    "lodash.initial": "^4.0.1",
+    "lodash.last": "^3.0.0",
+    "lodash.map": "^4.1.0",
+    "now-and-later": "0.0.6"
+  },
+  "devDependencies": {
+    "code": "^1.5.0",
+    "eslint": "^1.7.3",
+    "eslint-config-gulp": "^2.0.0",
+    "jscs": "^2.3.5",
+    "jscs-preset-gulp": "^1.0.0",
+    "lab": "^6.2.0"
+  },
+  "keywords": [
+    "compose",
+    "fluent",
+    "composing",
+    "continuation",
+    "function composition",
+    "functional",
+    "async",
+    "map",
+    "series",
+    "parallel",
+    "extension",
+    "tracing",
+    "debug",
+    "timing",
+    "aop",
+    "settle",
+    "promises",
+    "callbacks",
+    "observables",
+    "streams",
+    "end",
+    "completion",
+    "complete",
+    "finish",
+    "done",
+    "error handling"
+  ]
+}

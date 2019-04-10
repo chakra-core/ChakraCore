@@ -1,0 +1,14 @@
+{
+  "name": "path-posix",
+  "author": "jden <jason@denizac.org>",
+  "version": "1.0.0",
+  "description": "posix-specific core path module",
+  "keywords": ["path"],
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/test-path"
+  },
+  "repository": "git@github.com:jden/node-path-posix.git",
+  "license": "ISC",
+  "readmeFilename": "README.md"
+}

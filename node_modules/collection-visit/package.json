@@ -1,0 +1,77 @@
+{
+  "name": "collection-visit",
+  "description": "Visit a method over the items in an object, or map visit over the objects in an array.",
+  "version": "0.2.3",
+  "homepage": "https://github.com/jonschlinkert/collection-visit",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/collection-visit",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/collection-visit/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "lazy-cache": "^2.0.1",
+    "map-visit": "^0.1.5",
+    "object-visit": "^0.3.4"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.10",
+    "gulp-istanbul": "^1.0.0",
+    "gulp-mocha": "^3.0.0",
+    "mocha": "^3.0.1",
+    "should": "^10.0.0"
+  },
+  "keywords": [
+    "array",
+    "arrays",
+    "context",
+    "function",
+    "helper",
+    "invoke",
+    "key",
+    "map",
+    "method",
+    "object",
+    "objects",
+    "value",
+    "visit",
+    "visitor"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "base-methods",
+        "object-visit",
+        "map-visit"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

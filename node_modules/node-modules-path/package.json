@@ -1,0 +1,27 @@
+{
+  "name": "node-modules-path",
+  "version": "1.0.2",
+  "description": "",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "istanbul cover mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/node-modules-path.git"
+  },
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ember-cli/node-modules-path/issues"
+  },
+  "homepage": "https://github.com/ember-cli/node-modules-path#readme",
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "istanbul": "^0.3.14",
+    "mocha": "^2.2.5"
+  }
+}

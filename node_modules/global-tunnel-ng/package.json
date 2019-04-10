@@ -1,0 +1,63 @@
+{
+  "name": "global-tunnel-ng",
+  "version": "2.7.1",
+  "description": "Global HTTP & HTTPS tunneling",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/np-maintain/global-tunnel.git"
+  },
+  "engines": {
+    "node": ">=0.10"
+  },
+  "dependencies": {
+    "encodeurl": "^1.0.2",
+    "lodash": "^4.17.10",
+    "npm-conf": "^1.1.3",
+    "tunnel": "^0.0.6"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "eslint": "^5.1.0",
+    "eslint-config-prettier": "^3.0.0",
+    "eslint-config-xo": "^0.25.0",
+    "eslint-plugin-prettier": "^3.0.0",
+    "mocha": "^5.2.0",
+    "prettier": "^1.13.7",
+    "request": "^2.83.0",
+    "sinon": "^6.0.1"
+  },
+  "scripts": {
+    "test": "mocha test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "xo",
+      "prettier"
+    ],
+    "env": {
+      "mocha": true,
+      "node": true
+    },
+    "rules": {
+      "prettier/prettier": [
+        "error",
+        {
+          "singleQuote": true,
+          "printWidth": 90
+        }
+      ]
+    },
+    "plugins": [
+      "prettier"
+    ]
+  },
+  "keywords": [
+    "http",
+    "https",
+    "tunnel",
+    "global"
+  ],
+  "author": "GoInstant Inc., a salesforce.com company",
+  "license": "BSD-3-Clause"
+}

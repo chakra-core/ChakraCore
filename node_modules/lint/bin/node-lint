@@ -1,0 +1,124 @@
+#!/usr/bin/env node
+
+/*jslint nodejs:true, indent:4 */
+var util = require(process.binding('natives').util ? 'util' : 'sys'),
+	fs = require('fs'),
+	path = require('path'),
+
+	//Build version
+	VERSION = '1.1.1',
+	
+	//Include lint library
+	lint = require('../lib/lint'),
+	Launcher = lint.Launcher;
+
+
+//called as main executable
+var usage = "Usage: " + process.argv[0] + " file.js [dir1 file2 dir2 ...] [options]\n" +
+	"Options:\n\n" +
+	"  --config=FILE     the path to a JSON file with JSLINT options\n" +
+	"  --formatter=FILE  optional path to a /dir/dir/file.hs file to customize the output\n" +
+	"  --no-colors       disable colors\n" +
+	"  --silent          disable console output\n" +
+	"  --pretty          enable pretty print for some format (XML, etc)\n" +
+	"  -h, --help        display this help and exit\n" +
+	"  -v, --version     output version information and exit", 
+	args = process.argv.splice(2), arg,
+	positionals = [], 
+	options = {
+	    formatter: {
+	    },
+	    parser: {
+	    }
+	},
+	configFile = process.env.NODELINT_CONFIG_FILE || path.join(__dirname, '..', 'etc', 'config.json'),
+	launcher = new Launcher();
+
+
+while (args.length !== 0) {
+    arg = args.shift();
+    switch (arg) {
+    case '-v':
+    case '--version':
+        util.puts(VERSION);
+        process.exit(0);
+        break;
+    case '-h':
+    case '--help':  
+        util.puts(usage);
+        process.exit(0);
+        break;
+    case '--silent':
+        options.silent = true;
+        break;
+    case '--pretty':
+        options.formatter.pretty = true;
+        break;
+    case '--no-color':
+    case '--no-colors':
+        options.formatter.colors = false;
+        break;
+    default:
+        if (arg.indexOf('--formatter') >= 0) {
+            options.formatter.type = 'callback';
+            options.formatter.callback = fs.readFileSync(arg.split('=')[1], 'utf8');
+        } else if (arg.indexOf('--format') >= 0) {
+            options.formatter.type = arg.split('=')[1];
+        } else if (arg.indexOf('--mode') >= 0) {
+            options.formatter.mode = arg.split('=')[1];
+        } else if (arg.indexOf('--config') >= 0) {
+            var file, source;
+            
+            configFile = arg.split('=')[1];
+            
+        } else {
+            positionals.push(arg);
+        }
+    }
+}
+
+//Load default config file from environment
+if (configFile) {
+    var source;
+    
+    //read config file
+    try {
+        source = fs.readFileSync(configFile, 'utf8');
+    } catch (e) {
+        launcher.printError('Read error when accessing "' + configFile + '".');
+    }
+    
+    //Remove comments
+    source = source.replace(/\/\*.+?\*\/|\/\/.*(?=[\n\r])/g, '');
+
+    //Parse config
+    try {
+        source = JSON.parse(source);
+    } catch (e) {
+        console.log(e.toString());
+        launcher.printError('Parse Error in "' + configFile + '"');
+    }
+    
+    try {
+        launcher.configure(source);
+    } catch (e) {
+        console.log(e.toString());
+        launcher.printError('Parse Error in "' + configFile + '"');
+    }
+}
+
+
+
+try {
+    launcher.configure(options);
+} catch (e) {
+    launcher.printError('Configuration : ' + e.toString());
+}
+
+try {
+    launcher.run(positionals);
+} catch (e) {
+    launcher.printError('Execution : ' + e.toString());
+}
+
+

@@ -1,0 +1,71 @@
+{
+  "name": "match-file",
+  "description": "Returns true when the given `name` matches any of the path properties on a vinyl file.",
+  "version": "0.2.2",
+  "homepage": "https://github.com/jonschlinkert/match-file",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/match-file",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/match-file/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-glob": "^3.1.0",
+    "isobject": "^3.0.0",
+    "micromatch": "^2.3.11"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-format-md": "^0.1.11",
+    "lazy-cache": "^2.0.2",
+    "mocha": "^3.2.0",
+    "vinyl": "^2.0.1"
+  },
+  "keywords": [
+    "assemble",
+    "collection",
+    "file",
+    "find",
+    "gulpfriendly",
+    "match",
+    "view",
+    "vinyl"
+  ],
+  "verb": {
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "generate",
+        "get-view",
+        "micromatch",
+        "verb"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "gulp",
+      "micromatch",
+      "verb"
+    ]
+  }
+}

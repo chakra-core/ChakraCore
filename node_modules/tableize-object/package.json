@@ -1,0 +1,68 @@
+{
+  "name": "tableize-object",
+  "description": "Tableize an object by flattening its keys into object paths (dot-notation).",
+  "version": "0.1.0",
+  "homepage": "https://github.com/jonschlinkert/tableize-object",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/tableize-object",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/tableize-object/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "isobject": "^2.0.0"
+  },
+  "devDependencies": {
+    "gulp-format-md": "*",
+    "mocha": "*"
+  },
+  "keywords": [
+    "dot",
+    "dot-notation",
+    "flatten",
+    "keys",
+    "notation",
+    "object",
+    "paths",
+    "stringify",
+    "tableize"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "stringify-keys",
+        "isobject",
+        "expand-object",
+        "collapse-object",
+        "get-value",
+        "set-value"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "tableize"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

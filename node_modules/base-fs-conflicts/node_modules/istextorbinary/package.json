@@ -1,0 +1,66 @@
+{
+  "title": "Is Text or Binary?",
+  "name": "istextorbinary",
+  "version": "1.0.2",
+  "description": "Determines if a buffer is comprised of text or binary",
+  "homepage": "https://github.com/bevry/istextorbinary",
+  "license": {
+    "type": "MIT"
+  },
+  "badges": {
+    "travis": true,
+    "npm": true,
+    "npmdownloads": true,
+    "david": true,
+    "daviddev": true,
+    "gratipay": "bevry",
+    "flattr": "344188/balupton-on-Flattr",
+    "paypal": "QB8GQPZAH84N6",
+    "bitcoin": "https://coinbase.com/checkouts/9ef59f5479eec1d97d63382c9ebcb93a",
+    "wishlist": "http://amzn.com/w/2F8TXKSNAFG4V"
+  },
+  "keywords": [
+    "text",
+    "binary",
+    "encoding"
+  ],
+  "author": "2012+ Bevry Pty Ltd <us@bevry.me> (http://bevry.me), 2011 Benjamin Lupton <b@lupton.cc> (http://balupton.com)",
+  "maintainers": [
+    "Benjamin Lupton <b@lupton.cc> (https://github.com/balupton)"
+  ],
+  "contributors": [
+    "Benjamin Lupton <b@lupton.cc> (https://github.com/balupton)",
+    "shinnn (https://github.com/shinnn)"
+  ],
+  "bugs": {
+    "url": "https://github.com/bevry/istextorbinary/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/bevry/istextorbinary.git"
+  },
+  "engines": {
+    "node": ">=0.4"
+  },
+  "dependencies": {
+    "textextensions": "~1.0.0",
+    "binaryextensions": "~1.0.0"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.8.0",
+    "joe": "~1.5.0",
+    "joe-reporter-console": "~1.2.1",
+    "chai": "~1.10.0",
+    "projectz": "~0.3.17"
+  },
+  "directories": {
+    "lib": "./out/lib"
+  },
+  "scripts": {
+    "test": "node ./out/test/istextorbinary-test.js"
+  },
+  "main": "./out/lib/istextorbinary.js",
+  "cakeConfiguration": {
+    "COFFEE_SRC_PATH": "src"
+  }
+}

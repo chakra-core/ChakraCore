@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+'use strict';
+
+/* eslint-disable no-console */
+
+const getChannelURL = require('../src');
+const channel = process.argv[2];
+
+if (['release', 'beta', 'canary'].indexOf(channel) === -1) {
+  console.log(
+    `ember-source-channel-url is a utility module to easily obtain the URL
+to a tarball representing the latest \`ember-source\` build for a given
+channel.
+
+Usage:
+
+  ember-source-channel-url canary
+  ember-source-channel-url beta
+  ember-source-channel-url release
+`
+  );
+} else {
+  getChannelURL(channel).then(url =>
+    console.log(
+      `The URL for the latest tarball from ember-source's ${channel} channel is:\n\n\t${url}`
+    )
+  );
+}

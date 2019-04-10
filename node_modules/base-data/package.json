@@ -1,0 +1,115 @@
+{
+  "name": "base-data",
+  "description": "adds a `data` method to base-methods.",
+  "version": "0.6.2",
+  "homepage": "https://github.com/node-base/base-data",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward (https://twitter.com/doowb)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "node-base/base-data",
+  "bugs": {
+    "url": "https://github.com/node-base/base-data/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.1.0",
+    "cache-base": "^1.0.0",
+    "extend-shallow": "^2.0.1",
+    "get-value": "^2.0.6",
+    "has-glob": "^1.0.0",
+    "has-value": "^1.0.0",
+    "is-registered": "^0.1.5",
+    "is-valid-app": "^0.3.0",
+    "kind-of": "^5.0.0",
+    "lazy-cache": "^2.0.2",
+    "merge-value": "^1.0.0",
+    "mixin-deep": "^1.2.0",
+    "read-file": "^0.2.0",
+    "resolve-glob": "^1.0.0",
+    "set-value": "^2.0.0",
+    "union-value": "^1.0.0"
+  },
+  "devDependencies": {
+    "base": "^0.13.0",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^4.0.0",
+    "gulp-format-md": "^1.0.0",
+    "gulp-istanbul": "^1.1.2",
+    "gulp-mocha": "^3.0.1",
+    "js-yaml": "^3.9.0",
+    "mocha": "^3.4.2"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "base-methods",
+    "base-plugin",
+    "baseplugin",
+    "building-blocks",
+    "context",
+    "create",
+    "data",
+    "extend",
+    "framework",
+    "glob",
+    "json",
+    "load",
+    "merge",
+    "methods",
+    "plugin",
+    "plugins",
+    "templates",
+    "tool",
+    "toolkit",
+    "tools",
+    "yaml"
+  ],
+  "verb": {
+    "run": true,
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-cli",
+        "base-config",
+        "base-option",
+        "base-pipeline",
+        "base-plugins",
+        "base-store"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "is-registered",
+      "is-valid-app",
+      "is-valid-instance",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

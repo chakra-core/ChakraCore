@@ -1,0 +1,32 @@
+# https://www.appveyor.com/docs/appveyor-yml/
+
+# Test against these versions of Node.js.
+environment:
+  MOCHA_REPORTER: "mocha-appveyor-reporter"
+  matrix:
+    - fast_finish: true
+    - nodejs_version: "6"
+    - nodejs_version: "8"
+    - nodejs_version: "10"
+    - nodejs_version: "11"
+
+install:
+  - ps: Install-Product node $env:nodejs_version
+  - choco install yarn --version=1.13.0
+  - appveyor-retry yarn
+  - appveyor-retry yarn add mocha-appveyor-reporter # must be installed locally.
+
+cache:
+  - '%LOCALAPPDATA%\Yarn'
+
+# Post-install test scripts.
+test_script:
+  # Output useful info for debugging.
+  - git rev-parse HEAD
+  - cmd: yarn run test
+
+# Don't actually build.
+build: off
+
+# Set build version format here instead of in the admin panel.
+version: "{build}"

@@ -1,0 +1,42 @@
+{
+  "name": "core-object",
+  "version": "3.1.5",
+  "description": "A lightweight implementation of OOP Class in JavaScript",
+  "main": "core-object.js",
+  "files": [
+    "core-object.js",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "mocha tests/**/*-test.js",
+    "test:debug": "mocha debug tests/**/*-test.js",
+    "build:browser": "browserify core-object.js -o browser.js",
+    "bench:browser": "browserify benchmarks/index.js -o tmp/bench.js",
+    "bench:node": "node benchmarks/index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ember-cli/core-object.git"
+  },
+  "author": "Ember core team and ember cli contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ember-cli/core-object/issues"
+  },
+  "homepage": "https://github.com/ember-cli/core-object",
+  "devDependencies": {
+    "backbone-metal": "^0.6.2",
+    "benchmark": "^2.1.0",
+    "browserify": "^14.0.0",
+    "klass": "^1.4.0",
+    "mocha": "^3.0.0",
+    "traceur-runtime": "0.0.59",
+    "uberproto": "^1.1.2"
+  },
+  "dependencies": {
+    "chalk": "^2.0.0"
+  },
+  "engines": {
+    "node": ">= 4"
+  }
+}

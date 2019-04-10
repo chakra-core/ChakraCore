@@ -1,0 +1,34 @@
+{
+  "name": "broccoli-plugin",
+  "description": "Base class for all Broccoli plugins",
+  "version": "1.3.1",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/broccoli-plugin"
+  },
+  "keywords": [
+    "broccoli-plugin"
+  ],
+  "scripts": {
+    "pretest": "multidep test/multidep.json",
+    "test": "mocha"
+  },
+  "dependencies": {
+    "promise-map-series": "^0.2.1",
+    "quick-temp": "^0.1.3",
+    "rimraf": "^2.3.4",
+    "symlink-or-copy": "^1.1.8"
+  },
+  "devDependencies": {
+    "broccoli-fixturify": "^0.3.0",
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "fixturify": "^0.3.4",
+    "mocha": "^5.2.0",
+    "mocha-jshint": "^2.2.3",
+    "multidep": "^2.0.0"
+  }
+}

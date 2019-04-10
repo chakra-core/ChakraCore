@@ -1,0 +1,51 @@
+{
+  "name": "configstore",
+  "version": "2.1.0",
+  "description": "Easily load and save config without having to think about where and how",
+  "license": "BSD-2-Clause",
+  "repository": "yeoman/configstore",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "config",
+    "store",
+    "storage",
+    "conf",
+    "configuration",
+    "settings",
+    "preferences",
+    "json",
+    "data",
+    "persist",
+    "persistent",
+    "save"
+  ],
+  "dependencies": {
+    "dot-prop": "^3.0.0",
+    "graceful-fs": "^4.1.2",
+    "mkdirp": "^0.5.0",
+    "object-assign": "^4.0.1",
+    "os-tmpdir": "^1.0.0",
+    "osenv": "^0.1.0",
+    "uuid": "^2.0.1",
+    "write-file-atomic": "^1.1.2",
+    "xdg-basedir": "^2.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "path-exists": "^2.0.0",
+    "xo": "*"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "name": "base-engines",
+  "description": "Adds support for managing template engines to your base application.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/node-base/base-engines",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Brian Woodward <brian.woodward@gmail.com> (https://github.com/doowb)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "node-base/base-engines",
+  "bugs": {
+    "url": "https://github.com/node-base/base-engines/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "debug": "^2.2.0",
+    "define-property": "^0.2.5",
+    "engine-cache": "^0.19.0",
+    "is-valid-app": "^0.1.2",
+    "lazy-cache": "^2.0.1"
+  },
+  "devDependencies": {
+    "base": "^0.11.1",
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^2.5.3"
+  },
+  "keywords": [
+    "api",
+    "app",
+    "application",
+    "base",
+    "base-plugin",
+    "baseplugin",
+    "building-blocks",
+    "create",
+    "engines",
+    "framework",
+    "plugin",
+    "plugins",
+    "tool",
+    "toolkit",
+    "tools"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-option",
+        "base-task"
+      ]
+    },
+    "reflinks": [
+      "base",
+      "verb",
+      "verb-readme-generator"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

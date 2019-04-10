@@ -1,0 +1,61 @@
+{
+  "name": "arr-filter",
+  "description": "Faster alternative to javascript's native filter method.",
+  "version": "1.1.2",
+  "homepage": "https://github.com/jonschlinkert/arr-filter",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/arr-filter",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/arr-filter/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "make-iterator": "^1.0.0"
+  },
+  "devDependencies": {
+    "array-filter": "^1.0.0",
+    "benchmarked": "^0.2.5",
+    "chalk": "^1.1.3",
+    "gulp-format-md": "^0.1.11",
+    "micromatch": "^2.3.11",
+    "minimist": "^1.2.0",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "arr",
+    "array",
+    "collection",
+    "filter",
+    "util"
+  ],
+  "verb": {
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "collection-map",
+        "arr-map",
+        "array-each"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "name": "gulp",
+  "version": "4.0.0",
+  "description": "The streaming build system.",
+  "homepage": "http://gulpjs.com",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Eric Schoffstall <yo@contra.io>",
+    "Blaine Bublitz <blaine.bublitz@gmail.com>"
+  ],
+  "repository": "gulpjs/gulp",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 0.10"
+  },
+  "main": "index.js",
+  "files": [
+    "LICENSE",
+    "index.js",
+    "bin"
+  ],
+  "bin": {
+    "gulp": "./bin/gulp.js"
+  },
+  "scripts": {
+    "lint": "eslint . && jscs index.js bin/ test/",
+    "pretest": "npm run lint",
+    "test": "mocha --async-only",
+    "cover": "istanbul cover _mocha --report lcovonly",
+    "coveralls": "npm run cover && istanbul-coveralls"
+  },
+  "dependencies": {
+    "glob-watcher": "^5.0.0",
+    "gulp-cli": "^2.0.0",
+    "undertaker": "^1.0.0",
+    "vinyl-fs": "^3.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^1.7.3",
+    "eslint-config-gulp": "^2.0.0",
+    "expect": "^1.20.2",
+    "istanbul": "^0.4.3",
+    "istanbul-coveralls": "^1.0.3",
+    "jscs": "^2.3.5",
+    "jscs-preset-gulp": "^1.0.0",
+    "mkdirp": "^0.5.1",
+    "mocha": "^3.0.0",
+    "rimraf": "^2.2.5"
+  },
+  "keywords": [
+    "build",
+    "stream",
+    "system",
+    "make",
+    "tool",
+    "asset",
+    "pipeline",
+    "series",
+    "parallel",
+    "streaming"
+  ]
+}

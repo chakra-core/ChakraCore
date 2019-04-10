@@ -1,0 +1,40 @@
+{
+  "name": "broccoli-debug",
+  "version": "0.6.5",
+  "description": "Enable easy debugging of broccoli pipelines with broccoli-debug!",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "qunit tests/**/*-test.js",
+    "test:lint": "qunit tests/lint-test.js"
+  },
+  "keywords": [
+    "broccoli",
+    "plugin"
+  ],
+  "author": "Robert Jackson <me@rwjblue.com>",
+  "license": "MIT",
+  "repostory": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/broccoli-debug.git"
+  },
+  "homepage": "",
+  "files": [
+    "src/"
+  ],
+  "devDependencies": {
+    "broccoli-source": "^1.1.0",
+    "broccoli-test-helper": "^1.1.0",
+    "co": "^4.6.0",
+    "qunit-eslint": "^1.0.0",
+    "qunitjs": "^2.4.0"
+  },
+  "dependencies": {
+    "broccoli-plugin": "^1.2.1",
+    "fs-tree-diff": "^0.5.2",
+    "heimdalljs": "^0.2.1",
+    "heimdalljs-logger": "^0.1.7",
+    "symlink-or-copy": "^1.1.8",
+    "tree-sync": "^1.2.2"
+  }
+}

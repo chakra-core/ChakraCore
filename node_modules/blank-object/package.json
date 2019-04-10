@@ -1,0 +1,29 @@
+{
+  "name": "blank-object",
+  "version": "1.0.2",
+  "description": "A faster alternative to Object.create(null)",
+  "main": "index.js",
+  "jsnext:main": "lib/index.js",
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "rollup -f umd -n BlankObject -o index.js lib/index.js",
+    "test": "node test"
+  },
+  "author": "Stefan Penner",
+  "license": "MIT",
+  "devDependencies": {
+    "rollup": "^0.15.0"
+  },
+  "files":[
+    "index.js",
+    "lib/index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stefanpenner/blank-object.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stefanpenner/blank-object/issues"
+  },
+  "homepage": "https://github.com/stefanpenner/blank-object#readme"
+}

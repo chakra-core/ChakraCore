@@ -1,0 +1,76 @@
+{
+  "name": "array-last",
+  "description": "Get the last or last n elements in an array.",
+  "version": "1.3.0",
+  "homepage": "https://github.com/jonschlinkert/array-last",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "Ben Drucker (http://www.bendrucker.me)",
+    "Blaine Bublitz (https://twitter.com/BlaineBublitz)",
+    "Jon Schlinkert (http://twitter.com/jonschlinkert)",
+    "Stephen A. Wilson (https://github.com/SpyMaster356)"
+  ],
+  "repository": "jonschlinkert/array-last",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/array-last/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-number": "^4.0.0"
+  },
+  "devDependencies": {
+    "ansi-bold": "^0.1.1",
+    "array-slice": "^1.0.0",
+    "benchmarked": "^1.1.1",
+    "gulp-format-md": "^1.0.0",
+    "matched": "^1.0.2",
+    "mocha": "^3.5.0"
+  },
+  "keywords": [
+    "array",
+    "fast",
+    "first",
+    "initial",
+    "javascript",
+    "js",
+    "last",
+    "rest",
+    "util",
+    "utility",
+    "utils"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "arr-union",
+        "array-unique",
+        "array-xor"
+      ]
+    },
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

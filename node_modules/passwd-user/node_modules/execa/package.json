@@ -1,0 +1,62 @@
+{
+  "name": "execa",
+  "version": "0.4.0",
+  "description": "A better `child_process`",
+  "license": "MIT",
+  "repository": "sindresorhus/execa",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "maintainers": [
+    {
+      "name": "James Talmage",
+      "email": "james@talmage.io",
+      "url": "github.com/jamestalmage"
+    }
+  ],
+  "engines": {
+    "node": ">=0.12"
+  },
+  "scripts": {
+    "test": "xo && nyc ava",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "exec",
+    "child",
+    "process",
+    "execute",
+    "fork",
+    "execfile",
+    "spawn",
+    "file",
+    "shell",
+    "bin",
+    "binary",
+    "binaries",
+    "npm",
+    "path",
+    "local"
+  ],
+  "dependencies": {
+    "cross-spawn-async": "^2.1.1",
+    "is-stream": "^1.1.0",
+    "npm-run-path": "^1.0.0",
+    "object-assign": "^4.0.1",
+    "path-key": "^1.0.0",
+    "strip-eof": "^1.0.0"
+  },
+  "devDependencies": {
+    "ava": "*",
+    "cat-names": "^1.0.2",
+    "coveralls": "^2.11.9",
+    "get-stream": "^2.0.0",
+    "nyc": "^6.4.0",
+    "xo": "*"
+  }
+}

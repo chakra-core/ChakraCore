@@ -1,0 +1,40 @@
+{
+  "name": "installed-pod-regex",
+  "version": "1.0.0",
+  "description": "Create a regex that matches the newly installed Pod list generated with CocoaPods installation commands",
+  "repository": "shinnn/installed-pod-regex",
+  "author": "Shinnosuke Watanabe (https://github.com/shinnn)",
+  "scripts": {
+    "pretest": "eslint --config @shinnn/node --env browser browser.js index.js test.js",
+    "test": "node --strong_mode --throw-deprecation --track-heap-objects test.js | tap-spec",
+    "coverage": "node --strong_mode node_modules/.bin/istanbul cover test.js"
+  },
+  "license": "Unlicense",
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "cocoapods",
+    "pod",
+    "pods",
+    "version",
+    "install",
+    "installed",
+    "installing",
+    "update",
+    "list",
+    "regex",
+    "regexp",
+    "match",
+    "detect",
+    "client-side",
+    "browser"
+  ],
+  "devDependencies": {
+    "@shinnn/eslint-config-node": "^1.0.1",
+    "eslint": "^1.7.3",
+    "istanbul": "^0.4.0",
+    "tap-spec": "^4.1.0",
+    "tape": "^4.2.2"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "is-answer",
+  "description": "Returns true if an answer to a prompt is not undefined, null, an empty object, empty array, or a string with zero length.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/jonschlinkert/is-answer",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-answer",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-answer/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "has-values": "^0.1.4",
+    "is-primitive": "^2.0.0",
+    "omit-empty": "^0.4.1"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.11",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "answer",
+    "is"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "reflinks": [
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

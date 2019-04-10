@@ -1,0 +1,98 @@
+.container {
+  max-width: 800px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+.header {
+  margin-top: 6rem;
+  text-align: center;
+}
+.docs-header {
+  text-transform: uppercase;
+  font-size: 1.4rem;
+  letter-spacing: 0.2rem;
+  font-weight: 600;
+}
+.docs-section {
+  border-top: 1px solid #eee;
+  padding: 4rem 0;
+  margin-bottom: 0;
+}
+.docs-example .row,
+.docs-example.row,
+.docs-example {
+  margin-bottom: 0;
+}
+.docs-example h1,
+.docs-example h2,
+.docs-example h3,
+.docs-example h4,
+.docs-example h5,
+.docs-example h6 {
+  margin-bottom: 1rem;
+}
+.docs-example a,
+.docs-example button,
+.docs-example input {
+  margin-right: 1rem;
+}
+.heading-font-size {
+  font-size: 1.2rem;
+  color: #999;
+  letter-spacing: normal;
+}
+
+/* Larger than phone */
+@media (min-width: 550px) {
+  .header {
+    margin-top: 9rem;
+  }
+
+  .docs-section {
+    padding: 6rem 0;
+  }
+}
+
+/* Larger than tablet */
+@media (min-width: 750px) {
+  /* Re-overiding the width 100% declaration to match size of % based container */
+  .container {
+    width: 80%;
+  }
+}
+
+img {
+  vertical-align: text-bottom;
+}
+
+.demoAppContainer h2 {
+  margin: 50px 0;
+  text-align: center;
+}
+
+.checkbox-label {
+  display: inline-block;
+  text-align: center;
+}
+
+.checkbox-label-width10rem {
+  width: 10rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.checkbox-label-width6rem {
+  width: 6rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.dynamic-demo-box {
+  height: 12rem;
+  display: flex;
+}
+
+.dynamic-demo-fallback {
+  align-self: center;
+}

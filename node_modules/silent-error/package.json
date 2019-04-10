@@ -1,0 +1,29 @@
+{
+  "name": "silent-error",
+  "version": "1.1.1",
+  "description": "stackless unless otherwise requested error",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "files": [
+    "index.js"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stefanpenner/silent-error.git"
+  },
+  "author": "Stefan Penner <stefan.penner@gmai.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stefanpenner/silent-error/issues"
+  },
+  "homepage": "https://github.com/stefanpenner/silent-error#readme",
+  "dependencies": {
+    "debug": "^2.2.0"
+  },
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "mocha": "^2.2.5"
+  }
+}

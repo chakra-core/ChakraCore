@@ -1,0 +1,37 @@
+{
+  "name": "leek",
+  "description": "GA tracking",
+  "version": "0.0.24",
+  "keywords": [
+    "stats",
+    "google",
+    "analytics",
+    "track",
+    "metrics"
+  ],
+  "author": {
+    "name": "Alex Navasardyan",
+    "email": "alex.navasardyan@gmail.com",
+    "url": "http://twokul.io"
+  },
+  "main": "lib/leek.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/twokul/leek"
+  },
+  "dependencies": {
+    "debug": "^2.1.0",
+    "lodash.assign": "^3.2.0",
+    "rsvp": "^3.0.21"
+  },
+  "devDependencies": {
+    "jshint": "~2.3.0",
+    "mocha": "*",
+    "chai": "^1.9.1",
+    "rewire": "^2.0.0"
+  },
+  "scripts": {
+    "test": "jshint lib/*.js test/*.js && mocha --reporter spec test/*-test.js"
+  }
+}

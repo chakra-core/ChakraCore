@@ -1,0 +1,27 @@
+{
+  "name": "broccoli-source",
+  "description": "Broccoli plugin for referring to source directories on the file system",
+  "version": "1.1.0",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/broccolijs/broccoli-source"
+  },
+  "keywords": [
+    "broccoli-plugin"
+  ],
+  "scripts": {
+    "pretest": "test/install_dependencies.sh",
+    "test": "./node_modules/.bin/mocha"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "chai": "^3.2.0",
+    "chai-as-promised": "^5.1.0",
+    "mocha": "^2.2.5",
+    "mocha-jshint": "^2.2.3"
+  }
+}

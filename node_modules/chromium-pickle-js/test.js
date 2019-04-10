@@ -1,0 +1,12 @@
+var pickle = require('./lib/exports');
+var p = pickle.createEmpty();
+p.writeInt(4);
+p.writeInt(8);
+p.writeDouble(4.31);
+p.writeString('t');
+var n = pickle.createFromBuffer(p.toBuffer());
+var i = n.createIterator();
+console.log(i.readInt());
+console.log(i.readInt());
+console.log(i.readDouble());
+console.log(i.readString());

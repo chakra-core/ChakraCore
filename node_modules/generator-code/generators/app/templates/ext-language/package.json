@@ -1,0 +1,25 @@
+{
+    "name": <%- JSON.stringify(name) %>,
+    "displayName": <%- JSON.stringify(displayName) %>,
+    "description": <%- JSON.stringify(description) %>,
+    "version": "0.0.1",
+    "engines": {
+        "vscode": <%- JSON.stringify(vsCodeEngine) %>
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": <%- JSON.stringify(languageId) %>,
+            "aliases": [<%- JSON.stringify(languageName) %>, <%- JSON.stringify(languageId) %>],
+            "extensions": <%- JSON.stringify(languageExtensions) %>,
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": <%- JSON.stringify(languageId) %>,
+            "scopeName": <%- JSON.stringify(languageScopeName) %>,
+            "path": <%- JSON.stringify("./syntaxes/" + languageFileName) %>
+        }]
+    }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "promise-map-series",
+  "description": "Map over array avoiding parallel execution, using promises",
+  "version": "0.2.3",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joliss/promise-map-series"
+  },
+  "dependencies": {
+    "rsvp": "^3.0.14"
+  },
+  "devDependencies": {
+    "tape": "^2.5.0"
+  },
+  "scripts": {
+    "test": "tape test.js"
+  }
+}

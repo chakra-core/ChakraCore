@@ -1,0 +1,14 @@
+{
+	"name": "iniparser",
+	"version": "1.0.5",
+	"description": "a simple .ini parser",
+	"author": "Jordy van Gelder <jordyvangelder@gmail.com>",
+	"main": "./lib/node-iniparser",
+	"directories": {
+		"lib": "./lib"
+	},
+	"repository" : {
+		"type" : "git",
+		"url" : "https://github.com/shockie/node-iniparser.git"
+	}
+}

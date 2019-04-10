@@ -1,0 +1,109 @@
+{
+  "name": "base-cli",
+  "description": "Plugin for base-methods that maps built-in methods to CLI args (also supports methods from a few plugins, like 'base-store', 'base-options' and 'base-data'.",
+  "version": "0.5.0",
+  "homepage": "https://github.com/node-base/base-cli",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "node-base/base-cli",
+  "bugs": {
+    "url": "https://github.com/node-base/base-cli/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "lib/"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "base-argv": "^0.4.2",
+    "base-config": "^0.5.2"
+  },
+  "devDependencies": {
+    "ansi-green": "^0.1.1",
+    "base": "^0.8.1",
+    "base-option": "^0.7.0",
+    "base-pkg": "^0.2.0",
+    "base-plugins": "^0.4.10",
+    "base-store": "^0.4.2",
+    "expand-args": "^0.4.1",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^2.0.0",
+    "gulp-format-md": "^0.1.7",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-mocha": "^2.2.0",
+    "minimist": "^1.2.0",
+    "mocha": "^2.4.5",
+    "through2": "^2.0.1"
+  },
+  "keywords": [
+    "app",
+    "application",
+    "arg",
+    "args",
+    "base",
+    "baseplugin",
+    "cache",
+    "cli",
+    "command",
+    "command-line",
+    "config",
+    "data",
+    "extend",
+    "flag",
+    "flags",
+    "line",
+    "merge",
+    "method",
+    "methods",
+    "option",
+    "options",
+    "opts",
+    "plugin",
+    "store",
+    "terminal"
+  ],
+  "verb": {
+    "run": true,
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "base",
+        "base-config",
+        "base-data",
+        "base-generators",
+        "base-plugins",
+        "base-task"
+      ],
+      "highlight": "base-config",
+      "description": "Other useful [base] plugins:"
+    },
+    "reflinks": [
+      "assemble",
+      "base",
+      "base-runner",
+      "generate",
+      "verb"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  },
+  "lintDeps": {
+    "ignore": [
+      "examples"
+    ]
+  }
+}

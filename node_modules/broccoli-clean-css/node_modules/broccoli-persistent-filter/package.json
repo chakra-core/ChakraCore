@@ -1,0 +1,68 @@
+{
+  "name": "broccoli-persistent-filter",
+  "version": "1.4.6",
+  "description": "broccoli filter but with a persistent cache",
+  "author": "Stefan Penner <stefan.penner@gmail.com>",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "mocha",
+    "test:debug": "mocha debug",
+    "test:debug:brk": "mocha --debug-brk",
+    "test:watch": "mocha --watch",
+    "test:coverage": "istanbul cover --config=test/istanbul.yml _mocha",
+    "test:ci": "mocha --compilers js:babel-register --require babel-polyfill"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stefanpenner/broccoli-persistent-filter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stefanpenner/broccoli-persistent-filter/issues"
+  },
+  "homepage": "https://github.com/stefanpenner/broccoli-persistent-filter#readme",
+  "keywords": [
+    "broccoli",
+    "broccoli-plugin",
+    "broccoli-helper",
+    "filter",
+    "cache"
+  ],
+  "dependencies": {
+    "async-disk-cache": "^1.2.1",
+    "async-promise-queue": "^1.0.3",
+    "broccoli-plugin": "^1.0.0",
+    "fs-tree-diff": "^0.5.2",
+    "hash-for-dep": "^1.0.2",
+    "heimdalljs": "^0.2.1",
+    "heimdalljs-logger": "^0.1.7",
+    "mkdirp": "^0.5.1",
+    "promise-map-series": "^0.2.1",
+    "rimraf": "^2.6.1",
+    "rsvp": "^3.0.18",
+    "symlink-or-copy": "^1.0.1",
+    "walk-sync": "^0.3.1"
+  },
+  "devDependencies": {
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-register": "^6.24.1",
+    "broccoli-test-helper": "^1.1.0",
+    "broccoli-test-helpers": "^0.0.9",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.3.0",
+    "chai-files": "^1.4.0",
+    "co": "^4.6.0",
+    "coveralls": "^2.11.10",
+    "istanbul": "^0.4.2",
+    "minimatch": "^3.0.2",
+    "mocha": "^3.0.0",
+    "mocha-jshint": "^2.3.1",
+    "sinon": "^2.1.0",
+    "sinon-chai": "^2.8.0"
+  }
+}

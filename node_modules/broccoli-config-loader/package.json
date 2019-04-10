@@ -1,0 +1,37 @@
+{
+  "name": "broccoli-config-loader",
+  "version": "1.0.1",
+  "description": "Write your project's environments' configs out to JSON files.",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/broccoli-config-loader.git"
+  },
+  "keywords": [
+    "broccoli-plugin",
+    "config",
+    "ember-cli",
+    "javascript",
+    "js"
+  ],
+  "author": "yaymukund <yaymukund+broccoli-config-loader@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ember-cli/broccoli-config-loader/issues"
+  },
+  "homepage": "https://github.com/ember-cli/broccoli-config-loader#readme",
+  "dependencies": {
+    "broccoli-caching-writer": "^3.0.3"
+  },
+  "devDependencies": {
+    "broccoli": "^0.16.8",
+    "mocha": "^2.3.3",
+    "tmp-sync": "^1.1.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+    "copyTo": [
+        {
+            "name": "generator",
+            "path": "../mockdata-generator"
+        },
+        {
+            "name": "server",
+            "path": "../mockdata-server"
+        }
+    ]
+}

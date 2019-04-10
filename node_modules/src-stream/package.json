@@ -1,0 +1,40 @@
+{
+  "name": "src-stream",
+  "description": "Wrap readable streams to turn them into passthrough streams.",
+  "version": "0.1.1",
+  "homepage": "https://github.com/doowb/src-stream",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "repository": "doowb/src-stream",
+  "bugs": {
+    "url": "https://github.com/doowb/src-stream/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "dependencies": {
+    "duplexify": "^3.4.2",
+    "merge-stream": "^0.1.8",
+    "through2": "^2.0.0"
+  },
+  "verb": {
+    "related": {
+      "list": [
+        "stream-loader",
+        "merge-stream",
+        "duplexify",
+        "through2"
+      ]
+    }
+  }
+}

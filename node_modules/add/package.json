@@ -1,0 +1,48 @@
+{
+  "name": "add",
+  "version": "2.0.6",
+  "description": "A cross-browser, numerically stable algorithm to add floats accurately",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ben-ng/add.git"
+  },
+  "keywords": [
+    "numerically",
+    "stable",
+    "faithful",
+    "rounding",
+    "float",
+    "error",
+    "propagation",
+    "summation",
+    "accumulate",
+    "addition",
+    "numerical",
+    "analysis"
+  ],
+  "devDependencies": {
+    "tape": "2.x.x"
+  },
+  "testling": {
+    "files": "test.js",
+    "browsers": [
+      "ie/6..latest",
+      "chrome/22..latest",
+      "firefox/16..latest",
+      "safari/latest",
+      "opera/11.0..latest",
+      "iphone/6",
+      "ipad/6"
+    ]
+  },
+  "author": "Ben Ng <me@benng.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ben-ng/add/issues"
+  },
+  "homepage": "https://github.com/ben-ng/add"
+}

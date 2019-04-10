@@ -1,0 +1,179 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "/*\n Copyright (C) 2013 Sencha Inc.\n Copyright (C) 2012 Sencha Inc.\n Copyright (C) 2011 Sencha Inc.\n\n Author: Ariya Hidayat.\n\n Permission is hereby granted, free of charge, to any person obtaining a copy\n of this software and associated documentation files (the \"Software\"), to deal\n in the Software without restriction, including without limitation the rights\n to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n copies of the Software, and to permit persons to whom the Software is\n furnished to do so, subject to the following conditions:\n\n The above copyright notice and this permission notice shall be included in\n all copies or substantial portions of the Software.\n\n THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN\n THE SOFTWARE.\n*/\n\n/*jslint continue: true, indent: 4 */\n/*global exports:true, module:true, window:true */\n\n(function () {\n\n    'use strict';\n\n    function cssbeautify(style, opt) {\n\n        var options, index = 0, length = style.length, blocks, formatted = '',\n            ch, ch2, str, state, State, depth, quote, comment,\n            openbracesuffix = true,\n            autosemicolon = false,\n            trimRight;\n\n        options = arguments.length > 1 ? opt : {};\n        if (typeof options.indent === 'undefined') {\n            options.indent = '    ';\n        }\n        if (typeof options.openbrace === 'string') {\n            openbracesuffix = (options.openbrace === 'end-of-line');\n        }\n        if (typeof options.autosemicolon === 'boolean') {\n            autosemicolon = options.autosemicolon;\n        }\n\n        function isWhitespace(c) {\n            return (c === ' ') || (c === '\\n') || (c === '\\t') || (c === '\\r') || (c === '\\f');\n        }\n\n        function isQuote(c) {\n            return (c === '\\'') || (c === '\"');\n        }\n\n        // FIXME: handle Unicode characters\n        function isName(c) {\n            return (ch >= 'a' && ch <= 'z') ||\n                (ch >= 'A' && ch <= 'Z') ||\n                (ch >= '0' && ch <= '9') ||\n                '-_*.:#'.indexOf(c) >= 0;\n        }\n\n        function appendIndent() {\n            var i;\n            for (i = depth; i > 0; i -= 1) {\n                formatted += options.indent;\n            }\n        }\n\n        function openBlock() {\n            formatted = trimRight(formatted);\n            if (openbracesuffix) {\n                formatted += ' {';\n            } else {\n                formatted += '\\n';\n                appendIndent();\n                formatted += '{';\n            }\n            if (ch2 !== '\\n') {\n                formatted += '\\n';\n            }\n            depth += 1;\n        }\n\n        function closeBlock() {\n            var ch;\n            depth -= 1;\n            formatted = trimRight(formatted);\n\n            if (autosemicolon) {\n                ch = formatted.charAt(formatted.length - 1);\n                if (ch !== ';' && ch !== '{') {\n                    formatted += ';';\n                }\n            }\n\n            formatted += '\\n';\n            appendIndent();\n            formatted += '}';\n            blocks.push(formatted);\n            formatted = '';\n        }\n\n        if (String.prototype.trimRight) {\n            trimRight = function (s) {\n                return s.trimRight();\n            };\n        } else {\n            // old Internet Explorer\n            trimRight = function (s) {\n                return s.replace(/\\s+$/, '');\n            };\n        }\n\n        State = {\n            Start: 0,\n            AtRule: 1,\n            Block: 2,\n            Selector: 3,\n            Ruleset: 4,\n            Property: 5,\n            Separator: 6,\n            Expression: 7,\n            URL: 8\n        };\n\n        depth = 0;\n        state = State.Start;\n        comment = false;\n        blocks = [];\n\n        // We want to deal with LF (\\n) only\n        style = style.replace(/\\r\\n/g, '\\n');\n\n        while (index < length) {\n            ch = style.charAt(index);\n            ch2 = style.charAt(index + 1);\n            index += 1;\n\n            // Inside a string literal?\n            if (isQuote(quote)) {\n                formatted += ch;\n                if (ch === quote) {\n                    quote = null;\n                }\n                if (ch === '\\\\' && ch2 === quote) {\n                    // Don't treat escaped character as the closing quote\n                    formatted += ch2;\n                    index += 1;\n                }\n                continue;\n            }\n\n            // Starting a string literal?\n            if (isQuote(ch)) {\n                formatted += ch;\n                quote = ch;\n                continue;\n            }\n\n            // Comment\n            if (comment) {\n                formatted += ch;\n                if (ch === '*' && ch2 === '/') {\n                    comment = false;\n                    formatted += ch2;\n                    index += 1;\n                }\n                continue;\n            } else {\n                if (ch === '/' && ch2 === '*') {\n                    comment = true;\n                    formatted += ch;\n                    formatted += ch2;\n                    index += 1;\n                    continue;\n                }\n            }\n\n            if (state === State.Start) {\n\n                if (blocks.length === 0) {\n                    if (isWhitespace(ch) && formatted.length === 0) {\n                        continue;\n                    }\n                }\n\n                // Copy white spaces and control characters\n                if (ch <= ' ' || ch.charCodeAt(0) >= 128) {\n                    state = State.Start;\n                    formatted += ch;\n                    continue;\n                }\n\n                // Selector or at-rule\n                if (isName(ch) || (ch === '[') || (ch === '@')) {\n\n                    // Clear trailing whitespaces and linefeeds.\n                    str = trimRight(formatted);\n\n                    if (str.length === 0) {\n                        // If we have empty string after removing all the trailing\n                        // spaces, that means we are right after a block.\n                        // Ensure a blank line as the separator.\n                        if (blocks.length > 0) {\n                            formatted = '\\n\\n';\n                        }\n                    } else {\n                        // After finishing a ruleset or directive statement,\n                        // there should be one blank line.\n                        if (str.charAt(str.length - 1) === '}' ||\n                                str.charAt(str.length - 1) === ';') {\n\n                            formatted = str + '\\n\\n';\n                        } else {\n                            // After block comment, keep all the linefeeds but\n                            // start from the first column (remove whitespaces prefix).\n                            while (true) {\n                                ch2 = formatted.charAt(formatted.length - 1);\n                                if (ch2 !== ' ' && ch2.charCodeAt(0) !== 9) {\n                                    break;\n                                }\n                                formatted = formatted.substr(0, formatted.length - 1);\n                            }\n                        }\n                    }\n                    formatted += ch;\n                    state = (ch === '@') ? State.AtRule : State.Selector;\n                    continue;\n                }\n            }\n\n            if (state === State.AtRule) {\n\n                // ';' terminates a statement.\n                if (ch === ';') {\n                    formatted += ch;\n                    state = State.Start;\n                    continue;\n                }\n\n                // '{' starts a block\n                if (ch === '{') {\n                    str = trimRight(formatted);\n                    openBlock();\n                    state = (str === '@font-face') ? State.Ruleset : State.Block;\n                    continue;\n                }\n\n                formatted += ch;\n                continue;\n            }\n\n            if (state === State.Block) {\n\n                // Selector\n                if (isName(ch)) {\n\n                    // Clear trailing whitespaces and linefeeds.\n                    str = trimRight(formatted);\n\n                    if (str.length === 0) {\n                        // If we have empty string after removing all the trailing\n                        // spaces, that means we are right after a block.\n                        // Ensure a blank line as the separator.\n                        if (blocks.length > 0) {\n                            formatted = '\\n\\n';\n                        }\n                    } else {\n                        // Insert blank line if necessary.\n                        if (str.charAt(str.length - 1) === '}') {\n                            formatted = str + '\\n\\n';\n                        } else {\n                            // After block comment, keep all the linefeeds but\n                            // start from the first column (remove whitespaces prefix).\n                            while (true) {\n                                ch2 = formatted.charAt(formatted.length - 1);\n                                if (ch2 !== ' ' && ch2.charCodeAt(0) !== 9) {\n                                    break;\n                                }\n                                formatted = formatted.substr(0, formatted.length - 1);\n                            }\n                        }\n                    }\n\n                    appendIndent();\n                    formatted += ch;\n                    state = State.Selector;\n                    continue;\n                }\n\n                // '}' resets the state.\n                if (ch === '}') {\n                    closeBlock();\n                    state = State.Start;\n                    continue;\n                }\n\n                formatted += ch;\n                continue;\n            }\n\n            if (state === State.Selector) {\n\n                // '{' starts the ruleset.\n                if (ch === '{') {\n                    openBlock();\n                    state = State.Ruleset;\n                    continue;\n                }\n\n                // '}' resets the state.\n                if (ch === '}') {\n                    closeBlock();\n                    state = State.Start;\n                    continue;\n                }\n\n                formatted += ch;\n                continue;\n            }\n\n            if (state === State.Ruleset) {\n\n                // '}' finishes the ruleset.\n                if (ch === '}') {\n                    closeBlock();\n                    state = State.Start;\n                    if (depth > 0) {\n                        state = State.Block;\n                    }\n                    continue;\n                }\n\n                // Make sure there is no blank line or trailing spaces inbetween\n                if (ch === '\\n') {\n                    formatted = trimRight(formatted);\n                    formatted += '\\n';\n                    continue;\n                }\n\n                // property name\n                if (!isWhitespace(ch)) {\n                    formatted = trimRight(formatted);\n                    formatted += '\\n';\n                    appendIndent();\n                    formatted += ch;\n                    state = State.Property;\n                    continue;\n                }\n                formatted += ch;\n                continue;\n            }\n\n            if (state === State.Property) {\n\n                // ':' concludes the property.\n                if (ch === ':') {\n                    formatted = trimRight(formatted);\n                    formatted += ': ';\n                    state = State.Expression;\n                    if (isWhitespace(ch2)) {\n                        state = State.Separator;\n                    }\n                    continue;\n                }\n\n                // '}' finishes the ruleset.\n                if (ch === '}') {\n                    closeBlock();\n                    state = State.Start;\n                    if (depth > 0) {\n                        state = State.Block;\n                    }\n                    continue;\n                }\n\n                formatted += ch;\n                continue;\n            }\n\n            if (state === State.Separator) {\n\n                // Non-whitespace starts the expression.\n                if (!isWhitespace(ch)) {\n                    formatted += ch;\n                    state = State.Expression;\n                    continue;\n                }\n\n                // Anticipate string literal.\n                if (isQuote(ch2)) {\n                    state = State.Expression;\n                }\n\n                continue;\n            }\n\n            if (state === State.Expression) {\n\n                // '}' finishes the ruleset.\n                if (ch === '}') {\n                    closeBlock();\n                    state = State.Start;\n                    if (depth > 0) {\n                        state = State.Block;\n                    }\n                    continue;\n                }\n\n                // ';' completes the declaration.\n                if (ch === ';') {\n                    formatted = trimRight(formatted);\n                    formatted += ';\\n';\n                    state = State.Ruleset;\n                    continue;\n                }\n\n                formatted += ch;\n\n                if (ch === '(') {\n                    if (formatted.charAt(formatted.length - 2) === 'l' &&\n                            formatted.charAt(formatted.length - 3) === 'r' &&\n                            formatted.charAt(formatted.length - 4) === 'u') {\n\n                        // URL starts with '(' and closes with ')'.\n                        state = State.URL;\n                        continue;\n                    }\n                }\n\n                continue;\n            }\n\n            if (state === State.URL) {\n\n\n                // ')' finishes the URL (only if it is not escaped).\n                if (ch === ')' && formatted.charAt(formatted.length - 1 !== '\\\\')) {\n                    formatted += ch;\n                    state = State.Expression;\n                    continue;\n                }\n            }\n\n            // The default action is to copy the character (to prevent\n            // infinite loop).\n            formatted += ch;\n        }\n\n        formatted = blocks.join('') + formatted;\n\n        return formatted;\n    }\n\n    if (typeof exports !== 'undefined') {\n        // Node.js module.\n        module.exports = exports = cssbeautify;\n    } else if (typeof window === 'object') {\n        // Browser loading.\n        window.cssbeautify = cssbeautify;\n    }\n\n}());\n",
+			"file": "cssbeautify.js",
+			"file_size": 15117,
+			"file_write_time": 1363040172000000,
+			"settings":
+			{
+				"buffer_size": 15117,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/ariyahidayat/dev/sencha/cssbeautify/package.json",
+		"/Users/ariyahidayat/dev/sencha/cssbeautify/cssbeautify.sublime-workspace",
+		"/Users/ariyahidayat/dev/sencha/cssbeautify/cssbeautify.js"
+	],
+	"find":
+	{
+		"height": 0.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "cssbeautify.js",
+					"settings":
+					{
+						"buffer_size": 15117,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								10743,
+								10743
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"replace":
+	{
+		"height": 0.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"pac",
+				"package.json"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 206.0,
+	"status_bar_visible": true
+}

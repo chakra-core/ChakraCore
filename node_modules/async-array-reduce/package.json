@@ -1,0 +1,57 @@
+{
+  "name": "async-array-reduce",
+  "description": "Async reduce.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/jonschlinkert/async-array-reduce",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/async-array-reduce",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/async-array-reduce/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "LICENSE"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.9",
+    "mocha": "^3.0.0"
+  },
+  "keywords": [
+    "array",
+    "async",
+    "reduce"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "arr-filter",
+        "arr-flatten",
+        "arr-reduce",
+        "array-unique"
+      ]
+    },
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ]
+  }
+}

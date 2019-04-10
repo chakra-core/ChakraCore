@@ -1,0 +1,51 @@
+{
+  "name": "copy-task",
+  "description": "Copy a task and it's dependencies from one app to another.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/doowb/copy-task",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "repository": "doowb/copy-task",
+  "bugs": {
+    "url": "https://github.com/doowb/copy-task/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "composer": "^0.8.4",
+    "mocha": "^2.3.4"
+  },
+  "keywords": [
+    "assemble",
+    "assemble-core",
+    "composer",
+    "copy",
+    "core",
+    "generate",
+    "task",
+    "tasks",
+    "update",
+    "verb"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "composer",
+        "assemble-core",
+        "assemble",
+        "generate",
+        "update",
+        "verb"
+      ]
+    }
+  }
+}

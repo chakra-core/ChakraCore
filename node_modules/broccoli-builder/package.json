@@ -1,0 +1,45 @@
+{
+  "name": "broccoli-builder",
+  "description": "Fast client-side asset builder",
+  "version": "0.18.14",
+  "author": "Jo Liss <joliss42@gmail.com>",
+  "main": "lib/builder.js",
+  "files": [
+    "lib"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "builder",
+    "build",
+    "frontend",
+    "browser",
+    "asset",
+    "pipeline"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ember-cli/broccoli-builder"
+  },
+  "homepage": "https://github.com/ember-cli/broccoli-builder",
+  "dependencies": {
+    "broccoli-node-info": "^1.1.0",
+    "heimdalljs": "^0.2.0",
+    "promise-map-series": "^0.2.1",
+    "quick-temp": "^0.1.2",
+    "rimraf": "^2.2.8",
+    "rsvp": "^3.0.17",
+    "silent-error": "^1.0.1"
+  },
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "chai-as-promised": "^5.1.0",
+    "mocha": "^2.3.3",
+    "mocha-jshint": "^2.2.3"
+  },
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  }
+}

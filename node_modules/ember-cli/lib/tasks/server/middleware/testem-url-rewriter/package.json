@@ -1,0 +1,10 @@
+{
+  "name": "testem-url-rewriter-middleware",
+  "keywords": [
+    "ember-addon"
+  ],
+  "dependencies": {
+    "clean-base-url": "*",
+    "heimdalljs-logger": "*"
+  }
+}

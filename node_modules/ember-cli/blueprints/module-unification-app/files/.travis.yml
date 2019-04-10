@@ -1,0 +1,35 @@
+---
+language: node_js
+node_js:
+  - "6"
+
+sudo: false
+dist: trusty
+
+addons:
+  chrome: stable
+<% if (yarn) { %>
+cache:
+  yarn: true
+<% } else { %>
+cache:
+  directories:
+    - $HOME/.npm
+<% } %>
+env:
+  global:
+    # See https://git.io/vdao3 for details.
+    - JOBS=1
+
+before_install:<% if (!yarn) { %>
+  - npm config set spin false<% } else { %>
+  - curl -o- -L https://yarnpkg.com/install.sh | bash
+  - export PATH=$HOME/.yarn/bin:$PATH
+
+install:
+  - yarn install --non-interactive<% } %>
+
+script:
+  - <% if (yarn) { %>yarn lint:hbs<% } else { %>npm run lint:hbs<% } %>
+  - <% if (yarn) { %>yarn lint:js<% } else { %>npm run lint:js<% } %>
+  - <% if (yarn) { %>yarn<% } else { %>npm<% } %> test

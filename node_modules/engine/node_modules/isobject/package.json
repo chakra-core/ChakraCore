@@ -1,0 +1,52 @@
+{
+  "name": "isobject",
+  "description": "Returns true if the value is an object and not an array or null.",
+  "version": "1.0.2",
+  "homepage": "https://github.com/jonschlinkert/isobject",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jonschlinkert/isobject.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/isobject/issues"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/jonschlinkert/isobject/blob/master/LICENSE"
+  },
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "check",
+    "function",
+    "is",
+    "is-object",
+    "isobject",
+    "javascript",
+    "kind",
+    "kind-of",
+    "kindof",
+    "native",
+    "object",
+    "of",
+    "type",
+    "typeof",
+    "validate",
+    "value"
+  ]
+}

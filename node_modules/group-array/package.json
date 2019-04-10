@@ -1,0 +1,75 @@
+{
+  "name": "group-array",
+  "description": "Group array of objects into lists.",
+  "version": "0.3.3",
+  "homepage": "https://github.com/doowb/group-array",
+  "author": "Brian Woodward (https://github.com/doowb)",
+  "contributors": [
+    "Brian Woodward <brian.woodward@gmail.com> (https://twitter.com/doowb)",
+    "Chris Kirk (http://www.chrispkirk.com)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "doowb/group-array",
+  "bugs": {
+    "url": "https://github.com/doowb/group-array/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "arr-flatten": "^1.0.1",
+    "for-own": "^0.1.4",
+    "get-value": "^2.0.6",
+    "kind-of": "^3.1.0",
+    "split-string": "^1.0.1",
+    "union-value": "^0.2.3"
+  },
+  "devDependencies": {
+    "gulp-format-md": "^0.1.11",
+    "mocha": "^3.2.0",
+    "should": "^11.2.0"
+  },
+  "keywords": [
+    "array",
+    "group",
+    "item",
+    "list",
+    "nested",
+    "prop",
+    "properties",
+    "property"
+  ],
+  "verb": {
+    "toc": true,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "arr-flatten",
+        "get-value",
+        "group-object",
+        "union-value"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "verb-generate-readme"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

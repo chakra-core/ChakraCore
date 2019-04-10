@@ -1,0 +1,78 @@
+{
+  "name": "bach",
+  "version": "1.2.0",
+  "description": "Compose your async functions with elegance.",
+  "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
+  "contributors": [
+    "Blaine Bublitz <blaine.bublitz@gmail.com>",
+    "Pawel Kozlowski <pkozlowski.opensource@gmail.com>",
+    "Benjamin Tan <demoneaux@gmail.com>"
+  ],
+  "repository": "gulpjs/bach",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 0.10"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "LICENSE"
+  ],
+  "scripts": {
+    "lint": "eslint . && jscs index.js lib/ test/",
+    "pretest": "npm run lint",
+    "test": "mocha --async-only",
+    "cover": "istanbul cover _mocha --report lcovonly",
+    "coveralls": "npm run cover && istanbul-coveralls"
+  },
+  "dependencies": {
+    "arr-filter": "^1.1.1",
+    "arr-flatten": "^1.0.1",
+    "arr-map": "^2.0.0",
+    "array-each": "^1.0.0",
+    "array-initial": "^1.0.0",
+    "array-last": "^1.1.1",
+    "async-done": "^1.2.2",
+    "async-settle": "^1.0.0",
+    "now-and-later": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^1.7.3",
+    "eslint-config-gulp": "^2.0.0",
+    "expect": "^1.19.0",
+    "istanbul": "^0.4.3",
+    "istanbul-coveralls": "^1.0.3",
+    "jscs": "^2.3.5",
+    "jscs-preset-gulp": "^1.0.0",
+    "mocha": "^2.4.5"
+  },
+  "keywords": [
+    "compose",
+    "fluent",
+    "composing",
+    "continuation",
+    "function composition",
+    "functional",
+    "async",
+    "map",
+    "series",
+    "parallel",
+    "extension",
+    "tracing",
+    "debug",
+    "timing",
+    "aop",
+    "settle",
+    "promises",
+    "callbacks",
+    "observables",
+    "streams",
+    "end",
+    "completion",
+    "complete",
+    "finish",
+    "done",
+    "error handling"
+  ]
+}

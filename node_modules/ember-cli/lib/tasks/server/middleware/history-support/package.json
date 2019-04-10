@@ -1,0 +1,12 @@
+{
+  "name": "history-support-middleware",
+  "keywords": [
+    "ember-addon"
+  ],
+  "ember-addon": {
+    "before": "broccoli-watcher"
+  },
+  "dependencies": {
+    "clean-base-url": "*"
+  }
+}

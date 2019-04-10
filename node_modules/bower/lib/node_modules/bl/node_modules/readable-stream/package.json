@@ -1,0 +1,37 @@
+{
+  "name": "readable-stream",
+  "version": "2.0.6",
+  "description": "Streams3, a user-land copy of the stream library from Node.js",
+  "main": "readable.js",
+  "dependencies": {
+    "core-util-is": "~1.0.0",
+    "inherits": "~2.0.1",
+    "isarray": "~1.0.0",
+    "process-nextick-args": "~1.0.6",
+    "string_decoder": "~0.10.x",
+    "util-deprecate": "~1.0.1"
+  },
+  "devDependencies": {
+    "tap": "~0.2.6",
+    "tape": "~4.5.1",
+    "zuul": "~3.9.0"
+  },
+  "scripts": {
+    "test": "tap test/parallel/*.js test/ours/*.js",
+    "browser": "npm run write-zuul && zuul -- test/browser.js",
+    "write-zuul": "printf \"ui: tape\nbrowsers:\n  - name: $BROWSER_NAME\n    version: $BROWSER_VERSION\n\">.zuul.yml"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/nodejs/readable-stream"
+  },
+  "keywords": [
+    "readable",
+    "stream",
+    "pipe"
+  ],
+  "browser": {
+    "util": false
+  },
+  "license": "MIT"
+}

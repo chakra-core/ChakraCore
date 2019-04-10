@@ -1,0 +1,25 @@
+.container {
+  background: linear-gradient(to bottom left, rgba(255, 99, 71, 0.7), rgba(0, 0, 255, 0.6));
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  left: calc(50% - 245px);
+  max-width: 490px;
+  padding: 20px;
+  position: absolute;
+  top: 100px;
+  transition: all 0.5s;
+  width: 490px;
+  color: white;
+}
+
+.container input,
+.container textarea,
+.container input::placeholder,
+.container textarea::placeholder,
+.container select {
+  color: white;
+}

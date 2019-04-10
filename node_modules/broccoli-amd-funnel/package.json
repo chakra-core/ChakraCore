@@ -1,0 +1,42 @@
+{
+  "name": "broccoli-amd-funnel",
+  "version": "2.0.1",
+  "description": "Funnel based on whether a module is AMD or not",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/**/*-test.js",
+    "posttest": "npm run lint",
+    "prelint": "eslint --version",
+    "lint": "eslint index.js test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ember-cli/broccoli-amd-funnel.git"
+  },
+  "author": "Kelly Selden",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ember-cli/broccoli-amd-funnel/issues"
+  },
+  "homepage": "https://github.com/ember-cli/broccoli-amd-funnel#readme",
+  "engines": {
+    "node": ">=6"
+  },
+  "files": [],
+  "dependencies": {
+    "broccoli-plugin": "^1.3.0",
+    "symlink-or-copy": "^1.2.0"
+  },
+  "devDependencies": {
+    "broccoli-test-helper": "^1.2.0",
+    "chai": "^4.1.2",
+    "co": "^4.6.0",
+    "eslint": "^5.0.1",
+    "eslint-config-sane": "^0.6.0",
+    "eslint-plugin-mocha": "^5.1.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-prefer-let": "^1.0.1",
+    "mocha": "^5.0.0",
+    "sinon": "^6.0.1"
+  }
+}

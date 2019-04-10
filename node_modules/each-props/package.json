@@ -1,0 +1,50 @@
+{
+  "name": "each-props",
+  "version": "1.3.2",
+  "description": "Processes each properties of an object deeply.",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "test": "mocha",
+    "coverage": "nyc --reporter=lcov --reporter=text-summary npm test",
+    "coveralls": "nyc --reporter=text-lcov npm test | coveralls",
+    "web:build": "browserify index.js --standalone eachProps -o web/each-props.js && cd web && uglifyjs each-props.js --compress --mangle -o each-props.min.js --source-map url=each-props.min.js.map",
+    "chrome:install": "npm i --no-save mocha-chrome",
+    "chrome:test": "mocha-chrome test/web/browser-test.html",
+    "build": "npm run lint && npm run coverage && npm run web:build && node test/web/make.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sttk/each-props.git"
+  },
+  "keywords": [
+    "deep",
+    "each",
+    "object",
+    "property",
+    "properties",
+    "props"
+  ],
+  "author": "Takayuki Sato",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sttk/each-props/issues"
+  },
+  "homepage": "https://github.com/sttk/each-props#readme",
+  "dependencies": {
+    "is-plain-object": "^2.0.1",
+    "object.defaults": "^1.1.0"
+  },
+  "devDependencies": {
+    "browserify": "^16.2.2",
+    "chai": "^3.5.0",
+    "coveralls": "^3.0.1",
+    "eslint": "^4.19.1",
+    "mocha": "^3.2.0",
+    "nyc": "^11.7.2",
+    "uglify-js": "^3.3.24"
+  }
+}

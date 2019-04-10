@@ -1,0 +1,55 @@
+{
+  "name": "is-relative",
+  "description": "Returns `true` if the path appears to be relative.",
+  "version": "0.2.1",
+  "homepage": "https://github.com/jonschlinkert/is-relative",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "repository": "jonschlinkert/is-relative",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/is-relative/issues"
+  },
+  "license": "MIT",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "is-unc-path": "^0.1.1"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "keywords": [
+    "absolute",
+    "check",
+    "file",
+    "filepath",
+    "is",
+    "normalize",
+    "path",
+    "path.relative",
+    "relative",
+    "resolve",
+    "slash",
+    "slashes",
+    "uri",
+    "url"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "is-absolute",
+        "is-relative",
+        "is-dotfile",
+        "is-glob",
+        "is-unc-path"
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+<head>
+  <title>Test'em</title>
+  <script src="/testem.js"></script>
+  {{#scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/scripts}}
+  {{#styles}}<link rel="stylesheet" href="{{.}}">{{/styles}}
+</head>
+<body>
+</body>
+{{#footer_scripts}}<script src="{{{src}}}"{{#attrs}} {{&.}}{{/attrs}}></script>{{/footer_scripts}}
+</html>

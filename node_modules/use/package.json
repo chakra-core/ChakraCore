@@ -1,0 +1,71 @@
+{
+  "name": "use",
+  "description": "Easily add plugin support to your node.js application.",
+  "version": "2.0.2",
+  "homepage": "https://github.com/jonschlinkert/use",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "contributors": [
+    "<wtgtybhertgeghgtwtg@gmail.com> (https://github.com/wtgtybhertgeghgtwtg)",
+    "Brian Woodward <brian.woodward@gmail.com> (https://github.com/doowb)",
+    "Charlike Mike Reagent (https://i.am.charlike.online)",
+    "Jon Schlinkert <jon.schlinkert@sellside.com> (http://twitter.com/jonschlinkert)"
+  ],
+  "repository": "jonschlinkert/use",
+  "bugs": {
+    "url": "https://github.com/jonschlinkert/use/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "define-property": "^0.2.5",
+    "isobject": "^3.0.0",
+    "lazy-cache": "^2.0.2"
+  },
+  "devDependencies": {
+    "base-plugins": "^0.4.13",
+    "extend-shallow": "^2.0.1",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^4.0.1",
+    "mocha": "^3.2.0"
+  },
+  "keywords": [
+    "use"
+  ],
+  "verb": {
+    "related": {
+      "list": [
+        "base",
+        "base-plugins",
+        "ware"
+      ]
+    },
+    "reflinks": [
+      "verb",
+      "ware"
+    ],
+    "toc": false,
+    "layout": "default",
+    "tasks": [
+      "readme"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "lint": {
+      "reflinks": true
+    }
+  }
+}

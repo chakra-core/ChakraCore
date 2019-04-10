@@ -1,0 +1,17 @@
+{
+  "name": "pad-component",
+  "version": "0.0.1",
+  "description": "Pad strings to a given length",
+  "keywords": ["string", "pad"],
+  "author": "TJ Holowaychuk <tj@vision-media.ca>",
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "component": {
+    "scripts": {
+      "pad/index.js": "index.js"
+    }
+  }
+}

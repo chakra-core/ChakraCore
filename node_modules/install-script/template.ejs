@@ -1,0 +1,168 @@
+#!/bin/bash
+
+{
+  platform=$(uname)
+  supported="no"
+
+  header () {
+    echo "-----> $1"
+  }
+
+  log () {
+    echo "       $1"
+  }
+
+  indent() {
+    c='s/^/       /'
+    case $(uname) in
+      Darwin) sed -l "$c";;
+      *)      sed -u "$c";;
+    esac
+  }
+
+  if [ "$platform" == "Darwin" ]; then
+    supported="yes"
+  fi
+
+  if [ "$platform" == "Linux" ]; then
+    supported="yes"
+  fi
+
+  if [ "$supported" == "no" ]; then
+    header "Your platform ($platform) is not supported currently."
+    log "We are continiously adding support for more platforms, so stay tuned ;)"
+    exit 1
+  fi
+
+  # leave only numbers and dots
+  # used to get versions
+  strip_chars () {
+    sed 's/[^0-9.]*//g'
+  }
+
+  # install package via yum, apt-get or brew
+  install_package () {
+    local name="$1"
+
+    header "Installing $name..."
+
+    which yum &> /dev/null
+
+    if [ "$?" -eq 0 ]; then
+      yum install "$name" | indent
+
+      if [ "$?" -ne 0 ]; then
+        log "Failed to instal $name"
+        exit 1
+      fi
+
+      return
+    fi
+
+    which apt-get &> /dev/null
+
+    if [ "$?" -eq 0 ]; then
+      apt-get update &> /dev/null
+      apt-get -y install "$name" &> /dev/null
+
+      if [ "$?" -ne 0 ]; then
+        log "Failed to install $name"
+        exit 1
+      fi
+
+      return
+    fi
+
+    which brew &> /dev/null
+
+    if [ "$?" -eq 0 ]; then
+      brew install "$name" &> /dev/null
+
+      if [ "$?" -ne 0 ]; then
+        log "Failed to install $name"
+        exit 1
+      fi
+
+      return
+    fi
+  }
+
+  install_git () {
+    install_package git
+    install_package curl
+  }
+
+  # use n (https://github.com/tj/n) to manage node.js versions
+  install_n () {
+    mkdir -p /usr/local/bin
+    curl -L -s -o- https://raw.githubusercontent.com/tj/n/master/bin/n > /usr/local/bin/n
+    chmod +x /usr/local/bin/n
+
+    if [ "$?" -ne 0 ]; then
+      header "Failed to install n"
+      exit 1
+    fi
+  }
+
+  install_node () {
+    header "Installing node..."
+
+    install_n
+
+    n stable &> /dev/null
+
+    if [ "$?" -ne 0 ]; then
+      header "Failed to install node"
+      exit 1
+    fi
+  }
+
+  install_<%= name %> () {
+    header "Installing <%= name %>..."
+
+    npm install -g <%= name %> &> /dev/null
+
+    if [ "$?" -ne 0 ]; then
+      header "Failed to install <%= name %>"
+      exit 1
+    fi
+  }
+
+  git_installed="no"
+  git_version="not installed"
+
+  node_installed="no"
+  node_version="not installed"
+
+  which git &> /dev/null
+  if [ "$?" -eq 0 ]; then
+    git_installed="yes"
+    git_version=$(git --version | strip_chars)
+  fi
+
+  which node &> /dev/null
+  if [ "$?" -eq 0 ]; then
+    node_installed="yes"
+    node_version=$(node -v | strip_chars)
+  fi
+
+  header "Detecting dependencies"
+  log "git  installed: $git_installed"
+  log "node installed: $node_installed"
+
+  if [ "$git_installed" == "no" ] || [ "$node_installed" == "no" ]; then
+    log
+    log "Some dependencies are missing"
+    log "This script might need sudo access to install them"
+  fi
+
+  if [ "$git_installed" == "no" ]; then
+    install_git
+  fi
+
+  if [ "$node_installed" == "no" ]; then
+    install_node
+  fi
+
+  install_<%= name %>
+}

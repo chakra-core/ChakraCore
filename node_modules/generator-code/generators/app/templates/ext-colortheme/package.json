@@ -1,0 +1,21 @@
+{
+    "name": <%- JSON.stringify(name) %>,
+    "displayName": <%- JSON.stringify(displayName) %>,
+    "description": <%- JSON.stringify(description) %>,
+    "version": "0.0.1",
+    "engines": {
+        "vscode": <%- JSON.stringify(vsCodeEngine) %>
+    },
+    "categories": [
+        "Themes"
+    ],
+    "contributes": {
+        "themes": [
+            {
+                "label": <%- JSON.stringify(themeName) %>,
+                "uiTheme": <%- JSON.stringify(themeBase) %>,
+                "path": <%- JSON.stringify("./themes/" + themeFileName) %>
+            }
+        ]
+    }
+}

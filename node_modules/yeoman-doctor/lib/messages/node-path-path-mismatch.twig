@@ -1,0 +1,11 @@
+{{ "npm global root value is not in your NODE_PATH" | red }}
+
+[{{ "Info" | cyan }}]
+  NODE_PATH = {{ path }}
+  npm root  = {{ npmroot }}
+
+[{{ "Fix" | cyan}}] Append the npm root value to your NODE_PATH variable
+Add this line to your .bashrc
+    {{ "export NODE_PATH=$NODE_PATH:" | magenta }}{{ npmroot | magenta }}
+  Or run this command
+    {{ 'echo "export NODE_PATH=$NODE_PATH:' | magenta }}{{ npmroot | magenta }}{{ '" >> ~/.bashrc && source ~/.bashrc' | magenta }}

@@ -1,0 +1,27 @@
+{
+  "name": "bower",
+  "version": "1.8.8",
+  "description": "The browser package manager",
+  "author": "Twitter",
+  "license": "MIT",
+  "repository": "bower/bower",
+  "main": "lib",
+  "bin": "bin/bower",
+  "homepage": "http://bower.io",
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "keywords": [
+    "bower"
+  ],
+  "lint-staged": {
+    "*.js": [
+      "prettier --single-quote --tab-width 4",
+      "git add"
+    ]
+  },
+  "files": [
+    "bin",
+    "lib"
+  ]
+}

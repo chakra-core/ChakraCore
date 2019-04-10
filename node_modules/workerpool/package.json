@@ -1,0 +1,41 @@
+{
+  "name": "workerpool",
+  "license": "Apache-2.0",
+  "version": "3.1.2",
+  "description": "Offload tasks to a pool of workers on node.js and in the browser",
+  "homepage": "https://github.com/josdejong/workerpool",
+  "author": "Jos de Jong <wjosdejong@gmail.com> (https://github.com/josdejong)",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/josdejong/workerpool.git"
+  },
+  "keywords": [
+    "worker",
+    "web worker",
+    "cluster",
+    "pool",
+    "isomorphic"
+  ],
+  "main": "./index.js",
+  "scripts": {
+    "build": "gulp",
+    "watch": "gulp watch",
+    "test": "mocha test --timeout 10000",
+    "test:debug": "mocha debug test --timeout 10000",
+    "coverage": "istanbul cover _mocha -- test; echo \"\nCoverage report is available at ./coverage/lcov-report/index.html\"",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-util": "^3.0.7",
+    "istanbul": "^0.4.4",
+    "mocha": "^2.5.3",
+    "uglify-js": "2.8.29",
+    "webpack": "^1.13.1"
+  },
+  "dependencies": {
+    "@babel/core": "^7.3.4",
+    "object-assign": "4.1.1",
+    "rsvp": "^4.8.4"
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "name": "assemble-core",
+  "description": "The core assemble application with no presets or defaults. All configuration is left to the implementor.",
+  "version": "0.31.0",
+  "homepage": "https://github.com/assemble/assemble-core",
+  "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+  "maintainers": [
+    "Brian Woodward (https://github.com/doowb)",
+    "Jon Schlinkert (https://github.com/jonschlinkert)"
+  ],
+  "repository": "assemble/assemble-core",
+  "bugs": {
+    "url": "https://github.com/assemble/assemble-core/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "utils.js"
+  ],
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "assemble-fs": "^1.0.0",
+    "assemble-render-file": "^1.0.0",
+    "assemble-streams": "^1.0.0",
+    "base-task": "^0.7.0",
+    "define-property": "^0.2.5",
+    "lazy-cache": "^2.0.2",
+    "templates": "^1.2.6"
+  },
+  "devDependencies": {
+    "base-test-runner": "^0.2.0",
+    "base-test-suite": "^0.4.2",
+    "gulp": "^3.9.1",
+    "gulp-eslint": "^3.0.1",
+    "gulp-format-md": "^0.1.11",
+    "gulp-istanbul": "^1.1.1",
+    "gulp-mocha": "^3.0.1",
+    "helper-changelog": "^0.3.0"
+  },
+  "keywords": [
+    "assemble",
+    "assembleplugin",
+    "base",
+    "blog",
+    "boilerplate",
+    "boilerplates",
+    "bootstrap",
+    "build",
+    "builder",
+    "cli",
+    "cli-app",
+    "collection",
+    "command-line",
+    "compile",
+    "component",
+    "components",
+    "core",
+    "create",
+    "dev",
+    "development",
+    "doc",
+    "docs",
+    "documentation",
+    "engines",
+    "framework",
+    "front",
+    "front-matter",
+    "frontend",
+    "generate",
+    "generator",
+    "handlebars",
+    "helpers",
+    "html",
+    "inflections",
+    "init",
+    "jekyll",
+    "layout",
+    "markdown",
+    "pages",
+    "partial",
+    "partials",
+    "plugin",
+    "post",
+    "project",
+    "project-template",
+    "projects",
+    "render",
+    "scaffold",
+    "scaffolder",
+    "scaffolding",
+    "scaffolds",
+    "site",
+    "static",
+    "static-site",
+    "template",
+    "templates",
+    "templating",
+    "view",
+    "views",
+    "web",
+    "webapp",
+    "website",
+    "yaml",
+    "yeoman",
+    "yo"
+  ],
+  "verb": {
+    "toc": true,
+    "layout": false,
+    "tasks": [
+      "readme"
+    ],
+    "helpers": [
+      "helper-changelog"
+    ],
+    "plugins": [
+      "gulp-format-md"
+    ],
+    "related": {
+      "list": [
+        "assemble",
+        "boilerplate",
+        "composer",
+        "generate",
+        "scaffold",
+        "templates",
+        "verb"
+      ]
+    },
+    "lint": {
+      "reflinks": true
+    },
+    "reflinks": [
+      "assemble",
+      "assemble-cli",
+      "assemble-fs",
+      "assemble-loader",
+      "assemble-render-file",
+      "assemble-streams",
+      "base",
+      "base-data",
+      "base-logger",
+      "base-methods",
+      "base-task",
+      "base-watch",
+      "composer",
+      "consolidate",
+      "emitter-only",
+      "engine-cache",
+      "engine-handlebars",
+      "gulp",
+      "helper-changelog",
+      "parser-front-matter",
+      "templates",
+      "vinyl",
+      "vinyl-fs"
+    ]
+  },
+  "lintDeps": {
+    "ignore": [
+      "docs",
+      "examples"
+    ]
+  }
+}
