@@ -201,10 +201,7 @@ private:
     void        BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentLoop = nullptr);
     void        WalkLoopBlocks(BasicBlock *block, Loop *loop, JitArenaAllocator *tempAlloc);
     void        AddBlockToLoop(BasicBlock *block, Loop *loop);
-    bool        IsEHTransitionInstr(IR::Instr *instr);
-    BasicBlock * GetPredecessorForRegionPropagation(BasicBlock *block);
     void        UpdateRegionForBlock(BasicBlock *block);
-    void        UpdateRegionForBlockFromEHPred(BasicBlock *block, bool reassign = false);
     Region *    PropagateRegionFromPred(BasicBlock *block, BasicBlock *predBlock, Region *predRegion, IR::Instr * &tryInstr);
     IR::Instr * PeepCm(IR::Instr *instr);
     IR::Instr * PeepTypedCm(IR::Instr *instr);
