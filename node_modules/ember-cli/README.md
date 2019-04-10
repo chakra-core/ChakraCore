@@ -26,7 +26,7 @@ The Ember.js command line utility.
 Features
 ------------------------------------------------------------------------------
 
-- Asset build pipeline using [Broccoli.js](http://broccolijs.com/)
+- Asset build pipeline using [Broccoli.js](https://broccoli.build/)
 - ES6 transpilation using [Babel](https://babeljs.io/)
 - Project structure conventions using ES6 module syntax
 - Development server including live-reload and API proxy

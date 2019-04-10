@@ -190,6 +190,8 @@ class PackageInfo {
     let missingDependencies = [];
 
     dependencyNames.forEach(dependencyName => {
+      logger.info('%s: Trying to find dependency %o', this.pkg.name, dependencyName);
+
       let dependencyPackage;
 
       // much of the time the package will have dependencies in

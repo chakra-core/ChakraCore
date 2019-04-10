@@ -247,6 +247,7 @@ class PackageInfoCache {
    * No copy is made.
    */
   loadProject(projectInstance) {
+    logger.info('Loading project at %o...', projectInstance.root);
 
     let pkgInfo = this._readPackage(projectInstance.root, projectInstance.pkg, true);
 
@@ -261,6 +262,7 @@ class PackageInfoCache {
       pkgInfo.project = projectInstance;
 
       if (projectInstance.cli && projectInstance.cli.root) {
+        logger.info('Reading package for "ember-cli": %o', projectInstance.cli.root);
         pkgInfo.cliInfo = this._readPackage(projectInstance.cli.root);
       }
 
@@ -271,6 +273,7 @@ class PackageInfoCache {
       // as with any other PackageInfo.
       projectInstance.supportedInternalAddonPaths().forEach(internalAddonPath => {
         if (getRealDirectoryPath(internalAddonPath)) {
+          logger.info('Reading package for internal addon: %o', internalAddonPath);
           pkgInfo.addInternalAddon(this._readPackage(internalAddonPath));
         }
       });
@@ -352,6 +355,8 @@ class PackageInfoCache {
    * @method _resolveDependencies
    */
   _resolveDependencies() {
+    logger.info('Resolving dependencies...');
+
     let packageInfos = this._getPackageInfos();
     packageInfos.forEach(pkgInfo => {
       if (!pkgInfo.processed) {
@@ -582,6 +587,7 @@ class PackageInfoCache {
 
     // Create a new PackageInfo and load any errors as needed.
     // Note that pkg may be an empty object here.
+    logger.info('Creating new PackageInfo instance for %o at %o', pkg.name, realPath);
     pkgInfo = new PackageInfo(pkg, realPath, this, isRoot);
 
     if (setupErrors.hasErrors()) {
@@ -592,6 +598,7 @@ class PackageInfoCache {
     // If we have an ember-addon, check that the main exists and points
     // to a valid file.
     if (pkgInfo.isAddon()) {
+      logger.info('%s is an addon', pkg.name);
 
       // Note: when we have both 'main' and ember-addon:main, the latter takes precedence
       let main = (pkg['ember-addon'] && pkg['ember-addon'].main) || pkg['main'];
@@ -602,6 +609,7 @@ class PackageInfoCache {
         main = `${main}.js`;
       }
 
+      logger.info('Addon entry point is %o', main);
       pkg.main = main;
 
       let mainPath = path.join(realPath, main);
@@ -629,6 +637,7 @@ class PackageInfoCache {
       if (paths) {
         paths.forEach(p => {
           let addonPath = path.join(realPath, p); // real path, though may not exist.
+          logger.info('Adding in-repo-addon at %o', addonPath);
           let addonPkgInfo = this._readPackage(addonPath); // may have errors in the addon package.
           pkgInfo.addInRepoAddon(addonPkgInfo);
         });
@@ -636,6 +645,8 @@ class PackageInfoCache {
     }
 
     if (pkgInfo.mayHaveAddons) {
+      logger.info('Reading "node_modules" for %o', realPath);
+
       // read addon modules from node_modules. We read the whole directory
       // because it's assumed that npm/yarn may have placed addons in the
       // directory from lower down in the project tree, and we want to get
@@ -708,6 +719,7 @@ class PackageInfoCache {
     // At this point we know the directory node_modules exists and we can
     // process it. Further errors will be recorded here, or in the objects
     // that correspond to the node_modules entries.
+    logger.info('Creating new NodeModulesList instance for %o', realPath);
     nodeModulesList = new NodeModulesList(realPath, this);
 
     let entries = fs.readdirSync(realPath); // should not fail because getRealDirectoryPath passed

@@ -37,7 +37,7 @@ module.exports = {
   updatePackageJson(content) {
     let contents = JSON.parse(content);
 
-    contents.name = this.locals(this.options).addonName;
+    contents.name = stringUtil.dasherize(this.options.entity.name);
     contents.description = this.description;
     delete contents.private;
     contents.scripts = contents.scripts || {};

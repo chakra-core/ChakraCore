@@ -84,7 +84,7 @@ module.exports = class AssetPrinterSize {
       return walkSync(outputPath, {
         directories: false,
       }).filter(x => x.endsWith('.css') || x.endsWith('.js'))
-        .map(x => `${outputPath}/${x}`);
+        .map(x => path.join(outputPath, x));
     } catch (e) {
       if (e !== null && typeof e === 'object' && e.code === 'ENOENT') {
         throw new Error(`No asset files found in the path provided: ${outputPath}`);
