@@ -147,7 +147,7 @@ namespace Js
 
     inline Var JavascriptNumber::ToVar(double value)
     {
-        uint64 val = *(uint64*)&value;
+        const uint64 val = ToSpecial(value);
         AssertMsg(!IsNan(value) || ToSpecial(value) == k_NegativeNan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         return reinterpret_cast<Var>(val ^ FloatTag_Value);
     }
