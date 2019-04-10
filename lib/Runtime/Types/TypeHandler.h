@@ -348,13 +348,17 @@ namespace Js
              (v) Seal
             (vi) Freeze
         */
-        bool GetIsLocked() const { return (this->flags & IsLockedFlag) != 0; }
+        bool GetIsLocked() const { return GetIsLocked(this->flags); }
+        static bool GetIsLocked(byte flags) { return (flags & IsLockedFlag) != 0; }
 
         bool GetIsShared() const { return (this->flags & IsSharedFlag) != 0; }
         bool GetMayBecomeShared() const { return (this->flags & MayBecomeSharedFlag) != 0; }
         bool GetIsOrMayBecomeShared() const { return (this->flags & (MayBecomeSharedFlag | IsSharedFlag)) != 0; }
         bool GetHasKnownSlot0() const { return (this->flags & HasKnownSlot0Flag) != 0; }
-        bool GetIsPrototype() const { return (this->flags & IsPrototypeFlag) != 0; }
+
+        bool GetIsPrototype() const { return GetIsPrototype(this->flags); }
+        static bool GetIsPrototype(byte flags) { return (flags & IsPrototypeFlag) != 0; }
+
         bool GetIsInlineSlotCapacityLocked() const { return (this->propertyTypes & PropertyTypesInlineSlotCapacityLocked) != 0; }
 
         void LockTypeHandler() { Assert(IsLockable()); SetFlags(IsLockedFlag); }

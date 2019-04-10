@@ -326,7 +326,7 @@ namespace Js
                 *propertyStringName = propStr;
 
                 PropertyValueInfo::SetCacheInfo(info, propStr, propStr->GetLdElemInlineCache(), false);
-                if ((attribs & PropertyWritable) == PropertyWritable)
+                if ((attribs & PropertyWritable) == PropertyWritable && type == typeToEnumerate)
                 {
                     PropertyValueInfo::Set(info, instance, index, attribs);
                 }

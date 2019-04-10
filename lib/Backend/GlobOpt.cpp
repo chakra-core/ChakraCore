@@ -3286,10 +3286,14 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         }
         originalPropertySym = sym->AsPropertySym();
 
-        // Dont give a value to 'arguments' property sym to prevent field copy prop of 'arguments'
+        // Don't give a value to 'arguments' property sym to prevent field copy prop of 'arguments'
         if (originalPropertySym->AsPropertySym()->m_propertyId == Js::PropertyIds::arguments &&
             originalPropertySym->AsPropertySym()->m_fieldKind == PropertyKindData)
         {
+            if (opnd->AsSymOpnd()->IsPropertySymOpnd())
+            {
+                this->FinishOptPropOp(instr, opnd->AsPropertySymOpnd());
+            }
             return nullptr;
         }
 
@@ -4841,7 +4845,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         }
         else
         {
-            return NewGenericValue(src1ValueInfo->Type().ToDefiniteAnyNumber(), dst);
+            return NewGenericValue(src1ValueInfo->Type().ToDefiniteAnyNumber().SetCanBeTaggedValue(true), dst);
         }
         break;
 
@@ -4902,7 +4906,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         {
             valueType = ValueType::Number;
         }
-        return CreateDstUntransferredValue(valueType, instr, src1Val, src2Val);
+        return CreateDstUntransferredValue(valueType.SetCanBeTaggedValue(true), instr, src1Val, src2Val);
     }
 
     case Js::OpCode::Add_A:
@@ -4936,12 +4940,12 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
                     {
                         // If one of them is a float, the result probably is a float instead of just int
                         // but should always be a number.
-                        valueType = ValueType::Float;
+                        valueType = ValueType::Float.SetCanBeTaggedValue(true);
                     }
                     else
                     {
                         // Could be int, could be number
-                        valueType = ValueType::Number;
+                        valueType = ValueType::Number.SetCanBeTaggedValue(true);
                     }
                 }
                 else if (src1ValueInfo->IsLikelyFloat() || src2ValueInfo->IsLikelyFloat())
@@ -4965,7 +4969,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             && (src2Val && src2ValueInfo->IsNotString() && src2ValueInfo->IsPrimitive()))
         {
             // If src1 and src2 are not strings and primitive, add should yield a number.
-            valueType = ValueType::Number;
+            valueType = ValueType::Number.SetCanBeTaggedValue(true);
         }
         else if((src1Val && src1ValueInfo->IsLikelyString()) || (src2Val && src2ValueInfo->IsLikelyString()))
         {
@@ -4986,7 +4990,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             ValueType divValueType = GetDivValueType(instr, src1Val, src2Val, false);
             if (divValueType.IsLikelyInt() || divValueType.IsFloat())
             {
-                return CreateDstUntransferredValue(divValueType, instr, src1Val, src2Val);
+                return CreateDstUntransferredValue(divValueType.SetCanBeTaggedValue(true), instr, src1Val, src2Val);
             }
         }
         // fall-through
@@ -5018,11 +5022,11 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             // This should ideally be NewNumberAndLikelyFloatValue since we know the result is a number but not sure if it will
             // be a float value. However, that Number/LikelyFloat value type doesn't exist currently and all the necessary
             // checks are done for float values (tagged int checks, etc.) so it's sufficient to just create a float value here.
-            valueType = ValueType::Float;
+            valueType = ValueType::Float.SetCanBeTaggedValue(true);
         }
         else
         {
-            valueType = ValueType::Number;
+            valueType = ValueType::Number.SetCanBeTaggedValue(true);
         }
 
         return CreateDstUntransferredValue(valueType, instr, src1Val, src2Val);
