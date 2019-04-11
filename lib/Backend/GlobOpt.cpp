@@ -165,7 +165,13 @@ void
 GlobOpt::Optimize()
 {
     this->objectTypeSyms = nullptr;
-    this->func->argInsCount = this->func->GetInParamsCount() - 1;   //Don't include "this" pointer in the count.
+
+    this->func->argInsCount = this->func->GetInParamsCount();
+    if (!func->GetJITFunctionBody()->IsAsmJsMode())
+    {
+        // Don't include "this" pointer in the count when not in AsmJs mode (AsmJS does not have "this").
+        this->func->argInsCount--;
+    }
 
     if (!func->DoGlobOpt())
     {
