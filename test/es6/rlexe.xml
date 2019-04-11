@@ -1511,4 +1511,11 @@
     <compile-flags>-args summary -endargs</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>bug_issue_5994.js</files>
+    <compile-flags>-MuteHostErrorMsg</compile-flags>
+    <baseline>bug_issue_5994.baseline</baseline>
+  </default>
+</test>
 </regress-exe>
