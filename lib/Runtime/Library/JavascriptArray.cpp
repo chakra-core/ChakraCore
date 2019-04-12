@@ -11919,13 +11919,12 @@ Case0:
 
         if (IsInlineSegment(src, instance))
         {
-            Assert(src->size <= SparseArraySegmentBase::INLINE_CHUNK_SIZE);
-
             // Copy head segment data between inlined head segments
             dst = DetermineInlineHeadSegmentPointer<T, 0, true>(static_cast<T*>(this));
             dst->left = src->left;
             dst->length = src->length;
-            dst->size = src->size;
+            uint inlineChunkSize = SparseArraySegmentBase::INLINE_CHUNK_SIZE;
+            dst->size = min(src->size, inlineChunkSize);
         }
         else
         {
@@ -11940,7 +11939,8 @@ Case0:
 
         Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
 
-        CopyArray(dst->elements, dst->size, src->elements, src->size);
+        AssertOrFailFast(dst->size <= src->size);
+        CopyArray(dst->elements, dst->size, src->elements, dst->size);
 
         if (!deepCopy)
         {
