@@ -2659,11 +2659,17 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
             BVSparse<JitArenaAllocator>* tmpBv = nullptr;
             if (instr->IsBranchInstr())
             {
-                IR::LabelInstr* target = instr->AsBranchInstr()->GetTarget();
+                IR::BranchInstr* branchInstr = instr->AsBranchInstr();
+                IR::LabelInstr* target = branchInstr->GetTarget();
                 uint32 targetOffset = target->GetByteCodeOffset();
-                if (targetOffset == instr->GetByteCodeOffset())
+
+                // If the instr's label has the same bytecode offset as the instr then move the targetOffset
+                // to the next bytecode instr. This condition can be true on conditional branches, ex: a
+                // while loop with no body (passing the loop's condition would branch the IP back to executing
+                // the loop's condition), in these cases do not move the targetOffset.
+                if (targetOffset == instr->GetByteCodeOffset() && branchInstr->IsUnconditional())
                 {
-                    // This can happen if the target is an break or airlock block
+                    // This can happen if the target is a break or airlock block.
                     Assert(
                         target->GetBasicBlock()->isAirLockBlock ||
                         target->GetBasicBlock()->isAirLockCompensationBlock ||
@@ -2673,11 +2679,12 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                     );
                     targetOffset = target->GetNextByteCodeInstr()->GetByteCodeOffset();
                 }
-                BVSparse<JitArenaAllocator>* branchTargetUpdwardExposed = target->m_func->GetByteCodeOffsetUses(targetOffset);
-                if (branchTargetUpdwardExposed)
+                BVSparse<JitArenaAllocator>* branchTargetUpwardExposed = target->m_func->GetByteCodeOffsetUses(targetOffset);
+                if (branchTargetUpwardExposed)
                 {
-                    // The bailout should restore both the bailout destination and the branch target since we don't know where we'll end up
-                    trackingByteCodeUpwardExposedUsed = tmpBv = trackingByteCodeUpwardExposedUsed->OrNew(branchTargetUpdwardExposed);
+                    // The bailout should restore both the bailout destination and
+                    // the branch target since we don't know where we'll end up.
+                    trackingByteCodeUpwardExposedUsed = tmpBv = trackingByteCodeUpwardExposedUsed->OrNew(branchTargetUpwardExposed);
                 }
             }
             Assert(trackingByteCodeUpwardExposedUsed);
