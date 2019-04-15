@@ -3857,7 +3857,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
            this->tag == Js::DeadStorePhase
         // We don't do the masking in simplejit due to reduced perf concerns and the issues
         // with handling try/catch structures with late-added blocks
-        && !this->func->IsSimpleJit()
+        && this->func->DoGlobOpt()
         // We don't need the masking blocks in asmjs/wasm mode
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsAsmJsMode()
         && !block->GetFirstInstr()->m_func->GetJITFunctionBody()->IsWasmFunction()
