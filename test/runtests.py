@@ -757,14 +757,12 @@ def main():
     # test variants
     variants = [x for x in [
         TestVariant('interpreted', extra_flags + [
-                '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-',
-                '-dynamicprofilecache:profile.dpl.${id}'
+                '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-'
             ], [
                 'require_disable_jit'
             ]),
         TestVariant('dynapogo', extra_flags + [
-                '-forceNative', '-off:simpleJit', '-bgJitDelay:0',
-                '-dynamicprofileinput:profile.dpl.${id}'
+                '-forceNative', '-off:simpleJit', '-bgJitDelay:0'
             ], [
                 'require_disable_jit'
             ]),
