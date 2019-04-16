@@ -4204,6 +4204,8 @@ Inline::SplitConstructorCallCommon(
     {
         createObjInstr->SetByteCodeOffset(newObjInstr);
         createObjInstr->GetSrc1()->SetIsJITOptimizedReg(true);
+        // We're splitting a single byte code, so the interpreter has to resume from the beginning if we bail out.
+        createObjInstr->forcePreOpBailOutIfNeeded = true;
         newObjInstr->InsertBefore(createObjInstr);
 
         createObjDst->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));

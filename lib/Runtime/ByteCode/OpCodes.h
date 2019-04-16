@@ -577,8 +577,8 @@ MACRO_EXTEND_WMS_AND_PROFILED(NewScObjectSpread,   CallIExtended, OpSideEffect|O
 MACRO_WMS_PROFILED2(    NewScObjArray,      CallI,          OpSideEffect|OpUseAllFields|OpCallInstr)        // Create new ScriptObject instance
 MACRO_WMS_PROFILED2(    NewScObjArraySpread, CallIExtended, OpSideEffect|OpUseAllFields|OpCallInstr)        // Create new ScriptObject instance
 MACRO(                  NewScObject_A,      Auxiliary,      OpSideEffect|OpUseAllFields)                    // Create new ScriptObject instance passing only constants
-MACRO_WMS(              NewScObjectNoCtorFull, Reg2,        OpTempObjectCanStoreTemp)                       // Create new object that will be used for the 'this' binding in a base class constructor
-MACRO_BACKEND_ONLY(     NewScObjectNoCtor,  Empty,          OpTempObjectCanStoreTemp)                       // Create new object that will be passed into a constructor
+MACRO_WMS(              NewScObjectNoCtorFull, Reg2,        OpTempObjectCanStoreTemp|OpHasImplicitCall)     // Create new object that will be used for the 'this' binding in a base class constructor
+MACRO_BACKEND_ONLY(     NewScObjectNoCtor,  Empty,          OpTempObjectCanStoreTemp|OpHasImplicitCall)     // Create new object that will be passed into a constructor
 MACRO_BACKEND_ONLY(     GetNewScObject,     Empty,          OpTempObjectTransfer)                           // Determine which object to finally use as the result of NewScObject (object passed into constructor as 'this', or object returned by constructor)
 MACRO_BACKEND_ONLY(     UpdateNewScObjectCache, Empty,      None)                                           // Update the cache used for NewScObject
 MACRO_WMS(              NewScObjectSimple,  Reg1,           OpTempObjectCanStoreTemp)

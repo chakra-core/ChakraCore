@@ -4677,10 +4677,9 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
         return;
     }
 
-    if (instr->HasBailOutInfo())
+    if (instr->HasBailOutInfo() && (instr->GetBailOutKind() & ~IR::BailOutKindBits) == IR::BailOutFailedCtorGuardCheck)
     {
         Assert(instr->IsProfiledInstr());
-        Assert(instr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
         Assert(instr->GetDst()->IsRegOpnd());
 
         BasicBlock * block = this->currentBlock;
