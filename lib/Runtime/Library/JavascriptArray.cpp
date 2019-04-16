@@ -11917,6 +11917,7 @@ Case0:
         SparseArraySegment<typename T::TElement>* src = SparseArraySegment<typename T::TElement>::From(instance->head);
         SparseArraySegment<typename T::TElement>* dst;
 
+        uint32 sourceSize = src->size;
         if (IsInlineSegment(src, instance))
         {
             // Copy head segment data between inlined head segments
@@ -11925,6 +11926,7 @@ Case0:
             dst->length = src->length;
             uint inlineChunkSize = SparseArraySegmentBase::INLINE_CHUNK_SIZE;
             dst->size = min(src->size, inlineChunkSize);
+            sourceSize = dst->size;
         }
         else
         {
@@ -11939,8 +11941,7 @@ Case0:
 
         Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
 
-        AssertOrFailFast(dst->size <= src->size);
-        CopyArray(dst->elements, dst->size, src->elements, dst->size);
+        CopyArray(dst->elements, dst->size, src->elements, sourceSize);
 
         if (!deepCopy)
         {
