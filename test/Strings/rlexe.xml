@@ -14,6 +14,11 @@
   </test>
   <test>
     <default>
+      <files>fromCodePoint.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>charCodeAt.js</files>
       <baseline>charCodeAt.baseline</baseline>
     </default>
