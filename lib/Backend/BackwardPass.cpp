@@ -7865,7 +7865,8 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
 
     if (instr->m_opcode == Js::OpCode::ArgIn_A)
     {
-        //Ignore tracking ArgIn for "this", as argInsCount only tracks other params - unless it is a asmjs function(which doesn't have a "this").
+        // Ignore tracking ArgIn for "this" as argInsCount only tracks other
+        // params, unless it is a AsmJS function (which doesn't have a "this").
         if (instr->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() != 1 || func->GetJITFunctionBody()->IsAsmJsMode())
         {
             Assert(this->func->argInsCount > 0);
