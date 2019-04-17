@@ -492,6 +492,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InitClass:
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
+    case Js::OpCode::NewScObjectNoCtorFull:
         if (inGlobOpt)
         {
             // Opcodes that make an object into a prototype may break object-header-inlining and final type opt.

@@ -13462,6 +13462,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             break;
 
         case Js::OpCode::NewScObjectNoCtor:
+        case Js::OpCode::NewScObjectNoCtorFull:
             if(doNativeArrayTypeSpec)
             {
                 // Class/object construction can make something a prototype
