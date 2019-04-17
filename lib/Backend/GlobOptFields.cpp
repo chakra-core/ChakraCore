@@ -415,11 +415,19 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
 
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
-        KillLiveFields(this->lengthEquivBv, bv);
-        if (inGlobOpt)
+        if(instr->m_func->GetThisOrParentInlinerHasArguments())
         {
-            // Deleting an item, or pushing a property to a non-array, may change object layout
-            KillAllObjectTypes(bv);
+            this->KillAllFields(bv);
+            this->SetAnyPropertyMayBeWrittenTo();
+        }
+        else
+        {
+            KillLiveFields(this->lengthEquivBv, bv);
+            if (inGlobOpt)
+            {
+                // Deleting an item, or pushing a property to a non-array, may change object layout
+                KillAllObjectTypes(bv);
+            }
         }
         break;
 
@@ -444,14 +452,23 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 // Kill length field for built-ins that can update it.
                 if (nullptr != this->lengthEquivBv)
                 {
-                    KillLiveFields(this->lengthEquivBv, bv);
+                    // If has arguments, all fields are killed in fall through
+                    if (!instr->m_func->GetThisOrParentInlinerHasArguments())
+                    {
+                        KillLiveFields(this->lengthEquivBv, bv);
+                    }
                 }
                 // fall through
 
             case IR::JnHelperMethod::HelperArray_Reverse:
-                // Deleting an item may change object layout
-                if (inGlobOpt)
+                if (instr->m_func->GetThisOrParentInlinerHasArguments())
                 {
+                    this->KillAllFields(bv);
+                    this->SetAnyPropertyMayBeWrittenTo();
+                }
+                else if (inGlobOpt)
+                {
+                    // Deleting an item may change object layout
                     KillAllObjectTypes(bv);
                 }
                 break;
