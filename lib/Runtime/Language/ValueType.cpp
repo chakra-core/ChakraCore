@@ -577,7 +577,8 @@ bool ValueType::IsNotArrayOrObjectWithArray() const
 {
     return
         IsNotObject() ||
-        (IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array);
+        (IsObject() && GetObjectType() != ObjectType::ObjectWithArray && GetObjectType() != ObjectType::Array
+         && GetObjectType() != ObjectType::UninitializedObject && GetObjectType() != ObjectType::Object);
 }
 
 bool ValueType::IsNativeArray() const

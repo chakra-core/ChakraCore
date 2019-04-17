@@ -1758,7 +1758,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         }
 
     case Js::OpCode::NewScObjectSimple:
-        dstValueType = ValueType::GetObject(ObjectType::Object);
+        dstValueType = ValueType::GetObject(ObjectType::UninitializedObject);
         // fall-through
     case Js::OpCode::LdFuncExpr:
         m_func->DisableCanDoInlineArgOpt();
@@ -5050,7 +5050,7 @@ IRBuilder::BuildAuxiliary(Js::OpCode newOpcode, uint32 offset)
             // lower take it from there...
             srcOpnd = IR::IntConstOpnd::New(auxInsn->Offset, TyUint32, m_func);
             dstOpnd = this->BuildDstOpnd(dstRegSlot);
-            dstOpnd->SetValueType(ValueType::GetObject(ObjectType::Object));
+            dstOpnd->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));
             instr = IR::Instr::New(newOpcode, dstOpnd, srcOpnd, m_func);
 
             // Because we're going to be making decisions based off the value, we have to defer
