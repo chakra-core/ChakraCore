@@ -13251,6 +13251,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
 
         case Js::OpCode::StFld:
         case Js::OpCode::StFldStrict:
+        case Js::OpCode::StSuperFld:
         {
             Assert(instr->GetDst());
 

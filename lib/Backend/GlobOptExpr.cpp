@@ -822,6 +822,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
     case Js::OpCode::StRootFldStrict:
+    case Js::OpCode::StSuperFld:
     case Js::OpCode::StSlot:
     case Js::OpCode::StSlotChkUndecl:
     case Js::OpCode::DeleteFld:
