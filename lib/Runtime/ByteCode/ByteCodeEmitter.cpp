@@ -3590,6 +3590,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
 #if ENABLE_TTD
                     && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
 #endif
+                    && !funcInfo->byteCodeFunction->IsCoroutine()
                 );
 
                 if (funcInfo->GetHasCachedScope())
