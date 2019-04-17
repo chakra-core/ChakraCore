@@ -394,6 +394,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::StRootFldStrict:
     case Js::OpCode::StSlot:
     case Js::OpCode::StSlotChkUndecl:
+    case Js::OpCode::StSuperFld:
         Assert(dstOpnd != nullptr);
         sym = dstOpnd->AsSymOpnd()->m_sym;
         if (inGlobOpt)
