@@ -4006,6 +4006,11 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
                 sym->SetIsGlobalCatch(true);
             }
 
+            if (sym->NeedsScopeObject())
+            {
+                scope->SetIsObject();
+            }
+
             Assert(sym->GetScopeSlot() == Js::Constants::NoProperty);
             if (sym->NeedsSlotAlloc(this, funcInfo))
             {
@@ -4027,6 +4032,11 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
         if (funcInfo->IsGlobalFunction())
         {
             sym->SetIsGlobalCatch(true);
+        }
+
+        if (sym->NeedsScopeObject())
+        {
+            scope->SetIsObject();
         }
 
         if (scope->GetMustInstantiate())
