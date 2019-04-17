@@ -335,6 +335,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     IR::JnHelperMethod fnHelper;
     switch(instr->m_opcode)
     {
+    case Js::OpCode::StElemC:
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
         Assert(dstOpnd != nullptr);
@@ -366,6 +367,8 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
+    case Js::OpCode::ScopedDeleteFld:
+    case Js::OpCode::ScopedDeleteFldStrict:
         sym = instr->GetSrc1()->AsSymOpnd()->m_sym;
         KillLiveFields(sym->AsPropertySym(), bv);
         if (inGlobOpt)
@@ -387,7 +390,29 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             this->KillAllObjectTypes(bv);
         }
         break;
+
+    case Js::OpCode::ConsoleScopedStFld:
+    case Js::OpCode::ConsoleScopedStFldStrict:
+    case Js::OpCode::ScopedStFld:
+    case Js::OpCode::ScopedStFldStrict:
+        // This is already taken care of for FastFld opcodes
+
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
+
+        // fall through
+
     case Js::OpCode::InitFld:
+    case Js::OpCode::InitConstFld:
+    case Js::OpCode::InitLetFld:
+    case Js::OpCode::InitRootFld:
+    case Js::OpCode::InitRootConstFld:
+    case Js::OpCode::InitRootLetFld:
+#if !FLOATVAR
+    case Js::OpCode::StSlotBoxTemp:
+#endif
     case Js::OpCode::StFld:
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
