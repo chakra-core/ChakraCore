@@ -10414,7 +10414,7 @@ Lowerer::LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper)
         {
             if (isStrictCompare)
             {
-                LowerStrictBrOrCm(instr, helper, false, true /* isBranch */, true);
+                LowerStrictBrOrCm(instr, helper, false, true /* isBranch */, false);
             }
             else
             {

@@ -453,6 +453,7 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
             else
             {
                 IR::Instr *instrTmp = instrSkip;
+                instrNext->AsLabelInstr()->isOpHelper = instrSkip->AsLabelInstr()->isOpHelper;
                 instrSkip = instrNext;
                 instrNext = instrTmp;
             }
