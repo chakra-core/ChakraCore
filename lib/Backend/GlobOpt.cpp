@@ -2222,10 +2222,20 @@ MemOpCheckInductionVariable:
                 if (!loop->memOpInfo->inductionVariableChangeInfoMap->ContainsKey(inductionSymID))
                 {
                     loop->memOpInfo->inductionVariableChangeInfoMap->Add(inductionSymID, inductionVariableChangeInfo);
+                    if (sym->m_id != inductionSymID)
+                    {
+                        // Backwards pass uses this bit-vector to lookup upwardExposedUsed/bytecodeUpwardExposedUsed symbols, which are not necessarily vars.  Just add both.
+                        loop->memOpInfo->inductionVariableChangeInfoMap->Add(sym->m_id, inductionVariableChangeInfo);
+                    }
                 }
                 else
                 {
                     loop->memOpInfo->inductionVariableChangeInfoMap->Item(inductionSymID, inductionVariableChangeInfo);
+                    if (sym->m_id != inductionSymID)
+                    {
+                        // Backwards pass uses this bit-vector to lookup upwardExposedUsed/bytecodeUpwardExposedUsed symbols, which are not necessarily vars.  Just add both.
+                        loop->memOpInfo->inductionVariableChangeInfoMap->Item(sym->m_id, inductionVariableChangeInfo);
+                    }
                 }
             }
             else
@@ -2234,6 +2244,11 @@ MemOpCheckInductionVariable:
                 {
                     Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { 1, isIncr };
                     loop->memOpInfo->inductionVariableChangeInfoMap->Add(inductionSymID, inductionVariableChangeInfo);
+                    if (sym->m_id != inductionSymID)
+                    {
+                        // Backwards pass uses this bit-vector to lookup upwardExposedUsed/bytecodeUpwardExposedUsed symbols, which are not necessarily vars.  Just add both.
+                        loop->memOpInfo->inductionVariableChangeInfoMap->Add(sym->m_id, inductionVariableChangeInfo);
+                    }
                 }
                 else
                 {
@@ -2248,6 +2263,11 @@ MemOpCheckInductionVariable:
                     }
                     inductionVariableChangeInfo.isIncremental = isIncr;
                     loop->memOpInfo->inductionVariableChangeInfoMap->Item(inductionSymID, inductionVariableChangeInfo);
+                    if (sym->m_id != inductionSymID)
+                    {
+                        // Backwards pass uses this bit-vector to lookup upwardExposedUsed/bytecodeUpwardExposedUsed symbols, which are not necessarily vars.  Just add both.
+                        loop->memOpInfo->inductionVariableChangeInfoMap->Item(sym->m_id, inductionVariableChangeInfo);
+                    }
                 }
             }
             break;
