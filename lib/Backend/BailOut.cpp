@@ -1178,7 +1178,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     bool * hasBailedOutBitPtr = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
     Assert(!bailOutRecord->ehBailoutData || hasBailedOutBitPtr ||
         bailOutRecord->ehBailoutData->ht == Js::HandlerType::HT_Finally /* When we bailout from inlinee in non exception finally, we maynot see hasBailedOutBitPtr*/);
-    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData)
+    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData && bailOutRecord->ehBailoutData->ht != Js::HandlerType::HT_Finally)
     {
         *hasBailedOutBitPtr = true;
     }
