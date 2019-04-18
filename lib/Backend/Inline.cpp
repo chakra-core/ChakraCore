@@ -2215,7 +2215,7 @@ Inline::InlineBuiltInFunction(
                 StackSym * sym = argInstr->GetSrc1()->GetStackSym();
                 if (!sym->m_isSingleDef || !sym->m_instrDef->GetSrc1() || !sym->m_instrDef->GetSrc1()->IsConstOpnd())
                 {
-                    if (!sym->IsFromByteCodeConstantTable())
+                    if (!sym->IsFromByteCodeConstantTable() && sym->GetByteCodeRegSlot() != callInstrDst->GetStackSym()->GetByteCodeRegSlot())
                     {
                         byteCodeUsesInstr->Set(argInstr->GetSrc1());
                     }
