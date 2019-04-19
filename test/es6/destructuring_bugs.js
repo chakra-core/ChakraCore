@@ -249,15 +249,15 @@ var tests = [
   {
     name: "Rest as pattern at param with arguments/eval at function body",
     body: function () {
-        (function ([a, b], c, ...{rest1, rest2}) {
+        (function ([a, b], c, ...{'0': rest1, '1': rest2}) {
             eval("");
             assert.areEqual(rest1, 4);
             assert.areEqual(rest2, 5);
             assert.areEqual(c, 3);
             assert.areEqual(arguments[1], 3);
-        })([1, 2], 3, {rest1:4, rest2:5});
+        })([1, 2], 3, 4, 5);
 
-        (function ([a, b], c, ...{rest1, rest2}) {
+        (function ([a, b], c, ...{'0': rest1, '1': rest2}) {
             (function () {
                 assert.areEqual(rest1, 4);
                 assert.areEqual(rest2, 5);
@@ -265,7 +265,7 @@ var tests = [
             })();
             eval("");
             assert.areEqual(arguments[0], [1, 2]);
-        })([1, 2], 3, {rest1:4, rest2:5});
+        })([1, 2], 3, 4, 5);
     }
   },
   {

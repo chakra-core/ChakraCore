@@ -509,7 +509,7 @@ public:
     ParseNodePtr pnodeParams;
     ParseNodePtr pnodeVars;
     ParseNodePtr pnodeBody;
-    ParseNodeVar * pnodeRest;
+    ParseNodePtr pnodeRest;
 
     FuncInfo *funcInfo; // function information gathered during byte code generation
     Scope *scope;

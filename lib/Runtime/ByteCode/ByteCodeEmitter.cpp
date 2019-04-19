@@ -1592,8 +1592,6 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount, Js::ActivationObjectEx::ExtraSlotCount());
 
     ParseNodeFnc *pnodeFnc = funcInfo->root;
-    ParseNode *pnode;
-    Symbol *sym;
 
     if (funcInfo->GetFuncExprNameReference() && pnodeFnc->GetFuncSymbol()->GetScope() == funcInfo->GetBodyScope())
     {
@@ -1633,10 +1631,15 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
         };
         MapFormalsWithoutRest(pnodeFnc, initArg);
 
-        // If the rest is in the slot - we need to keep that slot.
-        if (pnodeFnc->pnodeRest != nullptr && pnodeFnc->pnodeRest->sym->IsInSlot(this, funcInfo))
+        ParseNodePtr rest = pnodeFnc->pnodeRest;
+        if (rest != nullptr && rest->IsVarLetOrConst())
         {
-            Symbol::SaveToPropIdArray(pnodeFnc->pnodeRest->sym, propIds, this);
+            // If the rest is in the slot - we need to keep that slot.
+            Symbol *sym = rest->AsParseNodeVar()->sym;
+            if (sym->IsInSlot(this, funcInfo))
+            {
+                Symbol::SaveToPropIdArray(sym, propIds, this);
+            }
         }
     }
     else
@@ -1661,7 +1664,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
                 {
                     if (pnodeName->AsParseNodeBin()->pnode1->nop == knopVarDecl)
                     {
-                        sym = pnodeName->AsParseNodeBin()->pnode1->AsParseNodeVar()->sym;
+                        Symbol *sym = pnodeName->AsParseNodeBin()->pnode1->AsParseNodeVar()->sym;
                         if (sym)
                         {
                             Symbol::SaveToPropIdArray(sym, propIds, this, &firstFuncSlot);
@@ -1671,7 +1674,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
                 }
                 if (pnodeName->nop == knopVarDecl)
                 {
-                    sym = pnodeName->AsParseNodeVar()->sym;
+                    Symbol *sym = pnodeName->AsParseNodeVar()->sym;
                     if (sym)
                     {
                         Symbol::SaveToPropIdArray(sym, propIds, this, &firstFuncSlot);
@@ -1685,6 +1688,8 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
 
     if (currentScope->GetScopeType() != ScopeType_Parameter)
     {
+        ParseNode *pnode;
+        Symbol *sym;
         for (pnode = pnodeFnc->pnodeVars; pnode; pnode = pnode->AsParseNodeVar()->pnodeNext)
         {
             sym = pnode->AsParseNodeVar()->sym;
@@ -2423,10 +2428,12 @@ void ByteCodeGenerator::HomeArguments(FuncInfo *funcInfo)
     // Transfer formal parameters to their home locations on the local frame.
     if (funcInfo->GetHasArguments())
     {
-        if (funcInfo->root->pnodeRest != nullptr)
+        ParseNodePtr rest = funcInfo->root->pnodeRest;
+        if (rest != nullptr && rest->IsVarLetOrConst())
         {
             // Since we don't have to iterate over arguments here, we'll trust the location to be correct.
-            EmitLoadFormalIntoRegister(funcInfo->root->pnodeRest, funcInfo->root->pnodeRest->sym->GetLocation() + 1, funcInfo);
+            Symbol* sym = rest->AsParseNodeVar()->sym;
+            EmitLoadFormalIntoRegister(rest, sym->GetLocation() + 1, funcInfo);
         }
 
         // The arguments object creation helper does this work for us.
@@ -2709,8 +2716,7 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNodeFnc *pnodeF
         m_writer.RecordCrossFrameEntryExitRecord(/* isEnterBlock = */ true);
         m_writer.Br(Js::OpCode::TryCatch, catchLabel);
 
-        // Rest cannot have a default argument, so we ignore it.
-        MapFormalsWithoutRest(pnodeFnc, emitDefaultArg);
+        MapFormals(pnodeFnc, emitDefaultArg);
 
         m_writer.RecordCrossFrameEntryExitRecord(/* isEnterBlock = */ false);
         m_writer.Empty(Js::OpCode::Leave);
@@ -2746,8 +2752,7 @@ void ByteCodeGenerator::EmitDefaultArgs(FuncInfo *funcInfo, ParseNodeFnc *pnodeF
     }
     else
     {
-        // Rest cannot have a default argument, so we ignore it.
-        MapFormalsWithoutRest(pnodeFnc, emitDefaultArg);
+        MapFormals(pnodeFnc, emitDefaultArg);
     }
 
     if (m_writer.GetCurrentOffset() > beginOffset)
@@ -3072,12 +3077,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         {
             // If we didn't create a scope object and didn't have default args, we still need to transfer the formals to their slots.
             MapFormalsWithoutRest(pnodeFnc, [&](ParseNode *pnodeArg) { EmitPropStore(pnodeArg->AsParseNodeVar()->sym->GetLocation(), pnodeArg->AsParseNodeVar()->sym, pnodeArg->AsParseNodeVar()->pid, funcInfo); });
-        }
-
-        // Rest needs to trigger use before declaration until all default args have been processed.
-        if (pnodeFnc->pnodeRest != nullptr)
-        {
-            pnodeFnc->pnodeRest->sym->SetNeedDeclaration(false);
         }
 
         Js::RegSlot formalsUpperBound = Js::Constants::NoRegister; // Needed for tracking the last RegSlot in the param scope
