@@ -63,24 +63,24 @@ NESTED_ENTRY _ZN19NativeCodeGenerator22CheckAsmJsCodeGenThunkEPN2Js16RecyclableO
         push r8
         push r9
 
-        sub rsp, 40h
+        sub rsp, 0x40
 
         // ----- TODO: potentially xmm0-xmm7 args
         // spill potential floating point arguments to stack
-        movaps xmmword ptr [rsp + 00h], xmm0
-        movaps xmmword ptr [rsp + 10h], xmm1
-        movaps xmmword ptr [rsp + 20h], xmm2
-        movaps xmmword ptr [rsp + 30h], xmm3
+        movaps xmmword ptr [rsp + 0x00], xmm0
+        movaps xmmword ptr [rsp + 0x10], xmm1
+        movaps xmmword ptr [rsp + 0x20], xmm2
+        movaps xmmword ptr [rsp + 0x30], xmm3
 
         call C_FUNC(_ZN19NativeCodeGenerator17CheckAsmJsCodeGenEPN2Js14ScriptFunctionE)
 
         // restore potential floating point arguments from stack
-        movaps xmm0, xmmword ptr [rsp + 00h]
-        movaps xmm1, xmmword ptr [rsp + 10h]
-        movaps xmm2, xmmword ptr [rsp + 20h]
-        movaps xmm3, xmmword ptr [rsp + 30h]
+        movaps xmm0, xmmword ptr [rsp + 0x00]
+        movaps xmm1, xmmword ptr [rsp + 0x10]
+        movaps xmm2, xmmword ptr [rsp + 0x20]
+        movaps xmm3, xmmword ptr [rsp + 0x30]
 
-        add rsp, 40h
+        add rsp, 0x40
 
         pop r9
         pop r8
