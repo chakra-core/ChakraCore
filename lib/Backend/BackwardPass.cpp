@@ -4066,6 +4066,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
                         Assert(currFunc->HasStackSymForFormal(value));
                         StackSym * paramStackSym = currFunc->GetStackSymForFormal(value);
                         IR::RegOpnd * srcOpnd = IR::RegOpnd::New(paramStackSym, TyVar, currFunc);
+                        srcOpnd->SetIsJITOptimizedReg(true);
                         instr->ReplaceSrc1(srcOpnd);
                         this->ProcessSymUse(paramStackSym, true, true);
 
