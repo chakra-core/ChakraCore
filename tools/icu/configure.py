@@ -144,10 +144,16 @@ def download_icu(icuroot, version, yes):
     extension = "zip" if os.name == "nt" else "tgz"
 
     archive_file = "icu4c-{0}-src.{1}".format(version.replace(".", "_"), extension)
-    md5_file = "icu4c-src-{0}.md5".format(version.replace(".", "_"))
+    # Use this in future, currently the SHA hash file name for version 63.2 seems to not include version name.
+    #hash_file = "icu4c-{0}-src.{1}.asc".format(version.replace(".", "_"), extension)
+    hash_file = "icu4c-SHASUM512.txt.asc"
 
-    archive_url = "http://download.icu-project.org/files/icu4c/{0}/{1}".format(version, archive_file)
-    md5_url = "https://ssl.icu-project.org/files/icu4c/{0}/{1}".format(version, md5_file)
+    archive_url = "https://github.com/unicode-org/icu/releases/download/release-{0}/{1}".format(version.replace(".", "-"), archive_file)
+    hash_url = "https://github.com/unicode-org/icu/releases/download/release-{0}/{1}".format(version.replace(".", "-"), hash_file)
+    #print(archive_file)
+    #print(hash_file)
+    #print(archive_url)
+    #print(hash_url)
 
     license_confirmation = """
 {1}
@@ -173,24 +179,24 @@ which are available here: http://www.unicode.org/copyright.html#License
     # check the hash of the download zipfile/tarball
     checksum = ""
     with open(archive_path, "rb") as download:
-        md5 = hashlib.md5()
-        md5.update(download.read())
-        checksum = md5.hexdigest()
+        hashAlgorithm = hashlib.sha512()
+        hashAlgorithm.update(download.read())
+        checksum = hashAlgorithm.hexdigest()
 
-    md5_path = os.path.join(icuroot, md5_file)
-    md5_request = urllib2.urlopen(md5_url)
-    md5s = md5_request.read().decode("ascii").split("\n")
-    relevant_md5 = filter(lambda line: line[len(line) - len(archive_file):] == archive_file, md5s)
-    if len(relevant_md5) != 1:
-        raise Exception("Could not find md5 hash for %s in %s" % archive_file, md5_url)
+    hash_path = os.path.join(icuroot, hash_file)
+    hash_request = urllib2.urlopen(hash_url)
+    allHashes = hash_request.read().decode("ascii").split("\n")
+    relevant_hash = filter(lambda line: line[len(line) - len(archive_file):] == archive_file, allHashes)
+    if len(relevant_hash) != 1:
+        raise Exception("Could not find hash for {0} in {1}".format(archive_file, hash_url))
 
-    correct_hash = relevant_md5[0]
+    correct_hash = relevant_hash[0]
     correct_hash = correct_hash.split(" ")[0]
     if (correct_hash == checksum):
-        print("MD5 checksums match, continuing")
+        print("Hash checksums match, continuing")
         return archive_path
     else:
-        raise Exception("MD5 checksums do not match. Expected %s, got %s" % correct_hash, checksum)
+        raise Exception("Hash checksums do not match. Expected {0}, got {1}".format(correct_hash, checksum))
 
 def extract_icu(icuroot, archive_path):
     tempdir = os.path.normpath(os.path.join(icuroot, "temp"))

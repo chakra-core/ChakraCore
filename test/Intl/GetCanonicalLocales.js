@@ -139,7 +139,9 @@ var tests = [
 
             // duplicateTags.forEach(testRangeError);
             duplicateSingletons.forEach(testRangeError);
-            duplicateUnicodeExtensionKeys.forEach(testRangeError);
+            if (WScript.Platform.INTL_LIBRARY === "winglob") {
+                duplicateUnicodeExtensionKeys.forEach(testRangeError);
+            }
         }
     },
     {
