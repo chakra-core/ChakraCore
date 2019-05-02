@@ -128,6 +128,17 @@ namespace Js
 
     void JavascriptLibrary::Uninitialize()
     {
+#if DBG
+        if (moduleRecordList != nullptr)
+        {
+            // This should mostly be a no-op except for error cases where we may not have had a chance to cleaup a module record yet.
+            // Do this only in debug builds to avoid reporting of a memory leak. In release builds this doesn't matter as we will cleanup anyways.
+            for (int index = 0; index < moduleRecordList->Count(); index++)
+            {
+                moduleRecordList->Item(index)->ReleaseParserResources();
+            }
+        }
+#endif
         this->globalObject = nullptr;
     }
 
