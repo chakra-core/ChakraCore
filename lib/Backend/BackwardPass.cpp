@@ -1645,6 +1645,8 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
     {
         Assert(loop->symsAssignedToInLoop == nullptr);
         loop->symsAssignedToInLoop = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
+        Assert(loop->preservesNumberValue == nullptr);
+        loop->preservesNumberValue = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
     }
 
     FOREACH_BLOCK_BACKWARD_IN_RANGE_DEAD_OR_ALIVE(block, lastBlock, nullptr)
@@ -7418,6 +7420,41 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     }
 }
 
+bool 
+BackwardPass::SymIsIntconstOrSelf(Sym *sym, IR::Opnd *opnd)
+{
+    Assert(sym->IsStackSym());
+    if (!opnd->IsRegOpnd())
+    {
+        return false;
+    }
+    StackSym *opndSym = opnd->AsRegOpnd()->m_sym;
+
+    if (sym == opndSym)
+    {
+        return true;
+    }
+
+    if (!opndSym->IsSingleDef())
+    {
+        return false;
+    }
+
+    if (opndSym->GetInstrDef()->m_opcode == Js::OpCode::LdC_A_I4)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool
+BackwardPass::InstrPreservesNumberValues(IR::Instr *instr, Sym *defSym)
+{
+    return (OpCodeAttr::ProducesNumber(instr->m_opcode) ||
+        (instr->m_opcode == Js::OpCode::Add_A && this->SymIsIntconstOrSelf(defSym, instr->GetSrc1()) && this->SymIsIntconstOrSelf(defSym, instr->GetSrc2())));
+}
+
 bool
 BackwardPass::ProcessDef(IR::Opnd * opnd)
 {
@@ -7432,7 +7469,19 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             this->InvalidateCloneStrCandidate(opnd);
             if ((tag == Js::BackwardPhase) && IsPrePass())
             {
-                this->currentPrePassLoop->symsAssignedToInLoop->Set(sym->m_id);
+                bool firstDef = !this->currentPrePassLoop->symsAssignedToInLoop->TestAndSet(sym->m_id);
+
+                if (firstDef)
+                {
+                    if (this->InstrPreservesNumberValues(this->currentInstr, sym))
+                    {
+                        this->currentPrePassLoop->preservesNumberValue->Set(sym->m_id);
+                    }
+                }
+                else if (!this->InstrPreservesNumberValues(this->currentInstr, sym))
+                {
+                    this->currentPrePassLoop->preservesNumberValue->Clear(sym->m_id);
+                }
             }
         }
     }

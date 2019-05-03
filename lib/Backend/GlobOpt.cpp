@@ -2721,7 +2721,16 @@ GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
 
         Value * opndValue = this->currentBlock->globOptData.FindValue(opnd->m_sym);
         ValueInfo * opndValueInfo = opndValue ? opndValue->GetValueInfo() : nullptr;
-        return !opndValueInfo || !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        if (!opndValueInfo)
+        {
+            return true;
+        }
+        if (currentBlock->loop->preservesNumberValue->Test(opnd->m_sym->m_id))
+        {
+            return false;
+        }
+
+        return !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
     }
 
     return true;

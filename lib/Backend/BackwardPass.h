@@ -36,6 +36,9 @@ private:
     bool ProcessDef(IR::Opnd * opnd);
     void ProcessTransfers(IR::Instr * instr);
     void ProcessFieldKills(IR::Instr * instr);
+    bool SymIsIntconstOrSelf(Sym *sym, IR::Opnd *opnd);
+    bool InstrPreservesNumberValues(IR::Instr *instr, Sym *defSym);
+
     template<typename T> void ClearBucketsOnFieldKill(IR::Instr *instr, HashTable<T> *table);
     StackSym* ProcessByteCodeUsesDst(IR::ByteCodeUsesInstr * byteCodeUsesInstr);
     const BVSparse<JitArenaAllocator>* ProcessByteCodeUsesSrcs(IR::ByteCodeUsesInstr * byteCodeUsesInstr);
