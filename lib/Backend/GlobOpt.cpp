@@ -15105,6 +15105,10 @@ GlobOpt::OptHoistInvariant(
         }
     }
 
+    // Save previous instruction before unlinking in case we need to get to it later
+    // (see comments below for dealing with dangling BailOutInfo)
+    IR::Instr *prevInstr = instr->GetPrevRealInstrOrLabel();
+
     // Move to landing pad
     block->UnlinkInstr(instr);
 
@@ -15123,6 +15127,37 @@ GlobOpt::OptHoistInvariant(
     {
         Assert(loop->bailOutInfo);
         EnsureBailTarget(loop);
+        
+        // Consider the following sequence of instructions:
+        //
+        //    BailOnNotStackArgs  s7           #   Bailout: #0034 (BailOutOnInlineFunction)
+        //    ByteCodeUses   s17               #0034
+        //    CheckFuncInfo  s17               #   Bailout: #0034 (BailOutOnInlineFunction)
+        //
+        // Both BailOnNotStackArgs and CheckFuncInfo instructions share the same BailOutInfo,
+        // but since we decide to hoist CheckFuncInfo (thereby removing its BailOutInfo)
+        // and not BailOnNotStackArgs, the BailOnNotStackArgs now holds a dangling BailOutInfo.
+        //
+        // Since there is no way to know what instructions currently reference a BailOutInfo,
+        // as a workaround, we will only look for this pattern and make sure that we don't free
+        // the BailOutInfo. Also change the BailOutInfo from "shared" to "non-shared" so that
+        // GenerateBailOut in Lowerer works correctly (it expects the "owner" of a BailOutInfo
+        // to have already allocated the BailOutRecord in the case of a "shared" BailOutInfo).
+        //
+        // TODO: There are a few other places where we use ReplaceBailOutInfo as well, and this
+        // situation may very well happen again.
+
+        IR::Instr *instrSharingBailOutInfo = prevInstr->GetPrevRealInstrOrLabel();
+
+        BailOutInfo *bailOutInfo = instr->GetBailOutInfo();
+        if (instrSharingBailOutInfo->HasBailOutInfo() &&
+            instrSharingBailOutInfo->GetBailOutInfo() == bailOutInfo &&
+            bailOutInfo->bailOutInstr == instr)
+        {
+            Assert(bailOutInfo->sharedBailOutKind);
+            bailOutInfo->bailOutInstr = instrSharingBailOutInfo;
+            bailOutInfo->sharedBailOutKind = false;
+        }
 
         // Copy bailout info of loop top.
         instr->ReplaceBailOutInfo(loop->bailOutInfo);
