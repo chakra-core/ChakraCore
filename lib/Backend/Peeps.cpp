@@ -453,6 +453,21 @@ Peeps::PeepBranch(IR::BranchInstr *branchInstr, bool *const peepedRef)
             else
             {
                 IR::Instr *instrTmp = instrSkip;
+
+                // Ignore assertion error for cases where we insert an "airlock" helper block
+                // for a Branch instruction's helper path that:
+                //  1) ends up being empty
+                //  2) comes after a helper block from another instruction
+                //  3) is followed by a non-helper block
+                //
+                // Propagating the "isOpHelper" flag can potentially make this block a non-helper,
+                // and that makes this block only reachable through helper blocks, thus failing the assert 
+#if DBG
+                if (instrNext->AsLabelInstr()->isOpHelper != instrSkip->AsLabelInstr()->isOpHelper)
+                {
+                    instrNext->AsLabelInstr()->m_noHelperAssert = true;
+                }
+#endif
                 instrNext->AsLabelInstr()->isOpHelper = instrSkip->AsLabelInstr()->isOpHelper;
                 instrSkip = instrNext;
                 instrNext = instrTmp;
