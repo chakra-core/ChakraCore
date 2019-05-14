@@ -1740,7 +1740,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
             {
                 UpdateValue(nullptr, nullptr, nullptr);
             }
-            else if (globOpt->IsOperationThatLikelyKillsJsArraysWithNoMissingValues(instr) && baseValueInfo->HasNoMissingValues())
+            else if (isLikelyJsArray && globOpt->IsOperationThatLikelyKillsJsArraysWithNoMissingValues(instr) && baseValueInfo->HasNoMissingValues())
             {
                 globOpt->ChangeValueType(nullptr, baseValue, baseValueInfo->Type().SetHasNoMissingValues(false), true);
             }
