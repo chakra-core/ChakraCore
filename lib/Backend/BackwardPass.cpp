@@ -4847,7 +4847,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 
     // The instruction could have a lazy bailout associated with it, which might get cleared
     // later, so we make sure that we only process instructions with the right bailout kind.
-    if (instr->HasBailOutInfo() && instr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck)
+    if (instr->HasBailOutInfo() && instr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck)
     {
         Assert(instr->IsProfiledInstr());
         Assert(instr->GetDst()->IsRegOpnd());

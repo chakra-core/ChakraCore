@@ -193,6 +193,11 @@ namespace Js
         Js::TempArenaAllocatorObject *tempAllocator = nullptr;
         JsUtil::List<Js::FunctionInfo *, Recycler>* pFunctionsToRegister = nullptr;
         JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>* utf8SourceInfoList = nullptr;
+        typedef JsUtil::BaseDictionary<uint32, RegSlot, ArenaAllocator, PowerOf2SizePolicy> FunctionStartToYieldRegister;
+
+        // This container ensures that for Generator/Async functions the yield register is same between non-debug to debug parse.
+        // Each entry represent a function's start position (each function will have unique start position in a file) and that function yield register
+        FunctionStartToYieldRegister *yieldFunctions = nullptr;
 
         HRESULT hr = S_OK;
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
@@ -201,6 +206,7 @@ namespace Js
         tempAllocator = threadContext->GetTemporaryAllocator(_u("debuggerAlloc"));
 
         utf8SourceInfoList = JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>::New(this->scriptContext->GetRecycler());
+        yieldFunctions = Anew(tempAllocator->GetAllocator(), FunctionStartToYieldRegister, tempAllocator->GetAllocator());
 
         this->MapUTF8SourceInfoUntil([&](Js::Utf8SourceInfo * sourceInfo) -> bool
         {
@@ -276,6 +282,23 @@ namespace Js
                 this->hostDebugContext->SetThreadDescription(sourceInfo->GetSourceContextInfo()->url); // the HRESULT is omitted.
             }
 
+            if (shouldReparseFunctions)
+            {
+                yieldFunctions->Clear();
+                BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+                {
+                    sourceInfo->MapFunction([&](Js::FunctionBody *const pFuncBody)
+                    {
+                        if (pFuncBody->IsCoroutine() && pFuncBody->GetYieldRegister() != Js::Constants::NoRegister)
+                        {
+                            yieldFunctions->Add(pFuncBody->StartInDocument(), pFuncBody->GetYieldRegister());
+                        }
+                    });
+                }
+                END_TRANSLATE_OOM_TO_HRESULT(hr);
+                DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+            }
+
             bool fHasDoneSourceRundown = false;
             for (int i = 0; i < pFunctionsToRegister->Count(); i++)
             {
@@ -326,8 +349,17 @@ namespace Js
 
             if (shouldReparseFunctions)
             {
-                sourceInfo->MapFunction([](Js::FunctionBody *const pFuncBody)
+                sourceInfo->MapFunction([&](Js::FunctionBody *const pFuncBody)
                 {
+                    if (pFuncBody->IsCoroutine())
+                    {
+                        RegSlot oldYieldRegister = Constants::NoRegister;
+                        if (yieldFunctions->TryGetValue(pFuncBody->StartInDocument(), &oldYieldRegister))
+                        {
+                            AssertOrFailFast(pFuncBody->GetYieldRegister() == oldYieldRegister);
+                        }
+                    }
+
                     if (pFuncBody->IsFunctionParsed())
                     {
                         pFuncBody->ReinitializeExecutionModeAndLimits();

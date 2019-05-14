@@ -119,10 +119,10 @@ void EndVisitBlock(ParseNodeBlock *pnode, ByteCodeGenerator *byteCodeGenerator)
         Scope *scope = pnode->scope;
         FuncInfo *func = scope->GetFunc();
 
-        if (!byteCodeGenerator->IsInDebugMode() &&
-            scope->HasInnerScopeIndex())
+        if (!(byteCodeGenerator->IsInDebugMode() || func->byteCodeFunction->IsCoroutine())
+            && scope->HasInnerScopeIndex())
         {
-            // In debug mode, don't release the current index, as we're giving each scope a unique index, regardless
+            // In debug mode (or for the generator/async function), don't release the current index, as we're giving each scope a unique index, regardless
             // of nesting.
             Assert(scope->GetInnerScopeIndex() == func->CurrentInnerScopeIndex());
             func->ReleaseInnerScopeIndex();
@@ -155,12 +155,12 @@ void BeginVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 void EndVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     Scope *scope = pnode->AsParseNodeCatch()->scope;
+    FuncInfo *func = scope->GetFunc();
 
-    if (scope->HasInnerScopeIndex() && !byteCodeGenerator->IsInDebugMode())
+    if (scope->HasInnerScopeIndex() && !(byteCodeGenerator->IsInDebugMode() || func->byteCodeFunction->IsCoroutine()))
     {
-        // In debug mode, don't release the current index, as we're giving each scope a unique index,
+        // In debug mode (or for the generator/async function), don't release the current index, as we're giving each scope a unique index,
         // regardless of nesting.
-        FuncInfo *func = scope->GetFunc();
 
         Assert(scope->GetInnerScopeIndex() == func->CurrentInnerScopeIndex());
         func->ReleaseInnerScopeIndex();

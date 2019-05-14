@@ -814,20 +814,28 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
 {
     switch (instr->m_opcode)
     {
+    case Js::OpCode::StElemC:
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
     case Js::OpCode::DeleteElemI_A:
     case Js::OpCode::DeleteElemIStrict_A:
+    case Js::OpCode::ConsoleScopedStFld:
+    case Js::OpCode::ConsoleScopedStFldStrict:
+    case Js::OpCode::ScopedStFld:
+    case Js::OpCode::ScopedStFldStrict:
     case Js::OpCode::StFld:
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
     case Js::OpCode::StRootFldStrict:
+    case Js::OpCode::StSuperFld:
     case Js::OpCode::StSlot:
     case Js::OpCode::StSlotChkUndecl:
     case Js::OpCode::DeleteFld:
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
+    case Js::OpCode::ScopedDeleteFld:
+    case Js::OpCode::ScopedDeleteFldStrict:
     case Js::OpCode::StArrViewElem:
     // These array helpers may change A.length (and A[i] could be A.length)...
     case Js::OpCode::InlineArrayPush:

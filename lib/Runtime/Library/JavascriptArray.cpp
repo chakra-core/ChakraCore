@@ -2921,6 +2921,9 @@ using namespace Js;
         double dblValue = JavascriptConversion::ToNumber(newLength, scriptContext);
         if (dblValue == uintValue)
         {
+            // Conversion can change the type (e.g. from String), invalidating assumptions made by the JIT
+            scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
+
             this->SetLength(uintValue);
         }
         else

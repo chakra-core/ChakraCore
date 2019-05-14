@@ -131,6 +131,10 @@ namespace Js
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthAssignIncorrect);
             }
+
+            // Conversion can change the type (e.g. from String), invalidating assumptions made by the JIT
+            scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
+
             return newLen;
         }
     }

@@ -1499,6 +1499,14 @@ GlobOpt::MayNeedBailOnImplicitCall(IR::Instr const * instr, Value const * src1Va
             );
     }
 
+    case Js::OpCode::NewScObjectNoCtor:
+        if (instr->HasBailOutInfo() && (instr->GetBailOutKind() & ~IR::BailOutKindBits) == IR::BailOutFailedCtorGuardCheck)
+        {
+            // No helper call with this bailout.
+            return false;
+        }
+        break;
+
     default:
         break;
     }

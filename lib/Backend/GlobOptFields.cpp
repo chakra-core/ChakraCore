@@ -327,6 +327,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     IR::JnHelperMethod fnHelper;
     switch(instr->m_opcode)
     {
+    case Js::OpCode::StElemC:
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
         Assert(dstOpnd != nullptr);
@@ -358,6 +359,8 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
+    case Js::OpCode::ScopedDeleteFld:
+    case Js::OpCode::ScopedDeleteFldStrict:
         sym = instr->GetSrc1()->AsSymOpnd()->m_sym;
         KillLiveFields(sym->AsPropertySym(), bv);
         if (inGlobOpt)
@@ -379,13 +382,36 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
             this->KillAllObjectTypes(bv);
         }
         break;
+
+    case Js::OpCode::ConsoleScopedStFld:
+    case Js::OpCode::ConsoleScopedStFldStrict:
+    case Js::OpCode::ScopedStFld:
+    case Js::OpCode::ScopedStFldStrict:
+        // This is already taken care of for FastFld opcodes
+
+        if (inGlobOpt)
+        {
+            KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+        }
+
+        // fall through
+
     case Js::OpCode::InitFld:
+    case Js::OpCode::InitConstFld:
+    case Js::OpCode::InitLetFld:
+    case Js::OpCode::InitRootFld:
+    case Js::OpCode::InitRootConstFld:
+    case Js::OpCode::InitRootLetFld:
+#if !FLOATVAR
+    case Js::OpCode::StSlotBoxTemp:
+#endif
     case Js::OpCode::StFld:
     case Js::OpCode::StRootFld:
     case Js::OpCode::StFldStrict:
     case Js::OpCode::StRootFldStrict:
     case Js::OpCode::StSlot:
     case Js::OpCode::StSlotChkUndecl:
+    case Js::OpCode::StSuperFld:
         Assert(dstOpnd != nullptr);
         sym = dstOpnd->AsSymOpnd()->m_sym;
         if (inGlobOpt)
@@ -407,11 +433,19 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
 
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:
-        KillLiveFields(this->lengthEquivBv, bv);
-        if (inGlobOpt)
+        if(instr->m_func->GetThisOrParentInlinerHasArguments())
         {
-            // Deleting an item, or pushing a property to a non-array, may change object layout
-            KillAllObjectTypes(bv);
+            this->KillAllFields(bv);
+            this->SetAnyPropertyMayBeWrittenTo();
+        }
+        else
+        {
+            KillLiveFields(this->lengthEquivBv, bv);
+            if (inGlobOpt)
+            {
+                // Deleting an item, or pushing a property to a non-array, may change object layout
+                KillAllObjectTypes(bv);
+            }
         }
         break;
 
@@ -436,14 +470,23 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 // Kill length field for built-ins that can update it.
                 if (nullptr != this->lengthEquivBv)
                 {
-                    KillLiveFields(this->lengthEquivBv, bv);
+                    // If has arguments, all fields are killed in fall through
+                    if (!instr->m_func->GetThisOrParentInlinerHasArguments())
+                    {
+                        KillLiveFields(this->lengthEquivBv, bv);
+                    }
                 }
                 // fall through
 
             case IR::JnHelperMethod::HelperArray_Reverse:
-                // Deleting an item may change object layout
-                if (inGlobOpt)
+                if (instr->m_func->GetThisOrParentInlinerHasArguments())
                 {
+                    this->KillAllFields(bv);
+                    this->SetAnyPropertyMayBeWrittenTo();
+                }
+                else if (inGlobOpt)
+                {
+                    // Deleting an item may change object layout
                     KillAllObjectTypes(bv);
                 }
                 break;
@@ -484,6 +527,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InitClass:
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
+    case Js::OpCode::NewScObjectNoCtorFull:
         if (inGlobOpt)
         {
             // Opcodes that make an object into a prototype may break object-header-inlining and final type opt.
