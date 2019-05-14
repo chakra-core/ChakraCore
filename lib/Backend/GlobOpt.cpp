@@ -13199,6 +13199,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
     const bool useValueTypes = !IsLoopPrePass(); // Source value types are not guaranteed to be correct in a loop prepass
     switch(instr->m_opcode)
     {
+        case Js::OpCode::StElemC:
         case Js::OpCode::StElemI_A:
         case Js::OpCode::StElemI_A_Strict:
         {
@@ -13249,8 +13250,13 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             }
             break;
 
+        case Js::OpCode::ConsoleScopedStFld:
+        case Js::OpCode::ConsoleScopedStFldStrict:
+        case Js::OpCode::ScopedStFld:
+        case Js::OpCode::ScopedStFldStrict:
         case Js::OpCode::StFld:
         case Js::OpCode::StFldStrict:
+        case Js::OpCode::StSuperFld:
         {
             Assert(instr->GetDst());
 
@@ -13462,6 +13468,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             break;
 
         case Js::OpCode::NewScObjectNoCtor:
+        case Js::OpCode::NewScObjectNoCtorFull:
             if(doNativeArrayTypeSpec)
             {
                 // Class/object construction can make something a prototype

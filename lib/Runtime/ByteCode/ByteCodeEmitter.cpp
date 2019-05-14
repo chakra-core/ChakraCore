@@ -3590,6 +3590,7 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
 #if ENABLE_TTD
                     && !funcInfo->GetParsedFunctionBody()->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode()
 #endif
+                    && !funcInfo->byteCodeFunction->IsCoroutine()
                 );
 
                 if (funcInfo->GetHasCachedScope())
@@ -4005,6 +4006,11 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
                 sym->SetIsGlobalCatch(true);
             }
 
+            if (sym->NeedsScopeObject())
+            {
+                scope->SetIsObject();
+            }
+
             Assert(sym->GetScopeSlot() == Js::Constants::NoProperty);
             if (sym->NeedsSlotAlloc(this, funcInfo))
             {
@@ -4026,6 +4032,11 @@ void ByteCodeGenerator::StartEmitCatch(ParseNodeCatch *pnodeCatch)
         if (funcInfo->IsGlobalFunction())
         {
             sym->SetIsGlobalCatch(true);
+        }
+
+        if (sym->NeedsScopeObject())
+        {
+            scope->SetIsObject();
         }
 
         if (scope->GetMustInstantiate())

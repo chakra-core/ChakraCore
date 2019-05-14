@@ -4601,18 +4601,40 @@ Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, b
         {
             Assert(!newObjDst->CanStoreTemp());
             // createObjDst = NewScObject...(ctorOpnd)
-            newScHelper = !callCtor ?
-                (isBaseClassConstructorNewScObject ?
-                    (hasArgs ? IR::HelperNewScObjectNoCtorFull : IR::HelperNewScObjectNoArgNoCtorFull) :
-                    (hasArgs ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArgNoCtor)) :
-                (hasArgs || usedFixedCtorCache ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArg);
 
             LoadScriptContext(newObjInstr);
-            m_lowererMD.LoadHelperArgument(newObjInstr, newObjInstr->GetSrc1());
 
-            newScObjCall = IR::Instr::New(Js::OpCode::Call, createObjDst, IR::HelperCallOpnd::New(newScHelper, func), func);
-            newObjInstr->InsertBefore(newScObjCall);
-            m_lowererMD.LowerCall(newScObjCall, 0);
+            if (callCtor)
+            {
+                newScHelper = (hasArgs || usedFixedCtorCache ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArg);
+
+                m_lowererMD.LoadHelperArgument(newObjInstr, newObjInstr->GetSrc1());
+
+                newScObjCall = IR::Instr::New(Js::OpCode::Call, createObjDst, IR::HelperCallOpnd::New(newScHelper, func), func);
+                newObjInstr->InsertBefore(newScObjCall);
+                m_lowererMD.LowerCall(newScObjCall, 0);
+            }
+            else
+            {
+                newScHelper = 
+                    (isBaseClassConstructorNewScObject ?
+                        (hasArgs ? IR::HelperNewScObjectNoCtorFull : IR::HelperNewScObjectNoArgNoCtorFull) :
+                        (hasArgs ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArgNoCtor));
+
+                // Branch around the helper call to execute the inlined ctor.
+                Assert(callCtorLabel != nullptr);
+                newObjInstr->InsertAfter(callCtorLabel);
+
+                // Change the NewScObject* to a helper call on the spot. This generates implicit call bailout for us if we need one.
+                m_lowererMD.LoadHelperArgument(newObjInstr, newObjInstr->UnlinkSrc1());
+                m_lowererMD.ChangeToHelperCall(newObjInstr, newScHelper);
+
+                // Then we're done.
+                Assert(createObjDst == newObjDst);
+
+                // Return the first instruction above the region we've just lowered.
+                return RemoveLoweredRegionStartMarker(startMarkerInstr);                    
+            }
         }
     }
 
@@ -4857,9 +4879,6 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     skipNewScObj = false;
     returnNewScObj = false;
 
-    AssertMsg(!PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func) || !newObjInstr->HasBailOutInfo(),
-        "Why do we have bailout on NewScObject when ObjTypeSpecNewObj is off?");
-
     if (PHASE_OFF(Js::FixedNewObjPhase, newObjInstr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func))
     {
         return false;
@@ -4867,11 +4886,10 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     JITTimeConstructorCache * ctorCache;
 
-    if (newObjInstr->HasBailOutInfo())
+    if (newObjInstr->HasBailOutInfo() && (newObjInstr->GetBailOutKind() & ~IR::BailOutKindBits) == IR::BailOutFailedCtorGuardCheck)
     {
         Assert(newObjInstr->IsNewScObjectInstr());
         Assert(newObjInstr->IsProfiledInstr());
-        Assert(newObjInstr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
 
         emitBailOut = true;
 

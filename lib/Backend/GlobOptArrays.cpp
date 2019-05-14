@@ -1736,7 +1736,14 @@ void GlobOpt::ArraySrcOpt::Optimize()
     {
         if (newBaseValueType != baseValueType)
         {
-            UpdateValue(nullptr, nullptr, nullptr);
+            if (globOpt->IsSafeToTransferInPrePass(baseOpnd, baseValue))
+            {
+                UpdateValue(nullptr, nullptr, nullptr);
+            }
+            else if (isLikelyJsArray && globOpt->IsOperationThatLikelyKillsJsArraysWithNoMissingValues(instr) && baseValueInfo->HasNoMissingValues())
+            {
+                globOpt->ChangeValueType(nullptr, baseValue, baseValueInfo->Type().SetHasNoMissingValues(false), true);
+            }
         }
 
         // For javascript arrays and objects with javascript arrays:
