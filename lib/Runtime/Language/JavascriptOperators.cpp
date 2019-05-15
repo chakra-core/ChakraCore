@@ -9655,6 +9655,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             Var result = CALL_ENTRYPOINT(threadContext, marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 1), thisVar);
             result = CrossSite::MarshalVar(requestContext, result);
 
+            // Set implicit call flags so we bail out if we're trying to propagate the value forward, e.g., from a compare. Subsequent calls
+            // to the getter may produce different results.
+            threadContext->AddImplicitCallFlags(ImplicitCall_Accessor);
+
             return result;
         });
     }
