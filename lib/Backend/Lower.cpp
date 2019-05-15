@@ -4865,11 +4865,11 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     JITTimeConstructorCache * ctorCache;
 
-    if (newObjInstr->HasBailOutInfo() && !newObjInstr->HasLazyBailOut() && newObjInstr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck)
+    if (newObjInstr->HasBailOutInfo() && newObjInstr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck)
     {
         Assert(newObjInstr->IsNewScObjectInstr());
         Assert(newObjInstr->IsProfiledInstr());
-        Assert(newObjInstr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck || newObjInstr->HasLazyBailOut());
+        Assert(newObjInstr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
 
         emitBailOut = true;
 
