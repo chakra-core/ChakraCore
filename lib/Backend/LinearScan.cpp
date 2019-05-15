@@ -4059,6 +4059,20 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
         {
             if (insertionInstr->m_prev->AsLabelInstr()->isOpHelper && !insertionInstr->AsLabelInstr()->isOpHelper)
             {
+                // Ignore assertion error for cases where we insert an "airlock" helper block
+                // for a Branch instruction's helper path that:
+                //  1) ends up being empty
+                //  2) comes after a helper block from another instruction
+                //  3) is followed by a non-helper block
+                //
+                // Currently we would mark this block as a non-helper, but that makes
+                // this block only reachable through helper blocks, thus failing the assert 
+#if DBG
+                if (insertionInstr->m_prev->AsLabelInstr()->isOpHelper)
+                {
+                    insertionInstr->m_prev->AsLabelInstr()->m_noHelperAssert = true;
+                }
+#endif
                 insertionInstr->m_prev->AsLabelInstr()->isOpHelper = false;
             }
         }
