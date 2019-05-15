@@ -3091,6 +3091,17 @@ void ByteCodeGenerator::ProcessCapturedSym(Symbol *sym)
 
     Assert(sym->NeedsSlotAlloc(this, funcHome) || sym->GetIsGlobal() || sym->GetIsModuleImport() || sym->GetIsModuleExportStorage());
 
+    if (sym->GetScope()->GetScopeType() == ScopeType_FuncExpr)
+    {
+        if ((funcHome->GetParamScope() && Scope::HasSymbolName(funcHome->GetParamScope(), sym->GetName())) ||
+            (funcHome->IsBodyAndParamScopeMerged() && funcHome->GetBodyScope() && Scope::HasSymbolName(funcHome->GetBodyScope(), sym->GetName())))
+        {
+            // Make sure the function expression scope gets instantiated, since we can't merge the name symbol into another scope.
+            // Make it an object, since that's the only case the code gen can currently handle.
+            sym->GetScope()->SetIsObject();
+        }
+    }
+
     // If this is not a local property, or not all its references can be tracked, or
     // it's not scoped to the function, or we're in debug mode, disable the delayed capture optimization.
     if (funcHome->IsGlobalFunction() ||
