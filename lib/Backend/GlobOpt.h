@@ -773,6 +773,8 @@ private:
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
     void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd** srcOpndPtr, Value *const srcVal);
+    bool                    IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const;
+
 public:
     static bool             IsTypeSpecPhaseOff(Func const * func);
     static bool             DoAggressiveIntTypeSpec(Func const * func);

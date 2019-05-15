@@ -9001,6 +9001,8 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
 
     AssertMsg(dst->IsIndirOpnd(), "Expected indirOpnd on StElementI");
 
+    bool allowConvert = dst->AsIndirOpnd()->ConversionAllowed();
+
 #if !FLOATVAR
     if (dst->AsIndirOpnd()->GetBaseOpnd()->GetValueType().IsLikelyOptimizedTypedArray() && src1->IsRegOpnd())
     {
@@ -9085,15 +9087,17 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
         {
             helperMethod =
                 srcType == TyVar ? IR::HelperOp_SetElementI_Int32 :
-                srcType == TyInt32 ? IR::HelperOp_SetNativeIntElementI_Int32 :
-                IR::HelperOp_SetNativeFloatElementI_Int32;
+                srcType == TyInt32 ? 
+                    (allowConvert ? IR::HelperOp_SetNativeIntElementI_Int32 : IR::HelperOp_SetNativeIntElementI_Int32_NoConvert) :
+                    (allowConvert ? IR::HelperOp_SetNativeFloatElementI_Int32 : IR::HelperOp_SetNativeFloatElementI_Int32_NoConvert) ;
         }
         else if (indexOpnd->GetType() == TyUint32)
         {
             helperMethod =
                 srcType == TyVar ? IR::HelperOp_SetElementI_UInt32 :
-                srcType == TyInt32 ? IR::HelperOp_SetNativeIntElementI_UInt32 :
-                IR::HelperOp_SetNativeFloatElementI_UInt32;
+                srcType == TyInt32 ? 
+                    (allowConvert ? IR::HelperOp_SetNativeIntElementI_UInt32 : IR::HelperOp_SetNativeIntElementI_UInt32_NoConvert) :
+                    (allowConvert ? IR::HelperOp_SetNativeFloatElementI_UInt32 : IR::HelperOp_SetNativeFloatElementI_UInt32_NoConvert) ;
         }
         else
         {
@@ -9111,8 +9115,9 @@ Lowerer::LowerStElemI(IR::Instr * instr, Js::PropertyOperationFlags flags, bool 
 
         if (srcType != TyVar)
         {
-            helperMethod =
-                srcType == TyInt32 ? IR::HelperOp_SetNativeIntElementI : IR::HelperOp_SetNativeFloatElementI;
+            helperMethod = srcType == TyInt32 ? 
+                (allowConvert ? IR::HelperOp_SetNativeIntElementI : IR::HelperOp_SetNativeIntElementI_NoConvert) : 
+                (allowConvert ? IR::HelperOp_SetNativeFloatElementI : IR::HelperOp_SetNativeFloatElementI_NoConvert);
         }
     }
 

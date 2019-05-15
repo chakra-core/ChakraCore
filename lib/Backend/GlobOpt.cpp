@@ -2695,6 +2695,39 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 }
 
 bool
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+{
+    if (opnd == nullptr)
+    {
+        return false;
+    }
+
+    if (opnd->m_sym->m_isNotNumber)
+    {
+        return true;
+    }
+
+    if (!inGlobOpt)
+    {
+        return false;
+    }
+
+    if (opnd->GetValueType().IsNumber() || currentBlock->globOptData.IsTypeSpecialized(opnd->m_sym))
+    {
+        if (!this->IsLoopPrePass())
+        {
+            return false;
+        }
+
+        Value * opndValue = this->currentBlock->globOptData.FindValue(opnd->m_sym);
+        ValueInfo * opndValueInfo = opndValue ? opndValue->GetValueInfo() : nullptr;
+        return !opndValueInfo || !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+    }
+
+    return true;
+}
+
+bool
 GlobOpt::OptTagChecks(IR::Instr *instr)
 {
     if (PHASE_OFF(Js::OptTagChecksPhase, this->func) || !this->DoTagChecks())

@@ -4644,6 +4644,120 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return JavascriptOperators::SetProperty(receiver, object, propertyRecord->GetPropertyId(), value, scriptContext, flags);
     }
 
+    BOOL JavascriptOperators::OP_SetNativeIntElementI_NoConvert(
+        Var instance,
+        Var aElementIndex,
+        int32 iValue,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeIntElementI_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeIntElementI_NoConvert, Op_SetNativeIntElementI);
+        BOOL converted = OP_SetNativeIntElementI(instance, aElementIndex, iValue, scriptContext, flags);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeIntElementI_NoConvert);
+    }
+
+    BOOL JavascriptOperators::OP_SetNativeIntElementI_UInt32_NoConvert(
+        Var instance,
+        uint32 aElementIndex,
+        int32 iValue,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeIntElementI_UInt32_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeIntElementI_UInt32_NoConvert, Op_SetNativeIntElementI_UInt32);
+        BOOL converted = OP_SetNativeIntElementI_UInt32(instance, aElementIndex, iValue, scriptContext, flags);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeIntElementI_UInt32_NoConvert);
+    }
+
+    BOOL JavascriptOperators::OP_SetNativeIntElementI_Int32_NoConvert(
+        Var instance,
+        int32 aElementIndex,
+        int32 iValue,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeIntElementI_Int32_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeIntElementI_Int32_NoConvert, Op_SetNativeIntElementI_Int32);
+        BOOL converted = OP_SetNativeIntElementI_Int32(instance, aElementIndex, iValue, scriptContext, flags);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeIntElementI_Int32_NoConvert);
+    }
+
+    BOOL JavascriptOperators::OP_SetNativeFloatElementI_NoConvert(
+        Var instance,
+        Var aElementIndex,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags,
+        double dValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeFloatElementI_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeFloatElementI_NoConvert, Op_SetNativeFloatElementI);
+        BOOL converted = OP_SetNativeFloatElementI(instance, aElementIndex, scriptContext, flags, dValue);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeFloatElementI_NoConvert);
+    }
+
+    BOOL JavascriptOperators::OP_SetNativeFloatElementI_UInt32_NoConvert(
+        Var instance,
+        uint32 aElementIndex,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags,
+        double dValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeFloatElementI_UInt32_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeFloatElementI_NoConvert, Op_SetNativeFloatElementI_UInt32);
+        BOOL converted = OP_SetNativeFloatElementI_UInt32(instance, aElementIndex, scriptContext, flags, dValue);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeFloatElementI_UInt32_NoConvert);
+    }
+
+    BOOL JavascriptOperators::OP_SetNativeFloatElementI_Int32_NoConvert(
+        Var instance,
+        int32 aElementIndex,
+        ScriptContext* scriptContext,
+        PropertyOperationFlags flags,
+        double dValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_SetNativeFloatElementI_Int32_NoConvert);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_SetNativeFloatElementI_NoConvert, Op_SetNativeFloatElementI_Int32);
+        BOOL converted = OP_SetNativeFloatElementI_Int32(instance, aElementIndex, scriptContext, flags, dValue);
+        if (converted)
+        {
+            AssertMsg(false, "Unexpected native array conversion");
+            Js::Throw::FatalInternalError();
+        }
+        return FALSE;
+        JIT_HELPER_END(Op_SetNativeFloatElementI_Int32_NoConvert);
+    }
+
     BOOL JavascriptOperators::OP_SetNativeIntElementI(
         Var instance,
         Var aElementIndex,

@@ -5004,16 +5004,24 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
         return;
     }
 
+    instr->GetDst()->AsIndirOpnd()->AllowConversion(true);
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
     if (!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
         !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
         !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {
         // There is an upwards-exposed use of a native array. Since the array referenced by this instruction can be aliased,
         // this instruction needs to bail out if it converts the native array even if this array specifically is not
         // upwards-exposed.
-        includeBailOutKinds |= IR::BailOutConvertedNativeArray;
+        if (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar())
+        {
+            includeBailOutKinds |= IR::BailOutConvertedNativeArray;
+        }
+        else
+        {
+            // We are assuming that array conversion is impossible here, so make sure we execute code that fails if conversion does happen.
+            instr->GetDst()->AsIndirOpnd()->AllowConversion(false);
+        }
     }
 
     if(baseOpnd->IsArrayRegOpnd() && baseOpnd->AsArrayRegOpnd()->EliminatedUpperBoundCheck())

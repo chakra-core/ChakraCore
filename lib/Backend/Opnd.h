@@ -1662,6 +1662,8 @@ public:
     byte                    GetScale() const;
     void                    SetScale(byte scale);
     bool                    TryGetIntConstIndexValue(bool trySym, IntConstType *pValue, bool *pIsNotInt);
+    void                    AllowConversion(bool value) { m_conversionAllowed = value; }
+    bool                    ConversionAllowed() const   { return m_conversionAllowed; }
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     const char16 *         GetDescription();
     IR::AddrOpndKind        GetAddrKind() const;
@@ -1678,6 +1680,7 @@ private:
     RegOpnd *               m_indexOpnd;
     int32                   m_offset;
     byte                    m_scale;
+    bool                    m_conversionAllowed;
     Func *                  m_func;  // We need the allocator to copy the base and index...
 
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
