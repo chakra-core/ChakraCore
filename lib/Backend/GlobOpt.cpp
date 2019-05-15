@@ -12827,6 +12827,26 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             it.RemoveCurrent();
         }
     }
+    else if(kills.KillsObjectArraysWithNoMissingValues())
+    {
+        // Some operations may kill objects with arrays-with-no-missing-values in unlikely circumstances. Convert their value types to likely
+        // versions so that the checks have to be redone.
+        for(auto it = valuesToKillOnCalls->GetIteratorWithRemovalSupport(); it.IsValid(); it.MoveNext())
+        {
+            Value *const value = it.CurrentValue();
+            ValueInfo *const valueInfo = value->GetValueInfo();
+            Assert(
+                valueInfo->IsArrayOrObjectWithArray() ||
+                valueInfo->IsOptimizedVirtualTypedArray() ||
+                valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
+            if(!valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsArray() || !valueInfo->HasNoMissingValues())
+            {
+                continue;
+            }
+            ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
+            it.RemoveCurrent();
+        }
+    }
 
     if(kills.KillsNativeArrays())
     {
@@ -13357,6 +13377,11 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             if(doArrayLengthHoist && !(useValueTypes && arrayValueType.IsNotArray()))
             {
                 kills.SetKillsArrayLengths();
+            }
+
+            if(doArrayMissingValueCheckHoist && !(useValueTypes && arrayValueType.IsArray()))
+            {
+                kills.SetKillsObjectArraysWithNoMissingValues();
             }
             break;
         }

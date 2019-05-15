@@ -317,6 +317,7 @@ private:
         {
             bool killsAllArrays : 1;
             bool killsArraysWithNoMissingValues : 1;
+            bool killsObjectArraysWithNoMissingValues : 1;
             bool killsNativeArrays : 1;
             bool killsArrayHeadSegments : 1;
             bool killsArrayHeadSegmentLengths : 1;
@@ -341,6 +342,9 @@ public:
 
     bool KillsArraysWithNoMissingValues() const { return killsArraysWithNoMissingValues; }
     void SetKillsArraysWithNoMissingValues() { killsArraysWithNoMissingValues = true; }
+
+    bool KillsObjectArraysWithNoMissingValues() const { return killsObjectArraysWithNoMissingValues; }
+    void SetKillsObjectArraysWithNoMissingValues() { killsObjectArraysWithNoMissingValues = true; }
 
     bool KillsNativeArrays() const { return killsNativeArrays; }
     void SetKillsNativeArrays() { killsNativeArrays = true; }
