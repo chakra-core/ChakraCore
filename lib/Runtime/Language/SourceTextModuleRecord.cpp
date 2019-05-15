@@ -172,7 +172,7 @@ namespace Js
                     }
 
                     // Cleanup in case of error.
-                    this->ReleaseParserResources();
+                    this->ReleaseParserResourcesForHierarchy();
                     return E_FAIL;
                 }
             }
@@ -189,6 +189,8 @@ namespace Js
                 }
                 *exceptionVar = JavascriptError::CreateFromCompileScriptException(scriptContext, &se, sourceUrl);
             }
+            // Cleanup in case of error.
+            this->ReleaseParserResourcesForHierarchy();
             if (this->parser)
             {
                 this->parseTree = nullptr;
@@ -247,7 +249,7 @@ namespace Js
     {
         Assert(scriptContext->GetConfig()->IsES6ModuleEnabled());
         ParseNodeModule* moduleParseNode = this->parseTree->AsParseNodeModule();
-        SetrequestedModuleList(moduleParseNode->requestedModules);
+        SetRequestedModuleList(moduleParseNode->requestedModules);
         SetImportRecordList(moduleParseNode->importEntries);
         SetStarExportRecordList(moduleParseNode->starExportEntries);
         SetIndirectExportRecordList(moduleParseNode->indirectExportEntries);
@@ -259,6 +261,19 @@ namespace Js
         if (this->parser != nullptr)
         {
             this->parser->ReleaseTemporaryGuestArena();
+        }
+    }
+
+    void SourceTextModuleRecord::ReleaseParserResourcesForHierarchy()
+    {
+        this->ReleaseParserResources();
+
+        if (this->childrenModuleSet != nullptr)
+        {
+            this->childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+            {
+                childModuleRecord->ReleaseParserResources();
+            });
         }
     }
 
@@ -276,7 +291,7 @@ namespace Js
         else
         {
             // Cleanup in case of error.
-            this->ReleaseParserResources();
+            this->ReleaseParserResourcesForHierarchy();
         }
 
         return hr;
@@ -306,7 +321,7 @@ namespace Js
                 if (this->errorObject != nullptr)
                 {
                     // Cleanup in case of error.
-                    this->ReleaseParserResources();
+                    this->ReleaseParserResourcesForHierarchy();
                     SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, scriptContext, this, false);
                 }
                 else
@@ -327,7 +342,7 @@ namespace Js
             if (FAILED(hr))
             {
                 // Cleanup in case of error.
-                this->ReleaseParserResources();
+                this->ReleaseParserResourcesForHierarchy();
 
                 // We cannot just use the buffer in the specifier string - need to make a copy here.
                 const char16* moduleName = this->GetSpecifierSz();
@@ -366,6 +381,13 @@ namespace Js
                 {
                     GenerateRootFunction();
                 }
+
+                if (this->errorObject != nullptr)
+                {
+                    // Cleanup in case of error.
+                    this->ReleaseParserResourcesForHierarchy();
+                }
+
                 if (!hadNotifyHostReady && !WasEvaluated())
                 {
                     OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyHostAboutModuleReady %s (PrepareForModuleDeclarationInitialization)\n"), this->GetSpecifierSz());
@@ -394,7 +416,7 @@ namespace Js
             }
 
             // Cleanup in case of error.
-            this->ReleaseParserResources();
+            this->ReleaseParserResourcesForHierarchy();
 
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded (childException)\n"), this->GetSpecifierSz());
             NotifyParentsAsNeeded();
@@ -632,6 +654,7 @@ namespace Js
                 SourceTextModuleRecord* childModuleRecord = GetChildModuleRecord(exportEntry.moduleRequest->Psz());
                 if (childModuleRecord == nullptr)
                 {
+                    this->ReleaseParserResourcesForHierarchy();
                     JavascriptError::ThrowReferenceError(scriptContext, JSERR_CannotResolveModule, exportEntry.moduleRequest->Psz());
                 }
 
@@ -683,10 +706,12 @@ namespace Js
                 SourceTextModuleRecord* childModule = GetChildModuleRecord(starExportEntry.moduleRequest->Psz());
                 if (childModule == nullptr)
                 {
+                    this->ReleaseParserResourcesForHierarchy();
                     JavascriptError::ThrowReferenceError(GetScriptContext(), JSERR_CannotResolveModule, starExportEntry.moduleRequest->Psz());
                 }
                 if (childModule->errorObject != nullptr)
                 {
+                    this->ReleaseParserResourcesForHierarchy();
                     JavascriptExceptionOperators::Throw(childModule->errorObject, GetScriptContext());
                 }
 
@@ -851,10 +876,6 @@ namespace Js
         Assert(wasDeclarationInitialized);
         // Debugger can reparse the source and generate the byte code again. Don't cleanup the
         // helper information for now.
-
-        // Parser uses a temporary guest arena to keep regex patterns alive. We need to release this arena only after we have no further use
-        // for the regex pattern objects.
-        this->ReleaseParserResources();
     }
 
     bool SourceTextModuleRecord::ModuleDeclarationInstantiation()
@@ -900,7 +921,7 @@ namespace Js
         {
             OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
             // Cleanup in case of error.
-            this->ReleaseParserResources();
+            this->ReleaseParserResourcesForHierarchy();
             NotifyParentsAsNeeded();
             return false;
         }
@@ -925,6 +946,11 @@ namespace Js
         Assert(this == scriptContext->GetLibrary()->GetModuleRecord(this->pSourceInfo->GetSrcInfo()->moduleID));
 
         this->rootFunction = scriptContext->GenerateRootFunction(parseTree, sourceIndex, this->parser, this->pSourceInfo->GetParseFlags(), &se, _u("module"));
+
+        // Parser uses a temporary guest arena to keep regex patterns alive. We need to release this arena only after we have no further use
+        // for the regex pattern objects.
+        this->ReleaseParserResources();
+
         if (rootFunction == nullptr)
         {
             const WCHAR * sourceUrl = nullptr;
@@ -963,7 +989,7 @@ namespace Js
         if (this->errorObject != nullptr)
         {
             // Cleanup in case of error.
-            this->ReleaseParserResources();
+            this->ReleaseParserResourcesForHierarchy();
 
             if (this->promise != nullptr)
             {
@@ -1007,6 +1033,8 @@ namespace Js
                     // if child module has been dynamically imported and has exception need to throw
                     if (childModuleRecord->GetErrorObject() != nullptr)
                     {
+                        this->ReleaseParserResourcesForHierarchy();
+
                         JavascriptExceptionOperators::Throw(childModuleRecord->GetErrorObject(), this->scriptContext);
                     }
                 });
@@ -1137,6 +1165,7 @@ namespace Js
                     // 2G is too big already.
                     if (localExportCount >= INT_MAX)
                     {
+                        this->ReleaseParserResourcesForHierarchy();
                         JavascriptError::ThrowRangeError(scriptContext, JSERR_TooManyImportExports);
                     }
                     localExportCount++;
@@ -1160,6 +1189,7 @@ namespace Js
                         currentSlotCount++;
                         if (currentSlotCount >= INT_MAX)
                         {
+                            this->ReleaseParserResourcesForHierarchy();
                             JavascriptError::ThrowRangeError(scriptContext, JSERR_TooManyImportExports);
                         }
                     }

@@ -17,6 +17,7 @@ namespace Js
     {
     public:
         friend class ModuleNamespace;
+        friend class JavascriptLibrary;
 
         SourceTextModuleRecord(ScriptContext* scriptContext);
         IdentPtrList* GetRequestedModuleList() const { return requestedModuleList; }
@@ -70,7 +71,7 @@ namespace Js
         void SetLocalExportRecordList(ModuleImportOrExportEntryList* localExports) { localExportRecordList = localExports; }
         void SetIndirectExportRecordList(ModuleImportOrExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
         void SetStarExportRecordList(ModuleImportOrExportEntryList* starExports) { starExportRecordList = starExports; }
-        void SetrequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
+        void SetRequestedModuleList(IdentPtrList* requestModules) { requestedModuleList = requestModules; }
 
         ScriptContext* GetScriptContext() const { return scriptContext; }
         HRESULT ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8);
@@ -160,6 +161,7 @@ namespace Js
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
         void ReleaseParserResources();
+        void ReleaseParserResourcesForHierarchy();
         void ImportModuleListsFromParser();
         HRESULT OnChildModuleReady(SourceTextModuleRecord* childModule, Var errorObj);
         void NotifyParentsAsNeeded();
