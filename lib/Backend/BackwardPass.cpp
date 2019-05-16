@@ -4318,7 +4318,10 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
     const bool transferArrayLengthSymUse = !!currentBlock->noImplicitCallArrayLengthSymUses->TestAndClear(dstSym->m_id);
 
     IR::Opnd *const src = instr->GetSrc1();
-    if(!src || instr->GetSrc2())
+
+    // Stop attempting to transfer noImplicitCallUses symbol if the instr is not a transfer instr (based on the opcode's 
+    // flags) or does not have the attributes to be a transfer instr (based on the existance of src and src2).
+    if(!src || (instr->GetSrc2() && !OpCodeAttr::NonIntTransfer(instr->m_opcode)))
     {
         return;
     }
