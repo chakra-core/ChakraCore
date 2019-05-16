@@ -897,7 +897,7 @@ private:
     void                    KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(PropertySym * propertySym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BVSparse<JitArenaAllocator> *const bv) const;
-    void                    KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
+    void                    KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
     void                    KillAllFields(BVSparse<JitArenaAllocator> * bv);
     void                    SetAnyPropertyMayBeWrittenTo();
     void                    AddToPropertiesWrittenTo(Js::PropertyId propertyId);
