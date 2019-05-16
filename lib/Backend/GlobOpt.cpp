@@ -1244,7 +1244,7 @@ void GlobOpt::InsertValueCompensation(
         {
             IR::Instr *const newInstr =
                 IR::Instr::New(
-                    Js::OpCode::Ld_I4,
+                    Js::OpCode::Ld_A,
                     IR::RegOpnd::New(mergedHeadSegmentLengthSym, mergedHeadSegmentLengthSym->GetType(), func),
                     IR::RegOpnd::New(predecessorHeadSegmentLengthSym, predecessorHeadSegmentLengthSym->GetType(), func),
                     func);
