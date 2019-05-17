@@ -37,7 +37,9 @@ def main(sln, outdir, target_gen_dir, *flags):
     print "Visual Studio not found!!"
     return 1
 
-  msbuildPath = os.path.join(vsInstallRoot["path"], r"MSBuild\15.0\Bin\MSBuild.exe")
+  msbuildPath = os.path.join(vsInstallRoot["path"], r"MSBuild\Current\Bin\MSBuild.exe")
+  if not os.path.exists(msbuildPath):
+    msbuildPath = os.path.join(vsInstallRoot["path"], r"MSBuild\15.0\Bin\MSBuild.exe")
   args = [msbuildPath, os.path.normpath(sln)] + list(flags)
 
   print "== BUILDING CHAKRACORE:"
