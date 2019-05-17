@@ -2725,7 +2725,7 @@ GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
         {
             return true;
         }
-        if (currentBlock->loop->preservesNumberValue->Test(opnd->m_sym->m_id))
+        if (this->prePassLoop->preservesNumberValue->Test(opnd->m_sym->m_id))
         {
             return false;
         }

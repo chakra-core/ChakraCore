@@ -7454,6 +7454,17 @@ BackwardPass::SymIsIntconstOrSelf(Sym *sym, IR::Opnd *opnd)
 bool
 BackwardPass::InstrPreservesNumberValues(IR::Instr *instr, Sym *defSym)
 {
+    if (instr->m_opcode == Js::OpCode::Ld_A)
+    {
+        if (instr->GetSrc1()->IsRegOpnd())
+        {
+            IR::RegOpnd *src1 = instr->GetSrc1()->AsRegOpnd();
+            if (src1->m_sym->IsSingleDef())
+            {
+                instr = src1->m_sym->GetInstrDef();
+            }
+        }
+    }
     return (OpCodeAttr::ProducesNumber(instr->m_opcode) ||
         (instr->m_opcode == Js::OpCode::Add_A && this->SymIsIntconstOrSelf(defSym, instr->GetSrc1()) && this->SymIsIntconstOrSelf(defSym, instr->GetSrc2())));
 }
