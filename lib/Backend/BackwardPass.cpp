@@ -309,9 +309,11 @@ void
 BackwardPass::MarkScopeObjSymUseForStackArgOpt()
 {
     IR::Instr * instr = this->currentInstr;
+    BasicBlock *block = this->currentBlock;
+
     if (tag == Js::DeadStorePhase)
     {
-        if (instr->DoStackArgsOpt() && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
+        if (instr->DoStackArgsOpt() && !block->IsLandingPad() && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
         {
             this->currentBlock->byteCodeUpwardExposedUsed->Set(instr->m_func->GetScopeObjSym()->m_id);
         }
