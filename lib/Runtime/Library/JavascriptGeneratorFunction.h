@@ -35,10 +35,12 @@ namespace Js
                 || VirtualTableInfo<CrossSiteObject<JavascriptGeneratorFunction>>::HasVirtualTable(obj);
         }
 
+        static JavascriptGeneratorFunction* New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction);
         static JavascriptGeneratorFunction* OP_NewScGenFunc(FrameDisplay* environment, FunctionInfoPtrPtr infoRef);
         static JavascriptGeneratorFunction* OP_NewScGenFuncHomeObj(FrameDisplay* environment, FunctionInfoPtrPtr infoRef, Var homeObj);
         static Var EntryGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAsyncFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAsyncGeneratorFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...);
         static DWORD GetOffsetOfScriptFunction() { return offsetof(JavascriptGeneratorFunction, scriptFunction); }
 
         void SetScriptFunction(GeneratorVirtualScriptFunction* scriptFunction) {
@@ -134,6 +136,45 @@ namespace Js
     };
 
     template <> bool VarIsImpl<JavascriptAsyncFunction>(RecyclableObject* obj);
+
+    class JavascriptAsyncGeneratorFunction : public JavascriptGeneratorFunction
+    {
+    private:
+        static FunctionInfo functionInfo;
+
+        DEFINE_VTABLE_CTOR(JavascriptAsyncGeneratorFunction, JavascriptGeneratorFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptAsyncGeneratorFunction);
+
+    protected:
+        JavascriptAsyncGeneratorFunction(DynamicType* type);
+
+    public:
+        JavascriptAsyncGeneratorFunction(DynamicType* type, GeneratorVirtualScriptFunction* scriptFunction);
+
+        static JavascriptAsyncGeneratorFunction* New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction);
+        static DWORD GetOffsetOfScriptFunction() { return JavascriptGeneratorFunction::GetOffsetOfScriptFunction(); }
+
+        inline static bool Test(JavascriptFunction *obj)
+        {
+            return VirtualTableInfo<JavascriptAsyncGeneratorFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncGeneratorFunction>>::HasVirtualTable(obj);
+        }
+
+/* TODO: support TTD for Async Generators
+#if ENABLE_TTD
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
+*/
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptAsyncFunction;
+        }
+    };
+
+    template <> bool VarIsImpl<JavascriptAsyncGeneratorFunction>(RecyclableObject* obj);
 
     class GeneratorVirtualScriptFunction : public ScriptFunction
     {

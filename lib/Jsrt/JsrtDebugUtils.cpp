@@ -271,6 +271,7 @@ void JsrtDebugUtils::AddPropertyType(Js::DynamicObject * object, Js::IDiagObject
         case Js::TypeIds_WeakSet:
         case Js::TypeIds_SymbolObject:
         case Js::TypeIds_Generator:
+        case Js::TypeIds_AsyncFromSyncIterator:
         case Js::TypeIds_Promise:
         case Js::TypeIds_GlobalObject:
         case Js::TypeIds_SpreadArgument:
@@ -428,9 +429,9 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_MapIterator:
     case Js::TypeIds_SetIterator:
     case Js::TypeIds_StringIterator:
-                                        return _u("Object");
+                                            return _u("Object");
 
-    case Js::TypeIds_Proxy:             return _u("Proxy");
+    case Js::TypeIds_Proxy:                 return _u("Proxy");
     case Js::TypeIds_Array:
     case Js::TypeIds_NativeIntArray:
 #if ENABLE_COPYONACCESS_ARRAY
@@ -440,45 +441,46 @@ const char16 * JsrtDebugUtils::GetClassName(Js::TypeId typeId)
     case Js::TypeIds_ES5Array:
     case Js::TypeIds_CharArray:
     case Js::TypeIds_BoolArray:
-                                        return _u("Array");
+                                            return _u("Array");
 
     case Js::TypeIds_Date:
     case Js::TypeIds_VariantDate:
-                                        return _u("Date");
+                                            return _u("Date");
 
-    case Js::TypeIds_RegEx:             return _u("RegExp");
-    case Js::TypeIds_Error:             return _u("Error");
-    case Js::TypeIds_BooleanObject:     return _u("Boolean");
-    case Js::TypeIds_NumberObject:      return _u("Number");
-    case Js::TypeIds_StringObject:      return _u("String");
-    case Js::TypeIds_Arguments:         return _u("Object");
-    case Js::TypeIds_ArrayBuffer:       return _u("ArrayBuffer");
-    case Js::TypeIds_Int8Array:         return _u("Int8Array");
-    case Js::TypeIds_Uint8Array:        return _u("Uint8Array");
-    case Js::TypeIds_Uint8ClampedArray: return _u("Uint8ClampedArray");
-    case Js::TypeIds_Int16Array:        return _u("Int16Array");
-    case Js::TypeIds_Uint16Array:       return _u("Uint16Array");
-    case Js::TypeIds_Int32Array:        return _u("Int32Array");
-    case Js::TypeIds_Uint32Array:       return _u("Uint32Array");
-    case Js::TypeIds_Float32Array:      return _u("Float32Array");
-    case Js::TypeIds_Float64Array:      return _u("Float64Array");
-    case Js::TypeIds_Int64Array:        return _u("Int64Array");
-    case Js::TypeIds_Uint64Array:       return _u("Uint64Array");
-    case Js::TypeIds_DataView:          return _u("DataView");
-    case Js::TypeIds_Map:               return _u("Map");
-    case Js::TypeIds_Set:               return _u("Set");
-    case Js::TypeIds_WeakMap:           return _u("WeakMap");
-    case Js::TypeIds_WeakSet:           return _u("WeakSet");
-    case Js::TypeIds_SymbolObject:      return _u("Symbol");
-    case Js::TypeIds_Generator:         return _u("Generator");
-    case Js::TypeIds_Promise:           return _u("Promise");
-    case Js::TypeIds_GlobalObject:      return _u("Object");
-    case Js::TypeIds_SpreadArgument:    return _u("Spread");
+    case Js::TypeIds_RegEx:                 return _u("RegExp");
+    case Js::TypeIds_Error:                 return _u("Error");
+    case Js::TypeIds_BooleanObject:         return _u("Boolean");
+    case Js::TypeIds_NumberObject:          return _u("Number");
+    case Js::TypeIds_StringObject:          return _u("String");
+    case Js::TypeIds_Arguments:             return _u("Object");
+    case Js::TypeIds_ArrayBuffer:           return _u("ArrayBuffer");
+    case Js::TypeIds_Int8Array:             return _u("Int8Array");
+    case Js::TypeIds_Uint8Array:            return _u("Uint8Array");
+    case Js::TypeIds_Uint8ClampedArray:     return _u("Uint8ClampedArray");
+    case Js::TypeIds_Int16Array:            return _u("Int16Array");
+    case Js::TypeIds_Uint16Array:           return _u("Uint16Array");
+    case Js::TypeIds_Int32Array:            return _u("Int32Array");
+    case Js::TypeIds_Uint32Array:           return _u("Uint32Array");
+    case Js::TypeIds_Float32Array:          return _u("Float32Array");
+    case Js::TypeIds_Float64Array:          return _u("Float64Array");
+    case Js::TypeIds_Int64Array:            return _u("Int64Array");
+    case Js::TypeIds_Uint64Array:           return _u("Uint64Array");
+    case Js::TypeIds_DataView:              return _u("DataView");
+    case Js::TypeIds_Map:                   return _u("Map");
+    case Js::TypeIds_Set:                   return _u("Set");
+    case Js::TypeIds_WeakMap:               return _u("WeakMap");
+    case Js::TypeIds_WeakSet:               return _u("WeakSet");
+    case Js::TypeIds_SymbolObject:          return _u("Symbol");
+    case Js::TypeIds_Generator:             return _u("Generator");
+    case Js::TypeIds_AsyncFromSyncIterator: return _u("AsyncFromSyncIterator");
+    case Js::TypeIds_Promise:               return _u("Promise");
+    case Js::TypeIds_GlobalObject:          return _u("Object");
+    case Js::TypeIds_SpreadArgument:        return _u("Spread");
 #ifdef ENABLE_WASM
-    case Js::TypeIds_WebAssemblyModule:  return _u("WebAssembly.Module");
-    case Js::TypeIds_WebAssemblyInstance:return _u("WebAssembly.Instance");
-    case Js::TypeIds_WebAssemblyMemory:  return _u("WebAssembly.Memory");
-    case Js::TypeIds_WebAssemblyTable:   return _u("WebAssembly.Table");
+    case Js::TypeIds_WebAssemblyModule:     return _u("WebAssembly.Module");
+    case Js::TypeIds_WebAssemblyInstance:   return _u("WebAssembly.Instance");
+    case Js::TypeIds_WebAssemblyMemory:     return _u("WebAssembly.Memory");
+    case Js::TypeIds_WebAssemblyTable:      return _u("WebAssembly.Table");
 #endif
     default:
         Assert(false);

@@ -229,9 +229,13 @@ MACRO_BACKEND_ONLY(     InlineThrow,        Reg1,           OpSideEffect|OpPostO
 MACRO_BACKEND_ONLY(     EHThrow,            Reg1,           OpSideEffect|OpPostOpDbgBailOut|OpDeadFallThrough)  // Throw exception
 MACRO_WMS(              Throw,              Reg1,           OpSideEffect|OpNoFallThrough|OpPostOpDbgBailOut)    // Throw exception
 MACRO(                  Ret,                Empty,          OpSideEffect|OpUseAllFields|OpNoFallThrough)        // Return from function
+MACRO_EXTEND_WMS(       Await,              Reg2,           OpSideEffect)                                       // Await from async function
+MACRO_EXTEND_WMS(       AsyncYield,         Reg2,           OpSideEffect)                                       // Yield from async generator function
+MACRO_EXTEND_WMS(       AsyncYieldStar,     Reg2,           OpSideEffect)                                       // Yield* from async generator function
 MACRO_WMS(              Yield,              Reg2,           OpSideEffect|OpUseAllFields)                        // Yield from generator function
 MACRO_WMS(              ResumeYield,        Reg2,           OpSideEffect)
 MACRO_WMS(              ResumeYieldStar,    Reg3,           OpSideEffect)
+MACRO_EXTEND_WMS(       AsyncYieldIsReturn, Reg2,           OpSideEffect)                                       // Check for .return() during async yield*
 
 // Unary operations
 MACRO_WMS(              Incr_A,             Reg2,           OpTempNumberProducing|OpOpndHasImplicitCall|OpDoNotTransfer|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut|OpProducesNumber)     // Increment
@@ -601,6 +605,7 @@ MACRO_EXTEND_WMS(       NewScFuncHomeObj,   ElementSlot,    OpSideEffect)   // C
 MACRO_EXTEND_WMS(       NewScGenFuncHomeObj,       ElementSlot,      OpSideEffect)   // Create new JavascriptGeneratorFunction instance that has home object
 MACRO_EXTEND_WMS(       NewInnerScFuncHomeObj,     ElementSlotI3,    OpSideEffect)   // Create new ScriptFunction instance that has home object
 MACRO_EXTEND_WMS(       NewInnerScGenFuncHomeObj,  ElementSlotI3,    OpSideEffect)   // Create new JavascriptGeneratorFunction instance that has home object
+MACRO_EXTEND_WMS(       NewAsyncFromSyncIterator,  Reg2,    OpSideEffect)   // Create new JavascriptAsyncFromSyncOperator instance
 MACRO_BACKEND_ONLY(     NewScopeObject,     Reg1,           None)                       // Create new NewScopeObject
 MACRO_BACKEND_ONLY(     InitCachedScope,    Reg2Aux,        None)                   // Retrieve cached scope; create if not cached
 MACRO_BACKEND_ONLY(     InitLetCachedScope, Reg2Aux,        OpSideEffect)                   // Retrieve cached scope; create if not cached (formals are let-like instead of var-like)

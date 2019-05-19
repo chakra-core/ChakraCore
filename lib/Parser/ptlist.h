@@ -135,6 +135,7 @@ PTNODE(knopWhile      , "while"            , Nop      , While       , fnopNotExp
 PTNODE(knopDoWhile    , "do-while"         , Nop      , While       , fnopNotExprStmt|fnopCleanup|fnopBreak|fnopContinue , "DoWhileStmt"    )
 PTNODE(knopForIn      , "for in"           , Nop      , ForInOrForOf, fnopNotExprStmt|fnopCleanup|fnopBreak|fnopContinue , "ForInStmt"      )
 PTNODE(knopForOf      , "for of"           , Nop      , ForInOrForOf, fnopNotExprStmt|fnopCleanup|fnopBreak|fnopContinue , "ForOfStmt"      )
+PTNODE(knopForAwaitOf , "for await of"     , Nop      , ForInOrForOf, fnopNotExprStmt|fnopCleanup|fnopBreak|fnopContinue , "ForAwaitOfStmt" )
 PTNODE(knopBlock      , "{}"               , Nop      , Block       , fnopNotExprStmt|fnopAllowDefer, "Block"                         )
 PTNODE(knopStrTemplate, "``"               , Nop      , StrTemplate , fnopNone               , "StringTemplateDecl"            )
 PTNODE(knopWith       , "with"             , Nop      , With        , fnopNotExprStmt        , "WithStmt"                      )

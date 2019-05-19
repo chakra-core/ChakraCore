@@ -2938,6 +2938,58 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
 
+        case Js::OpCode::NewAsyncFromSyncIterator:
+        {
+            IR::Opnd *src1Opnd = instr->UnlinkSrc1();
+
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, src1Opnd);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperNewAsyncFromSyncIterator);
+
+            break;
+        }
+
+        case Js::OpCode::Await:
+        {
+            IR::Opnd *srcOpnd1 = instr->UnlinkSrc1();
+            IR::Opnd *srcOpnd2 = instr->UnlinkSrc2();
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd2);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd1);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperAwait);
+            break;
+        }
+
+        case Js::OpCode::AsyncYield:
+        {
+            IR::Opnd *srcOpnd1 = instr->UnlinkSrc1();
+            IR::Opnd *srcOpnd2 = instr->UnlinkSrc2();
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd2);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd1);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperAsyncYield);
+            break;
+        }
+
+        case Js::OpCode::AsyncYieldIsReturn:
+        {
+            IR::Opnd *srcOpnd1 = instr->UnlinkSrc1();
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd1);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperAsyncYieldIsReturn);
+            break;
+        }
+
+        case Js::OpCode::AsyncYieldStar:
+        {
+            IR::Opnd *srcOpnd1 = instr->UnlinkSrc1();
+            IR::Opnd *srcOpnd2 = instr->UnlinkSrc2();
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd2);
+            m_lowererMD.LoadHelperArgument(instr, srcOpnd1);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperAsyncYieldStar);
+            break;
+        }
+
         case Js::OpCode::Yield:
         {
             instr->FreeSrc1(); // Source is not actually used by the backend other than to calculate lifetime

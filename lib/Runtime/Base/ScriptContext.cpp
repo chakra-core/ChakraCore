@@ -4651,6 +4651,10 @@ ExitTempAllocator:
             {
                 origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
             }
+            else if (origEntryPoint == Js::JavascriptFunction::NewAsyncGeneratorFunctionInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewAsyncGeneratorFunctionInstanceRestrictedMode;
+            }
         }
 
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation

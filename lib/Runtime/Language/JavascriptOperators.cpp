@@ -5456,6 +5456,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             case TypeIds_SetIterator:
             case TypeIds_StringIterator:
             case TypeIds_Generator:
+            case TypeIds_AsyncFromSyncIterator:
             case TypeIds_Promise:
             case TypeIds_Proxy:
                 return true;
@@ -10128,6 +10129,49 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ImportCall);
     }
 
+    void JavascriptOperators::OP_Await(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
+    {
+        //#await
+        // 1. Let asyncContext be the running execution context.
+        // 2. Let promise be be ? PromiseResolve(%Promise%, << completion.[[Value]] >>).
+        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
+        // 3. Let stepsFulfilled be the algorithm steps defined in Await Fulfilled Functions.
+        // 4. Let onFulfilled be CreateBuiltinFunction(stepsFulfilled, << [[AsyncContext]] >>).
+        // 5. Set onFulfilled.[[AsyncContext]] to asyncContext.
+        // 6. Let stepsRejected be the algorithm steps defined in Await Rejected Functions.
+        // 7. Let onRejected be CreateBuiltinFunction(stepsRejected, << [[AsyncContext]] >>).
+        // 8. Set onRejected.[[AsyncContext]] to asyncContext.
+        // 9. Perform ! PerformPromiseThen(promise, onFulfilled, onRejected).
+        JavascriptPromise::CreateThenPromise(promise, generator->GetAwaitNextFunction(), generator->GetAwaitThrowFunction(), scriptContext);
+        // 10. Remove asyncContext from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.
+        // 11. Set the code evaluation state of asyncContext such that when evaluation is resumed with a Completion completion, the following steps of the algorithm that invoked Await will be performed, with completion available.   
+    }
+
+
+    void JavascriptOperators::OP_AsyncYieldStar(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
+    {
+        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
+
+        JavascriptPromise::CreateThenPromise(promise, generator->EnsureAwaitYieldStarFunction(), generator->GetAwaitThrowFunction(), scriptContext);   
+    }
+
+    void JavascriptOperators::OP_AsyncYield(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
+    {
+        JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
+
+        JavascriptPromise::CreateThenPromise(promise, generator->GetAwaitYieldFunction(), generator->GetAwaitThrowFunction(), scriptContext);   
+    }
+
+    Var JavascriptOperators::OP_AsyncYieldIsReturn(ResumeYieldData* yieldData)
+    {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(AsyncYieldIsReturn);
+        JavascriptLibrary* library = yieldData->generator->GetScriptContext()->GetLibrary();
+
+        return (yieldData->exceptionObj != nullptr && yieldData->exceptionObj->IsGeneratorReturnException()) ?
+            library->GetTrue() : library->GetFalse();
+        JIT_HELPER_END(AsyncYieldIsReturn);
+    }
+
     Var JavascriptOperators::OP_ResumeYield(ResumeYieldData* yieldData, RecyclableObject* iterator)
     {
         JIT_HELPER_REENTRANT_HEADER(ResumeYield);
@@ -10195,12 +10239,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                 return JavascriptFunction::CallFunction<true>(method, method->GetEntryPoint(), Arguments(callInfo, args));
             });
 
-            if (!JavascriptOperators::IsObject(result))
+            if (yieldData->generator == nullptr && !JavascriptOperators::IsObject(result))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
             }
 
-            if (isThrow || isNext)
+            if (isThrow || isNext || yieldData->generator != nullptr)
             {
                 // 5.b.ii.2
                 // NOTE: Exceptions from the inner iterator throw method are propagated.
@@ -10253,6 +10297,13 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // Do not use ThrowExceptionObject for return() API exceptions since these exceptions are not real exceptions
         JavascriptExceptionOperators::DoThrow(yieldData->exceptionObj, yieldData->exceptionObj->GetScriptContext());
         JIT_HELPER_END(ResumeYield);
+    }
+
+    Var JavascriptOperators::OP_NewAsyncFromSyncIterator(Var syncIterator, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(NewAsyncFromSyncIterator);
+        return scriptContext->GetLibrary()->CreateAsyncFromSyncIterator(VarTo<RecyclableObject>(syncIterator));
+        JIT_HELPER_END(NewAsyncFromSyncIterator);
     }
 
     Js::Var

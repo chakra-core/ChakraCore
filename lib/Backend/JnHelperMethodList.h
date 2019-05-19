@@ -518,15 +518,20 @@ HELPERCALL(NewPropIdArrForCompProps, Js::InterpreterStackFrame::OP_NewPropIdArrF
 HELPERCALL(StPropIdArrFromVar, Js::InterpreterStackFrame::OP_StPropIdArrFromVar, 0)
 
 
-HELPERCALLCHK(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)
-HELPERCALLCHK(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdHomeObj,                Js::JavascriptOperators::OP_LdHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdFuncObj,                Js::JavascriptOperators::OP_LdFuncObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(SetHomeObj,               Js::JavascriptOperators::OP_SetHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdHomeObjProto,           Js::JavascriptOperators::OP_LdHomeObjProto, AttrCanNotBeReentrant)
+HELPERCALLCHK(LdFuncObjProto,           Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(ImportCall,          Js::JavascriptOperators::OP_ImportCall, 0)
+HELPERCALLCHK(ImportCall,               Js::JavascriptOperators::OP_ImportCall, 0)
+HELPERCALLCHK(NewAsyncFromSyncIterator, Js::JavascriptOperators::OP_NewAsyncFromSyncIterator, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield, AttrCanThrow)
+HELPERCALLCHK(AsyncYieldIsReturn,       Js::JavascriptOperators::OP_AsyncYieldIsReturn, AttrCanNotBeReentrant)
+HELPERCALLCHK(ResumeYield,              Js::JavascriptOperators::OP_ResumeYield, AttrCanThrow)
+HELPERCALL(AsyncYieldStar,              Js::InterpreterStackFrame::OP_AsyncYieldStar, AttrCanNotBeReentrant)
+HELPERCALL(AsyncYield,                  Js::InterpreterStackFrame::OP_AsyncYield, AttrCanNotBeReentrant)
+HELPERCALL(Await,                       Js::InterpreterStackFrame::OP_Await, AttrCanNotBeReentrant)
 
 #if DBG
 HELPERCALL(IntRangeCheckFailure, Js::JavascriptNativeOperators::IntRangeCheckFailure, AttrCanNotBeReentrant)

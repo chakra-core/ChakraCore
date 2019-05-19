@@ -9417,6 +9417,34 @@ skipThunk:
         return (void*)m_inSlotsCount;
     }
 
+    void InterpreterStackFrame::OP_AsyncYieldStar(Var yieldDataVar, Var value, ScriptContext* scriptContext)
+    {
+        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
+
+        JavascriptOperators::OP_AsyncYieldStar(yieldData->generator, value, scriptContext);
+    }
+
+    void InterpreterStackFrame::OP_AsyncYield(Var yieldDataVar, Var value, ScriptContext* scriptContext)
+    {
+        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
+
+        JavascriptOperators::OP_AsyncYield(yieldData->generator, value, scriptContext);
+    }
+
+    void InterpreterStackFrame::OP_Await(Var yieldDataVar, Var value, ScriptContext* scriptContext)
+    {
+        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
+
+        JavascriptOperators::OP_Await(yieldData->generator, value, scriptContext);
+    }
+
+    Var InterpreterStackFrame::OP_AsyncYieldIsReturn(Var yieldDataVar)
+    {
+        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
+
+        return JavascriptOperators::OP_AsyncYieldIsReturn(yieldData);
+    }
+
     Var InterpreterStackFrame::OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator)
     {
         ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);

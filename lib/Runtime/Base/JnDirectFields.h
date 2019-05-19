@@ -27,6 +27,7 @@
 #if !defined(ENTRY2)
 #define ENTRY2(name, str)
 #endif
+ENTRY_SYMBOL(_symbolAsyncIterator, _u("Symbol.asyncIterator"))
 ENTRY_SYMBOL(_symbolHasInstance, _u("Symbol.hasInstance"))
 ENTRY_SYMBOL(_symbolIsConcatSpreadable, _u("Symbol.isConcatSpreadable"))
 ENTRY_SYMBOL(_symbolIterator, _u("Symbol.iterator"))
@@ -79,6 +80,7 @@ ENTRY(clz32)
 ENTRY(fround)
 // End math functions
 
+ENTRY(asyncIterator)
 ENTRY(load)
 ENTRY(store)
 ENTRY2(and_, _u("and"))
@@ -722,6 +724,8 @@ ENTRY(getOwnPropertyDescriptors)
 ENTRY(__constructor) // represents an invocation of the constructor function rather than a use of the constructor property (i.e. `new Foo()` rather than `(new Foo()).constructor`).
 
 // SymbolFunctionNameId: for RuntimeFunction nameId
+
+ENTRY2(_RuntimeFunctionNameId_asyncIterator, _u("[Symbol.asyncIterator]"))
 ENTRY2(_RuntimeFunctionNameId_hasInstance, _u("[Symbol.hasInstance]"))
 ENTRY2(_RuntimeFunctionNameId_toStringTag, _u("[Symbol.toStringTag]"))
 ENTRY2(_RuntimeFunctionNameId_toPrimitive, _u("[Symbol.toPrimitive]"))

@@ -377,6 +377,7 @@ void Visit(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, PrefixFn pref
     // PTNODE(knopForIn      , "for in"    ,None    ,ForIn,fnopBreak|fnopContinue|fnopCleanup)
     case knopForIn:
     case knopForOf:
+    case knopForAwaitOf:
         BeginVisitBlock(pnode->AsParseNodeForInOrForOf()->pnodeBlock, byteCodeGenerator);
         Visit(pnode->AsParseNodeForInOrForOf()->pnodeLval, byteCodeGenerator, prefix, postfix);
         Visit(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator, prefix, postfix);
@@ -528,6 +529,7 @@ bool IsJump(ParseNode *pnode)
     case knopIf:
     case knopForIn:
     case knopForOf:
+    case knopForAwaitOf:
     case knopFor:
     case knopSwitch:
     case knopCase:
@@ -4874,6 +4876,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         break;
 
     case knopForOf:
+    case knopForAwaitOf:
         byteCodeGenerator->AssignNullConstRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
         CheckMaybeEscapedUse(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator);

@@ -273,6 +273,11 @@ namespace Js
         template <class T> void OP_SimdBool16x8(const unaligned T* playout);
         template <class T> void OP_SimdBool8x16(const unaligned T* playout);
 
+        static void OP_AsyncYield(Var yieldDataVar, Var value, ScriptContext* scriptContext);
+        static void OP_AsyncYieldStar(Var yieldDataVar, Var value, ScriptContext* scriptContext);
+        static void OP_Await(Var yieldDataVar, Var value, ScriptContext* scriptContext);
+        static Var OP_AsyncYieldIsReturn(Var yieldDataVar);
+
         template <typename RegSlotType>
         Var GetRegAllowStackVarEnableOnly(RegSlotType localRegisterID) const;
         template <typename RegSlotType>
