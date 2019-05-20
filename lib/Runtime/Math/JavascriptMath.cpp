@@ -425,9 +425,14 @@ using namespace Js;
 
         Var JavascriptMath::AddLeftDead(Var aLeft, Var aRight, ScriptContext* scriptContext, JavascriptNumber *result)
         {
+            // Conservatively assume src1 is not dead until proven otherwise.
+            bool leftIsDead = false;
+
             JIT_HELPER_REENTRANT_HEADER(Op_AddLeftDead);
             if (JavascriptOperators::GetTypeId(aLeft) == TypeIds_String)
             {
+                leftIsDead = true;
+
                 JavascriptString* leftString = UnsafeVarTo<JavascriptString>(aLeft);
                 JavascriptString* rightString;
                 TypeId rightType = JavascriptOperators::GetTypeId(aRight);
@@ -471,7 +476,7 @@ StringCommon:
             {
                 return JavascriptNumber::ToVarMaybeInPlace(JavascriptNumber::GetValue(aLeft) + JavascriptNumber::GetValue(aRight), scriptContext, result);
             }
-            return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, result, true);
+            return Add_FullHelper_Wrapper(aLeft, aRight, scriptContext, result, leftIsDead);
             JIT_HELPER_END(Op_AddLeftDead);
         }
 
