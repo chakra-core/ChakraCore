@@ -570,4 +570,10 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1 -MinMemOpCount:0 -werexceptionsupport  -bgjit- -loopinterpretcount:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS18260560.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
 </regress-exe>
