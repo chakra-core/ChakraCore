@@ -378,8 +378,13 @@ CommonNumber:
         case TypeIds_SymbolObject:
             {
                 JavascriptSymbolObject* symbolObject = UnsafeVarTo<JavascriptSymbolObject>(aValue);
+                ScriptContext* objectScriptContext = symbolObject->GetScriptContext();
+                if (objectScriptContext->optimizationOverrides.GetSideEffects() & SideEffects_ToPrimitive)
+                {
+                    return MethodCallToPrimitive<hint>(symbolObject, requestContext);
+                }
 
-                return CrossSite::MarshalVar(requestContext, symbolObject->Unwrap(), symbolObject->GetScriptContext());
+                return CrossSite::MarshalVar(requestContext, symbolObject->Unwrap(), objectScriptContext);
             }
 
         case TypeIds_Date:
