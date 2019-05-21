@@ -268,7 +268,12 @@ namespace Js
             Assert(sizeof(T) % sizeof(Var) == 0);
             uint step = sizeof(T) / sizeof(Var);
 
-            for (uint i = start; i < size * step; i++)
+            // We're filling [length...size-1] based on the element size. If this is going to be a float segment on 32-bit,
+            // only fill past the point where the float elements will reside. Size * step has to be a 32-bit number.
+            start *= step;
+            size *= step;
+
+            for (uint i = start; i < size; i++)
             {
                 ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }
