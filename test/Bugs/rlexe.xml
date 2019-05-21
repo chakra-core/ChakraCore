@@ -576,4 +576,10 @@
       <compile-flags>-force:deferparse</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_5883.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

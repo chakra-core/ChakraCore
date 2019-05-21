@@ -7600,6 +7600,16 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         RecyclableObject* constructor = VarTo<RecyclableObject>(aClass);
         if (scriptContext->GetConfig()->IsES6HasInstanceEnabled())
         {
+            if (VarIs<JavascriptFunction>(constructor))
+            {
+                JavascriptFunction* func = VarTo<JavascriptFunction>(constructor);
+                if (func->IsBoundFunction())
+                {
+                    BoundFunction* boundFunc = (BoundFunction*)func;
+                    constructor = boundFunc->GetTargetFunction();
+                }
+            }
+
             Var instOfHandler = JavascriptOperators::GetPropertyNoCache(constructor,
               PropertyIds::_symbolHasInstance, scriptContext);
             if (JavascriptOperators::IsUndefinedObject(instOfHandler)
