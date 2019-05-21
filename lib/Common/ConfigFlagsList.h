@@ -659,7 +659,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Spread               (true)
 #define DEFAULT_CONFIG_ES6String               (true)
 #define DEFAULT_CONFIG_ES6StringPrototypeFixes (true)
-#define DEFAULT_CONFIG_ES2018ObjectRestSpread  (false)
+#define DEFAULT_CONFIG_ES2018ObjectRestSpread  (true)
 
 #ifndef DEFAULT_CONFIG_ES6PrototypeChain
 #ifdef COMPILE_DISABLE_ES6PrototypeChain
