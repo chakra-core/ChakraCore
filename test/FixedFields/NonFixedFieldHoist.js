@@ -42,3 +42,42 @@ catch(e)
 {
     WScript.Echo(e);
 }
+
+// Will hoist CheckFuncInfo instr
+// and then GC its BailOutInfo.
+function test0() {
+    var obj0 = {};
+    var obj1 = {};
+    var func2 = function () {
+    };
+    var func4 = function () {
+        for (var _strvar2 in ary) {
+            function v0() {
+                throw '';
+            }
+            function v2() {
+                var v3 = 0;
+                for (var _strvar0 in f32) {
+                    if (v3++) {
+                        func2.apply(obj1, arguments);
+                        v0();
+                    }
+                }
+            }
+            try {
+                v2();
+            } catch (ex) {
+            }
+        }
+    };
+    obj0.method0 = func4;
+    var ary = Array();
+    var f32 = new Float32Array(256);
+    ary[0] = 1;
+    ary[1] = 1;
+    function v14() {
+        var v15 = obj0.method0();
+    }
+    v14();
+}
+test0();

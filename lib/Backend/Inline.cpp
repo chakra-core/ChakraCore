@@ -4632,7 +4632,7 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
     Assert(insertBeforeInstr);
     Assert(insertBeforeInstr->m_func == callInstr->m_func);
 
-    IR::Instr *checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
+    IR::Instr* checkFuncInfo = IR::BailOutInstr::New(Js::OpCode::CheckFuncInfo, IR::BailOutOnInlineFunction, insertBeforeInstr, callInstr->m_func);
     checkFuncInfo->SetSrc1(callInstr->GetSrc1()->AsRegOpnd());
 
     IR::AddrOpnd* inlinedFuncInfo = IR::AddrOpnd::New(funcInfo->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, insertBeforeInstr->m_func);
@@ -4640,6 +4640,10 @@ Inline::PrepareInsertionPoint(IR::Instr *callInstr, const FunctionJITTimeInfo *f
 
     checkFuncInfo->SetByteCodeOffset(insertBeforeInstr);
     insertBeforeInstr->InsertBefore(checkFuncInfo);
+
+    // checkFuncInfo can be hoisted later and then have its BailOutInfo garbage collected. Other instructions (ex: BailOnNotStackArgs) share
+    // checkFuncInfo's BailOutInfo. Explicitly force sharedBailOutKind to be true to stop this BailOutInfo from being garbage collected.
+    checkFuncInfo->ShareBailOut();
 
     return checkFuncInfo;
 }
