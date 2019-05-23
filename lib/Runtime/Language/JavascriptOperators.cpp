@@ -6411,28 +6411,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             JavascriptOperators::NewScObjectCommon(object, functionInfo, requestContext) :
             JavascriptOperators::NewScObjectHostDispatchOrProxy(object, requestContext);
 
-        ThreadContext * threadContext = object->GetScriptContext()->GetThreadContext();
-        Var returnVar = threadContext->ExecuteImplicitCall(object, Js::ImplicitCall_Accessor, [=]()->Js::Var
-        {
-            return CALL_FUNCTION(threadContext, object, CallInfo(CallFlags_New, 1), newObject);
-        });
-        if (JavascriptOperators::IsObject(returnVar))
-        {
-            newObject = returnVar;
-        }
-
-        ConstructorCache * constructorCache = nullptr;
-        JavascriptFunction *function = JavascriptOperators::TryFromVar<JavascriptFunction>(instance);
-        if (function)
-        {
-            constructorCache = function->GetConstructorCache();
-        }
-
-        if (constructorCache != nullptr && constructorCache->NeedsUpdateAfterCtor())
-        {
-            JavascriptOperators::UpdateNewScObjectCache(object, newObject, requestContext);
-        }
-
+        /*
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
@@ -6441,6 +6420,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             newObject = CrossSite::MarshalVar(requestContext, newDynamicObject, newDynamicObject->GetScriptContext());
         }
 #endif
+        */
 
         return newObject;
         JIT_HELPER_END(NewScObjectNoArg);
@@ -6501,7 +6481,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         return object;
     }
 
-    Var JavascriptOperators::NewScObjectCommon(RecyclableObject * function, FunctionInfo* functionInfo, ScriptContext * requestContext, bool isBaseClassConstructorNewScObject)
+    Var JavascriptOperators::NewScObjectCommon(RecyclableObject * function, FunctionInfo* functionInfo,
+        ScriptContext * requestContext, bool isBaseClassConstructorNewScObject)
     {
         // CONSIDER: Allow for the cache to be repopulated if the type got collected, and a new one got populated with
         // the same number of inlined slots. This requires that the JIT-ed code actually load the type from the cache
@@ -6530,7 +6511,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         {
 #if DBG
             bool cachedProtoCanBeCached;
-            Assert(type->GetPrototype() == JavascriptOperators::GetPrototypeObjectForConstructorCache(constructor, requestContext, cachedProtoCanBeCached));
+            Assert(type->GetPrototype() == JavascriptOperators::GetPrototypeObjectForConstructorCache(
+                constructor, requestContext, cachedProtoCanBeCached));
             Assert(cachedProtoCanBeCached);
             Assert(type->GetIsShared());
 #endif
@@ -6686,6 +6668,23 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         }
 
         return newObject;
+    }
+
+    Var JavascriptOperators::HandleAutoProxyFlagForNewScObj(Var instance, ScriptContext* requestContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(HandleAutoProxyFlagForNewScObj);
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
+        {
+            DynamicObject* newDynamicObject = VarTo<DynamicObject>(JavascriptProxy::AutoProxyWrapper(instance));
+            // this might come from a different scriptcontext.
+            instance = CrossSite::MarshalVar(requestContext, newDynamicObject, newDynamicObject->GetScriptContext());
+        }
+#endif      
+
+        return instance;
+        JIT_HELPER_END(HandleAutoProxyFlagForNewScObj);
     }
 
     void JavascriptOperators::UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext)
@@ -6932,7 +6931,26 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 #endif
     }
 
-    Var JavascriptOperators::NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptOperators::GenCtorObj(const Var ctor, ScriptContext *const scriptContext)
+    {
+        Assert(ctor);
+        Assert(scriptContext);
+
+        return JavascriptFunction::GenCtorObj(ctor, nullptr, nullptr, scriptContext);
+    }
+
+    // TODO: Remove JavascriptOperators::UpdateNewScObjCache and call JavascriptFunction::UpdateNewScObjCache directly.
+    Var JavascriptOperators::UpdateNewScObjCache(const Var ctor, const Var ctorObj, ScriptContext *const scriptContext)
+    {
+        Assert(ctor);
+        Assert(ctorObj);
+        Assert(scriptContext);
+
+        return JavascriptFunction::UpdateNewScObjCache(ctor, ctorObj, scriptContext);
+    }
+
+    Var JavascriptOperators::NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext,
+        const Js::AuxArray<uint32> *spreadIndices, bool fullNewScObjPath)
     {
         Assert(callee);
         Assert(args.Info.Count != 0);
@@ -6942,8 +6960,16 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // REVIEW: Can we avoid it if we don't collect dynamic profile info?
         ThreadContext *const threadContext = scriptContext->GetThreadContext();
         const ImplicitCallFlags savedImplicitCallFlags = threadContext->GetImplicitCallFlags();
-
-        const Var newVarInstance = JavascriptFunction::CallAsConstructor(callee, /* overridingNewTarget = */nullptr, args, scriptContext, spreadIndices);
+        
+        const Var newVarInstance = !fullNewScObjPath ?
+            // Only perform the execution of the ctor, not the creation of the ctorObj or determining
+            // the return value of executing the ctor or updating the newScObjCache.
+            JavascriptFunction::CallAsConstructorCallFunction(callee, nullptr, args, scriptContext, spreadIndices) :
+            
+            // Old implementation of NewScObj, performs all steps.
+            // TODO: Remove this function and replace with calls to GenCtorObj, CallAsConstructorCallFunction,
+            //       DetermineRetVal (not implemented yet), and UpdateNewScObjCache.
+            JavascriptFunction::CallAsConstructor(callee, nullptr, args, scriptContext, spreadIndices);
 
         threadContext->SetImplicitCallFlags(savedImplicitCallFlags);
         return newVarInstance;

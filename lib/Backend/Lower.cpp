@@ -610,23 +610,31 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::NewScObject:
         case Js::OpCode::NewScObjectSpread:
         case Js::OpCode::NewScObjArraySpread:
-            instrPrev = this->LowerNewScObject(instr, true, true);
+            instrPrev = this->LowerNewScObject(instr, true);
             break;
 
         case Js::OpCode::NewScObjectNoCtor:
-            instrPrev = this->LowerNewScObject(instr, false, true);
+            instrPrev = this->LowerGenCtorObj(instr, false, false);
             break;
 
         case Js::OpCode::NewScObjectNoCtorFull:
-            instrPrev = this->LowerNewScObject(instr, false, true, true);
+            instrPrev = this->LowerGenCtorObj(instr, false, true, true);
             break;
 
         case Js::OpCode::GetNewScObject:
             instrPrev = this->LowerGetNewScObject(instr);
             break;
 
-        case Js::OpCode::UpdateNewScObjectCache:
+        // TODO: UpdateNewScObjectCache is a backend only OpCode, UpNewScObjCache is a new OpCode
+        //       that directs to UpdateNewScObjectCache in the backend but is also present in the
+        //       in the frontend. These two OpCodes should ideally be merged into one.
+        case Js::OpCode::UpNewScObjCache: // Created at runtime
+            this->LowerHandleAutoProxyFlagForNewScObj(instr, instr->GetSrc2());
+            //fall through
+        case Js::OpCode::UpdateNewScObjectCache: // Created in backend
             instrPrev = instr->m_prev;
+
+            // src1 is ctor, src2 is determinedRetObj.
             this->LowerUpdateNewScObjectCache(instr, instr->GetSrc2(), instr->GetSrc1(), true /* isCtorFunction */);
             instr->Remove();
             break;
@@ -637,6 +645,11 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::NewScObjectLiteral:
             this->LowerNewScObjectLiteral(instr);
+            break;
+
+        case Js::OpCode::GenCtorObj:
+            instrPrev = this->LowerGenCtorObj(instr, true, false);
+            instr->Remove();
             break;
 
         case Js::OpCode::LdPropIds:
@@ -3492,11 +3505,11 @@ Lowerer::TryGenerateFastBrNeq(IR::Instr * instr)
 }
 
 void
-Lowerer::GenerateDynamicObjectAlloc(IR::Instr * newObjInstr, uint inlineSlotCount, uint slotCount, IR::RegOpnd * newObjDst, IR::Opnd * typeSrc)
+Lowerer::GenerateDynamicObjectAlloc(IR::Instr * instr, uint inlineSlotCount, uint slotCount, IR::RegOpnd * newObjDst, IR::Opnd * typeSrc)
 {
     size_t headerAllocSize = sizeof(Js::DynamicObject) + inlineSlotCount * sizeof(Js::Var);
     IR::SymOpnd * tempObjectSymOpnd;
-    bool isZeroed = GenerateRecyclerOrMarkTempAlloc(newObjInstr, newObjDst, IR::HelperAllocMemForScObject, headerAllocSize, &tempObjectSymOpnd);
+    bool isZeroed = GenerateRecyclerOrMarkTempAlloc(instr, newObjDst, IR::HelperAllocMemForScObject, headerAllocSize, &tempObjectSymOpnd);
 
     if (tempObjectSymOpnd && !PHASE_OFF(Js::HoistMarkTempInitPhase, this->m_func) && this->outerMostLoopLabel)
     {
@@ -3507,10 +3520,10 @@ Lowerer::GenerateDynamicObjectAlloc(IR::Instr * newObjInstr, uint inlineSlotCoun
     else
     {
         // MOV [newObjDst + offset(vtable)], DynamicObject::vtable
-        GenerateMemInit(newObjDst, 0, LoadVTableValueOpnd(newObjInstr, VTableValue::VtableDynamicObject), newObjInstr, isZeroed);
+        GenerateMemInit(newObjDst, 0, LoadVTableValueOpnd(instr, VTableValue::VtableDynamicObject), instr, isZeroed);
     }
     // MOV [newObjDst + offset(type)], newObjectType
-    GenerateMemInit(newObjDst, Js::DynamicObject::GetOffsetOfType(), typeSrc, newObjInstr, isZeroed);
+    GenerateMemInit(newObjDst, Js::DynamicObject::GetOffsetOfType(), typeSrc, instr, isZeroed);
 
     // CALL JavascriptOperators::AllocMemForVarArray((slotCount - inlineSlotCount) * sizeof(Js::Var))
     if (slotCount > inlineSlotCount)
@@ -3518,18 +3531,18 @@ Lowerer::GenerateDynamicObjectAlloc(IR::Instr * newObjInstr, uint inlineSlotCoun
         size_t auxSlotsAllocSize = (slotCount - inlineSlotCount) * sizeof(Js::Var);
         IR::RegOpnd* auxSlots = IR::RegOpnd::New(TyMachPtr, m_func);
 
-        GenerateRecyclerAllocAligned(IR::HelperAllocMemForVarArray, auxSlotsAllocSize, auxSlots, newObjInstr);
-        GenerateMemInit(newObjDst, Js::DynamicObject::GetOffsetOfAuxSlots(), auxSlots, newObjInstr, isZeroed);
+        GenerateRecyclerAllocAligned(IR::HelperAllocMemForVarArray, auxSlotsAllocSize, auxSlots, instr);
+        GenerateMemInit(newObjDst, Js::DynamicObject::GetOffsetOfAuxSlots(), auxSlots, instr, isZeroed);
 
         IR::IndirOpnd* newObjAuxSlots = IR::IndirOpnd::New(newObjDst, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachPtr, m_func);
-        this->InsertMove(newObjAuxSlots, auxSlots, newObjInstr);
+        this->InsertMove(newObjAuxSlots, auxSlots, instr);
     }
     else
     {
-        GenerateMemInitNull(newObjDst, Js::DynamicObject::GetOffsetOfAuxSlots(), newObjInstr, isZeroed);
+        GenerateMemInitNull(newObjDst, Js::DynamicObject::GetOffsetOfAuxSlots(), instr, isZeroed);
     }
 
-    GenerateMemInitNull(newObjDst, Js::DynamicObject::GetOffsetOfObjectArray(), newObjInstr, isZeroed);
+    GenerateMemInitNull(newObjDst, Js::DynamicObject::GetOffsetOfObjectArray(), instr, isZeroed);
 }
 
 void
@@ -3549,11 +3562,11 @@ Lowerer::LowerNewScObjectSimple(IR::Instr * instr)
 }
 
 void
-Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
+Lowerer::LowerNewScObjectLiteral(IR::Instr *instr)
 {
     Func * func = m_func;
-    IR::IntConstOpnd * literalObjectIdOpnd = newObjInstr->UnlinkSrc2()->AsIntConstOpnd();
-    intptr_t literalTypeRef = newObjInstr->m_func->GetJITFunctionBody()->GetObjectLiteralTypeRef(literalObjectIdOpnd->AsUint32());
+    IR::IntConstOpnd * literalObjectIdOpnd = instr->UnlinkSrc2()->AsIntConstOpnd();
+    intptr_t literalTypeRef = instr->m_func->GetJITFunctionBody()->GetObjectLiteralTypeRef(literalObjectIdOpnd->AsUint32());
 
     IR::LabelInstr * helperLabel = nullptr;
     IR::LabelInstr * allocLabel = nullptr;
@@ -3561,9 +3574,9 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
     IR::Opnd * literalTypeOpnd;
     IR::Opnd * propertyArrayOpnd;
 
-    IR::IntConstOpnd * propertyArrayIdOpnd = newObjInstr->UnlinkSrc1()->AsIntConstOpnd();
-    const Js::PropertyIdArray * propIds = newObjInstr->m_func->GetJITFunctionBody()->ReadPropertyIdArrayFromAuxData(propertyArrayIdOpnd->AsUint32());
-    intptr_t propArrayAddr = newObjInstr->m_func->GetJITFunctionBody()->GetAuxDataAddr(propertyArrayIdOpnd->AsUint32());
+    IR::IntConstOpnd * propertyArrayIdOpnd = instr->UnlinkSrc1()->AsIntConstOpnd();
+    const Js::PropertyIdArray * propIds = instr->m_func->GetJITFunctionBody()->ReadPropertyIdArrayFromAuxData(propertyArrayIdOpnd->AsUint32());
+    intptr_t propArrayAddr = instr->m_func->GetJITFunctionBody()->GetAuxDataAddr(propertyArrayIdOpnd->AsUint32());
     uint inlineSlotCapacity = Js::JavascriptOperators::GetLiteralInlineSlotCapacity(propIds);
     uint slotCapacity = Js::JavascriptOperators::GetLiteralSlotCapacity(propIds);
     IR::RegOpnd * dstOpnd;
@@ -3581,39 +3594,39 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
         allocLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
 
         literalTypeOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(literalTypeOpnd, IR::MemRefOpnd::New(literalTypeRef, TyMachPtr, func), newObjInstr);
+        InsertMove(literalTypeOpnd, IR::MemRefOpnd::New(literalTypeRef, TyMachPtr, func), instr);
         InsertTestBranch(literalTypeOpnd, literalTypeOpnd,
-            Js::OpCode::BrEq_A, helperLabel, newObjInstr);
+            Js::OpCode::BrEq_A, helperLabel, instr);
         InsertTestBranch(IR::IndirOpnd::New(literalTypeOpnd->AsRegOpnd(), Js::DynamicType::GetOffsetOfIsShared(), TyInt8, func),
-            IR::IntConstOpnd::New(1, TyInt8, func, true), Js::OpCode::BrEq_A, helperLabel, newObjInstr);
+            IR::IntConstOpnd::New(1, TyInt8, func, true), Js::OpCode::BrEq_A, helperLabel, instr);
 
-        dstOpnd = newObjInstr->GetDst()->AsRegOpnd();
+        dstOpnd = instr->GetDst()->AsRegOpnd();
     }
     else
     {
         literalTypeOpnd = IR::AddrOpnd::New(literalType, IR::AddrOpndKindDynamicType, func);
-        dstOpnd = newObjInstr->UnlinkDst()->AsRegOpnd();
+        dstOpnd = instr->UnlinkDst()->AsRegOpnd();
         Assert(inlineSlotCapacity == literalType->GetTypeHandler()->GetInlineSlotCapacity());
         Assert(slotCapacity == (uint)literalType->GetTypeHandler()->GetSlotCapacity());
     }
 
     if (helperLabel)
     {
-        InsertBranch(Js::OpCode::Br, allocLabel, newObjInstr);
+        InsertBranch(Js::OpCode::Br, allocLabel, instr);
 
         // Slow path to ensure the type is there
-        newObjInstr->InsertBefore(helperLabel);
+        instr->InsertBefore(helperLabel);
         IR::HelperCallOpnd * opndHelper = IR::HelperCallOpnd::New(IR::HelperEnsureObjectLiteralType, func);
 
-        m_lowererMD.LoadHelperArgument(newObjInstr, literalTypeRefOpnd);
-        m_lowererMD.LoadHelperArgument(newObjInstr, propertyArrayOpnd);
-        LoadScriptContext(newObjInstr);
+        m_lowererMD.LoadHelperArgument(instr, literalTypeRefOpnd);
+        m_lowererMD.LoadHelperArgument(instr, propertyArrayOpnd);
+        LoadScriptContext(instr);
 
         IR::Instr * ensureTypeInstr = IR::Instr::New(Js::OpCode::Call, literalTypeOpnd, opndHelper, func);
-        newObjInstr->InsertBefore(ensureTypeInstr);
+        instr->InsertBefore(ensureTypeInstr);
         m_lowererMD.LowerCall(ensureTypeInstr, 0);
 
-        newObjInstr->InsertBefore(allocLabel);
+        instr->InsertBefore(allocLabel);
     }
     else
     {
@@ -3630,13 +3643,13 @@ Lowerer::LowerNewScObjectLiteral(IR::Instr *newObjInstr)
         slotCapacity = inlineSlotCapacity -= Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity();
     }
     GenerateDynamicObjectAlloc(
-        newObjInstr,
+        instr,
         inlineSlotCapacity,
         slotCapacity,
         dstOpnd,
         literalTypeOpnd);
 
-    newObjInstr->Remove();
+    instr->Remove();
 }
 
 IR::Instr*
@@ -4481,8 +4494,6 @@ IR::Instr* Lowerer::LowerProfiledNewArray(IR::JitProfilingInstr* instr, bool has
 
     bool isSpreadCall = instr->m_opcode == Js::OpCode::NewScObjectSpread || instr->m_opcode == Js::OpCode::NewScObjArraySpread;
 
-    m_lowererMD.LoadNewScObjFirstArg(instr, IR::AddrOpnd::New(nullptr, IR::AddrOpndKindConstantVar, m_func, true), isSpreadCall ? 1 : 0);
-
     if (isSpreadCall)
     {
         this->LowerSpreadCall(instr, Js::CallFlags_New, true);
@@ -4511,279 +4522,208 @@ IR::Instr* Lowerer::LowerProfiledNewArray(IR::JitProfilingInstr* instr, bool has
 ///
 ///----------------------------------------------------------------------------
 IR::Instr *
-Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject)
+Lowerer::LowerNewScObject(IR::Instr *instr, bool newScObjInstrHasArgs, bool isBaseClassConstructorNewScObject, IR::RegOpnd* ctorObj)
 {
-    if (newObjInstr->IsJitProfilingInstr() && newObjInstr->AsJitProfilingInstr()->isNewArray)
+    bool callCtor = true;
+
+    if (newScObjInstrHasArgs)
     {
-        Assert(callCtor);
-        return LowerProfiledNewArray(newObjInstr->AsJitProfilingInstr(), hasArgs);
+        instr->GetGenCtorInstr()->genCtorInstrHasArgs = true;
     }
-
-    bool isSpreadCall = newObjInstr->m_opcode == Js::OpCode::NewScObjectSpread ||
-        newObjInstr->m_opcode == Js::OpCode::NewScObjArraySpread;
-
-    Func* func = newObjInstr->m_func;
+   
+    if (instr->IsJitProfilingInstr() && instr->AsJitProfilingInstr()->isNewArray)
+    {
+        return LowerProfiledNewArray(instr->AsJitProfilingInstr(), newScObjInstrHasArgs);
+    }
 
     // Insert a temporary label before the instruction we're about to lower, so that we can return
     // the first instruction above that needs to be lowered after we're done - regardless of argument
     // list, StartCall, etc.
-    IR::Instr* startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
+    IR::Instr* startMarkerInstr = InsertLoweredRegionStartMarker(instr);
 
-    IR::Opnd *ctorOpnd = newObjInstr->GetSrc1();
-    IR::RegOpnd *newObjDst = newObjInstr->GetDst()->AsRegOpnd();
-
-    Assert(!callCtor || !hasArgs || (newObjInstr->GetSrc2() != nullptr /*&& newObjInstr->GetSrc2()->IsSymOpnd()*/));
-
-    bool skipNewScObj = false;
-    bool returnNewScObj = false;
-    bool emitBailOut = false;
-    // If we haven't yet split NewScObject into NewScObjectNoCtor and CallI, we will need a temporary register
-    // to hold the result of the object allocation.
-    IR::RegOpnd* createObjDst = callCtor ? IR::RegOpnd::New(TyVar, func) : newObjDst;
-    IR::LabelInstr* helperOrBailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, func, /* isOpHelper = */ true);
-    IR::LabelInstr* callCtorLabel = IR::LabelInstr::New(Js::OpCode::Label, func, /* isOpHelper = */ false);
-
-    // Try to emit the fast allocation and construction path.
-    bool usedFixedCtorCache = TryLowerNewScObjectWithFixedCtorCache(newObjInstr, createObjDst, helperOrBailoutLabel, callCtorLabel, skipNewScObj, returnNewScObj, emitBailOut);
-
-    AssertMsg(!skipNewScObj || callCtor, "What will we return if we skip the default new object and don't call the ctor?");
-    Assert(!skipNewScObj || !returnNewScObj);
-    Assert(usedFixedCtorCache || !skipNewScObj);
-    Assert(!usedFixedCtorCache || newObjInstr->HasFixedFunctionAddressTarget());
-    Assert(!skipNewScObj || !emitBailOut);
-
-#if DBG && 0 // TODO: OOP JIT, enable assert
-    if (usedFixedCtorCache)
-    {
-        Js::JavascriptFunction* ctor = newObjInstr->GetFixedFunction();
-        Js::FunctionInfo* ctorInfo = ctor->GetFunctionInfo();
-        Assert((ctorInfo->GetAttributes() & Js::FunctionInfo::Attributes::ErrorOnNew) == 0);
-        Assert(!!(ctorInfo->GetAttributes() & Js::FunctionInfo::Attributes::SkipDefaultNewObject) == skipNewScObj);
-    }
-#endif
+    Assert(!newScObjInstrHasArgs || (instr->GetSrc2() != nullptr));
+    
+    Func* func = instr->m_func;
+    IR::LabelInstr* callCtorLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
 
     IR::Instr* startCallInstr = nullptr;
-    if (callCtor && hasArgs)
+    if (newScObjInstrHasArgs)
     {
-        hasArgs = !newObjInstr->HasEmptyArgOutChain(&startCallInstr);
+        newScObjInstrHasArgs = !instr->HasEmptyArgOutChain(&startCallInstr);
     }
 
-    // If we're not skipping the default new object, let's emit bailout or a call to NewScObject* helper
-    IR::JnHelperMethod newScHelper = IR::HelperInvalid;
     IR::Instr *newScObjCall = nullptr;
-    if (!skipNewScObj)
-    {
-        // If we emitted the fast path, this block is a helper block.
-        if (usedFixedCtorCache)
-        {
-            newObjInstr->InsertBefore(helperOrBailoutLabel);
-        }
 
-        if (emitBailOut)
-        {
-            IR::Instr* bailOutInstr = newObjInstr;
+    callCtor &= newScObjInstrHasArgs;
 
-            newObjInstr = IR::Instr::New(newObjInstr->m_opcode, func);
-            bailOutInstr->TransferTo(newObjInstr);
-            bailOutInstr->m_opcode = Js::OpCode::BailOut;
-            bailOutInstr->InsertAfter(newObjInstr);
+    instr->InsertBefore(callCtorLabel);
 
-            GenerateBailOut(bailOutInstr);
-        }
-        else
-        {
-            Assert(!newObjDst->CanStoreTemp());
-            // createObjDst = NewScObject...(ctorOpnd)
-
-            LoadScriptContext(newObjInstr);
-
-            if (callCtor)
-            {
-                newScHelper = (hasArgs || usedFixedCtorCache ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArg);
-
-                m_lowererMD.LoadHelperArgument(newObjInstr, newObjInstr->GetSrc1());
-
-                newScObjCall = IR::Instr::New(Js::OpCode::Call, createObjDst, IR::HelperCallOpnd::New(newScHelper, func), func);
-                newObjInstr->InsertBefore(newScObjCall);
-                m_lowererMD.LowerCall(newScObjCall, 0);
-            }
-            else
-            {
-                newScHelper = 
-                    (isBaseClassConstructorNewScObject ?
-                        (hasArgs ? IR::HelperNewScObjectNoCtorFull : IR::HelperNewScObjectNoArgNoCtorFull) :
-                        (hasArgs ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArgNoCtor));
-
-                // Branch around the helper call to execute the inlined ctor.
-                Assert(callCtorLabel != nullptr);
-                newObjInstr->InsertAfter(callCtorLabel);
-
-                // Change the NewScObject* to a helper call on the spot. This generates implicit call bailout for us if we need one.
-                m_lowererMD.LoadHelperArgument(newObjInstr, newObjInstr->UnlinkSrc1());
-                m_lowererMD.ChangeToHelperCall(newObjInstr, newScHelper);
-
-                // Then we're done.
-                Assert(createObjDst == newObjDst);
-
-                // Return the first instruction above the region we've just lowered.
-                return RemoveLoweredRegionStartMarker(startMarkerInstr);                    
-            }
-        }
-    }
-
-    // If we call HelperNewScObjectNoArg directly, we won't be calling the constructor from here, because the helper will do it.
-    // We could probably avoid this complexity by converting NewScObjectNoArg to NewScObject in the IRBuilder, once we have dedicated
-    // code paths for new Object() and new Array().
-    callCtor &= hasArgs || usedFixedCtorCache;
-    AssertMsg(!skipNewScObj || callCtor, "What will we return if we skip the default new object and don't call the ctor?");
-
-    newObjInstr->InsertBefore(callCtorLabel);
-
-    if (callCtor && usedFixedCtorCache)
-    {
-        IR::JnHelperMethod ctorHelper = IR::JnHelperMethodCount;
-
-        // If we have no arguments (i.e. the argument chain is empty), we can recognize a couple of common special cases, such
-        // as new Object() or new Array(), for which we have optimized helpers.
-        FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
-        intptr_t ctorInfo = ctor->GetFuncInfoAddr();
-        if (!hasArgs && (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr() || ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr()))
-        {
-            if (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr())
-            {
-                Assert(skipNewScObj);
-                ctorHelper = IR::HelperNewJavascriptObjectNoArg;
-                callCtor = false;
-            }
-            else if (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr())
-            {
-                Assert(skipNewScObj);
-                ctorHelper = IR::HelperNewJavascriptArrayNoArg;
-                callCtor = false;
-            }
-
-            if (!callCtor)
-            {
-                LoadScriptContext(newObjInstr);
-
-                IR::Instr *ctorCall = IR::Instr::New(Js::OpCode::Call, newObjDst,  IR::HelperCallOpnd::New(ctorHelper, func), func);
-                newObjInstr->InsertBefore(ctorCall);
-                m_lowererMD.LowerCall(ctorCall, 0);
-            }
-        }
-    }
-
-    IR::AutoReuseOpnd autoReuseSavedCtorOpnd;
+    // The value that the function returns. Not necessarily the ctorObj.
+    IR::RegOpnd* ctorRetVal = instr->GetDst()->AsRegOpnd();
     if (callCtor)
     {
-        // Load the first argument, which is either the object just created or null. Spread has an extra argument.
-        IR::Instr * argInstr = this->m_lowererMD.LoadNewScObjFirstArg(newObjInstr, createObjDst, isSpreadCall ? 1 : 0);
+        bool isSpreadCall = instr->m_opcode == Js::OpCode::NewScObjectSpread || instr->m_opcode == Js::OpCode::NewScObjArraySpread;
 
-        IR::Instr * insertAfterCtorInstr = newObjInstr->m_next;
-
-        if (skipNewScObj)
+        Assert(instr->GetDst() == ctorRetVal);
+        if (isSpreadCall)
         {
-            // Since we skipped the default new object, we must be returning whatever the constructor returns
-            // (which better be an Object), so let's just use newObjDst directly.
-            // newObjDst = newObjInstr->m_src1(createObjDst, ...)
-            Assert(newObjInstr->GetDst() == newObjDst);
-            if (isSpreadCall)
-            {
-                newObjInstr = this->LowerSpreadCall(newObjInstr, Js::CallFlags_New);
-            }
-            else
-            {
-                newObjInstr = this->m_lowererMD.LowerCallI(newObjInstr, Js::CallFlags_New, false, argInstr);
-            }
+            instr = this->LowerSpreadCall(instr, Js::CallFlags_New);
         }
         else
         {
-            // We may need to return the default new object or whatever the constructor returns. Let's stash
-            // away the constructor's return in a temporary operand, and do the right check, if necessary.
-            // ctorResultObjOpnd = newObjInstr->m_src1(createObjDst, ...)
-            IR::RegOpnd *ctorResultObjOpnd = IR::RegOpnd::New(TyVar, func);
-            newObjInstr->UnlinkDst();
-            newObjInstr->SetDst(ctorResultObjOpnd);
-
-            if (isSpreadCall)
-            {
-                newObjInstr = this->LowerSpreadCall(newObjInstr, Js::CallFlags_New);
-            }
-            else
-            {
-                newObjInstr = this->m_lowererMD.LowerCallI(newObjInstr, Js::CallFlags_New, false, argInstr);
-            }
-
-            if (returnNewScObj)
-            {
-                // MOV newObjDst, createObjDst
-                this->InsertMove(newObjDst, createObjDst, insertAfterCtorInstr);
-            }
-            else
-            {
-                LowerGetNewScObjectCommon(ctorResultObjOpnd, ctorResultObjOpnd, createObjDst, insertAfterCtorInstr);
-                this->InsertMove(newObjDst, ctorResultObjOpnd, insertAfterCtorInstr);
-            }
-        }
-
-        // We don't ever need to update the constructor cache, if we hard coded it.  Caches requiring update after constructor
-        // don't get cloned, and those that don't require update will never need one anymore.
-        if (!usedFixedCtorCache)
-        {
-            LowerUpdateNewScObjectCache(insertAfterCtorInstr, newObjDst, ctorOpnd, false /* isCtorFunction */);
+            IR::Instr* argInstr = this->m_lowererMD.LoadNewScObjFirstArg(instr, instr->GetGenCtorInstr()->m_dst, isSpreadCall ? 1 : 0);
+            instr = this->m_lowererMD.LowerCallI(instr, Js::CallFlags_New, false, argInstr);
         }
     }
     else
     {
-        if (newObjInstr->IsJitProfilingInstr())
+        if (instr->IsJitProfilingInstr())
         {
             Assert(m_func->IsSimpleJit());
             Assert(!CONFIG_FLAG(NewSimpleJit));
 
-            // This path skipped calling the Ctor, which skips calling LowerCallI with newObjInstr, meaning that the call will not be profiled.
-            //   So we insert it manually here.
-
-            if(newScHelper == IR::HelperNewScObjectNoArg &&
-                newObjDst &&
-                ctorOpnd->IsRegOpnd() &&
-                newObjDst->AsRegOpnd()->m_sym == ctorOpnd->AsRegOpnd()->m_sym)
-            {
-                Assert(newObjInstr->m_func->IsSimpleJit());
-                Assert(createObjDst != newObjDst);
-
-                // The function object sym is going to be overwritten, so save it in a temp for profiling
-                IR::RegOpnd *const savedCtorOpnd = IR::RegOpnd::New(ctorOpnd->GetType(), newObjInstr->m_func);
-                autoReuseSavedCtorOpnd.Initialize(savedCtorOpnd, newObjInstr->m_func);
-                Lowerer::InsertMove(savedCtorOpnd, ctorOpnd, newObjInstr);
-                ctorOpnd = savedCtorOpnd;
-            }
+            // This path skipped calling the Ctor, which skips calling LowerCallI with instr, 
+            // meaning that the call will not be profiled. So we insert it manually here.
 
             // It is a constructor (CallFlags_New) and therefore a single argument (this) would have been given.
             const auto info = Lowerer::MakeCallInfoConst(Js::CallFlags_New, 1, func);
 
             Assert(newScObjCall);
-            IR::JitProfilingInstr *const newObjJitProfilingInstr = newObjInstr->AsJitProfilingInstr();
+            IR::JitProfilingInstr *const newObjJitProfilingInstr = instr->AsJitProfilingInstr();
             GenerateCallProfiling(
                 newObjJitProfilingInstr->profileId,
                 newObjJitProfilingInstr->inlineCacheIndex,
-                createObjDst,
-                ctorOpnd,
+                ctorObj,
+                instr->GetSrc1(),
                 info,
                 false,
                 newScObjCall,
-                newObjInstr);
+                instr);
         }
 
-        // MOV newObjDst, createObjDst
-        if (!skipNewScObj && createObjDst != newObjDst)
+        if (!ctorObj)
         {
-            this->InsertMove(newObjDst, createObjDst, newObjInstr);
+            ctorObj = instr->GetGenCtorInstr()->GetDst()->AsRegOpnd();
         }
-        newObjInstr->Remove();
+
+        // MOV newObjDst, ctorObj
+        if (ctorObj && ctorObj != ctorRetVal)
+        {
+            this->InsertMove(ctorRetVal, ctorObj, instr);
+        }
+        instr->Remove();
     }
 
     // Return the first instruction above the region we've just lowered.
     return RemoveLoweredRegionStartMarker(startMarkerInstr);
+}
+
+IR::Instr *
+Lowerer::LowerGenCtorObj(IR::Instr *instr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject)
+{
+    Func* func = instr->m_func;
+
+    if (instr->HasBailOutInfo())
+    {
+        if (instr->GetBailOutKind() == IR::BailOutOnNotNativeArray ||
+            instr->GetBailOutKind() == BailOutInfo::WithLazyBailOut(IR::BailOutOnNotNativeArray))
+        {
+            IR::LabelInstr* labelSkipBailOut = IR::LabelInstr::New(Js::OpCode::Label, func);
+            InsertCompareBranch(
+                instr->GetSrc1(),
+                LoadLibraryValueOpnd(instr, LibraryValue::ValueArrayConstructor),
+                Js::OpCode::BrEq_A,
+                true,
+                labelSkipBailOut,
+                instr);
+
+            instr->InsertBefore(labelSkipBailOut);
+            IR::Instr* bailOutInstr = IR::Instr::New(Js::OpCode::BailOut, func);
+            labelSkipBailOut->InsertBefore(bailOutInstr);
+            bailOutInstr = bailOutInstr->ConvertToBailOutInstr(instr->GetBailOutInfo(), instr->GetBailOutKind());
+            bailOutInstr->GetBailOutInfo()->bailOutInstr = bailOutInstr;
+            GenerateBailOut(bailOutInstr);
+            instr->ClearBailOutInfo();
+        }
+    }
+    hasArgs = hasArgs || instr->genCtorInstrHasArgs;
+
+    // Insert a temporary label before the instruction we're about to lower, so that we can return
+    // the first instruction above that needs to be lowered after we're done - regardless of argument
+    // list, StartCall, etc.
+    IR::Instr* startMarkerInstr = InsertLoweredRegionStartMarker(instr);
+
+    // Should return value into this reg.
+    IR::Opnd *ctorObj = instr->GetDst();
+
+    // The ctor to obtain an object from.
+    IR::Opnd *ctor = instr->GetSrc1();
+
+
+    IR::RegOpnd* createObjDst = ctorObj->AsRegOpnd();
+
+    IR::LabelInstr* helperOrBailoutLabel = IR::LabelInstr::New(Js::OpCode::Label, func, /* isOpHelper = */ true);
+    IR::LabelInstr* callCtorLabel = IR::LabelInstr::New(Js::OpCode::Label, func, /* isOpHelper = */ false);
+
+    // Try to emit the fast allocation and construction path.
+    bool skipNewScObj = false;
+    bool returnNewScObj = false;
+    bool emitBailOut = false;
+    bool usedFixedCtorCache = false;// = TryLowerNewScObjectWithFixedCtorCache(instr, createObjDst, helperOrBailoutLabel, callCtorLabel, skipNewScObj, returnNewScObj, emitBailOut);
+
+    AssertMsg(!skipNewScObj, "What will we return if we skip the default new object and don't call the ctor?");
+    Assert(!skipNewScObj || !returnNewScObj);
+    Assert(usedFixedCtorCache || !skipNewScObj);
+    Assert(!usedFixedCtorCache || instr->HasFixedFunctionAddressTarget());
+    Assert(!emitBailOut);
+
+    // If we're not skipping the default new object, let's emit bailout or a call to NewScObject* helper
+    IR::JnHelperMethod newScHelper = IR::HelperInvalid;
+    IR::Instr *newScObjCall = nullptr;
+
+    // If we emitted the fast path, this block is a helper block.
+    if (usedFixedCtorCache)
+    {
+        instr->InsertBefore(helperOrBailoutLabel);
+    }
+
+    Assert(!ctorObj->CanStoreTemp());
+
+    LoadScriptContext(instr);
+
+    if (callCtor)
+    {
+        newScHelper = (hasArgs || usedFixedCtorCache ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArg);
+
+        m_lowererMD.LoadHelperArgument(instr, ctor);
+
+        newScObjCall = IR::Instr::New(Js::OpCode::Call, createObjDst, IR::HelperCallOpnd::New(newScHelper, func), func);
+        instr->InsertBefore(newScObjCall);
+        m_lowererMD.LowerCall(newScObjCall, 0);
+
+        return RemoveLoweredRegionStartMarker(startMarkerInstr);
+    }
+    else
+    {
+        newScHelper =
+            (isBaseClassConstructorNewScObject ?
+            (hasArgs ? IR::HelperNewScObjectNoCtorFull : IR::HelperNewScObjectNoArgNoCtorFull) :
+                (hasArgs ? IR::HelperNewScObjectNoCtor : IR::HelperNewScObjectNoArgNoCtor));
+
+        // Branch around the helper call to execute the inlined ctor.
+        Assert(callCtorLabel != nullptr);
+        instr->InsertAfter(callCtorLabel);
+
+        // Change the NewScObject* to a helper call on the spot. This generates implicit call bailout for us if we need one.
+        m_lowererMD.LoadHelperArgument(instr, instr->UnlinkSrc1());
+        m_lowererMD.ChangeToHelperCall(instr, newScHelper);
+
+        // Then we're done.
+        Assert(createObjDst == ctorObj);
+
+        // Return the first instruction above the region we've just lowered.
+        return RemoveLoweredRegionStartMarker(startMarkerInstr);
+    }
 }
 
 IR::Instr*
@@ -4866,28 +4806,28 @@ Lowerer::GenerateCallProfiling(Js::ProfileId profileId, Js::InlineCacheIndex inl
     return m_lowererMD.LowerCall(profileCall, 0);
 }
 
-bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::RegOpnd* newObjDst,
+bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* instr, IR::RegOpnd* newObjDst,
     IR::LabelInstr* helperOrBailoutLabel, IR::LabelInstr* callCtorLabel, bool& skipNewScObj, bool& returnNewScObj, bool& emitBailOut)
 {
     skipNewScObj = false;
     returnNewScObj = false;
 
-    if (PHASE_OFF(Js::FixedNewObjPhase, newObjInstr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func))
+    if (PHASE_OFF(Js::FixedNewObjPhase, instr->m_func) && PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->m_func))
     {
         return false;
     }
 
     JITTimeConstructorCache * ctorCache;
 
-    if (newObjInstr->HasBailOutInfo() && newObjInstr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck)
+    if (instr->HasBailOutInfo() && instr->GetBailOutKindNoBits() == IR::BailOutFailedCtorGuardCheck)
     {
-        Assert(newObjInstr->IsNewScObjectInstr());
-        Assert(newObjInstr->IsProfiledInstr());
-        Assert(newObjInstr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
+        Assert(instr->m_opcode == Js::OpCode::GenCtorObj);
+        Assert(instr->IsProfiledInstr());
+        Assert(instr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
 
         emitBailOut = true;
 
-        ctorCache = newObjInstr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId));
+        ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
         Assert(ctorCache != nullptr);
         Assert(!ctorCache->SkipNewScObject());
         Assert(!ctorCache->IsTypeFinal() || ctorCache->CtorHasNoExplicitReturnValue());
@@ -4896,22 +4836,22 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     }
     else
     {
-        if (newObjInstr->m_opcode == Js::OpCode::NewScObjArray || newObjInstr->m_opcode == Js::OpCode::NewScObjArraySpread)
+        if (instr->m_opcode == Js::OpCode::NewScObjArray || instr->m_opcode == Js::OpCode::NewScObjArraySpread)
         {
             // These instr's carry a profile that indexes the array call site info, not the ctor cache.
             return false;
         }
 
-        ctorCache = newObjInstr->IsProfiledInstr() ? newObjInstr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId)) : nullptr;
+        ctorCache = instr->IsProfiledInstr() ? instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)) : nullptr;
 
         if (ctorCache == nullptr)
         {
-            if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
+            if (PHASE_TRACE(Js::FixedNewObjPhase, instr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, instr->m_func))
             {
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                 Output::Print(_u("FixedNewObj: function %s (%s): lowering non-fixed new script object for %s, because %s.\n"),
-                    newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                    newObjInstr->IsProfiledInstr() ? _u("constructor cache hasn't been cloned") : _u("instruction is not profiled"));
+                    instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetDebugNumberSet(debugStringBuffer), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
+                    instr->IsProfiledInstr() ? _u("constructor cache hasn't been cloned") : _u("instruction is not profiled"));
                 Output::Flush();
             }
 
@@ -4923,14 +4863,14 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     // We should only have cloned if the script contexts match.
     // TODO: oop jit, add ctorCache->scriptContext for tracing assert
-    // Assert(newObjInstr->m_func->GetScriptContextInfo()->GetAddr() == ctorCache->scriptContext);
+    // Assert(instr->m_func->GetScriptContextInfo()->GetAddr() == ctorCache->scriptContext);
 
     // Built-in constructors don't need a default new object.  Since we know which constructor we're calling, we can skip creating a default
     // object and call a specialized helper (or even constructor, directly) avoiding the checks in generic NewScObjectCommon.
     if (ctorCache->SkipNewScObject())
     {
 #if 0 // TODO: oop jit, add constructor info for tracing
-        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
+        if (PHASE_TRACE(Js::FixedNewObjPhase, instr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, instr->m_func))
         {
             const Js::JavascriptFunction* ctor = ctorCache->constructor;
             Js::FunctionBody* ctorBody = ctor->GetFunctionInfo()->HasBody() ? ctor->GetFunctionInfo()->GetFunctionBody() : nullptr;
@@ -4940,8 +4880,8 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
             Output::Print(_u("FixedNewObj: function %s (%s): lowering skipped new script object for %s with %s ctor <unknown> (%s %s).\n"),
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
+                instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
+                instr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
                 ctorName, ctorBody ? ctorBody->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             Output::Flush();
         }
@@ -4954,14 +4894,14 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
         skipNewScObj = true;
         IR::AddrOpnd* zeroOpnd = IR::AddrOpnd::NewNull(this->m_func);
-        this->InsertMove(newObjDst, zeroOpnd, newObjInstr);
+        this->InsertMove(newObjDst, zeroOpnd, instr);
         return true;
     }
 
     AssertMsg(ctorCache->GetType() != nullptr, "Why did we hard-code a mismatched, invalidated or polymorphic constructor cache?");
 
 #if 0 // TODO: oop jit, add constructor info for tracing
-    if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
+    if (PHASE_TRACE(Js::FixedNewObjPhase, instr->m_func) || PHASE_TESTTRACE(Js::FixedNewObjPhase, instr->m_func))
     {
         const Js::JavascriptFunction* constructor = ctorCache->constructor;
         Js::FunctionBody* constructorBody = constructor->GetFunctionInfo()->HasBody() ? constructor->GetFunctionInfo()->GetFunctionBody() : nullptr;
@@ -4970,19 +4910,19 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
         char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-        if (PHASE_TRACE(Js::FixedNewObjPhase, newObjInstr->m_func))
+        if (PHASE_TRACE(Js::FixedNewObjPhase, instr->m_func))
         {
             Output::Print(_u("FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): type = %p, slots = %d, inlined slots = %d.\n"),
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
+                instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
+                instr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
                 constructorName, constructorBody ? constructorBody->GetDebugNumberSet(debugStringBuffer) : _u("(null)"),
                 ctorCache->type, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
         else
         {
             Output::Print(_u("FixedNewObj: function %s (%s): lowering fixed new script object for %s with %s ctor <unknown> (%s %s): slots = %d, inlined slots = %d.\n"),
-                newObjInstr->m_func->GetJITFunctionBody()->GetDisplayName(), newObjInstr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(newObjInstr->m_opcode),
-                newObjInstr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
+                instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetDebugNumberSet(debugStringBuffer2), Js::OpCodeUtil::GetOpCodeName(instr->m_opcode),
+                instr->m_opcode == Js::OpCode::NewScObjectNoCtor ? _u("inlined") : _u("called"),
                 constructorName, debugStringBuffer, ctorCache->slotCount, ctorCache->inlineSlotCount);
         }
         Output::Flush();
@@ -4997,16 +4937,16 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
     IR::MemRefOpnd* guardOpnd = IR::MemRefOpnd::New(ctorCache->GetRuntimeCacheGuardAddr(), TyMachReg, this->m_func,
         IR::AddrOpndKindDynamicGuardValueRef);
     IR::AddrOpnd* zeroOpnd = IR::AddrOpnd::NewNull(this->m_func);
-    InsertCompareBranch(guardOpnd, zeroOpnd, Js::OpCode::BrEq_A, helperOrBailoutLabel, newObjInstr);
+    InsertCompareBranch(guardOpnd, zeroOpnd, Js::OpCode::BrEq_A, helperOrBailoutLabel, instr);
 
     // If we are calling new on a class constructor, the contract is that we pass new.target as the 'this' argument.
     // function is the constructor on which we called new - which is new.target.
-    FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
+    FixedFieldInfo* ctor = instr->GetFixedFunction();
 
     if (ctor->IsClassCtor())
     {
         // MOV newObjDst, function
-        this->InsertMove(newObjDst, newObjInstr->GetSrc1(), newObjInstr);
+        this->InsertMove(newObjDst, instr->GetSrc1(), instr);
     }
     else
     {
@@ -5026,12 +4966,12 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
             Assert(inlineSlotSize == slotSize);
             slotSize = inlineSlotSize -= Js::DynamicTypeHandler::GetObjectHeaderInlinableSlotCapacity();
         }
-        GenerateDynamicObjectAlloc(newObjInstr, inlineSlotSize, slotSize, newObjDst, typeSrc);
+        GenerateDynamicObjectAlloc(instr, inlineSlotSize, slotSize, newObjDst, typeSrc);
     }
 
     // JMP $callCtor
     IR::BranchInstr *callCtorBranch = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, callCtorLabel, m_func);
-    newObjInstr->InsertBefore(callCtorBranch);
+    instr->InsertBefore(callCtorBranch);
 
     return true;
 }
@@ -5150,6 +5090,18 @@ Lowerer::LowerGetNewScObjectCommon(
     // fall through to insertBeforeInstr or doneLabel
 }
 
+void
+Lowerer::LowerHandleAutoProxyFlagForNewScObj(IR::Instr* insertInstr, IR::Opnd* determinedRetObj)
+{
+    IR::HelperCallOpnd* opndAutoProxy = IR::HelperCallOpnd::New(IR::HelperHandleAutoProxyFlagForNewScObj, m_func);
+    IR::Instr* callAutoProxy = IR::Instr::New(Js::OpCode::Call, determinedRetObj, opndAutoProxy, m_func);
+
+    LoadScriptContext(insertInstr);
+    m_lowererMD.LoadHelperArgument(insertInstr, determinedRetObj);
+    insertInstr->InsertBefore(callAutoProxy);
+    m_lowererMD.LowerCall(callAutoProxy, 0);
+}
+
 ///----------------------------------------------------------------------------
 ///
 /// Lowerer::LowerUpdateNewScObjectCache
@@ -5158,6 +5110,13 @@ Lowerer::LowerGetNewScObjectCommon(
 IR::Instr *
 Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR::Opnd *src1, const bool isCtorFunction)
 {
+    IR::RegOpnd* src1RegOpnd = GetRegOpnd(src1, insertInstr, m_func, TyMachReg);
+
+    // MOV s0, src1->type
+    // MOV s1, s0->typeID
+    // CMP s1, TypeIds_Proxy
+    // JE  $fallThru
+    // 
     // if (!isCtorFunction)
     // {
     //     MOV r1, [src1 + offset(type)]       -- check base TypeIds_Function
@@ -5172,12 +5131,22 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
     // $fallThru:
     IR::LabelInstr *labelFallThru = IR::LabelInstr::New(Js::OpCode::Label, m_func);
 
-    src1 = GetRegOpnd(src1, insertInstr, m_func, TyMachReg);
+    // Avoiding newScObjCache when ctor is a proxy.
+    IR::RegOpnd* ctorTypeReg = IR::RegOpnd::New(TyMachPtr, m_func);
+    IR::RegOpnd* ctorTypeIdReg = IR::RegOpnd::New(TyUint32, m_func);
+    IR::IndirOpnd* ctorType = IR::IndirOpnd::New(src1RegOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func);
+    // MOV s0, src1->typ
+    Lowerer::InsertMove(ctorTypeReg, ctorType, insertInstr);
+    ctorType = IR::IndirOpnd::New(ctorTypeReg, Js::Type::GetOffsetOfTypeId(), TyUint32, m_func);
+    // MOV s1, s0->typeID
+    Lowerer::InsertMove(ctorTypeIdReg, ctorType, insertInstr);
+    // CMP s1, TypeIds_Proxy
+    // JE  $fallThru
+    InsertCompareBranch(ctorTypeIdReg, IR::IntConstOpnd::New(Js::TypeIds_Proxy, TyUint32, m_func, true), Js::OpCode::BrEq_A, labelFallThru, insertInstr);
 
     // Check if constructor is a function if we don't already know it.
     if (!isCtorFunction)
     {
-        IR::RegOpnd* src1RegOpnd = src1->AsRegOpnd();
         //  MOV r1, [src1 + offset(type)]       -- check base TypeIds_Function
         IR::RegOpnd *r1 = IR::RegOpnd::New(TyMachReg, this->m_func);
         IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(src1RegOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, this->m_func);
@@ -5212,7 +5181,7 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
 
     LoadScriptContext(insertInstr);
     m_lowererMD.LoadHelperArgument(insertInstr, dst);
-    m_lowererMD.LoadHelperArgument(insertInstr, src1);
+    m_lowererMD.LoadHelperArgument(insertInstr, src1RegOpnd);
 
     instr = IR::Instr::New(Js::OpCode::Call, m_func);
     instr->SetSrc1(opndHelper);
@@ -5226,72 +5195,83 @@ Lowerer::LowerUpdateNewScObjectCache(IR::Instr * insertInstr, IR::Opnd *dst, IR:
 }
 
 IR::Instr *
-Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
+Lowerer::LowerNewScObjArray(IR::Instr *instr)
 {
-    if (newObjInstr->HasEmptyArgOutChain())
+    if (instr->HasEmptyArgOutChain() ||
+
+        // GenCtorObj will pass ctorObj as Arg0 for NewScObj calls that were split in runtime. We do not
+        // consider ctorObj as counting as an Arg in the LowerNewScObjArrayNoArg path. If we detect that
+        // the only arg is a ctorObj, run this path.
+        (instr->ArgOutChainLength() == 1 &&
+        instr->GetArgOutVal(0)->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::GenCtorObj))
     {
-        newObjInstr->FreeSrc2();
-        return LowerNewScObjArrayNoArg(newObjInstr);
+        IR::RegOpnd* genCtorObj = instr->GetGenCtorInstr()->GetDst()->AsRegOpnd();
+        instr->FreeSrc2();
+        return LowerNewScObjArrayNoArg(instr, genCtorObj);
     }
 
     IR::Instr* startMarkerInstr = nullptr;
 
-    IR::Opnd *targetOpnd = newObjInstr->GetSrc1();
-    Func *func = newObjInstr->m_func;
+    IR::Opnd *targetOpnd = instr->GetSrc1();
+    Func *func = instr->m_func;
 
     if (!targetOpnd->IsAddrOpnd())
     {
-        if (!newObjInstr->HasBailOutInfo() || newObjInstr->OnlyHasLazyBailOut())
+        if (!instr->HasBailOutInfo() || instr->OnlyHasLazyBailOut())
         {
-            return this->LowerNewScObject(newObjInstr, true, true);
+            return this->LowerNewScObject(instr, true);
         }
+
+        // TODO: mayyybeee clean this up? this bailout logic now belongs to GenCtor, but this wasnt
+        // the original bailoutgeneration path that was followed to fix a bug. the original path
+        // went down LowerNewScObjArrayNoArg (look above)
 
         // Insert a temporary label before the instruction we're about to lower, so that we can return
         // the first instruction above that needs to be lowered after we're done - regardless of argument
         // list, StartCall, etc.
-        startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
+        startMarkerInstr = InsertLoweredRegionStartMarker(instr);
 
         // For whatever reason, we couldn't do a fixed function check on the call target.
         // Generate a runtime check on the target.
         Assert(
-            newObjInstr->GetBailOutKind() == IR::BailOutOnNotNativeArray ||
-            newObjInstr->GetBailOutKind() == BailOutInfo::WithLazyBailOut(IR::BailOutOnNotNativeArray)
+            instr->GetBailOutKind() == IR::BailOutOnNotNativeArray ||
+            instr->GetBailOutKind() == BailOutInfo::WithLazyBailOut(IR::BailOutOnNotNativeArray)
         );
         IR::LabelInstr *labelSkipBailOut = IR::LabelInstr::New(Js::OpCode::Label, func);
         InsertCompareBranch(
             targetOpnd,
-            LoadLibraryValueOpnd(newObjInstr, LibraryValue::ValueArrayConstructor),
+            LoadLibraryValueOpnd(instr, LibraryValue::ValueArrayConstructor),
             Js::OpCode::BrEq_A,
             true,
             labelSkipBailOut,
-            newObjInstr);
+            instr);
 
-        IR::ProfiledInstr *instrNew = IR::ProfiledInstr::New(newObjInstr->m_opcode, newObjInstr->UnlinkDst(), newObjInstr->UnlinkSrc1(), newObjInstr->UnlinkSrc2(), func);
-        instrNew->u.profileId = newObjInstr->AsProfiledInstr()->u.profileId;
-        newObjInstr->InsertAfter(instrNew);
-        newObjInstr->m_opcode = Js::OpCode::BailOut;
-        GenerateBailOut(newObjInstr);
+        IR::ProfiledInstr *instrNew = IR::ProfiledInstr::New(instr->m_opcode, instr->UnlinkDst(), instr->UnlinkSrc1(), instr->UnlinkSrc2(), func);
+        instrNew->u.profileId = instr->AsProfiledInstr()->u.profileId;
+        instr->InsertAfter(instrNew);
+        instr->m_opcode = Js::OpCode::BailOut;
+        GenerateBailOut(instr);
 
         instrNew->InsertBefore(labelSkipBailOut);
-        newObjInstr = instrNew;
+        instr = instrNew;
     }
     else
     {
         // Insert a temporary label before the instruction we're about to lower, so that we can return
         // the first instruction above that needs to be lowered after we're done - regardless of argument
         // list, StartCall, etc.
-        startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
+        startMarkerInstr = InsertLoweredRegionStartMarker(instr);
     }
 
     intptr_t weakFuncRef = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
     intptr_t arrayInfoAddr = 0;
-    Assert(newObjInstr->IsProfiledInstr());
+    Assert(instr->IsProfiledInstr());
 
-    IR::RegOpnd *resultObjOpnd = newObjInstr->GetDst()->AsRegOpnd();
-    IR::Instr * insertInstr = newObjInstr->m_next;
+    IR::RegOpnd *resultObjOpnd = instr->GetDst()->AsRegOpnd();
+    IR::Instr * insertInstr = instr->m_next;
 
-    Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
+    Js::ProfileId profileId = static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId);
 
     // We may not have profileId if we converted a NewScObject to NewScObjArray
     if (profileId != Js::Constants::NoProfileId)
@@ -5305,7 +5285,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
 
     IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func);
-    IR::Opnd *linkOpnd = newObjInstr->GetSrc2();
+    IR::Opnd *linkOpnd = instr->GetSrc2();
 
     Assert(linkOpnd->IsSymOpnd());
     StackSym *linkSym = linkOpnd->AsSymOpnd()->m_sym->AsStackSym();
@@ -5319,7 +5299,12 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
     // 2b. If 1st parameter is a constant, it is in range 0 and upperBoundValue (inclusive)
     if (opndOfArrayCtor->GetValueType().IsLikelyInt() && (opndOfArrayCtor->IsAddrOpnd() || opndOfArrayCtor->IsRegOpnd())) // #1
     {
-        if ((linkSym->GetArgSlotNum() == 2)) // 1. It is the only parameter
+
+        // TODO: must fix TODOs in here before you can turn on this fast path.
+        if (
+            false // TODO: remove when ready to fix this
+            
+            && (linkSym->GetArgSlotNum() == 2)) // 1. It is the only parameter
         {
             AssertMsg(linkSym->IsArgSlotSym(), "Not an argSlot symbol...");
             linkOpnd = argInstr->GetSrc2();
@@ -5333,19 +5318,19 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                     // 3. GenerateFastPath
                     if (arrayInfo && arrayInfo->IsNativeIntArray())
                     {
-                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeIntArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeIntArray>(instr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
                                                                 Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex(),
                                                                 Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef());
                     }
                     else if (arrayInfo && arrayInfo->IsNativeFloatArray())
                     {
-                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeFloatArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptNativeFloatArray>(instr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor,
                                                                   Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex(),
                                                                   Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef());
                     }
                     else
                     {
-                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptArray>(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor, 0, 0);
+                        emittedFastPath = GenerateProfiledNewScObjArrayFastPath<Js::JavascriptArray>(instr, arrayInfo, arrayInfoAddr, weakFuncRef, helperLabel, labelDone, opndOfArrayCtor, 0, 0);
                     }
                 }
             }
@@ -5355,33 +5340,38 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                 int32 length = linkSym->GetIntConstValue();
                 if (length >= 0 && length <= upperBoundValue)
                 {
-                    emittedFastPath = GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone, false);
+                    emittedFastPath = GenerateProfiledNewScObjArrayFastPath(instr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone, false);
                 }
             }
             // Since we emitted fast path above, move the startCall/argOut instruction right before helper
             if (emittedFastPath)
             {
-                linkSym = linkOpnd->AsRegOpnd()->m_sym->AsStackSym();
+                // TODO: this assumed that you would only have 1 argout instr (likely a num that is the
+                // length of the array) and the StartCall instr. But now we also have the GenCtor ArgOut instr.
+                // this fast path could probably still exist, but you need to write code to also move that
+                // GenCtor argout
+
+                linkSym = linkOpnd->GetStackSym(); //linkOpnd->AsRegOpnd()->m_sym->AsStackSym();
                 AssertMsg(!linkSym->IsArgSlotSym() && linkSym->m_isSingleDef, "Arg tree not single def...");
 
                 IR::Instr* startCallInstr = linkSym->m_instrDef;
                 AssertMsg(startCallInstr->GetArgOutCount(false) == 2, "Generating ArrayFastPath for more than 1 parameter not allowed.");
 
                 // Since we emitted fast path above, move the startCall/argOut instruction right before helper
-                startCallInstr->Move(newObjInstr);
-                argInstr->Move(newObjInstr);
+                startCallInstr->Move(instr);
+                argInstr->Move(instr);
             }
         }
     }
-    newObjInstr->UnlinkSrc1();
+    instr->UnlinkSrc1();
 
     IR::Opnd *profileOpnd = IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, func);
-    this->m_lowererMD.LoadNewScObjFirstArg(newObjInstr, profileOpnd);
+    this->m_lowererMD.LoadNewScObjFirstArg(instr, profileOpnd);
 
     IR::JnHelperMethod helperMethod = IR::HelperScrArr_ProfiledNewInstance;
 
-    newObjInstr->SetSrc1(IR::HelperCallOpnd::New(helperMethod, func));
-    newObjInstr = GenerateDirectCall(newObjInstr, targetOpnd, Js::CallFlags_New);
+    instr->SetSrc1(IR::HelperCallOpnd::New(helperMethod, func));
+    instr = GenerateDirectCall(instr, targetOpnd, Js::CallFlags_New);
 
     IR::BranchInstr* branchInstr = InsertCompareBranch(
         IR::IndirOpnd::New(resultObjOpnd, 0, TyMachPtr, func),
@@ -5407,63 +5397,67 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
 }
 
 IR::Instr *
-Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
+Lowerer::LowerNewScObjArrayNoArg(IR::Instr *instr, IR::RegOpnd* ctorObj)
 {
-    IR::Opnd *targetOpnd = newObjInstr->GetSrc1();
-    Func *func = newObjInstr->m_func;
+    IR::Opnd *targetOpnd = instr->GetSrc1();
+    Func *func = instr->m_func;
 
     IR::Instr* startMarkerInstr = nullptr;
 
     if (!targetOpnd->IsAddrOpnd())
     {
-        if (!newObjInstr->HasBailOutInfo() || newObjInstr->OnlyHasLazyBailOut())
+        if (!instr->HasBailOutInfo() || instr->OnlyHasLazyBailOut())
         {
-            return this->LowerNewScObject(newObjInstr, true, false);
+            return this->LowerNewScObject(instr, false, false/*default*/, ctorObj);
         }
+
+        // TODO: clean this up? bailout stuff from below is now on genctor.
 
         // Insert a temporary label before the instruction we're about to lower, so that we can return
         // the first instruction above that needs to be lowered after we're done - regardless of argument
         // list, StartCall, etc.
-        startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
+        startMarkerInstr = InsertLoweredRegionStartMarker(instr);
 
         // For whatever reason, we couldn't do a fixed function check on the call target.
         // Generate a runtime check on the target.
         Assert(
-            newObjInstr->GetBailOutKind() == IR::BailOutOnNotNativeArray ||
-            newObjInstr->GetBailOutKind() == BailOutInfo::WithLazyBailOut(IR::BailOutOnNotNativeArray)
+            instr->GetBailOutKind() == IR::BailOutOnNotNativeArray ||
+            instr->GetBailOutKind() == BailOutInfo::WithLazyBailOut(IR::BailOutOnNotNativeArray)
         );
         IR::LabelInstr *labelSkipBailOut = IR::LabelInstr::New(Js::OpCode::Label, func);
         InsertCompareBranch(
             targetOpnd,
-            LoadLibraryValueOpnd(newObjInstr, LibraryValue::ValueArrayConstructor),
+            LoadLibraryValueOpnd(instr, LibraryValue::ValueArrayConstructor),
             Js::OpCode::BrEq_A,
             true,
             labelSkipBailOut,
-            newObjInstr);
+            instr);
 
-        IR::ProfiledInstr *instrNew = IR::ProfiledInstr::New(newObjInstr->m_opcode, newObjInstr->UnlinkDst(), newObjInstr->UnlinkSrc1(), func);
-        instrNew->u.profileId = newObjInstr->AsProfiledInstr()->u.profileId;
-        newObjInstr->InsertAfter(instrNew);
-        newObjInstr->m_opcode = Js::OpCode::BailOut;
-        GenerateBailOut(newObjInstr);
+        IR::ProfiledInstr *instrNew = IR::ProfiledInstr::New(instr->m_opcode, instr->UnlinkDst(), instr->UnlinkSrc1(), func);
+        instrNew->u.profileId = instr->AsProfiledInstr()->u.profileId;
+        instr->InsertAfter(instrNew);
+        instr->m_opcode = Js::OpCode::BailOut;
+        GenerateBailOut(instr);
 
         instrNew->InsertBefore(labelSkipBailOut);
-        newObjInstr = instrNew;
+        instr = instrNew;
     }
     else
     {
         // Insert a temporary label before the instruction we're about to lower, so that we can return
         // the first instruction above that needs to be lowered after we're done - regardless of argument
         // list, StartCall, etc.
-        startMarkerInstr = InsertLoweredRegionStartMarker(newObjInstr);
+        startMarkerInstr = InsertLoweredRegionStartMarker(instr);
     }
 
-    Assert(newObjInstr->IsProfiledInstr());
+    //instr->FreeSrc2();
+
+    Assert(instr->IsProfiledInstr());
 
     intptr_t weakFuncRef = 0;
     intptr_t arrayInfoAddr = 0;
     Js::ArrayCallSiteInfo *arrayInfo = nullptr;
-    Js::ProfileId profileId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
+    Js::ProfileId profileId = static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId);
     if (profileId != Js::Constants::NoProfileId)
     {
         arrayInfo = func->GetReadOnlyProfileInfo()->GetArrayCallSiteInfo(profileId);
@@ -5474,18 +5468,18 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
     }
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func);
-    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, 0, labelDone, true);
-    newObjInstr->InsertAfter(labelDone);
+    GenerateProfiledNewScObjArrayFastPath(instr, arrayInfo, arrayInfoAddr, weakFuncRef, 0, labelDone, true);
+    instr->InsertAfter(labelDone);
 
-    m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, func));
-    m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, func));
+    m_lowererMD.LoadHelperArgument(instr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, func));
+    m_lowererMD.LoadHelperArgument(instr, IR::AddrOpnd::New(arrayInfoAddr, IR::AddrOpndKindDynamicArrayCallSiteInfo, func));
 
-    LoadScriptContext(newObjInstr);
+    LoadScriptContext(instr);
 
-    m_lowererMD.LoadHelperArgument(newObjInstr, targetOpnd);
-    newObjInstr->UnlinkSrc1();
-    newObjInstr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperScrArr_ProfiledNewInstanceNoArg, func));
-    m_lowererMD.LowerCall(newObjInstr, 0);
+    m_lowererMD.LoadHelperArgument(instr, targetOpnd);
+    instr->UnlinkSrc1();
+    instr->SetSrc1(IR::HelperCallOpnd::New(IR::HelperScrArr_ProfiledNewInstanceNoArg, func));
+    m_lowererMD.LowerCall(instr, 0);
 
     return RemoveLoweredRegionStartMarker(startMarkerInstr);
 }

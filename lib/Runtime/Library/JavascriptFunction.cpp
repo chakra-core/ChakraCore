@@ -862,9 +862,67 @@ using namespace Js;
     }
 #endif
 
-    Var JavascriptFunction::CallAsConstructor(Var v, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptFunction::GenCtorObj(Var ctor, Var overridingNewTarget, Var args_0, ScriptContext* scriptContext)
     {
-        Assert(v);
+        Assert(ctor);
+        Assert(scriptContext);
+
+        // Create the empty object if necessary:
+        // - Built-in constructor functions will return a new object of a specific type, so a new empty object does not need to
+        //   be created
+        // - If the newTarget is specified and the function is base kind then the this object will be already created. So we can
+        //   just use it instead of creating a new one.
+        // - For user-defined constructor functions, an empty object is created with the function's prototype
+
+        Var ctorObj = nullptr;
+
+        if (overridingNewTarget != nullptr && args_0 != nullptr)
+        {
+            ctorObj = args_0;
+        }
+        else
+        {
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                ctorObj = JavascriptOperators::NewScObjectNoCtor(ctor, scriptContext);
+            }
+            END_SAFE_REENTRANT_CALL
+        }
+
+        return ctorObj;
+    }
+
+    Var JavascriptFunction::UpdateNewScObjCache(Var ctor, Var ctorObj, ScriptContext* scriptContext)
+    {
+        if (VarIs<JavascriptProxy>(ctor))
+        {
+            return nullptr;
+        }
+
+        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(ctor);
+
+        JavascriptFunction *const function = VarIs<JavascriptFunction>(functionObj) && functionObj->GetScriptContext() == scriptContext ?
+            VarTo<JavascriptFunction>(functionObj) :
+            nullptr;
+
+        // #3217: Cases with overriding newTarget are not what constructor cache is intended for;
+        //        Bypass constructor cache to avoid prototype mismatch/confusion.
+        if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor())
+        {
+            JavascriptOperators::UpdateNewScObjectCache(function, ctorObj, function->GetScriptContext());
+        }
+
+        return nullptr;
+    }
+
+    Var JavascriptFunction::CallAsConstructor(Var ctor, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices)
+    {
+        // TODO: this function is still used in certain cases (rather than the preferred method of
+        //       using GenCtor, CallAsConstructorCallFunction, and UpNewScObjCache). These cases
+        //       include built-ins that call NewScObj (such as Array.of). These edge cases should
+        //       be converted into using the preferred NewScObj pipeline.
+
+        Assert(ctor);
         Assert(args.Info.Flags & CallFlags_New);
         Assert(scriptContext);
 
@@ -875,28 +933,10 @@ using namespace Js;
         }
         AnalysisAssert(args.Info.Count < USHORT_MAX);
 
-        // Create the empty object if necessary:
-        // - Built-in constructor functions will return a new object of a specific type, so a new empty object does not need to
-        //   be created
-        // - If the newTarget is specified and the function is base kind then the this object will be already created. So we can
-        //   just use it instead of creating a new one.
-        // - For user-defined constructor functions, an empty object is created with the function's prototype
-        Var resultObject = nullptr;
-        if (overridingNewTarget != nullptr && args.Info.Count > 0)
-        {
-            resultObject = args.Values[0];
-        }
-        else
-        {
-            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
-            {
-                resultObject = JavascriptOperators::NewScObjectNoCtor(v, scriptContext);
-            }
-            END_SAFE_REENTRANT_CALL
-        }
+        Var ctorObj = GenCtorObj(ctor, overridingNewTarget, args.Info.Count > 0 ? args.Values[0] : nullptr, scriptContext);
 
-        // JavascriptOperators::NewScObjectNoCtor should have thrown if 'v' is not a constructor
-        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(v);
+        // JavascriptOperators::NewScObjectNoCtor should have thrown if 'ctor' is not a constructor
+        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(ctor);
 
         const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
         Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
@@ -943,15 +983,15 @@ using namespace Js;
 
         if (!thisAlreadySpecified)
         {
-            newValues[0] = resultObject;
+            newValues[0] = ctorObj;
         }
 
         CallInfo newCallInfo(newFlags, args.Info.Count);
         Arguments newArgs(newCallInfo, newValues);
 
-        if (VarIs<JavascriptProxy>(v))
+        if (VarIs<JavascriptProxy>(ctor))
         {
-            JavascriptProxy* proxy = VarTo<JavascriptProxy>(v);
+            JavascriptProxy* proxy = VarTo<JavascriptProxy>(ctor);
             return proxy->ConstructorTrap(newArgs, scriptContext, spreadIndices);
         }
 
@@ -962,48 +1002,145 @@ using namespace Js;
         }
 #endif
 
-        Var functionResult;
+        Var ctorRetVal;
         if (spreadIndices != nullptr)
         {
-            functionResult = CallSpreadFunction(functionObj, newArgs, spreadIndices);
+            ctorRetVal = CallSpreadFunction(functionObj, newArgs, spreadIndices);
         }
         else
         {
-            functionResult = CallFunction<true>(functionObj, functionObj->GetEntryPoint(), newArgs, true /*useLargeArgCount*/);
+            ctorRetVal = CallFunction<true>(functionObj, functionObj->GetEntryPoint(), newArgs, true /*useLargeArgCount*/);
         }
 
         return
             FinishConstructor(
-                functionResult,
-                resultObject,
+                ctorRetVal,
+                ctorObj,
                 VarIs<JavascriptFunction>(functionObj) && functionObj->GetScriptContext() == scriptContext ?
-                VarTo<JavascriptFunction>(functionObj) :
-                nullptr,
+                    VarTo<JavascriptFunction>(functionObj) :
+                    nullptr,
                 overridingNewTarget != nullptr);
     }
 
+    Var JavascriptFunction::CallAsConstructorCallFunction(Var ctor, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices)
+    {
+        Assert(ctor);
+        Assert(args.Info.Flags & CallFlags_New);
+        Assert(scriptContext);
+
+        // newCount is ushort.
+        if (args.Info.Count >= USHORT_MAX)
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
+        }
+        AnalysisAssert(args.Info.Count < USHORT_MAX);
+
+        // The constructor object is stored in the 0th slot of the arguments.
+        Var ctorObj = args.Values[0];
+
+        // JavascriptOperators::NewScObjectNoCtor should have thrown if 'ctor' is not a constructor
+        RecyclableObject* functionObj = UnsafeVarTo<RecyclableObject>(ctor);
+
+        const unsigned STACK_ARGS_ALLOCA_THRESHOLD = 8; // Number of stack args we allow before using _alloca
+        Var stackArgs[STACK_ARGS_ALLOCA_THRESHOLD];
+        Var* newValues = args.Values;
+        CallFlags newFlags = args.Info.Flags;
+
+        bool thisAlreadySpecified = false;
+
+        if (overridingNewTarget != nullptr)
+        {
+            ScriptFunction * scriptFunctionObj = JavascriptOperators::TryFromVar<ScriptFunction>(functionObj);
+            uint newCount = args.Info.Count;
+            if (scriptFunctionObj && scriptFunctionObj->GetFunctionInfo()->IsClassConstructor())
+            {
+                thisAlreadySpecified = true;
+                args.Values[0] = overridingNewTarget;
+            }
+            else
+            {
+                newCount++;
+                newFlags = (CallFlags)(newFlags | CallFlags_NewTarget | CallFlags_ExtraArg);
+                if (newCount > STACK_ARGS_ALLOCA_THRESHOLD)
+                {
+                    PROBE_STACK(scriptContext, newCount * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
+                    newValues = (Var*)_alloca(newCount * sizeof(Var));
+                }
+                else
+                {
+                    newValues = stackArgs;
+                }
+
+                for (unsigned int i = 0; i < args.Info.Count; i++)
+                {
+                    newValues[i] = args.Values[i];
+                }
+#pragma prefast(suppress:6386, "The index is within the bounds")
+                newValues[args.Info.Count] = overridingNewTarget;
+            }
+        }
+
+        // Call the constructor function:
+        // - If this is not already specified as the overriding new target in Reflect.construct a class case, then
+        // - Pass in the new empty object as the 'this' parameter. This can be null if an empty object was not created.
+
+        if (!thisAlreadySpecified)
+        {
+            newValues[0] = ctorObj;
+        }
+
+        CallInfo newCallInfo(newFlags, args.Info.Count);
+        Arguments newArgs(newCallInfo, newValues);
+
+        if (VarIs<JavascriptProxy>(ctor))
+        {
+            // TODO: When refactoring CallAsConstructor, be sure to not execute FinishConstructor if this path is taken.
+            JavascriptProxy* proxy = VarTo<JavascriptProxy>(ctor);
+            return proxy->ConstructorTrap(newArgs, scriptContext, spreadIndices);
+        }
+
+#if DBG
+        if (scriptContext->IsScriptContextInDebugMode())
+        {
+            CheckValidDebugThunk(scriptContext, functionObj);
+        }
+#endif
+
+        Var ctorRetVal;
+        if (spreadIndices != nullptr)
+        {
+            ctorRetVal = CallSpreadFunction(functionObj, newArgs, spreadIndices);
+        }
+        else
+        {
+            ctorRetVal = CallFunction<true>(functionObj, functionObj->GetEntryPoint(), newArgs, true /*useLargeArgCount*/);
+        }
+
+        return ctorRetVal;
+    }
+
     Var JavascriptFunction::FinishConstructor(
-        const Var constructorReturnValue,
-        Var newObject,
+        const Var ctorRetVal,
+        Var ctorObj,
         JavascriptFunction *const function,
         bool hasOverridingNewTarget)
     {
-        Assert(constructorReturnValue);
+        Assert(ctorRetVal);
 
         // CONSIDER: Using constructorCache->ctorHasNoExplicitReturnValue to speed up this interpreter code path.
-        if (JavascriptOperators::IsObject(constructorReturnValue))
+        if (JavascriptOperators::IsObject(ctorRetVal))
         {
-            newObject = constructorReturnValue;
+            ctorObj = ctorRetVal;
         }
 
         // #3217: Cases with overriding newTarget are not what constructor cache is intended for;
         //     Bypass constructor cache to avoid prototype mismatch/confusion.
         if (function && function->GetConstructorCache()->NeedsUpdateAfterCtor() && !hasOverridingNewTarget)
         {
-            JavascriptOperators::UpdateNewScObjectCache(function, newObject, function->GetScriptContext());
+            JavascriptOperators::UpdateNewScObjectCache(function, ctorObj, function->GetScriptContext());
         }
 
-        return newObject;
+        return ctorObj;
     }
 
     Var JavascriptFunction::EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...)

@@ -608,7 +608,7 @@ private:
 
     IR::Instr *             GetExtendedArg(IR::Instr *instr);
 
-    void                    OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
+    void                    OptGenCtorObj(IR::Instr** instrPtr, Value* srcVal);
     template <typename T>
     bool                    OptConstFoldBinaryWasm(IR::Instr * *pInstr, const Value* src1, const Value* src2, Value **pDstVal);
     template <typename T>

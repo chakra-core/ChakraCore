@@ -127,7 +127,11 @@ namespace Js
         static Var ConstructHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
         static Var CallRootFunctionInScript(JavascriptFunction* func, Arguments args);
 
+        static Var GenCtorObj(Var ctor, Var overridingNewTarget, Var args_0, ScriptContext* scriptContext);
+        static Var UpdateNewScObjCache(Var ctor, Var ctorObj, ScriptContext* scriptContext);
         static Var CallAsConstructor(Var v, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
+        static Var CallAsConstructorCallFunction(Var v, Var overridingNewTarget, Arguments args, ScriptContext* scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
+
         static Var FinishConstructor(const Var constructorReturnValue, Var newObject, JavascriptFunction *const function, bool hasOverridingNewTarget = false);
 
 #if DBG

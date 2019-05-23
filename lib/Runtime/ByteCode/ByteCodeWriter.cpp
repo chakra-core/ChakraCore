@@ -665,7 +665,7 @@ namespace Js
 
         if (emitProfiledArgout
             && DoDynamicProfileOpcode(InlinePhase)
-            && arg > 0 && arg < Js::Constants::MaximumArgumentCountForConstantArgumentInlining
+            && arg < Js::Constants::MaximumArgumentCountForConstantArgumentInlining
             && reg > FunctionBody::FirstRegSlot
             && callSiteId != Js::Constants::NoProfileId
             )

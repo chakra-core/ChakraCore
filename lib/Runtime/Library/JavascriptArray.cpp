@@ -10387,7 +10387,7 @@ Case0:
                 JS_REENTRANT(jsReentLock,
                     newObj = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
-                        return JavascriptOperators::NewScObject(constructor, arguments, scriptContext);
+                        return JavascriptOperators::NewScObject(constructor, arguments, scriptContext, nullptr, true);
                     }))
                 );
 
@@ -10448,7 +10448,7 @@ Case0:
                 JS_REENTRANT(jsReentLock,
                     newObj = VarTo<RecyclableObject>(JavascriptOperators::NewObjectCreationHelper_ReentrancySafe(constructor, isDefaultConstructor, scriptContext->GetThreadContext(), [=]()->Js::Var
                     {
-                        return JavascriptOperators::NewScObject(constructor, arguments, scriptContext);
+                        return JavascriptOperators::NewScObject(constructor, arguments, scriptContext, nullptr, true);
                     }))
                 );
 
@@ -10575,11 +10575,13 @@ Case0:
                     Js::CallInfo constructorCallInfo(Js::CallFlags_New, _countof(constructorArgs));
                     if (isTypedArrayEntryPoint)
                     {
-                        return TypedArrayBase::TypedArrayCreate(constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
+                        return TypedArrayBase::TypedArrayCreate(
+                            constructor, &Js::Arguments(constructorCallInfo, constructorArgs), len, scriptContext);
                     }
                     else
                     {
-                        return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext);
+                        return JavascriptOperators::NewScObject(
+                            constructor, Js::Arguments(constructorCallInfo,constructorArgs),scriptContext, nullptr, true);
                     }
                 });
             )
@@ -12365,7 +12367,8 @@ Case0:
         ThreadContext* threadContext = scriptContext->GetThreadContext();
         Var scObject = threadContext->ExecuteImplicitCall((RecyclableObject*)constructor, ImplicitCall_Accessor, [&]()->Js::Var
         {
-            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext));
+            // TODO: possibly need to use fullNewScObjPath!
+            JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptOperators::NewScObject(constructor, Js::Arguments(constructorCallInfo, constructorArgs), scriptContext, nullptr, true));
         });
         return VarTo<RecyclableObject>(scObject);
     }

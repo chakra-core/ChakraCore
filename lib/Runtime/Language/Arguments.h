@@ -250,7 +250,7 @@ namespace Js
             return Info.HasNewTarget();
         }
 
-        // New target value is passed as an extra argument which is nto included in the Info.Count
+        // New target value is passed as an extra argument which is not included in the Info.Count
         Var GetNewTarget() const
         {
             return CallInfo::GetNewTarget(Info.Flags, this->Values, Info.Count);
