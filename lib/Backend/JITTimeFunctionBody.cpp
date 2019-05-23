@@ -155,6 +155,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         {
             jitBody->loopHeaders[i].startOffset = loopHeaders[i].startOffset;
             jitBody->loopHeaders[i].endOffset = loopHeaders[i].endOffset;
+            jitBody->loopHeaders[i].tmpRegCount = loopHeaders[i].tmpRegCount;
             jitBody->loopHeaders[i].isNested = loopHeaders[i].isNested;
             jitBody->loopHeaders[i].isInTry = loopHeaders[i].isInTry;
             jitBody->loopHeaders[i].isInTryFinally = loopHeaders[i].isInTryFinally;

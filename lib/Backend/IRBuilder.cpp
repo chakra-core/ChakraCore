@@ -349,11 +349,19 @@ IRBuilder::Build()
     }
 
     this->firstTemp = m_func->GetJITFunctionBody()->GetFirstTmpReg();
-    Js::RegSlot tempCount = m_func->GetJITFunctionBody()->GetTempCount();
-    if (tempCount > 0)
+
+    // For loop bodies, treat temps that are live on entry as non-temps
+    // in order to generate the correct load and store slot instructions
+    if (IsLoopBody())
     {
-        this->tempMap = AnewArrayZ(m_tempAlloc, SymID, tempCount);
-        this->fbvTempUsed = BVFixed::New<JitArenaAllocator>(tempCount, m_tempAlloc);
+        this->firstTemp += m_func->m_workItem->GetLoopHeader()->tmpRegCount;
+    }
+
+    this->tempCount = m_func->GetJITFunctionBody()->GetLocalsCount() - this->firstTemp;
+    if (this->tempCount > 0)
+    {
+        this->tempMap = AnewArrayZ(m_tempAlloc, SymID, this->tempCount);
+        this->fbvTempUsed = BVFixed::New<JitArenaAllocator>(this->tempCount, m_tempAlloc);
     }
     else
     {
@@ -385,19 +393,14 @@ IRBuilder::Build()
     Assert(!OpCodeAttr::HasMultiSizeLayout(Js::OpCode::EndOfBlock));
     uint32 lastOffset = m_func->GetJITFunctionBody()->GetByteCodeLength() - Js::OpCodeUtil::EncodedSize(Js::OpCode::EndOfBlock, Js::SmallLayout);
     uint32 offsetToInstructionCount = lastOffset;
+
     if (this->IsLoopBody())
     {
-        // LdSlot needs to cover all the register, including the temps, because we might treat
-        // those as if they are local for the value of the with statement
+        // LdSlot needs to cover all of the registers, including the temps, because we might treat
+        // those as if they are local within the loop body
         this->m_ldSlots = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetLocalsCount(), m_tempAlloc);
-        this->m_stSlots = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetFirstTmpReg(), m_tempAlloc);
+        this->m_stSlots = BVFixed::New<JitArenaAllocator>(this->firstTemp, m_tempAlloc);
         this->m_loopBodyRetIPSym = StackSym::New(TyMachReg, this->m_func);
-#if DBG
-        if (m_func->GetJITFunctionBody()->GetTempCount() != 0)
-        {
-            this->m_usedAsTemp = BVFixed::New<JitArenaAllocator>(m_func->GetJITFunctionBody()->GetTempCount(), m_tempAlloc);
-        }
-#endif
 
         lastOffset = m_func->m_workItem->GetLoopHeader()->endOffset;
         AssertOrFailFast(lastOffset < m_func->GetJITFunctionBody()->GetByteCodeLength());
@@ -1183,17 +1186,7 @@ IRBuilder::BuildSrcStackSymID(Js::RegSlot regSlot)
         // This is a use of a temp. Map the reg slot to its sym ID.
         //     !!!NOTE: always process an instruction's temp uses before its temp defs!!!
         symID = this->GetMappedTemp(regSlot);
-        if (symID == 0)
-        {
-            // We might have temps that are live through the loop body via "with" statement
-            // We need to treat those as if they are locals and don't remap them
-            Assert(this->IsLoopBody());
-            Assert(!this->m_usedAsTemp->Test(regSlot - m_func->GetJITFunctionBody()->GetFirstTmpReg()));
-
-            symID = static_cast<SymID>(regSlot);
-            this->SetMappedTemp(regSlot, symID);
-            this->EnsureLoopBodyLoadSlot(symID);
-        }
+        Assert(symID != 0);
         this->SetTempUsed(regSlot, TRUE);
     }
     else
@@ -1276,18 +1269,6 @@ IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectS
 
     if (this->RegIsTemp(dstRegSlot))
     {
-#if DBG
-        if (this->IsLoopBody())
-        {
-            // If we are doing loop body, and a temp reg slot is loaded via LdSlot
-            // That means that we have detected that the slot is live coming in to the loop.
-            // This would only happen for the value of a "with" statement, so there shouldn't
-            // be any def for those
-            Assert(!this->m_ldSlots->Test(dstRegSlot));
-            this->m_usedAsTemp->Set(dstRegSlot - m_func->GetJITFunctionBody()->GetFirstTmpReg());
-        }
-#endif
-
         // This is a def of a temp. Create a new sym ID for it if it's been used since its last def.
         //     !!!NOTE: always process an instruction's temp uses before its temp defs!!!
         if (this->GetTempUsed(dstRegSlot))
@@ -1307,7 +1288,6 @@ IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectS
                 this->SetMappedTemp(dstRegSlot, symID);
             }
         }
-
     }
     else
     {
@@ -1686,9 +1666,18 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         break;
 
     case Js::OpCode::Unused:
-        // Don't generate anything. Just indicate that the temp reg is used.
-        Assert(this->RegIsTemp(dstRegSlot));
-        this->SetTempUsed(dstRegSlot, TRUE);
+        if (this->RegIsTemp(dstRegSlot))
+        {
+            // Don't generate anything. Just indicate that the temp reg is used.
+            this->SetTempUsed(dstRegSlot, TRUE);
+        }
+        else
+        {
+            // A non-temp appearing as an operand to OpCode::Unused can only occur
+            // when we are jitting a loop body and we are treating a out-of-loop
+            // temp as a non-temp.
+            Assert(IsLoopBody() && dstRegSlot >= m_func->GetJITFunctionBody()->GetFirstTmpReg());
+        }
         return;
 
     case Js::OpCode::InitUndecl:

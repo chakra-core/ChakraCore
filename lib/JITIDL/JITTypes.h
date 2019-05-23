@@ -430,6 +430,7 @@ typedef struct JITLoopHeaderIDL
     unsigned int interpretCount;
     unsigned int startOffset;
     unsigned int endOffset;
+    unsigned int tmpRegCount;
 } JITLoopHeaderIDL;
 
 

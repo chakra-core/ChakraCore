@@ -74,7 +74,6 @@ public:
         , m_paramScopeDone(false)
 #if DBG
         , m_callsOnStack(0)
-        , m_usedAsTemp(nullptr)
 #endif
 #ifdef BAILOUT_INJECTION
         , seenLdStackArgPtr(false)
@@ -233,7 +232,7 @@ private:
         AssertMsg(this->tempMap, "Processing non-temp reg without a temp map?");
 
         Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        AssertOrFailFast(tempIndex < this->tempCount);
         return this->tempMap[tempIndex];
     }
 
@@ -243,7 +242,7 @@ private:
         AssertMsg(this->tempMap, "Processing non-temp reg without a temp map?");
 
         Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        AssertOrFailFast(tempIndex < this->tempCount);
         this->tempMap[tempIndex] = tempId;
     }
 
@@ -253,7 +252,7 @@ private:
         AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
 
         Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        AssertOrFailFast(tempIndex < this->tempCount);
         return this->fbvTempUsed->Test(tempIndex);
     }
 
@@ -263,7 +262,7 @@ private:
         AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
 
         Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
+        AssertOrFailFast(tempIndex < this->tempCount);
         if (used)
         {
             this->fbvTempUsed->Set(tempIndex);
@@ -349,14 +348,11 @@ private:
     SymID *             tempMap;
     BVFixed *           fbvTempUsed;
     Js::RegSlot         firstTemp;
+    Js::RegSlot         tempCount;
     IRBuilderSwitchAdapter m_switchAdapter;
     SwitchIRBuilder     m_switchBuilder;
-
     BVFixed *           m_ldSlots;
     BVFixed *           m_stSlots;
-#if DBG
-    BVFixed *           m_usedAsTemp;
-#endif
     StackSym *          m_loopBodyRetIPSym;
     StackSym*           m_loopCounterSym;
     StackSym *          m_stackFuncPtrSym;
