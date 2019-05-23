@@ -107,10 +107,11 @@ private:
     void            LowerNewScObjectSimple(IR::Instr *instr);
     void            LowerNewScObjectLiteral(IR::Instr *instr);
     IR::Instr *     LowerInitCachedFuncs(IR::Instr *instrInit);
+    IR::Instr *     LowerGenCtorObj(IR::Instr *instr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject = false);
 
-    IR::Instr *     LowerNewScObject(IR::Instr *instr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject = false);
+    IR::Instr *     LowerNewScObject(IR::Instr *instr, bool newScObjInstrHasArgs, bool isBaseClassConstructorNewScObject = false, IR::RegOpnd* ctorObj = nullptr);
     IR::Instr *     LowerNewScObjArray(IR::Instr *instr);
-    IR::Instr *     LowerNewScObjArrayNoArg(IR::Instr *instr);
+    IR::Instr *     LowerNewScObjArrayNoArg(IR::Instr *instr, IR::RegOpnd* ctorObj = nullptr);
     bool            TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::RegOpnd* newObjDst, IR::LabelInstr* helperOrBailoutLabel, IR::LabelInstr* callCtorLabel,
                         bool& skipNewScObj, bool& returnNewScObj, bool& emitHelper);
     void            GenerateRecyclerAllocAligned(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);

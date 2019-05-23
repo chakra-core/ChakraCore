@@ -478,7 +478,9 @@ namespace Js
         static Var NewScObjectNoArgNoCtor(Var instance, ScriptContext* requestContext);
         static Var NewScObjectNoArgNoCtorFull(Var instance, ScriptContext* requestContext);
         static Var NewScObjectNoArg(Var instance, ScriptContext* requestContext);
-        static Var NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
+        static Var NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr, bool fullNewScObjPath = false);
+        static Var GenCtorObj(const Var ctor, ScriptContext *const scriptContext);
+        static Var UpdateNewScObjCache(const Var ctor, const Var ctorObj, ScriptContext *const scriptContext);
         template <typename Fn>
         static Var NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, bool isDefaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction);
         static Var AddVarsToArraySegment(SparseArraySegment<Var> * segment, const Js::VarArray *vars);

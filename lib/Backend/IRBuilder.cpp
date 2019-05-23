@@ -1798,6 +1798,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
     case Js::OpCode::SpreadObjectLiteral:
         // fall through
     case Js::OpCode::SetComputedNameVar:
+    case Js::OpCode::UpNewScObjCache:
     {
         IR::Instr *instr = IR::Instr::New(newOpcode, m_func);
         instr->SetSrc1(this->BuildSrcOpnd(R0));
@@ -1824,6 +1825,13 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->AddInstr(instr, offset);
         return;
     }
+
+    // In order to obtain this instr from NewScObj, we must assure that, while walking
+    // up the ArgOut chain, this instr is accessible via instrDef and thus this instr's
+    // dst cannot have a symbol that has already been defined.
+    case Js::OpCode::GenCtorObj:
+        SetTempUsed(R0, TRUE);
+        break;
     }
 
     IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(R0);
@@ -6518,7 +6526,6 @@ IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
         case Js::OpCode::NewScObjArray:
         case Js::OpCode::NewScObjArraySpread:
             symDst->m_isSafeThis = true;
-            symDst->m_isNotNumber = true;
             break;
         }
     }
@@ -6533,7 +6540,6 @@ IRBuilder::BuildCallI_Helper(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
 void
 IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot argCount, Js::CallFlags flags)
 {
-    Js::OpCode newOpcode = instr->m_opcode;
 
     IR::Instr *     argInstr = nullptr;
     IR::Instr *     prevInstr = instr;
@@ -6558,15 +6564,6 @@ IRBuilder::BuildCallCommon(IR::Instr * instr, StackSym * symDst, Js::ArgSlot arg
     if (m_argStack->Empty())
     {
         this->callTreeHasSomeProfileInfo = false;
-    }
-
-    if (newOpcode == Js::OpCode::NewScObject || newOpcode == Js::OpCode::NewScObjArray
-        || newOpcode == Js::OpCode::NewScObjectSpread || newOpcode == Js::OpCode::NewScObjArraySpread)
-    {
-#if DBG
-        count++;
-#endif
-        m_argsOnStack++;
     }
 
     argCount = Js::CallInfo::GetArgCountWithExtraArgs(flags, argCount);

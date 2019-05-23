@@ -1580,16 +1580,15 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
 }
 
 void
-GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
+GlobOpt::OptGenCtorObj(IR::Instr** instrPtr, Value* srcVal)
 {
     IR::Instr *&instr = *instrPtr;
 
-    if (!instr->IsNewScObjectInstr() || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
+    if (instr->m_opcode != Js::OpCode::GenCtorObj || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
     {
         return;
     }
 
-    bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;
     const JITTimeConstructorCache * ctorCache = instr->IsProfiledInstr() ?
         instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)) : nullptr;
 
@@ -1597,7 +1596,7 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
     //Assert(ctorCache == nullptr || srcVal->GetValueInfo()->IsVarConstant() && Js::VarIs<Js::JavascriptFunction>(srcVal->GetValueInfo()->AsVarConstant()->VarValue()));
     Assert(ctorCache == nullptr || !ctorCache->IsTypeFinal() || ctorCache->CtorHasNoExplicitReturnValue());
 
-    if (ctorCache != nullptr && !ctorCache->SkipNewScObject() && (isCtorInlined || ctorCache->IsTypeFinal()))
+    if (ctorCache != nullptr && !ctorCache->SkipNewScObject())
     {
         GenerateBailAtOperation(instrPtr, IR::BailOutFailedCtorGuardCheck);
     }

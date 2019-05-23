@@ -588,7 +588,8 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                     StackSym* originalCallTargetStackSym = instr->GetSrc1()->GetStackSym();
                     bool originalCallTargetOpndIsJITOpt = instr->GetSrc1()->GetIsJITOptimizedReg();
                     bool safeThis = false;
-                    if (TryOptimizeCallInstrWithFixedMethod(instr, nullptr, isPolymorphic /*isPolymorphic*/, isBuiltIn /*isBuiltIn*/, isCtor /*isCtor*/, false /*isInlined*/, safeThis /*unused here*/))
+                    if (TryOptimizeCallInstrWithFixedMethod(instr, nullptr, isPolymorphic /*isPolymorphic*/, isBuiltIn /*isBuiltIn*/, 
+                        isCtor /*isCtor*/, false /*isInlined*/, safeThis /*unused here*/))
                     {
                         Assert(originalCallTargetStackSym != nullptr);
 
@@ -597,12 +598,6 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         IR::ByteCodeUsesInstr * useCallTargetInstr = IR::ByteCodeUsesInstr::New(instr);
                         useCallTargetInstr->SetRemovedOpndSymbol(originalCallTargetOpndIsJITOpt, originalCallTargetStackSym->m_id);
                         instr->InsertBefore(useCallTargetInstr);
-
-                        // Split NewScObject into NewScObjectNoCtor and CallI, but don't touch NewScObjectArray.
-                        if (instr->m_opcode == Js::OpCode::NewScObject && !PHASE_OFF(Js::SplitNewScObjectPhase, this->topFunc))
-                        {
-                            SplitConstructorCall(instr, false, true);
-                        }
                     }
                     else if (instr->m_opcode == Js::OpCode::NewScObjArray)
                     {
@@ -610,7 +605,8 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
                         {
                             // We expect to create a native array here, so we'll insert a check against the
                             // expected call target, which requires a bailout.
-                            instr = instr->ConvertToBailOutInstr(instr, IR::BailOutOnNotNativeArray);
+                            IR::Instr* genCtorInstr = instr->GetGenCtorInstr();
+                            genCtorInstr->ConvertToBailOutInstr(genCtorInstr, IR::BailOutOnNotNativeArray);
                         }
                     }
                 }
@@ -1958,6 +1954,8 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         AssertOrFailFast(
             callInstr->m_opcode == Js::OpCode::NewScObject ||
             callInstr->m_opcode == Js::OpCode::NewScObjArray);
+
+        callInstr->isFixedCall = true;
     }
 
     if (!isBuiltIn && isInlined)
@@ -4098,7 +4096,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
 #if DBG
     memset(argOuts, 0, sizeof(argOuts));
 #endif
-    if (callInstr->m_opcode == Js::OpCode::CallIFixed)
+    if (callInstr->m_opcode == Js::OpCode::CallIFixed || callInstr->isFixedCall)
     {
         Assert(callInstr->GetFixedFunction()->GetFuncInfoAddr() == funcInfo->GetFunctionInfoAddr());
     }
@@ -4123,7 +4121,7 @@ Inline::InlineFunctionCommon(IR::Instr *callInstr, bool originalCallTargetOpndIs
 #if DBG
     if(safeThis)
     {
-        Assert(callInstr->m_opcode == Js::OpCode::CallIFixed);
+        Assert(callInstr->m_opcode == Js::OpCode::CallIFixed || callInstr->m_opcode == Js::OpCode::NewScObject);
     }
 #endif
 
@@ -4259,7 +4257,8 @@ Inline::InsertStatementBoundary(IR::Instr * instrNext)
 }
 
 IR::Instr *
-Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis, const Js::ProfileId profileId, bool* pIsInlined, IR::Instr * inlineeDefInstr, uint recursiveInlineDepth)
+Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *const inlineeData, const StackSym *symCallerThis,
+    const Js::ProfileId profileId, bool* pIsInlined, IR::Instr * inlineeDefInstr, uint recursiveInlineDepth)
 {
     *pIsInlined = false;
 
@@ -4322,13 +4321,17 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
     if (callInstr->m_opcode == Js::OpCode::NewScObject || callInstr->m_opcode == Js::OpCode::NewScObjArray)
     {
         isCtor = true;
+
         isFixed = TryOptimizeCallInstrWithFixedMethod(callInstr, inlineeData,
             false /*isPolymorphic*/, false /*isBuiltIn*/, isCtor /*isCtor*/, true /*isInlined*/, safeThis /*&safeThis*/);
-        bool split = SplitConstructorCall(callInstr, true, isFixed, &inlineBailoutChecksBeforeInstr);
-        Assert(split && inlineBailoutChecksBeforeInstr != nullptr);
+
+        inlineBailoutChecksBeforeInstr = PrepareNewScObjArgsForInlining(callInstr);
     }
     else
     {
+        // TODO: should this optimization be tried for NewScObj? The reason it is not is that this
+        // replaces the symbol of the ctor (NewScObj s5 arg1 - s5 is the ctor) with the ctor's addr
+        // but that messes things up down the line.
         isFixed = TryOptimizeCallInstrWithFixedMethod(callInstr, inlineeData,
             false /*isPolymorphic*/, false /*isBuiltIn*/, isCtor /*isCtor*/, true /*isInlined*/, safeThis /*&safeThis*/);
         inlineBailoutChecksBeforeInstr = callInstr;
@@ -4410,195 +4413,69 @@ Inline::InlineScriptFunction(IR::Instr *callInstr, const FunctionJITTimeInfo *co
         false);
 #endif
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, inlineBailoutChecksBeforeInstr, symCallerThis, recursiveInlineDepth, safeThis);
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData,
+        inlinee, instrNext, returnValueOpnd, inlineBailoutChecksBeforeInstr, symCallerThis, recursiveInlineDepth, safeThis);
 }
 
-bool
-Inline::SplitConstructorCall(IR::Instr *const newObjInstr, const bool isInlined, const bool isFixed, IR::Instr** createObjInstrOut, IR::Instr** callCtorInstrOut) const
+
+IR::Instr*
+Inline::PrepareNewScObjArgsForInlining(IR::Instr* callInstr)
 {
-    Assert(newObjInstr);
-    Assert(newObjInstr->m_opcode == Js::OpCode::NewScObject);
-    Assert(newObjInstr->GetSrc1());
-    Assert(newObjInstr->GetSrc2());
+    // The ArgOut instr whose value (src1) is the  
+    // genCtorObj must be the callInstr's prev instr.
 
-    this->topFunc->SetHasTempObjectProducingInstr(true);
+    IR::Instr* currArgOutInstr = callInstr;
+    IR::Instr* nextArgOutInstr = nullptr;
 
-    return
-        SplitConstructorCallCommon(
-            newObjInstr,
-            newObjInstr->GetSrc2(),
-            Js::OpCode::NewScObjectNoCtor,
-            isInlined,
-            isFixed,
-            createObjInstrOut,
-            callCtorInstrOut);
-}
-
-bool
-Inline::SplitConstructorCallCommon(
-    IR::Instr *const newObjInstr,
-    IR::Opnd *const lastArgOpnd,
-    const Js::OpCode newObjOpCode,
-    const bool isInlined,
-    const bool isFixed,
-    IR::Instr** createObjInstrOut,
-    IR::Instr** callCtorInstrOut) const
-{
-    Assert(newObjInstr);
-    Assert(newObjInstr->GetSrc1());
-    Assert(lastArgOpnd);
-    Assert(isInlined || isFixed);
-
-    const auto callerFunc = newObjInstr->m_func;
-
-    // Call the NoCtor version of NewScObject
-
-    // Use a temporary register for the newly allocated object (before the call to ctor) - even if we know we'll return this
-    // object from the whole operation.  That's so that we don't trash the bytecode register if we need to bail out at
-    // object allocation (bytecode instruction has the form [Profiled]NewScObject R6 = R6).
-    IR::RegOpnd* createObjDst = nullptr;
-    IR::Instr* createObjInstr = nullptr;
-    const JITTimeConstructorCache* constructorCache;
-    bool returnCreatedObject = false;
-    bool skipNewScObj = false;
-
-    if (newObjInstr->IsProfiledInstr())
+    // Traverse ArgOut chain until currArgOutInstr is the 
+    // ArgOut instr whose value (src1) is the ctorObj.
+    do
     {
-        Js::ProfileId profiledCallSiteId = static_cast<Js::ProfileId>(newObjInstr->AsProfiledInstr()->u.profileId);
-        constructorCache = newObjInstr->m_func->GetConstructorCache(profiledCallSiteId);
-        returnCreatedObject = constructorCache != nullptr && constructorCache->CtorHasNoExplicitReturnValue();
-        skipNewScObj = constructorCache != nullptr && constructorCache->SkipNewScObject();
-        if (!skipNewScObj)
+        nextArgOutInstr = currArgOutInstr;
+        currArgOutInstr = currArgOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+        if (currArgOutInstr->m_opcode == Js::OpCode::LdSpreadIndices)
         {
-            createObjDst = IR::RegOpnd::New(TyVar, callerFunc);
-            createObjInstr = IR::ProfiledInstr::New(newObjOpCode, createObjDst, newObjInstr->GetSrc1(), callerFunc);
-            createObjInstr->AsProfiledInstr()->u.profileId = profiledCallSiteId;
+            // Indirection, does not count as an ArgOut.
+            continue;
         }
-    }
-    else
-    {
-        constructorCache = nullptr;
-        createObjDst = IR::RegOpnd::New(TyVar, callerFunc);
-        createObjInstr = IR::Instr::New(newObjOpCode, createObjDst, newObjInstr->GetSrc1(), callerFunc);
-    }
+        Assert(currArgOutInstr->m_opcode == Js::OpCode::ArgOut_A);
+        Assert(currArgOutInstr->GetSrc1()->GetStackSym()->GetInstrDef());
+    } while (currArgOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode != Js::OpCode::GenCtorObj);
 
-    Assert(!isInlined || !skipNewScObj);
-    Assert(isFixed || !skipNewScObj);
+    Assert(currArgOutInstr->m_opcode == Js::OpCode::ArgOut_A);
+    Assert(nextArgOutInstr->GetSrc2()->GetStackSym()->GetInstrDef() == currArgOutInstr);
 
-    // For new Object() and new Array() we have special fast helpers.  We'll let the lowerer convert this instruction directly
-    // into a call to one of these helpers.
-    if (skipNewScObj)
+    // At this point currArgOutInstr's value (src1) is the ctorObj.
+    IR::Opnd * ctorObjOpnd = currArgOutInstr->GetSrc1();
+    IR::Instr * genCtorObjInstr = ctorObjOpnd->GetStackSym()->GetInstrDef();
+    Assert(genCtorObjInstr->m_opcode == Js::OpCode::GenCtorObj);
+
+    if (nextArgOutInstr != callInstr)
     {
-        FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
-        intptr_t ctorInfo = ctor->GetFuncInfoAddr();
-        if ((ctorInfo == topFunc->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr() ||
-            ctorInfo == topFunc->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr()) &&
-            newObjInstr->HasEmptyArgOutChain())
+        // Send the ctorObj ArgOut to be the instr previous to the callInstr; "move" this
+        // ctorObj ArgOut instr by adding a new ArgOut instr previous to the callInstr.
+        const auto callerFunc = callInstr->m_func;
+        const auto ctorObjArgOpnd = IR::SymOpnd::New(callerFunc->m_symTable->GetArgSlotSym(1), TyVar, callerFunc);
+        IR::Instr* ctorObjArgOut = IR::Instr::New(Js::OpCode::ArgOut_A, ctorObjArgOpnd, ctorObjOpnd, callInstr->GetSrc2(), callerFunc);
+        ctorObjArgOut->SetByteCodeOffset(callInstr);
+        ctorObjArgOut->GetDst()->SetIsJITOptimizedReg(true);
+        ctorObjArgOut->GetSrc2()->SetIsJITOptimizedReg(true);
+        callInstr->InsertBefore(ctorObjArgOut);
+        if (callInstr->GetSrc2())
         {
-            return false;
+            callInstr->FreeSrc2();
         }
+        callInstr->SetSrc2(ctorObjArgOpnd);
+
+        // Remove the original ctorObj ArgOut instr (currArgOutInstr) and remap the tail of the ArgOut
+        // LinkedList (the dst of the StartCall instr, the src2 of currArgOutInstr) from the ctorObj
+        //  ArgOut instr (currArgOutInstr) to the instr after the ctorObj ArgOut instr (nextArgOutInstr).
+        nextArgOutInstr->UnlinkSrc2();
+        nextArgOutInstr->SetSrc2(currArgOutInstr->GetSrc2());
+        currArgOutInstr->Remove();
     }
 
-    IR::Opnd* thisPtrOpnd;
-    if (createObjInstr != nullptr)
-    {
-        createObjInstr->SetByteCodeOffset(newObjInstr);
-        createObjInstr->GetSrc1()->SetIsJITOptimizedReg(true);
-        // We're splitting a single byte code, so the interpreter has to resume from the beginning if we bail out.
-        createObjInstr->forcePreOpBailOutIfNeeded = true;
-        newObjInstr->InsertBefore(createObjInstr);
-
-        createObjDst->SetValueType(ValueType::GetObject(ObjectType::UninitializedObject));
-        thisPtrOpnd = createObjDst;
-    }
-    else
-    {
-        thisPtrOpnd = IR::AddrOpnd::NewNull(newObjInstr->m_func);
-    }
-
-    // Pass the new object to the constructor function with an ArgOut
-    const auto thisArgOpnd = IR::SymOpnd::New(callerFunc->m_symTable->GetArgSlotSym(1), TyVar, callerFunc);
-    auto instr = IR::Instr::New(Js::OpCode::ArgOut_A, thisArgOpnd, thisPtrOpnd, lastArgOpnd, callerFunc);
-    instr->SetByteCodeOffset(newObjInstr);
-    instr->GetDst()->SetIsJITOptimizedReg(true);
-    instr->GetSrc2()->SetIsJITOptimizedReg(true);
-    newObjInstr->InsertBefore(instr);
-
-    // Call the constructor using CallI with isCtorCall set.  If we inline the constructor, and the inlined constructor
-    // bails out, the interpreter would be entered with CallFlags_Value as well. If the interpreter starts using the
-    // call flags, the proper call flags will need to be specified here by using a different op code specific to constructors.
-    if (isFixed)
-    {
-        newObjInstr->m_opcode = Js::OpCode::CallIFixed;
-    }
-    else
-    {
-        newObjInstr->m_opcode = Js::OpCode::CallI;
-    }
-
-    newObjInstr->isCtorCall = true;
-
-    if(newObjInstr->GetSrc2())
-    {
-        newObjInstr->FreeSrc2();
-    }
-    newObjInstr->SetSrc2(thisArgOpnd);
-
-    const auto insertBeforeInstr = newObjInstr->m_next;
-    Assert(insertBeforeInstr);
-    const auto nextByteCodeOffsetInstr = newObjInstr->GetNextRealInstrOrLabel();
-
-    // Determine which object to use as the final result of NewScObject, the object passed into the constructor as 'this', or
-    // the object returned by the constructor.  We only need this if we don't have a hard-coded constructor cache, or if the
-    // constructor returns something explicitly.  Otherwise, we simply return the object we allocated and passed to the constructor.
-    if (returnCreatedObject)
-    {
-        instr = IR::Instr::New(Js::OpCode::Ld_A, newObjInstr->GetDst(), createObjDst, callerFunc);
-        instr->SetByteCodeOffset(nextByteCodeOffsetInstr);
-        instr->GetDst()->SetIsJITOptimizedReg(true);
-        instr->GetSrc1()->SetIsJITOptimizedReg(true);
-        insertBeforeInstr->InsertBefore(instr);
-    }
-    else if (!skipNewScObj)
-    {
-        Assert(createObjDst != newObjInstr->GetDst());
-
-        // Since we're not returning the default new object, the constructor must be returning something explicitly.  We don't
-        // know at this point whether it's an object or not.  If the constructor is later inlined, the value type will be determined
-        // from the flow in glob opt.  Otherwise, we'll need to emit an object check.
-        newObjInstr->GetDst()->SetValueType(ValueType::Uninitialized);
-
-        instr = IR::Instr::New(Js::OpCode::GetNewScObject, newObjInstr->GetDst(), newObjInstr->GetDst(), createObjDst, callerFunc);
-        instr->SetByteCodeOffset(nextByteCodeOffsetInstr);
-        instr->GetDst()->SetIsJITOptimizedReg(true);
-        instr->GetSrc1()->SetIsJITOptimizedReg(true);
-        insertBeforeInstr->InsertBefore(instr);
-    }
-
-    // Update the NewScObject cache, but only if we don't have a hard-coded constructor cache.  We only clone caches that
-    // don't require update, and once updated a cache never requires an update again.
-    if (constructorCache == nullptr)
-    {
-        instr = IR::Instr::New(Js::OpCode::UpdateNewScObjectCache, callerFunc);
-        instr->SetSrc1(newObjInstr->GetSrc1()); // constructor function
-        instr->SetSrc2(newObjInstr->GetDst());  // the new object
-        instr->SetByteCodeOffset(nextByteCodeOffsetInstr);
-        instr->GetSrc1()->SetIsJITOptimizedReg(true);
-        instr->GetSrc2()->SetIsJITOptimizedReg(true);
-        insertBeforeInstr->InsertBefore(instr);
-    }
-
-    if (createObjInstrOut != nullptr)
-    {
-        *createObjInstrOut = createObjInstr;
-    }
-
-    if (callCtorInstrOut != nullptr)
-    {
-        *callCtorInstrOut = newObjInstr;
-    }
-
-    return true;
+    return genCtorObjInstr;
 }
 
 void
@@ -5079,7 +4956,10 @@ Inline::MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *
         callInstr->m_func->callSiteToArgumentsOffsetFixupMap->Add(callSiteId, fixupArgoutCount - 1);
     }
 
-    Assert(linkOpnd->AsRegOpnd()->m_sym->m_instrDef->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == actualCount);
+    // TODO: get this assert working again. arg0 is being counted as an arg in actualCount but StartCall never
+    // got the message that we are simply replacing the implicit arg0 (filled with "this") with a different arg.
+    // might need to make a new bytecode called ArgOutThis or something like that and then treat it differently during counting.
+    // Assert(linkOpnd->AsRegOpnd()->m_sym->m_instrDef->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == actualCount);
 
     // Mark the StartCall's dst as an inlined arg slot as well so we know this is an inlined start call
     // and not adjust the stack height on x86

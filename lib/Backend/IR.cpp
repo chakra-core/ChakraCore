@@ -3380,6 +3380,15 @@ bool Instr::CanHaveArgOutChain() const
         this->m_opcode == Js::OpCode::NewScObjArraySpread;
 }
 
+bool Instr::IsNewScObjCallVarientInstr()
+{
+    return
+        this->m_opcode == Js::OpCode::NewScObject ||
+        this->m_opcode == Js::OpCode::NewScObjectSpread ||
+        this->m_opcode == Js::OpCode::NewScObjArray ||
+        this->m_opcode == Js::OpCode::NewScObjArraySpread;
+}
+
 bool Instr::HasEmptyArgOutChain(IR::Instr** startCallInstrOut)
 {
     Assert(CanHaveArgOutChain());
@@ -3401,6 +3410,22 @@ bool Instr::HasEmptyArgOutChain(IR::Instr** startCallInstrOut)
     return false;
 }
 
+uint Instr::ArgOutChainLength()
+{
+    Assert(CanHaveArgOutChain());
+
+    uint length = 0;
+    Instr* currArgOutInstr = GetSrc2()->GetStackSym()->GetInstrDef();
+
+    while (currArgOutInstr->m_opcode != Js::OpCode::StartCall)
+    {
+        length++;
+        currArgOutInstr = currArgOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+    }
+
+    return length;
+}
+
 bool Instr::HasFixedFunctionAddressTarget() const
 {
     Assert(
@@ -3416,6 +3441,40 @@ bool Instr::HasFixedFunctionAddressTarget() const
         this->GetSrc1()->IsAddrOpnd() &&
         this->GetSrc1()->AsAddrOpnd()->GetAddrOpndKind() == IR::AddrOpndKind::AddrOpndKindDynamicVar &&
         this->GetSrc1()->AsAddrOpnd()->m_isFunction;
+}
+
+Instr* Instr::GetGenCtorInstr()
+{
+    Assert(IsNewScObjCallVarientInstr());
+    Instr* currArgOutInstr = this;
+    Instr* currArgOutInstrValDef = this;
+    do
+    {
+        // TODO: should use helper method here? GetNextInstr?
+        Assert(currArgOutInstr->GetSrc2());
+        currArgOutInstr = currArgOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
+        Assert(currArgOutInstr);
+        if (currArgOutInstr->m_opcode == Js::OpCode::LdSpreadIndices)
+        {
+            // This instr is a redirection, move on to next instr.
+            continue;
+        }
+        Assert(currArgOutInstr->m_opcode == Js::OpCode::ArgOut_A);
+        if (currArgOutInstr->GetSrc1()->IsAddrOpnd())
+        {
+            // This instr's src1 is not a symbol, thus it does not have a def instr
+            // and thus it cannot be from a GenCtorObj instr.
+            continue;
+        }
+        currArgOutInstrValDef = currArgOutInstr->GetSrc1()->GetStackSym()->GetInstrDef();
+        Assert(currArgOutInstrValDef);
+        if (currArgOutInstrValDef->m_opcode == Js::OpCode::BytecodeArgOutCapture)
+        {
+            currArgOutInstrValDef = currArgOutInstrValDef->GetSrc1()->GetStackSym()->GetInstrDef();
+            Assert(currArgOutInstrValDef);
+        }
+    } while (currArgOutInstrValDef->m_opcode != Js::OpCode::GenCtorObj);
+    return currArgOutInstrValDef;
 }
 
 bool Instr::TransfersSrcValue()
@@ -3628,7 +3687,7 @@ uint Instr::GetArgOutCount(bool getInterpreterArgOutCount)
            opcode == Js::OpCode::EndCallForPolymorphicInlinee || opcode == Js::OpCode::LoweredStartCall);
 
     Assert(!getInterpreterArgOutCount || opcode == Js::OpCode::StartCall);
-    uint argOutCount = !this->GetSrc2() || !getInterpreterArgOutCount || m_func->GetJITFunctionBody()->IsAsmJsMode()
+     uint argOutCount = !this->GetSrc2() || !getInterpreterArgOutCount || m_func->GetJITFunctionBody()->IsAsmJsMode()
         ? this->GetSrc1()->AsIntConstOpnd()->AsUint32()
         : this->GetSrc2()->AsIntConstOpnd()->AsUint32();
 

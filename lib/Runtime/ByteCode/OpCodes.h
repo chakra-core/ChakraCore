@@ -179,6 +179,11 @@ MACRO_BACKEND_ONLY(     BrAddr_A,           BrReg2,         OpSideEffect|OpTempN
 MACRO_BACKEND_ONLY(     BrOnException,      Br,             OpSideEffect)
 MACRO_BACKEND_ONLY(     BrOnNoException,    Br,             OpSideEffect) // Mark it OpNoFallThrough?
 
+
+// TODO: remove EXTEND from these 2 macros and apply EXTEND to 2 different less frequently emitted macros. Also must apply in InterpreterHandler.inl.
+MACRO_EXTEND_WMS(GenCtorObj, Reg2, OpSideEffect)
+MACRO_EXTEND_WMS(UpNewScObjCache, Reg2, OpSideEffect)
+
 MACRO_BACKEND_ONLY(     DeadBrEqual,        Reg3,           OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Dead BrEqual, but still need to reference srcs
 MACRO_BACKEND_ONLY(     DeadBrSrEqual,      Reg3,           OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Dead BrSrEqual, but still need to reference srcs
 MACRO_BACKEND_ONLY(     DeadBrRelational,   Reg3,           OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Dead BrRelational, but still need to reference srcs
