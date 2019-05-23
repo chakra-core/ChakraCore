@@ -112,9 +112,14 @@ namespace Js
         struct LoopHeaderData {
             uint startOffset;
             uint endOffset;
+            uint tmpRegCount;
             bool isNested;
             LoopHeaderData() {}
-            LoopHeaderData(uint startOffset, uint endOffset, bool isNested) : startOffset(startOffset), endOffset(endOffset), isNested(isNested){}
+            LoopHeaderData(uint startOffset, uint endOffset, uint tmpRegCount, bool isNested) :
+                startOffset(startOffset),
+                endOffset(endOffset),
+                tmpRegCount(tmpRegCount),
+                isNested(isNested) {}
         };
 
         JsUtil::List<uint, ArenaAllocator> * m_labelOffsets;          // Label offsets, once defined
@@ -375,7 +380,7 @@ namespace Js
         void RecordCrossFrameEntryExitRecord(bool isEnterBlock);
         void RecordForInOrOfCollectionScope();
 
-        uint EnterLoop(Js::ByteCodeLabel loopEntrance);
+        uint EnterLoop(Js::ByteCodeLabel loopEntrance, FuncInfo* funcInfo);
         void ExitLoop(uint loopId);
 
         bool DoJitLoopBodies() const { return m_doJitLoopBodies; }

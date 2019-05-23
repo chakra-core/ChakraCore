@@ -2122,8 +2122,12 @@ public:
                 uint loopCount = function->GetLoopCount();
                 for (uint i = 0; i < loopCount; ++i)
                 {
-                    PrependInt32(builder, _u("Loop Header Start"), loopHeaderArray[i].startOffset);
-                    PrependInt32(builder, _u("Loop Header End"), loopHeaderArray[i].endOffset);
+                    PrependInt32(builder, _u("Loop Header Start"),
+                        loopHeaderArray[i].startOffset);
+                    PrependInt32(builder, _u("Loop Header End"),
+                        loopHeaderArray[i].endOffset);
+                    PrependInt32(builder, _u("Loop Header Temp Count"),
+                        loopHeaderArray[i].tmpRegCount);
                 }
             }
 
@@ -4249,9 +4253,10 @@ public:
                 uint loopCount = (*functionBody)->GetLoopCount();
                 for (uint i = 0; i < loopCount; ++i)
                 {
-                    uint startOffset, endOffset;
+                    uint startOffset, endOffset, tmpRegCount;
                     current = ReadUInt32(current, &startOffset);
                     current = ReadUInt32(current, &endOffset);
+                    current = ReadUInt32(current, &tmpRegCount);
                     loopHeaderArray[i].startOffset = startOffset;
                     loopHeaderArray[i].endOffset = endOffset;
                 }

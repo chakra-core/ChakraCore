@@ -45,7 +45,7 @@ uint32 WasmByteCodeWriter::WasmLoopStart(ByteCodeLabel loopEntrance, __in_ecount
     uint loopId = m_functionWrite->IncrLoopCount();
     Assert((uint)m_loopHeaders->Count() == loopId);
 
-    m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, m_loopNest > 0));
+    m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, 0, m_loopNest > 0));
     m_loopNest++;
     this->MarkAsmJsLabel(loopEntrance);
     MULTISIZE_LAYOUT_WRITE(WasmLoopStart, Js::OpCodeAsmJs::WasmLoopBodyStart, loopId, curRegs);

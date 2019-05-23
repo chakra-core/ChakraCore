@@ -238,6 +238,15 @@ public:
         return constRegsCount + varRegsCount;
     }
 
+    Js::RegSlot TmpRegCount() const
+    {
+        Assert(
+            this->curTmpReg != Js::Constants::NoRegister &&
+            this->firstTmpReg != Js::Constants::NoRegister
+        );
+        return this->curTmpReg - this->firstTmpReg;
+    }
+
     uint InnerScopeCount() const { return innerScopeCount; }
     uint CurrentInnerScopeIndex() const { return currentInnerScopeIndex; }
     uint AcquireInnerScopeIndex();

@@ -1518,4 +1518,11 @@
     <baseline>bug_issue_5994.baseline</baseline>
   </default>
 </test>
+  <test>
+    <default>
+      <files>bug-OS19225364.js</files>
+      <compile-flags>-maxInterpretCount:1 -maxSimpleJitRunCount:1 -bgjit- -loopinterpretcount:0</compile-flags>
+      <baseline>bug-OS19225364.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

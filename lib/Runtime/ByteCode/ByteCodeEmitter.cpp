@@ -5938,7 +5938,7 @@ void SaveOpndValue(ParseNode *pnode, FuncInfo *funcInfo)
 void ByteCodeGenerator::StartStatement(ParseNode* node)
 {
     Assert(TopFuncInfo() != nullptr);
-    m_writer.StartStatement(node, TopFuncInfo()->curTmpReg - TopFuncInfo()->firstTmpReg);
+    m_writer.StartStatement(node, TopFuncInfo()->TmpRegCount());
 }
 
 void ByteCodeGenerator::EndStatement(ParseNode* node)
@@ -9274,7 +9274,7 @@ void EmitLoop(
     Js::ByteCodeLabel loopEntrance = byteCodeGenerator->Writer()->DefineLabel();
     Js::ByteCodeLabel continuePastLoop = byteCodeGenerator->Writer()->DefineLabel();
 
-    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
+    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance, funcInfo);
     loopNode->loopId = loopId;
 
     if (doWhile)
@@ -9531,7 +9531,7 @@ void EmitForIn(ParseNodeForInOrForOf *loopNode,
     byteCodeGenerator->EndStatement(loopNode);
 
     // Need to increment loop count whether we are going into profile or not for HasLoop()
-    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
+    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance, funcInfo);
     loopNode->loopId = loopId;
 
     // The EndStatement will happen in the EmitForInOfLoopBody function
@@ -9688,7 +9688,7 @@ void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCo
     byteCodeGenerator->EndStatement(loopNode);
 
     // Need to increment loop count whether we are going into profile or not for HasLoop()
-    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
+    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance, funcInfo);
     loopNode->loopId = loopId;
 
     byteCodeGenerator->StartStatement(loopNode->pnodeLval);
@@ -10200,7 +10200,7 @@ void EmitYieldStar(ParseNodeUni* yieldStarNode, ByteCodeGenerator* byteCodeGener
     // Call the iterator's next()
     EmitIteratorNext(yieldStarNode->location, iteratorLocation, funcInfo->undefinedConstantRegister, byteCodeGenerator, funcInfo);
 
-    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance);
+    uint loopId = byteCodeGenerator->Writer()->EnterLoop(loopEntrance, funcInfo);
     // since a yield* doesn't have a user defined body, we cannot return from this loop
     // which means we don't need to support EmitJumpCleanup() and there do not need to
     // remember the loopId like the loop statements do.

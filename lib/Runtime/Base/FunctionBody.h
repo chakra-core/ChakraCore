@@ -725,6 +725,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         Field(uint) rejitCount;
 #endif
+        Field(uint) tmpRegCount;
         Field(bool) isNested;
         Field(bool) isInTry;
         Field(bool) isInTryFinally;

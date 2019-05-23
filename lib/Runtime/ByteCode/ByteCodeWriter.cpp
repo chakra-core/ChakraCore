@@ -250,6 +250,7 @@ namespace Js
             LoopHeader *loopHeader = m_functionWrite->GetLoopHeader(index);
             loopHeader->startOffset = data.startOffset;
             loopHeader->endOffset = data.endOffset;
+            loopHeader->tmpRegCount = data.tmpRegCount;
             loopHeader->isNested = data.isNested;
         });
     }
@@ -3140,7 +3141,7 @@ StoreCommon:
         }
     }
 
-    uint ByteCodeWriter::EnterLoop(Js::ByteCodeLabel loopEntrance)
+    uint ByteCodeWriter::EnterLoop(Js::ByteCodeLabel loopEntrance, FuncInfo* funcInfo)
     {
 #ifdef BYTECODE_BRANCH_ISLAND
         if (useBranchIsland)
@@ -3153,7 +3154,13 @@ StoreCommon:
         uint loopId = m_functionWrite->IncrLoopCount();
         Assert((uint)m_loopHeaders->Count() == loopId);
 
-        m_loopHeaders->Add(LoopHeaderData(m_byteCodeData.GetCurrentOffset(), 0, m_loopNest > 0));
+        m_loopHeaders->Add(LoopHeaderData(
+            m_byteCodeData.GetCurrentOffset(),
+            0,
+            funcInfo->TmpRegCount(),
+            m_loopNest > 0
+        ));
+
         m_loopNest++;
         m_functionWrite->SetHasNestedLoop(m_loopNest > 1);
 
