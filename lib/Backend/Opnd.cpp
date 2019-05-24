@@ -3302,22 +3302,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             {
                 Output::Print(_u("[isTempLastUse]"));
             }
-            StackSym *sym = regOpnd->GetStackSym();
-            if (sym && func)
-            {
-                if (sym == func->GetScriptContextSym())
-                {
-                    Output::Print(_u("[ScriptContext]"));
-                }
-                else if (sym == func->GetFuncObjSym())
-                {
-                    Output::Print(_u("[FuncObj]"));
-                }
-                else if (sym == func->GetFunctionBodySym())
-                {
-                    Output::Print(_u("[FunctionBody]"));
-                }
-            }
+
             if(regOpnd->IsArrayRegOpnd())
             {
                 if(dumpValueType)

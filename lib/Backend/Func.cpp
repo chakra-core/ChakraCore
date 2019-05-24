@@ -51,7 +51,6 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     m_cloner(nullptr),
     m_cloneMap(nullptr),
     m_loopParamSym(nullptr),
-    m_funcObjSym(nullptr),
     m_localClosureSym(nullptr),
     m_paramClosureSym(nullptr),
     m_localFrameDisplaySym(nullptr),
@@ -1359,6 +1358,30 @@ Func::EndPhase(Js::Phase tag, bool dump)
     }
     this->m_alloc->MergeDelayFreeList();
 #endif
+}
+
+StackSym *
+Func::EnsureBailoutReturnValueSym()
+{
+    if (m_bailoutReturnValueSym == nullptr)
+    {
+        m_bailoutReturnValueSym = StackSym::New(TyVar, this);
+        StackAllocate(m_bailoutReturnValueSym, sizeof(Js::Var));
+    }
+
+    return m_bailoutReturnValueSym;
+}
+
+StackSym *
+Func::EnsureHasBailedOutSym()
+{
+    if (m_hasBailedOutSym == nullptr)
+    {
+        m_hasBailedOutSym = StackSym::New(TyUint32, this);
+        StackAllocate(m_hasBailedOutSym, MachRegInt);
+    }
+
+    return m_hasBailedOutSym;
 }
 
 StackSym *
