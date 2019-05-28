@@ -6797,12 +6797,20 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
         for (Js::ArgSlot argPos = 0; ; ++argPos)
         {
             bool isBindingPattern = false;
+
             if (m_scriptContext->GetConfig()->IsES6RestEnabled() && m_token.tk == tkEllipsis)
             {
+                if (flags & fFncOneArg)
+                {
+                    // The parameter of a setter cannot be a rest parameter.
+                    Error(ERRUnexpectedEllipsis);
+                }
+
                 // Possible rest parameter
                 this->GetScanner()->Scan();
                 seenRestParameter = true;
             }
+            
             if (m_token.tk != tkID)
             {
                 if (IsES6DestructuringEnabled() && IsPossiblePatternStart())
@@ -6855,10 +6863,20 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
                             Assert(pnodePattern);
                             paramPattern = CreateParamPatternNode(pnodePattern);
                         }
-                        // Linking the current formal parameter (which is pattern parameter) with other formals.
-                        *m_ppnodeVar = paramPattern;
-                        paramPattern->pnodeNext = nullptr;
-                        m_ppnodeVar = &paramPattern->pnodeNext;
+
+                        if (seenRestParameter)
+                        {
+                            Assert(pnodeFnc->pnodeRest == nullptr);
+                            pnodeFnc->pnodeRest = paramPattern;
+                        }
+                        else
+                        {
+                            // Linking the current formal parameter (which is pattern parameter) 
+                            // with other formals.
+                            *m_ppnodeVar = paramPattern;
+                            paramPattern->pnodeNext = nullptr;
+                            m_ppnodeVar = &paramPattern->pnodeNext;
+                        }
                     }
 
                     isBindingPattern = true;
@@ -6880,22 +6898,21 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
                 if (seenRestParameter)
                 {
                     this->GetCurrentFunctionNode()->SetHasNonSimpleParameterList();
-                    if (flags & fFncOneArg)
-                    {
-                        // The parameter of a setter cannot be a rest parameter.
-                        Error(ERRUnexpectedEllipsis);
-                    }
                     pnodeT = CreateDeclNode(knopVarDecl, pid, STFormal, false);
                     pnodeT->sym->SetIsNonSimpleParameter(true);
                     if (buildAST)
                     {
                         // When only validating formals, we won't have a function node.
+                        Assert(pnodeFnc->pnodeRest == nullptr);
                         pnodeFnc->pnodeRest = pnodeT;
                         if (!isNonSimpleParameterList)
                         {
                             // This is the first non-simple parameter we've seen. We need to go back
                             // and set the Symbols of all previous parameters.
-                            MapFormalsWithoutRest(m_currentNodeFunc, [&](ParseNodePtr pnodeArg) { pnodeArg->AsParseNodeVar()->sym->SetIsNonSimpleParameter(true); });
+                            MapFormalsWithoutRest(m_currentNodeFunc, [](ParseNodePtr pnodeArg)
+                            {
+                                pnodeArg->AsParseNodeVar()->sym->SetIsNonSimpleParameter(true);
+                            });
                         }
                     }
 
@@ -6922,11 +6939,6 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
                 }
 
                 this->GetScanner()->Scan();
-
-                if (seenRestParameter && m_token.tk != tkRParen && m_token.tk != tkAsg)
-                {
-                    Error(ERRRestLastArg);
-                }
 
                 if (m_token.tk == tkAsg && m_scriptContext->GetConfig()->IsES6DefaultArgsEnabled())
                 {
@@ -7017,6 +7029,11 @@ void Parser::ParseFncFormals(ParseNodeFnc * pnodeFnc, ParseNodeFnc * pnodeParent
             }
 
             this->GetScanner()->Scan();
+
+            if (seenRestParameter)
+            {
+                Error(ERRRestLastArg);
+            }
 
             if (m_token.tk == tkRParen && m_scriptContext->GetConfig()->IsES7TrailingCommaEnabled())
             {

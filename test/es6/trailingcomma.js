@@ -13,6 +13,7 @@ var tests = [
             assert.doesNotThrow(function () { eval("function foo(a,) {'use strict'; }"); }, "Trailing comma in function declaration under strict mode is a valid syntax");
             assert.throws(function () { eval("function foo(a, ,) {}"); }, SyntaxError, "More than one trailing comma is not valid syntax", "Expected identifier");
             assert.throws(function () { eval("function foo(...a,) {}"); }, SyntaxError, "Trailing comma after rest is not valid syntax", "The rest parameter must be the last parameter in a formals list.");
+            assert.throws(function () { eval("function foo(...[a],) {}"); }, SyntaxError, "Trailing comma after rest pattern is not valid syntax", "The rest parameter must be the last parameter in a formals list.");
             assert.throws(function () { eval("function foo(,) {}"); }, SyntaxError, "Trailing comma after missing name is not valid syntax", "Expected identifier");
             function f1(a,b,) {}
             assert.areEqual(f1.length, 2, "Function's length is not affected by a trailing comma");
