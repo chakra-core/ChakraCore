@@ -77,6 +77,120 @@ var tests = [
            assert.areEqual("Base", new Derived().test());
        }
     },
+    {
+       name: "Class member trying to write to non-writable property of receiver object via super-dot-assignment throws",
+       body: function ()
+       {
+           class Base {}
+           class Derived extends Base {
+               test() {
+                   assert.areEqual(this, obj, 'this === obj');
+
+                   super.prop = 'something';
+               }
+           }
+
+           var obj = new Derived();
+           Object.defineProperty(obj, 'prop', { writable:false, value:'nothing' });
+           assert.throws(()=>obj.test(), TypeError, 'Class methods are strict mode code. Cannot write to non-writable properties.', 'Assignment to read-only properties is not allowed in strict mode');
+           assert.areEqual('nothing', obj.prop);
+       }
+    },
+    {
+       name: "Class member trying to write to writable property of receiver object via super-dot-assignment is fine",
+       body: function ()
+       {
+           class Base {}
+           class Derived extends Base {
+               test() {
+                   assert.areEqual(this, obj, 'this === obj');
+
+                   super.prop = 'something';
+               }
+           }
+
+           var obj = new Derived();
+           Object.defineProperty(obj, 'prop', { writable:true, value:'nothing' });
+           obj.test();
+           assert.isTrue(obj.hasOwnProperty('prop'));
+           assert.areEqual('something', obj.prop);
+       }
+    },
+    {
+       name: "Function writing to non-writable property of receiver object via super-dot-assignment throws in strict mode",
+       body: function ()
+       {
+           function ctor() { }
+           ctor.prototype = {
+               test() {
+                   'use strict';
+                   super.prop = 'something';
+               }
+           };
+
+           var obj = new ctor();
+           Object.defineProperty(obj, 'prop', { writable:false, value:'nothing' });
+           assert.throws(()=>obj.test(), TypeError, 'Strict mode code throws if we try to write to non-writable properties.', 'Assignment to read-only properties is not allowed in strict mode');
+           assert.areEqual('nothing', obj.prop);
+       }
+    },
+    {
+       name: "Function writing to non-writable property of receiver object via super-dot-assignment silently fails in sloppy mode",
+       body: function ()
+       {
+           function ctor() { }
+           ctor.prototype = {
+               test() {
+                   super.prop = 'something';
+               }
+           };
+
+           var obj = new ctor();
+           Object.defineProperty(obj, 'prop', { writable:false, value:'nothing' });
+           obj.test();
+           assert.areEqual('nothing', obj.prop);
+       }
+    },
+    {
+       name: "Writing property to receiver via super-dot-assignment when receiver prototype-chain contains non-writable property doesn't throw",
+       body: function ()
+       {
+           function ctor() { }
+           ctor.prototype = {
+               test() {
+                   'use strict';
+                   super.prop = 'something';
+               }
+           };
+
+           var obj = new ctor();
+           Object.defineProperty(obj.__proto__, 'prop', { writable:false, value:'nothing' });
+           obj.test();
+           assert.isTrue(obj.hasOwnProperty('prop'));
+           assert.areEqual('something', obj.prop);
+           assert.areEqual('nothing', obj.__proto__.prop);
+       }
+    },
+    {
+       name: "Writing property to receiver via super-dot-assignment when receiver prototype-chain contains getter but no setter doesn't throw",
+       body: function ()
+       {
+           function ctor() { }
+           ctor.prototype = {
+               test() {
+                   'use strict';
+                   super.prop = 'something';
+               }
+           };
+
+           var obj = new ctor();
+           Object.defineProperty(obj.__proto__, 'prop', { get:()=>'nothing' });
+           obj.test();
+           assert.isTrue(obj.hasOwnProperty('prop'));
+           assert.areEqual('something', obj.prop);
+           assert.areEqual('nothing', obj.__proto__.prop);
+       }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -2697,8 +2697,19 @@ CommonNumber:
         *result = FALSE;
         Var setterValueOrProxy = nullptr;
         DescriptorFlags flags = None;
+        bool receiverNonWritable = false;
+
+        if (receiver != object && !isRoot)
+        {
+            Var receiverSetter = nullptr;
+            PropertyValueInfo receiverInfo;
+            DescriptorFlags receiverFlags = VarTo<RecyclableObject>(receiver)->GetSetter(propertyId, &receiverSetter, &receiverInfo, requestContext);
+            receiverNonWritable = ((receiverFlags & Data) == Data && (receiverFlags & Writable) == None);
+        }
+
         if ((isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableRootProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)) ||
-            (!isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)))
+            (!isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext) ||
+            receiverNonWritable))
         {
             if ((flags & Accessor) == Accessor)
             {
@@ -2746,7 +2757,7 @@ CommonNumber:
             }
             else
             {
-                Assert((flags & Data) == Data && (flags & Writable) == None);
+                Assert(((flags & Data) == Data && (flags & Writable) == None) || receiverNonWritable);
                 if (!allowUndecInConsoleScope)
                 {
                     if (flags & Const)
