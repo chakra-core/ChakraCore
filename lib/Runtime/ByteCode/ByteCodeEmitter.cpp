@@ -7006,7 +7006,8 @@ void EmitAssignment(
             Js::RegSlot tmpReg = byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, lhs->AsParseNodeBin()->pnode1->location, funcInfo);
             funcInfo->ReleaseLoc(lhs->AsParseNodeSuperReference()->pnodeThis);
             uint cacheId = funcInfo->FindOrAddInlineCacheId(tmpReg, propertyId, false, true);
-            byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(Js::OpCode::StSuperFld, rhsLocation, tmpReg, lhs->AsParseNodeSuperReference()->pnodeThis->location, cacheId);
+            Js::OpCode stFldOpCode = funcInfo->GetIsStrictMode() ? Js::OpCode::StSuperFldStrict : Js::OpCode::StSuperFld;
+            byteCodeGenerator->Writer()->PatchablePropertyWithThisPtr(stFldOpCode, rhsLocation, tmpReg, lhs->AsParseNodeSuperReference()->pnodeThis->location, cacheId);
         }
         else
         {

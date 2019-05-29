@@ -4763,10 +4763,12 @@ IRBuilder::BuildElementC2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         break;
 
     case Js::OpCode::ProfiledStSuperFld:
+    case Js::OpCode::ProfiledStSuperFldStrict:
         Js::OpCodeUtil::ConvertNonCallOpToNonProfiled(newOpcode);
         // fall-through
 
     case Js::OpCode::StSuperFld:
+    case Js::OpCode::StSuperFldStrict:
     {
         propertyId = m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(propertyIdIndex);
         fieldSymOpnd = this->BuildFieldOpnd(newOpcode, instanceSlot, propertyId, (Js::PropertyIdIndexType) - 1, PropertyKindData, propertyIdIndex);

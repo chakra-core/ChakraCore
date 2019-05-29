@@ -1036,7 +1036,8 @@ bool IR::Instr::IsStFldVariant() const
         this->m_opcode == Js::OpCode::StLocalFld ||
         this->m_opcode == Js::OpCode::StRootFld ||
         this->m_opcode == Js::OpCode::StRootFldStrict ||
-        this->m_opcode == Js::OpCode::StSuperFld;
+        this->m_opcode == Js::OpCode::StSuperFld ||
+        this->m_opcode == Js::OpCode::StSuperFldStrict;
 }
 
 bool IR::Instr::IsStElemVariant() const

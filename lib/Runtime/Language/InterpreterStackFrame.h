@@ -563,9 +563,11 @@ namespace Js
         template <class T> void OP_SetProperty(unaligned T* playout);
         template <class T> void OP_SetLocalProperty(unaligned T* playout);
         template <class T> void OP_SetSuperProperty(unaligned T* playout);
+        template <class T> void OP_SetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_ProfiledSetProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetLocalProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetSuperProperty(unaligned T* playout);
+        template <class T> void OP_ProfiledSetSuperPropertyStrict(unaligned T* playout);
         template <class T> void OP_SetRootProperty(unaligned T* playout);
         template <class T> void OP_ProfiledSetRootProperty(unaligned T* playout);
         template <class T> void OP_SetPropertyStrict(unaligned T* playout);

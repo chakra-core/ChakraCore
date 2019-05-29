@@ -4636,8 +4636,7 @@ skipThunk:
             GetInlineCache(playout->PropertyIdIndex),
             playout->PropertyIdIndex,
             GetReg(playout->Value),
-            m_functionBody->GetIsStrictMode() ?
-            (PropertyOperationFlags)(flags | PropertyOperation_StrictMode) : flags,
+            flags,
             GetJavascriptFunction(),
             thisInstance);
     }
@@ -4662,6 +4661,12 @@ skipThunk:
     }
 
     template <class T>
+    void InterpreterStackFrame::OP_SetSuperPropertyStrict(unaligned T* playout)
+    {
+        DoSetSuperProperty(playout, GetReg(playout->Instance), PropertyOperation_StrictMode);
+    }
+
+    template <class T>
     void InterpreterStackFrame::OP_ProfiledSetProperty(unaligned T* playout)
     {
         ProfiledSetProperty<T, false>(playout, GetReg(playout->Instance), PropertyOperation_None);
@@ -4677,6 +4682,12 @@ skipThunk:
     void InterpreterStackFrame::OP_ProfiledSetSuperProperty(unaligned T* playout)
     {
         ProfiledSetSuperProperty<T, false>(playout, GetReg(playout->Instance), GetReg(playout->Value2), PropertyOperation_None);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_ProfiledSetSuperPropertyStrict(unaligned T* playout)
+    {
+        ProfiledSetSuperProperty<T, false>(playout, GetReg(playout->Instance), GetReg(playout->Value2), PropertyOperation_StrictMode);
     }
 
     template <class T>
