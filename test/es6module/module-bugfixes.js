@@ -120,6 +120,16 @@ var tests = [
                 assert.isTrue(aliasName());
             `);
         }
+    },
+    {
+        name : "Issue 6133: Child module imports non-existant export from another module",
+        body()
+        {
+            WScript.RegisterModuleSource("test6133a", 'import Default from "test6133b";');
+            WScript.RegisterModuleSource("test6133b", 'export function notDefault () {}');
+
+            testRunner.LoadModule('import "test6133a";', undefined, true);
+        }
     }
 ];
 

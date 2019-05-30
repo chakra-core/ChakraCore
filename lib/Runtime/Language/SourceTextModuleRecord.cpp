@@ -691,9 +691,6 @@ namespace Js
 
         if (exportName == PropertyIds::default_)
         {
-            JavascriptError* errorObj = scriptContext->GetLibrary()->CreateSyntaxError();
-            JavascriptError::SetErrorMessage(errorObj, JSERR_ModuleResolveExport, scriptContext->GetPropertyName(exportName)->GetBuffer(), scriptContext);
-            this->errorObject = errorObj;
             return false;
         }
 
@@ -919,10 +916,6 @@ namespace Js
 
         if (this->errorObject != nullptr)
         {
-            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
-            // Cleanup in case of error.
-            this->ReleaseParserResourcesForHierarchy();
-            NotifyParentsAsNeeded();
             return false;
         }
 
