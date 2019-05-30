@@ -2708,8 +2708,8 @@ CommonNumber:
         }
 
         if ((isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableRootProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext)) ||
-            (!isRoot && JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext) ||
-            receiverNonWritable))
+            (!isRoot && (JavascriptOperators::CheckPrototypesForAccessorOrNonWritableProperty(object, propertyId, &setterValueOrProxy, &flags, info, requestContext) ||
+            receiverNonWritable)))
         {
             if ((flags & Accessor) == Accessor)
             {
