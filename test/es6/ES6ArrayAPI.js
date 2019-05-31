@@ -101,6 +101,7 @@ var tests = [
             assert.areEqual([0,1,2], fromFnc.call(null, [0,1,2]), "Calling Array.from with null this argument produces an array");
             assert.areEqual([0,1,2], fromFnc.call({}, [0,1,2]), "Calling Array.from with a non-function this argument produces an array");
             assert.areEqual([0,1,2], fromFnc.call(Math.sin, [0,1,2]), "Calling Array.from with a non-constructor function this argument produces an array");
+            assert.areEqual([2], Array.from([1], new Proxy(() => 2, {})), "Calling Array.from with a proxy calls the proxy");
         }
     },
     {
