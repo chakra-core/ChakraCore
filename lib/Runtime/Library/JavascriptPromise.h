@@ -256,7 +256,7 @@ namespace Js
 
         uint32 DecrementRemainingElements();
 
-    private:
+    protected:
         Field(JavascriptPromiseCapability*) capabilities;
         Field(uint32) index;
         Field(JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper*) remainingElementsWrapper;
@@ -273,6 +273,36 @@ namespace Js
     };
 
     template <> bool VarIsImpl<JavascriptPromiseAllResolveElementFunction>(RecyclableObject* obj);
+
+    class JavascriptPromiseAllSettledResolveOrRejectElementFunction : public JavascriptPromiseAllResolveElementFunction
+    {
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptPromiseAllSettledResolveOrRejectElementFunction, JavascriptPromiseAllResolveElementFunction);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAllSettledResolveOrRejectElementFunction);
+
+    public:
+        JavascriptPromiseAllSettledResolveOrRejectElementFunction(DynamicType* type);
+        JavascriptPromiseAllSettledResolveOrRejectElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting);
+
+        bool IsAlreadyCalled() const;
+        void SetAlreadyCalled(const bool is);
+
+        bool IsRejectFunction();
+
+    private:
+        Field(JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper*) alreadyCalledWrapper;
+        Field(bool) isRejecting;
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
+    };
+
+    template <> bool VarIsImpl<JavascriptPromiseAllSettledResolveOrRejectElementFunction>(RecyclableObject* obj);
 
     class JavascriptPromiseCapability : FinalizableObject
     {
@@ -391,6 +421,7 @@ namespace Js
             static FunctionInfo Resolve;
             static FunctionInfo Then;
             static FunctionInfo Finally;
+            static FunctionInfo AllSettled;
 
             static FunctionInfo Identity;
             static FunctionInfo Thrower;
@@ -400,6 +431,7 @@ namespace Js
             static FunctionInfo ResolveOrRejectFunction;
             static FunctionInfo CapabilitiesExecutorFunction;
             static FunctionInfo AllResolveElementFunction;
+            static FunctionInfo AllSettledResolveOrRejectElementFunction;
 
             static FunctionInfo GetterSymbolSpecies;
         };
@@ -415,6 +447,7 @@ namespace Js
         static Var EntryResolve(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThen(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryFinally(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAllSettled(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryThunkFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThenFinallyFunction(RecyclableObject* function, CallInfo callInfo, ...);
@@ -425,6 +458,8 @@ namespace Js
         static Var EntryIdentityFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThrowerFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryAllResolveElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryAllSettledResolveOrRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...);
+
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntryJavascriptPromiseAsyncSpawnExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...);

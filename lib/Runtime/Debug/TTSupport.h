@@ -250,6 +250,7 @@ namespace TTD
             SnapPromiseResolveOrRejectFunctionObject,
             SnapPromiseReactionTaskFunctionObject,
             SnapPromiseAllResolveElementFunctionObject,
+            SnapPromiseAllSettledResolveOrRejectElementFunctionObject,
             SnapGeneratorFunction,
             SnapGeneratorVirtualScriptFunction,
             SnapAsyncFunction,

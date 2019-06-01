@@ -62,6 +62,14 @@ Executing test #59 - Promise.prototype.finally passes through result for Resolve
 Executing test #60 - Promise.prototype.finally throws own rejection after a resolved promise
 Executing test #61 - Promise.prototype.finally throws own rejection after a rejected promise
 Executing test #62 - Ensure Multiple then handlers on a single promise are executed in correct order
+Executing test #63 - Promise.allSettled settles when all promises in iterable settle
+Executing test #64 - Promise.allSettled settles even if all promises reject
+Executing test #65 - Promise.allSettled settles immediately with an empty iterator
+Executing test #66 - Promise.allSettled doesn't settle if some promises don't settle
+Executing test #67 - Promise.allSettled rejects immediately with an iterator that throws
+Executing test #68 - Promise.allSettled resolve and reject functions cannot be called multiple times
+Test #68 - Temp then handler called from Promise.allSettled
+Executing test #69 - Promise.allSettled passes all elements of iterable to Promise.resolve
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -107,6 +115,8 @@ Test #53 - Success handler #1 called with res = 'success'
 Test #54 - Success finally handler called for resolved promise without value
 Test #55 - Success finally handler called for rejected promise without value
 Test #62 - val is 0(Expect 0)
+Test #65 - Success - []
+Test #67 - Failed - {}
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -137,6 +147,14 @@ Test #58 - Success - Rejected status and value passed through finally with not c
 Test #59 - Success - Resolved status and value passed through finally with not callable argument
 Test #60 - Success - own rejection passed through finally
 Test #61 - Success - own rejection passed through finally
+Test #63 - p1 success: p1
+Test #63 - p4 failure: p4
+Test #64 - p1 failure: p1
+Test #67 - p1 success: p1
+Test #67 - p2 success: p2
+Test #67 - p3 success: p3
+Test #68 - p1 success: p1
+Test #69 - Success - [{"status":"fulfilled","value":"p1"},{"status":"fulfilled","value":"p2"}]
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure
@@ -147,6 +165,11 @@ Test #38 - Success handler #1 called with result = p1,p2,p3
 Test #42 - Catch handler #1 called with err = expected1
 Test #42 - Catch handler #2 called with err = expected2
 Test #42 - Catch handler #3 called with err = expected3
+Test #63 - Success - [{"status":"fulfilled","value":"p1"},{"status":"fulfilled","value":"p2"},{"status":"rejected","reason":"p3"},{"status":"rejected","reason":"p4"}]
+Test #64 - Success - [{"status":"rejected","reason":"p1"},{"status":"rejected","reason":"p2"},{"status":"rejected","reason":"p3"}]
+Test #68 - Success: [{"status":"fulfilled","value":"p1"}]
+Test #68 - p1 success: p2
+Test #68 - p1 failure: e2
 Test #4 - Success handler #2 called with result = chain:success2
 Test #56 - Success - Rejected status and value passed through finally
 Test #57 - Success - Resolved status and value passed through finally

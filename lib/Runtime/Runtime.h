@@ -124,6 +124,7 @@ namespace Js
     class JavascriptPromiseThunkFinallyFunction;
     class JavascriptPromiseResolveThenableTaskFunction;
     class JavascriptPromiseAllResolveElementFunction;
+    class JavascriptPromiseAllSettledResolveOrRejectElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
     class JavascriptGenerator;
