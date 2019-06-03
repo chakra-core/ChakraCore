@@ -246,6 +246,14 @@ namespace Js
 
                 index++;
             });
+
+            remainingElementsWrapper->remainingElements--;
+            if (remainingElementsWrapper->remainingElements == 0)
+            {
+                Assert(values != nullptr);
+
+                TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
+            }
         }
         catch (const JavascriptException& err)
         {
@@ -255,20 +263,6 @@ namespace Js
         if (exception != nullptr)
         {
             TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
-
-            // We need to explicitly return here to make sure we don't resolve in case index == 0 here.
-            // That would happen if GetIterator or IteratorValue throws an exception in the first iteration.
-            return promiseCapability->GetPromise();
-        }
-
-        remainingElementsWrapper->remainingElements--;
-
-        // We want this call to happen outside the try statement because if it throws, we aren't supposed to reject the promise.
-        if (remainingElementsWrapper->remainingElements == 0)
-        {
-            Assert(values != nullptr);
-
-            TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
         }
 
         return promiseCapability->GetPromise();
@@ -388,6 +382,14 @@ namespace Js
 
                 index++;
             });
+
+            remainingElementsWrapper->remainingElements--;
+            if (remainingElementsWrapper->remainingElements == 0)
+            {
+                Assert(values != nullptr);
+
+                TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
+            }
         }
         catch (const JavascriptException& err)
         {
@@ -397,20 +399,6 @@ namespace Js
         if (exception != nullptr)
         {
             TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
-
-            // We need to explicitly return here to make sure we don't resolve in case index == 0 here.
-            // That would happen if GetIterator or IteratorValue throws an exception in the first iteration.
-            return promiseCapability->GetPromise();
-        }
-
-        remainingElementsWrapper->remainingElements--;
-
-        // We want this call to happen outside the try statement because if it throws, we aren't supposed to reject the promise.
-        if (remainingElementsWrapper->remainingElements == 0)
-        {
-            Assert(values != nullptr);
-
-            TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
         }
 
         return promiseCapability->GetPromise();

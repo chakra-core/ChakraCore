@@ -882,6 +882,20 @@ var tests = [
             );
         }
     },
+	{
+		name: "Promise.all called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
+		body: function (index) {
+			function FakePromise(fn) {
+			  function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
+			  function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
+			  fn(resolve, reject);
+			  this.then = function(onResolve, onReject) {};
+			}
+
+			FakePromise.resolve = function() {};
+			Promise.all.call(FakePromise, []);
+		}
+	},
     {
         name: "Promise.resolve called with a thenable calls then on the thenable",
         body: function (index) {
@@ -1310,6 +1324,20 @@ var tests = [
                 e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
         }
     },
+	{
+		name: "Promise.allsettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
+		body: function (index) {
+			function FakePromise(fn) {
+			  function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
+			  function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
+			  fn(resolve, reject);
+			  this.then = function(onResolve, onReject) {};
+			}
+
+			FakePromise.resolve = function() {};
+			Promise.allSettled.call(FakePromise, []);
+		}
+	},
 ];
 
 var index = 1;
