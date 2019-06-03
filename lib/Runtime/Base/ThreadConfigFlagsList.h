@@ -48,6 +48,7 @@ FLAG_RELEASE(IsESObjectGetOwnPropertyDescriptorsEnabled, ESObjectGetOwnPropertyD
 FLAG_RELEASE(IsESSharedArrayBufferEnabled, ESSharedArrayBuffer)
 FLAG_RELEASE(IsESDynamicImportEnabled, ESDynamicImport)
 FLAG_RELEASE(IsESBigIntEnabled, ESBigInt)
+FLAG_RELEASE(IsESNumericSeparatorEnabled, ESNumericSeparator)
 FLAG_RELEASE(IsESExportNsAsEnabled, ESExportNsAs)
 FLAG_RELEASE(IsESSymbolDescriptionEnabled, ESSymbolDescription)
 FLAG_RELEASE(IsESGlobalThisEnabled, ESGlobalThis)

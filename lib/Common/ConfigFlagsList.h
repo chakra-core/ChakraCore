@@ -679,6 +679,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6RegExSticky          (true)
 #define DEFAULT_CONFIG_ES2018RegExDotAll       (true)
 #define DEFAULT_CONFIG_ESBigInt                (false)
+#define DEFAULT_CONFIG_ESNumericSeparator      (true)
 #define DEFAULT_CONFIG_ESSymbolDescription     (true)
 #define DEFAULT_CONFIG_ESGlobalThis            (true)
 #ifdef COMPILE_DISABLE_ES6RegExPrototypeProperties
@@ -1214,6 +1215,9 @@ FLAGR(Boolean, WinRTAdaptiveApps        , "Enable the adaptive apps feature, all
 
 // ES BigInt flag
 FLAGR(Boolean, ESBigInt, "Enable ESBigInt flag", DEFAULT_CONFIG_ESBigInt)
+
+// ES Numeric Separator support for numeric constants
+FLAGR(Boolean, ESNumericSeparator, "Enable Numeric Separator flag", DEFAULT_CONFIG_ESNumericSeparator)
 
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)

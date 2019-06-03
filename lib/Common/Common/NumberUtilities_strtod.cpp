@@ -366,7 +366,7 @@ void BIGNUM::SetFromRgchExp(const EncodedChar *prgch, int32 cch, int32 lwExp)
 
     while (++prgch < pchLim)
     {
-        if (*prgch == '.')
+        if (*prgch == '.' || *prgch == '_')
             continue;
         Assert(Js::NumberUtilities::IsDigit(*prgch));
         MulTenAdd((byte) (*prgch - '0'), &luExtra);
@@ -893,7 +893,7 @@ LFail:
 String to Double.
 ***************************************************************************/
 template <typename EncodedChar>
-double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyNumberType, bool isBigIntEnabled)
+double Js::NumberUtilities::StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyNumberType, bool isBigIntEnabled, bool isNumericSeparatorEnabled)
 {
     uint32 lu;
     BIGNUM num;
@@ -908,6 +908,10 @@ double Js::NumberUtilities::StrToDbl( const EncodedChar *psz, const EncodedChar 
     Js::NumberUtilities::LuLoDbl(dblLowPrec) = 0xFFFFFFFF;
     Assert(Js::NumberUtilities::IsNan(dblLowPrec));
 #endif //DBG
+
+    // Numeric separator characters exist in the numeric constant and should
+    // be ignored.
+    bool hasNumericSeparators = false;
 
     // For the mantissa digits. After leaving the state machine, pchMinDig
     // points to the first digit and pchLimDig points just past the last
@@ -979,8 +983,11 @@ LGetLeft:
     if (Js::NumberUtilities::IsDigit(*pch))
     {
 LGetLeftDig:
-        pchMinDig = pch;
-        for (cchDig = 1; Js::NumberUtilities::IsDigit(*++pch); cchDig++)
+        if (pchMinDig == NULL)
+        {
+            pchMinDig = pch;
+        }
+        for (cchDig++; Js::NumberUtilities::IsDigit(*++pch); cchDig++)
             ;
     }
     switch (*pch)
@@ -995,6 +1002,26 @@ LGetLeftDig:
         {
             goto LBigInt;
         }
+        goto LGetLeftDefault;
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            // A numeric separator is only valid if it appears between two
+            // digits. If the preceeding or following character is not a digit,
+            // we should just fallthrough and fail. Otherwise we would have to
+            // handle cases like 1_.0 manually above.
+            // cchDig holds the count of digits in the literal. If it's >0, we
+            // can be sure the previous pch is valid.
+            if (cchDig > 0 && Js::NumberUtilities::IsDigit(*(pch - 1))
+                && Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                hasNumericSeparators = true;
+                pch++;
+                goto LGetLeftDig;
+            }
+        }
+        // Fallthrough
+LGetLeftDefault:
     default:
         likelyNumberType = LikelyNumberType::Int;
     }
@@ -1010,6 +1037,7 @@ LGetRight:
             lwAdj--;
         pchMinDig = pch;
     }
+LGetRightDigit:
     for( ; Js::NumberUtilities::IsDigit(*pch); pch++)
     {
         cchDig++;
@@ -1020,6 +1048,17 @@ LGetRight:
     case 'E':
     case 'e':
         goto LGetExp;
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            if (cchDig > 0 && Js::NumberUtilities::IsDigit(*(pch - 1)) &&
+                Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                hasNumericSeparators = true;
+                pch++;
+                goto LGetRightDigit;
+            }
+        }
     }
     goto LEnd;
 
@@ -1050,6 +1089,19 @@ LGetExpDigits:
         if (lwExp > 100000000)
             lwExp = 100000000;
     }
+    switch (*pch)
+    {
+    case '_':
+        if (isNumericSeparatorEnabled)
+        {
+            if (Js::NumberUtilities::IsDigit(*(pch - 1)) &&
+                Js::NumberUtilities::IsDigit(*(pch + 1)))
+            {
+                pch++;
+                goto LGetExpDigits;
+            }
+        }
+    }
     goto LEnd;
 
 LBigInt:
@@ -1070,7 +1122,8 @@ LEnd:
         pchLimDig = pch;
     Assert(pchMinDig != NULL);
     Assert(pchLimDig - pchMinDig == cchDig ||
-        pchLimDig - pchMinDig == cchDig + 1);
+        pchLimDig - pchMinDig == cchDig + 1 ||
+        (isNumericSeparatorEnabled && hasNumericSeparators));
 
     // Limit to kcchMaxSig digits.
     if (cchDig > kcchMaxSig)
@@ -1116,7 +1169,7 @@ LEnd:
             cchDig--;
             lwAdj++;
         }
-        else if (*pchLimDig != '.')
+        else if (*pchLimDig != '.' && *pchLimDig != '_')
         {
             Assert(FNzDigit(*pchLimDig));
             pchLimDig++;
@@ -1124,7 +1177,8 @@ LEnd:
         }
     }
     Assert(pchLimDig - pchMinDig == cchDig ||
-        pchLimDig - pchMinDig == cchDig + 1);
+        pchLimDig - pchMinDig == cchDig + 1 ||
+        (isNumericSeparatorEnabled && hasNumericSeparators));
 
     if (signExp < 0)
         lwExp = -lwExp;
@@ -1139,8 +1193,14 @@ LEnd:
             // Can use the ALU.
             for (lu = 0, pch = pchMinDig; pch < pchLimDig; pch++)
             {
-                if (*pch != '.')
+                switch (*pch)
                 {
+                case '.':
+                    break;
+                case '_':
+                    Assert(isNumericSeparatorEnabled && hasNumericSeparators);
+                    break;
+                default:
                     Assert(Js::NumberUtilities::IsDigit(*pch));
                     lu = lu * 10 + (*pch - '0');
                 }
@@ -1151,8 +1211,14 @@ LEnd:
         {
             for (dbl = 0, pch = pchMinDig; pch < pchLimDig; pch++)
             {
-                if (*pch != '.')
+                switch (*pch)
                 {
+                case '.':
+                    break;
+                case '_':
+                    Assert(isNumericSeparatorEnabled && hasNumericSeparators);
+                    break;
+                default:
                     Assert(Js::NumberUtilities::IsDigit(*pch));
                     dbl = dbl * 10 + (*pch - '0');
                 }
@@ -1270,8 +1336,8 @@ LDone:
     return dbl;
 }
 
-template double Js::NumberUtilities::StrToDbl<char16>( const char16 * psz, const char16 **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled );
-template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled );
+template double Js::NumberUtilities::StrToDbl<char16>( const char16 * psz, const char16 **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled, bool isNumericSeparatorEnabled );
+template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, LikelyNumberType& likelyInt, bool isBigIntEnabled, bool isNumericSeparatorEnabled );
 
 /***************************************************************************
 Uses big integer arithmetic to get the sequence of digits.

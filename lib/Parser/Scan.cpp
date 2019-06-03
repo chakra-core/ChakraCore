@@ -679,7 +679,7 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
     else
     {
 LFloat:
-        *pdbl = Js::NumberUtilities::StrToDbl(p, &pchT, likelyType, m_scriptContext->GetConfig()->IsESBigIntEnabled());
+        *pdbl = Js::NumberUtilities::StrToDbl(p, &pchT, likelyType, m_scriptContext->GetConfig()->IsESBigIntEnabled(), m_scriptContext->GetConfig()->IsESNumericSeparatorEnabled());
         Assert(pchT == p || !Js::NumberUtilities::IsNan(*pdbl));
         if (likelyType == LikelyNumberType::BigInt)
         {

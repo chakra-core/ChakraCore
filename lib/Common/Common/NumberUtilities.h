@@ -227,7 +227,7 @@ namespace Js
 
         // Implemented in lib\parser\common.  Should move to lib\common
         template<typename EncodedChar>
-        static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyType, bool isESBigIntEnabled = false);
+        static double StrToDbl(const EncodedChar *psz, const EncodedChar **ppchLim, LikelyNumberType& likelyType, bool isESBigIntEnabled = false, bool isNumericSeparatorEnabled = false);
 
         static BOOL FDblToStr(double dbl, __out_ecount(nDstBufSize) char16 *psz, int nDstBufSize);
         static int FDblToStr(double dbl, NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst);
