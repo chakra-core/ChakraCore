@@ -913,9 +913,6 @@ HRESULT ExecuteTest(const char* fileName)
 #ifdef DEBUG
         ChakraRTInterface::SetCheckOpHelpersFlag(true);
 #endif
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        ChakraRTInterface::SetOOPCFGRegistrationFlag(false);
-#endif
 
         if (!WScriptJsrt::Initialize())
         {

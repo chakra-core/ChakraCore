@@ -50,6 +50,21 @@ JITManager::GetJITManager()
     return &s_jitManager;
 }
 
+typedef struct _CHAKRA_RPC_SECURITY_QOS_V5 {
+    unsigned long Version;
+    unsigned long Capabilities;
+    unsigned long IdentityTracking;
+    unsigned long ImpersonationType;
+    unsigned long AdditionalSecurityInfoType;
+    union
+    {
+        RPC_HTTP_TRANSPORT_CREDENTIALS_W* HttpCredentials;
+    } u;
+    void* Sid;
+    unsigned int EffectiveOnly;
+    void* ServerSecurityDescriptor;
+} CHAKRA_RPC_SECURITY_QOS_V5;
+
 // This routine creates a binding with the server.
 HRESULT
 JITManager::CreateBinding(
@@ -67,22 +82,13 @@ JITManager::CreateBinding(
     RPC_BINDING_HANDLE_TEMPLATE_V1 bindingTemplate;
     RPC_BINDING_HANDLE_SECURITY_V1_W bindingSecurity;
 
-#if (NTDDI_VERSION >= NTDDI_WIN8)
-    RPC_SECURITY_QOS_V5 securityQOS;
-    ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V5));
+    CHAKRA_RPC_SECURITY_QOS_V5 securityQOS;
+    ZeroMemory(&securityQOS, sizeof(CHAKRA_RPC_SECURITY_QOS_V5));
     securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
     securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
     securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
-    securityQOS.Version = 5;
+    securityQOS.Version = AutoSystemInfo::Data.IsWin8OrLater() ? 5 : 4;
     securityQOS.ServerSecurityDescriptor = serverSecurityDescriptor;
-#else
-    RPC_SECURITY_QOS_V4 securityQOS;
-    ZeroMemory(&securityQOS, sizeof(RPC_SECURITY_QOS_V4));
-    securityQOS.Capabilities = RPC_C_QOS_CAPABILITIES_DEFAULT;
-    securityQOS.IdentityTracking = RPC_C_QOS_IDENTITY_DYNAMIC;
-    securityQOS.ImpersonationType = RPC_C_IMP_LEVEL_IDENTIFY;
-    securityQOS.Version = 4;
-#endif
 
     ZeroMemory(&bindingTemplate, sizeof(bindingTemplate));
     bindingTemplate.Version = 1;

@@ -32,6 +32,7 @@
         $(ChakraRuntimePlatformAgnostic);
         $(ChakraCommonLinkDependencies);
         Ole32.lib;
+        Rpcrt4.lib;
         Advapi32.lib;
         %(AdditionalDependencies)
       </AdditionalDependencies>
