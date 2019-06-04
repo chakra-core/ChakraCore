@@ -39,29 +39,43 @@ Executing test #36 - Promise.all fulfills with the same value as the first encou
 Executing test #37 - Promise.all fulfills with the same value as the first encountered rejected promise (async promises)
 Executing test #38 - Promise.all fulfills when all promises in iterable fulfill
 Executing test #39 - Promise.all passes each element in the arguments to Promise.resolve
-Executing test #40 - Promise.resolve called with a thenable calls then on the thenable
-Executing test #41 - Calling promise resolve function with thenable should call thenable.then
-Executing test #42 - Promise.all doesn't call then for rejected promises
-Executing test #43 - Promise.all with iterator that returns no items
-Executing test #44 - Simple tampering of Promise.all promise changes resolved result value
-Executing test #45 - Promise.all - can't prevent remaining elements counter from reaching zero
-Executing test #46 - Promise from Promise.all never resolved before arguments
-Executing test #47 - Promise from Promise.all never resolved if rejected promise in arguments
-Executing test #48 - Promise executor resolves with the first call resolve function
-Executing test #49 - Promise executor rejects with the first call reject function
-Executing test #50 - Promise executor resolves/rejects with the first call to either function
-Executing test #51 - Promise executor rejects/resolves with the first call to either function
-Executing test #52 - Promise executor rejects/resolves/rejects with the first call to either function
-Executing test #53 - Promise executor resolves/rejects/resolves with the first call to either function
-Executing test #54 - Promise.prototype.finally - called for resolved promise
-Executing test #55 - Promise.prototype.finally - called for rejected promise
-Executing test #56 - Promise.prototype.finally passes through result for Reject
-Executing test #57 - Promise.prototype.finally passes through result for Resolve
-Executing test #58 - Promise.prototype.finally passes through result for Reject with not callable argument
-Executing test #59 - Promise.prototype.finally passes through result for Resolve with not callable argument
-Executing test #60 - Promise.prototype.finally throws own rejection after a resolved promise
-Executing test #61 - Promise.prototype.finally throws own rejection after a rejected promise
-Executing test #62 - Ensure Multiple then handlers on a single promise are executed in correct order
+Executing test #40 - Promise.all called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler
+Test #40 - resolve called
+Test #40 - reject called: oops
+Executing test #41 - Promise.resolve called with a thenable calls then on the thenable
+Executing test #42 - Calling promise resolve function with thenable should call thenable.then
+Executing test #43 - Promise.all doesn't call then for rejected promises
+Executing test #44 - Promise.all with iterator that returns no items
+Executing test #45 - Simple tampering of Promise.all promise changes resolved result value
+Executing test #46 - Promise.all - can't prevent remaining elements counter from reaching zero
+Executing test #47 - Promise from Promise.all never resolved before arguments
+Executing test #48 - Promise from Promise.all never resolved if rejected promise in arguments
+Executing test #49 - Promise executor resolves with the first call resolve function
+Executing test #50 - Promise executor rejects with the first call reject function
+Executing test #51 - Promise executor resolves/rejects with the first call to either function
+Executing test #52 - Promise executor rejects/resolves with the first call to either function
+Executing test #53 - Promise executor rejects/resolves/rejects with the first call to either function
+Executing test #54 - Promise executor resolves/rejects/resolves with the first call to either function
+Executing test #55 - Promise.prototype.finally - called for resolved promise
+Executing test #56 - Promise.prototype.finally - called for rejected promise
+Executing test #57 - Promise.prototype.finally passes through result for Reject
+Executing test #58 - Promise.prototype.finally passes through result for Resolve
+Executing test #59 - Promise.prototype.finally passes through result for Reject with not callable argument
+Executing test #60 - Promise.prototype.finally passes through result for Resolve with not callable argument
+Executing test #61 - Promise.prototype.finally throws own rejection after a resolved promise
+Executing test #62 - Promise.prototype.finally throws own rejection after a rejected promise
+Executing test #63 - Ensure Multiple then handlers on a single promise are executed in correct order
+Executing test #64 - Promise.allSettled settles when all promises in iterable settle
+Executing test #65 - Promise.allSettled settles even if all promises reject
+Executing test #66 - Promise.allSettled settles immediately with an empty iterator
+Executing test #67 - Promise.allSettled doesn't settle if some promises don't settle
+Executing test #68 - Promise.allSettled rejects immediately with an iterator that throws
+Executing test #69 - Promise.allSettled resolve and reject functions cannot be called multiple times
+Test #69 - Temp then handler called from Promise.allSettled
+Executing test #70 - Promise.allSettled passes all elements of iterable to Promise.resolve
+Executing test #71 - Promise.allsettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler
+Test #71 - resolve called
+Test #71 - reject called: oops
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -92,21 +106,23 @@ Test #32 - Catch handler #1 called with err = TypeError: Object expected
 Test #33 - Catch handler #1 called with err = TypeError: Function expected
 Test #34 - Catch handler #1 called with err = TypeError: failure inside iterator
 Test #35 - Error handler #1 called with err = TypeError: failure inside iterator
-Test #40 - Promise.resolve calls thenable.then
-Test #41 - thenable.then resolve = function reject = function
-Test #43 - Success handler #1 called with result = '' (length = 0) (isArray = true)
-Test #44 - Success handler called with result = 'tampered' (length = 1) (isArray = true)
-Test #45 - Success handler called with result = '' (length = 1) (isArray = true)
-Test #46 - Success handler #1a called with result = '2' (isArray = false) (fulfillCalled = false)
-Test #48 - Success handler #1 called with res = 'success'
-Test #49 - Error handler #1 called with err = 'success'
-Test #50 - Success handler #1 called with res = 'success'
-Test #51 - Error handler #1 called with err = 'success'
+Test #41 - Promise.resolve calls thenable.then
+Test #42 - thenable.then resolve = function reject = function
+Test #44 - Success handler #1 called with result = '' (length = 0) (isArray = true)
+Test #45 - Success handler called with result = 'tampered' (length = 1) (isArray = true)
+Test #46 - Success handler called with result = '' (length = 1) (isArray = true)
+Test #47 - Success handler #1a called with result = '2' (isArray = false) (fulfillCalled = false)
+Test #49 - Success handler #1 called with res = 'success'
+Test #50 - Error handler #1 called with err = 'success'
+Test #51 - Success handler #1 called with res = 'success'
 Test #52 - Error handler #1 called with err = 'success'
-Test #53 - Success handler #1 called with res = 'success'
-Test #54 - Success finally handler called for resolved promise without value
-Test #55 - Success finally handler called for rejected promise without value
-Test #62 - val is 0(Expect 0)
+Test #53 - Error handler #1 called with err = 'success'
+Test #54 - Success handler #1 called with res = 'success'
+Test #55 - Success finally handler called for resolved promise without value
+Test #56 - Success finally handler called for rejected promise without value
+Test #63 - val is 0(Expect 0)
+Test #66 - Success - []
+Test #68 - Failed - {}
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -130,13 +146,21 @@ Test #38 - p1 success: p1
 Test #38 - p2 success: p2
 Test #38 - p3 success: p3
 Test #39 - Success handler #1 called with result = success value 1,42,TypeError: an error
-Test #40 - Promise.resolve call nested within thenable.then = nested Promise.resolve call
-Test #46 - Success handler #1b called with result = '3' (isArray = false) (fulfillCalled = false)
-Test #47 - Error handler #1 called with err = 2
-Test #58 - Success - Rejected status and value passed through finally with not callable argument
-Test #59 - Success - Resolved status and value passed through finally with not callable argument
-Test #60 - Success - own rejection passed through finally
+Test #41 - Promise.resolve call nested within thenable.then = nested Promise.resolve call
+Test #47 - Success handler #1b called with result = '3' (isArray = false) (fulfillCalled = false)
+Test #48 - Error handler #1 called with err = 2
+Test #59 - Success - Rejected status and value passed through finally with not callable argument
+Test #60 - Success - Resolved status and value passed through finally with not callable argument
 Test #61 - Success - own rejection passed through finally
+Test #62 - Success - own rejection passed through finally
+Test #64 - p1 success: p1
+Test #64 - p4 failure: p4
+Test #65 - p1 failure: p1
+Test #68 - p1 success: p1
+Test #68 - p2 success: p2
+Test #68 - p3 success: p3
+Test #69 - p1 success: p1
+Test #70 - Success - [{"status":"fulfilled","value":"p1"},{"status":"fulfilled","value":"p2"}]
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure
@@ -144,10 +168,15 @@ Test #27 - Success handler #1 called with result = p1
 Test #28 - Error handler #1 called with err = p1
 Test #37 - Error handler #1 called with err = p3
 Test #38 - Success handler #1 called with result = p1,p2,p3
-Test #42 - Catch handler #1 called with err = expected1
-Test #42 - Catch handler #2 called with err = expected2
-Test #42 - Catch handler #3 called with err = expected3
+Test #43 - Catch handler #1 called with err = expected1
+Test #43 - Catch handler #2 called with err = expected2
+Test #43 - Catch handler #3 called with err = expected3
+Test #64 - Success - [{"status":"fulfilled","value":"p1"},{"status":"fulfilled","value":"p2"},{"status":"rejected","reason":"p3"},{"status":"rejected","reason":"p4"}]
+Test #65 - Success - [{"status":"rejected","reason":"p1"},{"status":"rejected","reason":"p2"},{"status":"rejected","reason":"p3"}]
+Test #69 - Success: [{"status":"fulfilled","value":"p1"}]
+Test #69 - p1 success: p2
+Test #69 - p1 failure: e2
 Test #4 - Success handler #2 called with result = chain:success2
-Test #56 - Success - Rejected status and value passed through finally
-Test #57 - Success - Resolved status and value passed through finally
-Test #46 - Success handler #2 called with result = '0,,4' (length = 3) (isArray = true) (fulfillCalled = true)
+Test #57 - Success - Rejected status and value passed through finally
+Test #58 - Success - Resolved status and value passed through finally
+Test #47 - Success handler #2 called with result = '0,,4' (length = 3) (isArray = true) (fulfillCalled = true)

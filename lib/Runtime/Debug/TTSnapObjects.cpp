@@ -1309,7 +1309,7 @@ namespace TTD
 
             Js::JavascriptPromiseCapability* capabilities = InflatePromiseCapabilityInfo(&aInfo->Capabilities, ctx, inflator);
 
-            if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper>(aInfo->RemainingElementsWrapperId))
+            if (!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper>(aInfo->RemainingElementsWrapperId))
             {
                 Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingWrapper = ctx->GetLibrary()->CreateRemainingElementsWrapper_TTD(ctx, aInfo->RemainingElementsValue);
                 inflator->AddInflatedPromiseInfo(aInfo->RemainingElementsWrapperId, remainingWrapper);
@@ -1371,6 +1371,95 @@ namespace TTD
             compareMap.CheckConsistentAndAddPtrIdMapping_Special(aInfo1->Values, aInfo2->Values, _u("values"));
 
             compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(aInfo1->RemainingElementsWrapperId, aInfo2->RemainingElementsWrapperId);
+        }
+#endif
+
+        //////////////////
+
+        ////
+        //AllSettledResolveOrRejectElementFunctionObject Info
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseAllSettledResolveOrRejectElementFunctionInfo(const SnapObject* snpObject, InflateMap* inflator)
+        {
+            const SnapPromiseAllSettledResolveOrRejectElementFunctionInfo* aInfo = SnapObjectGetAddtlInfoAs<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo*, SnapObjectType::SnapPromiseAllSettledResolveOrRejectElementFunctionObject>(snpObject);
+            Js::ScriptContext* ctx = inflator->LookupScriptContext(snpObject->SnapType->ScriptContextLogId);
+
+            Js::JavascriptPromiseCapability* capabilities = InflatePromiseCapabilityInfo(&aInfo->Capabilities, ctx, inflator);
+
+            if(!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper>(aInfo->RemainingElementsWrapperId))
+            {
+                Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingWrapper = ctx->GetLibrary()->CreateRemainingElementsWrapper_TTD(ctx, aInfo->RemainingElementsValue);
+                inflator->AddInflatedPromiseInfo(aInfo->RemainingElementsWrapperId, remainingWrapper);
+            }
+            Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper = inflator->LookupInflatedPromiseInfo<Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper>(aInfo->RemainingElementsWrapperId);
+
+            if (!inflator->IsPromiseInfoDefined<Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper>(aInfo->AlreadyCalledWrapperId))
+            {
+                Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper = ctx->GetLibrary()->CreateAlreadyCalledWrapper_TTD(ctx, aInfo->AlreadyCalledValue);
+                inflator->AddInflatedPromiseInfo(aInfo->AlreadyCalledWrapperId, alreadyCalledWrapper);
+            }
+            Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper = inflator->LookupInflatedPromiseInfo<Js::JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper>(aInfo->AlreadyCalledWrapperId);
+
+            Js::RecyclableObject* values = inflator->LookupObject(aInfo->Values);
+
+            return ctx->GetLibrary()->CreatePromiseAllSettledResolveOrRejectElementFunction_TTD(capabilities, aInfo->Index, wrapper, values, alreadyCalledWrapper, aInfo->IsRejecting);
+        }
+
+        void EmitAddtlInfo_SnapPromiseAllSettledResolveOrRejectElementFunctionInfo(const SnapObject* snpObject, FileWriter* writer)
+        {
+            SnapPromiseAllSettledResolveOrRejectElementFunctionInfo* aInfo = SnapObjectGetAddtlInfoAs<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo*, SnapObjectType::SnapPromiseAllSettledResolveOrRejectElementFunctionObject>(snpObject);
+
+            writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
+            NSSnapValues::EmitPromiseCapabilityInfo(&aInfo->Capabilities, writer, NSTokens::Separator::NoSeparator);
+
+            writer->WriteUInt32(NSTokens::Key::u32Val, aInfo->Index, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, aInfo->RemainingElementsWrapperId, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::u32Val, aInfo->RemainingElementsValue, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, aInfo->AlreadyCalledWrapperId, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, aInfo->AlreadyCalledValue, NSTokens::Separator::CommaSeparator);
+
+            writer->WriteBool(NSTokens::Key::boolVal, aInfo->IsRejecting, NSTokens::Separator::CommaSeparator);
+            writer->WriteAddr(NSTokens::Key::ptrIdVal, aInfo->Values, NSTokens::Separator::CommaSeparator);
+        }
+
+        void ParseAddtlInfo_SnapPromiseAllSettledResolveOrRejectElementFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
+        {
+            SnapPromiseAllSettledResolveOrRejectElementFunctionInfo* aInfo = alloc.SlabAllocateStruct<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo>();
+
+            reader->ReadKey(NSTokens::Key::entry, true);
+            NSSnapValues::ParsePromiseCapabilityInfo(&aInfo->Capabilities, false, reader, alloc);
+
+            aInfo->Index = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+            aInfo->RemainingElementsWrapperId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            aInfo->RemainingElementsValue = reader->ReadUInt32(NSTokens::Key::u32Val, true);
+
+            aInfo->AlreadyCalledWrapperId = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+            aInfo->AlreadyCalledValue = reader->ReadBool(NSTokens::Key::boolVal, true);
+
+            aInfo->IsRejecting = reader->ReadBool(NSTokens::Key::boolVal, true);
+            aInfo->Values = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
+
+            SnapObjectSetAddtlInfoAs<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo*, SnapObjectType::SnapPromiseAllSettledResolveOrRejectElementFunctionObject>(snpObject, aInfo);
+        }
+
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapPromiseAllSettledResolveOrRejectElementFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap)
+        {
+            SnapPromiseAllSettledResolveOrRejectElementFunctionInfo* aInfo1 = SnapObjectGetAddtlInfoAs<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo*, SnapObjectType::SnapPromiseAllSettledResolveOrRejectElementFunctionObject>(sobj1);
+            SnapPromiseAllSettledResolveOrRejectElementFunctionInfo* aInfo2 = SnapObjectGetAddtlInfoAs<SnapPromiseAllSettledResolveOrRejectElementFunctionInfo*, SnapObjectType::SnapPromiseAllSettledResolveOrRejectElementFunctionObject>(sobj2);
+
+            NSSnapValues::AssertSnapEquiv(&aInfo1->Capabilities, &aInfo2->Capabilities, compareMap);
+
+            compareMap.DiagnosticAssert(aInfo1->Index == aInfo2->Index);
+            compareMap.DiagnosticAssert(aInfo1->RemainingElementsValue == aInfo2->RemainingElementsValue);
+            compareMap.DiagnosticAssert(aInfo1->AlreadyCalledValue == aInfo2->AlreadyCalledValue);
+            compareMap.DiagnosticAssert(aInfo1->IsRejecting == aInfo2->IsRejecting);
+
+            compareMap.CheckConsistentAndAddPtrIdMapping_Special(aInfo1->Values, aInfo2->Values, _u("values"));
+
+            compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(aInfo1->RemainingElementsWrapperId, aInfo2->RemainingElementsWrapperId);
+            compareMap.CheckConsistentAndAddPtrIdMapping_NoEnqueue(aInfo1->AlreadyCalledWrapperId, aInfo2->AlreadyCalledWrapperId);
         }
 #endif
 

@@ -2468,6 +2468,7 @@ namespace Js
         library->AddMember(promiseConstructor, PropertyIds::name, scriptContext->GetPropertyString(PropertyIds::Promise), PropertyConfigurable);
 
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::all, &JavascriptPromise::EntryInfo::All, 1);
+        library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::allSettled, &JavascriptPromise::EntryInfo::AllSettled, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::race, &JavascriptPromise::EntryInfo::Race, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::reject, &JavascriptPromise::EntryInfo::Reject, 1);
         library->AddMember(promiseConstructor, PropertyIds::resolve, library->EnsurePromiseResolveFunction(), PropertyBuiltInMethodDefaults);
@@ -5329,6 +5330,21 @@ namespace Js
         return res;
     }
 
+    JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* JavascriptLibrary::CreateAlreadyCalledWrapper_TTD(Js::ScriptContext* ctx, bool value)
+    {
+        JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper = RecyclerNewStructZ(ctx->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
+        alreadyCalledWrapper->alreadyResolved = value;
+
+        return alreadyCalledWrapper;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseAllSettledResolveOrRejectElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting)
+    {
+        Js::JavascriptPromiseAllSettledResolveOrRejectElementFunction* res = this->CreatePromiseAllSettledResolveOrRejectElementFunction(JavascriptPromise::EntryAllSettledResolveOrRejectElementFunction, index, Js::VarTo<Js::JavascriptArray>(values), capabilities, wrapper, alreadyCalledWrapper, isRejecting);
+
+        return res;
+    }
+
     Js::RecyclableObject* JavascriptLibrary::CreateJavascriptGenerator_TTD(Js::ScriptContext *ctx,
         Js::RecyclableObject *prototype, Js::Arguments &arguments,
         Js::JavascriptGenerator::GeneratorState generatorState)
@@ -6170,6 +6186,19 @@ namespace Js
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllResolveElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseAllResolveElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllResolveElementFunction, type, functionInfo, index, values, capabilities, remainingElements);
+
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+
+        return function;
+    }
+
+    JavascriptPromiseAllSettledResolveOrRejectElementFunction* JavascriptLibrary::CreatePromiseAllSettledResolveOrRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper, bool isRejecting)
+    {
+        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
+
+        FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllSettledResolveOrRejectElementFunction;
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptPromiseAllSettledResolveOrRejectElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllSettledResolveOrRejectElementFunction, type, functionInfo, index, values, capabilities, remainingElements, alreadyCalledWrapper, isRejecting);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 
