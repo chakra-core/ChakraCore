@@ -777,9 +777,9 @@ using namespace Js;
 
         Var replaceValue = (args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined();
 
-        if (VarIs<JavascriptFunction>(replaceValue))
+        if (JavascriptConversion::IsCallable(replaceValue))
         {
-            JavascriptFunction* replaceFunction = VarTo<JavascriptFunction>(replaceValue);
+            RecyclableObject* replaceFunction = VarTo<RecyclableObject>(replaceValue);
             return RegexHelper::RegexReplaceFunction(scriptContext, thisObj, string, replaceFunction);
         }
         else
