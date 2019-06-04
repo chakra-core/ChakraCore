@@ -1423,17 +1423,17 @@ namespace Js
         }
 
         bool mapping = false;
-        JavascriptFunction* mapFn = nullptr;
+        RecyclableObject* mapFn = nullptr;
         Var mapFnThisArg = nullptr;
 
         if (args.Info.Count >= 3)
         {
-            if (!VarIs<JavascriptFunction>(args[2]))
+            if (!JavascriptConversion::IsCallable(args[2]))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("[TypedArray].from"));
             }
 
-            mapFn = VarTo<JavascriptFunction>(args[2]);
+            mapFn = VarTo<RecyclableObject>(args[2]);
 
             if (args.Info.Count >= 4)
             {

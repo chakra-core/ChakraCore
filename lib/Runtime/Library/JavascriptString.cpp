@@ -1614,7 +1614,7 @@ case_2:
         JavascriptString * pMatch = nullptr;
 
         JavascriptString * pReplace = nullptr;
-        JavascriptFunction* replacefn = nullptr;
+        RecyclableObject* replacefn = nullptr;
 
         SearchValueHelper(scriptContext, ((args.Info.Count > 1)?args[1]:scriptContext->GetLibrary()->GetNull()), &pRegEx, &pMatch);
         ReplaceValueHelper(scriptContext, ((args.Info.Count > 2) ? args[2] : scriptContext->GetLibrary()->GetUndefined()), &replacefn, &pReplace);
@@ -1667,14 +1667,14 @@ case_2:
         }
     }
 
-    void JavascriptString::ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, JavascriptFunction ** ppReplaceFn, JavascriptString ** ppReplaceString)
+    void JavascriptString::ReplaceValueHelper(ScriptContext* scriptContext, Var aValue, RecyclableObject ** ppReplaceFn, JavascriptString ** ppReplaceString)
     {
         *ppReplaceFn = nullptr;
         *ppReplaceString = nullptr;
 
-        if (VarIs<JavascriptFunction>(aValue))
+        if (JavascriptConversion::IsCallable(aValue))
         {
-            *ppReplaceFn = VarTo<JavascriptFunction>(aValue);
+            *ppReplaceFn = VarTo<RecyclableObject>(aValue);
         }
         else if (VarIs<JavascriptString>(aValue))
         {
