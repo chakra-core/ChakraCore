@@ -243,7 +243,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
 // Note: the boxValues parameter should be true when this is called from a Bailout codepath to ensure that multiple vars to
 // the same object reuse the cached value during the transition to the interpreter.
 // Otherwise, this parameter should be false as the values are not required to be moved to the heap to restore the frame.
-void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack, bool boxValues)
+void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack, bool boxValues, InlinedFrameLayout **ppInlinedFrameToRestore, Js::ArgSlot *pClearedCallInfoCount)
 {
     InlineeFrameRecord* innerMostRecord = this;
     class AutoReverse
@@ -287,6 +287,12 @@ void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFr
     }
 
     // Terminate the inlined stack
+    if (ppInlinedFrameToRestore)
+    {
+        // Tell the caller that we need to restore this frame's callinfo count before using it to create an interpreter instance
+        *ppInlinedFrameToRestore = currentFrame;
+        *pClearedCallInfoCount = currentFrame->callInfo.Count;
+    }
     currentFrame->callInfo.Count = 0;
 }
 
