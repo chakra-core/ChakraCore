@@ -540,10 +540,12 @@ LSkipZeroes:
         byte bExtra = 0;
         int cbit = 0;
         const EncodedChar* pszSave = psz;
+
         // Skip leading zeros.
 LSkipZeroes:
         while (*psz == '0')
             psz++;
+
         // Get the first digit.
         uT = *psz - '0';
         if (uT > 1)
@@ -553,11 +555,7 @@ LSkipZeroes:
             //  - we've walked past at least one zero character (ie: this isn't the first character in psz)
             //  - the previous character was a zero
             //  - the following character is a valid binary digit
-            if (*psz == '_' &&
-                isNumericSeparatorEnabled &&
-                pszSave < psz &&
-                psz[-1] == '0' &&
-                static_cast<uint>(psz[1] - '0') <= 1)
+            if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] == '0' && static_cast<uint>(psz[1] - '0') <= 1)
             {
                 psz++;
                 goto LSkipZeroes;
@@ -566,6 +564,7 @@ LSkipZeroes:
             *ppchLim = psz;
             return dbl;
         }
+
         //Now that leading zeros are skipped first bit should be one so lets
         //go ahead and count it and increment psz
         cbit = 1;
@@ -583,7 +582,7 @@ LSkipZeroes:
         const uint leftShiftValue = 52;
 
 LGetBinaryDigit:
-        uT = (*psz - '0');
+        uT = *psz - '0';
         if (uT <= 1)
         {
             if (cbit <= rightShiftValue)
@@ -609,7 +608,7 @@ LGetBinaryDigit:
         }
         else if (*psz == '_')
         {
-            if (isNumericSeparatorEnabled && cbit > 0 && static_cast<uint>(psz[1] - '0') <= 1 && static_cast<uint>(psz[-1] - '0') <= 1)
+            if (isNumericSeparatorEnabled && cbit > 0 && psz[-1] != '_' && static_cast<uint>(psz[1] - '0') <= 1)
             {
                 psz++;
                 goto LGetBinaryDigit;
