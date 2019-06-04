@@ -170,6 +170,58 @@ var tests = [
 		assert.areEqual(0, parseFloat('0x1_fe'), "0 === parseFloat('0x1_fe')");
     }
   },
+  {
+    name: "Octal literal support",
+    body: function () {
+        assert.areEqual(0o00, 0o0_0, "0o00 === 0o0_0");
+        assert.areEqual(0o11, 0o1_1, "0o11 === 0o1_1");
+        assert.areEqual(0o10, 0o1_0, "0o10 === 0o1_0");
+        assert.areEqual(0o01, 0o0_1, "0o01 === 0o0_1");
+        assert.areEqual(0o0001, 0o000_1, "0o0001 === 0o000_1");
+		assert.areEqual(0o0000, 0o000_0, "0o0000 === 0o000_0");
+		assert.areEqual(0o000011110000, 0o0000_1111_0000, "0o000011110000 === 0o0000_1111_0000");
+		assert.areEqual(0o000011110000, 0o0_0_0_0_1_111_00_00, "0o000011110000 === 0o0_0_0_0_1_111_00_00");
+    }
+  },
+  {
+    name: "Octal literal bad syntax",
+    body: function () {
+		assert.throws(()=>eval('0o_'), SyntaxError, "'_' cannot immediately follow 0o");
+		assert.throws(()=>eval('0o__'), SyntaxError, "'_' cannot immediately follow 0o");
+		assert.throws(()=>eval('0o_1'), SyntaxError, "Octal literal may not begin with numeric separator");
+		assert.throws(()=>eval('0o_0'), SyntaxError, "Octal literal may not begin with numeric separator");
+		assert.throws(()=>eval('0o__1'), SyntaxError, "Octal literal may not begin with numeric separator");
+		assert.throws(()=>eval('0o__0'), SyntaxError, "Octal literal may not begin with numeric separator");
+		assert.throws(()=>eval('0o1_'), SyntaxError, "Octal literal may not end with numeric separator");
+		assert.throws(()=>eval('0o0_'), SyntaxError, "Octal literal may not end with numeric separator");
+		assert.throws(()=>eval('0o1__'), SyntaxError, "Octal literal may not end with numeric separator");
+		assert.throws(()=>eval('0o0__'), SyntaxError, "Octal literal may not end with numeric separator");
+		assert.throws(()=>eval('0o1__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0o0__0'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0o000__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0o000_a'), SyntaxError, "After initial zeroes, a numeric separator followed by an invalid character");
+	}
+  },
+  {
+    name: "Strings parsed as number do not support numeric separators for octal literals",
+    body: function () {
+		assert.areEqual(NaN, Number('0o0_1'), "NaN === Number('0o0_1')");
+		assert.areEqual(NaN, Number('0o1_0'), "NaN === Number('0o1_0')");
+		assert.areEqual(NaN, Number('0o0_0'), "NaN === Number('0o0_0')");
+		assert.areEqual(NaN, Number('0o1_1'), "NaN === Number('0o1_1')");
+		
+		assert.areEqual(0, parseInt('0b1_0'), "0 === parseInt('0b1_0')");
+		
+		assert.areEqual(0, parseFloat('0b1_0'), "0 === parseFloat('0b1_0')");
+    }
+  },
+  {
+    name: "Legacy octal numeric literals do not support numeric separators",
+    body: function () {
+		assert.throws(()=>eval('0_1'), SyntaxError, "'_' cannot immediately follow 0 in legacy octal numeric literal");
+		assert.throws(()=>eval('07_7'), SyntaxError, "Legacy octal numeric literals do not support numeric separator");
+	}
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

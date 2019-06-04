@@ -641,7 +641,7 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
         case 'o':
         case 'O':
             // Octal
-            *pdbl = Js::NumberUtilities::DblFromOctal(p + 2, &pchT);
+            *pdbl = Js::NumberUtilities::DblFromOctal(p + 2, &pchT, m_scriptContext->GetConfig()->IsESNumericSeparatorEnabled());
             baseSpecifierCheck();
             goto LIdCheck;
 

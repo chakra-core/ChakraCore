@@ -642,16 +642,24 @@ LGetBinaryDigit:
     }
 
     template <typename EncodedChar>
-    double NumberUtilities::DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim)
+    double NumberUtilities::DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled)
     {
         double dbl;
         uint uT;
         byte bExtra;
         int cbit;
+        const EncodedChar* pszSave = psz;
 
         // Skip leading zeros.
+LSkipZeroes:
         while (*psz == '0')
             psz++;
+
+        if (*psz == '_' && isNumericSeparatorEnabled && psz > pszSave && psz[-1] == '0' && static_cast<uint>(psz[1] - '0') <= 7)
+        {
+            psz++;
+            goto LSkipZeroes;
+        }
 
         dbl = 0;
         Assert(Js::NumberUtilities::LuHiDbl(dbl) == 0);
@@ -683,7 +691,9 @@ LGetBinaryDigit:
         }
         bExtra = 0;
 
-        for (; (uT = (*psz - '0')) <= 7; psz++)
+LGetOctalDigit:
+        uT = *psz - '0';
+        if (uT <= 7)
         {
             if (cbit <= 18)
                 Js::NumberUtilities::LuHiDbl(dbl) |= (uint32)uT << (18 - cbit);
@@ -702,6 +712,16 @@ LGetBinaryDigit:
             else if (0 != uT)
                 bExtra |= 1;
             cbit += 3;
+            psz++;
+            goto LGetOctalDigit;
+        }
+        else if (*psz == '_')
+        {
+            if (isNumericSeparatorEnabled && cbit > 0 && psz[-1] != '_' && static_cast<uint>(psz[1] - '0') <= 7)
+            {
+                psz++;
+                goto LGetOctalDigit;
+            }
         }
 
         // Set the lim.
@@ -745,5 +765,5 @@ LGetBinaryDigit:
     template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
     template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
-    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);
-    template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
+    template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromOctal<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
