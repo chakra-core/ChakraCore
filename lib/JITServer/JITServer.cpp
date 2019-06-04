@@ -27,26 +27,29 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
-#if (NTDDI_VERSION >= NTDDI_WIN8)
-    status = RpcServerRegisterIf3(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL,
-        securityDescriptor);
-#else
-    status = RpcServerRegisterIf2(
-        ServerIChakraJIT_v0_0_s_ifspec,
-        NULL,
-        NULL,
-        RPC_IF_AUTOLISTEN,
-        RPC_C_LISTEN_MAX_CALLS_DEFAULT,
-        (ULONG)-1,
-        NULL);
-#endif
+    if (AutoSystemInfo::Data.IsWin8OrLater())
+    {
+        status = RPCLibrary::Instance->RpcServerRegisterIf3(
+            ServerIChakraJIT_v0_0_s_ifspec,
+            NULL,
+            NULL,
+            RPC_IF_AUTOLISTEN,
+            RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+            (ULONG)-1,
+            NULL,
+            securityDescriptor);
+    }
+    else
+    {
+        status = RpcServerRegisterIf2(
+            ServerIChakraJIT_v0_0_s_ifspec,
+            NULL,
+            NULL,
+            RPC_IF_AUTOLISTEN,
+            RPC_C_LISTEN_MAX_CALLS_DEFAULT,
+            (ULONG)-1,
+            NULL);
+    }
     if (status != RPC_S_OK)
     {
         return status;

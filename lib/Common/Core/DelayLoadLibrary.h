@@ -222,4 +222,45 @@ public:
         _In_ ULONG MapType
     );
 };
+
+// This needs to be delay loaded because RpcServerRegisterIf3 is available only
+// on Win8+
+class RPCLibrary : protected DelayLoadLibrary
+{
+private:
+    typedef RPC_STATUS(NTAPI* PFnRpcServerRegisterIf3)(
+        _In_ RPC_IF_HANDLE IfSpec,
+        _In_opt_ UUID* MgrTypeUuid,
+        _In_opt_ RPC_MGR_EPV* MgrEpv,
+        _In_ unsigned int Flags,
+        _In_ unsigned int MaxCalls,
+        _In_ unsigned int MaxRpcSize,
+        _In_opt_ RPC_IF_CALLBACK_FN* IfCallback,
+        _In_opt_ void* SecurityDescriptor);
+
+    PFnRpcServerRegisterIf3 serverRegister;
+
+public:
+    static RPCLibrary* Instance;
+
+    RPCLibrary() : DelayLoadLibrary(),
+        serverRegister(nullptr)
+    {
+        this->EnsureFromSystemDirOnly();
+    }
+
+    LPCTSTR GetLibraryName() const;
+
+    RPC_STATUS RpcServerRegisterIf3(
+        _In_ RPC_IF_HANDLE IfSpec,
+        _In_opt_ UUID* MgrTypeUuid,
+        _In_opt_ RPC_MGR_EPV* MgrEpv,
+        _In_ unsigned int Flags,
+        _In_ unsigned int MaxCalls,
+        _In_ unsigned int MaxRpcSize,
+        _In_opt_ RPC_IF_CALLBACK_FN* IfCallback,
+        _In_opt_ void* SecurityDescriptor
+    );
+};
+
 #endif
