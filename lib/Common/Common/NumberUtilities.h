@@ -252,7 +252,7 @@ namespace Js
         template<typename EncodedChar>
         static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim);
         template <typename EncodedChar>
-        static double DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim);
+        static double DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template<typename EncodedChar>
         static double DblFromOctal(const EncodedChar *psz, const EncodedChar **ppchLim);
         template<typename EncodedChar>

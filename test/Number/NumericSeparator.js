@@ -7,7 +7,7 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
   {
-    name: "Basic decimal support",
+    name: "Basic decimal literal support",
     body: function () {
         assert.areEqual(1234, 1_234, "1234 === 1_234");
         assert.areEqual(1234, 1_2_3_4, "1234 === 1_2_3_4");
@@ -18,7 +18,7 @@ var tests = [
     }
   },
   {
-    name: "Decimal with exponent",
+    name: "Decimal literal with exponent",
     body: function () {
         assert.areEqual(1e100, 1e1_00, "1e100 === 1e1_00");
         assert.areEqual(Infinity, 1e1_0_0_0, "Infinity === 1e1_0_0_0");
@@ -28,11 +28,11 @@ var tests = [
     }
   },
   {
-    name: "Decimal bad syntax",
+    name: "Decimal literal bad syntax",
     body: function () {
         // Decimal left-part only with numeric separators
-        assert.throws(()=>eval('1__2'), SyntaxError, "Multiple numeric separators in a row are now allowed");
-        assert.throws(()=>eval('1_2____3'), SyntaxError, "Multiple numeric separators in a row are now allowed");
+        assert.throws(()=>eval('1__2'), SyntaxError, "Multiple numeric separators in a row are not allowed");
+        assert.throws(()=>eval('1_2____3'), SyntaxError, "Multiple numeric separators in a row are not allowed");
         assert.throws(()=>eval('1_'), SyntaxError, "Decimal may not end in a numeric separator");
         assert.throws(()=>eval('1__'), SyntaxError, "Decimal may not end in a numeric separator");
         assert.throws(()=>eval('__1'), ReferenceError, "Decimal may not begin with a numeric separator");
@@ -63,6 +63,69 @@ var tests = [
 
         // Decimal big ints with numeric separators
         assert.throws(()=>eval('1_n'), SyntaxError);
+    }
+  },
+  {
+    name: "Strings parsed as number do not support numeric separators for decimal literals",
+    body: function () {
+		assert.areEqual(NaN, Number('12_34'), "NaN === Number('12_34')");
+		assert.areEqual(NaN, Number('12e3_4'), "NaN === Number('12e3_4')");
+		assert.areEqual(NaN, Number('1234.45_67'), "NaN === Number('1234.45_67')");
+		assert.areEqual(NaN, Number('1234.45e6_7'), "NaN === Number('1234.45e6_7')");
+		
+		assert.areEqual(1, parseInt('1_2'), "1 === parseInt('1_2')");
+		assert.areEqual(1, parseInt('1e2_3'), "1 === parseInt('1e2_3')");
+		assert.areEqual(12, parseInt('12.3_4'), "1 === parseInt('12.3_4')");
+		assert.areEqual(12, parseInt('12.34e5_6'), "1 === parseInt('12.34e5_6')");
+		
+		assert.areEqual(1, parseFloat('1_2'), "1 === parseFloat('1_2')");
+		assert.areEqual(1e2, parseFloat('1e2_3'), "1 === parseFloat('1e2_3')");
+		assert.areEqual(12.3, parseFloat('12.3_4'), "1 === parseFloat('12.3_4')");
+		assert.areEqual(12.34e5, parseFloat('12.34e5_6'), "1 === parseFloat('12.34e5_6')");
+    }
+  },
+  {
+    name: "Basic binary literal support",
+    body: function () {
+        assert.areEqual(0b00, 0b0_0, "0b00 === 0b0_0");
+        assert.areEqual(0b11, 0b1_1, "0b11 === 0b1_1");
+        assert.areEqual(0b10, 0b1_0, "0b10 === 0b1_0");
+        assert.areEqual(0b01, 0b0_1, "0b01 === 0b0_1");
+        assert.areEqual(0b0001, 0b000_1, "0b0001 === 0b000_1");
+		assert.areEqual(0b0000, 0b000_0, "0b0000 === 0b000_0");
+		assert.areEqual(0b000011110000, 0b0000_1111_0000, "0b000011110000 === 0b0000_1111_0000");
+    }
+  },
+  {
+    name: "Binary literal bad syntax",
+    body: function () {
+		assert.throws(()=>eval('0b_'), SyntaxError, "'_' cannot immediately follow 0b");
+		assert.throws(()=>eval('0b__'), SyntaxError, "'_' cannot immediately follow 0b");
+		assert.throws(()=>eval('0b_1'), SyntaxError, "Binary literal may not begin with numeric separator");
+		assert.throws(()=>eval('0b_0'), SyntaxError, "Binary literal may not begin with numeric separator");
+		assert.throws(()=>eval('0b__1'), SyntaxError, "Binary literal may not begin with numeric separator");
+		assert.throws(()=>eval('0b__0'), SyntaxError, "Binary literal may not begin with numeric separator");
+		assert.throws(()=>eval('0b1_'), SyntaxError, "Binary literal may not end with numeric separator");
+		assert.throws(()=>eval('0b0_'), SyntaxError, "Binary literal may not end with numeric separator");
+		assert.throws(()=>eval('0b1__'), SyntaxError, "Binary literal may not end with numeric separator");
+		assert.throws(()=>eval('0b0__'), SyntaxError, "Binary literal may not end with numeric separator");
+		assert.throws(()=>eval('0b1__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0b0__0'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0b000__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0b000_a'), SyntaxError, "After initial zeroes, a numeric separator followed by an invalid character");
+	}
+  },
+  {
+    name: "Strings parsed as number do not support numeric separators for binary literals",
+    body: function () {
+		assert.areEqual(NaN, Number('0b0_1'), "NaN === Number('0b0_1')");
+		assert.areEqual(NaN, Number('0b1_0'), "NaN === Number('0b1_0')");
+		assert.areEqual(NaN, Number('0b0_0'), "NaN === Number('0b0_0')");
+		assert.areEqual(NaN, Number('0b1_1'), "NaN === Number('0b1_1')");
+		
+		assert.areEqual(0, parseInt('0b1_0'), "0 === parseInt('0b1_0')");
+		
+		assert.areEqual(0, parseFloat('0b1_0'), "0 === parseFloat('0b1_0')");
     }
   },
 ];

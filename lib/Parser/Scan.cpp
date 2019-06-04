@@ -648,7 +648,7 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
         case 'b':
         case 'B':
             // Binary
-            *pdbl = Js::NumberUtilities::DblFromBinary(p + 2, &pchT);
+            *pdbl = Js::NumberUtilities::DblFromBinary(p + 2, &pchT, m_scriptContext->GetConfig()->IsESNumericSeparatorEnabled());
             baseSpecifierCheck();
             goto LIdCheck;
 
