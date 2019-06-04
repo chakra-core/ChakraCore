@@ -838,37 +838,42 @@ typedef struct JITOutputIDL
     boolean disableStackArgOpt;
     boolean disableSwitchOpt;
     boolean disableTrackCompoundedIntOverflow;
+    boolean disableMemOp;
+
     boolean isInPrereservedRegion;
-
     boolean hasBailoutInstr;
-
     boolean hasJittedStackClosure;
+    IDL_PAD1(0)
 
     unsigned short pdataCount;
     unsigned short xdataSize;
 
     unsigned short argUsedForBranch;
+    IDL_PAD2(1)
 
     int localVarSlotsOffset; // FunctionEntryPointInfo only
+
     int localVarChangedOffset; // FunctionEntryPointInfo only
     unsigned int frameHeight;
 
-
     unsigned int codeSize;
     unsigned int throwMapOffset;
+
     unsigned int throwMapCount;
     unsigned int inlineeFrameOffsetArrayOffset;
-    unsigned int inlineeFrameOffsetArrayCount;
 
+    unsigned int inlineeFrameOffsetArrayCount;
     unsigned int propertyGuardCount;
+
     unsigned int ctorCachesCount;
+    X64_PAD4(2)
 
 #if TARGET_64
     CHAKRA_PTR xdataAddr;
 #elif defined(_M_ARM)
     unsigned int xdataOffset;
 #else
-    X86_PAD4(0)
+    X86_PAD4(3)
 #endif
     CHAKRA_PTR codeAddress;
     CHAKRA_PTR thunkAddress;
