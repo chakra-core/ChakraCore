@@ -635,7 +635,7 @@ typename Scanner<EncodingPolicy>::EncodedCharPtr Scanner<EncodingPolicy>::FScanN
         case 'x':
         case 'X':
             // Hex
-            *pdbl = Js::NumberUtilities::DblFromHex(p + 2, &pchT);
+            *pdbl = Js::NumberUtilities::DblFromHex(p + 2, &pchT, m_scriptContext->GetConfig()->IsESNumericSeparatorEnabled());
             baseSpecifierCheck();
             goto LIdCheck;
         case 'o':

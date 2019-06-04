@@ -7,7 +7,7 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
   {
-    name: "Basic decimal literal support",
+    name: "Decimal literal support",
     body: function () {
         assert.areEqual(1234, 1_234, "1234 === 1_234");
         assert.areEqual(1234, 1_2_3_4, "1234 === 1_2_3_4");
@@ -85,7 +85,7 @@ var tests = [
     }
   },
   {
-    name: "Basic binary literal support",
+    name: "Binary literal support",
     body: function () {
         assert.areEqual(0b00, 0b0_0, "0b00 === 0b0_0");
         assert.areEqual(0b11, 0b1_1, "0b11 === 0b1_1");
@@ -94,6 +94,7 @@ var tests = [
         assert.areEqual(0b0001, 0b000_1, "0b0001 === 0b000_1");
 		assert.areEqual(0b0000, 0b000_0, "0b0000 === 0b000_0");
 		assert.areEqual(0b000011110000, 0b0000_1111_0000, "0b000011110000 === 0b0000_1111_0000");
+		assert.areEqual(0b000011110000, 0b0_0_0_0_1_111_00_00, "0b000011110000 === 0b0_0_0_0_1_111_00_00");
     }
   },
   {
@@ -126,6 +127,47 @@ var tests = [
 		assert.areEqual(0, parseInt('0b1_0'), "0 === parseInt('0b1_0')");
 		
 		assert.areEqual(0, parseFloat('0b1_0'), "0 === parseFloat('0b1_0')");
+    }
+  },
+  {
+    name: "Hex numeric literal support",
+    body: function () {
+        assert.areEqual(0x00, 0x0_0, "0x00 === 0x0_0");
+        assert.areEqual(0x1f, 0x1_f, "0x1f === 0x1_f");
+        assert.areEqual(0x000000Ae1, 0x00_0_000_A_e1, "0x000000Ae1 === 0x00_0_000_A_e1");
+		assert.areEqual(0xaabbccdd, 0xaa_bb_cc_dd, "0xaabbccdd === 0xaa_bb_cc_dd");
+    }
+  },
+  {
+    name: "Hex numeric literal bad syntax",
+    body: function () {
+		assert.throws(()=>eval('0x_'), SyntaxError, "'_' cannot immediately follow 0x");
+		assert.throws(()=>eval('0x__'), SyntaxError, "'_' cannot immediately follow 0x");
+		assert.throws(()=>eval('0x_1'), SyntaxError, "Hex literal may not begin with numeric separator");
+		assert.throws(()=>eval('0x_0'), SyntaxError, "Hex literal may not begin with numeric separator");
+		assert.throws(()=>eval('0x__1'), SyntaxError, "Hex literal may not begin with numeric separator");
+		assert.throws(()=>eval('0x__0'), SyntaxError, "Hex literal may not begin with numeric separator");
+		assert.throws(()=>eval('0x1_'), SyntaxError, "Hex literal may not end with numeric separator");
+		assert.throws(()=>eval('0x0_'), SyntaxError, "Hex literal may not end with numeric separator");
+		assert.throws(()=>eval('0x1__'), SyntaxError, "Hex literal may not end with numeric separator");
+		assert.throws(()=>eval('0x0__'), SyntaxError, "Hex literal may not end with numeric separator");
+		assert.throws(()=>eval('0x1__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0x0__0'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0x000__1'), SyntaxError, "Multiple numeric separator characters may not follow each other");
+		assert.throws(()=>eval('0x000_q'), SyntaxError, "After initial zeroes, a numeric separator followed by an invalid character");
+	}
+  },
+  {
+    name: "Strings parsed as number do not support numeric separators for hex literals",
+    body: function () {
+		assert.areEqual(NaN, Number('0x0_ff'), "NaN === Number('0x0_ff')");
+		assert.areEqual(NaN, Number('0xF_F'), "NaN === Number('0xF_F')");
+		
+		assert.areEqual(0, parseInt('0x0_ff'), "0 === parseInt('0x0_ff')");
+		assert.areEqual(15, parseInt('0xf_00f'), "15 === parseInt('0xf_00f')");
+		
+		assert.areEqual(0, parseFloat('0x0_ff'), "0 === parseFloat('0x0_ff')");
+		assert.areEqual(0, parseFloat('0x1_fe'), "0 === parseFloat('0x1_fe')");
     }
   },
 ];

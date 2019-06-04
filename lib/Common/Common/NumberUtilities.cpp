@@ -405,16 +405,28 @@ using namespace Js;
     }
 
     template<typename EncodedChar>
-    double NumberUtilities::DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim)
+    double NumberUtilities::DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled)
     {
         double dbl;
         uint uT;
         byte bExtra;
         int cbit;
+        const EncodedChar* pszSave = psz;
 
         // Skip leading zeros.
+LSkipZeroes:
         while (*psz == '0')
             psz++;
+
+        // If we stopped fast-scanning zeroes above because we ran into a numeric separator, skip that separator character if
+        // the previous character was a '0' (meaning the separator was not the first character in the literal) and the following
+        // character is a hex digit.
+        int unused;
+        if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] == '0' && FHexDigit(psz[1], &unused))
+        {
+            psz++;
+            goto LSkipZeroes;
+        }
 
         dbl = 0;
         Assert(Js::NumberUtilities::LuHiDbl(dbl) == 0);
@@ -460,9 +472,17 @@ using namespace Js;
             if ((uT = (*psz - '0')) > 9)
             {
                 if ((uT -= 'A' - '0') <= 5 || (uT -= 'a' - 'A') <= 5)
+                {
                     uT += 10;
+                }
+                else if (*psz == '_' && isNumericSeparatorEnabled && pszSave < psz && psz[-1] != '_' && FHexDigit(psz[1], &unused))
+                {
+                    continue;
+                }
                 else
+                {
                     break;
+                }
             }
 
             if (cbit <= 17)
@@ -721,8 +741,8 @@ LGetBinaryDigit:
 
     template double NumberUtilities::StrToDbl<char16>(const char16 * psz, const char16 **ppchLim, Js::ScriptContext *const scriptContext);
     template double NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz, const utf8char_t **ppchLim, Js::ScriptContext *const scriptContext);
-    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim);
-    template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim);
+    template double NumberUtilities::DblFromHex<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
+    template double NumberUtilities::DblFromHex<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
     template double NumberUtilities::DblFromBinary<char16>(const char16 *psz, const char16 **ppchLim, bool isNumericSeparatorEnabled);
     template double NumberUtilities::DblFromBinary<utf8char_t>(const utf8char_t *psz, const utf8char_t **ppchLim, bool isNumericSeparatorEnabled);
     template double NumberUtilities::DblFromOctal<char16>(const char16 *psz, const char16 **ppchLim);

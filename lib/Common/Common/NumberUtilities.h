@@ -250,7 +250,7 @@ namespace Js
         static BOOL FDblIsInt32(double dbl, int32 *plw);
 
         template<typename EncodedChar>
-        static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim);
+        static double DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template <typename EncodedChar>
         static double DblFromBinary(const EncodedChar *psz, const EncodedChar **ppchLim, bool isNumericSeparatorEnabled = false);
         template<typename EncodedChar>
