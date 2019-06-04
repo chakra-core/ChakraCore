@@ -445,7 +445,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *func = VarTo<RecyclableObject>(args.Values[1]);
+        RecyclableObject *volatile func = VarTo<RecyclableObject>(args.Values[1]);
 
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
