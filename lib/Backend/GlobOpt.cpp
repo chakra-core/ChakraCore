@@ -16531,6 +16531,7 @@ GlobOpt::GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opn
         if (instr->HasBailOutInfo())
         {
             instr->SetBailOutKind(instr->GetBailOutKind() | IR::BailOutMarkTempObject);
+            instr->GetBailOutInfo()->canDeadStore = false;
         }
         else
         {
@@ -16540,6 +16541,11 @@ GlobOpt::GenerateBailOutMarkTempObjectIfNeeded(IR::Instr * instr, IR::Opnd * opn
                 || (instr->m_opcode == Js::OpCode::FromVar && !opnd->GetValueType().IsPrimitive())
                 || propertySymOpnd == nullptr
                 || !propertySymOpnd->IsTypeCheckProtected())
+            {
+                this->GenerateBailAtOperation(&instr, IR::BailOutMarkTempObject);
+                instr->GetBailOutInfo()->canDeadStore = false;
+            }
+            else if (propertySymOpnd->MayHaveImplicitCall())
             {
                 this->GenerateBailAtOperation(&instr, IR::BailOutMarkTempObject);
             }

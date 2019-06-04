@@ -4151,13 +4151,17 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
 
     IR::BailOutKind implicitCallBailOutKind = needsBailOutOnImplicitCall ? IR::BailOutOnImplicitCalls : IR::BailOutInvalid;
 
-    const IR::BailOutKind instrBailOutKind = instr->GetBailOutKind();
+    IR::BailOutKind instrBailOutKind = instr->GetBailOutKind();
     if (instrBailOutKind & IR::BailOutMarkTempObject)
     {
-        // Don't remove the implicit call pre op bailout for mark temp object
         // Remove the mark temp object bit, as we don't need it after the dead store pass
-        instr->SetBailOutKind(instrBailOutKind & ~IR::BailOutMarkTempObject);
-        return true;
+        instrBailOutKind &= ~IR::BailOutMarkTempObject;
+        instr->SetBailOutKind(instrBailOutKind);
+
+        if (!instr->GetBailOutInfo()->canDeadStore)
+        {
+            return true;
+        }
     }
 
     const IR::BailOutKind instrImplicitCallBailOutKind = instrBailOutKind & ~IR::BailOutKindBits;
