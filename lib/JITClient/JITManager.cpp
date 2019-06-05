@@ -302,35 +302,55 @@ HRESULT
 JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
 {
     Assert(IsOOPJITEnabled());
-
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE processHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-#endif
-
     HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientConnectProcess(
-            rpcBindingHandle,
-#ifdef USE_RPC_HANDLE_MARSHALLING
-            processHandle,
-#endif
-            (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
-            (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
-    }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    CloseHandle(processHandle);
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
+    {
+        HANDLE processHandle = nullptr;
+        // RPC handle marshalling is only available on 8.1+
+        if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        RpcTryExcept
+        {
+            hr = ClientConnectProcessWithProcessHandle(
+                rpcBindingHandle,
+                processHandle,
+                (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
+                (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
+        }
+            RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+        {
+            hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+        }
+        RpcEndExcept;
+
+        if (processHandle)
+        {
+            CloseHandle(processHandle);
+        }
+    }
+    else
+    {
+#if (WINVER >= _WIN32_WINNT_WINBLUE)
+        AssertOrFailFast(UNREACHED);
+#else
+        RpcTryExcept
+        {
+            hr = ClientConnectProcess(
+                rpcBindingHandle,
+                (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
+                (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
+        }
+            RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+        {
+            hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+        }
+        RpcEndExcept;
 #endif
+    }
 
     return hr;
 }

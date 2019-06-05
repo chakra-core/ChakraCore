@@ -123,11 +123,9 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
 }
 
 HRESULT
-ServerConnectProcess(
+ServerConnectProcessWithProcessHandle(
     handle_t binding,
-#ifdef USE_RPC_HANDLE_MARSHALLING
     HANDLE processHandle,
-#endif
     intptr_t chakraBaseAddress,
     intptr_t crtBaseAddress
 )
@@ -138,23 +136,47 @@ ServerConnectProcess(
     {
         return hr;
     }
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE targetHandle;
+    HANDLE targetHandle = nullptr;
+    // RPC handle marshalling is only available on 8.1+
     if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
     {
         Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
-#else
-    HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
+    return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
+}
+
+#if !(WINVER >= _WIN32_WINNT_WINBLUE)
+HRESULT
+ServerConnectProcess(
+    handle_t binding,
+    intptr_t chakraBaseAddress,
+    intptr_t crtBaseAddress
+)
+{
+    // Should use ServerConnectProcessWithProcessHandle on 8.1+
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
+    {
+        Assert(UNREACHED);
+        return E_ACCESSDENIED;
+    }
+
+    DWORD clientPid;
+    HRESULT hr = HRESULT_FROM_WIN32(I_RpcBindingInqLocalClientPID(binding, &clientPid));
+    if (FAILED(hr))
+    {
+        return hr;
+    }
+    HANDLE targetHandle = nullptr;
+    targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, false, clientPid);
     if (!targetHandle)
     {
         Assert(UNREACHED);
         return E_ACCESSDENIED;
     }
-#endif
     return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
 }
+#endif
 
 #pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
