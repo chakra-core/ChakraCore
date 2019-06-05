@@ -1646,6 +1646,7 @@ LLoop:
 #endif
         switch (ch)
         {
+LDefault:
         default:
             if (ch == kchLS ||
                 ch == kchPS )
@@ -1961,6 +1962,16 @@ LIdentifier:
                 }
             }
             break;
+
+        case '#':
+            // Hashbang syntax is a single line comment only if it is the first token in the source
+            if (m_scriptContext->GetConfig()->IsESHashbangEnabled() && this->PeekFirst(p, last) == '!' && m_pchBase == m_pchMinTok)
+            {
+                p++;
+                goto LSkipLineComment;
+            }
+            goto LDefault;
+
         case '/':
             token = tkDiv;
             switch(this->PeekFirst(p, last))
