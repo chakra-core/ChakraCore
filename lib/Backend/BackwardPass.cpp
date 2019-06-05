@@ -3062,6 +3062,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             TrackFloatSymEquivalence(instr);
         }
 
+        if (this->tag == Js::DeadStorePhase && block->stackSymToFinalType != nullptr)
+        {
+            this->InsertTypeTransitionsAtPotentialKills();
+        }
+
         opnd = instr->GetSrc1();
         if (opnd != nullptr)
         {
@@ -3737,11 +3742,6 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 this->IsPrePass() || (needsLazyBailOut || !instr->HasLazyBailOut()),
                 "We didn't remove lazy bailout after prepass even though we don't need it?"
             );
-
-            if (block->stackSymToFinalType != nullptr)
-            {
-                this->InsertTypeTransitionsAtPotentialKills();
-            }
 
             // NoImplicitCallUses transfers need to be processed after determining whether implicit calls need to be disabled
             // for the current instruction, because the instruction where the def occurs also needs implicit calls disabled.
