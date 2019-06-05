@@ -85,6 +85,7 @@ AutoSystemInfo::Initialize()
     allocationGranularityPageCount = dwAllocationGranularity / dwPageSize;
 
     isWindows8OrGreater = IsWindows8OrGreater();
+    isWindows8Point1OrGreater = IsWindows8Point1OrGreater();
 
     binaryName[0] = _u('\0');
 
@@ -364,6 +365,12 @@ bool
 AutoSystemInfo::IsWin8OrLater()
 {
     return isWindows8OrGreater;
+}
+
+bool
+AutoSystemInfo::IsWin8Point1OrLater()
+{
+    return isWindows8Point1OrGreater;
 }
 
 #if defined(_CONTROL_FLOW_GUARD)

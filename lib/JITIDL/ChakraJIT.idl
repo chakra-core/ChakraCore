@@ -28,9 +28,7 @@ interface IChakraJIT
 
     HRESULT ConnectProcess(
         [in] handle_t binding,
-#ifdef USE_RPC_HANDLE_MARSHALLING
         [in, system_handle(sh_process, PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION)] HANDLE processHandle,
-#endif
         [in] CHAKRA_PTR chakraBaseAddress,
         [in] CHAKRA_PTR crtBaseAddress
     );

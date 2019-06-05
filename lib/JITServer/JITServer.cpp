@@ -125,9 +125,7 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
 HRESULT
 ServerConnectProcess(
     handle_t binding,
-#ifdef USE_RPC_HANDLE_MARSHALLING
     HANDLE processHandle,
-#endif
     intptr_t chakraBaseAddress,
     intptr_t crtBaseAddress
 )
@@ -138,21 +136,26 @@ ServerConnectProcess(
     {
         return hr;
     }
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE targetHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
+    HANDLE targetHandle = nullptr;
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
     {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
+        // RPC handle marshalling is only available on 8.1+
+        if (!DuplicateHandle(GetCurrentProcess(), processHandle, GetCurrentProcess(), &targetHandle, 0, false, DUPLICATE_SAME_ACCESS))
+        {
+            Assert(UNREACHED);
+            return E_ACCESSDENIED;
+        }
     }
-#else
-    HANDLE targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
-    if (!targetHandle)
+    else
     {
-        Assert(UNREACHED);
-        return E_ACCESSDENIED;
+        Assert(!processHandle);
+        targetHandle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_LIMITED_INFORMATION, false, clientPid);
+        if (!targetHandle)
+        {
+            Assert(UNREACHED);
+            return E_ACCESSDENIED;
+        }
     }
-#endif
     return ProcessContextManager::RegisterNewProcess(clientPid, targetHandle, chakraBaseAddress, crtBaseAddress);
 }
 

@@ -303,22 +303,22 @@ JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
 {
     Assert(IsOOPJITEnabled());
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    HANDLE processHandle;
-    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
+    HANDLE processHandle = nullptr;
+    if (AutoSystemInfo::Data.IsWin8Point1OrLater())
     {
-        return HRESULT_FROM_WIN32(GetLastError());
+        // RPC handle marshalling is only available on 8.1+
+        if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &processHandle, 0, false, DUPLICATE_SAME_ACCESS))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
     }
-#endif
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
         hr = ClientConnectProcess(
             rpcBindingHandle,
-#ifdef USE_RPC_HANDLE_MARSHALLING
             processHandle,
-#endif
             (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr(),
             (intptr_t)AutoSystemInfo::Data.GetCRTHandle());
     }
@@ -328,9 +328,10 @@ JITManager::ConnectProcess(RPC_BINDING_HANDLE rpcBindingHandle)
     }
     RpcEndExcept;
 
-#ifdef USE_RPC_HANDLE_MARSHALLING
-    CloseHandle(processHandle);
-#endif
+    if (processHandle)
+    {
+        CloseHandle(processHandle);
+    }
 
     return hr;
 }
