@@ -445,7 +445,8 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
 
-        RecyclableObject *func = VarTo<RecyclableObject>(args.Values[1]);
+        // TODO: This is marked volatile due to MSVC codegen bug in x86_test_pogo builds. Remove when the bug is fixed
+        RecyclableObject *volatile func = VarTo<RecyclableObject>(args.Values[1]);
 
         AssertOrFailFastMsg(func != scriptContext->GetLibrary()->GetUndefined(), "Trying to callInstanceFunction(undefined, ...)");
 
