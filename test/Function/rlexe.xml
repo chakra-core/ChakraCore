@@ -455,6 +455,11 @@
   </test>
   <test>
     <default>
+      <files>stackArgsWithInlineeBailOut.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>childCallsEvalJitLoopBody.js</files>
       <baseline />
       <compile-flags>-prejit</compile-flags>
