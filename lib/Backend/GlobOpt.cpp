@@ -1537,6 +1537,17 @@ GlobOpt::OptArguments(IR::Instr *instr)
             CannotAllocateArgumentsObjectOnStack(instr->m_func);
             return;
         }
+
+        // Disable stack args if we are aliasing arguments inside try block to a writethrough symbol.
+        // We don't have precise tracking of these symbols, so bailout couldn't know if it needs to restore arguments object or not after exception
+        Region* tryRegion = this->currentRegion ? this->currentRegion->GetSelfOrFirstTryAncestor() : nullptr;
+        if (tryRegion && tryRegion->GetType() == RegionTypeTry &&
+            tryRegion->writeThroughSymbolsSet &&
+            tryRegion->writeThroughSymbolsSet->Test(dst->AsRegOpnd()->m_sym->m_id))
+        {
+            CannotAllocateArgumentsObjectOnStack(instr->m_func);
+            return;
+        }
         if(!dst->AsRegOpnd()->GetStackSym()->m_nonEscapingArgObjAlias)
         {
             CurrentBlockData()->TrackArgumentsSym(dst->AsRegOpnd());
