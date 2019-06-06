@@ -410,6 +410,14 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         if (inGlobOpt)
         {
             KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
+            if (this->objectTypeSyms)
+            {
+                if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
+                {
+                    this->currentBlock->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+                }
+                this->currentBlock->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
+            }
         }
 
         // fall through
