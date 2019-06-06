@@ -190,19 +190,18 @@ namespace Js
         {
             // 4. Let iterator be GetIterator(iterable).
             RecyclableObject* iterator = JavascriptOperators::GetIterator(iterable, scriptContext);
+
+            Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+
+            RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
             values = library->CreateArray(0);
 
             JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
-                Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
-
-                if (!JavascriptConversion::IsCallable(resolveVar))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-                }
-
-                RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
-
                 ThreadContext * threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
@@ -324,18 +323,17 @@ namespace Js
             RecyclableObject* iterator = JavascriptOperators::GetIterator(iterable, scriptContext);
 
             // Abstract operation PerformPromiseAllSettled
+            Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+
+            RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
             values = library->CreateArray(0);
+
             JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
-                Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
-
-                if (!JavascriptConversion::IsCallable(resolveVar))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-                }
-
-                RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
-
                 ThreadContext* threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
@@ -500,17 +498,16 @@ namespace Js
             // 4. Let iterator be GetIterator(iterable).
             RecyclableObject* iterator = JavascriptOperators::GetIterator(iterable, scriptContext);
 
+            Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+
+            RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
+
             JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
             {
-                Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
-
-                if (!JavascriptConversion::IsCallable(resolveVar))
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
-                }
-
-                RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
-
                 ThreadContext * threadContext = scriptContext->GetThreadContext();
                 Var nextPromise = nullptr;
                 BEGIN_SAFE_REENTRANT_CALL(threadContext)
