@@ -1326,12 +1326,6 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             {
                 // Indicates we can optimize, as all upstream types are equivalent here.
 
-                opnd->SetSlotIndex(slotIndex);
-                opnd->SetUsesAuxSlot(auxSlot);
-
-                opnd->GetObjTypeSpecInfo()->SetSlotIndex(slotIndex);
-                opnd->GetObjTypeSpecInfo()->SetUsesAuxSlot(auxSlot);
-
                 isSpecialized = true;
                 if (isTypeCheckedOut)
                 {
@@ -1340,10 +1334,17 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 if (consumeType)
                 {
                     opnd->SetTypeChecked(true);
-                }
-                if (checkedTypeSetIndex != (uint16)-1)
-                {
-                    opnd->SetCheckedTypeSetIndex(checkedTypeSetIndex);
+
+                    opnd->SetSlotIndex(slotIndex);
+                    opnd->SetUsesAuxSlot(auxSlot);
+
+                    opnd->GetObjTypeSpecInfo()->SetSlotIndex(slotIndex);
+                    opnd->GetObjTypeSpecInfo()->SetUsesAuxSlot(auxSlot);
+
+                    if (checkedTypeSetIndex != (uint16)-1)
+                    {
+                        opnd->SetCheckedTypeSetIndex(checkedTypeSetIndex);
+                    }
                 }
             }
         }
