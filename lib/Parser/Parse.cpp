@@ -5310,6 +5310,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsModule(fModule);
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
+    pnodeFnc->SetIsDeclaredInParamScope(this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
     IdentPtr pFncNamePid = nullptr;

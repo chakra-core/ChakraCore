@@ -474,7 +474,7 @@ enum FncFlags : uint
     kFunctionIsStaticMember                     = 1 << 24,
     kFunctionIsGenerator                        = 1 << 25, // Function is an ES6 generator function
     kFunctionAsmjsMode                          = 1 << 26,
-    // Free = 1 << 27,
+    kFunctionIsDeclaredInParamScope             = 1 << 27, // Function is declared in parameter scope (ex: inside default argument)
     kFunctionIsAsync                            = 1 << 28, // function is async
     kFunctionHasDirectSuper                     = 1 << 29, // super()
     kFunctionIsDefaultModuleExport              = 1 << 30, // function is the default export of a module
@@ -612,6 +612,7 @@ public:
     void SetHasHomeObj(bool set = true) { SetFlags(kFunctionHasHomeObj, set); }
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
+    void SetIsDeclaredInParamScope(bool set = true) { SetFlags(kFunctionIsDeclaredInParamScope, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
     void ResetBodyAndParamScopeMerged() { isBodyAndParamScopeMerged = false; }
@@ -652,6 +653,7 @@ public:
     bool HasHomeObj() const { return HasFlags(kFunctionHasHomeObj); }
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
+    bool IsDeclaredInParamScope() const { return HasFlags(kFunctionIsDeclaredInParamScope); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
     bool CanBeDeferred() const { return canBeDeferred; }
     bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
