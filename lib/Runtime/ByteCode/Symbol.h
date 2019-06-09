@@ -49,6 +49,7 @@ private:
     BYTE isNewTarget : 1;
     BYTE isSuper : 1;
     BYTE isSuperConstructor : 1;
+    BYTE isImportMeta : 1;
     BYTE needsScopeObject : 1;
 
     // These are get and set a lot, don't put it in bit fields, we are exceeding the number of bits anyway
@@ -59,7 +60,7 @@ private:
     AssignmentState assignmentState;
 
 public:
-    Symbol(SymbolName const& name, ParseNode *decl, SymbolType symbolType) :
+    Symbol(SymbolName const& name, ParseNode* decl, SymbolType symbolType) :
         name(name),
         pid(nullptr),
         decl(decl),
@@ -92,6 +93,7 @@ public:
         isNewTarget(false),
         isSuper(false),
         isSuperConstructor(false),
+        isImportMeta(false),
         needsScopeObject(false),
         hasFuncAssignment(false), // will get reset by SetSymbolType
         hasMaybeEscapedUse(false), // will get reset by SetSymbolType
@@ -395,6 +397,16 @@ public:
     void SetIsNewTarget(bool is = true)
     {
         isNewTarget = is;
+    }
+
+    bool IsImportMeta() const
+    {
+        return isImportMeta;
+    }
+
+    void SetIsImportMeta(bool is = true)
+    {
+        isImportMeta = is;
     }
 
     bool IsSuper() const

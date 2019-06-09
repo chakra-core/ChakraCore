@@ -657,6 +657,7 @@ namespace Js
         void OP_StFunctionExpression(Var instance, Var value, PropertyIdIndexType index);
 
         template <class T> inline void OP_LdNewTarget(const unaligned T* playout);
+        template <class T> inline void OP_LdImportMeta(const unaligned T* playout);
 
         inline Var OP_Ld_A(Var aValue);
         inline Var OP_LdLocalObj();

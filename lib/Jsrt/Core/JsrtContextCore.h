@@ -101,8 +101,11 @@ class ChakraCoreHostScriptContext sealed : public HostScriptContext
 public:
     ChakraCoreHostScriptContext(Js::ScriptContext* scriptContext)
         : HostScriptContext(scriptContext),
+        fetchImportedModuleCallback(nullptr),
+        fetchImportedModuleFromScriptCallback(nullptr),
         notifyModuleReadyCallback(nullptr),
-        fetchImportedModuleCallback(nullptr)
+        hostFinalizeImportMetaCallback(nullptr),
+        hostGetImportMetaPropertiesCallback(nullptr)
     {
     }
     ~ChakraCoreHostScriptContext()
@@ -250,6 +253,9 @@ public:
 
     HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override;
 
+    HRESULT HostGetImportMetaProperties(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) override;
+    HRESULT HostFinalizeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) override;
+
     void SetNotifyModuleReadyCallback(NotifyModuleReadyCallback notifyCallback) { this->notifyModuleReadyCallback = notifyCallback; }
     NotifyModuleReadyCallback GetNotifyModuleReadyCallback() const { return this->notifyModuleReadyCallback; }
 
@@ -258,6 +264,12 @@ public:
 
     void SetFetchImportedModuleFromScriptCallback(FetchImportedModuleFromScriptCallBack fetchCallback) { this->fetchImportedModuleFromScriptCallback = fetchCallback; }
     FetchImportedModuleFromScriptCallBack GetFetchImportedModuleFromScriptCallback() const { return this->fetchImportedModuleFromScriptCallback; }
+
+    void SetHostFinalizeImportMetaCallback(HostFinalizeImportMetaCallback finalizeCallback) { this->hostFinalizeImportMetaCallback = finalizeCallback; }
+    HostFinalizeImportMetaCallback GetHostFinalizeImportMetaCallback() const { return this->hostFinalizeImportMetaCallback; }
+
+    void SetHostGetImportMetaPropertiesCallback(HostGetImportMetaPropertiesCallback getCallback) { this->hostGetImportMetaPropertiesCallback = getCallback; }
+    HostGetImportMetaPropertiesCallback GetHostGetImportMetaPropertiesCallback() const { return this->hostGetImportMetaPropertiesCallback; }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
@@ -273,7 +285,6 @@ private:
     FetchImportedModuleCallBack fetchImportedModuleCallback;
     FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
+    HostFinalizeImportMetaCallback hostFinalizeImportMetaCallback;
+    HostGetImportMetaPropertiesCallback hostGetImportMetaPropertiesCallback;
 };
-
-
-

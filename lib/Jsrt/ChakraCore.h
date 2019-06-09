@@ -111,7 +111,15 @@ typedef enum JsModuleHostInfoKind
     /// <summary>
     ///     URL for use in error stack traces and debugging.
     /// </summary>
-    JsModuleHostInfo_Url = 0x6
+    JsModuleHostInfo_Url = 0x6,
+    /// <summary>
+    ///     Callback for getting the import.meta object properties.
+    /// </summary>
+    JsModuleHostInfo_HostGetImportMetaPropertiesCallback = 0x7,
+    /// <summary>
+    ///     Callback for finalizing the import.meta object.
+    /// </summary>
+    JsModuleHostInfo_HostFinalizeImportMetaCallback = 0x8
 } JsModuleHostInfoKind;
 
 /// <summary>
@@ -186,6 +194,38 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleFromScriptCallBack)(_In
 ///     Returns a JsErrorCode - note, the return value is ignored.
 /// </returns>
 typedef JsErrorCode(CHAKRA_CALLBACK * NotifyModuleReadyCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef exceptionVar);
+
+/// <summary>
+///     User implemented callback to allow for host to finalize import.meta object.
+/// </summary>
+/// <remarks>
+///     This callback is an "escape hatch" for hosts which need to do some extraordinary operations on the import.meta
+///     object to prepare it for script.
+///     The callback is invoked on the current runtime execution thread, therefore execution is blocked until the
+///     callback completes.
+/// </remarks>
+/// <param name="referencingModule">The referencing module that is loading an import.meta object.</param>
+/// <param name="importMetaVar">The object which will be returned to script for the referencing module.</param>
+/// <returns>
+///     Returns a JsErrorCode - note, the return value is ignored.
+/// </returns>
+typedef JsErrorCode(CHAKRA_CALLBACK * HostFinalizeImportMetaCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar);
+
+/// <summary>
+///     User implemented callback to fill in module properties for the import.meta object.
+/// </summary>
+/// <remarks>
+///     This callback allows the host to fill module details for the referencing module in the import.meta object
+///     loaded by script.
+///     The callback is invoked on the current runtime execution thread, therefore execution is blocked until the
+///     callback completes.
+/// </remarks>
+/// <param name="referencingModule">The referencing module that is loading an import.meta object.</param>
+/// <param name="importMetaVar">The object which will be returned to script for the referencing module.</param>
+/// <returns>
+///     Returns a JsErrorCode - note, the return value is ignored.
+/// </returns>
+typedef JsErrorCode(CHAKRA_CALLBACK * HostGetImportMetaPropertiesCallback)(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar);
 
 /// <summary>
 ///     A structure containing information about a native function callback.

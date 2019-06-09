@@ -101,6 +101,7 @@ FuncInfo::FuncInfo(
     newTargetSymbol(nullptr),
     superSymbol(nullptr),
     superConstructorSymbol(nullptr),
+    importMetaSymbol(nullptr),
     nonUserNonTempRegistersToInitialize(alloc)
 {
     if (bodyScope != nullptr)

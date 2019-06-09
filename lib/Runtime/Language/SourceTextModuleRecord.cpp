@@ -45,6 +45,7 @@ namespace Js
         moduleId(InvalidModuleIndex),
         localSlotCount(InvalidSlotCount),
         promise(nullptr),
+        importMetaObject(nullptr),
         localExportCount(0)
     {
         namespaceRecord.module = this;
@@ -1326,5 +1327,32 @@ namespace Js
             }
         }
         return promise;
+    }
+
+    Var SourceTextModuleRecord::GetImportMetaObject()
+    {
+        if (this->importMetaObject)
+        {
+            return this->importMetaObject;
+        }
+
+        ScriptContext* scriptContext = this->GetScriptContext();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+
+        this->importMetaObject = library->CreateObject(library->GetNull());
+
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("HostGetImportMetaProperties %s\n"), this->GetSpecifierSz());
+        LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
+        {
+            scriptContext->GetHostScriptContext()->HostGetImportMetaProperties(this, this->importMetaObject);
+        });
+
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("HostFinalizeImportMeta %s\n"), this->GetSpecifierSz());
+        LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
+        {
+            scriptContext->GetHostScriptContext()->HostFinalizeImportMeta(this, this->importMetaObject);
+        });
+
+        return this->importMetaObject;
     }
 }

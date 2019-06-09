@@ -294,6 +294,7 @@ public:
     void LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromParams = false);
     void EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js::RegSlot fromRegister);
     void LoadNewTargetObject(FuncInfo *funcInfo);
+    void LoadImportMetaObject(FuncInfo* funcInfo);
     void LoadSuperObject(FuncInfo *funcInfo);
     void LoadSuperConstructorObject(FuncInfo *funcInfo);
     void EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * pnodeSuperCall, BOOL fReturnValue);
