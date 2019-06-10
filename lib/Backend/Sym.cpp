@@ -949,18 +949,18 @@ StackSym *StackSym::EnsureAuxSlotPtrSym(Func * func)
 ///----------------------------------------------------------------------------
 
 PropertySym *
-PropertySym::New(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func)
+PropertySym::New(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym)
 {
     StackSym *  stackSym;
 
     stackSym = func->m_symTable->FindStackSym(stackSymID);
     AssertMsg(stackSym != nullptr, "Adding propertySym to non-existing stackSym...  Can this happen??");
 
-    return PropertySym::New(stackSym, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func);
+    return PropertySym::New(stackSym, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func, stableSlotSym);
 }
 
 PropertySym *
-PropertySym::New(StackSym *stackSym, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func)
+PropertySym::New(StackSym *stackSym, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym)
 {
     PropertySym *  propertySym;
 
@@ -988,6 +988,12 @@ PropertySym::New(StackSym *stackSym, int32 propertyId, uint32 propertyIdIndex, u
     // Add to list
 
     func->m_symTable->Add(propertySym);
+
+    if (stableSlotSym)
+    {
+        Assert(fieldKind == PropertyKindSlots || fieldKind == PropertyKindLocalSlots || fieldKind == PropertyKindSlotArray);
+        func->AddStableSlotSym(propertySym);
+    }
 
     // Keep track of all the property we use from this sym so we can invalidate
     // the value in glob opt
@@ -1022,7 +1028,7 @@ PropertySym::Find(SymID stackSymID, int32 propertyId, Func *func)
 ///----------------------------------------------------------------------------
 
 PropertySym *
-PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func)
+PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym)
 {
     PropertySym *  propertySym;
 
@@ -1030,10 +1036,11 @@ PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdI
 
     if (propertySym)
     {
+        Assert(stableSlotSym == func->IsStableSlotSym(propertySym));
         return propertySym;
     }
 
-    return PropertySym::New(stackSymID, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func);
+    return PropertySym::New(stackSymID, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func, stableSlotSym);
 }
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 

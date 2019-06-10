@@ -304,10 +304,10 @@ class PropertySym: public Sym
 {
     friend class Sym;
 public:
-    static PropertySym * New(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func);
-    static PropertySym * New(StackSym *stackSym, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func);
+    static PropertySym * New(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym = false);
+    static PropertySym * New(StackSym *stackSym, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym = false);
     static PropertySym * Find(SymID stackSymID, int32 propertyId, Func *func);
-    static PropertySym * FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func);
+    static PropertySym * FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdIndex, uint inlineCacheIndex, PropertyKind fieldKind, Func *func, bool stableSlotSym = false);
 
     Func *GetFunc() { return m_func; }
     bool HasPropertyIdIndex() { return m_propertyIdIndex != -1; }
