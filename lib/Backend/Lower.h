@@ -667,7 +667,7 @@ private:
 
     IR::Instr *     LowerInitClass(IR::Instr * instr);
 
-    IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool reloadDst = true);
+    IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool loweringCloneStr = false, bool reloadDst = true);
     void            LowerNewConcatStrMulti(IR::Instr * instr);
     void            LowerNewConcatStrMultiBE(IR::Instr * instr);
     void            LowerSetConcatStrMultiItem(IR::Instr * instr);

@@ -594,7 +594,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::CloneStr:
         {
-            GenerateGetImmutableOrScriptUnreferencedString(instr->GetSrc1()->AsRegOpnd(), instr, IR::HelperOp_CompoundStringCloneForAppending, false);
+            GenerateGetImmutableOrScriptUnreferencedString(instr->GetSrc1()->AsRegOpnd(), instr, IR::HelperOp_CompoundStringCloneForAppending, true /*loweringCloneStr*/, false /*reloadDst*/);
             instr->Remove();
             break;
         }
@@ -26130,7 +26130,7 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
 }
 
 IR::RegOpnd *
-Lowerer::GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool reloadDst)
+Lowerer::GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool loweringCloneStr, bool reloadDst)
 {
     if (strOpnd->m_sym->m_isStrConst)
     {
@@ -26146,6 +26146,16 @@ Lowerer::GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, I
     {
         this->m_lowererMD.GenerateObjectTest(strOpnd, insertBeforeInstr, doneLabel);
     }
+
+    if (loweringCloneStr && func->IsLoopBody())
+    {
+        // Check if strOpnd is NULL before the CloneStr. There could be cases where SimpleJit might have dead stored instructions corresponding to the definition/use of strOpnd.
+        // As a result during a bailout when we restore values from interpreter stack frame we may end up having strOpnd as nullptr. During FullJit we may not dead store the
+        // instructions defining/using strOpnd due to StSlot instructions added at the end of jitted loop body. As a result, when we bailout (BailOnSimpleJitToFullJitLoopBody)
+        // strOpnd could have a NULL value causing CloneStr to dereference a nullptr.
+        this->InsertCompareBranch(strOpnd, IR::AddrOpnd::New(nullptr, IR::AddrOpndKindDynamicMisc, this->m_func), Js::OpCode::BrEq_A, false /*isUnsigned*/, doneLabel, insertBeforeInstr);
+    }
+
     // CMP [strOpnd], Js::CompoundString::`vtable'
     // JEQ $helper
     InsertCompareBranch(
