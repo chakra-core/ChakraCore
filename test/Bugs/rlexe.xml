@@ -582,4 +582,16 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>Bug19767482.js</files>
+      <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>Bug19948792.js</files>
+      <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
+    </default>
+  </test>
 </regress-exe>
