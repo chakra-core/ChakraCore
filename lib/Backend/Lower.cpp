@@ -594,7 +594,17 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::CloneStr:
         {
-            GenerateGetImmutableOrScriptUnreferencedString(instr->GetSrc1()->AsRegOpnd(), instr, IR::HelperOp_CompoundStringCloneForAppending, false);
+            IR::RegOpnd * strOpnd = instr->GetSrc1()->AsRegOpnd();
+
+            // Check if strOpnd is NULL before the CloneStr. There could be cases where SimpleJit might have dead stored instructions corresponding
+            // to the definition of strOpnd and as a result interpreter stack has strOpnd as nullptr. During FullJit we may not dead store the instructions
+            // defining strOpnd due to StSlot instructions added at the end of jitted loop body. As a result, when we bailout (BailOnSimpleJitToFullJitLoopBody)
+            // strOpnd could have a NULL value causing CloneStr to dereference a nullptr.
+            auto strOpndIsNull = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+            instr->InsertAfter(strOpndIsNull);
+            this->InsertCompareBranch(strOpnd, IR::AddrOpnd::New(nullptr, IR::AddrOpndKindDynamicMisc, this->m_func), Js::OpCode::BrEq_A, false /*isUnsigned*/, strOpndIsNull, instr);
+
+            GenerateGetImmutableOrScriptUnreferencedString(strOpnd, instr, IR::HelperOp_CompoundStringCloneForAppending, false);
             instr->Remove();
             break;
         }
