@@ -882,20 +882,20 @@ var tests = [
             );
         }
     },
-	{
-		name: "Promise.all called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
-		body: function (index) {
-			function FakePromise(fn) {
-			  function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
-			  function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
-			  fn(resolve, reject);
-			  this.then = function(onResolve, onReject) {};
-			}
+    {
+        name: "Promise.all called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
+        body: function (index) {
+            function FakePromise(fn) {
+              function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
+              function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
+              fn(resolve, reject);
+              this.then = function(onResolve, onReject) {};
+            }
 
-			FakePromise.resolve = function() {};
-			Promise.all.call(FakePromise, []);
-		}
-	},
+            FakePromise.resolve = function() {};
+            Promise.all.call(FakePromise, []);
+        }
+    },
     {
         name: "Promise.resolve called with a thenable calls then on the thenable",
         body: function (index) {
@@ -1324,20 +1324,83 @@ var tests = [
                 e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
         }
     },
-	{
-		name: "Promise.allsettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
-		body: function (index) {
-			function FakePromise(fn) {
-			  function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
-			  function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
-			  fn(resolve, reject);
-			  this.then = function(onResolve, onReject) {};
-			}
+    {
+        name: "Promise.allSettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
+        body: function (index) {
+            function FakePromise(fn) {
+              function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
+              function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
+              fn(resolve, reject);
+              this.then = function(onResolve, onReject) {};
+            }
 
-			FakePromise.resolve = function() {};
-			Promise.allSettled.call(FakePromise, []);
-		}
-	},
+            FakePromise.resolve = function() {};
+            Promise.allSettled.call(FakePromise, []);
+        }
+    },
+    {
+        name: "Promise.allSettled gets the constructor's resolve function only once",
+        body: function(index) {
+            function FakePromise(fn) {
+                fn(function() {}, function() {});
+                this.then = function(onResolve, onReject) {};
+            }
+
+            Object.defineProperty(FakePromise, 'resolve', {
+                get: function() {
+                    echo(`Test #${index} - get constructor resolve`);
+                    return function(x) {
+                        echo(`Test #${index} - constructor resolve called`);
+                        return Promise.resolve(x);
+                    };
+                }
+            });
+
+            Promise.allSettled.call(FakePromise, [1, 2]);
+        }
+    },
+    {
+        name: "Promise.all gets the constructor's resolve function only once",
+        body: function(index) {
+            function FakePromise(fn) {
+                fn(function() {}, function() {});
+                this.then = function(onResolve, onReject) {};
+            }
+
+            Object.defineProperty(FakePromise, 'resolve', {
+                get: function() {
+                    echo(`Test #${index} - get constructor resolve`);
+                    return function(x) {
+                        echo(`Test #${index} - constructor resolve called`);
+                        return Promise.resolve(x);
+                    };
+                }
+            });
+
+            Promise.all.call(FakePromise, [1, 2]);
+        }
+    },
+    {
+        name: "Promise.race gets the constructor's resolve function only once",
+        body: function(index) {
+            function FakePromise(fn) {
+                fn(function() {}, function() {});
+                this.then = function(onResolve, onReject) {};
+            }
+
+            Object.defineProperty(FakePromise, 'resolve', {
+                get: function() {
+                    echo(`Test #${index} - get constructor resolve`);
+                    return function(x) {
+                        echo(`Test #${index} - constructor resolve called`);
+                        return Promise.resolve(x);
+                    };
+                }
+            });
+
+            Promise.race.call(FakePromise, [1, 2]);
+        }
+    }
 ];
 
 var index = 1;

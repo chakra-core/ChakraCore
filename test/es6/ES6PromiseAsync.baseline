@@ -73,9 +73,21 @@ Executing test #68 - Promise.allSettled rejects immediately with an iterator tha
 Executing test #69 - Promise.allSettled resolve and reject functions cannot be called multiple times
 Test #69 - Temp then handler called from Promise.allSettled
 Executing test #70 - Promise.allSettled passes all elements of iterable to Promise.resolve
-Executing test #71 - Promise.allsettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler
+Executing test #71 - Promise.allSettled called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler
 Test #71 - resolve called
 Test #71 - reject called: oops
+Executing test #72 - Promise.allSettled gets the constructor's resolve function only once
+Test #72 - get constructor resolve
+Test #72 - constructor resolve called
+Test #72 - constructor resolve called
+Executing test #73 - Promise.all gets the constructor's resolve function only once
+Test #73 - get constructor resolve
+Test #73 - constructor resolve called
+Test #73 - constructor resolve called
+Executing test #74 - Promise.race gets the constructor's resolve function only once
+Test #74 - get constructor resolve
+Test #74 - constructor resolve called
+Test #74 - constructor resolve called
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
