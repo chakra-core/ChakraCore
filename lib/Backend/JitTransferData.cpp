@@ -43,7 +43,10 @@ void JitTransferData::Cleanup()
 
     if (this->lazyBailoutProperties != nullptr)
     {
-        HeapDeleteArray(this->lazyBailoutPropertyCount, this->lazyBailoutProperties);
+        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            HeapDeleteArray(this->lazyBailOutPropertyCount, this->lazyBailoutProperties);
+        }
         this->lazyBailoutProperties = nullptr;
     }
 

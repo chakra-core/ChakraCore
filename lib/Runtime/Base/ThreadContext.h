@@ -478,9 +478,9 @@ private:
         // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
         Field(Js::PropertyGuard*) sharedGuard;
         Field(PropertyGuardHashSet) uniqueGuards;
-        Field(EntryPointDictionary*) entryPoints;
+        Field(EntryPointDictionary*) lazyBailOutEntryPoints;
 
-        PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler), entryPoints(nullptr) {}
+        PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler), lazyBailOutEntryPoints(nullptr) {}
     };
 
 public:

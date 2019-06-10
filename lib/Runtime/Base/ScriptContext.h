@@ -584,6 +584,10 @@ namespace Js
 
         NoSpecialPropertyScriptRegistry* GetNoSpecialPropertyRegistry() { return &this->noSpecialPropertyRegistry; }
         OnlyWritablePropertyScriptRegistry* GetOnlyWritablePropertyRegistry() { return &this->onlyWritablePropertyRegistry; }
+
+        bool IsDeferredTypeInit() const { return this->isDeferredTypeInit; }
+        void SetIsDeferredTypeInit(bool isDeferredTypeInit) { this->isDeferredTypeInit = isDeferredTypeInit; }
+
     private:
 
         JavascriptFunction* GenerateRootFunction(ParseNodeProg * parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
@@ -591,6 +595,9 @@ namespace Js
         typedef void (*EventHandler)(ScriptContext *);
         NoSpecialPropertyScriptRegistry noSpecialPropertyRegistry;
         OnlyWritablePropertyScriptRegistry onlyWritablePropertyRegistry;
+
+        // Unabbreviated: is this ScriptContext currently performing a deferred type initialization?
+        bool isDeferredTypeInit;
 
         ArenaAllocator generalAllocator;
 #ifdef ENABLE_BASIC_TELEMETRY

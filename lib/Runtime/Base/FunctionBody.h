@@ -305,6 +305,8 @@ namespace Js
 #if ENABLE_OOP_NATIVE_CODEGEN
         OOPNativeEntryPointData * GetOOPNativeEntryPointData();
 #endif
+        NativeEntryPointData * EntryPointInfo::GetProcSpecificNativeEntryPoint();
+
 #endif
 
     protected:
@@ -577,13 +579,11 @@ namespace Js
 
         virtual void Invalidate(bool prolongEntryPoint) { Assert(false); }
         InlineeFrameRecord* FindInlineeFrame(void* returnAddress);
+        BailOutRecord* FindLazyBailOutRecord(size_t codeOffset);
         bool HasInlinees();
 
-#if DBG
-        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer, Js::FunctionBody *functionBody, const PropertyRecord *propertyRecord);
-#else
-        void DoLazyBailout(BYTE **addressOfInstructionPointer, BYTE *framePointer);
-#endif
+        // Unabbreviated: Convert this function's return address to the function's LazyBailOut thunk.
+        bool ConvertFuncRetAddrToLazyBailOutThunk(BYTE **addressOfInstructionPointer, BYTE *framePointer);
 
         void CleanupNativeCode(ScriptContext * scriptContext);
 #if DBG_DUMP
@@ -622,6 +622,7 @@ namespace Js
 
         Field(uint32) callsCount;
         Field(uint32) lastCallsCount;
+        Field(bool) retAddrNotModified;
 
     private:
         Field(ExecutionMode) jitMode;

@@ -418,7 +418,7 @@ InProcNativeEntryPointData::GetInlineeFrameMap()
 }
 
 void
-InProcNativeEntryPointData::RecordInlineeFrameMap(JsUtil::List<NativeOffsetInlineeFramePair, ArenaAllocator>* tempInlineeFrameMap)
+InProcNativeEntryPointData::RecordInlineeFrameMap(JsUtil::List<NativeOffsetRecordPair<InlineeFrameRecord>, ArenaAllocator>* tempInlineeFrameMap)
 {
     Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
     Assert(this->inlineeFrameMap == nullptr);
@@ -453,7 +453,7 @@ InProcNativeEntryPointData::SetSortedLazyBailOutRecordList(JsUtil::List<LazyBail
         {
             const LazyBailOutRecord& previousRecord = sortedLazyBailOutRecordList->Item(index - 1);
             AssertMsg(
-                currentRecord.offset > previousRecord.offset,
+                currentRecord.nativeAddressOffset > previousRecord.nativeAddressOffset,
                 "Lazy bailout record list isn't sorted by offset?"
             );
         });
@@ -466,7 +466,7 @@ InProcNativeEntryPointData::SetSortedLazyBailOutRecordList(JsUtil::List<LazyBail
 }
 
 int32
-InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset() const
+InProcNativeEntryPointData::GetLazyBailOutRecordSlotOffset()
 {
     Assert(this->lazyBailOutRecordSlotOffset != 0);
     return this->lazyBailOutRecordSlotOffset;
@@ -480,9 +480,10 @@ InProcNativeEntryPointData::SetLazyBailOutRecordSlotOffset(int32 argSlotOffset)
 }
 
 uint32
-InProcNativeEntryPointData::GetLazyBailOutThunkOffset() const
+InProcNativeEntryPointData::GetLazyBailOutThunkOffset()
 {
     Assert(this->lazyBailOutThunkOffset != 0);
+    Assert(!JITManager::GetJITManager()->IsOOPJITEnabled());
     return this->lazyBailOutThunkOffset;
 }
 
@@ -491,6 +492,18 @@ InProcNativeEntryPointData::SetLazyBailOutThunkOffset(uint32 thunkOffset)
 {
     Assert(this->lazyBailOutThunkOffset == 0 && thunkOffset != 0);
     this->lazyBailOutThunkOffset = thunkOffset;
+}
+
+void
+InProcNativeEntryPointData::SetHasLazyBailOut(bool hasLazyBailOut)
+{
+    this->hasLazyBailOut = hasLazyBailOut;
+}
+
+bool
+InProcNativeEntryPointData::GetHasLazyBailOut()
+{
+    return this->hasLazyBailOut;
 }
 
 void
@@ -572,12 +585,82 @@ OOPNativeEntryPointData::GetInlineeFrameOffsetArrayCount()
     return this->inlineeFrameOffsetArrayCount; 
 }
 
+uint
+OOPNativeEntryPointData::GetLazyBailOutRecordOffsetArrayOffset()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutRecordOffsetArrayOffset;
+}
+
+uint
+OOPNativeEntryPointData::GetLazyBailOutRecordOffsetArrayCount()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutRecordOffsetArrayCount;
+}
+
+int32
+OOPNativeEntryPointData::GetLazyBailOutRecordSlotOffset()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutRecordSlotOffset;
+}
+
+uint
+OOPNativeEntryPointData::GetLazyBailOutThunkOffset()
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    return this->lazyBailOutThunkOffset;
+}
+
 void
 OOPNativeEntryPointData::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
 {
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     this->inlineeFrameOffsetArrayOffset = offsetsArrayOffset;
     this->inlineeFrameOffsetArrayCount = offsetsArrayCount;
+}
+
+void
+OOPNativeEntryPointData::RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutRecordOffsetArrayOffset = offsetsArrayOffset;
+    this->lazyBailOutRecordOffsetArrayCount = offsetsArrayCount;
+}
+
+void
+OOPNativeEntryPointData::RecordLazyBailOutPropertiesInfo(unsigned int arrayOffset, unsigned int arrayCount)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutPropertiesArrayOffset = arrayOffset;
+    this->lazyBailOutPropertiesArrayCount = arrayCount;
+}
+
+void
+OOPNativeEntryPointData::RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlotOffset)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutRecordSlotOffset = lazyBailOutRecordSlotOffset;
+}
+
+void
+OOPNativeEntryPointData::RecordLazyBailOutThunkOffset(uint lazyBailOutThunkOffset)
+{
+    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
+    this->lazyBailOutThunkOffset = lazyBailOutThunkOffset;
+}
+
+void
+OOPNativeEntryPointData::SetHasLazyBailOut(bool hasLazyBailOut)
+{
+    this->hasLazyBailOut = hasLazyBailOut;
+}
+
+bool
+OOPNativeEntryPointData::GetHasLazyBailOut()
+{
+    return this->hasLazyBailOut;
 }
 
 #if !FLOATVAR

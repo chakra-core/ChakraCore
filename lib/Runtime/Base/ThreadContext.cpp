@@ -3570,15 +3570,20 @@ ThreadContext::RegisterSharedPropertyGuard(Js::PropertyId propertyId)
 void
 ThreadContext::RegisterLazyBailout(Js::PropertyId propertyId, Js::EntryPointInfo* entryPoint)
 {
+    Assert(entryPoint);
+
     const Js::PropertyRecord * propertyRecord = GetPropertyName(propertyId);
 
     bool foundExistingGuard;
-    PropertyGuardEntry* entry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
-    if (!entry->entryPoints)
+    PropertyGuardEntry* propertyGuardEntry = EnsurePropertyGuardEntry(propertyRecord, foundExistingGuard);
+    if (!propertyGuardEntry->lazyBailOutEntryPoints)
     {
-        entry->entryPoints = RecyclerNew(recycler, PropertyGuardEntry::EntryPointDictionary, recycler, /*capacity*/ 3);
+        propertyGuardEntry->lazyBailOutEntryPoints = RecyclerNew(recycler, PropertyGuardEntry::EntryPointDictionary, recycler, /*capacity*/ 3);
     }
-    entry->entryPoints->UncheckedAdd(entryPoint, NULL);
+
+    // We use lazyBailOutEntryPoints' EntryPointDictionary functionality not as a value lookup but
+    // rather as a means to verify that an entryPoint for the given propertyGuardEntry exists.
+    propertyGuardEntry->lazyBailOutEntryPoints->UncheckedAdd(entryPoint, NULL);
 }
 
 void
@@ -3633,13 +3638,17 @@ ThreadContext::RegisterConstructorCache(Js::PropertyId propertyId, Js::Construct
 }
 
 void
-ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRecord, PropertyGuardEntry* entry, bool isAllPropertyGuardsInvalidation)
+ThreadContext::InvalidatePropertyGuardEntry(
+    const Js::PropertyRecord* propertyRecord,
+    PropertyGuardEntry* propertyGuardEntry,
+    bool isAllPropertyGuardsInvalidation
+)
 {
-    Assert(entry != nullptr);
+    Assert(propertyGuardEntry != nullptr);
 
-    if (entry->sharedGuard != nullptr)
+    if (propertyGuardEntry->sharedGuard != nullptr)
     {
-        Js::PropertyGuard* guard = entry->sharedGuard;
+        Js::PropertyGuard* guard = propertyGuardEntry->sharedGuard;
 
         if (PHASE_TRACE1(Js::TracePropertyGuardsPhase) || PHASE_VERBOSE_TRACE1(Js::FixedMethodsPhase))
         {
@@ -3658,7 +3667,7 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
     }
 
     uint count = 0;
-    entry->uniqueGuards.Map([&count, propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
+    propertyGuardEntry->uniqueGuards.Map([&count, propertyRecord](RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef)
     {
         Js::PropertyGuard* guard = guardWeakRef->Get();
         if (guard != nullptr)
@@ -3682,56 +3691,92 @@ ThreadContext::InvalidatePropertyGuardEntry(const Js::PropertyRecord* propertyRe
         }
     });
 
-    entry->uniqueGuards.Clear();
+    propertyGuardEntry->uniqueGuards.Clear();
 
-
-    // Count no. of invalidations done so far. Exclude if this is all property guards invalidation in which case
-    // the unique Guards will be cleared anyway.
+    // Count no. of invalidations done so far. Exclude if this is all property 
+    // guards invalidation in which case the unique Guards will be cleared anyway.
     if (!isAllPropertyGuardsInvalidation)
     {
         this->recyclableData->constructorCacheInvalidationCount += count;
         if (this->recyclableData->constructorCacheInvalidationCount > (uint)CONFIG_FLAG(ConstructorCacheInvalidationThreshold))
         {
-            // TODO: In future, we should compact the uniqueGuards dictionary so this function can be called from PreCollectionCallback
-            // instead
+            // TODO: In future, we should compact the uniqueGuards dictionary so this 
+            //       function can be called from PreCollectionCallback instead
             this->ClearInvalidatedUniqueGuards();
             this->recyclableData->constructorCacheInvalidationCount = 0;
         }
     }
 
-    if (entry->entryPoints && entry->entryPoints->Count() > 0)
+    if (propertyGuardEntry->lazyBailOutEntryPoints && propertyGuardEntry->lazyBailOutEntryPoints->Count() > 0)
     {
+        Assert(propertyGuardEntry->lazyBailOutEntryPoints);
+        Assert(propertyGuardEntry->lazyBailOutEntryPoints->Count() > 0);
+
         Js::JavascriptStackWalker stackWalker(this->GetScriptContextList());
         Js::JavascriptFunction* caller = nullptr;
-        while (stackWalker.GetCaller(&caller, /*includeInlineFrames*/ false))
+        while (stackWalker.GetCaller(&caller, false))
         {
             // If the current frame is already from a bailout - we do not need to do on stack invalidation
             if (caller != nullptr && Js::ScriptFunction::Test(caller) && !stackWalker.GetCurrentFrameFromBailout())
             {
-                BYTE dummy;
+                // Given the current stackframe (currentFunc), test if this stackframe was one of the possibly many stackframes
+                // that had generated the LazyBailOut property corresponding to propertyEntryGuard during codegen.
                 Js::FunctionEntryPointInfo* functionEntryPoint = caller->GetFunctionBody()->GetDefaultFunctionEntryPointInfo();
+                Assert(functionEntryPoint);
+
                 if (functionEntryPoint->IsInNativeAddressRange((DWORD_PTR)stackWalker.GetInstructionPointer()))
                 {
-                    if (entry->entryPoints->TryGetValue(functionEntryPoint, &dummy))
+                    // Each entryPoint stored into entryPoints has to be stored as a EntryPointDictionary. But we only
+                    // need to verify that an entryPoint exists in entryPoints; each pair in entryPoints is stored as
+                    // key: functionEntryPoint, value: doesnt_matter. To verify an entryPoint exists in entryPoints, we
+                    // use the return code of TryGetValue and ignore the captured value corresponding to the key.
+                    BYTE unusedCapturedValue;
+                    if (propertyGuardEntry->lazyBailOutEntryPoints->TryGetValue(functionEntryPoint, &unusedCapturedValue))
                     {
-                        functionEntryPoint->DoLazyBailout(
+                        // TODO: ConvertFuncRetAddrToLazyBailOutThunk returns false when a LazyBailOutRecord cannot be found at
+                        //       the current instr pointer's native address. This is expected in certain scenarios such as when
+                        //       a LazyBailOut tag is removed (and thus a corresponding LazyBailOutRecord is never created) due
+                        //       to an optimization that assumes another BailOutTag on the same instr will execute before the
+                        //       LazyBailOut ever would. There could be more scenarios where a LazyBailOutRecord is allow to not
+                        //       exist on this instr, but there could be scenarios where a LazyBailOutRecord should have existed
+                        //       on this instr but for some reason was never put on this instr. To catch these bad scenarios, we
+                        //       should set a flag on functionEntryPoint->scriptContext when ConvertFuncRetAddrToLazyBailOutThunk
+                        //       returns false. Then, when an expected scenario completes, we should unset that flag. Once
+                        //       ScriptContext closes, we should assert that the flag should be off.
+                        bool didConvertRetAddrToThunk = functionEntryPoint->ConvertFuncRetAddrToLazyBailOutThunk(
                             stackWalker.GetCurrentAddressOfInstructionPointer(),
                             static_cast<BYTE*>(stackWalker.GetFramePointer())
-#if DBG
-                            , caller->GetFunctionBody()
-                            , propertyRecord
-#endif
                         );
+
+                        if (!didConvertRetAddrToThunk)
+                        {
+                            functionEntryPoint->retAddrNotModified = true;
+                        }
                     }
                 }
             }
         }
-        entry->entryPoints->Map([=](Js::EntryPointInfo* info, BYTE& dummy, const RecyclerWeakReference<Js::EntryPointInfo>* infoWeakRef)
+    }
+
+    if (propertyGuardEntry->lazyBailOutEntryPoints && propertyGuardEntry->lazyBailOutEntryPoints->Count() > 0)
+    {
+        propertyGuardEntry->lazyBailOutEntryPoints->Map([=](Js::EntryPointInfo* lazyBailOutEntryPoint, BYTE& dummy, const RecyclerWeakReference<Js::EntryPointInfo>* infoWeakRef)
         {
-            OUTPUT_TRACE2(Js::LazyBailoutPhase, info->GetFunctionBody(), _u("Lazy bailout - Invalidation due to property: %s \n"), propertyRecord->GetBuffer());
-            info->Invalidate(true);
+            if (lazyBailOutEntryPoint->IsCleanedUp())
+            {
+                return;
+            }
+            OUTPUT_TRACE2(Js::LazyBailoutPhase, lazyBailOutEntryPoint->GetFunctionBody(), _u("Lazy bailout - Invalidation due to property: %s \n"), propertyRecord->GetBuffer());
+
+            if (!((Js::FunctionEntryPointInfo*)lazyBailOutEntryPoint)->retAddrNotModified)
+            {
+                lazyBailOutEntryPoint->Invalidate(true);
+                ((Js::FunctionEntryPointInfo*)lazyBailOutEntryPoint)->retAddrNotModified = false;
+            }
+
         });
-        entry->entryPoints->Clear();
+
+        propertyGuardEntry->lazyBailOutEntryPoints->Clear();
     }
 }
 

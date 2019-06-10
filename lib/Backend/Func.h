@@ -662,7 +662,7 @@ public:
 
     typedef JsUtil::BaseHashSet<Js::PropertyId, JitArenaAllocator> PropertyIdSet;
     PropertyIdSet* propertiesWrittenTo;
-    PropertyIdSet lazyBailoutProperties;
+    PropertyIdSet lazyBailOutProperties;
     bool anyPropertyMayBeWrittenTo;
 
     FrameDisplayCheckTable *frameDisplayCheckTable;

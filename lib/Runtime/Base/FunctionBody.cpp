@@ -8233,6 +8233,17 @@ namespace Js
     }
 #endif
 
+    NativeEntryPointData * EntryPointInfo::GetProcSpecificNativeEntryPoint()
+    {
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        {
+            return GetOOPNativeEntryPointData();
+        }
+#endif
+        return GetInProcNativeEntryPointData();
+    }
+
     void EntryPointInfo::EnsureIsReadyToCall()
     {
         ProcessJitTransferData();
@@ -8359,7 +8370,7 @@ namespace Js
         JitTransferData * jitTransferData = this->GetNativeEntryPointData()->GetJitTransferData();
         Assert(jitTransferData != nullptr && jitTransferData->GetIsReady());
 
-        for (int i = 0; i < jitTransferData->lazyBailoutPropertyCount; i++)
+        for (int i = 0; i < jitTransferData->lazyBailOutPropertyCount; i++)
         {
             Assert(jitTransferData->lazyBailoutProperties != nullptr);
 
@@ -8379,7 +8390,6 @@ namespace Js
                 return;
             }
         }
-
 
         // in-proc JIT
         if (jitTransferData->equivalentTypeGuardCount > 0)
@@ -8647,7 +8657,7 @@ namespace Js
         {
             OOPNativeEntryPointData * oopNativeEntryPointData = this->GetOOPNativeEntryPointData();
             char * nativeDataBuffer = oopNativeEntryPointData->GetNativeDataBuffer();
-            NativeOffsetInlineeFrameRecordOffset* offsets = (NativeOffsetInlineeFrameRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetInlineeFrameOffsetArrayOffset());
+            NativeOffsetToRecordOffset* offsets = (NativeOffsetToRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetInlineeFrameOffsetArrayOffset());
             size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
 
             uint inlineeFrameOffsetArrayCount = oopNativeEntryPointData->GetInlineeFrameOffsetArrayCount();
@@ -8663,11 +8673,11 @@ namespace Js
                 uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
                 auto item = offsets[midIndex];
 
-                if (item.offset >= offset)
+                if (item.nativeAddressOffset >= offset)
                 {
-                    if (midIndex == 0 || (midIndex > 0 && offsets[midIndex - 1].offset < offset))
+                    if (midIndex == 0 || (midIndex > 0 && offsets[midIndex - 1].nativeAddressOffset < offset))
                     {
-                        if (offsets[midIndex].recordOffset == NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset)
+                        if (offsets[midIndex].recordOffset == NativeOffsetToRecordOffset::InvalidRecordOffset)
                         {
                             return nullptr;
                         }
@@ -8699,10 +8709,10 @@ namespace Js
             }
 
             size_t offset = (size_t)((BYTE*)returnAddress - (BYTE*)this->GetNativeAddress());
-            int index = inlineeFrameMap->BinarySearch([=](const NativeOffsetInlineeFramePair& pair, int index) {
-                if (pair.offset >= offset)
+            int index = inlineeFrameMap->BinarySearch([=](const NativeOffsetRecordPair<InlineeFrameRecord>& pair, int index) {
+                if (pair.nativeAddressOffset >= offset)
                 {
-                    if (index == 0 || (index > 0 && inlineeFrameMap->Item(index - 1).offset < offset))
+                    if (index == 0 || (index > 0 && inlineeFrameMap->Item(index - 1).nativeAddressOffset < offset))
                     {
                         return 0;
                     }
@@ -8723,69 +8733,126 @@ namespace Js
 
     }
 
-    void EntryPointInfo::DoLazyBailout(
-        BYTE **addressOfInstructionPointer,
-        BYTE *framePointer
-#if DBG
-        , Js::FunctionBody *functionBody
-        , const PropertyRecord *propertyRecord
-#endif
-    )
+    // Does not return a LazyBailOutRecord but instead returns a BailOutRecord
+    // with bailOutRecord->bailOutKind containing IR::LazyBailOut.
+    BailOutRecord* EntryPointInfo::FindLazyBailOutRecord(size_t instructionPointerOffset)
     {
-        BYTE* instructionPointer = *addressOfInstructionPointer;
-        NativeEntryPointData * nativeEntryPointData = this->GetNativeEntryPointData();
-        Js::JavascriptMethod nativeAddress = nativeEntryPointData->GetNativeAddress();
-        ptrdiff_t codeSize = nativeEntryPointData->GetCodeSize();
-        Assert(instructionPointer > (BYTE*)nativeAddress && instructionPointer < ((BYTE*)nativeAddress + codeSize));
-        size_t offset = instructionPointer - (BYTE*)nativeAddress;
-        NativeLazyBailOutRecordList * bailOutRecordList = this->GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
-
-        AssertMsg(bailOutRecordList != nullptr, "Lazy Bailout: bailOutRecordList is missing");
-
-        int found = bailOutRecordList->BinarySearch([=](const LazyBailOutRecord& record, int index)
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
-            if (record.offset == offset)
-            {
-                return 0;
-            }
-            else if (record.offset > offset)
-            {
-                return 1;
-            }
-            else
-            {
-                return -1;
-            }
-        });
+            // OOPJIT obtains a bailOutRecord that has been stored in the nativeDataBuffer.
 
-        if (found != -1)
-        {
-            auto inProcNativeEntryPointData = this->GetInProcNativeEntryPointData();
-            const LazyBailOutRecord& record = bailOutRecordList->Item(found);
-            const uint32 lazyBailOutThunkOffset = inProcNativeEntryPointData->GetLazyBailOutThunkOffset();
-            BYTE * const lazyBailOutThunkAddress = (BYTE *) nativeAddress + lazyBailOutThunkOffset;
+            OOPNativeEntryPointData* oopNativeEntryPointData = GetOOPNativeEntryPointData();
+            char * nativeDataBuffer = oopNativeEntryPointData->GetNativeDataBuffer();
 
-            // Change the instruction pointer of the frame to our thunk so that
-            // when execution returns back to this frame, we will execute the thunk instead
-            *addressOfInstructionPointer = lazyBailOutThunkAddress;
+            // LazyBailOutRecordOffsetArray is stored at the offset LazyBailOutRecordOffsetArrayOffset in nativeDataBuffer.
+            NativeOffsetToRecordOffset* lazyBailOutRecordOffsetArray =
+                (NativeOffsetToRecordOffset*)(nativeDataBuffer + oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayOffset());
 
-            // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack
-            BYTE *addressOfLazyBailOutRecordSlot = framePointer + inProcNativeEntryPointData->GetLazyBailOutRecordSlotOffset();
-            *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(record.bailOutRecord);
-            
-            if (PHASE_TRACE1(Js::LazyBailoutPhase))
+            uint lazyBailOutRecordOffsetArrayCount = oopNativeEntryPointData->GetLazyBailOutRecordOffsetArrayCount();
+            if (lazyBailOutRecordOffsetArrayCount > 0)
             {
-#if DBG
-                Output::Print(_u("On stack lazy bailout. Property: %s Old IP: 0x%x New IP: 0x%x "), propertyRecord->GetBuffer(), instructionPointer, lazyBailOutThunkAddress);
-                record.Dump(functionBody);
-                Output::Print(_u("\n"));
-#endif
+                // Binary search for the bailOutRecordOffset that corresponds to the instructionPointerOffset. This process
+                // is similar to finding the bailOutRecord seen in the inProcJIT version of FindLazyBailOutRecord.
+                uint fromIndex = 0;
+                uint toIndex = lazyBailOutRecordOffsetArrayCount - 1;
+                while (fromIndex <= toIndex)
+                {
+                    uint midIndex = fromIndex + (toIndex - fromIndex) / 2;
+                    NativeOffsetToRecordOffset lazyBailOutRecordOffset = lazyBailOutRecordOffsetArray[midIndex];
+
+                    // lazyBailOutRecordOffset.offset is the offset from the nativeAddress.
+                    if (lazyBailOutRecordOffset.nativeAddressOffset == instructionPointerOffset)
+                    {
+                        uint32 bailOutRecordOffset = lazyBailOutRecordOffsetArray[midIndex].recordOffset;
+                        if (bailOutRecordOffset == NativeOffsetToRecordOffset::InvalidRecordOffset)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            return (BailOutRecord*)(nativeDataBuffer + bailOutRecordOffset);
+                        }
+                    }
+
+                    lazyBailOutRecordOffset.nativeAddressOffset > instructionPointerOffset ? toIndex = midIndex - 1 : fromIndex = midIndex + 1;
+                }
             }
         }
         else
+#endif
+        // inProcJIT
         {
-            AssertMsg(false, "Lazy Bailout: Address mapping missing");
+            // lazyBailOutRecordList holds LazyBailOutRecords. LazyBailOutRecords are
+            // not BailOutRecords, instead LazyBailOutRecords hold BailOutRecord.
+            NativeLazyBailOutRecordList* sortedLazyBailOutRecordList = GetInProcNativeEntryPointData()->GetSortedLazyBailOutRecordList();
+            Assert(sortedLazyBailOutRecordList);
+
+            // Find the LazyBailOutRecord whose address matches the instr pointer.
+            int foundLazyBailOutRecordIndex = sortedLazyBailOutRecordList->BinarySearch([=](const LazyBailOutRecord& lazyBailOutRecord, int index)
+            {
+                if (lazyBailOutRecord.nativeAddressOffset == instructionPointerOffset)
+                {
+                    // LazyBailOutRecord found, populate foundLazyBailOutRecordIndex with index.
+                    return 0;
+                }
+
+                // Search left or right depending on whether the instr pointer
+                // is less or greather than the current lazyBailOutRecord.
+                return lazyBailOutRecord.nativeAddressOffset > instructionPointerOffset ? 1 : -1;
+            });
+
+            if (foundLazyBailOutRecordIndex != -1)
+            {
+                return sortedLazyBailOutRecordList->Item(foundLazyBailOutRecordIndex).bailOutRecord;
+            }
         }
+
+        // TODO: save info here for later check
+        return nullptr;
+    }
+
+    // Convert this function's return address to point to this function's LazyBailOutThunk. Also Thunk. Also put
+    // a BailOutRecord on the stack for the thunk to use. Returns true if successful return address conversion.
+    bool EntryPointInfo::ConvertFuncRetAddrToLazyBailOutThunk(BYTE **addressOfInstructionPointer, BYTE *stackFramePointer)
+    {
+        NativeEntryPointData* nativeEntryPointData = GetProcSpecificNativeEntryPoint();
+
+        // This frame does not have a LazyBailOut; no need to jmp to the thunk, this frame can return normally.
+        if (!nativeEntryPointData->GetHasLazyBailOut())
+        {
+            return false;
+        }
+
+        BYTE* instructionPointer = *addressOfInstructionPointer;
+        Js::JavascriptMethod nativeAddress = nativeEntryPointData->GetNativeAddress();
+
+        // instructionPointer should be pointing to an address in this function's native code.
+        Assert((BYTE*)nativeAddress < instructionPointer && instructionPointer < ((BYTE*)nativeAddress + nativeEntryPointData->GetCodeSize()));
+
+        size_t instructionPointerOffset = instructionPointer - (BYTE*)nativeAddress;  
+
+        BailOutRecord* bailOutRecord = FindLazyBailOutRecord(instructionPointerOffset);
+        
+        if (bailOutRecord == nullptr)
+        {
+            return false;
+        }
+
+        // Change the instruction pointer of the frame to our thunk so that when
+        // execution returns back to this frame, we will execute the thunk instead.
+        *addressOfInstructionPointer = (BYTE*)nativeAddress + nativeEntryPointData->GetLazyBailOutThunkOffset();
+
+#if DBG
+        instructionPointer = *addressOfInstructionPointer;
+        Assert((BYTE*)nativeAddress < instructionPointer && instructionPointer < ((BYTE*)nativeAddress + nativeEntryPointData->GetCodeSize()));
+#endif
+
+        // Put the BailOutRecord corresponding to our LazyBailOut point on the pre-allocated slot on the stack.
+        BYTE *addressOfLazyBailOutRecordSlot = stackFramePointer + nativeEntryPointData->GetLazyBailOutRecordSlotOffset();
+        *(reinterpret_cast<intptr_t *>(addressOfLazyBailOutRecordSlot)) = reinterpret_cast<intptr_t>(bailOutRecord);
+
+        return true;
     }
 
     void EntryPointInfo::FreeJitTransferData()
@@ -9063,7 +9130,8 @@ namespace Js
         callsCount(0),
         jitMode(ExecutionMode::Interpreter),
         functionProxy(functionProxy),
-        nextEntryPoint(nullptr)
+        nextEntryPoint(nullptr),
+        retAddrNotModified(false)
     {
     }
 

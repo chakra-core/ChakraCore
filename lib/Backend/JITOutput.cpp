@@ -220,6 +220,38 @@ JITOutput::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsign
     m_outputData->inlineeFrameOffsetArrayCount = offsetsArrayCount;
 }
 
+void
+JITOutput::RecordLazyBailOutRecordOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+{
+    m_outputData->lazyBailOutRecordOffsetArrayOffset = offsetsArrayOffset;
+    m_outputData->lazyBailOutRecordOffsetArrayCount = offsetsArrayCount;
+}
+
+void
+JITOutput::RecordLazyBailOutPropertiesInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount)
+{
+    m_outputData->lazyBailOutPropertiesArrayOffset = offsetsArrayOffset;
+    m_outputData->lazyBailOutPropertiesArrayCount = offsetsArrayCount;
+}
+
+void
+JITOutput::RecordLazyBailOutRecordSlotOffset(int lazyBailOutRecordSlotOffset)
+{
+    m_outputData->lazyBailOutRecordSlotOffset = lazyBailOutRecordSlotOffset;
+}
+
+void
+JITOutput::RecordLazyBailOutThunkOffset(unsigned int lazyBailOutThunkOffset)
+{
+    m_outputData->lazyBailOutThunkOffset = lazyBailOutThunkOffset;
+}
+
+void
+JITOutput::RecordHasLazyBailOut(bool hasLazyBailOut)
+{
+    m_outputData->hasLazyBailOut = hasLazyBailOut;
+}
+
 #if TARGET_64
 void
 JITOutput::RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr)

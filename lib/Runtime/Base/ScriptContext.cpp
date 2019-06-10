@@ -221,6 +221,7 @@ namespace Js
         , bailOutOffsetBytes(0)
 #endif
         , emptyStringPropertyId(Js::PropertyIds::_none)
+        , isDeferredTypeInit(false)
     {
 #ifdef ENABLE_SCRIPT_DEBUGGING
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
@@ -628,6 +629,9 @@ namespace Js
     {
         isScriptContextActuallyClosed = true;
         this->GetThreadContext()->closedScriptContextCount++;
+
+        // Should only be enabled during certain sections of Runtime's execution.
+        Assert(!this->IsDeferredTypeInit());
 
         PERF_COUNTER_DEC(Basic, ScriptContextActive);
 
@@ -5004,9 +5008,14 @@ ExitTempAllocator:
 
     void ScriptContext::InvalidateProtoCaches(const PropertyId propertyId)
     {
+        if (this->IsDeferredTypeInit())
+        {
+            return;
+        }
+
         threadContext->InvalidateProtoInlineCaches(propertyId);
-        // Because setter inline caches get registered in the store field chain, we must invalidate that
-        // chain whenever we invalidate the proto chain.
+        // Because setter inline caches get registered in the store field chain,
+        // we must invalidate that chain whenever we invalidate the proto chain.
         threadContext->InvalidateStoreFieldInlineCaches(propertyId);
 #if ENABLE_NATIVE_CODEGEN
         threadContext->InvalidatePropertyGuards(propertyId);

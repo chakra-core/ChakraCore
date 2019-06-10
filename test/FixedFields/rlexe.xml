@@ -2,6 +2,13 @@
 <regress-exe>
   <test>
     <default>
+      <files>fixedDataWithSubsequentUses.js</files>
+      <baseline>fixedDataWithSubsequentUses.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -MaxSimpleJitRunCount:0 -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>NonFixedFieldHoist.js</files>
       <baseline>NonFixedFieldHoist.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -bgjit- -off:simplejit</compile-flags>
@@ -75,13 +82,6 @@
     <default>
       <files>FixedDataDictionaryType.js</files>
       <baseline>FixedDataDictionaryType.baseline</baseline>
-      <compile-flags>-maxinterpretcount:1 -MaxSimpleJitRunCount:0 -bgjit-</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>fixedDataWithSubsequentUses.js</files>
-      <baseline>fixedDataWithSubsequentUses.baseline</baseline>
       <compile-flags>-maxinterpretcount:1 -MaxSimpleJitRunCount:0 -bgjit-</compile-flags>
     </default>
   </test>

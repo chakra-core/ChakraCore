@@ -319,6 +319,7 @@ DbCheckPostLower::IsAssign(IR::Instr *instr)
     return LowererMD::IsAssign(instr)
 #ifdef _M_X64
         || instr->m_opcode == Js::OpCode::MOVQ
+        || instr->m_opcode == Js::OpCode::MOV_TRUNC
 #endif
         ;
 }
@@ -364,7 +365,9 @@ DbCheckPostLower::EnsureOnlyMovesToRegisterOpnd(IR::Instr *instr)
                 if (this->IsCallToHelper(instr, IR::HelperOp_Equal) ||
                     this->IsCallToHelper(instr, IR::HelperOp_StrictEqual) ||
                     this->IsCallToHelper(instr, IR::HelperOP_CmEq_A) ||
-                    this->IsCallToHelper(instr, IR::HelperOP_CmNeq_A)
+                    this->IsCallToHelper(instr, IR::HelperOP_CmNeq_A) ||
+                    this->IsCallToHelper(instr, IR::HelperOP_CmSrNeq_A) ||
+                    this->IsCallToHelper(instr, IR::HelperOP_CmSrEq_A)
                     )
                 {
                     // Pattern matched

@@ -141,18 +141,16 @@ class BailOutRecord;
 
 struct LazyBailOutRecord
 {
-    uint32 offset;
+    // The offset from nativeAddress where the bailOutRecord exists.
+    uint32 nativeAddressOffset;
     BailOutRecord* bailOutRecord;
 
-    LazyBailOutRecord() : offset(0), bailOutRecord(nullptr) {}
+    LazyBailOutRecord() : nativeAddressOffset(0), bailOutRecord(nullptr) {}
 
-    LazyBailOutRecord(uint32 offset, BailOutRecord* record) :
-        offset(offset), bailOutRecord(record)
+    LazyBailOutRecord(uint32 nativeAddressOffset, BailOutRecord* bailOutRecord) :
+        nativeAddressOffset(nativeAddressOffset),
+        bailOutRecord(bailOutRecord)
     {}
-
-#if DBG
-    void Dump(Js::FunctionBody* functionBody) const;
-#endif
 };
 
 struct StackFrameConstants

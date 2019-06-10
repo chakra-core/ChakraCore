@@ -77,7 +77,7 @@ Encoder::Encode()
 
     m_pc = m_encodeBuffer;
     m_inlineeFrameMap = Anew(m_tempAlloc, ArenaInlineeFrameMap, m_tempAlloc);
-    m_sortedLazyBailoutRecordList = Anew(m_tempAlloc, ArenaLazyBailoutRecordList, m_tempAlloc);
+    m_sortedLazyBailOutRecordList = Anew(m_tempAlloc, ArenaLazyBailoutRecordList, m_tempAlloc);
 
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
@@ -607,28 +607,28 @@ Encoder::Encode()
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-        if (!m_func->IsOOPJIT()) // in-proc JIT
+        if (m_func->IsOOPJIT())
         {
-            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordInlineeFrameMap(m_inlineeFrameMap);
-        }
-        else // OOP JIT
-        {
-            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
+            NativeOffsetToRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetToRecordOffset, this->m_inlineeFrameMap->Count());
 
-            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
+            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetRecordPair<InlineeFrameRecord>& p)
             {
-                pairs[i].offset = p.offset;
+                pairs[i].nativeAddressOffset = p.nativeAddressOffset;
                 if (p.record)
                 {
                     pairs[i].recordOffset = NativeCodeData::GetDataChunk(p.record)->offset;
                 }
                 else
                 {
-                    pairs[i].recordOffset = NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset;
-                }
+                    pairs[i].recordOffset = NativeOffsetToRecordOffset::InvalidRecordOffset;
+               }
             });
 
             m_func->GetJITOutput()->RecordInlineeFrameOffsetsInfo(NativeCodeData::GetDataChunk(pairs)->offset, this->m_inlineeFrameMap->Count());
+        }
+        else
+        {
+            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->RecordInlineeFrameMap(m_inlineeFrameMap);
         }
     }
 
@@ -1019,15 +1019,15 @@ void Encoder::RecordInlineeFrame(Func* inlinee, uint32 currentOffset)
         if (m_inlineeFrameMap->Count() > 0)
         {
             // update existing record if the entry is the same.
-            NativeOffsetInlineeFramePair& lastPair = m_inlineeFrameMap->Item(m_inlineeFrameMap->Count() - 1);
+            NativeOffsetRecordPair<InlineeFrameRecord>& lastPair = m_inlineeFrameMap->Item(m_inlineeFrameMap->Count() - 1);
 
             if (lastPair.record == record)
             {
-                lastPair.offset = currentOffset;
+                lastPair.nativeAddressOffset = currentOffset;
                 return;
             }
         }
-        NativeOffsetInlineeFramePair pair = { currentOffset, record };
+        NativeOffsetRecordPair<InlineeFrameRecord> pair = { currentOffset, record };
         m_inlineeFrameMap->Add(pair);
     }
 }
@@ -1207,6 +1207,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
     FixUpMapIndex mapIndices;
 
     int32 totalBytesSaved = 0;
+    int32 bytesSavedAfterLBOThunk = 0;
 
     // loop over all BRs, find the ones we can convert to short form
     for (int32 j = 0; j < relocList->Count(); j++)
@@ -1294,6 +1295,16 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
             codeChange = true;
             totalBytesSaved += bytesSaved;
 
+            // If the offset of the current br instr is further from the beginning of the function than
+            // the lazyBailOutThunk entry point (which is subtracted by totalBytesSaved as at this point
+            // the LBOThunk entry point has been moved due to shortening branches), then keep track of
+            // the bytes being saved as these bytes do not count towards the adjustment of
+            // m_lazyBailOutThunkOffset made at the end of this function.
+            if ((unsigned char*)reloc.m_ptr - *codeStart > (int32)m_lazyBailOutThunkOffset - totalBytesSaved)
+            {
+                bytesSavedAfterLBOThunk += bytesSaved;
+            }
+
             // mark br reloc entry as shortened
 #ifdef _M_IX86
             reloc.setAsShortBr(targetLabel);
@@ -1309,7 +1320,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uin
         m_encoderMD.FixMaps((uint32)-1, totalBytesSaved, &mapIndices);
         codeChange = true;
         newCodeSize -= totalBytesSaved;
-        this->FixLazyBailOutThunkOffset(totalBytesSaved);
+        this->FixLazyBailOutThunkOffset(totalBytesSaved - bytesSavedAfterLBOThunk);
     }
 
     // no BR shortening or Label alignment happened, no need to copy code
@@ -1579,11 +1590,11 @@ void Encoder::CopyMaps(OffsetList **m_origInlineeFrameRecords
     {
         if (!restore)
         {
-            origMapList->Add(mapList->Item(i).offset);
+            origMapList->Add(mapList->Item(i).nativeAddressOffset);
         }
         else
         {
-            mapList->Item(i).offset = origMapList->Item(i);
+            mapList->Item(i).nativeAddressOffset = origMapList->Item(i);
         }
     }
 
@@ -1637,8 +1648,8 @@ void Encoder::DumpInlineeFrameMap(size_t baseAddress)
 {
     Output::Print(_u("Inlinee frame info mapping\n"));
     Output::Print(_u("---------------------------------------\n"));
-    m_inlineeFrameMap->Map([=](uint index, NativeOffsetInlineeFramePair& pair) {
-        Output::Print(_u("%Ix"), baseAddress + pair.offset);
+    m_inlineeFrameMap->Map([=](uint index, NativeOffsetRecordPair<InlineeFrameRecord>& pair) {
+        Output::Print(_u("%Ix"), baseAddress + pair.nativeAddressOffset);
         Output::SkipToColumn(20);
         if (pair.record)
         {
@@ -1671,7 +1682,7 @@ Encoder::SaveToLazyBailOutRecordList(IR::Instr* instr, uint32 currentOffset)
 #endif
 
     LazyBailOutRecord record(currentOffset, bailOutInfo->bailOutRecord);
-    this->m_sortedLazyBailoutRecordList->Add(record);
+    this->m_sortedLazyBailOutRecordList->Add(record);
 }
 
 void
@@ -1687,29 +1698,121 @@ Encoder::SaveLazyBailOutThunkOffset(uint32 currentOffset)
 void
 Encoder::SaveLazyBailOutJitTransferData()
 {
-    if (this->m_func->HasLazyBailOut())
-    {
-        Assert(this->m_sortedLazyBailoutRecordList->Count() > 0);
-        Assert(this->m_lazyBailOutThunkOffset != 0);
-        Assert(this->m_func->GetLazyBailOutRecordSlot() != nullptr);
+    // Things to save: LBORecords, LBOProperties, LBOThunkOffset, RecordSlotOffset, HasLazyBailOut.
 
-        auto nativeEntryPointData = this->m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
-        nativeEntryPointData->SetSortedLazyBailOutRecordList(this->m_sortedLazyBailoutRecordList);
-        nativeEntryPointData->SetLazyBailOutRecordSlotOffset(this->m_func->GetLazyBailOutRecordSlot()->m_offset);
-        nativeEntryPointData->SetLazyBailOutThunkOffset(this->m_lazyBailOutThunkOffset);
-    }
+    const bool isOOPJIT = m_func->IsOOPJIT();
 
-    if (this->m_func->lazyBailoutProperties.Count() > 0)
+    if (m_func->HasLazyBailOut())
     {
-        const int count = this->m_func->lazyBailoutProperties.Count();
-        Js::PropertyId* lazyBailoutProperties = HeapNewArrayZ(Js::PropertyId, count);
-        Js::PropertyId* dstProperties = lazyBailoutProperties;
-        this->m_func->lazyBailoutProperties.Map([&](Js::PropertyId propertyId)
+        const int sortedLazyBailOutRecordListCount = m_sortedLazyBailOutRecordList->Count();
+
+        Assert(sortedLazyBailOutRecordListCount > 0);
+        Assert(m_lazyBailOutThunkOffset != 0);
+        Assert(m_func->GetLazyBailOutRecordSlot() != nullptr);
+
+        // This function has the potential to be bailed out of due to a LazyBailOut,
+        // store the LBORecords, LBOThunkOffset, RecordSlotOffset.
+        if (isOOPJIT)
         {
-            *dstProperties++ = propertyId;
-        });
-        this->m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
+            // For OOPJIT, m_sortedLazyBailOutRecordList will not be stored nor will any LazyBailoutRecord. All
+            // BailOutRecords from m_sortedLazyBailOutRecordList's BailOutRecords have already been stored into
+            // the JitOutput. To keep track of all the BailOutRecords, create and store LazyBailOutRecordOffsets.
+            NativeOffsetToRecordOffset* lazyBailOutRecordOffsets = NativeCodeDataNewArrayZNoFixup(
+                m_func->GetNativeCodeDataAllocator(), NativeOffsetToRecordOffset, sortedLazyBailOutRecordListCount);
+
+            // Transfer data from m_sortedLazyBailOutRecordList to lazyBailOutRecordOffsets.
+            m_sortedLazyBailOutRecordList->Map([&lazyBailOutRecordOffsets](int i, LazyBailOutRecord& lazyBailOutRecord)
+            {
+                lazyBailOutRecordOffsets[i].nativeAddressOffset = lazyBailOutRecord.nativeAddressOffset;
+                if (lazyBailOutRecord.bailOutRecord)
+                {
+                    // Allocate lazyBailOutRecord.bailOutRecord's JitOutput offset as the recordOffset.
+                    lazyBailOutRecordOffsets[i].recordOffset = NativeCodeData::GetDataChunk(lazyBailOutRecord.bailOutRecord)->offset;
+                }
+                else
+                {
+                    lazyBailOutRecordOffsets[i].recordOffset = NativeOffsetToRecordOffset::InvalidRecordOffset;
+                }
+            });
+
+            // Store the LBORecords. lazyBailOutRecordOffsets has been stored into JitOutput because
+            // lazyBailOutRecordOffsets was allocated using NativeCodeDataNewArrayZNoFixup. Store the
+            // offset into JitOutput of NativeCodeDataNewArrayZNoFixup along with the amount of entrys
+            // in lazyBailOutRecordOffsets.
+            m_func->GetJITOutput()->RecordLazyBailOutRecordOffsetsInfo(
+                NativeCodeData::GetDataChunk(lazyBailOutRecordOffsets)->offset, sortedLazyBailOutRecordListCount);
+            
+            // Store the LBOThunkOffset, RecordSlotOffset, HasLazyBailOut.
+            m_func->GetJITOutput()->RecordLazyBailOutRecordSlotOffset(m_func->GetLazyBailOutRecordSlot()->m_offset);
+            m_func->GetJITOutput()->RecordLazyBailOutThunkOffset(m_lazyBailOutThunkOffset);
+            m_func->GetJITOutput()->RecordHasLazyBailOut(true);
+        }
+        else
+        {
+            // Store the LBORecords.
+            InProcNativeEntryPointData* inProcNativeEntryPointData = m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData();
+            inProcNativeEntryPointData->SetSortedLazyBailOutRecordList(m_sortedLazyBailOutRecordList);
+
+            // Store the LBOThunkOffset, RecordSlotOffset, 
+            inProcNativeEntryPointData->SetLazyBailOutRecordSlotOffset(m_func->GetLazyBailOutRecordSlot()->m_offset);
+            inProcNativeEntryPointData->SetLazyBailOutThunkOffset(m_lazyBailOutThunkOffset);
+            inProcNativeEntryPointData->SetHasLazyBailOut(true);
+        }
     }
+
+    // The function does not have a LazyBailOut.
+    else
+    {
+        if (isOOPJIT)
+        {
+            m_func->GetJITOutput()->RecordHasLazyBailOut(false);
+        }
+        else
+        {
+            m_func->GetInProcJITEntryPointInfo()->GetInProcNativeEntryPointData()->SetHasLazyBailOut(false);
+        }
+    }
+
+    const int lazyBailOutPropertiesCount = m_func->lazyBailOutProperties.Count();
+
+    // Even if the function does not have a LazyBailOut, a property whose scope lives outside the function
+    // can still change, thus the property's property guard will be invalidated. In this case the function's
+    // native code is invalid and must be invalidated by invalidating the function's entry point.
+    if (lazyBailOutPropertiesCount > 0)
+    {
+        // Store the LBOProperties
+        Js::PropertyId* lazyBailoutPropertiesArray;
+        if (isOOPJIT)
+        {
+            lazyBailoutPropertiesArray = NativeCodeDataNewArrayZNoFixup(
+                m_func->GetNativeCodeDataAllocator(), Js::PropertyId, lazyBailOutPropertiesCount);
+        }
+        else
+        {
+            lazyBailoutPropertiesArray = HeapNewArrayZ(Js::PropertyId, lazyBailOutPropertiesCount);
+        }
+
+        // Populate the lazyBailoutPropertiesArray using data from lazyBailOutProperties.
+        Js::PropertyId* currLazyBailoutPropertiesArrayIndex = lazyBailoutPropertiesArray;
+        m_func->lazyBailOutProperties.Map([&](Js::PropertyId propertyId)
+        {
+            *currLazyBailoutPropertiesArrayIndex++ = propertyId;
+        });
+
+        if (isOOPJIT)
+        {
+            // Instead of saving LBO properties to this process, we 
+            // must transfer the properties to the root process.
+            m_func->GetJITOutput()->RecordLazyBailOutPropertiesInfo(
+                NativeCodeData::GetDataChunk(lazyBailoutPropertiesArray)->offset, lazyBailOutPropertiesCount);
+        }
+        else
+        {
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(
+                lazyBailoutPropertiesArray, lazyBailOutPropertiesCount);
+        }
+    }
+
 }
 
 void
