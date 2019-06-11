@@ -6823,7 +6823,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnv
     else
     {
         Assert(func->IsTopFunc());
-        Assert(func->m_loopParamSym);
+        Assert(func->GetLoopParamSym());
 
         IR::Instr * envDefInstr = envOpnd->AsRegOpnd()->m_sym->m_instrDef;
         Assert(envDefInstr && envDefInstr->m_opcode == Js::OpCode::NewScFuncData);
@@ -27923,10 +27923,10 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
 {
     if (this->m_func->hasBailout)
     {
-        this->EnsureBailoutReturnValueSym();
+        m_func->EnsureBailoutReturnValueSym();
     }
-    this->EnsureHasBailedOutSym();
-    IR::SymOpnd * hasBailedOutOpnd = IR::SymOpnd::New(this->m_func->m_hasBailedOutSym, TyUint32, this->m_func);
+    m_func->EnsureHasBailedOutSym();
+    IR::SymOpnd * hasBailedOutOpnd = IR::SymOpnd::New(this->m_func->GetHasBailedOutSym(), TyUint32, this->m_func);
     IR::Instr * setInstr = IR::Instr::New(LowererMD::GetStoreOp(TyUint32), hasBailedOutOpnd, IR::IntConstOpnd::New(0, TyUint32, this->m_func), this->m_func);
     instr->InsertBefore(setInstr);
     LowererMD::Legalize(setInstr);
@@ -27973,26 +27973,6 @@ Lowerer::LowerLeave(IR::Instr * leaveInstr, IR::LabelInstr * targetInstr, bool f
     }
     leaveInstr->Remove();
     return instrPrev;
-}
-
-void
-Lowerer::EnsureBailoutReturnValueSym()
-{
-    if (this->m_func->m_bailoutReturnValueSym == nullptr)
-    {
-        this->m_func->m_bailoutReturnValueSym = StackSym::New(TyVar, this->m_func);
-        this->m_func->StackAllocate(this->m_func->m_bailoutReturnValueSym, sizeof(Js::Var));
-    }
-}
-
-void
-Lowerer::EnsureHasBailedOutSym()
-{
-    if (this->m_func->m_hasBailedOutSym == nullptr)
-    {
-        this->m_func->m_hasBailedOutSym = StackSym::New(TyUint32, this->m_func);
-        this->m_func->StackAllocate(this->m_func->m_hasBailedOutSym, MachRegInt);
-    }
 }
 
 void
@@ -28072,7 +28052,7 @@ void
 Lowerer::SetHasBailedOut(IR::Instr * bailoutInstr)
 {
     Assert(this->m_func->isPostLayout);
-    IR::SymOpnd * hasBailedOutOpnd = IR::SymOpnd::New(this->m_func->m_hasBailedOutSym, TyUint32, this->m_func);
+    IR::SymOpnd * hasBailedOutOpnd = IR::SymOpnd::New(this->m_func->GetHasBailedOutSym(), TyUint32, this->m_func);
     IR::Instr * setInstr = IR::Instr::New(LowererMD::GetStoreOp(TyUint32), hasBailedOutOpnd, IR::IntConstOpnd::New(1, TyUint32, this->m_func), this->m_func);
     bailoutInstr->InsertBefore(setInstr);
     LowererMD::Legalize(setInstr);
@@ -28122,7 +28102,7 @@ Lowerer::EmitSaveEHBailoutReturnValueAndJumpToRetThunk(IR::Instr * insertAfterIn
     // MOV bailoutReturnValueSym, eax
     // JMP $currentRegion->bailoutReturnThunkLabel
 
-    IR::SymOpnd * bailoutReturnValueSymOpnd = IR::SymOpnd::New(this->m_func->m_bailoutReturnValueSym, TyVar, this->m_func);
+    IR::SymOpnd * bailoutReturnValueSymOpnd = IR::SymOpnd::New(this->m_func->GetBailoutReturnValueSym(), TyVar, this->m_func);
     IR::RegOpnd *eaxOpnd = IR::RegOpnd::New(NULL, LowererMD::GetRegReturn(TyMachReg), TyMachReg, this->m_func);
     IR::Instr * movInstr = IR::Instr::New(LowererMD::GetStoreOp(TyVar), bailoutReturnValueSymOpnd, eaxOpnd, this->m_func);
     insertAfterInstr->InsertAfter(movInstr);
@@ -28141,7 +28121,7 @@ Lowerer::EmitRestoreReturnValueFromEHBailout(IR::LabelInstr * restoreLabel, IR::
     //          MOV eax, bailoutReturnValueSym
     // $epilog:
 
-    IR::SymOpnd * bailoutReturnValueSymOpnd = IR::SymOpnd::New(this->m_func->m_bailoutReturnValueSym, TyVar, this->m_func);
+    IR::SymOpnd * bailoutReturnValueSymOpnd = IR::SymOpnd::New(this->m_func->GetBailoutReturnValueSym(), TyVar, this->m_func);
     IR::RegOpnd * eaxOpnd = IR::RegOpnd::New(NULL, LowererMD::GetRegReturn(TyMachReg), TyMachReg, this->m_func);
 
     IR::Instr * movInstr = IR::Instr::New(LowererMD::GetLoadOp(TyVar), eaxOpnd, bailoutReturnValueSymOpnd, this->m_func);
