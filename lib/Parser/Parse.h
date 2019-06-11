@@ -474,6 +474,7 @@ private:
         IdentPtr set;
         IdentPtr get;
         IdentPtr let;
+        IdentPtr await;
         IdentPtr constructor;
         IdentPtr prototype;
         IdentPtr __proto__;

@@ -483,6 +483,9 @@ private:
         case knopForOf:
             return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
 
+        case knopForAwaitOf:
+            return WalkForInOrForOf(pnode->AsParseNodeForInOrForOf(), context);
+
         //PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
         case knopReturn:
             return WalkReturn(pnode->AsParseNodeReturn(), context);

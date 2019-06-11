@@ -6639,7 +6639,10 @@ void Parser::ParseFncName(ParseNodeFnc * pnodeFnc, ushort flags, IdentPtr* pFncN
     {
         if (pnodeFnc->IsGenerator())
         {
-            Error(ERRsyntax);
+            if (!m_scriptContext->GetConfig()->IsES2018AsyncIterationEnabled())
+            {
+                Error(ERRExperimental);
+            }
         }
         pnodeFnc->SetIsAsync();
     }
@@ -10214,9 +10217,26 @@ LRestart:
         ParseNodeBlock * pnodeBlock = nullptr;
         ParseNodePtr *ppnodeScopeSave = nullptr;
         ParseNodePtr *ppnodeExprScopeSave = nullptr;
+        bool isForAwait = false;
 
         ichMin = this->GetScanner()->IchMinTok();
-        ChkNxtTok(tkLParen, ERRnoLparen);
+
+        this->GetScanner()->Scan();
+        if (m_token.tk == tkAWAIT || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.await))
+        {
+            if (!this->GetScanner()->AwaitIsKeywordRegion())
+            {
+                Error(ERRBadAwait); // for await () in a non-async function
+            }
+            if (!m_scriptContext->GetConfig()->IsES2018AsyncIterationEnabled())
+            {
+                Error(ERRExperimental);
+            }
+            isForAwait = true;
+            this->GetScanner()->Scan();
+        }
+        ChkCurTok(tkLParen, ERRnoLparen);
+
         pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Regular, ScopeType_Block);
         if (buildAST)
         {
@@ -10343,6 +10363,11 @@ LRestart:
             bool isForOf = (m_token.tk != tkIN);
             Assert(!isForOf || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of));
 
+            if (isForAwait && !isForOf)
+            {
+                Error(ERRTokenAfter, _u("in"), _u("for await"));
+            }
+
             if ((buildAST && nullptr == pnodeT) || !fForInOrOfOkay)
             {
                 if (isForOf)
@@ -10370,7 +10395,11 @@ LRestart:
             ParseNodeForInOrForOf * pnodeForInOrForOf = nullptr;
             if (buildAST)
             {
-                if (isForOf)
+                if (isForAwait)
+                {
+                    pnodeForInOrForOf = CreateNodeForOpT<knopForAwaitOf>(ichMin);
+                }
+                else if (isForOf)
                 {
                     pnodeForInOrForOf = CreateNodeForOpT<knopForOf>(ichMin);
                 }
@@ -10385,7 +10414,7 @@ LRestart:
 
                 TrackAssignment<true>(pnodeT, nullptr);
             }
-            PushStmt<buildAST>(&stmt, pnodeForInOrForOf, isForOf ? knopForOf : knopForIn, pLabelIdList);
+            PushStmt<buildAST>(&stmt, pnodeForInOrForOf, isForAwait ? knopForAwaitOf : (isForOf ? knopForOf : knopForIn), pLabelIdList);
             ParseNodePtr pnodeBody = ParseStatement<buildAST>();
 
             if (buildAST)
@@ -10400,6 +10429,11 @@ LRestart:
             if (!nativeForOkay)
             {
                 Error(ERRDestructInit);
+            }
+
+            if (isForAwait)
+            {
+                Error(ERRValidIfFollowedBy, _u("'for await'"), _u("'of'"));
             }
 
             ChkCurTok(tkSColon, ERRnoSemic);
@@ -11640,6 +11674,7 @@ void Parser::InitPids()
     wellKnownPropertyPids.get = this->GetHashTbl()->PidHashNameLen(g_ssym_get.sz, g_ssym_get.cch);
     wellKnownPropertyPids.set = this->GetHashTbl()->PidHashNameLen(g_ssym_set.sz, g_ssym_set.cch);
     wellKnownPropertyPids.let = this->GetHashTbl()->PidHashNameLen(g_ssym_let.sz, g_ssym_let.cch);
+    wellKnownPropertyPids.await = this->GetHashTbl()->PidHashNameLen(g_ssym_await.sz, g_ssym_await.cch);
     wellKnownPropertyPids.constructor = this->GetHashTbl()->PidHashNameLen(g_ssym_constructor.sz, g_ssym_constructor.cch);
     wellKnownPropertyPids.prototype = this->GetHashTbl()->PidHashNameLen(g_ssym_prototype.sz, g_ssym_prototype.cch);
     wellKnownPropertyPids.__proto__ = this->GetHashTbl()->PidHashNameLen(_u("__proto__"), sizeof("__proto__") - 1);
@@ -12677,6 +12712,9 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     case knopForOf:
         Assert(false);
         break;
+    case knopForAwaitOf:
+        Assert(false);
+        break;
         //PTNODE(knopReturn     , "return"    ,None    ,Uni  ,fnopNone)
     case knopReturn: {
         ParseNode* copyNode = CreateNodeForOpT<knopReturn>(pnode->ichMin, pnode->ichLim);
@@ -13485,6 +13523,7 @@ void PrintScopesWIndent(ParseNode *pnode, int indentAmt) {
     case knopFor: scope = pnode->AsParseNodeFor()->pnodeBlock; firstOnly = true; break;
     case knopForIn: scope = pnode->AsParseNodeForInOrForOf()->pnodeBlock; firstOnly = true; break;
     case knopForOf: scope = pnode->AsParseNodeForInOrForOf()->pnodeBlock; firstOnly = true; break;
+    case knopForAwaitOf: scope = pnode->AsParseNodeForInOrForOf()->pnodeBlock; firstOnly = true; break;
     }
     if (scope) {
         Output::Print(_u("[%4d, %4d): "), scope->ichMin, scope->ichLim);
@@ -14113,6 +14152,14 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
     case knopForOf:
         Indent(indentAmt);
         Output::Print(_u("forOf\n"));
+        PrintScopesWIndent(pnode, indentAmt + INDENT_SIZE);
+        PrintPnodeWIndent(pnode->AsParseNodeForInOrForOf()->pnodeLval, indentAmt + INDENT_SIZE);
+        PrintPnodeWIndent(pnode->AsParseNodeForInOrForOf()->pnodeObj, indentAmt + INDENT_SIZE);
+        PrintPnodeWIndent(pnode->AsParseNodeForInOrForOf()->pnodeBody, indentAmt + INDENT_SIZE);
+        break;
+    case knopForAwaitOf:
+        Indent(indentAmt);
+        Output::Print(_u("forAwaitOf\n"));
         PrintScopesWIndent(pnode, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeForInOrForOf()->pnodeLval, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeForInOrForOf()->pnodeObj, indentAmt + INDENT_SIZE);

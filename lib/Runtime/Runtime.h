@@ -106,6 +106,7 @@ namespace Js
     class JavascriptEnumeratorIterator;
     class JavascriptArrayIterator;
     enum class JavascriptArrayIteratorKind;
+    class JavascriptAsyncFromSyncIterator;
     class JavascriptMapIterator;
     enum class JavascriptMapIteratorKind;
     class JavascriptSetIterator;
@@ -180,6 +181,7 @@ namespace Js
     class StackScriptFunction;
     class GeneratorVirtualScriptFunction;
     class JavascriptGeneratorFunction;
+    class JavascriptAsyncGeneratorFunction;
     class JavascriptAsyncFunction;
     class AsmJsScriptFunction;
     class WasmScriptFunction;

@@ -54,6 +54,7 @@ set(CRLIB_SOURCE_CODES
     JavascriptArrayIndexEnumeratorBase.cpp
     JavascriptArrayIndexSnapshotEnumerator.cpp
     JavascriptArrayIterator.cpp
+    JavascriptAsyncFromSyncIterator.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp

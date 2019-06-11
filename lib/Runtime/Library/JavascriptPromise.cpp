@@ -647,6 +647,22 @@ namespace Js
         return CreateResolvedPromise(x, scriptContext, constructor);
     }
 
+    JavascriptPromise* JavascriptPromise::InternalPromiseResolve(Var value, ScriptContext* scriptContext)
+    {
+        Var constructor = scriptContext->GetLibrary()->GetPromiseConstructor();
+
+        if (VarIs<JavascriptPromise>(value))
+        {
+            Var valueConstructor = JavascriptOperators::GetProperty((RecyclableObject*)value, PropertyIds::constructor, scriptContext);
+            if (JavascriptConversion::SameValue(valueConstructor, constructor))
+            {
+                return UnsafeVarTo<JavascriptPromise>(value);
+            }
+        }
+
+        return UnsafeVarTo<JavascriptPromise>(CreateResolvedPromise(value, scriptContext, constructor));
+    }
+
     // Promise.prototype.then as described in ES 2015 Section 25.4.5.3
     Var JavascriptPromise::EntryThen(RecyclableObject* function, CallInfo callInfo, ...)
     {

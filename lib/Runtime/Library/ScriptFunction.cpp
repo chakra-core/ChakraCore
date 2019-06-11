@@ -20,7 +20,7 @@ using namespace Js;
         {
             JavascriptFunction *function = UnsafeVarTo<JavascriptFunction>(obj);
             return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
-                || JavascriptAsyncFunction::Test(function);
+                || JavascriptAsyncFunction::Test(function) || JavascriptAsyncGeneratorFunction::Test(function);
         }
 
         return false;

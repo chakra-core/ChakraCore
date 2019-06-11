@@ -126,19 +126,14 @@ using namespace Js;
     }
 #endif
 
-    static char16 const funcName[] = _u("function anonymous");
-    static char16 const genFuncName[] = _u("function* anonymous");
-    static char16 const asyncFuncName[] = _u("async function anonymous");
-    static char16 const openFormals[] = _u("(");
-    static char16 const closeFormals[] = _u("\n)");
-    static char16 const openFuncBody[] = _u(" {");
-    static char16 const closeFuncBody[] = _u("\n}");
-
     Var JavascriptFunction::NewInstanceHelper(ScriptContext *scriptContext, RecyclableObject* function, CallInfo callInfo, Js::ArgumentReader& args, FunctionKind functionKind /* = FunctionKind::Normal */)
     {
         JavascriptLibrary* library = function->GetLibrary();
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
+        bool isAsync = functionKind == FunctionKind::Async || functionKind == FunctionKind::AsyncGenerator;
+        bool isGenerator = functionKind == FunctionKind::Generator || functionKind == FunctionKind::AsyncGenerator;
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch.
@@ -175,9 +170,11 @@ using namespace Js;
             == numberLinesPrependedToAnonymousFunction); // Be sure to add exactly one line to anonymous function
 
         JavascriptString *bs = functionKind == FunctionKind::Async ?
-            library->GetAsyncFunctionAnonymouseString() :
+            library->GetAsyncFunctionAnonymousString() :
             functionKind == FunctionKind::Generator ?
             library->GetFunctionPTRAnonymousString() :
+            functionKind == FunctionKind::AsyncGenerator ?
+            library->GetAsyncGeneratorAnonymousString() :
             library->GetFunctionAnonymousString();
 
         bs = JavascriptString::Concat(bs, formals);
@@ -203,14 +200,14 @@ using namespace Js;
             // Validate formals here
             scriptContext->GetGlobalObject()->ValidateSyntax(
                 scriptContext, formals->GetSz(), formals->GetLength(),
-                functionKind == FunctionKind::Generator, functionKind == FunctionKind::Async,
+                isGenerator, isAsync,
                 &Parser::ValidateFormals);
             if (fnBody != NULL)
             {
                 // Validate function body
                 scriptContext->GetGlobalObject()->ValidateSyntax(
                     scriptContext, fnBody->GetSz(), fnBody->GetLength(),
-                    functionKind == FunctionKind::Generator, functionKind == FunctionKind::Async,
+                    isGenerator, isAsync,
                     &Parser::ValidateSourceElementList);
             }
 
@@ -290,12 +287,14 @@ using namespace Js;
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(pfuncScript->GetFunctionProxy())));
 
-        if (functionKind == FunctionKind::Generator || functionKind == FunctionKind::Async)
+        if (isGenerator || isAsync)
         {
             Assert(pfuncScript->GetFunctionInfo()->IsCoroutine());
             auto pfuncVirt = static_cast<GeneratorVirtualScriptFunction*>(pfuncScript);
             auto pfuncGen = functionKind == FunctionKind::Async ?
                 scriptContext->GetLibrary()->CreateAsyncFunction(JavascriptAsyncFunction::EntryAsyncFunctionImplementation, pfuncVirt) :
+                functionKind == FunctionKind::AsyncGenerator ?
+                scriptContext->GetLibrary()->CreateAsyncGeneratorFunction(JavascriptAsyncGeneratorFunction::EntryAsyncGeneratorFunctionImplementation, pfuncVirt) :
                 scriptContext->GetLibrary()->CreateGeneratorFunction(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation, pfuncVirt);
             pfuncVirt->SetRealGeneratorFunction(pfuncGen);
             pfuncScript = pfuncGen;
@@ -327,6 +326,29 @@ using namespace Js;
         ScriptContext* scriptContext = function->GetScriptContext();
 
         return NewInstanceHelper(scriptContext, function, callInfo, args);
+    }
+
+    Var JavascriptFunction::NewAsyncGeneratorFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        // Get called when creating a new async generator function through the constructor (e.g. agf.__proto__.constructor)
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+
+        return JavascriptFunction::NewInstanceHelper(function->GetScriptContext(), function, callInfo, args, JavascriptFunction::FunctionKind::AsyncGenerator);
+    }
+
+    Var JavascriptFunction::NewAsyncGeneratorFunctionInstanceRestrictedMode(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        scriptContext->CheckEvalRestriction();
+
+        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+
+        return JavascriptFunction::NewInstanceHelper(scriptContext, function, callInfo, args, JavascriptFunction::FunctionKind::AsyncGenerator);
     }
 
     Var JavascriptFunction::NewAsyncFunctionInstance(RecyclableObject* function, CallInfo callInfo, ...)

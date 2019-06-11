@@ -471,6 +471,7 @@ public:
     BOOL IsClassConstructor() const;
     BOOL IsBaseClassConstructor() const;
     BOOL IsDerivedClassConstructor() const;
+    bool IsAsyncGenerator() const;
 
     void RemoveTargetStmt(ParseNodeStmt* pnodeStmt) {
         targetStatements.Remove(pnodeStmt);
