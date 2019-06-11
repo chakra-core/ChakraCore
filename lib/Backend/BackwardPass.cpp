@@ -1645,6 +1645,8 @@ BackwardPass::ProcessLoop(BasicBlock * lastBlock)
     {
         Assert(loop->symsAssignedToInLoop == nullptr);
         loop->symsAssignedToInLoop = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
+        Assert(loop->preservesNumberValue == nullptr);
+        loop->preservesNumberValue = JitAnew(this->globOpt->alloc, BVSparse<JitArenaAllocator>, this->globOpt->alloc);
     }
 
     FOREACH_BLOCK_BACKWARD_IN_RANGE_DEAD_OR_ALIVE(block, lastBlock, nullptr)
@@ -4316,7 +4318,10 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
     const bool transferArrayLengthSymUse = !!currentBlock->noImplicitCallArrayLengthSymUses->TestAndClear(dstSym->m_id);
 
     IR::Opnd *const src = instr->GetSrc1();
-    if(!src || instr->GetSrc2())
+
+    // Stop attempting to transfer noImplicitCallUses symbol if the instr is not a transfer instr (based on the opcode's 
+    // flags) or does not have the attributes to be a transfer instr (based on the existance of src and src2).
+    if(!src || (instr->GetSrc2() && !OpCodeAttr::NonIntTransfer(instr->m_opcode)))
     {
         return;
     }
@@ -5004,16 +5009,24 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
         return;
     }
 
+    instr->GetDst()->AsIndirOpnd()->AllowConversion(true);
     IR::BailOutKind includeBailOutKinds = IR::BailOutInvalid;
     if (!baseValueType.IsNotNativeArray() &&
-        (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar()) &&
         !currentBlock->noImplicitCallNativeArrayUses->IsEmpty() &&
         !(instr->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall))
     {
         // There is an upwards-exposed use of a native array. Since the array referenced by this instruction can be aliased,
         // this instruction needs to bail out if it converts the native array even if this array specifically is not
         // upwards-exposed.
-        includeBailOutKinds |= IR::BailOutConvertedNativeArray;
+        if (!baseValueType.IsLikelyNativeArray() || instr->GetSrc1()->IsVar())
+        {
+            includeBailOutKinds |= IR::BailOutConvertedNativeArray;
+        }
+        else
+        {
+            // We are assuming that array conversion is impossible here, so make sure we execute code that fails if conversion does happen.
+            instr->GetDst()->AsIndirOpnd()->AllowConversion(false);
+        }
     }
 
     if(baseOpnd->IsArrayRegOpnd() && baseOpnd->AsArrayRegOpnd()->EliminatedUpperBoundCheck())
@@ -7410,6 +7423,52 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     }
 }
 
+bool 
+BackwardPass::SymIsIntconstOrSelf(Sym *sym, IR::Opnd *opnd)
+{
+    Assert(sym->IsStackSym());
+    if (!opnd->IsRegOpnd())
+    {
+        return false;
+    }
+    StackSym *opndSym = opnd->AsRegOpnd()->m_sym;
+
+    if (sym == opndSym)
+    {
+        return true;
+    }
+
+    if (!opndSym->IsSingleDef())
+    {
+        return false;
+    }
+
+    if (opndSym->GetInstrDef()->m_opcode == Js::OpCode::LdC_A_I4)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool
+BackwardPass::InstrPreservesNumberValues(IR::Instr *instr, Sym *defSym)
+{
+    if (instr->m_opcode == Js::OpCode::Ld_A)
+    {
+        if (instr->GetSrc1()->IsRegOpnd())
+        {
+            IR::RegOpnd *src1 = instr->GetSrc1()->AsRegOpnd();
+            if (src1->m_sym->IsSingleDef())
+            {
+                instr = src1->m_sym->GetInstrDef();
+            }
+        }
+    }
+    return (OpCodeAttr::ProducesNumber(instr->m_opcode) ||
+        (instr->m_opcode == Js::OpCode::Add_A && this->SymIsIntconstOrSelf(defSym, instr->GetSrc1()) && this->SymIsIntconstOrSelf(defSym, instr->GetSrc2())));
+}
+
 bool
 BackwardPass::ProcessDef(IR::Opnd * opnd)
 {
@@ -7424,7 +7483,19 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             this->InvalidateCloneStrCandidate(opnd);
             if ((tag == Js::BackwardPhase) && IsPrePass())
             {
-                this->currentPrePassLoop->symsAssignedToInLoop->Set(sym->m_id);
+                bool firstDef = !this->currentPrePassLoop->symsAssignedToInLoop->TestAndSet(sym->m_id);
+
+                if (firstDef)
+                {
+                    if (this->InstrPreservesNumberValues(this->currentInstr, sym))
+                    {
+                        this->currentPrePassLoop->preservesNumberValue->Set(sym->m_id);
+                    }
+                }
+                else if (!this->InstrPreservesNumberValues(this->currentInstr, sym))
+                {
+                    this->currentPrePassLoop->preservesNumberValue->Clear(sym->m_id);
+                }
             }
         }
     }

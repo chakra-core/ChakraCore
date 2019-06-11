@@ -208,7 +208,7 @@ void GlobOpt::KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BV
 }
 
 void
-GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func)
+GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func)
 {
     IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
 
@@ -225,14 +225,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
     // - We check the type specialization status for the sym as well. For the purpose of doing kills, we can assume that
     //   if type specialization happened, that fields don't need to be killed. Note that they may be killed in the next
     //   pass based on the value.
-    if (func->GetThisOrParentInlinerHasArguments() ||
-        (
-            indexOpnd &&
-            (
-                indexOpnd->m_sym->m_isNotNumber ||
-                (inGlobOpt && !indexOpnd->GetValueType().IsNumber() && !currentBlock->globOptData.IsTypeSpecialized(indexOpnd->m_sym))
-            )
-        ))
+    if (func->GetThisOrParentInlinerHasArguments() || this->IsNonNumericRegOpnd(indexOpnd, inGlobOpt))
     {
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
@@ -247,6 +240,23 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * 
         {
             // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
             this->KillAllObjectTypes(bv);
+        }
+        else if ((!valueOpnd || valueOpnd->IsVar()) && this->objectTypeSyms != nullptr)
+        {
+            // If we wind up converting a native array, block final-type opt at this point, because we could evolve
+            // to a type with the wrong type ID. Do this by noting that we may have evolved any type and so must
+            // check it before evolving it further.
+            IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
+            Value * baseValue = baseOpnd ? this->currentBlock->globOptData.FindValue(baseOpnd->m_sym) : nullptr;
+            ValueInfo * baseValueInfo = baseValue ? baseValue->GetValueInfo() : nullptr;
+            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray())
+            {
+                if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
+                {
+                    this->currentBlock->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+                }
+                this->currentBlock->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
+            }
         }
     }
 }
@@ -340,7 +350,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::StElemI_A_Strict:
         Assert(dstOpnd != nullptr);
         KillLiveFields(this->lengthEquivBv, bv);
-        KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        KillLiveElems(dstOpnd->AsIndirOpnd(), instr->GetSrc1(), bv, inGlobOpt, instr->m_func);
         if (inGlobOpt)
         {
             KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
@@ -350,7 +360,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InitComputedProperty:
     case Js::OpCode::InitGetElemI:
     case Js::OpCode::InitSetElemI:
-        KillLiveElems(dstOpnd->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        KillLiveElems(dstOpnd->AsIndirOpnd(), instr->GetSrc1(), bv, inGlobOpt, instr->m_func);
         if (inGlobOpt)
         {
             KillObjectHeaderInlinedTypeSyms(this->currentBlock, false);
@@ -360,7 +370,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::DeleteElemI_A:
     case Js::OpCode::DeleteElemIStrict_A:
         Assert(dstOpnd != nullptr);
-        KillLiveElems(instr->GetSrc1()->AsIndirOpnd(), bv, inGlobOpt, instr->m_func);
+        KillLiveElems(instr->GetSrc1()->AsIndirOpnd(), nullptr, bv, inGlobOpt, instr->m_func);
         break;
 
     case Js::OpCode::DeleteFld:

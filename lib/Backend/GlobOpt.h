@@ -317,6 +317,7 @@ private:
         {
             bool killsAllArrays : 1;
             bool killsArraysWithNoMissingValues : 1;
+            bool killsObjectArraysWithNoMissingValues : 1;
             bool killsNativeArrays : 1;
             bool killsArrayHeadSegments : 1;
             bool killsArrayHeadSegmentLengths : 1;
@@ -341,6 +342,9 @@ public:
 
     bool KillsArraysWithNoMissingValues() const { return killsArraysWithNoMissingValues; }
     void SetKillsArraysWithNoMissingValues() { killsArraysWithNoMissingValues = true; }
+
+    bool KillsObjectArraysWithNoMissingValues() const { return killsObjectArraysWithNoMissingValues; }
+    void SetKillsObjectArraysWithNoMissingValues() { killsObjectArraysWithNoMissingValues = true; }
 
     bool KillsNativeArrays() const { return killsNativeArrays; }
     void SetKillsNativeArrays() { killsNativeArrays = true; }
@@ -769,6 +773,8 @@ private:
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
     void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd** srcOpndPtr, Value *const srcVal);
+    bool                    IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const;
+
 public:
     static bool             IsTypeSpecPhaseOff(Func const * func);
     static bool             DoAggressiveIntTypeSpec(Func const * func);
@@ -891,7 +897,7 @@ private:
     void                    KillLiveFields(StackSym * stackSym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(PropertySym * propertySym, BVSparse<JitArenaAllocator> * bv);
     void                    KillLiveFields(BVSparse<JitArenaAllocator> *const fieldsToKill, BVSparse<JitArenaAllocator> *const bv) const;
-    void                    KillLiveElems(IR::IndirOpnd * indirOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
+    void                    KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse<JitArenaAllocator> * bv, bool inGlobOpt, Func *func);
     void                    KillAllFields(BVSparse<JitArenaAllocator> * bv);
     void                    SetAnyPropertyMayBeWrittenTo();
     void                    AddToPropertiesWrittenTo(Js::PropertyId propertyId);

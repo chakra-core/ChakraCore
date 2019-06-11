@@ -1244,7 +1244,7 @@ void GlobOpt::InsertValueCompensation(
         {
             IR::Instr *const newInstr =
                 IR::Instr::New(
-                    Js::OpCode::Ld_I4,
+                    Js::OpCode::Ld_A,
                     IR::RegOpnd::New(mergedHeadSegmentLengthSym, mergedHeadSegmentLengthSym->GetType(), func),
                     IR::RegOpnd::New(predecessorHeadSegmentLengthSym, predecessorHeadSegmentLengthSym->GetType(), func),
                     func);
@@ -2692,6 +2692,48 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     }
 #endif
     return instrNext;
+}
+
+bool
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+{
+    if (opnd == nullptr)
+    {
+        return false;
+    }
+
+    if (opnd->m_sym->m_isNotNumber)
+    {
+        return true;
+    }
+
+    if (!inGlobOpt)
+    {
+        return false;
+    }
+
+    if (opnd->GetValueType().IsNumber() || currentBlock->globOptData.IsTypeSpecialized(opnd->m_sym))
+    {
+        if (!this->IsLoopPrePass())
+        {
+            return false;
+        }
+
+        Value * opndValue = this->currentBlock->globOptData.FindValue(opnd->m_sym);
+        ValueInfo * opndValueInfo = opndValue ? opndValue->GetValueInfo() : nullptr;
+        if (!opndValueInfo)
+        {
+            return true;
+        }
+        if (this->prePassLoop->preservesNumberValue->Test(opnd->m_sym->m_id))
+        {
+            return false;
+        }
+
+        return !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+    }
+
+    return true;
 }
 
 bool
@@ -12827,6 +12869,26 @@ GlobOpt::ProcessValueKills(IR::Instr *const instr)
             it.RemoveCurrent();
         }
     }
+    else if(kills.KillsObjectArraysWithNoMissingValues())
+    {
+        // Some operations may kill objects with arrays-with-no-missing-values in unlikely circumstances. Convert their value types to likely
+        // versions so that the checks have to be redone.
+        for(auto it = valuesToKillOnCalls->GetIteratorWithRemovalSupport(); it.IsValid(); it.MoveNext())
+        {
+            Value *const value = it.CurrentValue();
+            ValueInfo *const valueInfo = value->GetValueInfo();
+            Assert(
+                valueInfo->IsArrayOrObjectWithArray() ||
+                valueInfo->IsOptimizedVirtualTypedArray() ||
+                valueInfo->IsOptimizedTypedArray() && valueInfo->AsArrayValueInfo()->HeadSegmentLengthSym());
+            if(!valueInfo->IsArrayOrObjectWithArray() || valueInfo->IsArray() || !valueInfo->HasNoMissingValues())
+            {
+                continue;
+            }
+            ChangeValueType(nullptr, value, valueInfo->Type().ToLikely(), false);
+            it.RemoveCurrent();
+        }
+    }
 
     if(kills.KillsNativeArrays())
     {
@@ -13357,6 +13419,11 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             if(doArrayLengthHoist && !(useValueTypes && arrayValueType.IsNotArray()))
             {
                 kills.SetKillsArrayLengths();
+            }
+
+            if(doArrayMissingValueCheckHoist && !(useValueTypes && arrayValueType.IsArray()))
+            {
+                kills.SetKillsObjectArraysWithNoMissingValues();
             }
             break;
         }

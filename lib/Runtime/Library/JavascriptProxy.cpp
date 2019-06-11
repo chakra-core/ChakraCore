@@ -392,6 +392,8 @@ namespace Js
         }
         propertyDescriptor->SetValue(getGetResult);
 
+        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
+
         return TRUE;
     }
 
@@ -1907,6 +1909,9 @@ namespace Js
                 }
             }
         }
+
+        threadContext->AddImplicitCallFlags(Js::ImplicitCall_External);
+
         return TRUE;
 
     }
