@@ -81,6 +81,21 @@ bool InductionVariable::Add(const int n)
     if(n == 0)
         return true;
 
+    int lowerBound = changeBounds.LowerBound();
+    int upperBound = changeBounds.UpperBound();
+
+    if (n < 0 && (lowerBound < upperBound || (lowerBound == upperBound && lowerBound > 0)))
+    {
+        isChangeDeterminate = false;
+        return false;
+    }
+
+    if (n > 0 && (lowerBound > upperBound || (lowerBound == upperBound && lowerBound < 0)))
+    {
+        isChangeDeterminate = false;
+        return false;
+    }
+
     int newLowerBound;
     if(changeBounds.LowerBound() == IntConstMin)
     {
@@ -148,6 +163,25 @@ void InductionVariable::Merge(const InductionVariable &other)
     // The value number may be different, the caller will give the merged info the appropriate value number
 
     isChangeDeterminate &= other.isChangeDeterminate;
+    if(!isChangeDeterminate)
+        return;
+
+    int lowerBound = this->ChangeBounds().LowerBound();
+    int upperBound = this->ChangeBounds().UpperBound();
+
+    int otherLowerBound = other.ChangeBounds().LowerBound();
+    int otherUpperBound = other.ChangeBounds().UpperBound();
+
+    if ((lowerBound < upperBound || (lowerBound == upperBound && lowerBound > 0)) && !(otherLowerBound < otherUpperBound || (otherLowerBound == otherUpperBound && otherLowerBound > 0)))
+    {
+        isChangeDeterminate = false;
+    }
+
+    if ((lowerBound > upperBound || (lowerBound == upperBound && lowerBound < 0)) && !(otherLowerBound > otherUpperBound || (otherLowerBound == otherUpperBound && otherLowerBound < 0)))
+    {
+        isChangeDeterminate = false;
+    }
+
     if(!isChangeDeterminate)
         return;
 

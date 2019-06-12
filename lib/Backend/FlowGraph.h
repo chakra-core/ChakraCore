@@ -587,6 +587,7 @@ public:
     // cleanup in PreOptPeep in the pre-pass of a loop. For aggressively transferring
     // values in prepass, we need to know if a source sym was ever assigned to in a loop.
     BVSparse<JitArenaAllocator> *symsAssignedToInLoop;
+    BVSparse<JitArenaAllocator> *preservesNumberValue;
 
     BailOutInfo *       bailOutInfo;
     IR::BailOutInstr *  toPrimitiveSideEffectCheck;
@@ -732,6 +733,7 @@ public:
         symsAssignedToInLoop(nullptr),
         needImplicitCallBailoutChecksForJsArrayCheckHoist(false),
         inductionVariables(nullptr),
+        preservesNumberValue(nullptr),
         dominatingLoopCountableBlock(nullptr),
         loopCount(nullptr),
         loopCountBasedBoundBaseSyms(nullptr),
