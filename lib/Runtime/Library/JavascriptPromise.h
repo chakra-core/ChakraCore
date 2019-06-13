@@ -471,7 +471,16 @@ namespace Js
         static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
         static Var CreatePassThroughPromise(JavascriptPromise* sourcePromise, ScriptContext* scriptContext);
         static Var CreateThenPromise(JavascriptPromise* sourcePromise, RecyclableObject* fulfillmentHandler, RecyclableObject* rejectionHandler, ScriptContext* scriptContext);
+        
         static JavascriptPromise* InternalPromiseResolve(Var value, ScriptContext* scriptContext);
+        static Var PromiseResolve(Var constructor, Var value, ScriptContext* scriptContext);
+        
+        static void PerformPromiseThen(
+            JavascriptPromise* sourcePromise,
+            JavascriptPromiseCapability* capability,
+            RecyclableObject* fulfillmentHandler,
+            RecyclableObject* rejectionHandler,
+            ScriptContext* scriptContext);
 
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -480,6 +489,7 @@ namespace Js
 
 
         static JavascriptPromiseCapability* NewPromiseCapability(Var constructor, ScriptContext* scriptContext);
+        static JavascriptPromiseCapability* UnusedPromiseCapability(ScriptContext* scriptContext);
         static JavascriptPromiseCapability* CreatePromiseCapabilityRecord(RecyclableObject* constructor, ScriptContext* scriptContext);
         static Var TriggerPromiseReactions(JavascriptPromiseReactionList* reactions, bool isReject, Var resolution, ScriptContext* scriptContext);
         static void EnqueuePromiseReactionTask(JavascriptPromiseReaction* reaction, Var resolution, ScriptContext* scriptContext);
