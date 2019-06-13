@@ -582,12 +582,15 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+<!--
+Re-enable after fixing ScopeInfo::SaveEnclosingScopeInfo to handle named function expressions
   <test>
     <default>
       <files>bug_OS18926499.js</files>
       <compile-flags>-force:deferparse</compile-flags>
     </default>
   </test>
+-->
   <test>
     <default>
       <files>Bug19767482.js</files>

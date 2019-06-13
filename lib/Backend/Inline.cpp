@@ -69,7 +69,7 @@ Inline::Optimize(Func *func, __in_ecount_opt(callerArgOutCount) IR::Instr *calle
 
                     if (instr->AsLabelInstr()->m_isForInExit)
                     {
-                        Assert(this->currentForInDepth != 0);
+                        AssertOrFailFast(this->currentForInDepth != 0);
                         this->currentForInDepth--;
                     }
                 }
@@ -2081,15 +2081,13 @@ Inline::InlineBuiltInFunction(
     IR::Instr *inlineBuiltInEndInstr = nullptr;
     if (inlineCallOpCode == Js::OpCode::InlineFunctionApply)
     {
-        inlineBuiltInEndInstr = InlineApply(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, inlineCallArgCount - (usesThisArgument ? 1 : 0));
-        return inlineBuiltInEndInstr->m_next;
+        return InlineApply(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, inlineCallArgCount - (usesThisArgument ? 1 : 0));
     }
 
     if (inlineCallOpCode == Js::OpCode::InlineFunctionCall || inlineCallOpCode == Js::OpCode::InlineCallInstanceFunction)
     {
         const bool isCallInstanceFunction = (inlineCallOpCode == Js::OpCode::InlineCallInstanceFunction);
-        inlineBuiltInEndInstr = InlineCall(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, isCallInstanceFunction);
-        return inlineBuiltInEndInstr->m_next;
+        return InlineCall(callInstr, inlineeData, inlinerData, symCallerThis, pIsInlined, profileId, recursiveInlineDepth, isCallInstanceFunction);
     }
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)
@@ -2486,9 +2484,10 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
     // We may still decide not to inline.
     *pIsInlined = false;
 
+    IR::Instr* instrNext = callInstr->m_next;
     if (argsCount == 0)
     {
-        return callInstr;
+        return instrNext;
     }
 
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(applyData->GetLocalFunctionId());
@@ -2530,7 +2529,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
         if (PHASE_OFF1(Js::InlineApplyWithoutArrayArgPhase))
         {
             *pIsInlined = false;
-            return callInstr;
+            return instrNext;
         }
         *pIsInlined = true;
 
@@ -2559,7 +2558,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
         {
             INLINE_TESTTRACE(_u("INLINING: Skip Inline: Supporting inlining func.apply(this, array) or func.apply(this, arguments) with formals in the parent function only when func is a built-in inlinable as apply target \tCaller: %s (%s)\n"),
                 inlinerData->GetBody()->GetDisplayName(), inlinerData->GetDebugNumberSet(debugStringBuffer));
-            return callInstr;
+            return instrNext;
         }
     }
 
@@ -2575,6 +2574,7 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
 
 IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::Instr * argsObjectArgInstr, const FunctionJITTimeInfo * funcInfo)
 {
+    IR::Instr* instrNext = callInstr->m_next;
     IR::Instr* ldHeapArguments = argsObjectArgInstr->GetSrc1()->GetStackSym()->GetInstrDef();
     argsObjectArgInstr->ReplaceSrc1(ldHeapArguments->GetDst());
 
@@ -2665,7 +2665,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
 
     argout = IR::Instr::New(Js::OpCode::ArgOut_A_Dynamic, linkOpnd2, explicitThisArgOut->GetSrc1(), linkOpnd1, callInstr->m_func); // push explicit this as this pointer
     callInstr->InsertBefore(argout);
-    return callInstr;
+    return instrNext;
 }
 
 /*
@@ -2673,6 +2673,7 @@ This method will only do CallDirect style inlining of built-in targets. No scrip
 */
 IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, const FunctionJITTimeInfo * applyInfo, const FunctionJITTimeInfo * builtInInfo, bool * pIsInlined)
 {
+    IR::Instr * instrNext = callInstr->m_next;
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(builtInInfo->GetLocalFunctionId());
     IR::HelperCallOpnd * helperCallOpnd = nullptr;
     switch (builtInId)
@@ -2686,7 +2687,7 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
         break;
 
     default:
-        return callInstr;
+        return instrNext;
     }
 
     IR::Instr * implicitThisArgOut = nullptr;
@@ -2706,7 +2707,7 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     IR::Instr* applyTargetLdInstr = nullptr;
     if (!TryGetCallApplyAndTargetLdInstrs(callInstr, &applyLdInstr, &applyTargetLdInstr))
     {
-        return callInstr;
+        return instrNext;
     }
 
     *pIsInlined = true;
@@ -2757,11 +2758,12 @@ IR::Instr * Inline::InlineApplyBuiltInTargetWithArray(IR::Instr * callInstr, con
     callInstr->ReplaceSrc1(helperCallOpnd);
     callInstr->ReplaceSrc2(argOut->GetDst());
 
-    return callInstr;
+    return instrNext;
 }
 
 IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const FunctionJITTimeInfo * applyInfo, const FunctionJITTimeInfo * applyTargetInfo)
 {
+    IR::Instr * instrNext = callInstr->m_next;
     IR::Instr * implicitThisArgOut = nullptr;
     IR::Instr * explicitThisArgOut = nullptr;
     IR::Instr * dummyInstr = nullptr;
@@ -2801,12 +2803,12 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
 
     if (!callTargetStackSym->IsSingleDef())
     {
-        return callInstr;
+        return instrNext;
     }
 
     if (!applyTargetInfo)
     {
-        return callInstr;
+        return instrNext;
     }
 
     bool safeThis = false;
@@ -2818,7 +2820,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
         callInstr->InsertBefore(bytecodeUses);
     }
 
-    return callInstr;
+    return instrNext;
 }
 
 void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount)
@@ -3233,7 +3235,7 @@ Inline::InlineCallApplyTarget_Shared(
     // instrNext
     IR::Instr* instrNext = callInstr->m_next;
 
-    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, funcObjCheckInsertInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget)->m_prev;
+    return InlineFunctionCommon(callInstr, originalCallTargetOpndIsJITOpt, originalCallTargetStackSym, inlineeData, inlinee, instrNext, returnValueOpnd, funcObjCheckInsertInstr, nullptr, recursiveInlineDepth, safeThis, isApplyTarget);
 }
 
 IR::Opnd *
@@ -3247,6 +3249,7 @@ Inline::ConvertToInlineBuiltInArgOut(IR::Instr * argInstr)
 IR::Instr*
 Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, const FunctionJITTimeInfo * inlinerData, const StackSym *symCallerThis, bool* pIsInlined, uint callSiteId, uint recursiveInlineDepth, bool isCallInstanceFunction)
 {
+    IR::Instr* instrNext = callInstr->m_next;
     Func *func = callInstr->m_func;
     Js::BuiltinFunction builtInId = Js::JavascriptLibrary::GetBuiltInForFuncInfo(funcInfo->GetLocalFunctionId());
 
@@ -3254,7 +3257,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     if (PHASE_OFF(Js::InlineCallPhase, this->topFunc) || PHASE_OFF(Js::InlineCallPhase, func)
         || !this->topFunc->GetJITFunctionBody()->GetInParamsCount())
     {
-        return callInstr;
+        return instrNext;
     }
 
     // Convert all the current ARG_OUT to  ArgOut_A_InlineBuiltIn
@@ -3263,7 +3266,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     if (!GetDefInstr(linkOpnd)->GetSrc2()->IsSymOpnd())
     {
         // There is no benefit of inlining.call() with no arguments.
-        return callInstr;
+        return instrNext;
     }
 
     *pIsInlined = true;
@@ -3345,7 +3348,7 @@ Inline::InlineCall(IR::Instr *callInstr, const FunctionJITTimeInfo *funcInfo, co
     }
     clonedArgout->SetSrc2(startCall->GetDst());
     Assert(GetDefInstr(orgLinkOpnd) == functionInstr);
-    return callInstr;
+    return instrNext;
 }
 
 bool

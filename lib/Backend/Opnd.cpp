@@ -2520,6 +2520,7 @@ IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, Func *func, bool do
     indirOpnd->m_type = type;
     indirOpnd->SetIsJITOptimizedReg(false);
 
+    indirOpnd->m_conversionAllowed = false;
 
     indirOpnd->m_kind = OpndKindIndir;
 
@@ -2578,6 +2579,7 @@ IndirOpnd::CopyInternal(Func *func)
     newOpnd->canStoreTemp = this->canStoreTemp;
     newOpnd->SetOffset(m_offset, m_dontEncode);
     newOpnd->SetIsJITOptimizedReg(this->GetIsJITOptimizedReg());
+    newOpnd->m_conversionAllowed = this->m_conversionAllowed;
 
 #if DBG_DUMP
     newOpnd->m_addrKind = m_addrKind;
