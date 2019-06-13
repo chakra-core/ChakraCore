@@ -7045,12 +7045,12 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
         {
-            PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr();
+            PSCRIPTCONTEXT_HANDLE remoteScriptContext = this->scriptContext->GetRemoteScriptAddr(false);
             if (remoteScriptContext)
             {
                 HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(remoteScriptContext, val);
-            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
-        }
+                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+            }
         }
 #endif
     }
