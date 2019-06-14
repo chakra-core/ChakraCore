@@ -159,32 +159,15 @@ HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecord
     return E_INVALIDARG;
 }
 
-HRESULT ChakraCoreHostScriptContext::HostGetImportMetaProperties(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject)
+HRESULT ChakraCoreHostScriptContext::InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject)
 {
-    if (hostGetImportMetaPropertiesCallback == nullptr)
+    if (initializeImportMetaCallback == nullptr)
     {
         return E_INVALIDARG;
     }
     {
         AUTO_NO_EXCEPTION_REGION;
-        JsErrorCode errorCode = hostGetImportMetaPropertiesCallback(referencingModule, importMetaObject);
-        if (errorCode == JsNoError)
-        {
-            return NOERROR;
-        }
-    }
-    return E_INVALIDARG;
-}
-
-HRESULT ChakraCoreHostScriptContext::HostFinalizeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject)
-{
-    if (hostFinalizeImportMetaCallback == nullptr)
-    {
-        return E_INVALIDARG;
-    }
-    {
-        AUTO_NO_EXCEPTION_REGION;
-        JsErrorCode errorCode = hostFinalizeImportMetaCallback(referencingModule, importMetaObject);
+        JsErrorCode errorCode = initializeImportMetaCallback(referencingModule, importMetaObject);
         if (errorCode == JsNoError)
         {
             return NOERROR;

@@ -1341,16 +1341,10 @@ namespace Js
 
         this->importMetaObject = library->CreateObject(library->GetNull());
 
-        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("HostGetImportMetaProperties %s\n"), this->GetSpecifierSz());
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("InitializeImportMeta %s\n"), this->GetSpecifierSz());
         LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
         {
-            scriptContext->GetHostScriptContext()->HostGetImportMetaProperties(this, this->importMetaObject);
-        });
-
-        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("HostFinalizeImportMeta %s\n"), this->GetSpecifierSz());
-        LEAVE_SCRIPT_IF_ACTIVE(scriptContext,
-        {
-            scriptContext->GetHostScriptContext()->HostFinalizeImportMeta(this, this->importMetaObject);
+            scriptContext->GetHostScriptContext()->InitializeImportMeta(this, this->importMetaObject);
         });
 
         return this->importMetaObject;

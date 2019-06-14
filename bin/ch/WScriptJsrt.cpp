@@ -614,16 +614,11 @@ JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleReco
 
             if (errorCode == JsNoError)
             {
-                errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostFinalizeImportMetaCallback, (void*)WScriptJsrt::HostFinalizeImportMetaCallback);
+                errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_InitializeImportMetaCallback, (void*)WScriptJsrt::InitializeImportMetaCallback);
 
-                if (errorCode == JsNoError)
+                if (errorCode == JsNoError && moduleRecord != nullptr)
                 {
-                    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostGetImportMetaPropertiesCallback, (void*)WScriptJsrt::HostGetImportMetaPropertiesCallback);
-
-                    if (errorCode == JsNoError && moduleRecord != nullptr)
-                    {
-                        errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
-                    }
+                    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
                 }
             }
         }
@@ -2169,12 +2164,7 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
     return JsNoError;
 }
 
-JsErrorCode __stdcall WScriptJsrt::HostFinalizeImportMetaCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar)
-{
-    return JsNoError;
-}
-
-JsErrorCode __stdcall WScriptJsrt::HostGetImportMetaPropertiesCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar)
+JsErrorCode __stdcall WScriptJsrt::InitializeImportMetaCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar)
 {
     if (importMetaVar != nullptr)
     {

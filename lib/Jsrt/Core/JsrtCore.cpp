@@ -159,8 +159,7 @@ JsSetModuleHostInfo(
         if (moduleHostInfo != JsModuleHostInfo_FetchImportedModuleCallback &&
             moduleHostInfo != JsModuleHostInfo_FetchImportedModuleFromScriptCallback &&
             moduleHostInfo != JsModuleHostInfo_NotifyModuleReadyCallback &&
-            moduleHostInfo != JsModuleHostInfo_HostFinalizeImportMetaCallback &&
-            moduleHostInfo != JsModuleHostInfo_HostGetImportMetaPropertiesCallback)
+            moduleHostInfo != JsModuleHostInfo_InitializeImportMetaCallback)
         {
             return JsErrorInvalidArgument;
         }
@@ -193,11 +192,8 @@ JsSetModuleHostInfo(
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
-        case JsModuleHostInfo_HostFinalizeImportMetaCallback:
-            currentContext->GetHostScriptContext()->SetHostFinalizeImportMetaCallback(reinterpret_cast<HostFinalizeImportMetaCallback>(hostInfo));
-            break;
-        case JsModuleHostInfo_HostGetImportMetaPropertiesCallback:
-            currentContext->GetHostScriptContext()->SetHostGetImportMetaPropertiesCallback(reinterpret_cast<HostGetImportMetaPropertiesCallback>(hostInfo));
+        case JsModuleHostInfo_InitializeImportMetaCallback:
+            currentContext->GetHostScriptContext()->SetInitializeImportMetaCallback(reinterpret_cast<InitializeImportMetaCallback>(hostInfo));
             break;
         case JsModuleHostInfo_Url:
             moduleRecord->SetModuleUrl(hostInfo);
@@ -246,11 +242,8 @@ JsGetModuleHostInfo(
         case JsModuleHostInfo_NotifyModuleReadyCallback:
             *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback());
             break;
-        case JsModuleHostInfo_HostFinalizeImportMetaCallback:
-            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetHostFinalizeImportMetaCallback());
-            break;
-        case JsModuleHostInfo_HostGetImportMetaPropertiesCallback:
-            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetHostGetImportMetaPropertiesCallback());
+        case JsModuleHostInfo_InitializeImportMetaCallback:
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetInitializeImportMetaCallback());
             break;
         case JsModuleHostInfo_Url:
             *hostInfo = reinterpret_cast<void*>(moduleRecord->GetModuleUrl());
