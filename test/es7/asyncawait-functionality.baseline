@@ -40,6 +40,8 @@ Test #32 - Success initial value of the body symbol is the same as the default p
 Executing test #33 - `then` is not called when awaiting a non-promise or native promise
 Executing test #34 - `then` is called when awaiting a promise subclass
 Executing test #35 - `then` is called when awaiting a non-promise thenable
+Executing test #36 - The constructor property is only accessed once by await
+Test #36 - constructor property accessed
 
 Completion Results:
 Test #1 - Success lambda expression with no argument called with result = 'true'
