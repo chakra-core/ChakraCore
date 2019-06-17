@@ -937,6 +937,8 @@ public:
     ParseNodePtr pnodeLval;
     ParseNodeBlock * pnodeBlock;
     Js::RegSlot itemLocation;
+    Js::RegSlot shouldCallReturnFunctionLocation;
+    Js::RegSlot shouldCallReturnFunctionLocationFinally;
 
     DISABLE_SELF_CAST(ParseNodeForInOrForOf);
 };
