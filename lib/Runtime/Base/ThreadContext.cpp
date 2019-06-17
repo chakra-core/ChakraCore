@@ -2005,6 +2005,13 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
         &m_jitThunkStartAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
+    // Initialize mutable ThreadContext state if needed
+    Js::TypeId wellKnownType = this->wellKnownHostTypeIds[WellKnownHostType_HTMLAllCollection];
+    if (m_remoteThreadContextInfo && wellKnownType != Js::TypeIds_Undefined)
+    {
+        hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(m_remoteThreadContextInfo, wellKnownType);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+    }
     return m_remoteThreadContextInfo != nullptr;
 #endif
 }

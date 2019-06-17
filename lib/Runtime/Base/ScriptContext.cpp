@@ -5412,10 +5412,35 @@ ScriptContext::GetJitFuncRangeCache()
         allowPrereserveAlloc = false;
 #endif
         // The EnsureJITThreadContext() call could fail if the JIT Server process has died. In such cases, we should not try to do anything further in the client process.
-        if (this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc))
+        if (!this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc))
         {
-            HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+            return;
+        }
+
+        HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+
+        if (!m_remoteScriptContextAddr)
+        {
+            return;
+        }
+
+        // Initialize mutable ScriptContext state if needed
+        if (this->IsPRNGSeeded())
+        {
+            hr = JITManager::GetJITManager()->SetIsPRNGSeeded(m_remoteScriptContextAddr, TRUE);
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        }
+
+        if (this->GetLibrary()->GetModuleRecordList())
+        {
+            this->GetLibrary()->GetModuleRecordList()->Map([this](int start, SourceTextModuleRecord* moduleRecord) {
+                HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
+                    m_remoteScriptContextAddr,
+                    moduleRecord->GetModuleId(),
+                    (intptr_t)moduleRecord->GetLocalExportSlots());
+                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+            });
         }
     }
 #endif

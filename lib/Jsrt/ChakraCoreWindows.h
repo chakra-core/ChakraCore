@@ -13,10 +13,24 @@
 #include <rpc.h>
 
 /// <summary>
-///     Enables out-of-process JIT by connecting to a Chakra JIT process that was initialized by calling JsInitializeJITServer
+///     Globally enables out-of-process JIT.
 /// </summary>
 /// <remarks>
 ///     Should be called before JS code is executed.
+///     Code in all runtimes will run in interpreter until JsConnectJITProcess is called.
+/// </remarks>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsEnableOOPJIT();
+
+/// <summary>
+///     Globally enables out-of-process JIT and connects to a Chakra JIT process that was initialized
+///     by calling JsInitializeJITServer
+/// </summary>
+/// <remarks>
+///     Out-of-process JIT should be enabled before JS code is executed.
 /// </remarks>
 /// <param name="processHandle">Handle to the JIT process</param>
 /// <param name="serverSecurityDescriptor">Optional pointer to an RPC SECURITY_DESCRIPTOR structure</param>

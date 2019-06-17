@@ -1510,15 +1510,29 @@ JsDiscardBackgroundParse_Experimental(
 
 #ifdef _WIN32
 CHAKRA_API
+JsEnableOOPJIT()
+{
+#ifdef ENABLE_OOP_NATIVE_CODEGEN
+    JITManager::GetJITManager()->EnableOOPJIT();
+    return JsNoError;
+#else
+    return JsErrorNotImplemented;
+#endif
+}
+
+CHAKRA_API
 JsConnectJITProcess(_In_ HANDLE processHandle, _In_opt_ void* serverSecurityDescriptor, _In_ UUID connectionId)
 {
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     JITManager::GetJITManager()->EnableOOPJIT();
     ThreadContext::SetJITConnectionInfo(processHandle, serverSecurityDescriptor, connectionId);
-#endif
     return JsNoError;
+#else
+    return JsErrorNotImplemented;
+#endif
 }
 #endif
+
 CHAKRA_API
 JsGetArrayBufferFreeFunction(
     _In_ JsValueRef arrayBuffer,

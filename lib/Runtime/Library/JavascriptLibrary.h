@@ -1198,6 +1198,7 @@ namespace Js
         void SetFakeGlobalFuncForUndefer(FunctionBody* functionBody) { this->fakeGlobalFuncForUndefer = functionBody; }
 
         ModuleRecordList* EnsureModuleRecordList();
+        ModuleRecordList* GetModuleRecordList() const { return this->moduleRecordList; }
         SourceTextModuleRecord* GetModuleRecord(uint moduleId);
 
     private:
