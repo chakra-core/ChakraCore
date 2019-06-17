@@ -9,6 +9,7 @@
 
 // TODO: Change this generic fatal error to the descriptive one.
 #define AssertAndFailFast(x) if (!(x)) { Assert(x); Js::Throw::FatalInternalError(); }
+#define AssertMsgAndFailFast(x, m) if (!(x)) { AssertMsg((x), m); Js::Throw::FatalInternalError(); }
 
 using namespace Js;
 
@@ -1749,6 +1750,7 @@ using namespace Js;
                     ival = ((SparseArraySegment<int32>*)seg)->elements[i /*+ seg->length*/];
                     if (ival == JavascriptNativeIntArray::MissingItem)
                     {
+                        AssertMsgAndFailFast(newSeg != intArray->head || !intArray->HasNoMissingValues(), "Unexpected missing item during array conversion");
                         continue;
                     }
                     newSeg->elements[i] = (double)ival;
@@ -2016,6 +2018,7 @@ using namespace Js;
                     ival = ((SparseArraySegment<int32>*)seg)->elements[i];
                     if (ival == JavascriptNativeIntArray::MissingItem)
                     {
+                        AssertMsgAndFailFast(seg != intArray->head || !intArray->HasNoMissingValues(), "Unexpected missing item during array conversion");
                         continue;
                     }
                     newSeg->elements[i] = JavascriptNumber::ToVar(ival, scriptContext);
@@ -2050,6 +2053,7 @@ using namespace Js;
                     ival = ((SparseArraySegment<int32>*)seg)->elements[i];
                     if (ival == JavascriptNativeIntArray::MissingItem)
                     {
+                        AssertMsgAndFailFast(seg != intArray->head || !intArray->HasNoMissingValues(), "Unexpected missing item during array conversion");
                         ((SparseArraySegment<Var>*)seg)->elements[i] = (Var)JavascriptArray::MissingItem;
                     }
                     else
@@ -2229,6 +2233,7 @@ using namespace Js;
             {
                 if (SparseArraySegment<double>::IsMissingItem(&((SparseArraySegment<double>*)seg)->elements[i]))
                 {
+                    AssertMsgAndFailFast(seg != fArray->head || !fArray->HasNoMissingValues(), "Unexpected missing item during conversion");
                     if (seg == newSeg)
                     {
                         newSeg->elements[i] = (Var)JavascriptArray::MissingItem;
