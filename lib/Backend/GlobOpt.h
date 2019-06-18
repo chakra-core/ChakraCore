@@ -721,6 +721,7 @@ private:
 private:
     void                    CaptureNoImplicitCallUses(IR::Opnd *opnd, const bool usesNoMissingValuesInfo, IR::Instr *const includeCurrentInstr = nullptr);
     void                    InsertNoImplicitCallUses(IR::Instr *const instr);
+    void                    ProcessNoImplicitCallArrayUses(IR::RegOpnd * baseOpnd, IR::ArrayRegOpnd * baseArrayOpnd, IR::Instr * instr, bool isLikelyJsArray, bool useNoMissingValues);
     void                    PrepareLoopArrayCheckHoist();
 
 public:

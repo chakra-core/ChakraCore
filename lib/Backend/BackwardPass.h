@@ -191,7 +191,7 @@ private:
     BVSparse<JitArenaAllocator> * intOverflowDoesNotMatterInRangeBySymId;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeInt;
     BVSparse<JitArenaAllocator> * candidateSymsRequiredToBeLossyInt;
-    StackSym * considerSymAsRealUseInNoImplicitCallUses;
+    BVSparse<JitArenaAllocator> * considerSymsAsRealUsesInNoImplicitCallUses;
     bool intOverflowCurrentlyMattersInRange;
     bool isCollectionPass;
     enum class CollectionPassSubPhase
