@@ -26514,8 +26514,6 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
     case Js::OpCode::TryCatch:
     case Js::OpCode::TryFinally:
     case Js::OpCode::Catch:
-    // case Js::OpCode::GeneratorResumeJumpTable:
-
     case Js::OpCode::Break:
 
 #ifdef _M_X64
