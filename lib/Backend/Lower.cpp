@@ -29144,7 +29144,15 @@ void Lowerer::LowerGeneratorHelper::InsertNullOutGeneratorFrameInEpilogue(IR::La
     this->func->SetArgOffset(symSrc, LowererMD::GetFormalParamOffset() * MachPtr);
     IR::SymOpnd* srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, this->func);
     IR::RegOpnd* dstOpnd = IR::RegOpnd::New(TyMachReg, this->func);
-    dstOpnd->SetReg(RegRSI); // callee-save register
+
+    // callee-save register, we would replace this register in the epilogue anyway
+    // so use it as a temp register
+#if defined(_M_X64)
+    dstOpnd->SetReg(RegRSI);
+#elif defined(_M_IX86)
+    dstOpnd->SetReg(RegESI);
+#endif
+
     InsertMove(dstOpnd, srcOpnd, insertionPoint);
 
     IR::IndirOpnd* indirOpnd = IR::IndirOpnd::New(dstOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, this->func);
