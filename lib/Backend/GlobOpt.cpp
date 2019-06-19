@@ -4707,7 +4707,7 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
 
         // Due to fall through and the fact that Ld_A only takes one source,
         // free the other source here.
-        if (instr->GetSrc2())
+        if (instr->GetSrc2() && !(this->IsLoopPrePass() || src1ValueInfo == nullptr || !src1ValueInfo->IsString()))
         {
             instr->FreeSrc2();
         }
