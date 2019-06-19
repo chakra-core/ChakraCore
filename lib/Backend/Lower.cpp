@@ -29181,22 +29181,20 @@ Lowerer::LowerGeneratorHelper::InsertBailOutForElidedYield()
     // Insert the bailoutnosave label somewhere along with a call to BailOutNoSave helper
     if (bailOutNoSaveLabel != nullptr)
     {
-        IR::Instr* exitPrevInstr = this->GetEpilogueForReturnStatements()->m_prev;
-        IR::LabelInstr* exitTargetInstr = this->GetEpilogueForBailOut();
-
         bailOutNoSaveLabel->m_hasNonBranchRef = true;
         bailOutNoSaveLabel->isOpHelper = true;
 
+        IR::Instr* exitPrevInstr = this->GetEpilogueForReturnStatements()->m_prev;
         IR::Instr* bailOutCall = IR::Instr::New(Js::OpCode::Call, this->func);
+        IR::Instr* branchToEpilogue = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, this->GetEpilogueForBailOut(), this->func);
 
-        exitPrevInstr->InsertAfter(bailOutCall);
-        exitPrevInstr->InsertAfter(bailOutNoSaveLabel);
+        exitPrevInstr->InsertBefore(bailOutNoSaveLabel);
+        exitPrevInstr->InsertBefore(bailOutCall);
+        exitPrevInstr->InsertBefore(branchToEpilogue);
 
         IR::RegOpnd* frameRegOpnd = IR::RegOpnd::New(nullptr, LowererMD::GetRegFramePointer(), TyMachPtr, this->func);
-
         this->lowererMD.LoadHelperArgument(bailOutCall, frameRegOpnd);
-        IR::Instr* call = this->lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
-        call->InsertAfter(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, exitTargetInstr, this->func));
+        this->lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
 
         this->func->m_bailOutNoSaveLabel = bailOutNoSaveLabel;
         LABELNAMESET(bailOutNoSaveLabel, "GeneratorBailOutForElidedYield");
