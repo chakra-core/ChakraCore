@@ -256,6 +256,7 @@ Instr::EndsBasicBlock() const
     return
         this->IsBranchInstr() ||
         this->IsExitInstr() ||
+        this->m_opcode == Js::OpCode::Yield ||
         this->m_opcode == Js::OpCode::Ret ||
         this->m_opcode == Js::OpCode::Throw ||
         this->m_opcode == Js::OpCode::RuntimeTypeError ||
@@ -726,6 +727,13 @@ inline BOOL
 LabelInstr::IsUnreferenced(void) const
 {
     return labelRefs.Empty() && !m_hasNonBranchRef;
+}
+
+inline BOOL
+LabelInstr::IsGeneratorEpilogueLabel(void) const
+{
+    return this->m_opcode == Js::OpCode::GeneratorEpilogueNoFrameNullOut ||
+            this->m_opcode == Js::OpCode::GeneratorEpilogueFrameNullOut;
 }
 
 inline void

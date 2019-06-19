@@ -265,8 +265,14 @@ enum VTableValue {
     VtableJavascriptNativeIntArray,
     VtableJavascriptRegExp,
     VtableScriptFunction,
+
+    // Generator/Async functions
     VtableJavascriptGeneratorFunction,
+    VtableVirtualJavascriptGeneratorFunctionWithHomeObj,
+    VtableVirtualJavascriptGeneratorFunctionWithComputedName,
+    VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName,
     VtableJavascriptAsyncFunction,
+
     VtableStackScriptFunction,
     VtableScriptFunctionWithInlineCacheAndHomeObj,
     VtableScriptFunctionWithInlineCacheHomeObjAndComputedName,

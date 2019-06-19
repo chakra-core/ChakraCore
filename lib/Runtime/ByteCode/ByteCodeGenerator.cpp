@@ -5177,6 +5177,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
     case knopYieldStar:
+        // Reserve a local for our YieldStar loop so that the backend doesn't complain
+        pnode->location = byteCodeGenerator->NextVarRegister();
         byteCodeGenerator->AssignNullConstRegister();
         byteCodeGenerator->AssignUndefinedConstRegister();
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);

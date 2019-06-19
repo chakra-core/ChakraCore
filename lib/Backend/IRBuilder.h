@@ -84,6 +84,7 @@ public:
 #ifdef BYTECODE_BRANCH_ISLAND
         , longBranchMap(nullptr)
 #endif
+        , m_generatorJumpTable(GeneratorJumpTable(func, this))
     {
         auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
@@ -121,7 +122,6 @@ private:
     uint                ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset);
 #endif
     BranchReloc *       CreateRelocRecord(IR::BranchInstr * branchInstr, uint32 offset, uint32 targetOffset);
-    void                BuildGeneratorPreamble();
     void                LoadNativeCodeData();
     void                BuildConstantLoads();
     void                BuildImplicitArgIns();    
@@ -281,7 +281,7 @@ private:
 
     BOOL                RegIsConstant(Js::RegSlot reg)
     {
-        return reg > 0 && reg < m_func->GetJITFunctionBody()->GetConstCount();
+        return this->m_func->GetJITFunctionBody()->RegIsConstant(reg);
     }
 
     bool                IsParamScopeDone() const { return m_paramScopeDone; }
@@ -380,4 +380,35 @@ private:
     LongBranchMap * longBranchMap;
     static IR::Instr * const VirtualLongBranchInstr;
 #endif
+
+    class GeneratorJumpTable {
+        Func* const m_func;
+        IRBuilder* const m_irBuilder;
+
+        // for-in enumerators are allocated on the heap for jit'd loop body
+        // and on the stack for all other cases (the interpreter frame will
+        // reuses them when bailing out). But because we have the concept of
+        // "bailing in" for generator, reusing enumerators allocated on the stack
+        // would not work. So we have to allocate them on the generator's interpreter
+        // frame instead. This operand is loaded as part of the jump table, before we
+        // jump to any of the resume point.
+        IR::RegOpnd* m_forInEnumeratorArrayOpnd = nullptr;
+
+        IR::RegOpnd* m_generatorFrameOpnd = nullptr;
+
+        // This label is used to insert any initialization code that might be needed
+        // when bailing in and before jumping to any of the resume points.
+        // As of now, we only need to load the operand for for-in enumerator.
+        IR::LabelInstr* m_initLabel = nullptr;
+
+        IR::RegOpnd* CreateForInEnumeratorArrayOpnd();
+
+    public:
+        GeneratorJumpTable(Func* func, IRBuilder* irBuilder);
+        IR::Instr* BuildJumpTable();
+        IR::LabelInstr* GetInitLabel() const;
+        IR::RegOpnd* EnsureForInEnumeratorArrayOpnd();
+    };
+
+    GeneratorJumpTable m_generatorJumpTable;
 };

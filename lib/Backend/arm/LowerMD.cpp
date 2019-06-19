@@ -4634,11 +4634,11 @@ LowererMD::GenerateStFldFromLocalInlineCache(
 }
 
 IR::Opnd *
-LowererMD::CreateStackArgumentsSlotOpnd()
+LowererMD::CreateStackArgumentsSlotOpnd(Func *func)
 {
     // Save the newly-created args object to its dedicated stack slot.
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, m_func),
-            -MachArgsSlotOffset, TyMachPtr, m_func);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(nullptr, FRAME_REG , TyMachReg, func),
+            -MachArgsSlotOffset, TyMachPtr, func);
 
     return indirOpnd;
 }

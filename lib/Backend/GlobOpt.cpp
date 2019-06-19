@@ -4704,6 +4704,14 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
     case Js::OpCode::Coerce_Str:
         AssertMsg(instr->GetDst()->GetValueType().IsString(),
             "Creator of this instruction should have set the type");
+
+        // Due to fall through and the fact that Ld_A only takes one source,
+        // free the other source here.
+        if (instr->GetSrc2())
+        {
+            instr->FreeSrc2();
+        }
+
         // fall-through
     case Js::OpCode::Coerce_StrOrRegex:
         // We don't set the ValueType of src1 for Coerce_StrOrRegex, hence skip the ASSERT

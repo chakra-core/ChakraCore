@@ -118,6 +118,8 @@ private:
     bool DoByteCodeUpwardExposedUsed() const;
     bool DoCaptureByteCodeUpwardExposedUsed() const;
     void DoSetDead(IR::Opnd * opnd, bool isDead) const;
+
+    bool SatisfyMarkTempObjectsConditions() const;
     bool DoMarkTempObjects() const;
     bool DoMarkTempNumbers() const;
     bool DoMarkTempNumbersOnTempObjects() const;

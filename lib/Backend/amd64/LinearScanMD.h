@@ -37,7 +37,7 @@ public:
     void        GenerateBailOut(IR::Instr * instr,
                                 __in_ecount(registerSaveSymsCount) StackSym ** registerSaveSyms,
                                 uint registerSaveSymsCount);
-    IR::Instr  *GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, BailOutInfo * bailOutInfo);
+    IR::Instr* GenerateBailInForGeneratorYield(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);
 
 private:
     static void SaveAllRegisters(BailOutRecord *const bailOutRecord);
@@ -57,4 +57,83 @@ public:
     static const uint RegisterSaveSlotCount = RegNumCount + XMM_REGCOUNT;
 private:
     void        InsertOpHelperSpillsAndRestores(const OpHelperBlock& opHelperBlock);
+
+    class GeneratorBailIn {
+
+        // We need to rely on 2 registers `rax` and `rcx` to generate the bail-in code.
+        // At this point, since `rax` already has the address of the generator's interpreter frame,
+        // we can easily get the symbols' values through something like: mov dst [rax + appropriate offset]
+        //
+        // There are 4 types of symbols that we have to deal with:
+        //  - symbols that are currently on the stack at this point. We need 2 instructions:
+        //     - Load the value to `rcx`: mov rcx [rax + offset]
+        //     - Finally load the value to its stack slot: mov [rbp + stack offset] rcx
+        //  - symbol that is in rax
+        //  - symbol that is in rcx
+        //  - symbols that are in the other registers. We only need 1 instruction:
+        //     - mov reg [rax + offset]
+        //
+        // Since restoring symbols on the stack might mess up values that will be in rax/rcx,
+        // and we want to maintain the invariant that rax has to hold the value of the interpreter
+        // frame, we need to restore the symbols in the following order:
+        //  - symbols in stack
+        //  - symbols in registers
+        //  - symbol in rax
+        //
+        // The following 3 instructions indicate the insertion points for the above cases:
+        struct BailInInsertionPoint
+        {
+            IR::Instr* raxRestoreInstr = nullptr;
+            IR::Instr* instrInsertStackSym = nullptr;
+            IR::Instr* instrInsertRegSym = nullptr;
+        };
+
+        // There are symbols that we don't need to restore such as constant values,
+        // ScriptFunction's Environment (through LdEnv) and the address pointing to for-in enumerator
+        // on the interpreter frame because their values are already loaded before (or as part) of the
+        // generator resume jump table. In such cases, they could already be in either rax or rcx.
+        // So we would need to save their values (and restore afterwards) before generating the bail-in code.
+        struct SaveInitializedRegister
+        {
+            bool rax = false;
+            bool rcx = false;
+        };
+
+        Func* const func;
+        LinearScanMD* const linearScanMD;
+        const JITTimeFunctionBody* const jitFnBody;
+        BVSparse<JitArenaAllocator> initializedRegs;
+        IR::RegOpnd* const raxRegOpnd;
+        IR::RegOpnd* const rcxRegOpnd;
+
+        bool NeedsReloadingValueWhenBailIn(StackSym* sym) const;
+        uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
+        IR::SymOpnd* CreateGeneratorObjectOpnd() const;
+
+        void InsertSaveAndRestore(IR::Instr* start, IR::Instr* end, IR::RegOpnd* reg);
+
+        void InsertRestoreRegSymbol(
+            StackSym* stackSym,
+            IR::Opnd* srcOpnd,
+            BailInInsertionPoint& insertionPoint
+        );
+
+        void InsertRestoreStackSymbol(
+            StackSym* stackSym,
+            IR::Opnd* srcOpnd,
+            BailInInsertionPoint& insertionPoint
+        );
+
+        void InsertRestoreSymbols(
+            BVSparse<JitArenaAllocator>* symbols,
+            BailInInsertionPoint& insertionPoint,
+            SaveInitializedRegister& saveInitializedReg
+        );
+
+    public:
+        GeneratorBailIn(Func* func, LinearScanMD* linearScanMD);
+        IR::Instr* GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);
+    };
+
+    GeneratorBailIn bailIn;
 };

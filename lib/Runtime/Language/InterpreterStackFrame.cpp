@@ -1021,14 +1021,28 @@ namespace Js
     }
 
     const int k_stackFrameVarCount = (sizeof(InterpreterStackFrame) + sizeof(Var) - 1) / sizeof(Var);
-    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool bailedOut, bool inlinee)
-        : function(function), inParams(args.Values), inSlotsCount(args.Info.Count), executeFunction(function->GetFunctionBody()), callFlags(args.Info.Flags), bailedOutOfInlinee(inlinee), bailedOut(bailedOut)
+    InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Js::Arguments& args, bool bailedOut, bool inlinee, bool isGeneratorFrame)
+        : function(function),
+          inParams(args.Values),
+          inSlotsCount(args.Info.Count),
+          executeFunction(function->GetFunctionBody()),
+          callFlags(args.Info.Flags),
+          bailedOutOfInlinee(inlinee),
+          bailedOut(bailedOut),
+          isGeneratorFrame(isGeneratorFrame)
     {
         SetupInternal();
     }
 
     InterpreterStackFrame::Setup::Setup(Js::ScriptFunction * function, Var * inParams, int inSlotsCount)
-        : function(function), inParams(inParams), inSlotsCount(inSlotsCount), executeFunction(function->GetFunctionBody()), callFlags(CallFlags_None), bailedOutOfInlinee(false), bailedOut(false)
+        : function(function),
+          inParams(inParams),
+          inSlotsCount(inSlotsCount),
+          executeFunction(function->GetFunctionBody()),
+          callFlags(CallFlags_None),
+          bailedOutOfInlinee(false),
+          bailedOut(false),
+          isGeneratorFrame(false)
     {
         SetupInternal();
     }
@@ -1059,8 +1073,9 @@ namespace Js
             extraVarCount += (sizeof(ImplicitCallFlags) * this->executeFunction->GetLoopCount() + sizeof(Var) - 1) / sizeof(Var);
         }
 #endif
-        // If we bailed out, we will use the JIT frame's for..in enumerators
-        uint forInVarCount = bailedOut ? 0 : (this->executeFunction->GetForInLoopDepth() * (sizeof(Js::ForInObjectEnumerator) / sizeof(Var)));
+        // If we bailed out, we will use the JIT frame's for..in enumerators.
+        // But for generators, we will allocate space for them instead.
+        uint forInVarCount = (bailedOut && !isGeneratorFrame) ? 0 : (this->executeFunction->GetForInLoopDepth() * (sizeof(Js::ForInObjectEnumerator) / sizeof(Var)));
         this->varAllocCount = k_stackFrameVarCount + localCount + this->executeFunction->GetOutParamMaxDepth() + forInVarCount +
             extraVarCount + this->executeFunction->GetInnerScopeCount();
         this->stackVarAllocCount = 0;
@@ -1208,7 +1223,7 @@ namespace Js
         char * nextAllocBytes = (char *)(outparamsEnd);
 
         // If we bailed out, we will use the JIT frame's for..in enumerators
-        if (bailedOut || this->executeFunction->GetForInLoopDepth() == 0)
+        if (this->executeFunction->GetForInLoopDepth() == 0 || (!isGeneratorFrame && bailedOut))
         {
             newInstance->forInObjectEnumerators = nullptr;
         }
@@ -1803,7 +1818,7 @@ skipThunk:
         //
         ScriptContext* functionScriptContext = function->GetScriptContext();
         Arguments generatorArgs = generator->GetArguments();
-        InterpreterStackFrame::Setup setup(function, generatorArgs);
+        InterpreterStackFrame::Setup setup(function, generatorArgs, false /* bailedOut */, false /* inlinee */, true /* isGeneratorFrame */);
         Assert(setup.GetStackAllocationVarCount() == 0);
         size_t varAllocCount = setup.GetAllocationVarCount();
         size_t varSizeInBytes = varAllocCount * sizeof(Var);
@@ -1942,7 +1957,7 @@ skipThunk:
             // generator resuming methods: next(), throw(), or return().  They all pass the generator
             // object as the first of two arguments.  The real user arguments are obtained from the
             // generator object.  The second argument is the ResumeYieldData which is only needed
-            // when resuming a generator and so it only used here if a frame already exists on the
+            // when resuming a generator and so it is only used here if a frame already exists on the
             // generator object.
             AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
 

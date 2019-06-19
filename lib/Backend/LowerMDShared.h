@@ -103,10 +103,10 @@ public:
     static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
+    static IR::Opnd *       CreateStackArgumentsSlotOpnd(Func *func);
 
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);
             IR::Instr *     LoadStackArgPtr(IR::Instr * instr);
-            IR::Opnd *      CreateStackArgumentsSlotOpnd();
             IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr);
             IR::Instr *     LoadArgumentCount(IR::Instr * instr);
             IR::Instr *     LoadHeapArguments(IR::Instr * instr);

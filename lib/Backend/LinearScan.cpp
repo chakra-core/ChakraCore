@@ -251,9 +251,18 @@ LinearScan::RegAlloc()
             this->FillBailOutRecord(instr);
             if (instr->GetBailOutKind() == IR::BailOutForGeneratorYield)
             {
-                Assert(instr->m_next->IsLabelInstr());
-                insertBailInAfter = instr->m_next;
+                Assert(insertBailInAfter == nullptr);
                 bailOutInfoForBailIn = instr->GetBailOutInfo();
+                insertBailInAfter = instr->m_next;
+
+                // Insert right after the GeneratorBailInLabel
+                // The register allocator might insert some compensation code between
+                // the BailOutForGeneratorYield and the GeneratorBailInLabel, so our
+                // bail-in insertion point is not necessarily always the next instruction.
+                while (insertBailInAfter != nullptr && insertBailInAfter->m_opcode != Js::OpCode::GeneratorBailInLabel)
+                {
+                    insertBailInAfter = insertBailInAfter->m_next;
+                }
             }
         }
 
@@ -301,7 +310,7 @@ LinearScan::RegAlloc()
             insertBailInAfter = nullptr;
             bailOutInfoForBailIn = nullptr;
         }
-    }NEXT_INSTR_EDITING;
+    } NEXT_INSTR_EDITING;
 
     if (func->hasBailout)
     {
@@ -1350,7 +1359,14 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
         globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
-        if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
+
+        if (func->GetJITFunctionBody()->IsCoroutine())
+        {
+            // Don't restore for-in enumerators for generators because they are
+            // already on the generator's interpreter frame
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = -1;
+        }
+        else if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
         {
 #ifdef MD_GROW_LOCALS_AREA_UP
             Assert(func->GetForInEnumeratorArrayOffset() >= 0);
@@ -4029,6 +4045,11 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
             Lifetime *lifetime = regContent[reg];
 
             if (lifetime == branchLifetime)
+            {
+                continue;
+            }
+
+            if (!branchLifetime && lifetime && lifetime->start > branchInstr->GetNumber() && labelInstr->m_opcode == Js::OpCode::GeneratorBailInLabel)
             {
                 continue;
             }

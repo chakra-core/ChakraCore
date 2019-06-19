@@ -8,6 +8,7 @@ namespace Js
 {
     // Helper struct used to communicate to a yield point whether it was resumed via next(), return(), or throw()
     // and provide the data necessary for the corresponding action taken (see OP_ResumeYield)
+    // `data` stores the value that was passed in as parameter to .next()
     struct ResumeYieldData
     {
         Var data;
@@ -48,7 +49,7 @@ namespace Js
 
         void SetState(GeneratorState state) {
             this->state = state;
-            if(state == GeneratorState::Completed)
+            if (state == GeneratorState::Completed)
             {
                 frame = nullptr;
                 args.Values = nullptr;

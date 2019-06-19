@@ -336,6 +336,8 @@ public:
     static Instr*   FindSingleDefInstr(Js::OpCode opCode, Opnd* src);
     bool            CanAggregateByteCodeUsesAcrossInstr(IR::Instr * instr);
 
+    bool            DontHoistBailOnNoProfileAboveInGeneratorFunction() const;
+
     // LazyBailOut
     bool            AreAllOpndsTypeSpecialized() const;
     bool            IsStFldVariant() const;
@@ -798,6 +800,7 @@ public:
     inline void             SetRegion(Region *);
     inline Region *         GetRegion(void) const;
     inline BOOL             IsUnreferenced(void) const;
+    inline BOOL             IsGeneratorEpilogueLabel(void) const;
 
     LabelInstr *            CloneLabel(BOOL fCreate);
 
