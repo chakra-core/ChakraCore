@@ -510,13 +510,14 @@ IR::Instr* LinearScanMD::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelI
         LinearScan::InsertMove(LowererMD::CreateStackArgumentsSlotOpnd(this->func), this->rcxRegOpnd, instrAfter);
     }
 
-    BailInInsertionPoint insertionPoint = {
+    BailInInsertionPoint insertionPoint
+    {
         nullptr,    /* raxRestoreInstr */
         instrAfter, /* instrInsertStackSym */
         instrAfter  /* instrInsertRegSym */
     };
 
-    SaveInitializedRegister saveInitializedReg = { false /* rax */, false /* rcx */ };
+    SaveInitializedRegister saveInitializedReg { false /* rax */, false /* rcx */ };
 
     // 4) Restore symbols
     // - We don't need to restore argObjSyms because StackArgs is currently not enabled

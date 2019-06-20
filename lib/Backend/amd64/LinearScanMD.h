@@ -83,9 +83,9 @@ private:
         // The following 3 instructions indicate the insertion points for the above cases:
         struct BailInInsertionPoint
         {
-            IR::Instr* raxRestoreInstr = nullptr;
-            IR::Instr* instrInsertStackSym = nullptr;
-            IR::Instr* instrInsertRegSym = nullptr;
+            IR::Instr* raxRestoreInstr;
+            IR::Instr* instrInsertStackSym;
+            IR::Instr* instrInsertRegSym;
         };
 
         // There are symbols that we don't need to restore such as constant values,
@@ -95,8 +95,8 @@ private:
         // So we would need to save their values (and restore afterwards) before generating the bail-in code.
         struct SaveInitializedRegister
         {
-            bool rax = false;
-            bool rcx = false;
+            bool rax;
+            bool rcx;
         };
 
         Func* const func;
