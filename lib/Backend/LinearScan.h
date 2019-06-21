@@ -134,7 +134,7 @@ private:
     void                InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionInstr);
     void                InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg);
     void                InsertLoads(StackSym *sym, RegNum reg);
-    void                InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg);
+    IR::Instr*          InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg);
     void                SetDstReg(IR::Instr *instr);
     void                SetSrcRegs(IR::Instr *instr);
     void                SetUses(IR::Instr *instr, IR::Opnd *opnd);

@@ -3233,7 +3233,7 @@ LinearScan::InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg)
 }
 
 // LinearScan::InsertLoad
-void
+IR::Instr*
 LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
 {
     IR::Opnd *src;
@@ -3305,6 +3305,8 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
         }
     }
 #endif
+
+    return load;
 }
 
 uint8

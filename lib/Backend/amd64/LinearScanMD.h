@@ -106,23 +106,11 @@ private:
         IR::RegOpnd* const raxRegOpnd;
         IR::RegOpnd* const rcxRegOpnd;
 
-        bool NeedsReloadingValueWhenBailIn(StackSym* sym) const;
+        bool NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const;
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
         void InsertSaveAndRestore(IR::Instr* start, IR::Instr* end, IR::RegOpnd* reg);
-
-        void InsertRestoreRegSymbol(
-            StackSym* stackSym,
-            IR::Opnd* srcOpnd,
-            BailInInsertionPoint& insertionPoint
-        );
-
-        void InsertRestoreStackSymbol(
-            StackSym* stackSym,
-            IR::Opnd* srcOpnd,
-            BailInInsertionPoint& insertionPoint
-        );
 
         void InsertRestoreSymbols(
             BVSparse<JitArenaAllocator>* symbols,

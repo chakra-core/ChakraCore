@@ -558,7 +558,7 @@ void LinearScanMD::GeneratorBailIn::InsertRestoreSymbols(
         StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
         Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
 
-        if (this->NeedsReloadingValueWhenBailIn(stackSym))
+        if (this->NeedsReloadingValueWhenBailIn(stackSym, lifetime))
         {
             Js::RegSlot regSlot = stackSym->GetByteCodeRegSlot();
             IR::Opnd* srcOpnd = IR::IndirOpnd::New(
@@ -570,11 +570,62 @@ void LinearScanMD::GeneratorBailIn::InsertRestoreSymbols(
 
             if (lifetime->isSpilled)
             {
-                this->InsertRestoreStackSymbol(stackSym, srcOpnd, insertionPoint);
+                Assert(!stackSym->IsConst());
+                // Stack restores require an extra register since we can't move an indir directly to an indir on amd64
+                IR::SymOpnd* dstOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
+                LinearScan::InsertMove(this->rcxRegOpnd, srcOpnd, insertionPoint.instrInsertStackSym);
+                LinearScan::InsertMove(dstOpnd, this->rcxRegOpnd, insertionPoint.instrInsertStackSym);
             }
             else
             {
-                this->InsertRestoreRegSymbol(stackSym, srcOpnd, insertionPoint);
+                // Register restores must come after stack restores so that we have RAX and RCX free to
+                // use for stack restores and further RAX must be restored last since it holds the
+                // pointer to the InterpreterStackFrame from which we are restoring values.
+                // We must also track these restores using RecordDef in case the symbols are spilled.
+
+                IR::Instr* instr;
+                
+                if (stackSym->IsConst())
+                {
+                    instr = this->linearScanMD->linearScan->InsertLoad(insertionPoint.instrInsertRegSym, stackSym, lifetime->reg);
+                }
+                else
+                {
+                    IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
+                    dstRegOpnd->SetReg(lifetime->reg);
+                    instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, insertionPoint.instrInsertRegSym);
+                }
+
+                if (insertionPoint.instrInsertRegSym == insertionPoint.instrInsertStackSym)
+                {
+                    // This is the first register sym, make sure we don't insert stack stores
+                    // after this instruction so we can ensure rax and rcx remain free to use
+                    // for restoring spilled stack syms.
+                    insertionPoint.instrInsertStackSym = instr;
+                }
+
+                if (lifetime->reg == RegRAX)
+                {
+                    // Ensure rax is restored last
+                    Assert(insertionPoint.instrInsertRegSym != insertionPoint.instrInsertStackSym);
+
+                    insertionPoint.instrInsertRegSym = instr;
+
+                    if (insertionPoint.raxRestoreInstr != nullptr)
+                    {
+                        AssertMsg(false, "this is unexpected until copy prop is enabled");
+                        // rax was mapped to multiple bytecode registers.  Obviously only the first
+                        // restore we do will work so change all following stores to `mov rax, rax`.
+                        // We still need to keep them around for RecordDef in case the corresponding
+                        // dst sym is spilled later on.
+                        insertionPoint.raxRestoreInstr->FreeSrc1();
+                        insertionPoint.raxRestoreInstr->SetSrc1(this->raxRegOpnd);
+                    }
+
+                    insertionPoint.raxRestoreInstr = instr;
+                }
+
+                this->linearScanMD->linearScan->RecordDef(lifetime, instr, 0);
             }
         }
         else
@@ -595,12 +646,18 @@ void LinearScanMD::GeneratorBailIn::InsertRestoreSymbols(
     NEXT_BITSET_IN_SPARSEBV;
 }
 
-bool LinearScanMD::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym) const
+bool LinearScanMD::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const
 {
-    // We load constant values before the generator resume jump table, no need to reload
-    if (this->func->GetJITFunctionBody()->RegIsConstant(sym->GetByteCodeRegSlot()))
+    if (sym->IsConst())
     {
-        return false;
+        if (this->func->GetJITFunctionBody()->RegIsConstant(sym->GetByteCodeRegSlot()))
+        {
+            return false;
+        }
+        else
+        {
+            return !lifetime->isSpilled;
+        }
     }
 
     // If we have for-in in the generator, don't need to reload the symbol again as it is done
@@ -612,60 +669,6 @@ bool LinearScanMD::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym)
 
     // Check for other special registers that are already initialized
     return !this->initializedRegs.Test(sym->GetByteCodeRegSlot());
-}
-
-void LinearScanMD::GeneratorBailIn::InsertRestoreRegSymbol(StackSym* stackSym, IR::Opnd* srcOpnd, BailInInsertionPoint& insertionPoint)
-{
-    Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
-
-    // Register restores must come after stack restores so that we have RAX and RCX free to
-    // use for stack restores and further RAX must be restored last since it holds the
-    // pointer to the InterpreterStackFrame from which we are restoring values.
-    // We must also track these restores using RecordDef in case the symbols are spilled.
-
-    IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
-    dstRegOpnd->SetReg(lifetime->reg);
-
-    IR::Instr* instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, insertionPoint.instrInsertRegSym);
-
-    if (insertionPoint.instrInsertRegSym == insertionPoint.instrInsertStackSym)
-    {
-        // This is the first register sym, make sure we don't insert stack stores
-        // after this instruction so we can ensure rax and rcx remain free to use
-        // for restoring spilled stack syms.
-        insertionPoint.instrInsertStackSym = instr;
-    }
-
-    if (lifetime->reg == RegRAX)
-    {
-        // Ensure rax is restored last
-        Assert(insertionPoint.instrInsertRegSym != insertionPoint.instrInsertStackSym);
-
-        insertionPoint.instrInsertRegSym = instr;
-
-        if (insertionPoint.raxRestoreInstr != nullptr)
-        {
-            AssertMsg(false, "this is unexpected until copy prop is enabled");
-            // rax was mapped to multiple bytecode registers.  Obviously only the first
-            // restore we do will work so change all following stores to `mov rax, rax`.
-            // We still need to keep them around for RecordDef in case the corresponding
-            // dst sym is spilled later on.
-            insertionPoint.raxRestoreInstr->FreeSrc1();
-            insertionPoint.raxRestoreInstr->SetSrc1(this->raxRegOpnd);
-        }
-
-        insertionPoint.raxRestoreInstr = instr;
-    }
-
-    this->linearScanMD->linearScan->RecordDef(lifetime, instr, 0);
-}
-
-void LinearScanMD::GeneratorBailIn::InsertRestoreStackSymbol(StackSym* stackSym, IR::Opnd* srcOpnd, BailInInsertionPoint& insertionPoint)
-{
-    // Stack restores require an extra register since we can't move an indir directly to an indir on amd64
-    IR::SymOpnd* dstOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
-    LinearScan::InsertMove(this->rcxRegOpnd, srcOpnd, insertionPoint.instrInsertStackSym);
-    LinearScan::InsertMove(dstOpnd, this->rcxRegOpnd, insertionPoint.instrInsertStackSym);
 }
 
 IR::SymOpnd* LinearScanMD::GeneratorBailIn::CreateGeneratorObjectOpnd() const
