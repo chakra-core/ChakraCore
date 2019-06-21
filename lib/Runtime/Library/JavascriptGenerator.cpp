@@ -375,7 +375,7 @@ namespace Js
                 return;
             }
         }
-        else
+        else if (frame != nullptr)
         {
             int nextOffset = this->frame->GetReader()->GetCurrentOffset();
             int endOffset = this->frame->GetFunctionBody()->GetByteCode()->GetLength();
@@ -384,9 +384,9 @@ namespace Js
             {
                 return;
             }
-            SetState(GeneratorState::Completed);
         }
 
+        SetState(GeneratorState::Completed);
         ProcessAsyncGeneratorReturn(result, scriptContext);
     }
 
