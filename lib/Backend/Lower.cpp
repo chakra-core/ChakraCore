@@ -29143,13 +29143,12 @@ void Lowerer::LowerGeneratorHelper::InsertNullOutGeneratorFrameInEpilogue(IR::La
     IR::SymOpnd* srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, this->func);
     IR::RegOpnd* dstOpnd = IR::RegOpnd::New(TyMachReg, this->func);
 
-    // We would replace the values in all of the callee-saved registers
-    // in the epilogue anyway, so use one of them to store the address
-    // to our interpreter frame
+    // Since we are already in the epilogue, use one of the caller-saved
+    // registers to store the address to our interpreter frame
 #if defined(_M_X64)
-    dstOpnd->SetReg(RegR15); // R15 is callee-save on both Windows/Linux
+    dstOpnd->SetReg(RegRCX);
 #elif defined(_M_IX86)
-    dstOpnd->SetReg(RegESI);
+    dstOpnd->SetReg(RegECX);
 #endif
 
     InsertMove(dstOpnd, srcOpnd, insertionPoint);
