@@ -278,7 +278,7 @@ enum VTableValue {
     VtableJavascriptAsyncFunction,
 
     VtableStackScriptFunction,
-    VtableAsmJsScriptFunction,
+    VtableAsmJsScriptFunctionWithComputedName,
     VtableScriptFunctionWithInlineCacheAndHomeObj,
     VtableScriptFunctionWithInlineCacheAndComputedName,
     VtableScriptFunctionWithInlineCacheHomeObjAndComputedName,

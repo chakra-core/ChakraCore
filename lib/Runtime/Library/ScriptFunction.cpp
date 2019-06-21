@@ -870,7 +870,7 @@ using namespace Js;
 
     template <> VTableValue Js::FunctionWithComputedName<Js::AsmJsScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
     {
-        return VTableValue::VtableAsmJsScriptFunction;
+        return VTableValue::VtableAsmJsScriptFunctionWithComputedName;
     }
 
     template <> VTableValue Js::FunctionWithHomeObj<Js::ScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
