@@ -971,15 +971,8 @@ namespace Js
         }
     }
 
-    Var SourceTextModuleRecord::ModuleEvaluation()
+    bool SourceTextModuleRecord::ModuleEvaluationPrepass()
     {
-        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleEvaluation(%s)\n"), this->GetSpecifierSz());
-
-        if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
-        {
-            return nullptr;
-        }
-
         if (this->errorObject != nullptr)
         {
             // Cleanup in case of error.
@@ -988,13 +981,14 @@ namespace Js
             if (this->promise != nullptr)
             {
                 SourceTextModuleRecord::ResolveOrRejectDynamicImportPromise(false, this->errorObject, this->scriptContext, this, false);
-                return scriptContext->GetLibrary()->GetUndefined();
+                return false;
             }
             else
             {
                 JavascriptExceptionOperators::Throw(errorObject, this->scriptContext);
             }
         }
+        SetEvaluationPrepassed();
 
 #if DBG
         if (childrenModuleSet != nullptr)
@@ -1006,6 +1000,76 @@ namespace Js
             });
         }
 #endif
+
+        JavascriptExceptionObject *exception = nullptr;
+
+        try
+        {
+            if (childrenModuleSet != nullptr)
+            {
+                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
+                {
+                    if (!childModuleRecord->WasEvaluationPrepassed())
+                    {
+                        childModuleRecord->ModuleEvaluationPrepass();
+                    }
+ 
+                    // if child module was evaluated before and threw need to re-throw now
+                    // if child module has been dynamically imported and has exception need to throw
+                    if (childModuleRecord->GetErrorObject() != nullptr)
+                    {
+                        this->ReleaseParserResourcesForHierarchy();
+
+                        JavascriptExceptionOperators::Throw(childModuleRecord->GetErrorObject(), this->scriptContext);
+                    }
+                });
+            }
+
+            AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
+                this->generator = VarTo<JavascriptGenerator>(rootFunction->CallRootFunction(outArgs, scriptContext, true));
+            }
+            END_SAFE_REENTRANT_CALL
+        }
+        catch (const Js::JavascriptException &err)
+        {
+            exception = err.GetAndClear();
+            Var errorObject = exception->GetThrownObject(scriptContext);
+            AssertOrFailFastMsg(errorObject != nullptr, "ModuleEvaluation: null error object thrown from root function");
+            this->errorObject = errorObject;
+            if (this->promise != nullptr)
+            {
+                ResolveOrRejectDynamicImportPromise(false, errorObject, scriptContext, this, false);
+                return false;
+            }
+        }
+
+        if (exception != nullptr)
+        {
+            JavascriptExceptionOperators::DoThrowCheckClone(exception, scriptContext);
+        }
+        return true;
+    }
+
+
+    Var SourceTextModuleRecord::ModuleEvaluation()
+    {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleEvaluation(%s)\n"), this->GetSpecifierSz());
+
+        if (!scriptContext->GetConfig()->IsES6ModuleEnabled() || WasEvaluated())
+        {
+            return nullptr;
+        }
+
+        if (!WasEvaluationPrepassed())
+        {
+            if (!ModuleEvaluationPrepass())
+            {
+                return scriptContext->GetLibrary()->GetUndefined();
+            }
+        }
 
         Assert(this->errorObject == nullptr);
         SetWasEvaluated();
@@ -1019,10 +1083,7 @@ namespace Js
             {
                 childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
                 {
-                    if (!childModuleRecord->WasEvaluated())
-                    {
-                        childModuleRecord->ModuleEvaluation();
-                    }
+                    childModuleRecord->ModuleEvaluation();
                     // if child module was evaluated before and threw need to re-throw now
                     // if child module has been dynamically imported and has exception need to throw
                     if (childModuleRecord->GetErrorObject() != nullptr)
@@ -1035,13 +1096,15 @@ namespace Js
             }
             CleanupBeforeExecution();
 
-            Arguments outArgs(CallInfo(CallFlags_Value, 0), nullptr);
+            JavascriptGenerator* gen = static_cast<JavascriptGenerator*> (generator);
 
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
-            ENTER_SCRIPT_IF(scriptContext, true, false, false, !scriptContext->GetThreadContext()->IsScriptActive(),
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
-                ret = rootFunction->CallRootFunction(outArgs, scriptContext, true);
-            });
+                ResumeYieldData yieldData(scriptContext->GetLibrary()->GetUndefined(), nullptr);
+                ret = gen->CallGenerator(&yieldData, _u("Module Global"));
+            }
+            END_SAFE_REENTRANT_CALL
         }
         catch (const Js::JavascriptException &err)
         {

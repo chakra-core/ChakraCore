@@ -130,6 +130,43 @@ var tests = [
 
             testRunner.LoadModule('import "test6133a";', undefined, true);
         }
+    },
+    {
+        name : "Issue 5236: Module function exports not hoisted test",
+        body()
+        {
+            WScript.RegisterModuleSource("test5236a", `
+                import {default as Default, bar, foo} from "test5236b";
+                export default function () {}
+                export function one() {}
+                export var two = function () {}
+
+                bar();
+                assert.isNotUndefined(Default);
+                foo();
+                `);
+            WScript.RegisterModuleSource("test5236b", `
+                import Default from "test5236c";
+
+                export function bar() {}
+                export default class {}
+                export var foo = function () {}
+
+                Default();
+                `);
+            WScript.RegisterModuleSource("test5236c", `
+                import {default as Default, one, two} from "test5236a";
+                import otherDefault from "test5236b";
+                export default function bar() {}
+
+                Default();
+                one();
+                assert.isUndefined(two);
+                assert.isUndefined(otherDefault);
+                `);
+
+            testRunner.LoadModule('import "test5236a";', undefined, false);
+        }
     }
 ];
 
