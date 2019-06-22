@@ -57,6 +57,8 @@ namespace Js
             }
         }
 
+        Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
+
     private:
         Field(InterpreterStackFrame*) frame;
         Field(GeneratorState) state;
@@ -74,7 +76,6 @@ namespace Js
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptGenerator, DynamicObject, args);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGenerator);
 
-        Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
         JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
 
     public:

@@ -7128,6 +7128,8 @@ template<bool buildAST>
 ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
     ParseNodePtr pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fFncModule, SuperRestrictionState::Disallowed, nullptr, /* needsPIDOnRCurlyScan */ false, /* fUnaryOrParen */ true);
+    // mark modules as generators after parsing - this is to enable cross-module hoisting of exported functions
+    pnodeFnc->AsParseNodeFnc()->SetIsGenerator(true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
 
     return callNode;
