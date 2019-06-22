@@ -3358,6 +3358,23 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
         this->RecordLoopUse(nullptr, LowererMDArch::GetRegIMulHighDestLower());
         return;
     }
+
+    if (instr->m_opcode == Js::OpCode::Yield)
+    {
+#if defined(_M_X64)
+        RegNum regs[] = { RegRAX, RegRCX };
+#else
+        RegNum regs[] = { RegEAX, RegECX };
+#endif
+        for (int i = 0; i < 2; i++)
+        {
+            this->SpillReg(regs[i]);
+            this->tempRegs.Clear(regs[i]);
+            this->RecordLoopUse(nullptr, regs[i]);
+        }
+
+        return;
+    }
 #endif
 
     this->TrackInlineeArgLifetimes(instr);

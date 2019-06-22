@@ -88,17 +88,6 @@ private:
             IR::Instr* instrInsertRegSym;
         };
 
-        // There are symbols that we don't need to restore such as constant values,
-        // ScriptFunction's Environment (through LdEnv) and the address pointing to for-in enumerator
-        // on the interpreter frame because their values are already loaded before (or as part) of the
-        // generator resume jump table. In such cases, they could already be in either rax or rcx.
-        // So we would need to save their values (and restore afterwards) before generating the bail-in code.
-        struct SaveInitializedRegister
-        {
-            bool rax;
-            bool rcx;
-        };
-
         Func* const func;
         LinearScanMD* const linearScanMD;
         const JITTimeFunctionBody* const jitFnBody;
@@ -110,13 +99,7 @@ private:
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
-        void InsertSaveAndRestore(IR::Instr* start, IR::Instr* end, IR::RegOpnd* reg);
-
-        void InsertRestoreSymbols(
-            BVSparse<JitArenaAllocator>* symbols,
-            BailInInsertionPoint& insertionPoint,
-            SaveInitializedRegister& saveInitializedReg
-        );
+        void InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint);
 
     public:
         GeneratorBailIn(Func* func, LinearScanMD* linearScanMD);
