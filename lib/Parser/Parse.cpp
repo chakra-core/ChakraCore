@@ -4688,9 +4688,9 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         ushort fncDeclFlags = fFncNoName | fFncMethod;
         if (isGenerator)
         {
-            if (isAsyncMethod)
+            if (isAsyncMethod && !m_scriptContext->GetConfig()->IsES2018AsyncIterationEnabled())
             {
-                Error(ERRsyntax);
+                Error(ERRExperimental);
             }
 
             // Include star character in the function extents

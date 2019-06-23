@@ -569,7 +569,8 @@ namespace Js
         RecyclableObject* onFulfilled = library->CreateAsyncGeneratorResumeNextReturnProcessorFunction(this, false);
         RecyclableObject* onRejected = library->CreateAsyncGeneratorResumeNextReturnProcessorFunction(this, true);
 
-        JavascriptPromise::CreateThenPromise(promise, onFulfilled, onRejected, scriptContext);
+        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
+        JavascriptPromise::PerformPromiseThen(promise, unused, onFulfilled, onRejected, scriptContext);
     }
 
     RuntimeFunction* JavascriptGenerator::EnsureAwaitYieldStarFunction()
