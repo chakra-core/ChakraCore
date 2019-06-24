@@ -103,7 +103,7 @@ public:
         linearScanMD(func), opHelperSpilledLiveranges(NULL), currentOpHelperBlock(NULL),
         lastLabel(NULL), numInt32Regs(0), numFloatRegs(0), stackPackInUseLiveRanges(NULL), stackSlotsFreeList(NULL),
         totalOpHelperFullVisitedLength(0), curLoop(NULL), currentBlock(nullptr), currentRegion(nullptr), m_bailOutRecordCount(0),
-        globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr)
+        globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr), bailIn(GeneratorBailIn(func, this))
     {
     }
 
@@ -227,4 +227,56 @@ private:
     static IR::Instr *  InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
     static IR::Instr *  InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 
+    class GeneratorBailIn {
+        // We need to rely on 2 registers `rax` and `rcx` to generate the bail-in code.
+        // At this point, since `rax` already has the address of the generator's interpreter frame,
+        // we can easily get the symbols' values through something like: mov dst [rax + appropriate offset]
+        //
+        // There are 4 types of symbols that we have to deal with:
+        //  - symbols that are currently on the stack at this point. We need 2 instructions:
+        //     - Load the value to `rcx`: mov rcx [rax + offset]
+        //     - Finally load the value to its stack slot: mov [rbp + stack offset] rcx
+        //  - symbol that is in rax
+        //  - symbol that is in rcx
+        //  - symbols that are in the other registers. We only need 1 instruction:
+        //     - mov reg [rax + offset]
+        //
+        // Since restoring symbols on the stack might mess up values that will be in rax/rcx,
+        // and we want to maintain the invariant that rax has to hold the value of the interpreter
+        // frame, we need to restore the symbols in the following order:
+        //  - symbols in stack
+        //  - symbols in registers
+        //  - symbol in rax
+        //
+        // The following 3 instructions indicate the insertion points for the above cases:
+        struct BailInInsertionPoint
+        {
+            IR::Instr* raxRestoreInstr;
+            IR::Instr* instrInsertStackSym;
+            IR::Instr* instrInsertRegSym;
+        };
+
+        Func* const func;
+        LinearScan* const linearScan;
+        const JITTimeFunctionBody* const jitFnBody;
+        BVSparse<JitArenaAllocator> initializedRegs;
+
+        static constexpr int regNum = 2;
+        const RegNum regs[regNum];
+        IR::RegOpnd* const interpreterFrameRegOpnd;
+        IR::RegOpnd* const tempRegOpnd;
+
+        bool NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const;
+        uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
+        IR::SymOpnd* CreateGeneratorObjectOpnd() const;
+
+        void InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint);
+
+    public:
+        GeneratorBailIn(Func* func, LinearScan* linearScan);
+        IR::Instr* GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);
+        void SpillRegsForBailIn();
+    };
+
+    GeneratorBailIn bailIn;
 };
