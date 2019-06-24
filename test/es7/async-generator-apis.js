@@ -141,7 +141,7 @@ const tests = [
         }
     },
     {
-        name : "Async Generaotr function instances have the correct prototype object",
+        name : "Async Generator function instances have the correct prototype object",
         body () {
             async function* agf () {}
             const prototype = agf.prototype;
@@ -211,6 +211,26 @@ const tests = [
             // found in async-generator-functionality.js test.
         }
     },
+    {
+        name: "Other forms of Async Generator",
+        body: function () {
+            const obj = {
+                async *oagf() {}
+            }
+            class cla {
+                async *cagf() {}
+                static async *scagf() {}
+            }
+
+            const instance = new cla();
+
+            const asyncGeneratorFunctionPrototype = Object.getPrototypeOf(async function* () { });
+
+            assert.areEqual(asyncGeneratorFunctionPrototype, Object.getPrototypeOf(instance.cagf), "Async generator class method should have the same prototype as async generator function");
+            assert.areEqual(asyncGeneratorFunctionPrototype, Object.getPrototypeOf(cla.scagf), "Async generator class static method should have the same prototype as async generator function");
+            assert.areEqual(asyncGeneratorFunctionPrototype, Object.getPrototypeOf(obj.oagf), "Async generator object method should have the same prototype as async generator function");
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

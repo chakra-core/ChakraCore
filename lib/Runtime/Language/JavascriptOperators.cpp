@@ -10260,7 +10260,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         // 7. Let onRejected be CreateBuiltinFunction(stepsRejected, << [[AsyncContext]] >>).
         // 8. Set onRejected.[[AsyncContext]] to asyncContext.
         // 9. Perform ! PerformPromiseThen(promise, onFulfilled, onRejected).
-        JavascriptPromise::CreateThenPromise(promise, generator->GetAwaitNextFunction(), generator->GetAwaitThrowFunction(), scriptContext);
+        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
+        JavascriptPromise::PerformPromiseThen(promise, unused, generator->GetAwaitNextFunction(), generator->GetAwaitThrowFunction(), scriptContext);
         // 10. Remove asyncContext from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.
         // 11. Set the code evaluation state of asyncContext such that when evaluation is resumed with a Completion completion, the following steps of the algorithm that invoked Await will be performed, with completion available.   
     }
@@ -10270,14 +10271,16 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     {
         JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
 
-        JavascriptPromise::CreateThenPromise(promise, generator->EnsureAwaitYieldStarFunction(), generator->GetAwaitThrowFunction(), scriptContext);   
+        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
+        JavascriptPromise::PerformPromiseThen(promise, unused, generator->EnsureAwaitYieldStarFunction(), generator->GetAwaitThrowFunction(), scriptContext);
     }
 
     void JavascriptOperators::OP_AsyncYield(JavascriptGenerator* generator, Var value, ScriptContext* scriptContext)
     {
         JavascriptPromise* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
 
-        JavascriptPromise::CreateThenPromise(promise, generator->GetAwaitYieldFunction(), generator->GetAwaitThrowFunction(), scriptContext);   
+        JavascriptPromiseCapability* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
+        JavascriptPromise::PerformPromiseThen(promise, unused, generator->GetAwaitYieldFunction(), generator->GetAwaitThrowFunction(), scriptContext);
     }
 
     Var JavascriptOperators::OP_AsyncYieldIsReturn(ResumeYieldData* yieldData)
