@@ -3442,6 +3442,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 case Js::OpCode::StSlotBoxTemp:
                 case Js::OpCode::StSlotChkUndecl:
                 case Js::OpCode::StSuperFld:
+                case Js::OpCode::StSuperFldStrict:
                 case Js::OpCode::ProfiledStElemI_A:
                 case Js::OpCode::ProfiledStElemI_A_Strict:
                 case Js::OpCode::ProfiledStFld:
@@ -3450,6 +3451,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 case Js::OpCode::ProfiledStRootFld:
                 case Js::OpCode::ProfiledStRootFldStrict:
                 case Js::OpCode::ProfiledStSuperFld:
+                case Js::OpCode::ProfiledStSuperFldStrict:
                     // Unfortunately, being fed into a store means that we could have aliasing, and the
                     // consequence is that it may be re-read and then dereferenced. Note that we can do
                     // this case if we poison any array symbol that we store to on the way out, but the

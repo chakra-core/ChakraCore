@@ -159,7 +159,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 {
     bool noMathFastPath;
     bool noFieldFastPath;
-    bool isStrictMode = this->m_func->GetJITFunctionBody()->IsStrictMode();
     noFieldFastPath = !defaultDoFastPath;
     noMathFastPath = !defaultDoFastPath;
 
@@ -538,7 +537,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::StSuperFld:
             instrPrev = GenerateCompleteStFld(instr, !noFieldFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic,
-                IR::HelperOp_PatchPutValueWithThisPtr, IR::HelperOp_PatchPutValueWithThisPtrPolymorphic, true, isStrictMode ? Js::PropertyOperation_StrictMode : Js::PropertyOperation_None);
+                IR::HelperOp_PatchPutValueWithThisPtr, IR::HelperOp_PatchPutValueWithThisPtrPolymorphic, true, Js::PropertyOperation_None);
+            break;
+
+        case Js::OpCode::StSuperFldStrict:
+            instrPrev = GenerateCompleteStFld(instr, !noFieldFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath, IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic,
+                IR::HelperOp_PatchPutValueWithThisPtr, IR::HelperOp_PatchPutValueWithThisPtrPolymorphic, true, Js::PropertyOperation_StrictMode);
             break;
 
         case Js::OpCode::StRootFld:
@@ -7132,7 +7136,7 @@ Lowerer::LowerProfiledStFld(IR::JitProfilingInstr *stFldInstr, Js::PropertyOpera
 
     m_lowererMD.LoadHelperArgument(stFldInstr, IR::Opnd::CreateFramePointerOpnd(m_func));
 
-    if (stFldInstr->m_opcode == Js::OpCode::StSuperFld)
+    if (stFldInstr->m_opcode == Js::OpCode::StSuperFld || stFldInstr->m_opcode == Js::OpCode::StSuperFldStrict)
     {
         m_lowererMD.LoadHelperArgument(stFldInstr, stFldInstr->UnlinkSrc2());
     }
@@ -7157,6 +7161,10 @@ Lowerer::LowerProfiledStFld(IR::JitProfilingInstr *stFldInstr, Js::PropertyOpera
 
     case Js::OpCode::StSuperFld:
         helper = IR::HelperProfiledStSuperFld;
+        break;
+
+    case Js::OpCode::StSuperFldStrict:
+        helper = IR::HelperProfiledStSuperFld_Strict;
         break;
 
     default:
@@ -7224,7 +7232,7 @@ Lowerer::LowerStFld(
     }
 
     IR::Opnd *src = stFldInstr->UnlinkSrc1();
-    if (stFldInstr->m_opcode == Js::OpCode::StSuperFld)
+    if (stFldInstr->m_opcode == Js::OpCode::StSuperFld || stFldInstr->m_opcode == Js::OpCode::StSuperFldStrict)
     {
         m_lowererMD.LoadHelperArgument(stFldInstr, stFldInstr->UnlinkSrc2());
     }

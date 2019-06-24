@@ -2155,6 +2155,7 @@ StoreCommon:
             }
             break;
         case OpCode::StSuperFld:
+        case OpCode::StSuperFldStrict:
             if (DoDynamicProfileOpcode(ProfileBasedFldFastPathPhase) ||
                 DoDynamicProfileOpcode(InlinePhase) ||
                 DoDynamicProfileOpcode(ObjTypeSpecPhase))

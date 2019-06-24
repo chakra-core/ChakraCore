@@ -767,12 +767,14 @@ namespace Js
                 break;
             }
             case OpCode::StSuperFld:
+            case OpCode::StSuperFldStrict:
             {
                 Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
                 break;
             }
             case OpCode::ProfiledStSuperFld:
+            case OpCode::ProfiledStSuperFldStrict:
             {
                 Output::Print(_u(" R%d.%s(this=R%d) = R%d #%d"), data->Instance, pPropertyName->GetBuffer(),
                     data->Value2, data->Value, data->PropertyIdIndex);
