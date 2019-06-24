@@ -272,6 +272,23 @@ var tests = [
       }
   },
   {
+    name: "issue : 6174 : calling ToNumber for the fill value for typedarray.prototype.fill",
+    body: function () {
+        let arr1 = new Uint32Array(5);
+        let valueOfCalled = false;
+        let p1 = new Proxy([], {
+            get: function(oTarget, sKey) {
+                if (sKey.toString() == 'valueOf') {
+                    valueOfCalled = true;
+                }
+                return Reflect.get(oTarget, sKey);
+            }
+        });
+        Uint32Array.prototype.fill.call(arr1, p1, 5, 1);
+        assert.isTrue(valueOfCalled);
+    }
+  },
+  {
     name: "class name should not change if calling multiple times",
     body: function () {
         function getClass() {
