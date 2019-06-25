@@ -532,6 +532,7 @@ HELPERCALLCHK(LdHomeObjProto,           Js::JavascriptOperators::OP_LdHomeObjPro
 HELPERCALLCHK(LdFuncObjProto,           Js::JavascriptOperators::OP_LdFuncObjProto, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(ImportCall,               Js::JavascriptOperators::OP_ImportCall, 0)
+HELPERCALLCHK(LdImportMeta,             Js::JavascriptOperators::OP_LdImportMeta, 0)
 HELPERCALLCHK(NewAsyncFromSyncIterator, Js::JavascriptOperators::OP_NewAsyncFromSyncIterator, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(AsyncYieldIsReturn,       Js::JavascriptOperators::OP_AsyncYieldIsReturn, AttrCanNotBeReentrant)

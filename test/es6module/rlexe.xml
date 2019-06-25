@@ -204,4 +204,11 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2 -force:rejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ImportMeta.js</files>
+      <compile-flags>-args summary -endargs -esimportmeta</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
 </regress-exe>

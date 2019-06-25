@@ -482,12 +482,14 @@ private:
         IdentPtr target;
         IdentPtr from;
         IdentPtr as;
+        IdentPtr meta;
         IdentPtr _default;
         IdentPtr _star; // Special '*' identifier for modules
         IdentPtr _this; // Special 'this' identifier
         IdentPtr _newTarget; // Special new.target identifier
         IdentPtr _super; // Special super identifier
         IdentPtr _superConstructor; // Special super constructor identifier
+        IdentPtr _importMeta; // Special import.meta identifier
     };
 
     WellKnownPropertyPids wellKnownPropertyPids;
@@ -1069,6 +1071,7 @@ public:
     IdentPtr GetArgumentsPid() const { return wellKnownPropertyPids.arguments; }
     IdentPtr GetEvalPid() const { return wellKnownPropertyPids.eval; }
     IdentPtr GetTargetPid() const { return wellKnownPropertyPids.target; }
+    IdentPtr GetMetaPid() const { return wellKnownPropertyPids.meta; }
     BackgroundParseItem *GetCurrBackgroundParseItem() const { return currBackgroundParseItem; }
     void SetCurrBackgroundParseItem(BackgroundParseItem *item) { currBackgroundParseItem = item; }
 

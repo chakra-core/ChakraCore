@@ -184,6 +184,7 @@ public:
     virtual HRESULT FetchImportedModule(Js::ModuleRecordBase* referencingModule, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT FetchImportedModuleFromScript(DWORD_PTR dwReferencingSourceContext, LPCOLESTR specifier, Js::ModuleRecordBase** dependentModuleRecord) = 0;
     virtual HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) = 0;
+    virtual HRESULT InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) = 0;
 
     virtual HRESULT ThrowIfFailed(HRESULT hr) = 0;
 

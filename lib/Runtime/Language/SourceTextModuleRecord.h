@@ -67,6 +67,8 @@ namespace Js
         JavascriptPromise *GetPromise() { return this->promise; }
         void SetPromise(JavascriptPromise *value) { this->promise = value; }
 
+        Var GetImportMetaObject();
+
         void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
         void SetLocalExportRecordList(ModuleImportOrExportEntryList* localExports) { localExportRecordList = localExports; }
         void SetIndirectExportRecordList(ModuleImportOrExportEntryList* indirectExports) { indirectExportRecordList = indirectExports; }
@@ -157,6 +159,8 @@ namespace Js
 
         Field(ModuleNameRecord) namespaceRecord;
         Field(JavascriptPromise*) promise;
+
+        Field(Var) importMetaObject;
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();

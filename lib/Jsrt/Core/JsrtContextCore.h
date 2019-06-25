@@ -101,8 +101,10 @@ class ChakraCoreHostScriptContext sealed : public HostScriptContext
 public:
     ChakraCoreHostScriptContext(Js::ScriptContext* scriptContext)
         : HostScriptContext(scriptContext),
+        fetchImportedModuleCallback(nullptr),
+        fetchImportedModuleFromScriptCallback(nullptr),
         notifyModuleReadyCallback(nullptr),
-        fetchImportedModuleCallback(nullptr)
+        initializeImportMetaCallback(nullptr)
     {
     }
     ~ChakraCoreHostScriptContext()
@@ -250,6 +252,8 @@ public:
 
     HRESULT NotifyHostAboutModuleReady(Js::ModuleRecordBase* referencingModule, Js::Var exceptionVar) override;
 
+    HRESULT InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject) override;
+
     void SetNotifyModuleReadyCallback(NotifyModuleReadyCallback notifyCallback) { this->notifyModuleReadyCallback = notifyCallback; }
     NotifyModuleReadyCallback GetNotifyModuleReadyCallback() const { return this->notifyModuleReadyCallback; }
 
@@ -258,6 +262,9 @@ public:
 
     void SetFetchImportedModuleFromScriptCallback(FetchImportedModuleFromScriptCallBack fetchCallback) { this->fetchImportedModuleFromScriptCallback = fetchCallback; }
     FetchImportedModuleFromScriptCallBack GetFetchImportedModuleFromScriptCallback() const { return this->fetchImportedModuleFromScriptCallback; }
+
+    void SetInitializeImportMetaCallback(InitializeImportMetaCallback finalizeCallback) { this->initializeImportMetaCallback = finalizeCallback; }
+    InitializeImportMetaCallback GetInitializeImportMetaCallback() const { return this->initializeImportMetaCallback; }
 
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
     void EnsureParentInfo(Js::ScriptContext* scriptContext = NULL) override
@@ -273,7 +280,5 @@ private:
     FetchImportedModuleCallBack fetchImportedModuleCallback;
     FetchImportedModuleFromScriptCallBack fetchImportedModuleFromScriptCallback;
     NotifyModuleReadyCallback notifyModuleReadyCallback;
+    InitializeImportMetaCallback initializeImportMetaCallback;
 };
-
-
-

@@ -2531,6 +2531,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->GenerateCheckForCallFlagNew(instr);
             break;
 
+        case Js::OpCode::LdImportMeta:
+        {
+            IR::Opnd *src1Opnd = instr->UnlinkSrc1();
+
+            LoadScriptContext(instr);
+            m_lowererMD.LoadHelperArgument(instr, src1Opnd);
+            m_lowererMD.ChangeToHelperCall(instr, IR::HelperLdImportMeta);
+            break;
+        }
+
         case Js::OpCode::StFuncExpr:
             // object.propid = src
             LowerStFld(instr, IR::HelperOp_StFunctionExpression, IR::HelperOp_StFunctionExpression, false);

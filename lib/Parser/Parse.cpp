@@ -1719,7 +1719,8 @@ bool Parser::IsSpecialName(IdentPtr pid)
     return pid == wellKnownPropertyPids._this ||
         pid == wellKnownPropertyPids._super ||
         pid == wellKnownPropertyPids._superConstructor ||
-        pid == wellKnownPropertyPids._newTarget;
+        pid == wellKnownPropertyPids._newTarget ||
+        pid == wellKnownPropertyPids._importMeta;
 }
 
 ParseNodeSpecialName * Parser::ReferenceSpecialName(IdentPtr pid, charcount_t ichMin, charcount_t ichLim, bool createNode)
@@ -1778,6 +1779,13 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
         varDeclNode->AsParseNodeVar()->sym->SetIsNewTarget(true);
     }
 
+    // Create a 'import.meta' symbol.
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._importMeta);
+    if (varDeclNode)
+    {
+        varDeclNode->AsParseNodeVar()->sym->SetIsImportMeta(true);
+    }
+
     // Create a 'super' (as a reference) symbol.
     varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._super);
     if (varDeclNode)
@@ -1786,12 +1794,12 @@ void Parser::CreateSpecialSymbolDeclarations(ParseNodeFnc * pnodeFnc)
     }
 
     // Create a 'super' (as the call target for super()) symbol only for derived class constructors.
-        varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
-        if (varDeclNode)
-        {
-            varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
-        }
+    varDeclNode = CreateSpecialVarDeclIfNeeded(pnodeFnc, wellKnownPropertyPids._superConstructor);
+    if (varDeclNode)
+    {
+        varDeclNode->AsParseNodeVar()->sym->SetIsSuperConstructor(true);
     }
+}
 
 void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
 {
@@ -2316,23 +2324,48 @@ void Parser::ThrowNewTargetSyntaxErrForGlobalScope()
 template<bool buildAST>
 IdentPtr Parser::ParseMetaProperty(tokens metaParentKeyword, charcount_t ichMin, _Out_opt_ BOOL* pfCanAssign)
 {
-    AssertMsg(metaParentKeyword == tkNEW, "Only supported for tkNEW parent keywords");
+    AssertMsg(metaParentKeyword == tkNEW || metaParentKeyword == tkIMPORT, "Only supported for tkNEW and tkIMPORT parent keywords");
     AssertMsg(this->m_token.tk == tkDot, "We must be currently sitting on the dot after the parent keyword");
 
     this->GetScanner()->Scan();
 
-    if (this->m_token.tk == tkID && this->m_token.GetIdentifier(this->GetHashTbl()) == this->GetTargetPid())
+    if (this->m_token.tk == tkID)
     {
-        ThrowNewTargetSyntaxErrForGlobalScope();
-        if (pfCanAssign)
+        IdentPtr id = this->m_token.GetIdentifier(this->GetHashTbl());
+
+        switch (metaParentKeyword)
         {
-            *pfCanAssign = FALSE;
+        case tkNEW:
+            if (id == this->GetTargetPid())
+            {
+                ThrowNewTargetSyntaxErrForGlobalScope();
+                if (pfCanAssign)
+                {
+                    *pfCanAssign = FALSE;
+                }
+                return wellKnownPropertyPids._newTarget;
+            }
+            break;
+        case tkIMPORT:
+            if (id == this->GetMetaPid())
+            {
+                if (pfCanAssign)
+                {
+                    *pfCanAssign = FALSE;
+                }
+                return wellKnownPropertyPids._importMeta;
+            }
+            break;
         }
-        return wellKnownPropertyPids._newTarget;
+    }
+
+    if (metaParentKeyword == tkNEW)
+    {
+        Error(ERRValidIfFollowedBy, _u("'new.'"), _u("'target'"));
     }
     else
     {
-        Error(ERRValidIfFollowedBy, _u("'new.'"), _u("'target'"));
+        Error(ERRValidIfFollowedBy, _u("'import.'"), _u("'meta'"));
     }
 }
 
@@ -2698,6 +2731,7 @@ ParseNodePtr Parser::ParseImport()
     Assert(m_scriptContext->GetConfig()->IsES6ModuleEnabled());
     Assert(m_token.tk == tkIMPORT);
 
+    charcount_t ichMin = this->GetScanner()->IchMinTok();
     RestorePoint parsedImport;
     this->GetScanner()->Capture(&parsedImport);
     this->GetScanner()->Scan();
@@ -2714,6 +2748,13 @@ ParseNodePtr Parser::ParseImport()
         BOOL fCanAssign;
         IdentToken token;
         return ParsePostfixOperators<buildAST>(pnode, TRUE, FALSE, FALSE, TRUE, &fCanAssign, &token);
+    }
+    else if (m_token.tk == tkDot && m_scriptContext->GetConfig()->IsESImportMetaEnabled())
+    {
+        BOOL fCanAssign;
+        ParseMetaProperty<buildAST>(tkIMPORT, ichMin, &fCanAssign);
+        this->GetScanner()->SeekTo(parsedImport);
+        return ParseExpr<buildAST>();
     }
 
     this->GetScanner()->SeekTo(parsedImport);
@@ -3647,15 +3688,42 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         break;
 
     case tkIMPORT:
-        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled() && m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
+        if (m_scriptContext->GetConfig()->IsES6ModuleEnabled())
         {
-            if (!fAllowCall)
-            {
-                Error(ERRTokenAfter, _u("import"), _u("new"));
-            }
+            ichMin = this->GetScanner()->IchMinTok();
+            iecpMin = this->GetScanner()->IecpMinTok();
             this->GetScanner()->Scan();
-            ChkCurTokNoScan(tkLParen, ERRnoLparen);
-            pnode = ParseImportCall<buildAST>();
+
+            switch (m_token.tk)
+            {
+            case tkLParen:
+                if (!m_scriptContext->GetConfig()->IsESDynamicImportEnabled())
+                {
+                    goto LUnknown;
+                }
+                if (!fAllowCall)
+                {
+                    Error(ERRTokenAfter, _u("import"), _u("new"));
+                }
+                pnode = ParseImportCall<buildAST>();
+                break;
+            case tkDot:
+                if (!(m_grfscr & fscrIsModuleCode) || !m_scriptContext->GetConfig()->IsESImportMetaEnabled())
+                {
+                    goto LUnknown;
+                }
+                pid = ParseMetaProperty<buildAST>(tkIMPORT, ichMin, &fCanAssign);
+
+                ichLim = this->GetScanner()->IchLimTok();
+                iecpLim = this->GetScanner()->IecpLimTok();
+
+                this->GetScanner()->Scan();
+                isSpecialName = true;
+
+                goto LIdentifier;
+            default:
+                Error(ERRsyntax);
+            }
         }
         else
         {
@@ -11667,6 +11735,7 @@ void Parser::InitPids()
     wellKnownPropertyPids.__proto__ = this->GetHashTbl()->PidHashNameLen(_u("__proto__"), sizeof("__proto__") - 1);
     wellKnownPropertyPids.of = this->GetHashTbl()->PidHashNameLen(_u("of"), sizeof("of") - 1);
     wellKnownPropertyPids.target = this->GetHashTbl()->PidHashNameLen(_u("target"), sizeof("target") - 1);
+    wellKnownPropertyPids.meta = this->GetHashTbl()->PidHashNameLen(_u("meta"), sizeof("meta") - 1);
     wellKnownPropertyPids.as = this->GetHashTbl()->PidHashNameLen(_u("as"), sizeof("as") - 1);
     wellKnownPropertyPids.from = this->GetHashTbl()->PidHashNameLen(_u("from"), sizeof("from") - 1);
     wellKnownPropertyPids._default = this->GetHashTbl()->PidHashNameLen(_u("default"), sizeof("default") - 1);
@@ -11675,6 +11744,7 @@ void Parser::InitPids()
     wellKnownPropertyPids._newTarget = this->GetHashTbl()->PidHashNameLen(_u("*new.target*"), sizeof("*new.target*") - 1);
     wellKnownPropertyPids._super = this->GetHashTbl()->PidHashNameLen(_u("*super*"), sizeof("*super*") - 1);
     wellKnownPropertyPids._superConstructor = this->GetHashTbl()->PidHashNameLen(_u("*superconstructor*"), sizeof("*superconstructor*") - 1);
+    wellKnownPropertyPids._importMeta = this->GetHashTbl()->PidHashNameLen(_u("*import.meta*"), sizeof("*import.meta*") - 1);
 }
 
 void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)

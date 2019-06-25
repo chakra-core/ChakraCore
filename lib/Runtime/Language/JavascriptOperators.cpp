@@ -7276,6 +7276,13 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         *addr = value;
     }
 
+    Var JavascriptOperators::OP_LdImportMeta(uint moduleIndex, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(LdImportMeta);
+        return scriptContext->GetLibrary()->GetModuleRecord(moduleIndex)->GetImportMetaObject();
+        JIT_HELPER_END(LdImportMeta);
+    }
+
     void JavascriptOperators::OP_InitClassMemberSetComputedName(Var object, Var elementName, Var value, ScriptContext* scriptContext, PropertyOperationFlags flags)
     {
         JIT_HELPER_REENTRANT_HEADER(Op_InitClassMemberSetComputedName);

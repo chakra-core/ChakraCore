@@ -702,6 +702,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES7ValuesEntries        (true)
 #define DEFAULT_CONFIG_ESObjectGetOwnPropertyDescriptors (true)
 #define DEFAULT_CONFIG_ESDynamicImport         (false)
+#define DEFAULT_CONFIG_ESImportMeta            (true)
 #define DEFAULT_CONFIG_ESExportNsAs            (true)
 #define DEFAULT_CONFIG_ES2018AsyncIteration    (false)
 
@@ -1227,6 +1228,9 @@ FLAGR(Boolean, ESHashbang, "Enable Hashbang syntax", DEFAULT_CONFIG_ESHashbang)
 
 // ES Symbol.prototype.description flag
 FLAGR(Boolean, ESSymbolDescription, "Enable Symbol.prototype.description", DEFAULT_CONFIG_ESSymbolDescription)
+
+// ES import.meta keyword meta-property
+FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImportMeta)
 
 //ES globalThis flag
 FLAGR(Boolean, ESGlobalThis, "Enable globalThis", DEFAULT_CONFIG_ESGlobalThis)

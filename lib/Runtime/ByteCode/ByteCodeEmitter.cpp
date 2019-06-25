@@ -2071,6 +2071,11 @@ void ByteCodeGenerator::LoadAllConstants(FuncInfo *funcInfo)
         this->LoadSuperConstructorObject(funcInfo);
     }
 
+    if (funcInfo->GetImportMetaSymbol())
+    {
+        this->LoadImportMetaObject(funcInfo);
+    }
+
     //
     // If the function is a function expression with a name,
     // load the function object at runtime to its activation object.
@@ -2228,6 +2233,14 @@ void ByteCodeGenerator::LoadNewTargetObject(FuncInfo *funcInfo)
     {
         m_writer.Reg1(Js::OpCode::LdNewTarget, newTargetSym->GetLocation());
     }
+}
+
+void ByteCodeGenerator::LoadImportMetaObject(FuncInfo* funcInfo)
+{
+    Symbol* importMetaSym = funcInfo->GetImportMetaSymbol();
+    Assert(importMetaSym);
+
+    m_writer.Reg1Unsigned1(Js::OpCode::LdImportMeta, importMetaSym->GetLocation(), this->GetModuleID());
 }
 
 void ByteCodeGenerator::LoadSuperConstructorObject(FuncInfo *funcInfo)

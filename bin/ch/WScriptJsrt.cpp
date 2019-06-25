@@ -612,9 +612,14 @@ JsErrorCode WScriptJsrt::InitializeModuleInfo(JsValueRef specifier, JsModuleReco
         {
             errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_NotifyModuleReadyCallback, (void*)WScriptJsrt::NotifyModuleReadyCallback);
 
-            if (errorCode == JsNoError && moduleRecord != nullptr)
+            if (errorCode == JsNoError)
             {
-                errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
+                errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_InitializeImportMetaCallback, (void*)WScriptJsrt::InitializeImportMetaCallback);
+
+                if (errorCode == JsNoError && moduleRecord != nullptr)
+                {
+                    errorCode = ChakraRTInterface::JsSetModuleHostInfo(moduleRecord, JsModuleHostInfo_HostDefined, specifier);
+                }
             }
         }
     }
@@ -2156,6 +2161,23 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
         }
         WScriptJsrt::PushMessage(moduleMessage);
     }
+    return JsNoError;
+}
+
+JsErrorCode __stdcall WScriptJsrt::InitializeImportMetaCallback(_In_opt_ JsModuleRecord referencingModule, _In_opt_ JsValueRef importMetaVar)
+{
+    if (importMetaVar != nullptr)
+    {
+        JsValueRef specifier = JS_INVALID_REFERENCE;
+        ChakraRTInterface::JsGetModuleHostInfo(referencingModule, JsModuleHostInfo_HostDefined, &specifier);
+
+        JsPropertyIdRef urlPropId;
+        if (JsNoError == CreatePropertyIdFromString("url", &urlPropId))
+        {
+            ChakraRTInterface::JsSetProperty(importMetaVar, urlPropId, specifier, false);
+        }
+    }
+
     return JsNoError;
 }
 

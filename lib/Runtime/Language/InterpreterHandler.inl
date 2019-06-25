@@ -320,6 +320,7 @@ EXDEF3_WMS(CUSTOM,                  InitProto,                  OP_InitProto, El
   DEF3_WMS(CUSTOM,                  StFuncExpr,                 OP_StFunctionExpression, ElementC)
   DEF3_WMS(CUSTOM,                  StLocalFuncExpr,            OP_StLocalFunctionExpression, ElementU)
 EXDEF3_WMS(CUSTOM_L_R0,             LdNewTarget,                OP_LdNewTarget, Reg1)
+EXDEF3_WMS(CUSTOM_L_R0,             LdImportMeta,               OP_LdImportMeta, Reg1Unsigned1)
 EXDEF2    (EMPTY,                   ChkNewCallFlag,             OP_ChkNewCallFlag)
   DEF2_WMS(U1toINNERMemNonVar,      NewBlockScope,              JavascriptOperators::OP_NewBlockScope)
   DEF3_WMS(CUSTOM,                  CloneBlockScope,            OP_CloneBlockScope, Unsigned1)

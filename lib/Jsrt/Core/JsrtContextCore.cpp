@@ -159,6 +159,23 @@ HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecord
     return E_INVALIDARG;
 }
 
+HRESULT ChakraCoreHostScriptContext::InitializeImportMeta(Js::ModuleRecordBase* referencingModule, Js::Var importMetaObject)
+{
+    if (initializeImportMetaCallback == nullptr)
+    {
+        return E_INVALIDARG;
+    }
+    {
+        AUTO_NO_EXCEPTION_REGION;
+        JsErrorCode errorCode = initializeImportMetaCallback(referencingModule, importMetaObject);
+        if (errorCode == JsNoError)
+        {
+            return NOERROR;
+        }
+    }
+    return E_INVALIDARG;
+}
+
 ChakraCoreStreamWriter::~ChakraCoreStreamWriter()
 {
     HeapDelete(m_serializerCore);

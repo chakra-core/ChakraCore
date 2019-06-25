@@ -177,6 +177,7 @@ public:
     Symbol *argumentsSymbol;
     Symbol *thisSymbol;
     Symbol *newTargetSymbol;
+    Symbol* importMetaSymbol;
     Symbol *superSymbol;
     Symbol *superConstructorSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
@@ -323,6 +324,17 @@ public:
     Symbol* GetNewTargetSymbol() const
     {
         return newTargetSymbol;
+    }
+
+    void SetImportMetaSymbol(Symbol* sym)
+    {
+        Assert(importMetaSymbol == nullptr || importMetaSymbol == sym);
+        importMetaSymbol = sym;
+    }
+
+    Symbol* GetImportMetaSymbol() const
+    {
+        return importMetaSymbol;
     }
 
     void SetSuperSymbol(Symbol *sym)

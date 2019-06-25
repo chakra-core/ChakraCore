@@ -2386,6 +2386,10 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
                 {
                     funcInfo->SetNewTargetSymbol(sym);
                 }
+                else if (sym->IsImportMeta())
+                {
+                    funcInfo->SetImportMetaSymbol(sym);
+                }
                 else if (sym->IsSuper())
                 {
                     funcInfo->SetSuperSymbol(sym);
@@ -2939,6 +2943,10 @@ FuncInfo* PostVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeG
         if (top->GetSuperConstructorSymbol())
         {
             byteCodeGenerator->AssignRegister(top->GetSuperConstructorSymbol());
+        }
+        if (top->GetImportMetaSymbol())
+        {
+            byteCodeGenerator->AssignRegister(top->GetImportMetaSymbol());
         }
 
         Assert(!funcExprWithName || sym);

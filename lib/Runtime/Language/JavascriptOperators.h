@@ -373,6 +373,7 @@ namespace Js
         static Field(Var)* OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
         static Var OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
         static void OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext);
+        static Var OP_LdImportMeta(uint moduleIndex, ScriptContext* scriptContext);
 
         static Js::PropertyId GetPropertyId(Var propertyName, ScriptContext* scriptContext);
 

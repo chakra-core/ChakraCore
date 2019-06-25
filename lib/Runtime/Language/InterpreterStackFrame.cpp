@@ -8693,6 +8693,12 @@ skipThunk:
         }
     }
 
+    template <class T> 
+    void InterpreterStackFrame::OP_LdImportMeta(const unaligned T* playout)
+    {
+        SetReg(playout->R0, JavascriptOperators::OP_LdImportMeta(playout->C1, scriptContext));
+    }
+
     Var InterpreterStackFrame::OP_Ld_A(Var aValue)
     {
         return aValue;
