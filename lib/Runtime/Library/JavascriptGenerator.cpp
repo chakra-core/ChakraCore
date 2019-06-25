@@ -105,7 +105,12 @@ namespace Js
                 bool didThrow;
             public:
                 GeneratorStateHelper(JavascriptGenerator* g) : g(g), didThrow(true) { g->SetState(GeneratorState::Executing); }
-                ~GeneratorStateHelper() { g->SetState(didThrow || g->frame == nullptr ? GeneratorState::Completed : GeneratorState::Suspended); }
+                ~GeneratorStateHelper()
+                {
+                    // If the generator is jit'd, we set its interpreter frame to nullptr at the end right before the epilogue
+                    // to signal that the generator has completed
+                    g->SetState(didThrow || g->frame == nullptr ? GeneratorState::Completed : GeneratorState::Suspended);
+                }
                 void DidNotThrow() { didThrow = false; }
             } helper(this);
 

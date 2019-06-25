@@ -4057,6 +4057,8 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
                 continue;
             }
 
+            // Allow us to properly insert compensation code for symbols whose lifetimes start after the generator jump table
+            // The GeneratorBailInLabel will have 2 edges in: one from the normal flow, one straight from the generator jump table
             if (!branchLifetime && lifetime && lifetime->start > branchInstr->GetNumber() && labelInstr->m_opcode == Js::OpCode::GeneratorBailInLabel)
             {
                 continue;
@@ -4977,14 +4979,12 @@ void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
     }
 }
 
+// Note: Comments refer to rax/rcx for x64. For x86, we use their equivalence: eax/ecx
 // Restores the live stack locations followed by the live registers from
 // the interpreter's register slots.
 // RecordDefs each live register that is restored.
 //
 // Generates the following code:
-// 
-// PUSH rax ; if needed
-// PUSH rcx ; if needed
 //
 // MOV rax, param0
 // MOV rax, [rax + JavascriptGenerator::GetFrameOffset()]
@@ -4998,8 +4998,6 @@ void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
 //
 //   MOV sym(register), [rax + regslot offset]
 //
-// POP rax; if needed
-// POP rcx; if needed
 IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo)
 {
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->constantValues.Empty());
@@ -5138,10 +5136,20 @@ bool LinearScan::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym, L
     {
         if (this->func->GetJITFunctionBody()->RegIsConstant(sym->GetByteCodeRegSlot()))
         {
+            // Resume jump table is inserted after we load symbols in the constant table,
+            // so at bail-in point, we can have two scenarios:
+            //  1) the symbols are still in registers
+            //  2) the symbols have already been "spilled"
+            // Since we don't save/restore constant symbols and simply insert loads of their
+            // values before use, in either case, there is no need to reload the values
             return false;
         }
         else
         {
+            // Again, for all other constant symbols, if they are bytecodeUpwardExposed and they have
+            // already been "spilled", which means that the register allocator will automatically
+            // insert the load of their values later before use, we don't need to restore.
+            // Only restore symbols that are still in registers
             return !lifetime->isSpilled;
         }
     }
@@ -5159,6 +5167,8 @@ bool LinearScan::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym, L
 
 IR::SymOpnd* LinearScan::GeneratorBailIn::CreateGeneratorObjectOpnd() const
 {
+    // First parameter passed to the jit'd frame
+    // See `CallGenerator` method
     StackSym* sym = StackSym::NewParamSlotSym(1, this->func);
     this->func->SetArgOffset(sym, LowererMD::GetFormalParamOffset() * MachPtr);
     return IR::SymOpnd::New(sym, TyMachPtr, this->func);

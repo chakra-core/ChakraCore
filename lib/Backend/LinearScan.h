@@ -228,7 +228,7 @@ private:
     static IR::Instr *  InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 
     class GeneratorBailIn {
-        // We need to rely on 2 registers `rax` and `rcx` to generate the bail-in code.
+        // We need to rely on 2 registers `rax` and `rcx` on x64, or `eax` and `ecx` on x86 to generate the bail-in code.
         // At this point, since `rax` already has the address of the generator's interpreter frame,
         // we can easily get the symbols' values through something like: mov dst [rax + appropriate offset]
         //
