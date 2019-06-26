@@ -9694,12 +9694,12 @@ void EmitForInOrForOf(ParseNodeForInOrForOf *loopNode, ByteCodeGenerator *byteCo
     Js::RegSlot regException = Js::Constants::NoRegister;
     Js::RegSlot regOffset = Js::Constants::NoRegister;
 
-    // These two temp variables store the information of return function to be called or not.
-    // one variable is used for catch block and one is used for finally block. These variable will be set to true when we think that return function
-    // to be called on abrupt loop break.
-    // Why two variables? since these are temps and JIT does like not flow if single variable is used in multiple blocks.
-    Js::RegSlot shouldCallReturnFunctionLocation = funcInfo->AcquireTmpRegister();
-    Js::RegSlot shouldCallReturnFunctionLocationFinally = funcInfo->AcquireTmpRegister();
+    // These two temp variables track whether the return method of the source iterator should
+    // be called. One variable is used for catch block and one is used for finally block.
+    // Non-temps are used so that when jitting loop bodies, writes to these variables are not
+    // mistaken for dead stores.
+    Js::RegSlot shouldCallReturnFunctionLocation = loopNode->shouldCallReturnFunctionLocation;
+    Js::RegSlot shouldCallReturnFunctionLocationFinally = loopNode->shouldCallReturnFunctionLocationFinally;
 
     bool isCoroutine = funcInfo->byteCodeFunction->IsCoroutine();
 

@@ -4896,9 +4896,14 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
     case knopForOf:
     case knopForAwaitOf:
-        byteCodeGenerator->AssignNullConstRegister();
-        byteCodeGenerator->AssignUndefinedConstRegister();
-        CheckMaybeEscapedUse(pnode->AsParseNodeForInOrForOf()->pnodeObj, byteCodeGenerator);
+        {
+            ParseNodeForInOrForOf* pnodeForOf = pnode->AsParseNodeForInOrForOf();
+            byteCodeGenerator->AssignNullConstRegister();
+            byteCodeGenerator->AssignUndefinedConstRegister();
+            pnodeForOf->shouldCallReturnFunctionLocation = byteCodeGenerator->NextVarRegister();
+            pnodeForOf->shouldCallReturnFunctionLocationFinally = byteCodeGenerator->NextVarRegister();
+            CheckMaybeEscapedUse(pnodeForOf->pnodeObj, byteCodeGenerator);
+        }
         break;
 
     case knopTrue:

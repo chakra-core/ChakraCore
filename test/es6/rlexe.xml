@@ -1518,4 +1518,11 @@
     <baseline>bug_issue_5994.baseline</baseline>
   </default>
 </test>
+<test>
+  <default>
+    <files>bug_19225364.js</files>
+    <compile-flags>-bgjit- -loopinterpretcount:1</compile-flags>
+    <baseline>bug_19225364.baseline</baseline>
+  </default>
+</test>
 </regress-exe>
