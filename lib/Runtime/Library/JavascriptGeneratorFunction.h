@@ -200,6 +200,11 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptGeneratorFunction;
+        }
     };
 
     typedef FunctionWithComputedName<GeneratorVirtualScriptFunction> GeneratorVirtualScriptFunctionWithComputedName;

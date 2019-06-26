@@ -148,6 +148,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+    , m_forInEnumeratorForGeneratorSym(nullptr)
 #if LOWER_SPLIT_INT64
     , m_int64SymPairMap(nullptr)
 #endif

@@ -3497,8 +3497,19 @@ namespace Js
         VirtualTableRecorder<Js::ScriptFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunction);
         VirtualTableRecorder<Js::JavascriptGeneratorFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptGeneratorFunction);
         VirtualTableRecorder<Js::JavascriptAsyncFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptAsyncFunction);
-        vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj] = VirtualTableInfo<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::Address;
-        vtableAddresses[VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName] = VirtualTableInfo<Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>::Address;
+
+        // ScriptFunction
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::AsmJsScriptFunction>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableAsmJsScriptFunctionWithComputedName);
+        VirtualTableRecorder<Js::FunctionWithHomeObj<Js::ScriptFunction>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithHomeObj);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::ScriptFunction>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithComputedName);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunction>>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithHomeObjAndComputedName);
+        VirtualTableRecorder<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::ScriptFunctionWithInlineCache>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithInlineCacheAndComputedName);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
+        VirtualTableRecorder<Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObj);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::GeneratorVirtualScriptFunction>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableVirtualJavascriptGeneratorFunctionWithComputedName);
+        VirtualTableRecorder<Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>>>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName);
+
         VirtualTableRecorder<Js::ConcatStringMulti>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableConcatStringMulti);
         VirtualTableRecorder<Js::CompoundString>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableCompoundString);
 

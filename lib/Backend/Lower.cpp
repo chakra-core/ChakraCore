@@ -919,14 +919,16 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 // If this RET isn't at the end of the function, insert a branch to
                 // the epilog.
 
-                IR::Instr *exitPrev = m_func->m_exitInstr->m_prev;
-                if (!exitPrev->IsLabelInstr())
+                IR::LabelInstr* epilogue;
+                if (this->m_func->GetJITFunctionBody()->IsCoroutine())
                 {
-                    exitPrev = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-                    m_func->m_exitInstr->InsertBefore(exitPrev);
+                    epilogue = this->m_lowerGeneratorHelper.GetEpilogueForReturnStatements();
                 }
-                IR::BranchInstr *exitBr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode,
-                    exitPrev->AsLabelInstr(), m_func);
+                else
+                {
+                    epilogue = this->EnsureEpilogueLabel();
+                }
+                IR::BranchInstr *exitBr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, epilogue, m_func);
                 instr->InsertAfter(exitBr);
             }
 
@@ -3006,94 +3008,33 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::Yield:
         {
-            instr->FreeSrc1(); // Source is not actually used by the backend other than to calculate lifetime
-            IR::Opnd* dstOpnd = instr->UnlinkDst();
+            this->m_lowerGeneratorHelper.LowerYield(instr);
+            break;
+        }
 
-            // prm2 is the ResumeYieldData pointer per calling convention established in JavascriptGenerator::CallGenerator
-            // This is the value the bytecode expects to be in the dst register of the Yield opcode after resumption.
-            // Load it here after the bail-in.
-
-            StackSym *resumeYieldDataSym = StackSym::NewImplicitParamSym(4, m_func);
-            m_func->SetArgOffset(resumeYieldDataSym, (LowererMD::GetFormalParamOffset() + 1) * MachPtr);
-            IR::SymOpnd * resumeYieldDataOpnd = IR::SymOpnd::New(resumeYieldDataSym, TyMachPtr, m_func);
-
-            AssertMsg(instr->m_next->IsLabelInstr(), "Expect the resume label to immediately follow Yield instruction");
-            InsertMove(dstOpnd, resumeYieldDataOpnd, instr->m_next->m_next);
-
-            GenerateBailOut(instr);
-
+        case Js::OpCode::GeneratorLoadResumeYieldData:
+        {
+            this->m_lowerGeneratorHelper.LowerGeneratorLoadResumeYieldData(instr);
             break;
         }
 
         case Js::OpCode::ResumeYield:
         case Js::OpCode::ResumeYieldStar:
         {
-            IR::Opnd *srcOpnd1 = instr->UnlinkSrc1();
-            IR::Opnd *srcOpnd2 = instr->m_opcode == Js::OpCode::ResumeYieldStar ? instr->UnlinkSrc2() : IR::AddrOpnd::NewNull(m_func);
-            m_lowererMD.LoadHelperArgument(instr, srcOpnd2);
-            m_lowererMD.LoadHelperArgument(instr, srcOpnd1);
-            m_lowererMD.ChangeToHelperCall(instr, IR::HelperResumeYield);
+            this->m_lowerGeneratorHelper.LowerResumeGenerator(instr);
+            break;
+        }
+
+        case Js::OpCode::GeneratorCreateInterpreterStackFrame:
+        {
+            this->m_lowerGeneratorHelper.LowerCreateInterpreterStackFrameForGenerator(instr);
             break;
         }
 
         case Js::OpCode::GeneratorResumeJumpTable:
         {
-            // Lowered in LowerPrologEpilog so that the jumps introduced are not considered to be part of the flow for the RegAlloc phase.
-
-            // Introduce a BailOutNoSave label if there were yield points that were elided due to optimizations.  They could still be hit
-            // if an active generator object had been paused at such a yield point when the function body was JITed.  So safe guard such a
-            // case by having the native code simply jump back to the interpreter for such yield points.
-
-            IR::LabelInstr *bailOutNoSaveLabel = nullptr;
-
-            m_func->MapUntilYieldOffsetResumeLabels([this, &bailOutNoSaveLabel](int, const YieldOffsetResumeLabel& yorl)
-            {
-                if (yorl.Second() == nullptr)
-                {
-                    if (bailOutNoSaveLabel == nullptr)
-                    {
-                        bailOutNoSaveLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-                    }
-
-                    return true;
-                }
-
-                return false;
-            });
-
-            // Insert the bailoutnosave label somewhere along with a call to BailOutNoSave helper
-            if (bailOutNoSaveLabel != nullptr)
-            {
-                IR::Instr * exitPrevInstr = this->m_func->m_exitInstr->m_prev;
-                IR::LabelInstr * exitTargetInstr;
-                if (exitPrevInstr->IsLabelInstr())
-                {
-                    exitTargetInstr = exitPrevInstr->AsLabelInstr();
-                    exitPrevInstr = exitPrevInstr->m_prev;
-                }
-                else
-                {
-                    exitTargetInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
-                    exitPrevInstr->InsertAfter(exitTargetInstr);
-                }
-
-                bailOutNoSaveLabel->m_hasNonBranchRef = true;
-                bailOutNoSaveLabel->isOpHelper = true;
-
-                IR::Instr* bailOutCall = IR::Instr::New(Js::OpCode::Call, m_func);
-
-                exitPrevInstr->InsertAfter(bailOutCall);
-                exitPrevInstr->InsertAfter(bailOutNoSaveLabel);
-                exitPrevInstr->InsertAfter(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, exitTargetInstr, m_func));
-
-                IR::RegOpnd * frameRegOpnd = IR::RegOpnd::New(nullptr, LowererMD::GetRegFramePointer(), TyMachPtr, m_func);
-
-                m_lowererMD.LoadHelperArgument(bailOutCall, frameRegOpnd);
-                m_lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
-
-                m_func->m_bailOutNoSaveLabel = bailOutNoSaveLabel;
-            }
-
+            this->m_lowerGeneratorHelper.InsertBailOutForElidedYield();
+            this->m_lowerGeneratorHelper.LowerGeneratorResumeJumpTable(instr);
             break;
         }
 
@@ -3197,6 +3138,13 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::StPropIdArrFromVar:
             instrPrev = this->LowerStPropIdArrFromVar(instr);
+            break;
+
+        case Js::OpCode::GeneratorBailInLabel:
+        case Js::OpCode::GeneratorResumeYieldLabel:
+        case Js::OpCode::GeneratorEpilogueFrameNullOut:
+        case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+            Assert(this->m_func->GetJITFunctionBody()->IsCoroutine());
             break;
 
         default:
@@ -5550,11 +5498,6 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
 void
 Lowerer::LowerPrologEpilog()
 {
-    if (m_func->GetJITFunctionBody()->IsCoroutine())
-    {
-        LowerGeneratorResumeJumpTable();
-    }
-
     IR::Instr * instr;
 
     instr = m_func->m_headInstr;
@@ -5564,6 +5507,12 @@ Lowerer::LowerPrologEpilog()
 
     instr = m_func->m_exitInstr;
     AssertMsg(instr->IsExitInstr(), "Last instr isn't an ExitInstr...");
+
+    if (m_func->GetJITFunctionBody()->IsCoroutine())
+    {
+        IR::LabelInstr* epilogueLabel = this->m_lowerGeneratorHelper.GetEpilogueForReturnStatements();
+        this->m_lowerGeneratorHelper.InsertNullOutGeneratorFrameInEpilogue(epilogueLabel);
+    }
 
     m_lowererMD.LowerExitInstr(instr->AsExitInstr());
 }
@@ -5582,45 +5531,6 @@ Lowerer::LowerPrologEpilogAsmJs()
     AssertMsg(instr->IsExitInstr(), "Last instr isn't an ExitInstr...");
 
     m_lowererMD.LowerExitInstrAsmJs(instr->AsExitInstr());
-}
-
-void
-Lowerer::LowerGeneratorResumeJumpTable()
-{
-    Assert(m_func->GetJITFunctionBody()->IsCoroutine());
-
-    IR::Instr * jumpTableInstr = m_func->m_headInstr;
-    AssertMsg(jumpTableInstr->IsEntryInstr(), "First instr isn't an EntryInstr...");
-
-    // Hope to do away with this linked list scan by moving this lowering to a post-prolog-epilog/pre-encoder phase that is common to all architectures (currently such phase is only available on amd64/arm)
-    while (jumpTableInstr->m_opcode != Js::OpCode::GeneratorResumeJumpTable)
-    {
-        jumpTableInstr = jumpTableInstr->m_next;
-    }
-
-    IR::Opnd * srcOpnd = jumpTableInstr->UnlinkSrc1();
-
-    m_func->MapYieldOffsetResumeLabels([&](int i, const YieldOffsetResumeLabel& yorl)
-    {
-        uint32 offset = yorl.First();
-        IR::LabelInstr * label = yorl.Second();
-
-        if (label != nullptr && label->m_hasNonBranchRef)
-        {
-            // Also fix up the bailout at the label with the jump to epilog that was not emitted in GenerateBailOut()
-            Assert(label->m_prev->HasBailOutInfo());
-            GenerateJumpToEpilogForBailOut(label->m_prev->GetBailOutInfo(), label->m_prev);
-        }
-        else if (label == nullptr)
-        {
-            label = m_func->m_bailOutNoSaveLabel;
-        }
-
-        // For each offset label pair, insert a compare of the offset and branch if equal to the label
-        InsertCompareBranch(srcOpnd, IR::IntConstOpnd::New(offset, TyUint32, m_func), Js::OpCode::BrSrEq_A, label, jumpTableInstr);
-    });
-
-    jumpTableInstr->Remove();
 }
 
 void
@@ -14417,36 +14327,49 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
     instr->SetSrc1(IR::HelperCallOpnd::New(helperMethod, this->m_func));
     m_lowererMD.LowerCall(instr, 0);
 
-    if (bailOutInstr->GetBailOutKind() != IR::BailOutForGeneratorYield)
+    if (this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
-        // Defer introducing the JMP to epilog until LowerPrologEpilog phase for Yield bailouts so
-        // that Yield does not appear to have flow out of its containing block for the RegAlloc phase.
-        // Yield is an unconditional bailout but we want to simulate the flow as if the Yield were
-        // just like a call.
-        GenerateJumpToEpilogForBailOut(bailOutInfo, instr);
+        if (bailOutInstr->GetBailOutKind() != IR::BailOutForGeneratorYield)
+        {
+            // Defer introducing the JMP to epilog until LowerPrologEpilog phase for Yield bailouts so
+            // that Yield does not appear to have flow out of its containing block for the RegAlloc phase.
+            // Yield is an unconditional bailout but we want to simulate the flow as if the Yield were
+            // just like a call.
+            GenerateJumpToEpilogForBailOut(bailOutInfo, instr, this->m_lowerGeneratorHelper.GetEpilogueForBailOut());
+        }
     }
+    else
+    {
+        GenerateJumpToEpilogForBailOut(bailOutInfo, instr, this->EnsureEpilogueLabel());
+    }
+
+
 
     return collectRuntimeStatsLabel ? collectRuntimeStatsLabel : bailOutLabel;
 }
 
-void
-Lowerer::GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instr)
+IR::LabelInstr *
+Lowerer::EnsureEpilogueLabel() const
 {
-    IR::Instr * exitPrevInstr = this->m_func->m_exitInstr->m_prev;
-    // JMP to the epilog
-    IR::LabelInstr * exitTargetInstr;
+    Assert(!this->m_func->GetJITFunctionBody()->IsCoroutine());
+    IR::Instr* exitPrevInstr = this->m_func->m_exitInstr->m_prev;
     if (exitPrevInstr->IsLabelInstr())
     {
-        exitTargetInstr = exitPrevInstr->AsLabelInstr();
+        return exitPrevInstr->AsLabelInstr();
     }
     else
     {
-        exitTargetInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
-        exitPrevInstr->InsertAfter(exitTargetInstr);
+        IR::LabelInstr* epilogueLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, false);
+        LABELNAMESET(epilogueLabel, "Epilogue");
+        exitPrevInstr->InsertAfter(epilogueLabel);
+        return epilogueLabel;
     }
+}
 
+void
+Lowerer::GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instr, IR::LabelInstr *exitTargetInstr)
+{
     exitTargetInstr = m_lowererMD.GetBailOutStackRestoreLabel(bailOutInfo, exitTargetInstr);
-
     IR::Instr * instrAfter = instr->m_next;
     IR::BranchInstr * exitInstr = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, exitTargetInstr, this->m_func);
     instrAfter->InsertBefore(exitInstr);
@@ -25672,9 +25595,7 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
     Func *func = instr->m_func;
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-    IR::LabelInstr *labelInlineFunc = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::LabelInstr *testLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-    IR::LabelInstr *scriptFuncLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
     IR::Opnd *opndUndefAddress = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
 
     IR::RegOpnd *instanceRegOpnd = IR::RegOpnd::New(TyMachPtr, func);
@@ -25695,27 +25616,71 @@ Lowerer::GenerateLdHomeObj(IR::Instr* instr)
 
     if (func->GetJITFunctionBody()->HasHomeObj())
     {
-        // Is this an function with inline cache and home obj??
-        IR::Opnd * vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
-        IR::BranchInstr* inlineFuncHomObjOpndBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
-        InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjOpndBr, instr, false);
-        IR::IndirOpnd *indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
-        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
-        InsertBranch(Js::OpCode::Br, testLabel, instr);
+        // Is this a generator function with home obj?
+        {
+            IR::LabelInstr* nextCaseLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+            LABELNAMESET(nextCaseLabel, "GeneratorFunctionWithHomeObjAndComputedName");
 
-        instr->InsertBefore(labelInlineFunc);
+            IR::Opnd* vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObj);
+            IR::BranchInstr* inlineFuncHomObjOpndBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, nextCaseLabel, instr);
+            InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjOpndBr, instr, false);
+            IR::IndirOpnd* indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>::GetOffsetOfHomeObj(), TyMachPtr, func);
+            Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+            InsertBranch(Js::OpCode::Br, testLabel, instr);
 
-        // Is this a function with inline cache, home obj and computed name??
-        IR::Opnd * vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
-        IR::BranchInstr* inlineFuncHomObjCompNameBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
-        InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjCompNameBr, instr, false);
-        IR::IndirOpnd *indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
-        Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
-        InsertBranch(Js::OpCode::Br, testLabel, instr);
+            instr->InsertBefore(nextCaseLabel);
+        }
 
-        instr->InsertBefore(scriptFuncLabel);
-        IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
-        Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
+        // Is this a generator function with home obj and computed name?
+        {
+            IR::LabelInstr* nextCaseLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+            LABELNAMESET(nextCaseLabel, "FunctionWithInlineCacheAndHomeObj");
+
+            IR::Opnd* vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName);
+            IR::BranchInstr* inlineFuncHomObjOpndBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, nextCaseLabel, instr);
+            InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjOpndBr, instr, false);
+            IR::IndirOpnd* indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+            Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+            InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+            instr->InsertBefore(nextCaseLabel);
+        }
+
+        // Is this an function with inline cache and home obj?
+        {
+            IR::LabelInstr* labelInlineFunc = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+            LABELNAMESET(labelInlineFunc, "FunctionWithInlineCacheHomeObjAndComputedName");
+
+            IR::Opnd* vtableAddressInlineFuncHomObjOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj);
+            IR::BranchInstr* inlineFuncHomObjOpndBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjOpnd, Js::OpCode::BrNeq_A, labelInlineFunc, instr);
+            InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjOpndBr, instr, false);
+            IR::IndirOpnd* indirInlineFuncHomeObjOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::GetOffsetOfHomeObj(), TyMachPtr, func);
+            Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjOpnd, instr);
+            InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+            instr->InsertBefore(labelInlineFunc);
+        }
+
+        // Is this a function with inline cache, home obj and computed name?
+        {
+            IR::LabelInstr* scriptFuncLabel = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+            LABELNAMESET(scriptFuncLabel, "ScriptFunctionWithHomeObj");
+
+            IR::Opnd* vtableAddressInlineFuncHomObjCompNameOpnd = this->LoadVTableValueOpnd(instr, VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName);
+            IR::BranchInstr* inlineFuncHomObjCompNameBr = InsertCompareBranch(IR::IndirOpnd::New(instanceRegOpnd, 0, TyMachPtr, func), vtableAddressInlineFuncHomObjCompNameOpnd, Js::OpCode::BrNeq_A, scriptFuncLabel, instr);
+            InsertObjectPoison(instanceRegOpnd, inlineFuncHomObjCompNameBr, instr, false);
+            IR::IndirOpnd* indirInlineFuncHomeObjCompNameOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::GetOffsetOfHomeObj(), TyMachPtr, func);
+            Lowerer::InsertMove(instanceRegOpnd, indirInlineFuncHomeObjCompNameOpnd, instr);
+            InsertBranch(Js::OpCode::Br, testLabel, instr);
+
+            instr->InsertBefore(scriptFuncLabel);
+        }
+
+        // All other cases
+        {
+            IR::IndirOpnd* indirOpnd = IR::IndirOpnd::New(instanceRegOpnd, Js::ScriptFunctionWithHomeObj::GetOffsetOfHomeObj(), TyMachPtr, func);
+            Lowerer::InsertMove(instanceRegOpnd, indirOpnd, instr);
+        }
     }
     else
     {
@@ -26549,8 +26514,6 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
     case Js::OpCode::TryCatch:
     case Js::OpCode::TryFinally:
     case Js::OpCode::Catch:
-    case Js::OpCode::GeneratorResumeJumpTable:
-
     case Js::OpCode::Break:
 
 #ifdef _M_X64
@@ -26587,6 +26550,12 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
         Assert(func->HasTry() && func->DoOptimizeTry());
         return func && !func->isPostFinalLower; //Lowered in FinalLower phase
 
+    case Js::OpCode::GeneratorBailInLabel:
+    case Js::OpCode::GeneratorResumeYieldLabel:
+    case Js::OpCode::GeneratorEpilogueFrameNullOut:
+    case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+        return func->GetJITFunctionBody()->IsCoroutine();
+
     case Js::OpCode::LazyBailOutThunkLabel:
         return func && func->HasLazyBailOut() && func->isPostFinalLower; //Lowered in FinalLower phase
     };
@@ -26617,29 +26586,8 @@ void Lowerer::LowerProfiledBinaryOp(IR::JitProfilingInstr* instr, IR::JnHelperMe
     m_lowererMD.LowerCall(instr, 0);
 }
 
-void Lowerer::GenerateNullOutGeneratorFrame(IR::Instr* insertInstr)
-{
-    // null out frame pointer on generator object to signal completion to JavascriptGenerator::CallGenerator
-    // s = MOV prm1
-    // s[offset of JavascriptGenerator::frame] = MOV nullptr
-    StackSym *symSrc = StackSym::NewImplicitParamSym(3, m_func);
-    m_func->SetArgOffset(symSrc, LowererMD::GetFormalParamOffset() * MachPtr);
-    IR::SymOpnd *srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, m_func);
-    IR::RegOpnd *dstOpnd = IR::RegOpnd::New(TyMachReg, m_func);
-    InsertMove(dstOpnd, srcOpnd, insertInstr);
-
-    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(dstOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, m_func);
-    IR::AddrOpnd *addrOpnd = IR::AddrOpnd::NewNull(m_func);
-    InsertMove(indirOpnd, addrOpnd, insertInstr);
-}
-
 void Lowerer::LowerFunctionExit(IR::Instr* funcExit)
 {
-    if (m_func->GetJITFunctionBody()->IsCoroutine())
-    {
-        GenerateNullOutGeneratorFrame(funcExit->m_prev);
-    }
-
     if (!m_func->DoSimpleJitDynamicProfile())
     {
         return;
@@ -29179,3 +29127,197 @@ Lowerer::LowerCheckUpperIntBound(IR::Instr * instr)
     return instrPrev;
 }
 #endif
+
+Lowerer::LowerGeneratorHelper::LowerGeneratorHelper(Func* func, Lowerer* lowerer, LowererMD& lowererMD):
+    func(func), lowerer(lowerer), lowererMD(lowererMD) {}
+
+void Lowerer::LowerGeneratorHelper::InsertNullOutGeneratorFrameInEpilogue(IR::LabelInstr* epilogueLabel)
+{
+    IR::Instr* insertionPoint = epilogueLabel->m_next;
+
+    // null out frame pointer on generator object to signal completion to JavascriptGenerator::CallGenerator
+    // s = MOV prm1
+    // s[offset of JavascriptGenerator::frame] = MOV nullptr
+    StackSym* symSrc = StackSym::NewImplicitParamSym(3, this->func);
+    this->func->SetArgOffset(symSrc, LowererMD::GetFormalParamOffset() * MachPtr);
+    IR::SymOpnd* srcOpnd = IR::SymOpnd::New(symSrc, TyMachPtr, this->func);
+    IR::RegOpnd* dstOpnd = IR::RegOpnd::New(TyMachReg, this->func);
+
+    // Since we are already in the epilogue, use one of the caller-saved
+    // registers to store the address to our interpreter frame
+#if defined(_M_X64)
+    dstOpnd->SetReg(RegRCX);
+#elif defined(_M_IX86)
+    dstOpnd->SetReg(RegECX);
+#endif
+
+    InsertMove(dstOpnd, srcOpnd, insertionPoint);
+
+    IR::IndirOpnd* indirOpnd = IR::IndirOpnd::New(dstOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, this->func);
+    IR::AddrOpnd* addrOpnd = IR::AddrOpnd::NewNull(this->func);
+    InsertMove(indirOpnd, addrOpnd, insertionPoint);
+}
+
+void
+Lowerer::LowerGeneratorHelper::InsertBailOutForElidedYield()
+{
+    IR::LabelInstr* bailOutNoSaveLabel = nullptr;
+
+    this->func->MapUntilYieldOffsetResumeLabels([this, &bailOutNoSaveLabel](int, const YieldOffsetResumeLabel& yorl)
+    {
+        if (yorl.Second() == nullptr)
+        {
+            if (bailOutNoSaveLabel == nullptr)
+            {
+                bailOutNoSaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+            }
+
+            return true;
+        }
+
+        return false;
+    });
+
+    // Insert the bailoutnosave label somewhere along with a call to BailOutNoSave helper
+    if (bailOutNoSaveLabel != nullptr)
+    {
+        bailOutNoSaveLabel->m_hasNonBranchRef = true;
+        bailOutNoSaveLabel->isOpHelper = true;
+
+        IR::Instr* exitPrevInstr = this->GetEpilogueForReturnStatements()->m_prev;
+        IR::Instr* bailOutCall = IR::Instr::New(Js::OpCode::Call, this->func);
+        IR::Instr* branchToEpilogue = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, this->GetEpilogueForBailOut(), this->func);
+
+        exitPrevInstr->InsertBefore(bailOutNoSaveLabel);
+        exitPrevInstr->InsertBefore(bailOutCall);
+        exitPrevInstr->InsertBefore(branchToEpilogue);
+
+        IR::RegOpnd* frameRegOpnd = IR::RegOpnd::New(nullptr, LowererMD::GetRegFramePointer(), TyMachPtr, this->func);
+        this->lowererMD.LoadHelperArgument(bailOutCall, frameRegOpnd);
+        this->lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
+
+        this->func->m_bailOutNoSaveLabel = bailOutNoSaveLabel;
+        LABELNAMESET(bailOutNoSaveLabel, "GeneratorBailOutForElidedYield");
+    }
+}
+
+void
+Lowerer::LowerGeneratorHelper::EnsureEpilogueLabels()
+{
+    if (epilogueForBailOut != nullptr && epilogueForReturnStatements != nullptr)
+    {
+        return;
+    }
+
+    IR::LabelInstr* withSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueFrameNullOut, this->func, false);
+    LABELNAMESET(withSignalGeneratorDone, "Epilogue_WithSignalGeneratorDone");
+    withSignalGeneratorDone->m_hasNonBranchRef = true;
+    this->epilogueForReturnStatements = withSignalGeneratorDone;
+
+    IR::LabelInstr* withoutSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueNoFrameNullOut, this->func, false);
+    LABELNAMESET(withoutSignalGeneratorDone, "Epilogue_NoSignalGeneratorDone");
+    withoutSignalGeneratorDone->m_hasNonBranchRef = true;
+    this->epilogueForBailOut = withoutSignalGeneratorDone;
+
+    this->func->m_exitInstr->InsertBefore(withSignalGeneratorDone);
+    this->func->m_exitInstr->InsertBefore(withoutSignalGeneratorDone);
+}
+
+
+IR::LabelInstr*
+Lowerer::LowerGeneratorHelper::GetEpilogueForReturnStatements()
+{
+    this->EnsureEpilogueLabels();
+    return this->epilogueForReturnStatements;
+}
+
+IR::LabelInstr*
+Lowerer::LowerGeneratorHelper::GetEpilogueForBailOut()
+{
+    this->EnsureEpilogueLabels();
+    return this->epilogueForBailOut;
+}
+
+void
+Lowerer::LowerGeneratorHelper::LowerGeneratorResumeJumpTable(IR::Instr* jumpTableInstr)
+{
+    Assert(this->func->GetJITFunctionBody()->IsCoroutine());
+    Assert(jumpTableInstr->m_opcode == Js::OpCode::GeneratorResumeJumpTable);
+
+    IR::Opnd* srcOpnd = jumpTableInstr->UnlinkSrc1();
+
+    this->func->MapYieldOffsetResumeLabels([this, &srcOpnd, &jumpTableInstr](int i, const YieldOffsetResumeLabel& yorl)
+    {
+        uint32 offset = yorl.First();
+        IR::LabelInstr* label = yorl.Second();
+
+        if (label != nullptr && label->m_hasNonBranchRef)
+        {
+            // Also fix up the bailout at the label with the jump to epilog that was not emitted in GenerateBailOut()
+            this->lowerer->GenerateJumpToEpilogForBailOut(label->m_prev->GetBailOutInfo(), label->m_prev, this->GetEpilogueForBailOut());
+        }
+        else if (label == nullptr)
+        {
+            label = this->func->m_bailOutNoSaveLabel;
+        }
+
+        // For each offset label pair, insert a compare of the offset and branch if equal to the label
+        this->lowerer->InsertCompareBranch(srcOpnd, IR::IntConstOpnd::New(offset, TyUint32, this->func), Js::OpCode::BrSrEq_A, label, jumpTableInstr);
+    });
+
+    jumpTableInstr->Remove();
+}
+
+void
+Lowerer::LowerGeneratorHelper::LowerCreateInterpreterStackFrameForGenerator(IR::Instr* instr)
+{
+    IR::Opnd* scriptFunctionOpnd = nullptr;
+    IR::Opnd* functionBodyOpnd = this->lowerer->CreateFunctionBodyOpnd(instr->m_func);
+    IR::Opnd* generatorOpnd = instr->UnlinkSrc1();
+    IR::IntConstOpnd* doProfileOpnd = IR::IntConstOpnd::New(0, TyInt8, instr->m_func);
+
+    this->lowererMD.LoadFunctionObjectOpnd(instr, scriptFunctionOpnd);
+
+    this->lowererMD.LoadHelperArgument(instr, doProfileOpnd);
+    this->lowererMD.LoadHelperArgument(instr, generatorOpnd);
+    this->lowererMD.LoadHelperArgument(instr, functionBodyOpnd);
+    this->lowererMD.LoadHelperArgument(instr, scriptFunctionOpnd);
+
+    this->lowererMD.ChangeToHelperCall(instr, IR::HelperCreateInterpreterStackFrameForGenerator);
+}
+
+IR::SymOpnd*
+Lowerer::LowerGeneratorHelper::CreateResumeYieldDataOpnd() const
+{
+    StackSym* resumeYieldDataSym = StackSym::NewImplicitParamSym(4, this->func);
+    this->func->SetArgOffset(resumeYieldDataSym, (LowererMD::GetFormalParamOffset() + 1) * MachPtr);
+    return IR::SymOpnd::New(resumeYieldDataSym, TyMachPtr, this->func);
+}
+
+void
+Lowerer::LowerGeneratorHelper::LowerGeneratorLoadResumeYieldData(IR::Instr* instr)
+{
+    // prm2 is the ResumeYieldData pointer per calling convention established in JavascriptGenerator::CallGenerator
+    // This is the value the bytecode expects to be in the dst register of the Yield opcode after resumption.
+    // Load it here after the bail-in.
+    this->lowerer->InsertMove(instr->UnlinkDst(), this->CreateResumeYieldDataOpnd(), instr);
+    instr->Unlink();
+}
+
+void
+Lowerer::LowerGeneratorHelper::LowerResumeGenerator(IR::Instr* instr)
+{
+    IR::Opnd* srcOpnd1 = instr->UnlinkSrc1();
+    IR::Opnd* srcOpnd2 = instr->m_opcode == Js::OpCode::ResumeYieldStar ? instr->UnlinkSrc2() : IR::AddrOpnd::NewNull(this->func);
+    this->lowererMD.LoadHelperArgument(instr, srcOpnd2);
+    this->lowererMD.LoadHelperArgument(instr, srcOpnd1);
+    this->lowererMD.ChangeToHelperCall(instr, IR::HelperResumeYield);
+}
+
+void
+Lowerer::LowerGeneratorHelper::LowerYield(IR::Instr* instr)
+{
+    instr->FreeSrc1(); // Source is not actually used by the backend other than to calculate lifetime
+    instr->FreeDst();
+    this->lowerer->GenerateBailOut(instr);
+}

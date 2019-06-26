@@ -867,3 +867,53 @@ using namespace Js;
         }
         SetHasInlineCaches(false);
     }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::AsmJsScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableAsmJsScriptFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::ScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::ScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunction>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithHomeObjAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheAndHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::ScriptFunctionWithInlineCache>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::ScriptFunctionWithInlineCache>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableScriptFunctionWithInlineCacheHomeObjAndComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObj;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::GeneratorVirtualScriptFunction>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithComputedName;
+    }
+
+    template <> VTableValue Js::FunctionWithComputedName<Js::FunctionWithHomeObj<Js::GeneratorVirtualScriptFunction>>::DummyVirtualFunctionToHinderLinkerICF() const
+    {
+        return VTableValue::VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName;
+    }

@@ -205,7 +205,8 @@ public:
         return
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch()) &&
-            (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally());
+            (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally()) &&
+            !GetTopFunc()->GetJITFunctionBody()->IsCoroutine();
     }
 
     bool DoInline() const
@@ -1061,10 +1062,22 @@ private:
     StackSym* m_loopParamSym;
     StackSym* m_bailoutReturnValueSym;
     StackSym* m_hasBailedOutSym;
+    StackSym* m_forInEnumeratorForGeneratorSym;
 
 public:
     StackSym* tempSymDouble;
     StackSym* tempSymBool;
+
+    void SetForInEnumeratorSymForGeneratorSym(StackSym* sym)
+    {
+        Assert(this->m_forInEnumeratorForGeneratorSym == nullptr);
+        this->m_forInEnumeratorForGeneratorSym = sym;
+    }
+
+    StackSym* GetForInEnumeratorSymForGeneratorSym() const
+    {
+        return this->m_forInEnumeratorForGeneratorSym;
+    }
 
     // StackSyms' corresponding getters/setters
     void SetInlineeFrameStartSym(StackSym* sym)

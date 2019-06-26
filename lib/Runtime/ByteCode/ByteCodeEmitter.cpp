@@ -8223,8 +8223,10 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
 
             Js::AuxArray<uint32> *spreadIndices = nullptr;
 
+            // Emit argouts at end for generators so that we don't need to restore them when bailing in
+            bool emitArgOutsAtEnd = pnode->AsParseNodeCall()->hasDestructuring || (funcInfo->byteCodeFunction->IsCoroutine() && pnode->AsParseNodeCall()->pnodeArgs != nullptr);
             actualArgCount = EmitArgList(pnode->AsParseNodeCall()->pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister,
-                false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, pnode->AsParseNodeCall()->hasDestructuring, emitProfiledArgouts, pnode->AsParseNodeCall()->spreadArgCount, &spreadIndices);
+                false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, emitArgOutsAtEnd, emitProfiledArgouts, pnode->AsParseNodeCall()->spreadArgCount, &spreadIndices);
 
             funcInfo->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
 
@@ -8361,8 +8363,11 @@ void EmitCall(
 
     // Only emit profiled argouts if we're going to allocate callSiteInfo (on the DynamicProfileInfo) for this call.
     bool emitProfiledArgouts = callSiteId != byteCodeGenerator->GetCurrentCallSiteId();
+
+    // Emit argouts at end for generators so that we don't need to restore them when bailing in
+    bool emitArgOutsAtEnd = pnodeCall->hasDestructuring || (funcInfo->byteCodeFunction->IsCoroutine() && pnodeCall->pnodeArgs != nullptr);
     Js::AuxArray<uint32> *spreadIndices;
-    EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, (Js::ArgSlot)argCount, pnodeCall->hasDestructuring, emitProfiledArgouts, spreadArgCount, &spreadIndices);
+    EmitArgList(pnodeArgs, thisLocation, newTargetLocation, fIsEval, fEvaluateComponents, byteCodeGenerator, funcInfo, callSiteId, (Js::ArgSlot)argCount, emitArgOutsAtEnd, emitProfiledArgouts, spreadArgCount, &spreadIndices);
 
     if (!fEvaluateComponents)
     {
@@ -10284,8 +10289,6 @@ void EmitYield(Js::RegSlot inputLocation, Js::RegSlot resultLocation, ByteCodeGe
 
 void EmitYieldStar(ParseNodeUni* yieldStarNode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
 {
-    funcInfo->AcquireLoc(yieldStarNode);
-
     Js::ByteCodeLabel loopEntrance = byteCodeGenerator->Writer()->DefineLabel();
     Js::ByteCodeLabel continuePastLoop = byteCodeGenerator->Writer()->DefineLabel();
 

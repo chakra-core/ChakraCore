@@ -104,11 +104,22 @@ Peeps::PeepFunc()
         }
 
         case IR::InstrKindBranch:
+        {
             if (!peepsEnabled || instr->m_opcode == Js::OpCode::Leave)
             {
                 break;
             }
-            instrNext = Peeps::PeepBranch(instr->AsBranchInstr());
+
+            IR::BranchInstr *branchInstr = instr->AsBranchInstr();
+            IR::LabelInstr* target = branchInstr->GetTarget();
+
+            // Don't remove any branches to the generator's epilogue
+            if (target != nullptr && target->IsGeneratorEpilogueLabel())
+            {
+                break;
+            }
+
+            instrNext = Peeps::PeepBranch(branchInstr);
 #if defined(_M_IX86) || defined(_M_X64)
             Assert(instrNext && instrNext->m_prev);
             if (instrNext->m_prev->IsBranchInstr())
@@ -118,7 +129,7 @@ Peeps::PeepFunc()
 
 #endif
             break;
-
+        }
         case IR::InstrKindPragma:
             if (instr->m_opcode == Js::OpCode::Nop)
             {

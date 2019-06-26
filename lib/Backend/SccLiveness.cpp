@@ -298,7 +298,7 @@ SCCLiveness::Build()
             this->EndOpHelper(instr);
         }
 
-    }NEXT_INSTR_IN_FUNC_EDITING;
+    } NEXT_INSTR_IN_FUNC_EDITING;
 
     if (this->func->HasTry())
     {

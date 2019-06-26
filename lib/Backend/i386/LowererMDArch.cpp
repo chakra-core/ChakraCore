@@ -347,7 +347,7 @@ LowererMDArch::LoadHeapArguments(IR::Instr *instrArgs)
 
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::Opnd *opnd = this->lowererMD->CreateStackArgumentsSlotOpnd();
+            IR::Opnd *opnd = LowererMD::CreateStackArgumentsSlotOpnd(func);
             instr = IR::Instr::New(Js::OpCode::MOV, opnd, instrArgs->GetDst(), func);
             instrArgs->InsertAfter(instr);
         }
@@ -460,7 +460,7 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
             this->LoadHelperArgument(instrArgs, srcOpnd);
 
             // Save the newly-created args object to its dedicated stack slot.
-            IR::Opnd *opnd = this->lowererMD->CreateStackArgumentsSlotOpnd();
+            IR::Opnd *opnd = LowererMD::CreateStackArgumentsSlotOpnd(func);
             instr = IR::Instr::New(Js::OpCode::MOV, opnd, instrArgs->GetDst(), func);
             instrArgs->InsertAfter(instr);
         }

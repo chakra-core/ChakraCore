@@ -3408,10 +3408,7 @@ namespace Js
             return IsJitLoopBodyPhaseForced() && !this->GetHasTry();
         }
 
-        bool IsGeneratorAndJitIsDisabled()
-        {
-            return this->IsCoroutine() && !(CONFIG_ISENABLED(Js::JitES6GeneratorsFlag) && !this->GetHasTry());
-        }
+        bool IsGeneratorAndJitIsDisabled() const;
 
         FunctionBodyFlags * GetAddressOfFlags() { return &this->flags; }
         Js::RegSlot GetRestParamRegSlot();

@@ -41,6 +41,7 @@ namespace Js
         }
         virtual Var GetComputedNameVar() const override { return this->computedNameVar; }
         virtual void SetComputedNameVar(Var computedNameVar) override { this->computedNameVar = computedNameVar; }
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF() const;
     };
 
     template <class BaseClass>
@@ -60,6 +61,7 @@ namespace Js
         virtual Var GetHomeObj() const override { return homeObj; }
         virtual void SetHomeObj(Var homeObj) override { this->homeObj = homeObj; }
         static uint32 GetOffsetOfHomeObj() { return  offsetof(FunctionWithHomeObj<BaseClass>, homeObj); }
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF() const;
     };
 
     class ScriptFunction : public ScriptFunctionBase

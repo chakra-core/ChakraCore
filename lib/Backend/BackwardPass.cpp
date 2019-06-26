@@ -88,18 +88,24 @@ BackwardPass::DoMarkTempNumbers() const
 }
 
 bool
-BackwardPass::DoMarkTempObjects() const
-{
-    // only mark temp object on the backward store phase
-    return (tag == Js::BackwardPhase) && !PHASE_OFF(Js::MarkTempPhase, this->func) &&
-        !PHASE_OFF(Js::MarkTempObjectPhase, this->func) && func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
-        !func->IsJitInDebugMode() &&
-        func->DoGlobOptsForGeneratorFunc();
+BackwardPass::SatisfyMarkTempObjectsConditions() const {
+    return !PHASE_OFF(Js::MarkTempPhase, this->func) &&
+           !PHASE_OFF(Js::MarkTempObjectPhase, this->func) &&
+           func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
+           !func->IsJitInDebugMode() &&
+           func->DoGlobOptsForGeneratorFunc();
 
     // Why MarkTempObject is disabled under debugger:
     //   We add 'identified so far dead non-temp locals' to byteCodeUpwardExposedUsed in ProcessBailOutInfo,
     //   this may cause MarkTempObject to convert some temps back to non-temp when it sees a 'transferred exposed use'
     //   from a temp to non-temp. That's in general not a supported conversion (while non-temp -> temp is fine).
+}
+
+bool
+BackwardPass::DoMarkTempObjects() const
+{
+    // only mark temp object on the backward store phase
+    return (tag == Js::BackwardPhase) && SatisfyMarkTempObjectsConditions();
 }
 
 bool
@@ -113,8 +119,7 @@ bool
 BackwardPass::DoMarkTempObjectVerify() const
 {
     // only mark temp object on the backward store phase
-    return (tag == Js::DeadStorePhase) && !PHASE_OFF(Js::MarkTempPhase, this->func) &&
-        !PHASE_OFF(Js::MarkTempObjectPhase, this->func) && func->DoGlobOpt() && func->GetHasTempObjectProducingInstr();
+    return (tag == Js::DeadStorePhase) && SatisfyMarkTempObjectsConditions();
 }
 #endif
 
@@ -7709,7 +7714,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
         PropertySym *propertySym = sym->AsPropertySym();
         ProcessStackSymUse(propertySym->m_stackSym, isJITOptimizedReg);
 
-        if(IsCollectionPass())
+        if (IsCollectionPass())
         {
             return false;
         }
@@ -7796,7 +7801,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             }
         }
 
-        if(IsCollectionPass())
+        if (IsCollectionPass())
         {
             return false;
         }
@@ -8247,9 +8252,20 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         return false;
     }
 
+    // For generator functions, we don't want to move the BailOutOnNoProfile above
+    // certain instructions such as ResumeYield/ResumeYieldStar/CreateInterpreterStackFrameForGenerator
+    // This indicates the insertion point for the BailOutOnNoProfile in such cases.
+    IR::Instr *insertionPointForGenerator = nullptr;
+
     // Don't hoist if we see calls with profile data (recursive calls)
     while(!curInstr->StartsBasicBlock())
     {
+        if (curInstr->DontHoistBailOnNoProfileAboveInGeneratorFunction())
+        {
+            Assert(insertionPointForGenerator == nullptr);
+            insertionPointForGenerator = curInstr;
+        }
+
         // If a function was inlined, it must have had profile info.
         if (curInstr->m_opcode == Js::OpCode::InlineeEnd || curInstr->m_opcode == Js::OpCode::InlineBuiltInEnd || curInstr->m_opcode == Js::OpCode::InlineNonTrackingBuiltInEnd
             || curInstr->m_opcode == Js::OpCode::InlineeStart || curInstr->m_opcode == Js::OpCode::EndCallForPolymorphicInlinee)
@@ -8320,7 +8336,8 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // Now try to move this up the flowgraph to the predecessor blocks
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
-        bool hoistBailToPred = true;
+        // Don't hoist BailOnNoProfile up past blocks containing ResumeYield/ResumeYieldStar
+        bool hoistBailToPred = (insertionPointForGenerator == nullptr);
 
         if (block->isLoopHeader && pred->loop == block->loop)
         {
@@ -8396,10 +8413,19 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
 #if DBG
         blockHeadInstr->m_noHelperAssert = true;
 #endif
-        block->beginsBailOnNoProfile = true;
 
         instr->m_func = curInstr->m_func;
-        curInstr->InsertAfter(instr);
+
+        if (insertionPointForGenerator != nullptr)
+        {
+            insertionPointForGenerator->InsertAfter(instr);
+            block->beginsBailOnNoProfile = false;
+        }
+        else
+        {
+            curInstr->InsertAfter(instr);
+            block->beginsBailOnNoProfile = true;
+        }
 
         bool setLastInstr = (curInstr == block->GetLastInstr());
         if (setLastInstr)

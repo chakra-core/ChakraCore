@@ -37,6 +37,7 @@ public:
     uint GetInlineCacheCount() const;
     uint GetRecursiveCallSiteCount() const;
     uint GetForInLoopDepth() const;
+    Js::RegSlot GetYieldReg() const;
     Js::RegSlot GetLocalFrameDisplayReg() const;
     Js::RegSlot GetLocalClosureReg() const;
     Js::RegSlot GetEnvReg() const;
@@ -102,6 +103,7 @@ public:
     void EnsureConsistentConstCount() const;
     bool HasComputedName() const;
     bool HasHomeObj() const;
+    bool RegIsConstant(Js::RegSlot reg) const;
 
     const byte * GetByteCodeBuffer() const;
     StatementMapIDL * GetFullStatementMap() const;

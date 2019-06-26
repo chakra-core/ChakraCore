@@ -439,7 +439,7 @@ HELPERCALLCHK(SimpleRecordLoopImplicitCallFlags, Js::SimpleJitHelpers::RecordLoo
 
 HELPERCALLCHK(ScriptAbort, Js::JavascriptOperators::ScriptAbort, AttrCanThrow | AttrCanNotBeReentrant)
 
-HELPERCALLCHK(NoSaveRegistersBailOutForElidedYield, BailOutRecord::BailOutForElidedYield, 0)
+HELPERCALLCHK(NoSaveRegistersBailOutForElidedYield, BailOutRecord::BailOutForElidedYield, AttrCanNotBeReentrant)
 
 // We don't want these functions to be valid iCall targets because they can be used to disclose stack addresses
 //   which CFG cannot defend against. Instead, return these addresses in GetNonTableMethodAddress
@@ -540,6 +540,8 @@ HELPERCALLCHK(ResumeYield,              Js::JavascriptOperators::OP_ResumeYield,
 HELPERCALL(AsyncYieldStar,              Js::InterpreterStackFrame::OP_AsyncYieldStar, AttrCanNotBeReentrant)
 HELPERCALL(AsyncYield,                  Js::InterpreterStackFrame::OP_AsyncYield, AttrCanNotBeReentrant)
 HELPERCALL(Await,                       Js::InterpreterStackFrame::OP_Await, AttrCanNotBeReentrant)
+
+HELPERCALL(CreateInterpreterStackFrameForGenerator, Js::InterpreterStackFrame::CreateInterpreterStackFrameForGenerator, AttrCanNotBeReentrant)
 
 #if DBG
 HELPERCALL(IntRangeCheckFailure, Js::JavascriptNativeOperators::IntRangeCheckFailure, AttrCanNotBeReentrant)

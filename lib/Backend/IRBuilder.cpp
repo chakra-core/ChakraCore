@@ -422,7 +422,6 @@ IRBuilder::Build()
     this->LoadNativeCodeData();
 
     this->BuildConstantLoads();
-    this->BuildGeneratorPreamble();
 
     if (!this->IsLoopBody() && m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
@@ -434,9 +433,12 @@ IRBuilder::Build()
         this->BuildArgInRest();
     }
 
-    if (m_func->IsJitInDebugMode())
+    // This is first bailout in the function, the locals at stack have not initialized to undefined, so do not restore them.
+    // Note that for generators, we insert the bailout after the jump table to allow
+    // the generator's execution to proceed before bailing out. Otherwise, we would always
+    // bail to the beginning of the function in the interpreter, creating an infinite loop.
+    if (m_func->IsJitInDebugMode() && !this->m_func->GetJITFunctionBody()->IsCoroutine())
     {
-        // This is first bailout in the function, the locals at stack have not initialized to undefined, so do not restore them.
         this->InsertBailOutForDebugger(m_functionStartOffset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep, nullptr);
     }
 
@@ -480,6 +482,34 @@ IRBuilder::Build()
                 dstOpnd->m_sym->m_isNotNumber = true;
             }
             this->AddInstr(instr, offset);
+        }
+
+        // The point at which we insert the generator resume jump table is important.
+        // We want to insert it right *after* the environment and constants have
+        // been loaded and *before* we create any other important objects
+        // (e.g: FrameDisplay, LocalClosure) which will be passed on to the interpreter
+        // frame when we bail out. Those values, if used when we resume, will be restored
+        // by the bail-in code, therefore we don't want to unnecessarily create those new
+        // objects every time we "resume" a generator
+        //
+        // Note: We need to make sure that all the values below are allocated on the heap.
+        // so that they don't go away once this jit'd frame is popped off.
+
+#ifdef BAILOUT_INJECTION
+        lastInstr = this->m_generatorJumpTable.BuildJumpTable();
+#else
+        this->m_generatorJumpTable.BuildJumpTable();
+#endif
+
+        // When debugging generators, insert bail-out after the jump table so that we can
+        // get to the right point before going back to the interpreter.
+        // This bailout is equivalent to the one inserted above for non-generator functions.
+        // Additionally, we also need to insert bailouts on each resume point and right
+        // after the bail-in code since this bailout is only for the very first time
+        // we are in the generator.
+        if (m_func->IsJitInDebugMode() && this->m_func->GetJITFunctionBody()->IsCoroutine())
+        {
+            this->InsertBailOutForDebugger(m_functionStartOffset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep, nullptr);
         }
 
         Js::RegSlot funcExprScopeReg = m_func->GetJITFunctionBody()->GetFuncExprScopeReg();
@@ -1231,14 +1261,30 @@ IR::Opnd *
 IRBuilder::BuildForInEnumeratorOpnd(uint forInLoopLevel)
 {
     Assert(forInLoopLevel < this->m_func->GetJITFunctionBody()->GetForInLoopDepth());
-    if (!this->IsLoopBody())
+    if (this->IsLoopBody())
     {
-        StackSym *stackSym = StackSym::New(TyMisc, this->m_func);
+        return IR::IndirOpnd::New(
+            this->EnsureLoopBodyForInEnumeratorArrayOpnd(),
+            forInLoopLevel * sizeof(Js::ForInObjectEnumerator),
+            TyMachPtr,
+            this->m_func
+        );
+    }
+    else if (this->m_func->GetJITFunctionBody()->IsCoroutine())
+    {
+        return IR::IndirOpnd::New(
+            this->m_generatorJumpTable.EnsureForInEnumeratorArrayOpnd(),
+            forInLoopLevel * sizeof(Js::ForInObjectEnumerator),
+            TyMachPtr,
+            this->m_func
+        );
+    }
+    else
+    {
+        StackSym* stackSym = StackSym::New(TyMisc, this->m_func);
         stackSym->m_offset = forInLoopLevel;
         return IR::SymOpnd::New(stackSym, TyMachPtr, this->m_func);
     }
-    return IR::IndirOpnd::New(
-        EnsureLoopBodyForInEnumeratorArrayOpnd(), forInLoopLevel * sizeof(Js::ForInObjectEnumerator), TyMachPtr, this->m_func);
 }
 
 ///----------------------------------------------------------------------------
@@ -1347,71 +1393,6 @@ IRBuilder::BuildImplicitArgIns()
     {
         this->BuildArgIn((uint32)-1, startReg + i, i);
     }
-}
-
-#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-#define POINTER_OFFSET(opnd, c, field) \
-    BuildIndirOpnd((opnd), c::Get##field##Offset(), _u(#c) _u(".") _u(#field))
-#else
-#define POINTER_OFFSET(opnd, c, field) \
-    BuildIndirOpnd((opnd), c::Get##field##Offset())
-#endif
-
-void
-IRBuilder::BuildGeneratorPreamble()
-{
-    if (!this->m_func->GetJITFunctionBody()->IsCoroutine())
-    {
-        return;
-    }
-
-    // Build code to check if the generator already has state and if it does then jump to the corresponding resume point.
-    // Otherwise jump to the start of the function.  The generator object is the first argument by convention established
-    // in JavascriptGenerator::EntryNext/EntryReturn/EntryThrow.
-    //
-    // s1 = Ld_A prm1
-    // s2 = Ld_A s1[offset of JavascriptGenerator::frame]
-    //      BrAddr_A s2 nullptr $startOfFunc
-    // s3 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_currentLocation]
-    // s4 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_startLocation]
-    // s5 = Sub_I4 s3 s4
-    //      GeneratorResumeJumpTable s5
-    // $startOfFunc:
-    //
-
-    StackSym *genParamSym = StackSym::NewParamSlotSym(1, this->m_func);
-    this->m_func->SetArgOffset(genParamSym, LowererMD::GetFormalParamOffset() * MachPtr);
-
-    IR::SymOpnd *genParamOpnd = IR::SymOpnd::New(genParamSym, TyMachPtr, this->m_func);
-    IR::RegOpnd *genRegOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    IR::Instr *instr = IR::Instr::New(Js::OpCode::Ld_A, genRegOpnd, genParamOpnd, this->m_func);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    IR::RegOpnd *genFrameOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::Ld_A, genFrameOpnd, POINTER_OFFSET(genRegOpnd, Js::JavascriptGenerator, Frame), this->m_func);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    IR::LabelInstr *labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
-    IR::BranchInstr *branchInstr = IR::BranchInstr::New(Js::OpCode::BrAddr_A, labelInstr, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
-    this->AddInstr(branchInstr, Js::Constants::NoByteCodeOffset);
-
-    IR::RegOpnd *curLocOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::Ld_A, curLocOpnd, POINTER_OFFSET(genFrameOpnd, Js::InterpreterStackFrame, CurrentLocation), this->m_func);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    IR::RegOpnd *startLocOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::Ld_A, startLocOpnd, POINTER_OFFSET(genFrameOpnd, Js::InterpreterStackFrame, StartLocation), this->m_func);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    IR::RegOpnd *curOffsetOpnd = IR::RegOpnd::New(TyUint32, this->m_func);
-    instr = IR::Instr::New(Js::OpCode::Sub_I4, curOffsetOpnd, curLocOpnd, startLocOpnd, this->m_func);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    instr = IR::Instr::New(Js::OpCode::GeneratorResumeJumpTable, this->m_func);
-    instr->SetSrc1(curOffsetOpnd);
-    this->AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    this->AddInstr(labelInstr, Js::Constants::NoByteCodeOffset);
 }
 
 void
@@ -1883,16 +1864,40 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         dstOpnd->SetValueType(ValueType::String);
         break;
 
+    case Js::OpCode::ResumeYield:
+    {
+        IR::Instr* loadResumeYieldData = IR::Instr::New(Js::OpCode::GeneratorLoadResumeYieldData, src1Opnd /* dst */, m_func);
+        this->AddInstr(loadResumeYieldData, offset);
+
+        // Insert bailout for debugger, since we are bailing out to the ResumeYield instruction (OP_ResumeYield) in the interpreter,
+        // we have to load the ResumeYieldData first
+        if (this->m_func->IsJitInDebugMode())
+        {
+            this->InsertBailOutForDebugger(offset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep);
+        }
+
+        break;
+    }
+
     case Js::OpCode::Yield:
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
         this->AddInstr(instr, offset);
         this->m_lastInstr = instr->ConvertToBailOutInstr(instr, IR::BailOutForGeneratorYield);
 
-        IR::LabelInstr* label = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-        label->m_hasNonBranchRef = true;
-        this->AddInstr(label, Js::Constants::NoByteCodeOffset);
+        // This label indicates the bail-in section that we will jump to from the generator jump table
+        IR::LabelInstr* bailInLabel = IR::LabelInstr::New(Js::OpCode::GeneratorBailInLabel, m_func);
+        bailInLabel->m_hasNonBranchRef = true;              // set to true so that we don't move this label around
+        LABELNAMESET(bailInLabel, "GeneratorBailInLabel");
+        this->AddInstr(bailInLabel, offset);
+        this->m_func->AddYieldOffsetResumeLabel(nextOffset, bailInLabel);
 
-        this->m_func->AddYieldOffsetResumeLabel(nextOffset, label);
+        // This label indicates the section where we start loading the ResumeYieldData on the stack
+        // that comes from either .next(), .return(), or .throw() to the right symbol and finally
+        // extract its data through Op_ResumeYield
+        IR::LabelInstr* resumptionLabel = IR::LabelInstr::New(Js::OpCode::GeneratorResumeYieldLabel, m_func);
+        resumptionLabel->m_hasNonBranchRef = true;          // set to true so that we don't move this label around
+        LABELNAMESET(resumptionLabel, "ResumeYieldHelperLabel");
+        this->AddInstr(resumptionLabel, offset);
 
         return;
     }
@@ -2114,6 +2119,19 @@ IRBuilder::BuildReg3(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     else
     {
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, src2Opnd, m_func);
+    }
+
+    if (newOpcode == Js::OpCode::ResumeYieldStar)
+    {
+        IR::Instr* loadResumeYieldData = IR::Instr::New(Js::OpCode::GeneratorLoadResumeYieldData, src1Opnd /* dst */, m_func);
+        this->AddInstr(loadResumeYieldData, offset);
+
+        // Insert bailout for debugger, since we are bailing out to the ResumeYieldStar instruction (OP_ResumeYield) in the interpreter,
+        // we have to load the ResumeYieldData first
+        if (this->m_func->IsJitInDebugMode())
+        {
+            this->InsertBailOutForDebugger(offset, IR::BailOutForceByFlag | IR::BailOutBreakPointInFunction | IR::BailOutStep);
+        }
     }
 
     this->AddInstr(instr, offset);
@@ -6904,7 +6922,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
 
     case Js::OpCode::BeginBodyScope:
     {
-        // This marks the end of a param socpe which is not merged with body scope.
+        // This marks the end of a param scope which is not merged with body scope.
         // So we have to first cache the closure so that we can use it to copy the initial values for
         // body syms from corresponding param syms (LdParamSlot). Body should get its own scope slot.
         Assert(!this->IsParamScopeDone());
@@ -7654,4 +7672,156 @@ IRBuilder::AllowNativeArrayProfileInfo()
 {
     return !((!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
         m_func->IsJitInDebugMode());
+}
+
+#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
+#define POINTER_OFFSET(opnd, c, field) \
+    m_irBuilder->BuildIndirOpnd((opnd), c, _u(#c) _u(".") _u(#field))
+#else
+#define POINTER_OFFSET(opnd, c, field) \
+    m_irBuilder->BuildIndirOpnd((opnd), c)
+#endif
+
+IRBuilder::GeneratorJumpTable::GeneratorJumpTable(Func* func, IRBuilder* irBuilder) : m_func(func), m_irBuilder(irBuilder) {}
+
+IR::Instr*
+IRBuilder::GeneratorJumpTable::BuildJumpTable()
+{
+    if (!this->m_func->GetJITFunctionBody()->IsCoroutine())
+    {
+        return this->m_irBuilder->m_lastInstr;
+    }
+
+    // Build code to check if the generator already has state and if it does then jump to the corresponding resume point.
+    // Otherwise jump to the start of the function. The generator object is the first argument by convention established
+    // in JavascriptGenerator::EntryNext/EntryReturn/EntryThrow.
+    // We also create the interpreter stack frame for generator if it doesn't already exist.
+    //
+    // s1 = Ld_A prm1
+    // s2 = Ld_A s1[offset of JavascriptGenerator::frame]
+    //      BrNotAddr_A s2 !nullptr $initializationCode
+    //
+    // $createInterpreterStackFrame:
+    // call helper
+    //
+    // $initializationCode:
+    // load for-in enumerator address from interpreter stack frame
+    //
+    // 
+    // $jumpTable:
+    //
+    // s3 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_currentLocation]
+    // s4 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_startLocation]
+    // s5 = Sub_I4 s3 s4
+    //      GeneratorResumeJumpTable s5
+    //
+    // $startOfFunc:
+    //
+
+    // s1 = Ld_A prm1
+    StackSym* genParamSym = StackSym::NewParamSlotSym(1, this->m_func);
+    this->m_func->SetArgOffset(genParamSym, LowererMD::GetFormalParamOffset() * MachPtr);
+
+    IR::SymOpnd* genParamOpnd = IR::SymOpnd::New(genParamSym, TyMachPtr, this->m_func);
+    IR::RegOpnd* genRegOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::Instr* instr = IR::Instr::New(Js::OpCode::Ld_A, genRegOpnd, genParamOpnd, this->m_func);
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    // s2 = Ld_A s1[offset of JavascriptGenerator::frame]
+    IR::RegOpnd* genFrameOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    instr = IR::Instr::New(
+        Js::OpCode::Ld_A,
+        genFrameOpnd,
+        POINTER_OFFSET(genRegOpnd, Js::JavascriptGenerator::GetFrameOffset(), GeneratorFrame),
+        this->m_func
+    );
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    IR::LabelInstr* initCode = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    LABELNAMESET(initCode, "GeneratorInitializationAndJumpTable");
+
+    // BrNotAddr_A s2 nullptr $initializationCode
+    IR::BranchInstr* branchInstr = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, initCode, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
+    this->m_irBuilder->AddInstr(branchInstr, this->m_irBuilder->m_functionStartOffset);
+
+    // Create interpreter stack frame
+    IR::Instr* createInterpreterFrame = IR::Instr::New(Js::OpCode::GeneratorCreateInterpreterStackFrame, genFrameOpnd /* dst */, genRegOpnd /* src */, this->m_func);
+    this->m_irBuilder->AddInstr(createInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
+
+    // Label to insert any initialization code
+    // $initializationCode:
+    this->m_irBuilder->AddInstr(initCode, this->m_irBuilder->m_functionStartOffset);
+
+    // s3 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_currentLocation]
+    IR::RegOpnd* curLocOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    instr = IR::Instr::New(
+        Js::OpCode::Ld_A,
+        curLocOpnd,
+        POINTER_OFFSET(genFrameOpnd, Js::InterpreterStackFrame::GetCurrentLocationOffset(), InterpreterCurrentLocation),
+        this->m_func
+    );
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    // s4 = Ld_A s2[offset of InterpreterStackFrame::m_reader.m_startLocation]
+    IR::RegOpnd* startLocOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    instr = IR::Instr::New(
+        Js::OpCode::Ld_A,
+        startLocOpnd,
+        POINTER_OFFSET(genFrameOpnd, Js::InterpreterStackFrame::GetStartLocationOffset(), InterpreterStartLocation),
+        this->m_func
+    );
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    // s5 = Sub_I4 s3 s4
+    IR::RegOpnd* curOffsetOpnd = IR::RegOpnd::New(TyUint32, this->m_func);
+    instr = IR::Instr::New(Js::OpCode::Sub_I4, curOffsetOpnd, curLocOpnd, startLocOpnd, this->m_func);
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    // GeneratorResumeJumpTable s5
+    instr = IR::Instr::New(Js::OpCode::GeneratorResumeJumpTable, this->m_func);
+    instr->SetSrc1(curOffsetOpnd);
+    this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    // Save these values for later use
+    this->m_initLabel = initCode;
+    this->m_generatorFrameOpnd = genFrameOpnd;
+
+    return this->m_irBuilder->m_lastInstr;
+}
+
+IR::LabelInstr*
+IRBuilder::GeneratorJumpTable::GetInitLabel() const
+{
+    Assert(this->m_initLabel != nullptr);
+    return this->m_initLabel;
+}
+
+IR::RegOpnd*
+IRBuilder::GeneratorJumpTable::CreateForInEnumeratorArrayOpnd()
+{
+    Assert(this->m_initLabel != nullptr);
+    Assert(this->m_generatorFrameOpnd != nullptr);
+
+    IR::RegOpnd* forInEnumeratorOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::Instr* instr = IR::Instr::New(
+        Js::OpCode::Ld_A,
+        forInEnumeratorOpnd,
+        POINTER_OFFSET(this->m_generatorFrameOpnd, Js::InterpreterStackFrame::GetOffsetOfForInEnumerators(), ForInEnumerators),
+        this->m_func
+    );
+    this->m_initLabel->InsertAfter(instr);
+
+    return forInEnumeratorOpnd;
+}
+
+IR::RegOpnd*
+IRBuilder::GeneratorJumpTable::EnsureForInEnumeratorArrayOpnd()
+{
+    if (this->m_forInEnumeratorArrayOpnd == nullptr)
+    {
+        this->m_forInEnumeratorArrayOpnd = this->CreateForInEnumeratorArrayOpnd();
+        this->m_func->SetForInEnumeratorSymForGeneratorSym(m_forInEnumeratorArrayOpnd->GetStackSym());
+    }
+
+    return this->m_forInEnumeratorArrayOpnd;
 }

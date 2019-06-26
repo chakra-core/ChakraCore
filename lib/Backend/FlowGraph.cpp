@@ -3318,7 +3318,7 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
             if (opcode == Js::OpCode::Yield)
             {
                 IR::Instr *instrLabel = newByteCodeUseInstr->m_next;
-                while (instrLabel->m_opcode != Js::OpCode::Label)
+                while (instrLabel->m_opcode != Js::OpCode::GeneratorBailInLabel)
                 {
                     instrLabel = instrLabel->m_next;
                 }

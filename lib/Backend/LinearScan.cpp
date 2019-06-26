@@ -251,9 +251,18 @@ LinearScan::RegAlloc()
             this->FillBailOutRecord(instr);
             if (instr->GetBailOutKind() == IR::BailOutForGeneratorYield)
             {
-                Assert(instr->m_next->IsLabelInstr());
-                insertBailInAfter = instr->m_next;
+                Assert(insertBailInAfter == nullptr);
                 bailOutInfoForBailIn = instr->GetBailOutInfo();
+                insertBailInAfter = instr->m_next;
+
+                // Insert right after the GeneratorBailInLabel
+                // The register allocator might insert some compensation code between
+                // the BailOutForGeneratorYield and the GeneratorBailInLabel, so our
+                // bail-in insertion point is not necessarily always the next instruction.
+                while (insertBailInAfter != nullptr && insertBailInAfter->m_opcode != Js::OpCode::GeneratorBailInLabel)
+                {
+                    insertBailInAfter = insertBailInAfter->m_next;
+                }
             }
         }
 
@@ -297,11 +306,11 @@ LinearScan::RegAlloc()
 
         if (insertBailInAfter == instr)
         {
-            instrNext = linearScanMD.GenerateBailInForGeneratorYield(instr, bailOutInfoForBailIn);
+            instrNext = this->bailIn.GenerateBailIn(instr, bailOutInfoForBailIn);
             insertBailInAfter = nullptr;
             bailOutInfoForBailIn = nullptr;
         }
-    }NEXT_INSTR_EDITING;
+    } NEXT_INSTR_EDITING;
 
     if (func->hasBailout)
     {
@@ -1350,7 +1359,14 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
         globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
-        if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
+
+        if (func->GetJITFunctionBody()->IsCoroutine())
+        {
+            // Don't restore for-in enumerators for generators because they are
+            // already on the generator's interpreter frame
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = -1;
+        }
+        else if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
         {
 #ifdef MD_GROW_LOCALS_AREA_UP
             Assert(func->GetForInEnumeratorArrayOffset() >= 0);
@@ -3217,7 +3233,7 @@ LinearScan::InsertStore(IR::Instr *instr, StackSym *sym, RegNum reg)
 }
 
 // LinearScan::InsertLoad
-void
+IR::Instr*
 LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
 {
     IR::Opnd *src;
@@ -3289,6 +3305,8 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
         }
     }
 #endif
+
+    return load;
 }
 
 uint8
@@ -3338,6 +3356,12 @@ LinearScan::KillImplicitRegs(IR::Instr *instr)
         this->tempRegs.Clear(LowererMDArch::GetRegIMulHighDestLower());
 
         this->RecordLoopUse(nullptr, LowererMDArch::GetRegIMulHighDestLower());
+        return;
+    }
+
+    if (instr->m_opcode == Js::OpCode::Yield)
+    {
+        this->bailIn.SpillRegsForBailIn();
         return;
     }
 #endif
@@ -4029,6 +4053,13 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
             Lifetime *lifetime = regContent[reg];
 
             if (lifetime == branchLifetime)
+            {
+                continue;
+            }
+
+            // Allow us to properly insert compensation code for symbols whose lifetimes start after the generator jump table
+            // The GeneratorBailInLabel will have 2 edges in: one from the normal flow, one straight from the generator jump table
+            if (!branchLifetime && lifetime && lifetime->start > branchInstr->GetNumber() && labelInstr->m_opcode == Js::OpCode::GeneratorBailInLabel)
             {
                 continue;
             }
@@ -4911,5 +4942,256 @@ LinearScan::ProcessLazyBailOut(IR::Instr *instr)
         // been replaced by the result of the call.
         // Therefore we have to capture the value of it after the call and after KillImplicitRegs.
         this->FillBailOutRecord(instr);
+    }
+}
+
+LinearScan::GeneratorBailIn::GeneratorBailIn(Func* func, LinearScan* linearScan) :
+    func { func },
+    linearScan { linearScan },
+    jitFnBody { func->GetJITFunctionBody() },
+    initializedRegs { func->m_alloc },
+    regs {
+#if defined(_M_X64)
+    RegRAX, RegRCX
+#elif defined(_M_IX86)
+    RegEAX, RegECX
+#endif
+    },
+    interpreterFrameRegOpnd { IR::RegOpnd::New(nullptr, regs[0], TyMachPtr, func) },
+    tempRegOpnd { IR::RegOpnd::New(nullptr, regs[1], TyVar, func) }
+{
+    // The yield register holds the evaluated value of the expression passed as
+    // the parameter to .next(), this can be obtained from the generator object itself,
+    // so no need to restore.
+    this->initializedRegs.Set(this->jitFnBody->GetYieldReg());
+
+    // The environment is loaded before the resume jump table, no need to restore either.
+    this->initializedRegs.Set(this->jitFnBody->GetEnvReg());
+}
+
+void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
+{
+    for (int i = 0; i < GeneratorBailIn::regNum; i++)
+    {
+        this->linearScan->SpillReg(this->regs[i]);
+        this->linearScan->tempRegs.Clear(this->regs[i]);
+        this->linearScan->RecordLoopUse(nullptr, this->regs[i]);
+    }
+}
+
+// Note: Comments refer to rax/rcx for x64. For x86, we use their equivalence: eax/ecx
+// Restores the live stack locations followed by the live registers from
+// the interpreter's register slots.
+// RecordDefs each live register that is restored.
+//
+// Generates the following code:
+//
+// MOV rax, param0
+// MOV rax, [rax + JavascriptGenerator::GetFrameOffset()]
+//
+// for each live stack location, sym
+//
+//   MOV rcx, [rax + regslot offset]
+//   MOV sym(stack location), rcx
+//
+// for each live register, sym (rax is restore last if it is live)
+//
+//   MOV sym(register), [rax + regslot offset]
+//
+IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo)
+{
+    Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->constantValues.Empty());
+    Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->copyPropSyms.Empty());
+    Assert(!bailOutInfo->liveLosslessInt32Syms || bailOutInfo->liveLosslessInt32Syms->IsEmpty());
+    Assert(!bailOutInfo->liveFloat64Syms || bailOutInfo->liveFloat64Syms->IsEmpty());
+
+    IR::Instr* instrAfter = resumeLabelInstr->m_next;
+
+    // 1) Load the generator object that was passed as one of the arguments to the jitted frame
+    LinearScan::InsertMove(this->interpreterFrameRegOpnd, this->CreateGeneratorObjectOpnd(), instrAfter);
+
+    // 2) Gets the InterpreterStackFrame pointer into rax
+    IR::IndirOpnd* generatorFrameOpnd = IR::IndirOpnd::New(this->interpreterFrameRegOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, this->func);
+    LinearScan::InsertMove(this->interpreterFrameRegOpnd, generatorFrameOpnd, instrAfter);
+
+    // 3) Put the Javascript's `arguments` object, which is stored in the interpreter frame, to the jit's stack slot if needed
+    //    See BailOutRecord::RestoreValues
+    if (this->func->HasArgumentSlot())
+    {
+        IR::IndirOpnd* generatorArgumentsOpnd = IR::IndirOpnd::New(this->interpreterFrameRegOpnd, Js::InterpreterStackFrame::GetOffsetOfArguments(), TyMachPtr, this->func);
+        LinearScan::InsertMove(this->tempRegOpnd, generatorArgumentsOpnd, instrAfter);
+        LinearScan::InsertMove(LowererMD::CreateStackArgumentsSlotOpnd(this->func), this->tempRegOpnd, instrAfter);
+    }
+
+    BailInInsertionPoint insertionPoint
+    {
+        nullptr,    /* raxRestoreInstr */
+        instrAfter, /* instrInsertStackSym */
+        instrAfter  /* instrInsertRegSym */
+    };
+
+    // 4) Restore symbols
+    // - We don't need to restore argObjSyms because StackArgs is currently not enabled
+    //   Commented out here in case we do want to enable it in the future:
+    // this->InsertRestoreSymbols(bailOutInfo->capturedValues->argObjSyms, insertionPoint, saveInitializedReg);
+    // 
+    // - We move all argout symbols right before the call so we don't need to restore argouts either
+    this->InsertRestoreSymbols(bailOutInfo->byteCodeUpwardExposedUsed, insertionPoint);
+    Assert(!this->func->IsStackArgsEnabled());
+
+    return instrAfter;
+}
+
+void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint)
+{
+    if (symbols == nullptr)
+    {
+        return;
+    }
+
+    FOREACH_BITSET_IN_SPARSEBV(symId, symbols)
+    {
+        StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
+        Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
+
+        if (!this->NeedsReloadingValueWhenBailIn(stackSym, lifetime))
+        {
+            continue;
+        }
+
+        Js::RegSlot regSlot = stackSym->GetByteCodeRegSlot();
+        IR::Opnd* srcOpnd = IR::IndirOpnd::New(
+            this->interpreterFrameRegOpnd,
+            this->GetOffsetFromInterpreterStackFrame(regSlot),
+            stackSym->GetType(),
+            this->func
+        );
+
+        if (lifetime->isSpilled)
+        {
+            Assert(!stackSym->IsConst());
+            // Stack restores require an extra register since we can't move an indir directly to an indir on amd64
+            IR::SymOpnd* dstOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
+            LinearScan::InsertMove(this->tempRegOpnd, srcOpnd, insertionPoint.instrInsertStackSym);
+            LinearScan::InsertMove(dstOpnd, this->tempRegOpnd, insertionPoint.instrInsertStackSym);
+        }
+        else
+        {
+            // Register restores must come after stack restores so that we have RAX and RCX free to
+            // use for stack restores and further RAX must be restored last since it holds the
+            // pointer to the InterpreterStackFrame from which we are restoring values.
+            // We must also track these restores using RecordDef in case the symbols are spilled.
+
+            IR::Instr* instr;
+
+            if (stackSym->IsConst())
+            {
+                instr = this->linearScan->InsertLoad(insertionPoint.instrInsertRegSym, stackSym, lifetime->reg);
+            }
+            else
+            {
+                IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
+                dstRegOpnd->SetReg(lifetime->reg);
+                instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, insertionPoint.instrInsertRegSym);
+            }
+
+            if (insertionPoint.instrInsertRegSym == insertionPoint.instrInsertStackSym)
+            {
+                // This is the first register sym, make sure we don't insert stack stores
+                // after this instruction so we can ensure rax and rcx remain free to use
+                // for restoring spilled stack syms.
+                insertionPoint.instrInsertStackSym = instr;
+            }
+
+            if (lifetime->reg == interpreterFrameRegOpnd->GetReg())
+            {
+                // Ensure rax is restored last
+                Assert(insertionPoint.instrInsertRegSym != insertionPoint.instrInsertStackSym);
+
+                insertionPoint.instrInsertRegSym = instr;
+
+                if (insertionPoint.raxRestoreInstr != nullptr)
+                {
+                    AssertMsg(false, "this is unexpected until copy prop is enabled");
+                    // rax was mapped to multiple bytecode registers.  Obviously only the first
+                    // restore we do will work so change all following stores to `mov rax, rax`.
+                    // We still need to keep them around for RecordDef in case the corresponding
+                    // dst sym is spilled later on.
+                    insertionPoint.raxRestoreInstr->FreeSrc1();
+                    insertionPoint.raxRestoreInstr->SetSrc1(this->interpreterFrameRegOpnd);
+                }
+
+                insertionPoint.raxRestoreInstr = instr;
+            }
+
+            this->linearScan->RecordDef(lifetime, instr, 0);
+        }
+    }
+    NEXT_BITSET_IN_SPARSEBV;
+}
+
+bool LinearScan::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const
+{
+    if (sym->IsConst())
+    {
+        if (this->func->GetJITFunctionBody()->RegIsConstant(sym->GetByteCodeRegSlot()))
+        {
+            // Resume jump table is inserted after we load symbols in the constant table,
+            // so at bail-in point, we can have two scenarios:
+            //  1) the symbols are still in registers
+            //  2) the symbols have already been "spilled"
+            // Since we don't save/restore constant symbols and simply insert loads of their
+            // values before use, in either case, there is no need to reload the values
+            return false;
+        }
+        else
+        {
+            // Again, for all other constant symbols, if they are bytecodeUpwardExposed and they have
+            // already been "spilled", which means that the register allocator will automatically
+            // insert the load of their values later before use, we don't need to restore.
+            // Only restore symbols that are still in registers
+            return !lifetime->isSpilled;
+        }
+    }
+
+    // If we have for-in in the generator, don't need to reload the symbol again as it is done
+    // during the resume jump table
+    if (this->func->GetForInEnumeratorSymForGeneratorSym() && this->func->GetForInEnumeratorSymForGeneratorSym()->m_id == sym->m_id)
+    {
+        return false;
+    }
+
+    // Check for other special registers that are already initialized
+    return !this->initializedRegs.Test(sym->GetByteCodeRegSlot());
+}
+
+IR::SymOpnd* LinearScan::GeneratorBailIn::CreateGeneratorObjectOpnd() const
+{
+    // First parameter passed to the jit'd frame
+    // See `CallGenerator` method
+    StackSym* sym = StackSym::NewParamSlotSym(1, this->func);
+    this->func->SetArgOffset(sym, LowererMD::GetFormalParamOffset() * MachPtr);
+    return IR::SymOpnd::New(sym, TyMachPtr, this->func);
+}
+
+uint32 LinearScan::GeneratorBailIn::GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const
+{
+    // Some objects aren't stored in the local space in interpreter frame, but instead
+    // in their own fields. Use their offsets in such cases.
+    if (regSlot == this->jitFnBody->GetLocalFrameDisplayReg())
+    {
+        return Js::InterpreterStackFrame::GetOffsetOfLocalFrameDisplay();
+    }
+    else if (regSlot == this->jitFnBody->GetLocalClosureReg())
+    {
+        return Js::InterpreterStackFrame::GetOffsetOfLocalClosure();
+    }
+    else if (regSlot == this->jitFnBody->GetParamClosureReg())
+    {
+        return Js::InterpreterStackFrame::GetOffsetOfParamClosure();
+    }
+    else
+    {
+        return regSlot * sizeof(Js::Var) + Js::InterpreterStackFrame::GetOffsetOfLocals();
     }
 }

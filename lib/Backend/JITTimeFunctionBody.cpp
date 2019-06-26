@@ -162,6 +162,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         }
     }
 
+    jitBody->yieldReg = functionBody->GetYieldRegister();
     jitBody->localFrameDisplayReg = functionBody->GetLocalFrameDisplayRegister();
     jitBody->localClosureReg = functionBody->GetLocalClosureRegister();
     jitBody->envReg = functionBody->GetEnvRegister();
@@ -399,6 +400,12 @@ Js::RegSlot
 JITTimeFunctionBody::GetLocalFrameDisplayReg() const
 {
     return static_cast<Js::RegSlot>(m_bodyData.localFrameDisplayReg);
+}
+
+Js::RegSlot
+JITTimeFunctionBody::GetYieldReg() const
+{
+    return static_cast<Js::RegSlot>(m_bodyData.yieldReg);
 }
 
 Js::RegSlot
@@ -814,6 +821,12 @@ JITTimeFunctionBody::NeedScopeObjectForArguments(bool hasNonSimpleParams) const
         // Regardless of the conditions above, we won't need a scope object if there aren't any formals.
         (GetInParamsCount() > 1 || HasRestParameter())
         && !dontNeedScopeObject;
+}
+
+bool
+JITTimeFunctionBody::RegIsConstant(Js::RegSlot reg) const
+{
+    return reg > 0 && reg < this->GetConstCount();
 }
 
 bool

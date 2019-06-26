@@ -989,6 +989,25 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         value = Js::JavascriptNumber::ToVar(int32Value, scriptContext);
         BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: %10d (ToVar: 0x%p)"), int32Value, value);
     }
+    else if (regSlot == newInstance->function->GetFunctionBody()->GetYieldRegister() && newInstance->function->GetFunctionBody()->IsCoroutine())
+    {
+        // This value can only either be:
+        // 1) the ResumeYieldData. Even though this value is on the stack, it is only used to extract the data as part of Op_ResumeYield.
+        //    So there is no need to box the value.
+        // 2) the object used as the return value for yield statement. This object is created on the heap, so no need to box either.
+        Assert(value);
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        if (ThreadContext::IsOnStack(value))
+        {
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p (ResumeYieldData)"), value);
+        }
+        else
+        {
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p (Yield Return Value)"), value);
+        }
+#endif
+    }
     else
     {
         BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p"), value);
@@ -1507,63 +1526,32 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     if (executeFunction->IsCoroutine())
     {
         // If the FunctionBody is a generator then this call is being made by one of the three
-        // generator resuming methods: next(), throw(), or return().  They all pass the generator
-        // object as the first of two arguments.  The real user arguments are obtained from the
-        // generator object.  The second argument is the ResumeYieldData which is only needed
-        // when resuming a generator and not needed when yielding from a generator, as is occurring
-        // here.
+        // generator resuming methods: next(), throw(), or return(). They all pass the generator
+        // object as the first of two arguments. The real user arguments are obtained from the
+        // generator object. The second argument is the ResumeYieldData which is only needed when
+        // resuming a generator and not needed when yielding from a generator, as is occurring here.
         AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
         Js::JavascriptGenerator* generator = Js::VarTo<Js::JavascriptGenerator>(args[0]);
         newInstance = generator->GetFrame();
 
-        if (newInstance != nullptr)
-        {
-            // BailOut will recompute OutArg pointers based on BailOutRecord.  Reset them back
-            // to initial position before that happens so that OP_StartCall calls don't accumulate
-            // incorrectly over multiple yield bailouts.
-            newInstance->ResetOut();
+        // The jit relies on the interpreter stack frame to store various information such as
+        // for-in enumerators. Therefore, we always create an interpreter stack frame for generator
+        // as part of the resume jump table, at the beginning of the jit'd function, if it doesn't
+        // already exist.
+        Assert(newInstance != nullptr);
 
-            // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
-            // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
-            newInstance->m_stackAddress = reinterpret_cast<DWORD_PTR>(&generator);
-        }
-        else
-        {
-            //
-            // Allocate a new InterpreterStackFrame instance on the recycler heap.
-            // It will live with the JavascriptGenerator object.
-            //
-            Js::Arguments generatorArgs = generator->GetArguments();
-            Js::InterpreterStackFrame::Setup setup(function, generatorArgs, true, isInlinee);
-            Assert(setup.GetStackAllocationVarCount() == 0);
-            size_t varAllocCount = setup.GetAllocationVarCount();
-            size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
-            DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
-            Js::LoopHeader* loopHeaderArray = executeFunction->GetHasAllocatedLoopHeaders() ? executeFunction->GetLoopHeaderArrayPtr() : nullptr;
+        // BailOut will recompute OutArg pointers based on BailOutRecord. Reset them back
+        // to initial position before that happens so that OP_StartCall calls don't accumulate
+        // incorrectly over multiple yield bailouts.
+        newInstance->ResetOut();
 
-            allocation = RecyclerNewPlus(functionScriptContext->GetRecycler(), varSizeInBytes, Js::Var);
-
-            // Initialize the interpreter stack frame (constants) but not the param, the bailout record will restore the value
-#if DBG
-            // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-            Js::Var invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
-            memset(invalidVar, 0xFE, sizeof(Js::RecyclableObject));
-#endif
-
-            newInstance = setup.InitializeAllocation(allocation, nullptr, false, false, loopHeaderArray, stackAddr
-#if DBG
-                , invalidVar
-#endif
-                );
-
-            newInstance->m_reader.Create(executeFunction);
-
-            generator->SetFrame(newInstance, varSizeInBytes);
-        }
+        // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
+        // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
+        newInstance->m_stackAddress = reinterpret_cast<DWORD_PTR>(&generator);
     }
     else
     {
-        Js::InterpreterStackFrame::Setup setup(function, args, true, isInlinee);
+        Js::InterpreterStackFrame::Setup setup(function, args, true /* bailedOut */, isInlinee);
         size_t varAllocCount = setup.GetAllocationVarCount();
         size_t stackVarAllocCount = setup.GetStackAllocationVarCount();
         size_t varSizeInBytes;
@@ -2826,7 +2814,7 @@ void BailOutRecord::CheckPreemptiveRejit(Js::FunctionBody* executeFunction, IR::
 
 Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
 {
-    JIT_HELPER_REENTRANT_HEADER(NoSaveRegistersBailOutForElidedYield);
+    JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(NoSaveRegistersBailOutForElidedYield);
     Js::JavascriptCallStackLayout * const layout = Js::JavascriptCallStackLayout::FromFramePointer(framePointer);
     Js::ScriptFunction ** functionRef = (Js::ScriptFunction **)&layout->functionObject;
     Js::ScriptFunction * function = *functionRef;

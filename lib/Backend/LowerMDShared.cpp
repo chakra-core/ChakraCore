@@ -604,7 +604,7 @@ LowererMD::LoadArgumentsFromFrame(IR::Instr * instr)
     }
     else
     {
-        instr->SetSrc1(this->CreateStackArgumentsSlotOpnd());
+        instr->SetSrc1(LowererMD::CreateStackArgumentsSlotOpnd(this->m_func));
     }
 
     instr->m_opcode = Js::OpCode::MOV;
@@ -4456,13 +4456,13 @@ LowererMD::GenerateFastScopedStFld(IR::Instr * instrStScopedFld)
 }
 
 IR::Opnd *
-LowererMD::CreateStackArgumentsSlotOpnd()
+LowererMD::CreateStackArgumentsSlotOpnd(Func *func)
 {
-    StackSym *sym = StackSym::New(TyMachReg, this->m_func);
+    StackSym *sym = StackSym::New(TyMachReg, func);
     sym->m_offset = -MachArgsSlotOffset;
     sym->m_allocated = true;
 
-    return IR::SymOpnd::New(sym, TyMachReg, this->m_func);
+    return IR::SymOpnd::New(sym, TyMachReg, func);
 }
 
 IR::RegOpnd *

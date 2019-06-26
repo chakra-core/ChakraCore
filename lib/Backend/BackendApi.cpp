@@ -126,7 +126,7 @@ Js::JavascriptMethod GetCheckAsmJsCodeGenThunk()
 
 uint GetBailOutRegisterSaveSlotCount()
 {
-    // REVIEW: not all registers are used, we are allocating more space then necessary.
+    // REVIEW: not all registers are used, we are allocating more space than necessary.
     return LinearScanMD::GetRegisterSaveSlotCount();
 }
 

@@ -233,9 +233,9 @@ MACRO_EXTEND_WMS(       Await,              Reg2,           OpSideEffect)       
 MACRO_EXTEND_WMS(       AsyncYield,         Reg2,           OpSideEffect)                                       // Yield from async generator function
 MACRO_EXTEND_WMS(       AsyncYieldStar,     Reg2,           OpSideEffect)                                       // Yield* from async generator function
 MACRO_WMS(              Yield,              Reg2,           OpSideEffect|OpUseAllFields)                        // Yield from generator function
-MACRO_WMS(              ResumeYield,        Reg2,           OpSideEffect)
-MACRO_WMS(              ResumeYieldStar,    Reg3,           OpSideEffect)
 MACRO_EXTEND_WMS(       AsyncYieldIsReturn, Reg2,           OpSideEffect)                                       // Check for .return() during async yield*
+MACRO_WMS(              ResumeYield,        Reg2,           OpSideEffect|OpHasImplicitCall)
+MACRO_WMS(              ResumeYieldStar,    Reg3,           OpSideEffect|OpHasImplicitCall)
 
 // Unary operations
 MACRO_WMS(              Incr_A,             Reg2,           OpTempNumberProducing|OpOpndHasImplicitCall|OpDoNotTransfer|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut|OpProducesNumber)     // Increment
@@ -823,7 +823,6 @@ MACRO_EXTEND_WMS(       ImportCall,         Reg2,           OpSideEffect|OpHasIm
 MACRO_BACKEND_ONLY(     BrFncCachedScopeEq, Reg2,           None)
 MACRO_BACKEND_ONLY(     BrFncCachedScopeNeq,Reg2,           None)
 
-MACRO_BACKEND_ONLY(     GeneratorResumeJumpTable, Reg1,     OpSideEffect)
 MACRO_BACKEND_ONLY(     RestoreOutParam,    Empty,          None)
 
 MACRO_BACKEND_ONLY(     SlotArrayCheck,     Empty,          OpCanCSE)
@@ -849,6 +848,15 @@ MACRO_EXTEND_WMS(Conv_Numeric, Reg2, OpSideEffect | OpTempNumberProducing | OpTe
 MACRO_EXTEND_WMS(Incr_Num_A, Reg2, OpTempNumberProducing | OpOpndHasImplicitCall | OpDoNotTransfer | OpTempNumberSources | OpTempObjectSources | OpCanCSE | OpPostOpDbgBailOut | OpProducesNumber)     // Increment Numeric
 MACRO_EXTEND_WMS(Decr_Num_A, Reg2, OpTempNumberProducing | OpOpndHasImplicitCall | OpDoNotTransfer | OpTempNumberSources | OpTempObjectSources | OpCanCSE | OpPostOpDbgBailOut | OpProducesNumber)     // Increment Numeric
 MACRO_BACKEND_ONLY(LazyBailOutThunkLabel, Empty, None)
+
+// Jitting Generator
+MACRO_BACKEND_ONLY(GeneratorResumeJumpTable,                Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
+MACRO_BACKEND_ONLY(GeneratorCreateInterpreterStackFrame,    Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
+MACRO_BACKEND_ONLY(GeneratorLoadResumeYieldData,            Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
+MACRO_BACKEND_ONLY(GeneratorBailInLabel,                    Empty,  None)
+MACRO_BACKEND_ONLY(GeneratorResumeYieldLabel,               Empty,  None)
+MACRO_BACKEND_ONLY(GeneratorEpilogueFrameNullOut,           Empty,  None)
+MACRO_BACKEND_ONLY(GeneratorEpilogueNoFrameNullOut,         Empty,  None)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)
