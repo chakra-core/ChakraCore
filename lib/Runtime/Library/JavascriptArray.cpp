@@ -9391,9 +9391,10 @@ Case0:
         Assert(args.Info.Count > 0);
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
+        bool isTypedArrayEntryPoint = typedArrayBase != nullptr;
 
         // If we came from Array.prototype.fill and source object is not a JavascriptArray, source could be a TypedArray
-        if (typedArrayBase == nullptr && pArr == nullptr && VarIs<TypedArrayBase>(obj))
+        if (!isTypedArrayEntryPoint && pArr == nullptr && VarIs<TypedArrayBase>(obj))
         {
             typedArrayBase = UnsafeVarTo<TypedArrayBase>(obj);
         }
@@ -9403,6 +9404,10 @@ Case0:
         if (args.Info.Count > 1)
         {
             fillValue = args[1];
+            if (isTypedArrayEntryPoint)
+            {
+                JS_REENTRANT_UNLOCK(jsReentLock, fillValue = JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToNumber(fillValue, scriptContext), scriptContext));
+            }
         }
         else
         {
