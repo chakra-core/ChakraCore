@@ -602,5 +602,11 @@ Re-enable after fixing ScopeInfo::SaveEnclosingScopeInfo to handle named functio
       <files>Bug19948792.js</files>
       <compile-flags>-maxinterpretcount:1 -bgjit- -oopjit- -loopinterpretcount:1 -maxsimplejitruncount:2</compile-flags>
     </default>
-  </test> 
+  </test>
+  <test>
+    <default>
+      <files>bug_6179.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
