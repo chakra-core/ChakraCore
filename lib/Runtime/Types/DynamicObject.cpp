@@ -866,11 +866,11 @@ namespace Js
             }
             return false;
         }
-        if (!from->GetTypeHandler()->IsPathTypeHandler())
+        if (!from->GetTypeHandler()->IsObjectCopyable())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
-                Output::Print(_u("ObjectCopy: Can't copy: Don't have PathTypeHandler\n"));
+                Output::Print(_u("ObjectCopy: Can't copy: from obj does not have copyable type handler\n"));
             }
             return false;
         }
@@ -890,27 +890,11 @@ namespace Js
             }
             return false;
         }
-        if (PathTypeHandlerBase::FromTypeHandler(from->GetTypeHandler())->HasAccessors())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: type handler has accessors\n"));
-            }
-            return false;
-        }
         if (this->GetPrototype() != from->GetPrototype())
         {
             if (PHASE_TRACE1(ObjectCopyPhase))
             {
                 Output::Print(_u("ObjectCopy: Can't copy: Prototypes don't match\n"));
-            }
-            return false;
-        }
-        if (!from->GetTypeHandler()->AllPropertiesAreEnumerable())
-        {
-            if (PHASE_TRACE1(ObjectCopyPhase))
-            {
-                Output::Print(_u("ObjectCopy: Can't copy: from obj has non-enumerable properties\n"));
             }
             return false;
         }

@@ -235,12 +235,20 @@ namespace Js
         DynamicTypeHandler(slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | (isLocked ? IsLockedFlag : 0) | (isShared ? (MayBecomeSharedFlag | IsSharedFlag) : 0)),
         typePath(typePath),
         predecessorType(predecessorType),
-        successorInfo(nullptr)
+        successorInfo(nullptr),
+        hasUserDefinedCtor(false),
+        hasInternalProperty(false)
     {
         Assert(pathLength <= slotCapacity);
         Assert(inlineSlotCapacity <= slotCapacity);
         SetUnusedBytesValue(pathLength);
-        isNotPathTypeHandlerOrHasUserDefinedCtor = predecessorType == nullptr ? false : predecessorType->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor();
+
+        if (predecessorType != nullptr && predecessorType->GetTypeHandler()->IsPathTypeHandler())
+        {
+            auto* handler = PathTypeHandlerBase::FromTypeHandler(predecessorType->GetTypeHandler());
+            hasUserDefinedCtor = handler->hasUserDefinedCtor;
+            hasInternalProperty = handler->hasInternalProperty;
+        }
     }
 
     int PathTypeHandlerBase::GetPropertyCount()
@@ -2166,7 +2174,12 @@ namespace Js
 
             if (key.GetPropertyId() == PropertyIds::constructor)
             {
-                nextPath->isNotPathTypeHandlerOrHasUserDefinedCtor = true;
+                nextPath->hasUserDefinedCtor = true;
+            }
+
+            if (IsInternalPropertyId(key.GetPropertyId()))
+            {
+                nextPath->hasInternalProperty = true;
             }
 
 #ifdef PROFILE_TYPES

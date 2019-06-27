@@ -12279,15 +12279,23 @@ Case0:
         JS_REENTRANCY_LOCK(jsReentLock, scriptContext->GetThreadContext());
         SETOBJECT_FOR_MUTATION(jsReentLock, originalArray);
 
-        if (JavascriptArray::IsNonES5Array(originalArray)
-            && !UnsafeVarTo<DynamicObject>(originalArray)->GetDynamicType()->GetTypeHandler()->GetIsNotPathTypeHandlerOrHasUserDefinedCtor()
-            && UnsafeVarTo<DynamicObject>(originalArray)->GetPrototype() == scriptContext->GetLibrary()->GetArrayPrototype()
-            && !scriptContext->GetLibrary()->GetArrayObjectHasUserDefinedSpecies())
+        auto* library = scriptContext->GetLibrary();
+
+        if (JavascriptArray::IsNonES5Array(originalArray))
         {
-            return nullptr;
+            auto* dynamicObject = UnsafeVarTo<DynamicObject>(originalArray);
+            auto* typeHandler = dynamicObject->GetDynamicType()->GetTypeHandler();
+
+            if (typeHandler->IsPathTypeHandler()
+                && !PathTypeHandlerBase::FromTypeHandler(typeHandler)->HasUserDefinedCtor()
+                && dynamicObject->GetPrototype() == library->GetArrayPrototype()
+                && !library->GetArrayObjectHasUserDefinedSpecies())
+            {
+                return nullptr;
+            }
         }
 
-        Var constructor = scriptContext->GetLibrary()->GetUndefined();
+        Var constructor = library->GetUndefined();
 
         JS_REENTRANT(jsReentLock, BOOL isArray = JavascriptOperators::IsArray(originalArray));
         if (isArray)
@@ -12305,7 +12313,7 @@ Case0:
                 {
                     if (constructorScriptContext->GetLibrary()->GetArrayConstructor() == constructor)
                     {
-                        constructor = scriptContext->GetLibrary()->GetUndefined();
+                        constructor = library->GetUndefined();
                     }
                 }
             }
@@ -12321,14 +12329,14 @@ Case0:
                     }
                     return nullptr;
                 }
-                if (constructor == scriptContext->GetLibrary()->GetNull())
+                if (constructor == library->GetNull())
                 {
-                    constructor = scriptContext->GetLibrary()->GetUndefined();
+                    constructor = library->GetUndefined();
                 }
             }
         }
 
-        if (constructor == scriptContext->GetLibrary()->GetUndefined() || constructor == scriptContext->GetLibrary()->GetArrayConstructor())
+        if (constructor == library->GetUndefined() || constructor == library->GetArrayConstructor())
         {
             if (length > UINT_MAX)
             {
@@ -12337,7 +12345,7 @@ Case0:
 
             if (nullptr == pIsIntArray)
             {
-                return scriptContext->GetLibrary()->CreateArray(static_cast<uint32>(length));
+                return library->CreateArray(static_cast<uint32>(length));
             }
             else
             {

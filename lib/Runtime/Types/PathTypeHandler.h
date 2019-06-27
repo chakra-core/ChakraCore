@@ -102,6 +102,8 @@ namespace Js
         Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
         Field(TypePath*) typePath;
         Field(PathTypeSuccessorInfo*) successorInfo;
+        Field(bool) hasUserDefinedCtor;
+        Field(bool) hasInternalProperty;
 
     public:
         DEFINE_GETCPPNAME();
@@ -118,6 +120,8 @@ namespace Js
             AssertMsg(false, "DynamicTypeHandler::Clone is only called (today) when type handler is not shareable, or may not become shared. Path type handlers don't satisfy either condition");
             return nullptr;
         }
+
+        bool HasUserDefinedCtor() { return this->hasUserDefinedCtor; }
 
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
@@ -459,6 +463,8 @@ namespace Js
         DEFINE_VTABLE_CTOR_NO_REGISTER(PathTypeHandlerNoAttr, PathTypeHandlerBase);
 
     public:
+        virtual bool IsObjectCopyable() const override { return !this->hasInternalProperty; }
+
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static PathTypeHandlerNoAttr * New(ScriptContext * scriptContext, PathTypeHandlerNoAttr * typeHandler, bool isLocked, bool isShared);
@@ -534,6 +540,7 @@ namespace Js
             return FindNextPropertyHelper(scriptContext, this->attributes, index, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
         }
         virtual BOOL AllPropertiesAreEnumerable() sealed override { return false; }
+        virtual bool IsObjectCopyable() const override { return false; }
 #if ENABLE_NATIVE_CODEGEN
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;

@@ -501,6 +501,28 @@ var tests = [
         }
     },
 
+    {
+        name: "WeakMap internal property data is not copied by Object.assign",
+        body: function () {
+            var key1 = {};
+            var key2 = {};
+            var map = new WeakMap(); 
+
+            map.set(key1, 1);
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+
+            key1 = {};
+            key2 = {};
+            map = new WeakMap(); 
+
+            map.set(key1, 1);
+            key1.a = 1;
+            map.delete(Object.assign(key2, key1));
+            assert.isFalse(map.has(key2));
+        }
+    }
+
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
