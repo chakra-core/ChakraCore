@@ -163,6 +163,23 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
         //virtual void ProcessCorePaths() override;
 #endif
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    public:
+        struct BailInSymbol {
+            uint32 id;
+            Var value;
+            static uint32 GetBailInSymbolIdOffset() { return offsetof(BailInSymbol, id); }
+            static uint32 GetBailInSymbolValueOffset() { return offsetof(BailInSymbol, value); }
+        };
+
+        Field(BailInSymbol*) bailInSymbolsTraceArray = nullptr;
+        Field(int) bailInSymbolsTraceArrayCount = 0;
+
+        static uint32 GetBailInSymbolsTraceArrayOffset() { return offsetof(JavascriptGenerator, bailInSymbolsTraceArray); }
+        static uint32 GetBailInSymbolsTraceArrayCountOffset() { return offsetof(JavascriptGenerator, bailInSymbolsTraceArrayCount); }
+        static void OutputBailInTrace(JavascriptGenerator* generator);
+#endif
     };
 
     template <> bool VarIsImpl<JavascriptGenerator>(RecyclableObject* obj);

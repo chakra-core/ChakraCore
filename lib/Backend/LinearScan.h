@@ -272,6 +272,9 @@ private:
 
         void InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint);
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        void InsertBailInTrace(BVSparse<JitArenaAllocator>* symbols, IR::Instr* insertBeforeInstr);
+#endif
     public:
         GeneratorBailIn(Func* func, LinearScan* linearScan);
         IR::Instr* GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);

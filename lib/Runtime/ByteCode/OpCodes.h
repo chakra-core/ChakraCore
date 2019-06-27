@@ -853,6 +853,8 @@ MACRO_BACKEND_ONLY(LazyBailOutThunkLabel, Empty, None)
 MACRO_BACKEND_ONLY(GeneratorResumeJumpTable,                Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
 MACRO_BACKEND_ONLY(GeneratorCreateInterpreterStackFrame,    Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
 MACRO_BACKEND_ONLY(GeneratorLoadResumeYieldData,            Reg1,   OpSideEffect) // OpSideEffect because we don't want this to be deadstored
+MACRO_BACKEND_ONLY(GeneratorOutputBailInTrace,              Empty,  OpSideEffect) // OpSideEffect because we don't want this to be deadstored
+MACRO_BACKEND_ONLY(GeneratorOutputBailInTraceLabel,         Empty,  None)
 MACRO_BACKEND_ONLY(GeneratorBailInLabel,                    Empty,  None)
 MACRO_BACKEND_ONLY(GeneratorResumeYieldLabel,               Empty,  None)
 MACRO_BACKEND_ONLY(GeneratorEpilogueFrameNullOut,           Empty,  None)

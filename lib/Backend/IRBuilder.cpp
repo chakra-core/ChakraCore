@@ -1891,6 +1891,20 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->AddInstr(bailInLabel, offset);
         this->m_func->AddYieldOffsetResumeLabel(nextOffset, bailInLabel);
 
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE(Js::Phase::BailInPhase, this->m_func))
+        {
+            IR::LabelInstr* traceBailInLabel = IR::LabelInstr::New(Js::OpCode::GeneratorOutputBailInTraceLabel, m_func);
+            traceBailInLabel->m_hasNonBranchRef = true;     // set to true so that we don't move this label around
+            LABELNAMESET(traceBailInLabel, "OutputBailInTrace");
+            this->AddInstr(traceBailInLabel, offset);
+
+            IR::Instr* traceBailIn = IR::Instr::New(Js::OpCode::GeneratorOutputBailInTrace, m_func);
+            this->AddInstr(traceBailIn, offset);
+        }
+#endif
+
         // This label indicates the section where we start loading the ResumeYieldData on the stack
         // that comes from either .next(), .return(), or .throw() to the right symbol and finally
         // extract its data through Op_ResumeYield

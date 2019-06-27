@@ -3031,6 +3031,14 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             break;
         }
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        case Js::OpCode::GeneratorOutputBailInTrace:
+        {
+            this->m_lowerGeneratorHelper.LowerGeneratorTraceBailIn(instr);
+            break;
+        }
+#endif
+
         case Js::OpCode::GeneratorResumeJumpTable:
         {
             this->m_lowerGeneratorHelper.InsertBailOutForElidedYield();
@@ -3140,6 +3148,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = this->LowerStPropIdArrFromVar(instr);
             break;
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        case Js::OpCode::GeneratorOutputBailInTraceLabel:
+#endif
         case Js::OpCode::GeneratorBailInLabel:
         case Js::OpCode::GeneratorResumeYieldLabel:
         case Js::OpCode::GeneratorEpilogueFrameNullOut:
@@ -26550,6 +26561,9 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
         Assert(func->HasTry() && func->DoOptimizeTry());
         return func && !func->isPostFinalLower; //Lowered in FinalLower phase
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    case Js::OpCode::GeneratorOutputBailInTraceLabel:
+#endif
     case Js::OpCode::GeneratorBailInLabel:
     case Js::OpCode::GeneratorResumeYieldLabel:
     case Js::OpCode::GeneratorEpilogueFrameNullOut:
@@ -29285,6 +29299,18 @@ Lowerer::LowerGeneratorHelper::LowerCreateInterpreterStackFrameForGenerator(IR::
 
     this->lowererMD.ChangeToHelperCall(instr, IR::HelperCreateInterpreterStackFrameForGenerator);
 }
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+void
+Lowerer::LowerGeneratorHelper::LowerGeneratorTraceBailIn(IR::Instr* instr)
+{
+    StackSym* genParamSym = StackSym::NewParamSlotSym(1, instr->m_func);
+    instr->m_func->SetArgOffset(genParamSym, LowererMD::GetFormalParamOffset() * MachPtr);
+    IR::SymOpnd* genParamOpnd = IR::SymOpnd::New(genParamSym, TyMachPtr, instr->m_func);
+    this->lowererMD.LoadHelperArgument(instr, genParamOpnd);
+    this->lowererMD.ChangeToHelperCall(instr, IR::HelperOutputGeneratorBailInTrace);
+}
+#endif
 
 IR::SymOpnd*
 Lowerer::LowerGeneratorHelper::CreateResumeYieldDataOpnd() const

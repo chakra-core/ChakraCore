@@ -1844,6 +1844,20 @@ skipThunk:
         newInstance->m_reader.Create(executeFunction);
 
         generator->SetFrame(newInstance, varSizeInBytes);
+
+        // Moving this to when we create the generator instance in the first place would be nice.
+        // But at that point the function might not have been parsed yet, so we don't have the locals count.
+        // We are also allocating more space than we actually need because we shouldn't need to
+        // reload all the symbols when bailing in.
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        if (PHASE_TRACE(Js::Phase::BailInPhase, function->GetFunctionBody()))
+        {
+            generator->bailInSymbolsTraceArray = (Js::JavascriptGenerator::BailInSymbol*) RecyclerNewArrayLeafZ(
+                functionScriptContext->GetRecycler(), Js::JavascriptGenerator::BailInSymbol, executeFunction->GetFunctionBody()->GetLocalsCount()
+            );
+        }
+#endif
+
         return newInstance;
     }
 
