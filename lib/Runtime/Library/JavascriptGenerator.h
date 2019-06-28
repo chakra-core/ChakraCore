@@ -11,22 +11,22 @@ namespace Js
     // `data` stores the value that was passed in as parameter to .next()
     struct ResumeYieldData
     {
-        Var data;
-        JavascriptExceptionObject* exceptionObj;
-        JavascriptGenerator* generator = nullptr;
+        Var const data;
+        JavascriptExceptionObject* const exceptionObj;
+        JavascriptGenerator* const generator;
 
-        ResumeYieldData(Var data, JavascriptExceptionObject* exceptionObj) : data(data), exceptionObj(exceptionObj) { }
+        ResumeYieldData(Var data, JavascriptExceptionObject* exceptionObj, JavascriptGenerator* generator = nullptr) :
+            data(data), exceptionObj(exceptionObj), generator(generator) {}
     };
 
     struct AsyncGeneratorRequest
     {
-        Field(Var) data;
-        Field(JavascriptExceptionObject*) exceptionObj;
-        Field(JavascriptPromise*) promise;
+        Field(Var) const data;
+        Field(JavascriptExceptionObject*) const exceptionObj;
+        Field(JavascriptPromise*) const promise;
 
         AsyncGeneratorRequest(Var data, JavascriptExceptionObject* exceptionObj, JavascriptPromise* promise)
-             : data(data), exceptionObj(exceptionObj), promise(promise) { }
-
+             : data(data), exceptionObj(exceptionObj), promise(promise) {}
     };
 
     typedef JsUtil::List<AsyncGeneratorRequest*, Recycler> AsyncGeneratorQueue;
@@ -114,7 +114,7 @@ namespace Js
         void AsyncGeneratorResumeNext();
         void AsyncGeneratorReject(Var reason);
         void AsyncGeneratorResolve(Var value, bool done);
-        void CallAsyncGenerator(ResumeYieldData* yieldData);
+        void CallAsyncGenerator(Var data, JavascriptExceptionObject* exceptionObj);
         void InitialiseAsyncGenerator(ScriptContext* scriptContext);
 
         void SetScriptFunction(ScriptFunction* sf)

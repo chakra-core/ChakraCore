@@ -1879,6 +1879,24 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         break;
     }
 
+    case Js::OpCode::Await:
+    case Js::OpCode::AsyncYield:
+    case Js::OpCode::AsyncYieldStar:
+    {
+        // All of these opcodes rely on the ResumeYieldData passed as an argument to the jit'd frame,
+        // load it first before we do the actual operation.
+        // Also need to create the instruction differently because, unlike other Reg2 instructions,
+        // these opcodes actually use their destination operand as a source and have no destination.
+
+        IR::Instr* loadResumeYieldData = IR::Instr::New(Js::OpCode::GeneratorLoadResumeYieldData, dstOpnd /* dst */, m_func);
+        this->AddInstr(loadResumeYieldData, offset);
+
+        instr = IR::Instr::New(newOpcode, nullptr /* dst */, dstOpnd /* src1 */, src1Opnd /* src2 */, m_func);
+        this->AddInstr(instr, offset);
+
+        return;
+    }
+
     case Js::OpCode::Yield:
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
         this->AddInstr(instr, offset);
