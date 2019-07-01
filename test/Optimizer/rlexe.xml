@@ -1617,4 +1617,10 @@
       <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>aux_slot_type_transition_2.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:1</compile-flags>
+    </default>
+  </test>
 </regress-exe>

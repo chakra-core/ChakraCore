@@ -3021,6 +3021,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
         bool hasLiveFields = (block->upwardExposedFields && !block->upwardExposedFields->IsEmpty());
 
+        if (this->tag == Js::DeadStorePhase && block->stackSymToFinalType != nullptr)
+        {
+            this->InsertTypeTransitionsAtPotentialKills();
+        }
+
         IR::Opnd * opnd = instr->GetDst();
         if (opnd != nullptr)
         {
@@ -3067,11 +3072,6 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             TrackBitWiseOrNumberOp(instr);
 
             TrackFloatSymEquivalence(instr);
-        }
-
-        if (this->tag == Js::DeadStorePhase && block->stackSymToFinalType != nullptr)
-        {
-            this->InsertTypeTransitionsAtPotentialKills();
         }
 
         opnd = instr->GetSrc1();
