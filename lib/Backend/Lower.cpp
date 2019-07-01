@@ -2957,11 +2957,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::NewAsyncFromSyncIterator:
         {
             IR::Opnd *src1Opnd = instr->UnlinkSrc1();
-
             LoadScriptContext(instr);
             m_lowererMD.LoadHelperArgument(instr, src1Opnd);
             m_lowererMD.ChangeToHelperCall(instr, IR::HelperNewAsyncFromSyncIterator);
-
             break;
         }
 

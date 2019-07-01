@@ -325,8 +325,9 @@ namespace Js
 
         AsyncGeneratorNextProcessor* resumeNextReturnProcessor = VarTo<AsyncGeneratorNextProcessor>(function);
 
-        ResumeYieldData yieldData(args[1], RecyclerNew(scriptContext->GetRecycler(), JavascriptExceptionObject, args[1], scriptContext, nullptr));
-        resumeNextReturnProcessor->GetGenerator()->CallAsyncGenerator(&yieldData);
+        Var data = args[1];
+        JavascriptExceptionObject* exceptionObj = RecyclerNew(scriptContext->GetRecycler(), JavascriptExceptionObject, args[1], scriptContext, nullptr);
+        resumeNextReturnProcessor->GetGenerator()->CallAsyncGenerator(data, exceptionObj);
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
@@ -340,22 +341,23 @@ namespace Js
 
         AsyncGeneratorNextProcessor* resumeNextReturnProcessor = VarTo<AsyncGeneratorNextProcessor>(function);
 
-        ResumeYieldData yieldData(args.Values[1], nullptr);
-        resumeNextReturnProcessor->GetGenerator()->CallAsyncGenerator(&yieldData);
+        Var data = args.Values[1];
+        JavascriptExceptionObject* exceptionObj = nullptr;
+        resumeNextReturnProcessor->GetGenerator()->CallAsyncGenerator(data, exceptionObj);
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-    void JavascriptGenerator::CallAsyncGenerator(ResumeYieldData* yieldData)
+    void JavascriptGenerator::CallAsyncGenerator(Var data, JavascriptExceptionObject* exceptionObj)
     {
         AssertOrFailFastMsg(isAsync, "Should not call CallAsyncGenerator on a non-async generator");
         ScriptContext* scriptContext = this->GetScriptContext();
         Var result = nullptr;
         JavascriptExceptionObject *exception = nullptr;
-        yieldData->generator = this;
 
         SetState(GeneratorState::Executing);
 
-        Var thunkArgs[] = { this, yieldData };
+        ResumeYieldData yieldData(data, exceptionObj, this);
+        Var thunkArgs[] = { this, &yieldData };
         Arguments arguments(_countof(thunkArgs), thunkArgs);
         try
         {
@@ -557,8 +559,7 @@ namespace Js
         SetState(GeneratorState::Executing);
         // 17. Push genContext onto the execution context stack; genContext is now the running execution context.
         // 18. Resume the suspended evaluation of genContext using completion as the result of the operation that suspended it. Let result be the completion record returned by the resumed computation.
-        ResumeYieldData data(next->data, next->exceptionObj);
-        CallAsyncGenerator(&data);
+        CallAsyncGenerator(next->data, next->exceptionObj);
         // 19. Assert: result is never an abrupt completion.
         // 20. Assert: When we return here, genContext has already been removed from the execution context stack and callerContext is the currently running execution context.
         // 21. Return undefined.
