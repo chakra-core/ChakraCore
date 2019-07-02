@@ -94,6 +94,7 @@ EXDEF2    (BRPROP,                  BrOnHasProperty,            OP_BrOnHasProper
   DEF3_WMS(CALL,                    ProfiledReturnTypeCallIExtendedFlags,    PROFILEDOP(OP_ProfiledReturnTypeCallIExtendedFlags, OP_CallIExtendedFlags), ProfiledCallIExtendedFlags)
   
 EXDEF2_WMS(A1toA1Mem,               Conv_Str,                   JavascriptConversion::ToString)
+EXDEF2_WMS(A1toA1Mem,               Conv_Prop,                  JavascriptOperators::OP_ToPropertyKey)
   DEF2_WMS(A1toA1Mem,               Conv_Obj,                   JavascriptOperators::ToObject)
 EXDEF2_WMS(A1toA1Mem,               NewUnscopablesWrapperObject,JavascriptOperators::ToUnscopablesWrapperObject)
   DEF2_WMS(A1toA1Mem,               Conv_Num,                   JavascriptOperators::ToNumber)

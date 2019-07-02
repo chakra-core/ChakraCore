@@ -320,6 +320,8 @@ MACRO_BACKEND_ONLY(     CmUnGe_I4,          Reg3,           OpTempNumberSources|
 MACRO_WMS(              Conv_Num,           Reg2,           OpSideEffect|OpTempNumberProducing|OpTempNumberTransfer|OpTempObjectSources|OpOpndHasImplicitCall|OpProducesNumber) // Convert to Number. [[ToNumber()]]
 // Operation ToString(str)
 MACRO_EXTEND_WMS(       Conv_Str,           Reg2,           OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
+// Operation ToPropertyKey(var)
+MACRO_EXTEND_WMS(       Conv_Prop,          Reg2,           OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources|OpCanCSE|OpPostOpDbgBailOut)
 
 // Conv_Obj:
 //      OpSideEffect - May throw exception on null/undefined.
