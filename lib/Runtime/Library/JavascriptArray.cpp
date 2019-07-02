@@ -5533,7 +5533,6 @@ Case0:
         {
             JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetSmallIndex(), scriptContext));
         }
-        Assert(pArr == nullptr || length.IsUint32Max()); // if pArr is not null lets make sure length is safe to cast, which will only happen if length is a uint32max
 
         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetBigIndex(), scriptContext));
         JIT_HELPER_END(Array_Reverse);
@@ -5624,6 +5623,7 @@ Case0:
 
         if (useNoSideEffectReverse)
         {
+            Assert(length <= JavascriptArray::MaxArrayLength);
             Recycler * recycler = scriptContext->GetRecycler();
 
             if (length <= 1)
@@ -5774,9 +5774,8 @@ Case0:
 
             failFastOnError.Completed();
         }
-        else if (typedArrayBase)
+        else if (typedArrayBase && length <= JavascriptArray::MaxArrayLength)
         {
-            Assert(length <= JavascriptArray::MaxArrayLength);
             if (typedArrayBase->GetLength() == length)
             {
                 // If typedArrayBase->length == length then we know that the TypedArray will have all items < length
