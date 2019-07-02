@@ -2695,7 +2695,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 }
 
 bool
-GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt, bool *isSafeToTransferInPrepass /*=nullptr*/) const
 {
     if (opnd == nullptr)
     {
@@ -2725,12 +2725,18 @@ GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
         {
             return true;
         }
+
+        bool isSafeToTransfer = this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        if (isSafeToTransferInPrepass != nullptr)
+        {
+            *isSafeToTransferInPrepass = isSafeToTransfer;
+        }
         if (this->prePassLoop->preservesNumberValue->Test(opnd->m_sym->m_id))
         {
             return false;
         }
 
-        return !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        return !isSafeToTransfer;
     }
 
     return true;
