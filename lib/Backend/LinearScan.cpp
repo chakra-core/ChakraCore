@@ -5039,6 +5039,15 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelIns
     this->InsertRestoreSymbols(bailOutInfo->byteCodeUpwardExposedUsed, insertionPoint);
     Assert(!this->func->IsStackArgsEnabled());
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    if (PHASE_TRACE(Js::Phase::BailInPhase, this->func))
+    {
+        IR::Instr* insertBailInTraceBefore = instrAfter;
+        Assert(insertBailInTraceBefore->m_opcode == Js::OpCode::GeneratorOutputBailInTraceLabel);
+        this->InsertBailInTrace(bailOutInfo->byteCodeUpwardExposedUsed, insertBailInTraceBefore->m_next);
+    }
+#endif
+
     return instrAfter;
 }
 
@@ -5195,3 +5204,67 @@ uint32 LinearScan::GeneratorBailIn::GetOffsetFromInterpreterStackFrame(Js::RegSl
         return regSlot * sizeof(Js::Var) + Js::InterpreterStackFrame::GetOffsetOfLocals();
     }
 }
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+void LinearScan::GeneratorBailIn::InsertBailInTrace(BVSparse<JitArenaAllocator>* symbols, IR::Instr* insertBeforeInstr)
+{
+    IR::RegOpnd* traceBailInSymbolsArrayRegOpnd = this->interpreterFrameRegOpnd;
+
+    // Load JavascriptGenerator->bailInSymbolsTraceArray
+    {
+        LinearScan::InsertMove(traceBailInSymbolsArrayRegOpnd, this->CreateGeneratorObjectOpnd(), insertBeforeInstr);
+        IR::IndirOpnd* traceBailInSymbolsArrayIndirOpnd = IR::IndirOpnd::New(traceBailInSymbolsArrayRegOpnd, Js::JavascriptGenerator::GetBailInSymbolsTraceArrayOffset(), TyMachPtr, this->func);
+        LinearScan::InsertMove(traceBailInSymbolsArrayRegOpnd, traceBailInSymbolsArrayIndirOpnd, insertBeforeInstr);
+    }
+
+    int count = 0;
+    FOREACH_BITSET_IN_SPARSEBV(symId, symbols)
+    {
+        StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
+        Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
+
+        if (!this->NeedsReloadingValueWhenBailIn(stackSym, lifetime))
+        {
+            continue;
+        }
+
+        int offset = sizeof(Js::JavascriptGenerator::BailInSymbol) * count;
+
+        // Assign JavascriptGenerator->bailInSymbolsTraceArray[count]->id
+        {
+            IR::IndirOpnd* idIndirOpnd = IR::IndirOpnd::New(traceBailInSymbolsArrayRegOpnd, offset + Js::JavascriptGenerator::BailInSymbol::GetBailInSymbolIdOffset(), TyMachPtr, this->func);
+            IR::IntConstOpnd* idConstOpnd = IR::IntConstOpnd::New(stackSym->m_id, TyUint8, this->func);
+            LinearScan::InsertMove(idIndirOpnd, idConstOpnd, insertBeforeInstr);
+        }
+
+        // Assign JavascriptGenerator->bailInSymbolsTraceArray[count]->value
+        {
+            IR::IndirOpnd* valueIndirOpnd = IR::IndirOpnd::New(traceBailInSymbolsArrayRegOpnd, offset + Js::JavascriptGenerator::BailInSymbol::GetBailInSymbolValueOffset(), TyMachPtr, this->func);
+            IR::Opnd* srcOpnd;
+            if (lifetime->isSpilled)
+            {
+                IR::SymOpnd* stackSymOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
+                LinearScan::InsertMove(this->tempRegOpnd, stackSymOpnd, insertBeforeInstr);
+                srcOpnd = this->tempRegOpnd;
+            }
+            else
+            {
+                srcOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
+                srcOpnd->AsRegOpnd()->SetReg(lifetime->reg);
+            }
+            LinearScan::InsertMove(valueIndirOpnd, srcOpnd, insertBeforeInstr);
+        }
+
+        count++;
+    }
+    NEXT_BITSET_IN_SPARSEBV;
+
+    // Assign JavascriptGenerator->bailInSymbolsTraceArrayCount
+    {
+        LinearScan::InsertMove(this->tempRegOpnd, this->CreateGeneratorObjectOpnd(), insertBeforeInstr);
+        IR::IndirOpnd* traceBailInSymbolsArrayCountIndirOpnd = IR::IndirOpnd::New(this->tempRegOpnd, Js::JavascriptGenerator::GetBailInSymbolsTraceArrayCountOffset(), TyMachPtr, this->func);
+        IR::IntConstOpnd* countOpnd = IR::IntConstOpnd::New(count, TyInt32, this->func);
+        LinearScan::InsertMove(traceBailInSymbolsArrayCountIndirOpnd, countOpnd, insertBeforeInstr);
+    }
+}
+#endif

@@ -893,6 +893,10 @@ private:
         void LowerResumeGenerator(IR::Instr* instr);
         void LowerYield(IR::Instr* instr);
         void LowerGeneratorLoadResumeYieldData(IR::Instr* instr);
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        void LowerGeneratorTraceBailIn(IR::Instr* instr);
+#endif
     };
 
     LowerGeneratorHelper m_lowerGeneratorHelper;

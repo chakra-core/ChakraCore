@@ -543,6 +543,10 @@ HELPERCALL(Await,                       Js::InterpreterStackFrame::OP_Await, Att
 
 HELPERCALL(CreateInterpreterStackFrameForGenerator, Js::InterpreterStackFrame::CreateInterpreterStackFrameForGenerator, AttrCanNotBeReentrant)
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+HELPERCALL(OutputGeneratorBailInTrace, Js::JavascriptGenerator::OutputBailInTrace, AttrCanNotBeReentrant)
+#endif
+
 #if DBG
 HELPERCALL(IntRangeCheckFailure, Js::JavascriptNativeOperators::IntRangeCheckFailure, AttrCanNotBeReentrant)
 #endif

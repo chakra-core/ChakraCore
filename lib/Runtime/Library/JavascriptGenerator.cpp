@@ -673,6 +673,28 @@ namespace Js
         return  function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
 
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    void JavascriptGenerator::OutputBailInTrace(JavascriptGenerator* generator)
+    {
+        char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+        FunctionBody *fnBody = generator->scriptFunction->GetFunctionBody();
+        Output::Print(_u("BailIn: function: %s (%s) offset: #%04x\n"), fnBody->GetDisplayName(), fnBody->GetDebugNumberSet(debugStringBuffer), generator->frame->m_reader.GetCurrentOffset());
+
+        if (generator->bailInSymbolsTraceArrayCount == 0)
+        {
+            Output::Print(_u("BailIn: No symbols reloaded\n"), fnBody->GetDisplayName(), fnBody->GetDebugNumberSet(debugStringBuffer));
+        }
+        else
+        {
+            for (int i = 0; i < generator->bailInSymbolsTraceArrayCount; i++)
+            {
+                const JavascriptGenerator::BailInSymbol& symbol = generator->bailInSymbolsTraceArray[i];
+                Output::Print(_u("BailIn: Register #%4d, value: 0x%p\n"), symbol.id, symbol.value);
+            }
+        }
+    }
+#endif
+
     template <> bool VarIsImpl<AsyncGeneratorNextProcessor>(RecyclableObject* obj)
     {
         if (VarIs<JavascriptFunction>(obj))
