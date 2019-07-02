@@ -208,7 +208,7 @@ public:
 
             for (PropertyIndex i = 0; i < pathLength; i++)
             {
-                if (checkAttributes && attributes[i] == ObjectSlotAttr_Setter)
+                if (checkAttributes && (attributes[i] == ObjectSlotAttr_Setter || (attributes[i] & ObjectSlotAttr_Deleted)))
                 {
                     branchedPath->AddInternal<false>(assignments[i]);
                 }

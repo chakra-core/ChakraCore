@@ -51,13 +51,13 @@ fnc.prototype.toJSON = function() {
   TEST('{"a":1,"b":2}', JSON.stringify(obj));;
   Object.defineProperty(obj, "c", { get: () => 3, enumerable: true });
   obj.d = 4;
-  TEST('{"c":3,"a":1,"b":2,"d":4}', JSON.stringify(obj));
+  TEST('{"a":1,"b":2,"c":3,"d":4}', JSON.stringify(obj));
   obj[9]=19;
-  TEST('{"9":19,"c":3,"a":1,"b":2,"d":4}', JSON.stringify(obj));
+  TEST('{"9":19,"a":1,"b":2,"c":3,"d":4}', JSON.stringify(obj));
   delete obj[9]
-  TEST('{"c":3,"a":1,"b":2,"d":4}', JSON.stringify(obj));
+  TEST('{"a":1,"b":2,"c":3,"d":4}', JSON.stringify(obj));
   delete obj['a']
-  TEST('{"c":3,"b":2,"d":4}', JSON.stringify(obj));
+  TEST('{"b":2,"c":3,"d":4}', JSON.stringify(obj));
 }
 
 // test getter
