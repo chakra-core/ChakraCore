@@ -977,7 +977,7 @@
       <compile-flags>-testtrace:asmjs -args 14000 -endargs -EnableFatalErrorOnOOM-</compile-flags>
       <!-- todo:: On unix platforms there is more stack available,
            so we need to find the right limit to test in order to not timeout -->
-      <tags>exclude_dynapogo,exclude_mac</tags>
+      <tags>exclude_dynapogo,exclude_mac,slow</tags>
     </default>
   </test>
   <test>
