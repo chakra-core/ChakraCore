@@ -13470,6 +13470,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
                     case IR::HelperArray_Splice:
                     case IR::HelperArray_Unshift:
                     case IR::HelperArray_Concat:
+                    case IR::HelperArray_Slice:
                         kills.SetKillsArrayHeadSegments();
                         kills.SetKillsArrayHeadSegmentLengths();
                         break;

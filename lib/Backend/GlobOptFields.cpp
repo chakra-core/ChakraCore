@@ -518,6 +518,18 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 }
                 break;
 
+            case IR::JnHelperMethod::HelperArray_Slice:
+            case IR::JnHelperMethod::HelperArray_Concat:
+                if (inGlobOpt && this->objectTypeSyms)
+                {
+                    if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
+                    {
+                        this->currentBlock->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+                    }
+                    this->currentBlock->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
+                }
+                break;
+
             case IR::JnHelperMethod::HelperRegExp_Exec:
             case IR::JnHelperMethod::HelperRegExp_ExecResultNotUsed:
             case IR::JnHelperMethod::HelperRegExp_ExecResultUsed:
