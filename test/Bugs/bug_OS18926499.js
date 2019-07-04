@@ -23,3 +23,26 @@ try {
 } catch {
     console.log('pass');
 }
+
+var foo3 = function foo3a(a = (function foo3b() { foo3a; })()) {
+    a;
+};
+
+try {
+    foo3()
+    console.log('pass');
+} catch {
+    console.log('fail');
+}
+
+var foo4 = function foo4a(a = (function() { +x; })()) {
+    function bar() { eval(''); }
+    var x;
+};
+
+try {
+    foo4()
+    console.log('fail');
+} catch {
+    console.log('pass');
+}
