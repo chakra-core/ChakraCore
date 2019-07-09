@@ -995,6 +995,7 @@ public:
     void SetScopeObjSym(StackSym * sym);
     StackSym * GetScopeObjSym();
     bool IsTrackCompoundedIntOverflowDisabled() const;
+    bool IsMemOpDisabled() const;
     bool IsArrayCheckHoistDisabled() const;
     bool IsStackArgOptDisabled() const;
     bool IsSwitchOptDisabled() const;

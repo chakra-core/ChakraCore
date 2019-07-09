@@ -345,6 +345,9 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             case RejitReason::TrackIntOverflowDisabled:
                 outputData->disableTrackCompoundedIntOverflow = TRUE;
                 break;
+            case RejitReason::MemOpDisabled:
+                outputData->disableMemOp = TRUE;
+                break;
             default:
                 Assume(UNREACHED);
             }
@@ -1122,6 +1125,12 @@ bool
 Func::IsTrackCompoundedIntOverflowDisabled() const
 {
     return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled()) || m_output.IsTrackCompoundedIntOverflowDisabled();
+}
+
+bool
+Func::IsMemOpDisabled() const
+{
+    return (HasProfileInfo() && GetReadOnlyProfileInfo()->IsMemOpDisabled()) || m_output.IsMemOpDisabled();
 }
 
 bool

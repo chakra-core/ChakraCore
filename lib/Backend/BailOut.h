@@ -27,7 +27,7 @@ public:
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
         bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
         byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
-        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false),
+        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false), canDeadStore(true),
         outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
         branchConditionOpnd(nullptr),
         stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr)
@@ -69,6 +69,7 @@ public:
 #endif
     bool wasCloned;
     bool isInvertedBranch;
+    bool canDeadStore;
     bool sharedBailOutKind;
     bool isLoopTopBailOutInfo;
 

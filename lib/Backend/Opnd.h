@@ -1138,7 +1138,8 @@ public:
     // fall back on live cache.  Similarly, for fixed method checks.
     bool MayHaveImplicitCall() const
     {
-        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected());
+        return !IsRootObjectNonConfigurableFieldLoad() && !UsesFixedValue() && (!IsTypeCheckSeqCandidate() || !IsTypeCheckProtected()
+            || (IsLoadedFromProto() && NeedsWriteGuardTypeCheck()));
     }
 
     // Is the instruction involving this operand part of a type check sequence? This is different from IsObjTypeSpecOptimized
