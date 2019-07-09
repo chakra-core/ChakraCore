@@ -1234,6 +1234,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         {
             body->GetAnyDynamicProfileInfo()->DisableTrackCompoundedIntOverflow();
         }
+        if (jitWriteData.disableMemOp)
+        {
+            body->GetAnyDynamicProfileInfo()->DisableMemOp();
+        }
     }
 
     if (jitWriteData.disableInlineApply)

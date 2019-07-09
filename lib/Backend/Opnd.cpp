@@ -962,7 +962,8 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
-    JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+    JITTypeHolder cachedType = this->HasInitialType() ? this->GetInitialType() : 
+        this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
 
     JITTypeHolder finalType = this->GetFinalType();
 
@@ -987,13 +988,11 @@ PropertySymOpnd::ChangesObjectLayout() const
         // This is the case where the type transition actually occurs. (This is the only case that's detectable
         // during the loop pre-pass, since final types are not in place yet.)
 
-        Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
-
-        const JITTypeHandler * cachedTypeHandler = cachedType->GetTypeHandler();
         const JITTypeHandler * initialTypeHandler = initialType->GetTypeHandler();
 
-        return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
-            cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
+        // If no final type has been set in the forward pass, then we have no way of knowing how the object shape will evolve here.
+        // If the initial type is object-header-inlined, assume that the layout may change.
+        return initialTypeHandler->IsObjectHeaderInlinedTypeHandler();
     }
 
     return false;

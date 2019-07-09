@@ -967,6 +967,7 @@ public:
     bool HasStackSymForFormal(Js::ArgSlot formalsIndex);
 
     bool IsTrackCompoundedIntOverflowDisabled() const;
+    bool IsMemOpDisabled() const;
     bool IsArrayCheckHoistDisabled() const;
     bool IsStackArgOptDisabled() const;
     bool IsSwitchOptDisabled() const;

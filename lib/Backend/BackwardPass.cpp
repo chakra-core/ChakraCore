@@ -4370,6 +4370,59 @@ BackwardPass::TraceBlockUses(BasicBlock * block, bool isStart)
 #endif
 
 bool
+BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall)
+{
+    Assert(instr);
+    Assert(instr->HasBailOutInfo());
+
+    IR::BailOutKind implicitCallBailOutKind = needsBailOutOnImplicitCall ? IR::BailOutOnImplicitCalls : IR::BailOutInvalid;
+
+    IR::BailOutKind instrBailOutKind = instr->GetBailOutKind();
+    if (instrBailOutKind & IR::BailOutMarkTempObject)
+    {
+        // Remove the mark temp object bit, as we don't need it after the dead store pass
+        instrBailOutKind &= ~IR::BailOutMarkTempObject;
+        instr->SetBailOutKind(instrBailOutKind);
+
+        if (!instr->GetBailOutInfo()->canDeadStore)
+        {
+            return true;
+        }
+    }
+
+    const IR::BailOutKind instrImplicitCallBailOutKind = instrBailOutKind & ~IR::BailOutKindBits;
+    if(instrImplicitCallBailOutKind == IR::BailOutOnImplicitCallsPreOp)
+    {
+        if(needsBailOutOnImplicitCall)
+        {
+            implicitCallBailOutKind = IR::BailOutOnImplicitCallsPreOp;
+        }
+    }
+    else if(instrImplicitCallBailOutKind != IR::BailOutOnImplicitCalls && instrImplicitCallBailOutKind != IR::BailOutInvalid)
+    {
+        // This bailout kind (the value of 'instrImplicitCallBailOutKind') must guarantee that implicit calls will not happen.
+        // If it doesn't make such a guarantee, it must be possible to merge this bailout kind with an implicit call bailout
+        // kind, and therefore should be part of BailOutKindBits.
+        Assert(!needsBailOutOnImplicitCall);
+        return true;
+    }
+
+    if(instrImplicitCallBailOutKind == implicitCallBailOutKind)
+    {
+        return true;
+    }
+
+    const IR::BailOutKind newBailOutKind = instrBailOutKind - instrImplicitCallBailOutKind + implicitCallBailOutKind;
+    if(newBailOutKind == IR::BailOutInvalid)
+    {
+        return false;
+    }
+
+    instr->SetBailOutKind(newBailOutKind);
+    return true;
+}
+
+bool
 BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
 {
     Assert(instr);

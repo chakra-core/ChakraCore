@@ -974,7 +974,8 @@ GlobOptBlockData::MergeValueInfo(
                 fromDataValueInfo->AsArrayValueInfo(),
                 fromDataSym,
                 symsRequiringCompensation,
-                symsCreatedForMerge);
+                symsCreatedForMerge,
+                isLoopBackEdge);
     }
 
     // Consider: If both values are VarConstantValueInfo with the same value, we could
@@ -1072,7 +1073,8 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
     const ArrayValueInfo *const fromDataValueInfo,
     Sym *const arraySym,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
-    BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
+    BVSparse<JitArenaAllocator> *const symsCreatedForMerge,
+    bool isLoopBackEdge)
 {
     Assert(mergedValueType.IsAnyOptimizedArray());
     Assert(toDataValueInfo);
@@ -1095,7 +1097,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 // Adding compensation code in the prepass won't help, as the symstores would again be different in the main pass.
                 Assert(symsRequiringCompensation);
@@ -1123,7 +1125,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 Assert(symsRequiringCompensation);
                 symsRequiringCompensation->Set(arraySym->m_id);
@@ -1150,7 +1152,7 @@ ValueInfo *GlobOptBlockData::MergeArrayValueInfo(
         }
         else
         {
-            if (!this->globOpt->IsLoopPrePass())
+            if (!this->globOpt->IsLoopPrePass() && !isLoopBackEdge)
             {
                 Assert(symsRequiringCompensation);
                 symsRequiringCompensation->Set(arraySym->m_id);
