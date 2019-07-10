@@ -2467,7 +2467,7 @@ BackwardPass::DeadStoreImplicitCallBailOut(IR::Instr * instr, bool hasLiveFields
 }
 
 bool
-BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut)
+BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr* const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut)
 {
     Assert(instr);
     Assert(instr->HasBailOutInfo());
@@ -2481,7 +2481,7 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
         "The lazy bailout bit should be present at this point. We might have removed it incorrectly."
     );
 
-    const IR::BailOutKind bailOutKindWithBits = instr->GetBailOutKind();
+    IR::BailOutKind bailOutKindWithBits = instr->GetBailOutKind();
 
     const bool hasMarkTempObject = bailOutKindWithBits & IR::BailOutMarkTempObject;
 
@@ -2490,7 +2490,8 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
     // of `needsBailOutOnImplicitCall`.
     if (hasMarkTempObject)
     {
-        instr->SetBailOutKind(bailOutKindWithBits & ~IR::BailOutMarkTempObject);
+        bailOutKindWithBits &= ~IR::BailOutMarkTempObject;
+        instr->SetBailOutKind(bailOutKindWithBits);
     }
 
     if (needsBailOutOnImplicitCall)
@@ -2518,9 +2519,10 @@ BackwardPass::UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBa
     }
 
     const IR::BailOutKind bailOutKindWithoutBits = instr->GetBailOutKindNoBits();
-
-    if (hasMarkTempObject)
+    if (!instr->GetBailOutInfo()->canDeadStore)
     {
+        // revisit if canDeadStore is used for anything other than BailOutMarkTempObject
+        Assert(hasMarkTempObject);
         // Don't remove the implicit call pre op bailout for mark temp object.
         Assert(bailOutKindWithoutBits == IR::BailOutOnImplicitCallsPreOp);
         return true;
