@@ -5432,14 +5432,20 @@ ScriptContext::GetJitFuncRangeCache()
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
         }
 
-        if (this->GetLibrary()->GetModuleRecordList())
+        ModuleRecordList* moduleRecordList = this->GetLibrary()->GetModuleRecordList();
+        if (moduleRecordList)
         {
-            this->GetLibrary()->GetModuleRecordList()->Map([this](int start, SourceTextModuleRecord* moduleRecord) {
-                HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
-                    m_remoteScriptContextAddr,
-                    moduleRecord->GetModuleId(),
-                    (intptr_t)moduleRecord->GetLocalExportSlots());
-                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+            moduleRecordList->Map([this](int start, SourceTextModuleRecord* moduleRecord) {
+                intptr_t exportSlotsAddr = (intptr_t)moduleRecord->GetLocalExportSlots();
+                // only add modules which have initialized localExportSlots
+                if (exportSlotsAddr)
+                {
+                    HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
+                        m_remoteScriptContextAddr,
+                        moduleRecord->GetModuleId(),
+                        exportSlotsAddr);
+                    JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+                }
             });
         }
     }
