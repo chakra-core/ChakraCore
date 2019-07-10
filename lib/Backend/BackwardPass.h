@@ -78,7 +78,6 @@ private:
 #endif
 
     static bool UpdateImplicitCallBailOutKind(IR::Instr *const instr, bool needsBailOutOnImplicitCall, bool needsLazyBailOut);
-    static bool UpdateImplicitCallBailOutKind(IR::Instr* const instr, bool needsBailOutOnImplicitCall);
 
     bool ProcessNoImplicitCallUses(IR::Instr *const instr);
     void ProcessNoImplicitCallDef(IR::Instr *const instr);
