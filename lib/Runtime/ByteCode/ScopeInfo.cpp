@@ -166,7 +166,7 @@ namespace Js
             Assert(currentScope->GetScopeType() == ScopeType_FunctionBody);
             Assert(currentScope->GetEnclosingScope());
 
-            FuncInfo* func = currentScope->GetEnclosingScope()->GetFunc();
+            FuncInfo* func = byteCodeGenerator->GetEnclosingFuncInfo();
             Assert(func);
 
             if (func->IsBodyAndParamScopeMerged() && !(func->funcExprScope && func->funcExprScope->GetCanMerge()))

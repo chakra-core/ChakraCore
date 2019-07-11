@@ -24,7 +24,7 @@ try {
     console.log('pass');
 }
 
-var foo3 = function foo3a(a = (function foo3b() { foo3a; })()) {
+var foo3 = function foo3a(a = (function foo3b() { +foo3a; })()) {
     a;
 };
 
@@ -45,4 +45,50 @@ try {
     console.log('fail');
 } catch {
     console.log('pass');
+}
+
+var foo5 = function foo5a(a = (function(){(function(b = 123) { +x; })()})()) {
+    function bar() { eval(''); }
+    var x;
+};
+
+try {
+    foo5();
+    console.log('fail');
+} catch {
+    console.log('pass');
+}
+
+function foo6(a, b = (function() {a; +x;})()) {
+    function bar() { eval(''); }
+    var x;
+};
+
+try {
+    foo6();
+    console.log('fail');
+} catch {
+    console.log('pass');
+}
+
+var foo8 = function foo8a(b, a = (function foo8b() { console.log(x); })()) {
+    a;
+    var x = 'fail';
+};
+
+try {
+    foo8()
+    console.log('fail');
+} catch {
+    console.log('pass');
+}
+
+var foo9 = function foo9a(b = 'pass', a = (function foo9b() { console.log(b); })()) {
+};
+
+try {
+    foo9()
+    console.log('pass');
+} catch {
+    console.log('fail');
 }

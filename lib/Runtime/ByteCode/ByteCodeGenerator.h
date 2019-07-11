@@ -402,6 +402,8 @@ public:
     void PopulateFormalsScope(uint beginOffset, FuncInfo *funcInfo, ParseNodeFnc *pnodeFnc);
     void InsertPropertyToDebuggerScope(FuncInfo* funcInfo, Js::DebuggerScope* debuggerScope, Symbol* sym);
     FuncInfo *FindEnclosingNonLambda();
+    static FuncInfo* GetParentFuncInfo(FuncInfo* child);
+    FuncInfo* GetEnclosingFuncInfo();
 
     bool CanStackNestedFunc(FuncInfo * funcInfo, bool trace = false);
     void CheckDeferParseHasMaybeEscapedNestedFunc();
