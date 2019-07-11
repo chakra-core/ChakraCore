@@ -482,17 +482,29 @@ GlobOpt::CaptureByteCodeSymUses(IR::Instr * instr)
 void
 GlobOpt::ProcessInlineeEnd(IR::Instr* instr)
 {
-    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) && 
+    if (!PHASE_OFF(Js::StackArgLenConstOptPhase, instr->m_func) &&
         !IsLoopPrePass() &&
-        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled()) &&
-        instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
+        (!instr->m_func->GetJITFunctionBody()->UsesArgumentsObject() || instr->m_func->IsStackArgsEnabled()))
     {
-        instr->m_func->hasUnoptimizedArgumentsAccess = false;
-        if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
+        if (instr->m_func->unoptimizableArgumentsObjReference == 0 && instr->m_func->unoptimizableArgumentsObjReferenceInInlinees == 0)
         {
-            instr->m_func->m_hasInlineArgsOpt = true;
-            Assert(instr->m_func->cachedInlineeFrameInfo);
-            instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+            instr->m_func->hasUnoptimizedArgumentsAccess = false;
+            if (!instr->m_func->m_hasInlineArgsOpt && DoInlineArgsOpt(instr->m_func))
+            {
+                instr->m_func->m_hasInlineArgsOpt = true;
+                Assert(instr->m_func->cachedInlineeFrameInfo);
+                instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+            }
+        }
+        else
+        {
+            instr->m_func->hasUnoptimizedArgumentsAccess = true;
+
+            if (instr->m_func->m_hasInlineArgsOpt && instr->m_func->cachedInlineeFrameInfo)
+            {
+                instr->m_func->m_hasInlineArgsOpt = false;
+                ClearInlineeFrameInfo(instr);
+            }
         }
     }
 
@@ -766,6 +778,24 @@ GlobOpt::TrackCalls(IR::Instr * instr)
         }
         break;
     }
+}
+
+void GlobOpt::ClearInlineeFrameInfo(IR::Instr* inlineeEnd)
+{
+    if (this->IsLoopPrePass())
+    {
+        return;
+    }
+
+    InlineeFrameInfo* frameInfo = inlineeEnd->m_func->frameInfo;
+    inlineeEnd->m_func->frameInfo = nullptr;
+
+    if (!frameInfo || !frameInfo->isRecorded)
+    {
+        return;
+    }
+    frameInfo->function = InlineFrameInfoValue();
+    frameInfo->arguments->Clear();
 }
 
 void GlobOpt::RecordInlineeFrameInfo(IR::Instr* inlineeEnd)

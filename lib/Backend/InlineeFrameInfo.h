@@ -110,7 +110,7 @@ struct InlineeFrameRecord
     }
 
     void PopulateParent(Func* func);
-    void RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostInlinee, Js::JavascriptCallStackLayout* callstack, bool boxValues, InlinedFrameLayout ** ppInlinedFrameToRestore = nullptr, Js::ArgSlot *pClearedCallInfoCount = nullptr);
+    void RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostInlinee, Js::JavascriptCallStackLayout* callstack, bool boxValues);
     void Finalize(Func* inlinee, uint currentOffset);
 #if DBG_DUMP
     void Dump() const;

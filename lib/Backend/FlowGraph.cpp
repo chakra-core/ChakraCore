@@ -4488,6 +4488,108 @@ IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, G
     return newTarget;
 }
 
+Value*
+BasicBlock::UpdateValueForCopyTypeInstr(GlobOpt* globOpt, GlobHashTable* localSymToValueMap, IR::Instr* instr)
+{
+    Value* dstValue = nullptr;
+    if (instr->m_opcode == Js::OpCode::LdFld)
+    {
+        // Special handling for LdFld
+        Assert(instr->GetSrc1()->IsSymOpnd());
+        IR::SymOpnd* symOpnd = instr->GetSrc1()->AsSymOpnd();
+
+        if (symOpnd->m_sym->IsPropertySym())
+        {
+            PropertySym* originalPropertySym = symOpnd->m_sym->AsPropertySym();
+            Value* const objectValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, nullptr, originalPropertySym->m_stackSym);
+            Sym* objSym = objectValue ? objectValue->GetValueInfo()->GetSymStore() : nullptr;
+            PropertySym* prop = PropertySym::Find(objSym ? objSym->m_id : originalPropertySym->m_stackSym->m_id, originalPropertySym->m_propertyId, globOpt->func);
+            if (prop)
+            {
+                dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetStackSym(), prop);
+            }
+            else
+            {
+                Value** localDstValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetStackSym());
+                dstValue = *localDstValue = nullptr;
+            }
+        }
+    }
+    else if (instr->GetSrc1()->GetStackSym())
+    {
+        StackSym* src1Sym = instr->GetSrc1()->GetStackSym();
+        dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
+    }
+    else if (instr->GetSrc1()->IsIntConstOpnd())
+    {
+        Value** localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+        dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
+    }
+    else if (instr->GetSrc1()->IsInt64ConstOpnd())
+    {
+        Value** localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+        dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
+    }
+    else
+    {
+        ValueType src1Value = instr->GetSrc1()->GetValueType();
+        Value** localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
+        if (src1Value.IsUndefined() || src1Value.IsBoolean())
+        {
+            dstValue = *localValue = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
+        }
+        else
+        {
+            dstValue = *localValue = nullptr;
+        }
+    }
+    return dstValue;
+}
+
+bool
+BasicBlock::IsLegalForPathDepBranches(IR::Instr* instr)
+{
+    while (instr)
+    {
+        if (!instr->IsBranchInstr() && !instr->IsLabelInstr() && !IsLegalOpcodeForPathDepBrFold(instr))
+        {
+            return false;
+        }
+        if (instr->IsLabelInstr())
+        {
+            if (instr->AsLabelInstr()->m_isLoopTop)
+            {
+                // don't cross over to loops
+                return false;
+            }
+        }
+        if (instr->IsBranchInstr())
+        {
+            IR::BranchInstr* branch = instr->AsBranchInstr();
+            if (branch->IsUnconditional())
+            {
+                if (!branch->GetTarget())
+                {
+                    return false;
+                }
+                instr = branch->GetTarget();
+            }
+            else
+            {
+                // Found only legal instructions until a conditional branch, build expensive data structures and check provability
+                return true;
+            }
+        }
+        else
+        {
+            instr = instr->m_next;
+        }
+    }
+
+    Assert(UNREACHED);
+    return false;
+}
+
 void
 BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
 {
@@ -4495,62 +4597,6 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     IR::Instr *currentInlineeEnd = nullptr, *unskippedInlineeEnd = nullptr;
     GlobHashTable * localSymToValueMap = nullptr;
     BVSparse<JitArenaAllocator> * currentPathDefines = nullptr;
-
-    auto UpdateValueForCopyTypeInstr = [&](IR::Instr *instr) -> Value* {
-        Value * dstValue = nullptr;
-        if (instr->m_opcode == Js::OpCode::LdFld)
-        {
-            // Special handling for LdFld
-            Assert(instr->GetSrc1()->IsSymOpnd());
-            IR::SymOpnd *symOpnd = instr->GetSrc1()->AsSymOpnd();
-
-            if (symOpnd->m_sym->IsPropertySym())
-            {
-                PropertySym * originalPropertySym = symOpnd->m_sym->AsPropertySym();
-                Value *const objectValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, nullptr, originalPropertySym->m_stackSym);
-                Sym* objSym = objectValue ? objectValue->GetValueInfo()->GetSymStore() : nullptr;
-                PropertySym *prop = PropertySym::Find(objSym ? objSym->m_id : originalPropertySym->m_stackSym->m_id, originalPropertySym->m_propertyId, globOpt->func);
-                if (prop)
-                {
-                    dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetStackSym(), prop);
-                }
-                else
-                {
-                    Value ** localDstValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetStackSym());
-                    dstValue = *localDstValue = nullptr;
-                }
-            }
-        }
-        else if (instr->GetSrc1()->GetStackSym())
-        {
-            StackSym* src1Sym = instr->GetSrc1()->GetStackSym();
-            dstValue = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, instr, instr->GetDst()->GetSym(), src1Sym);
-        }
-        else if (instr->GetSrc1()->IsIntConstOpnd())
-        {
-            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsIntConstOpnd()->AsInt32(), instr);
-        }
-        else if (instr->GetSrc1()->IsInt64ConstOpnd())
-        {
-            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            dstValue = *localValue = globOpt->GetIntConstantValue(instr->GetSrc1()->AsInt64ConstOpnd()->GetValue(), instr);
-        }
-        else
-        {
-            ValueType src1Value = instr->GetSrc1()->GetValueType();
-            Value **localValue = localSymToValueMap->FindOrInsertNew(instr->GetDst()->GetSym());
-            if (src1Value.IsUndefined() || src1Value.IsBoolean())
-            {
-                dstValue = *localValue = globOpt->GetVarConstantValue(instr->GetSrc1()->AsAddrOpnd());
-            }
-            else
-            {
-                dstValue = *localValue = nullptr;
-            }
-        }
-        return dstValue;
-    };
 
     FOREACH_INSTR_IN_BLOCK(instr, this)
     {
@@ -4567,45 +4613,11 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
     IR::Instr * instr = this->GetLastInstr();
 
     // We have to first check the legality and only then allocate expensive data structures on the tempArena, because most block will have instructions we cant skip
-
-    while (instr)
+    if (!IsLegalForPathDepBranches(instr))
     {
-        if (!instr->IsBranchInstr() && !instr->IsLabelInstr() && !IsLegalOpcodeForPathDepBrFold(instr))
-        {
-            return;
-        }
-        if (instr->IsLabelInstr())
-        {
-            if (instr->AsLabelInstr()->m_isLoopTop)
-            {
-                // don't cross over to loops
-                return;
-            }
-        }
-        if (instr->IsBranchInstr())
-        {
-            IR::BranchInstr *branch = instr->AsBranchInstr();
-            if (branch->IsUnconditional())
-            {
-                if (!branch->GetTarget())
-                {
-                    return;
-                }
-                instr = branch->GetTarget();
-            }
-            else
-            {
-                // Found only legal instructions until a conditional branch, build expensive data structures and check provability
-                break;
-            }
-        }
-        else
-        {
-            instr = instr->m_next;
-        }
+        return;
     }
 
-    instr = this->GetLastInstr();
     // Allocate hefty structures, we will not free them because OptBlock does a Reset on the tempAlloc
     localSymToValueMap = GlobHashTable::New(globOpt->tempAlloc, 8);
     currentPathDefines = JitAnew(globOpt->tempAlloc, BVSparse<JitArenaAllocator>, globOpt->tempAlloc);
@@ -4653,7 +4665,7 @@ BasicBlock::CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt)
 
             if (IsCopyTypeInstr(instr))
             {
-                Value *dstValue = UpdateValueForCopyTypeInstr(instr);
+                Value *dstValue = UpdateValueForCopyTypeInstr(globOpt, localSymToValueMap, instr);
                 if (instr->m_opcode == Js::OpCode::LdFld && !dstValue)
                 {
                     // We cannot skip a LdFld if we didnt find its valueInfo in the localValueTable

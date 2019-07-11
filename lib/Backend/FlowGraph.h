@@ -352,6 +352,8 @@ public:
     void         MergePredBlocksValueMaps(GlobOpt* globOptState);
 private:
     void         CleanUpValueMaps();
+    Value*       UpdateValueForCopyTypeInstr(GlobOpt* globOpt, GlobHashTable* localSymToValueMap, IR::Instr* instr);
+    static bool  IsLegalForPathDepBranches(IR::Instr* instr);
     void         CheckLegalityAndFoldPathDepBranches(GlobOpt* globOpt);
     Value *      FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globOpt, GlobHashTable * localSymToValueMap, IR::Instr *instr, Sym *dstSym, Sym *srcSym);
     IR::LabelInstr*         CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap);

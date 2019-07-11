@@ -870,6 +870,7 @@ private:
     void                    ProcessInlineeEnd(IR::Instr * instr);
     void                    TrackCalls(IR::Instr * instr);
     void                    RecordInlineeFrameInfo(IR::Instr* instr);
+    void                    ClearInlineeFrameInfo(IR::Instr* instr);
     void                    EndTrackCall(IR::Instr * instr);
     void                    EndTrackingOfArgObjSymsForInlinee();
     void                    FillBailOutInfo(BasicBlock *block, BailOutInfo *bailOutInfo);

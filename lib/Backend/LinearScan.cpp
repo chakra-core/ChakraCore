@@ -3488,20 +3488,30 @@ void LinearScan::TrackInlineeArgLifetimes(IR::Instr* instr)
             });
             if (this->currentBlock->inlineeStack.Count() > 0)
             {
-                Assert(instr->m_func->inlineDepth == this->currentBlock->inlineeStack.Last()->inlineDepth + 1);
+                Assert(instr->m_func->inlineDepth > this->currentBlock->inlineeStack.Last()->inlineDepth);
             }
             this->currentBlock->inlineeStack.Add(instr->m_func);
         }
-        else
+        else if (instr->m_func->GetParentFunc()->m_hasInlineArgsOpt)
         {
-            Assert(this->currentBlock->inlineeStack.Count() == 0);
+            Assert(!instr->m_func->frameInfo);
+            Assert(instr->m_func->cachedInlineeFrameInfo);
+            
+            Assert(this->currentBlock->inlineeStack.Empty() || instr->m_func->inlineDepth == this->currentBlock->inlineeStack.Last()->inlineDepth + 1);
+
+            this->currentBlock->inlineeStack.Add(instr->m_func);
         }
     }
     else if (instr->m_opcode == Js::OpCode::InlineeEnd || instr->HasBailOnNoProfile())
     {
-        if (instr->m_func->m_hasInlineArgsOpt)
+        if (instr->m_func->m_hasInlineArgsOpt || (instr->m_func->GetParentFunc() && instr->m_func->GetParentFunc()->m_hasInlineArgsOpt))
         {
-            instr->m_func->frameInfo->AllocateRecord(this->func, instr->m_func->GetJITFunctionBody()->GetAddr());
+            if (!instr->m_func->m_hasInlineArgsOpt)
+            {
+                Assert(instr->m_func->cachedInlineeFrameInfo);
+                instr->m_func->frameInfo = instr->m_func->cachedInlineeFrameInfo;
+            }
+            instr->m_func->frameInfo->AllocateRecord(instr->m_func, instr->m_func->GetJITFunctionBody()->GetAddr());
 
             if(this->currentBlock->inlineeStack.Count() == 0)
             {
@@ -3514,25 +3524,28 @@ void LinearScan::TrackInlineeArgLifetimes(IR::Instr* instr)
                 Func* func = this->currentBlock->inlineeStack.RemoveAtEnd();
                 Assert(func == instr->m_func);
 
-                instr->m_func->frameInfo->IterateSyms([=](StackSym* sym){
-                    Lifetime* lifetime = this->currentBlock->inlineeFrameLifetimes.RemoveAtEnd();
+                if (instr->m_func->m_hasInlineArgsOpt)
+                {
+                    instr->m_func->frameInfo->IterateSyms([=](StackSym* sym) {
+                        Lifetime* lifetime = this->currentBlock->inlineeFrameLifetimes.RemoveAtEnd();
 
-                    uint* value;
-                    if (this->currentBlock->inlineeFrameSyms.TryGetReference(sym->m_id, &value))
-                    {
-                        *value = *value - 1;
-                        if (*value == 0)
+                        uint* value;
+                        if (this->currentBlock->inlineeFrameSyms.TryGetReference(sym->m_id, &value))
                         {
-                            bool removed = this->currentBlock->inlineeFrameSyms.Remove(sym->m_id);
-                            Assert(removed);
+                            *value = *value - 1;
+                            if (*value == 0)
+                            {
+                                bool removed = this->currentBlock->inlineeFrameSyms.Remove(sym->m_id);
+                                Assert(removed);
+                            }
                         }
-                    }
-                    else
-                    {
-                        Assert(UNREACHED);
-                    }
-                    Assert(sym->scratch.linearScan.lifetime == lifetime);
-                }, /*reverse*/ true);
+                        else
+                        {
+                            Assert(UNREACHED);
+                        }
+                        Assert(sym->scratch.linearScan.lifetime == lifetime);
+                        }, /*reverse*/ true);
+                }
             }
         }
     }

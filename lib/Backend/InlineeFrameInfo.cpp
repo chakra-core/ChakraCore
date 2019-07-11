@@ -76,8 +76,7 @@ bool BailoutConstantValue::IsEqual(const BailoutConstantValue & bailoutConstValu
     return false;
 }
 
-
-void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
+void InlineeFrameInfo::AllocateRecord(Func* inlinee, intptr_t functionBodyAddr)
 {
     uint constantCount = 0;
 
@@ -100,7 +99,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
     // update the record
     if (!this->record)
     {
-        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBodyAddr, this);
+        this->record = InlineeFrameRecord::New(inlinee->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBodyAddr, this);
     }
 
     uint i = 0;
@@ -131,7 +130,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
         {
             // Constants
             Assert(constantIndex < constantCount);
-            this->record->constants[constantIndex] = value.constValue.ToVar(func);
+            this->record->constants[constantIndex] = value.constValue.ToVar(inlinee);
             this->record->argOffsets[i] = constantIndex;
             constantIndex++;
         }
@@ -150,10 +149,10 @@ void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
 #endif
         this->record->functionOffset = offset;
     }
-    else
+    else if (inlinee->m_hasInlineArgsOpt)
     {
         Assert(constantIndex < constantCount);
-        this->record->constants[constantIndex] = function.constValue.ToVar(func);
+        this->record->constants[constantIndex] = function.constValue.ToVar(inlinee);
         this->record->functionOffset = constantIndex;
     }
 }
@@ -162,10 +161,14 @@ void InlineeFrameRecord::PopulateParent(Func* func)
 {
     Assert(this->parent == nullptr);
     Assert(!func->IsTopFunc());
-    if (func->GetParentFunc()->m_hasInlineArgsOpt)
+    for (Func* currFunc = func; !currFunc->IsTopFunc(); currFunc = currFunc->GetParentFunc())
     {
-        this->parent = func->GetParentFunc()->frameInfo->record;
-        Assert(this->parent != nullptr);
+        if (currFunc->GetParentFunc()->frameInfo)
+        {
+            this->parent = currFunc->GetParentFunc()->frameInfo->record;
+            Assert(this->parent != nullptr);
+            return;
+        }
     }
 }
 
@@ -243,7 +246,7 @@ void InlineeFrameRecord::Restore(Js::FunctionBody* functionBody, InlinedFrameLay
 // Note: the boxValues parameter should be true when this is called from a Bailout codepath to ensure that multiple vars to
 // the same object reuse the cached value during the transition to the interpreter.
 // Otherwise, this parameter should be false as the values are not required to be moved to the heap to restore the frame.
-void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack, bool boxValues, InlinedFrameLayout **ppInlinedFrameToRestore, Js::ArgSlot *pClearedCallInfoCount)
+void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFrameLayout* outerMostFrame, Js::JavascriptCallStackLayout* callstack, bool boxValues)
 {
     InlineeFrameRecord* innerMostRecord = this;
     class AutoReverse
@@ -272,28 +275,49 @@ void InlineeFrameRecord::RestoreFrames(Js::FunctionBody* functionBody, InlinedFr
         inlineDepth++;
         currentFrame = currentFrame->Next();
     }
-
     // Align the inline depth of the record with the frame that needs to be restored
     while (currentRecord && currentRecord->inlineDepth != inlineDepth)
     {
         currentRecord = currentRecord->parent;
     }
+    int currentDepth = inlineDepth;
 
-    while (currentRecord)
+    // Return if there is nothing to restore
+    if (!currentRecord)
     {
-        currentRecord->Restore(functionBody, currentFrame, callstack, boxValues);
+        return;
+    }
+
+    // We have InlineeFrameRecords for optimized frames and parents (i.e. inlinees) of optimized frames
+    // InlineeFrameRecords for unoptimized frames don't have values to restore and have argCount 0
+    while (currentRecord && (currentRecord->argCount != 0 || currentRecord->parent))
+    {
+        // There is nothing to restore for unoptimized frames
+        if (currentRecord->argCount != 0)
+        {
+            currentRecord->Restore(functionBody, currentFrame, callstack, boxValues);
+        }
         currentRecord = currentRecord->parent;
-        currentFrame = currentFrame->Next();
-    }
 
-    // Terminate the inlined stack
-    if (ppInlinedFrameToRestore)
-    {
-        // Tell the caller that we need to restore this frame's callinfo count before using it to create an interpreter instance
-        *ppInlinedFrameToRestore = currentFrame;
-        *pClearedCallInfoCount = currentFrame->callInfo.Count;
+        // Walk stack frames forward to the depth of the next record
+        if (currentRecord)
+        {
+            while (currentDepth != currentRecord->inlineDepth)
+            {
+                currentFrame = currentFrame->Next();
+                currentDepth++;
+            }
+        }
     }
-    currentFrame->callInfo.Count = 0;
+    
+    // If we don't have any more InlineeFrameRecords, the innermost inlinee was an optimized frame
+    if (!currentRecord)
+    {
+        // We determine the innermost inlinee by frame->Next()->callInfo.Count == 0
+        // Optimized frames don't have this set when entering inlinee in the JITed code, so we must do
+        // this for them now
+        currentFrame->Next()->callInfo.Count = 0;
+    }
 }
 
 Js::Var InlineeFrameRecord::Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody, bool boxValue) const

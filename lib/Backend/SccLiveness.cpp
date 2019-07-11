@@ -70,7 +70,7 @@ SCCLiveness::Build()
             ProcessBailOutUses(instr);
         }
 
-        if (instr->m_opcode == Js::OpCode::InlineeEnd  && instr->m_func->m_hasInlineArgsOpt)
+        if (instr->m_opcode == Js::OpCode::InlineeEnd  && instr->m_func->frameInfo)
         {
             instr->m_func->frameInfo->IterateSyms([=](StackSym* argSym)
             {
@@ -535,7 +535,7 @@ SCCLiveness::ProcessBailOutUses(IR::Instr * instr)
         Func * inlinee = instr->m_func;
         while (!inlinee->IsTopFunc())
         {
-            if (inlinee->m_hasInlineArgsOpt && inlinee->frameInfo->isRecorded)
+            if (inlinee->frameInfo && inlinee->frameInfo->isRecorded)
             {
                 inlinee->frameInfo->IterateSyms([=](StackSym* argSym)
                 {
