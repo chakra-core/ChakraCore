@@ -58,15 +58,25 @@ using namespace Js;
     {
         HRESULT hr = S_OK;
 
+        this->directHostObject = hostObject;
+        this->secureDirectHostObject = secureDirectHostObject;
+
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
         {
             // In fastDOM scenario, we should use the host object to lookup the prototype.
             this->SetPrototype(library->GetNull());
+
+            // Host can call to set the direct host object after the GlobalObject has been initialized but
+            // before user script has run. (This happens even before the previous call to SetPrototype)
+            // If that happens, we'll need to update the 'globalThis' property to point to the secure
+            // host object so that we don't hand a reference to the bare GlobalObject out to user script.
+            if (this->GetScriptContext()->GetConfig()->IsESGlobalThisEnabled())
+            {
+                this->SetProperty(PropertyIds::globalThis, this->ToThis(), PropertyOperation_None, nullptr);
+            }
         }
         END_TRANSLATE_OOM_TO_HRESULT(hr)
 
-        this->directHostObject = hostObject;
-        this->secureDirectHostObject = secureDirectHostObject;
         return hr;
     }
 

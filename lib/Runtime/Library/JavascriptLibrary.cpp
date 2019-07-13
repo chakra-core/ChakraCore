@@ -1379,7 +1379,7 @@ namespace Js
 
         if (globalObject->GetScriptContext()->GetConfig()->IsESGlobalThisEnabled())
         {
-            AddMember(globalObject, PropertyIds::globalThis, globalObject, PropertyConfigurable | PropertyWritable);
+            AddMember(globalObject, PropertyIds::globalThis, globalObject->ToThis(), PropertyConfigurable | PropertyWritable);
         }
         AddMember(globalObject, PropertyIds::NaN, nan, PropertyNone);
         AddMember(globalObject, PropertyIds::Infinity, positiveInfinite, PropertyNone);
