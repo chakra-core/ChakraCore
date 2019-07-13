@@ -112,8 +112,17 @@ namespace Js
     ScopeInfo * ScopeInfo::SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, Scope * scope, ScriptContext * scriptContext)
     {
         // Advance past scopes that will be excluded from the closure environment. (But note that we always want the body scope.)
-        while (scope && (!scope->GetMustInstantiate() && scope != scope->GetFunc()->GetBodyScope()))
+        while (scope)
         {
+            FuncInfo* func = scope->GetFunc();
+
+            if (scope->GetMustInstantiate() ||
+                func->GetBodyScope() == scope ||
+                (func->GetParamScope() == scope && func->IsBodyAndParamScopeMerged() && scope->GetHasNestedParamFunc()))
+            {
+                break;
+            }
+
             scope = scope->GetEnclosingScope();
         }
 
@@ -162,14 +171,15 @@ namespace Js
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope->GetFunc() == funcInfo);
 
-        if (funcInfo->root->IsDeclaredInParamScope()) {
+        if (funcInfo->root->IsDeclaredInParamScope())
+        {
             Assert(currentScope->GetScopeType() == ScopeType_FunctionBody);
             Assert(currentScope->GetEnclosingScope());
 
             FuncInfo* func = byteCodeGenerator->GetEnclosingFuncInfo();
             Assert(func);
 
-            if (func->IsBodyAndParamScopeMerged() && !(func->funcExprScope && func->funcExprScope->GetCanMerge()))
+            if (func->IsBodyAndParamScopeMerged())
             {
                 currentScope = func->GetParamScope();
                 Assert(currentScope->GetScopeType() == ScopeType_Parameter);

@@ -1826,6 +1826,26 @@ void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
     }
 }
 
+void CheckFncExprNameCapturedInParamScope(ParseNodeFnc* pnodeFnc, ParseNodeBlock* pnodeFncExprScope)
+{
+    ParseNodeBlock* bodyScope = pnodeFnc->pnodeBodyScope;
+    ParseNodePtr pnodeName = pnodeFnc->pnodeName;
+
+    if (bodyScope == nullptr || pnodeName == nullptr || !pnodeFnc->IsBodyAndParamScopeMerged())
+    {
+        return;
+    }
+
+    for (PidRefStack* ref = pnodeName->AsParseNodeVar()->pid->GetTopRef(); ref && ref->id > pnodeFncExprScope->blockId; ref = ref->prev)
+    {
+        if (ref->id < bodyScope->blockId && ref->id > pnodeFncExprScope->blockId)
+        {
+            pnodeFncExprScope->scope->SetIsObject();
+            return;
+        }
+    }
+}
+
 void Parser::FinishParseFncExprScope(ParseNodeFnc * pnodeFnc, ParseNodeBlock * pnodeFncExprScope)
 {
     int fncExprScopeId = pnodeFncExprScope->blockId;
@@ -5378,8 +5398,13 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsModule(fModule);
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
-    pnodeFnc->SetIsDeclaredInParamScope(this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
@@ -6013,6 +6038,11 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
         if (pnodeBlock)
         {
+            if (pnodeFncExprScope)
+            {
+                CheckFncExprNameCapturedInParamScope(pnodeFnc, pnodeFncExprScope);
+            }
+
             FinishParseBlock(pnodeBlock, *pNeedScanRCurly);
         }
 
