@@ -1193,14 +1193,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     BailOutReturnValue bailOutReturnValue;
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
-
-    bool * hasBailedOutBitPtr = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
-    Assert(!bailOutRecord->ehBailoutData || hasBailedOutBitPtr ||
-        bailOutRecord->ehBailoutData->ht == Js::HandlerType::HT_Finally /* When we bailout from inlinee in non exception finally, we maynot see hasBailedOutBitPtr*/);
-    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData && bailOutRecord->ehBailoutData->ht != Js::HandlerType::HT_Finally)
-    {
-        *hasBailedOutBitPtr = true;
-    }
+    SetHasBailedOutBit(bailOutRecord, layout->functionObject->GetScriptContext());
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
     ScheduleFunctionCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
@@ -1239,18 +1232,38 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
     BailOutReturnValue bailOutReturnValue;
     Js::ScriptFunction * innerMostInlinee = nullptr;
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, true, branchValue);
-    bool * hasBailedOutBitPtr = layout->functionObject->GetScriptContext()->GetThreadContext()->GetHasBailedOutBitPtr();
-    Assert(!bailOutRecord->ehBailoutData || hasBailedOutBitPtr ||
-        bailOutRecord->ehBailoutData->ht == Js::HandlerType::HT_Finally /* When we bailout from inlinee in non exception finally, we maynot see hasBailedOutBitPtr*/);
-    if (hasBailedOutBitPtr && bailOutRecord->ehBailoutData)
-    {
-        *hasBailedOutBitPtr = true;
-    }
-
+    SetHasBailedOutBit(bailOutRecord, layout->functionObject->GetScriptContext());
     uint32 result = BailOutFromLoopBodyHelper(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset,
         bailOutKind, nullptr, registerSaves, &bailOutReturnValue);
     ScheduleLoopBodyCodeGen(Js::VarTo<Js::ScriptFunction>(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind);
     return result;
+}
+
+void
+BailOutRecord::SetHasBailedOutBit(BailOutRecord const * bailOutRecord, Js::ScriptContext * scriptContext)
+{
+    Js::EHBailoutData * ehBailoutData = bailOutRecord->ehBailoutData;
+    if (!ehBailoutData)
+    {
+        return;
+    }
+
+    // When a bailout occurs within a finally region, the hasBailedOutBitPtr associated with the
+    // try-catch-finally or try-finally has already been removed from the stack. In that case,
+    // we set the hasBailedOutBitPtr for the nearest enclosing try or catch region within the
+    // function.
+    while (ehBailoutData->ht == Js::HandlerType::HT_Finally)
+    {
+        if (!ehBailoutData->parent || ehBailoutData->parent->nestingDepth < 0)
+        {
+            return;
+        }
+        ehBailoutData = ehBailoutData->parent;
+    }
+
+    bool * hasBailedOutBitPtr = scriptContext->GetThreadContext()->GetHasBailedOutBitPtr();
+    Assert(hasBailedOutBitPtr);
+    *hasBailedOutBitPtr = true;
 }
 
 void
@@ -3041,4 +3054,3 @@ void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator,
     rowToInsert->regSlot = regSlot;
     *lastUpdatedRowIndex = length++;
 }
-
