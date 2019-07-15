@@ -348,6 +348,9 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
             case RejitReason::MemOpDisabled:
                 outputData->disableMemOp = TRUE;
                 break;
+            case RejitReason::FailedEquivalentTypeCheck:
+                // No disable flag. The thrower of the re-jit exception must guarantee that objtypespec is disabled where appropriate.
+                break;
             default:
                 Assume(UNREACHED);
             }
@@ -1519,6 +1522,12 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     }
 
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
+}
+
+void
+Func::ClearObjTypeSpecFldInfo(const uint index)
+{
+    GetWorkItem()->GetJITTimeInfo()->ClearObjTypeSpecFldInfo(index);
 }
 
 ObjTypeSpecFldInfo*

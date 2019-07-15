@@ -579,6 +579,7 @@ static const unsigned __int64 c_debugFillPattern8 = 0xcececececececece;
     Js::Var AllocateNumber(double value);
 
     ObjTypeSpecFldInfo* GetObjTypeSpecFldInfo(const uint index) const;
+    void ClearObjTypeSpecFldInfo(const uint index);
     ObjTypeSpecFldInfo* GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const;
 
     // Gets an inline cache pointer to use in jitted code. Cached data may not be stable while jitting. Does not return null.

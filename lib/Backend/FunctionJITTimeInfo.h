@@ -38,6 +38,7 @@ public:
     const BVFixed * GetInlineesBV() const;
     const FunctionJITTimeInfo * GetJitTimeDataFromFunctionInfoAddr(intptr_t polyFuncInfo) const;
     ObjTypeSpecFldInfo * GetObjTypeSpecFldInfo(uint index) const;
+    void ClearObjTypeSpecFldInfo(uint index);
     ObjTypeSpecFldInfo * GetGlobalObjTypeSpecFldInfo(uint index) const;
     uint GetGlobalObjTypeSpecFldInfoCount() const;
     const FunctionJITRuntimeInfo * GetInlineeForTargetInlineeRuntimeData(const Js::ProfileId profiledCallSiteId, intptr_t inlineeFuncBodyAddr) const;
