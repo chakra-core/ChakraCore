@@ -1906,6 +1906,14 @@ BranchInstr::Invert()
         this->m_opcode = Js::OpCode::BrOnNoProperty;
         break;
 
+    case Js::OpCode::BrOnHasLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnNoLocalProperty;
+        break;
+
+    case Js::OpCode::BrOnNoLocalProperty:
+        this->m_opcode = Js::OpCode::BrOnHasLocalProperty;
+        break;
+
     case Js::OpCode::BrOnNoProperty:
         this->m_opcode = Js::OpCode::BrOnHasProperty;
         break;

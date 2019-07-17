@@ -35,6 +35,8 @@ if ((isTopLevel)) \
     byteCodeGenerator->EndStatement(pnode); \
 }
 
+DynamicLoadRecord::DynamicLoadRecord() : kind(DynamicLoadKind::Invalid), label(Js::Constants::NoByteCodeOffset), instance(Js::Constants::NoSlot) {}
+
 BOOL MayHaveSideEffectOnNode(ParseNode *pnode, ParseNode *pnodeSE, ByteCodeGenerator *byteCodeGenerator)
 {
     // Try to determine whether pnodeSE (SE = side effect) may kill the named var represented by pnode.
@@ -980,10 +982,6 @@ void ByteCodeGenerator::EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInf
     Emit(stmt, this, funcInfo, fReturnValue, false/*isConstructorCall*/, Js::Constants::NoRegister/*computedPropertyLocation*/, true/*isTopLevel*/);
     if (funcInfo->IsTmpReg(stmt->location))
     {
-        if (!stmt->isUsed && !fReturnValue)
-        {
-            m_writer.Reg1(Js::OpCode::Unused, stmt->location);
-        }
         funcInfo->ReleaseLoc(stmt);
     }
 }
@@ -2337,7 +2335,7 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * p
     this->Writer()->Reg2(Js::OpCode::NewScObjectNoCtorFull, thisForSuperCall, pnodeSuperCall->pnodeNewTarget->location);
     this->Writer()->Br(Js::OpCode::Br, makeCallLabel);
     this->Writer()->MarkLabel(useNewTargetForThisLabel);
-    this->Writer()->Reg2(Js::OpCode::Ld_A, thisForSuperCall, pnodeSuperCall->pnodeNewTarget->location);
+    this->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, thisForSuperCall, pnodeSuperCall->pnodeNewTarget->location);
     this->Writer()->MarkLabel(makeCallLabel);
     EmitCall(pnodeSuperCall, this, funcInfo, fReturnValue, /*fEvaluateComponents*/ true, thisForSuperCall, pnodeSuperCall->pnodeNewTarget->location);
 
@@ -2355,7 +2353,7 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * p
     this->Writer()->Reg2(Js::OpCode::Ld_A, valueForThis, thisForSuperCall);
     this->Writer()->Br(Js::OpCode::Br, doneLabel);
     this->Writer()->MarkLabel(useSuperCallResultLabel);
-    this->Writer()->Reg2(Js::OpCode::Ld_A, valueForThis, pnodeSuperCall->location);
+    this->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, valueForThis, pnodeSuperCall->location);
     this->Writer()->MarkLabel(doneLabel);
 
     // The call is done and we know what we will bind to 'this' so let's check to see if 'this' is already decl.
@@ -4254,8 +4252,6 @@ Js::RegSlot ByteCodeGenerator::PrependLocalScopes(Js::RegSlot evalEnv, Js::RegSl
 
 void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot *pThisLocation, Js::RegSlot *pInstLocation, FuncInfo *funcInfo)
 {
-    Js::ByteCodeLabel doneLabel = 0;
-    bool fLabelDefined = false;
     Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     Js::RegSlot thisLocation = *pThisLocation;
     Js::RegSlot instLocation = *pInstLocation;
@@ -4269,6 +4265,8 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         *pInstLocation = Js::Constants::NoRegister;
         return;
     }
+
+    JsUtil::List<DynamicLoadRecord, ArenaAllocator> recList(this->alloc);
 
     for (;;)
     {
@@ -4288,8 +4286,6 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
             if (instLocation == Js::Constants::NoRegister)
             {
                 instLocation = funcInfo->AcquireTmpRegister();
-                // The "this" pointer will not be the same as the instance, so give it its own register.
-                thisLocation = funcInfo->AcquireTmpRegister();
             }
         }
 
@@ -4308,13 +4304,19 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         Assert(scope && scope->GetIsDynamic());
         AssertOrFailFast(scope->GetIsObject());
 
-        if (!fLabelDefined)
-        {
-            fLabelDefined = true;
-            doneLabel = this->m_writer.DefineLabel();
-        }
+        // Record dynamic scopes, in order. Define a label for each one. Remember whether we've seen a 'with'.
+        // For each dynamic scope, emit BrOnHas[Env,Local]Property $Ln, where n is the scope's position in the list
+        // Then emit code for default access (i.e., static binding). If no 'with', do not create a temp for 'this', just use 'undefined'.
+        // End static portion with 'Br $Ldone'.
+        // Then, for each item in list, emit:
+        // $Ln:
+        //     copy dynamic scope to 'instance' temp, using 'reuse_loc' form of the opcode
+        //     do the same for 'this' temp', only if we've seen a 'with'
+        //     if not the last item in the list, Br $Ldone
 
-        Js::ByteCodeLabel nextLabel = this->m_writer.DefineLabel();
+        DynamicLoadRecord rec;
+            
+        rec.label = this->m_writer.DefineLabel();
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
         Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
 
@@ -4324,12 +4326,8 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
             {
                 // The local body scope. Branch cannot bail on implicit calls.
               
-                this->m_writer.BrLocalProperty(Js::OpCode::BrOnNoLocalProperty, nextLabel, propertyIndex);
-                this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
-                if (thisLocation != Js::Constants::NoRegister && thisLocation != instLocation)
-                {
-                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
-                }
+                this->m_writer.BrLocalProperty(Js::OpCode::BrOnHasLocalProperty, rec.label, propertyIndex);
+                rec.kind = DynamicLoadKind::Local;
             }
             else
             {
@@ -4337,45 +4335,36 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 // Emit a branch opcode that does not require bail on implicit calls.
 
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoLocalEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-                if (thisLocation != Js::Constants::NoRegister && thisLocation != instLocation)
-                {
-                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
-                }
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasLocalEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::Env;
+                rec.index = frameDisplayIndex;
             }
         }
         else
         {
+            if (thisLocation == Js::Constants::NoRegister)
+            {
+                thisLocation = funcInfo->AcquireTmpRegister();
+            }
+
             if (envIndex == -1)
             {
                 // With object declared in this function. HasProperty may have implicit calls.
-                this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation, propertyIndex);
-                this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, scopeLocation);
-                if (thisLocation != Js::Constants::NoRegister)
-                {
-                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, thisLocation, scopeLocation);
-                }
+                this->m_writer.BrProperty(Js::OpCode::BrOnHasProperty, rec.label, scopeLocation, propertyIndex);
+                rec.kind = DynamicLoadKind::LocalWith;
+                rec.instance = scopeLocation;
             }
             else
             {
                 // With object declared in an enclosing function. HasProperty may have implicit calls.
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-                
-                Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, tmpReg, frameDisplayIndex);
-                this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, tmpReg);
-                if (thisLocation != Js::Constants::NoRegister)
-                {
-                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, thisLocation, tmpReg);
-                } 
-                funcInfo->ReleaseTmpRegister(tmpReg);
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::EnvWith;
+                rec.index = frameDisplayIndex;
             }
         }
 
-        this->m_writer.Br(doneLabel);
-        this->m_writer.MarkLabel(nextLabel);
+        recList.Add(rec);
     }
 
     if (sym == nullptr || sym->GetIsGlobal())
@@ -4389,10 +4378,6 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 instLocation = funcInfo->AcquireTmpRegister();
             }
 
-            // TODO: It should be possible to avoid this double call to ScopedLdInst by having it return both
-            // results at once. The reason for the uncertainty here is that we don't know whether the callee
-            // belongs to a "with" object. If it does, we have to pass the "with" object as "this"; in all other
-            // cases, we pass "undefined". For now, there are apparently no significant performance issues.
             Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
 
             if (thisLocation == Js::Constants::NoRegister)
@@ -4460,13 +4445,68 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
         }
     }
 
-    *pThisLocation = thisLocation;
-    *pInstLocation = instLocation;
-
-    if (fLabelDefined)
+    if (!recList.Empty())
     {
+        Assert(instLocation != Js::Constants::NoRegister);
+        Assert(thisLocation != Js::Constants::NoRegister);
+
+        Js::ByteCodeLabel doneLabel = this->m_writer.DefineLabel();
+        this->m_writer.Br(doneLabel);
+
+        for (int i = 0;; i++)
+        {
+            this->m_writer.MarkLabel(recList.Item(i).label);
+            switch(recList.Item(i).kind)
+            {
+                case DynamicLoadKind::Local:
+                    this->m_writer.Reg1(Js::OpCode::LdLocalObj_ReuseLoc, instLocation);
+                    if (thisLocation != funcInfo->undefinedConstantRegister)
+                    {
+                        Assert(thisLocation != instLocation);
+                        this->m_writer.Reg2(Js::OpCode::Ld_A_ReuseLoc, thisLocation, funcInfo->undefinedConstantRegister);
+                    }
+                    break;
+
+                case DynamicLoadKind::Env:
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj_ReuseLoc, instLocation, recList.Item(i).index);
+                    if (thisLocation != funcInfo->undefinedConstantRegister)
+                    {
+                        Assert(thisLocation != instLocation);
+                        this->m_writer.Reg2(Js::OpCode::Ld_A_ReuseLoc, thisLocation, funcInfo->undefinedConstantRegister);
+                    }
+                    break;
+
+                case DynamicLoadKind::LocalWith:
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj_ReuseLoc, instLocation, recList.Item(i).instance);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj_ReuseLoc, thisLocation, recList.Item(i).instance);
+                    break;
+
+                case DynamicLoadKind::EnvWith:
+                {
+                    Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, tmpReg, recList.Item(i).index);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj_ReuseLoc, instLocation, tmpReg);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj_ReuseLoc, thisLocation, tmpReg);
+                    funcInfo->ReleaseTmpRegister(tmpReg);
+                    break;
+                }
+
+                default:
+                    AssertOrFailFast(UNREACHED);
+            }
+
+            if (i == recList.Count() - 1)
+            {
+                break;
+            }
+            this->m_writer.Br(doneLabel);
+        }
+
         this->m_writer.MarkLabel(doneLabel);
     }
+
+    *pThisLocation = thisLocation;
+    *pInstLocation = instLocation;
 }
 
 void ByteCodeGenerator::EmitGlobalFncDeclInit(Js::RegSlot rhsLocation, Js::PropertyId propertyId, FuncInfo * funcInfo)
@@ -4649,8 +4689,6 @@ ByteCodeGenerator::GetInitFldOp(Scope *scope, Js::RegSlot scopeLocation, FuncInf
 
 void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool isLetDecl, bool isConstDecl, bool isFncDeclVar, bool skipUseBeforeDeclarationCheck)
 {
-    Js::ByteCodeLabel doneLabel = 0;
-    bool fLabelDefined = false;
     Js::PropertyId envIndex = -1;
     Scope *symScope = sym == nullptr || sym->GetIsGlobal() ? this->globalScope : sym->GetScope();
     Assert(symScope);
@@ -4659,7 +4697,6 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
     // to it, skipping over any dynamic scopes that may lie in between.
     Scope *scope = nullptr;
     Js::RegSlot scopeLocation = Js::Constants::NoRegister;
-    bool scopeAcquired = false;
     Js::OpCode op;
 
     if (sym && sym->GetIsModuleExportStorage())
@@ -4686,6 +4723,8 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         scopeLocation = scope->GetLocation();
     }
 
+    JsUtil::List<DynamicLoadRecord, ArenaAllocator> recList(this->alloc);
+
     while (!isFncDeclVar)
     {
         scope = this->FindScopeForSym(symScope, scope, &envIndex, funcInfo);
@@ -4708,12 +4747,9 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         Assert(scope && scope->GetIsDynamic());
         AssertOrFailFast(scope->GetIsObject());
 
-        if (!fLabelDefined)
-        {
-            fLabelDefined = true;
-            doneLabel = this->m_writer.DefineLabel();
-        }
-        Js::ByteCodeLabel nextLabel = this->m_writer.DefineLabel();
+        DynamicLoadRecord rec;
+
+        rec.label = this->m_writer.DefineLabel();
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
         Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
 
@@ -4721,52 +4757,36 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         {
             if (envIndex == -1)
             {
-                this->m_writer.BrLocalProperty(Js::OpCode::BrOnNoLocalProperty, nextLabel, propertyIndex);
-                this->m_writer.ElementP(Js::OpCode::StLocalFld, rhsLocation,
-                    funcInfo->FindOrAddInlineCacheId(scopeLocation, propertyId, false, true));
+                this->m_writer.BrLocalProperty(Js::OpCode::BrOnHasLocalProperty, rec.label, propertyIndex);
+                rec.kind = DynamicLoadKind::Local;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoLocalEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-
-                this->m_writer.PatchableProperty(
-                    Js::OpCode::StFld, rhsLocation, instLocation, funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, true));
-
-                funcInfo->ReleaseTmpRegister(instLocation);
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasLocalEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::Env;
+                rec.index = frameDisplayIndex;
             }
         }
         else
         {
-            Js::RegSlot unwrappedScopeLocation = funcInfo->AcquireTmpRegister();
-
             if (envIndex == -1)
             {
-                this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation, propertyIndex);
+                this->m_writer.BrProperty(Js::OpCode::BrOnHasProperty, rec.label, scopeLocation, propertyIndex);
+                rec.kind = DynamicLoadKind::LocalWith;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, unwrappedScopeLocation, frameDisplayIndex);
-                scopeLocation = unwrappedScopeLocation;
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::EnvWith;
+                rec.index = frameDisplayIndex;
             }
-
-            this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, unwrappedScopeLocation, scopeLocation);
-            uint cacheId = funcInfo->FindOrAddInlineCacheId(unwrappedScopeLocation, propertyId, false, true);
-            this->m_writer.PatchableProperty(Js::OpCode::StFld, rhsLocation, unwrappedScopeLocation, cacheId);
-
-            funcInfo->ReleaseTmpRegister(unwrappedScopeLocation);
         }
 
-        this->m_writer.Br(doneLabel);
-        this->m_writer.MarkLabel(nextLabel);
+        recList.Add(rec);
     }
 
     // Arrived at the scope in which the property was defined.
@@ -4891,14 +4911,63 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             }
         }
     }
-    if (fLabelDefined)
-    {
-        this->m_writer.MarkLabel(doneLabel);
-    }
 
-    if (scopeAcquired)
+    
+    if (!recList.Empty())
     {
-        funcInfo->ReleaseTmpRegister(scopeLocation);
+        Js::ByteCodeLabel doneLabel = this->m_writer.DefineLabel();
+        this->m_writer.Br(doneLabel);
+
+        for (int i = 0;; i++)
+        {
+            uint cacheId;
+            Js::RegSlot instLocation;
+            Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
+
+            this->m_writer.MarkLabel(recList.Item(i).label);
+            switch(recList.Item(i).kind)
+            {
+                case DynamicLoadKind::Local:
+                    cacheId = funcInfo->FindOrAddInlineCacheId(recList.Item(i).instance, propertyId, false, true);
+                    this->m_writer.ElementP(Js::OpCode::StLocalFld, rhsLocation, cacheId);
+                    break;
+
+                case DynamicLoadKind::Env:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, true);
+                    this->m_writer.PatchableProperty(Js::OpCode::StFld, rhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::LocalWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, recList.Item(i).instance);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, true);
+                    this->m_writer.PatchableProperty(Js::OpCode::StFld, rhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::EnvWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, instLocation);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, true);
+                    this->m_writer.PatchableProperty(Js::OpCode::StFld, rhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                default:
+                    AssertOrFailFast(UNREACHED);
+            }
+
+            if (i == recList.Count() - 1)
+            {
+                break;
+            }
+            this->m_writer.Br(doneLabel);
+        }
+        this->m_writer.MarkLabel(doneLabel);
     }
 }
 
@@ -5027,8 +5096,6 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
     // (TODO: optimize this by getting the sym from its normal location if there are no non-local defs.)
     // Otherwise, just copy the value to the lhsLocation.
 
-    Js::ByteCodeLabel doneLabel = 0;
-    bool fLabelDefined = false;
     Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     Js::PropertyId envIndex = -1;
     Scope *scope = nullptr;
@@ -5040,6 +5107,8 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         EmitModuleExportAccess(sym, Js::OpCode::LdModuleSlot, lhsLocation, funcInfo);
         return;
     }
+
+    JsUtil::List<DynamicLoadRecord, ArenaAllocator> recList(this->alloc);
 
     for (;;)
     {
@@ -5060,13 +5129,9 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         Assert(scope && scope->GetIsDynamic());
         AssertOrFailFast(scope->GetIsObject());
 
-        if (!fLabelDefined)
-        {
-            fLabelDefined = true;
-            doneLabel = this->m_writer.DefineLabel();
-        }
+        DynamicLoadRecord rec;
 
-        Js::ByteCodeLabel nextLabel = this->m_writer.DefineLabel();
+        rec.label = this->m_writer.DefineLabel();
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
         Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
 
@@ -5074,55 +5139,36 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         {
             if (envIndex == -1)
             {
-                this->m_writer.BrLocalProperty(Js::OpCode::BrOnNoLocalProperty, nextLabel, propertyIndex);
-                this->m_writer.ElementP(Js::OpCode::LdLocalFld, lhsLocation,
-                    funcInfo->FindOrAddInlineCacheId(scopeLocation, propertyId, false, false));
+                this->m_writer.BrLocalProperty(Js::OpCode::BrOnHasLocalProperty, rec.label, propertyIndex);
+                rec.kind = DynamicLoadKind::Local;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoLocalEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-
-                this->m_writer.PatchableProperty(
-                    Js::OpCode::LdFld,
-                    lhsLocation,
-                    instLocation,
-                    funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, false));
-
-                funcInfo->ReleaseTmpRegister(instLocation);
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasLocalEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::Env;
+                rec.index = frameDisplayIndex;
             }
         }
         else
         {
-            Js::RegSlot unwrappedScopeLocation = funcInfo->AcquireTmpRegister();
-
             if (envIndex == -1)
             {
-                this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation, propertyIndex);
+                this->m_writer.BrProperty(Js::OpCode::BrOnHasProperty, rec.label, scopeLocation, propertyIndex);
+                rec.kind = DynamicLoadKind::LocalWith;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, unwrappedScopeLocation, frameDisplayIndex);
-                scopeLocation = unwrappedScopeLocation;
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::EnvWith;
+                rec.index = frameDisplayIndex;
             }
-
-            this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, unwrappedScopeLocation, scopeLocation);
-
-            uint cacheId = funcInfo->FindOrAddInlineCacheId(unwrappedScopeLocation, propertyId, false, false);
-            this->m_writer.PatchableProperty(Js::OpCode::LdFld, lhsLocation, unwrappedScopeLocation, cacheId);
-
-            funcInfo->ReleaseTmpRegister(unwrappedScopeLocation);
         }
 
-        this->m_writer.Br(doneLabel);
-        this->m_writer.MarkLabel(nextLabel);
+        recList.Add(rec);
     }
 
     // Arrived at the scope in which the property was defined.
@@ -5260,10 +5306,64 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
         }
     }
 
-    if (fLabelDefined)
+    if (!recList.Empty())
     {
+        Js::ByteCodeLabel doneLabel = this->m_writer.DefineLabel();
+        this->m_writer.Br(doneLabel);
+
+        for (int i = 0;; i++)
+        {
+            uint cacheId;
+            Js::RegSlot instLocation;
+            Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
+
+            this->m_writer.MarkLabel(recList.Item(i).label);
+            switch(recList.Item(i).kind)
+            {
+                case DynamicLoadKind::Local:
+                    cacheId = funcInfo->FindOrAddInlineCacheId(recList.Item(i).instance, propertyId, false, false);
+                    this->m_writer.ElementP(Js::OpCode::LdLocalFld_ReuseLoc, lhsLocation, cacheId);
+                    break;
+
+                case DynamicLoadKind::Env:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, false);
+                    this->m_writer.PatchableProperty(Js::OpCode::LdFld_ReuseLoc, lhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::LocalWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, recList.Item(i).instance);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, false);
+                    this->m_writer.PatchableProperty(Js::OpCode::LdFld_ReuseLoc, lhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::EnvWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, instLocation);
+                    cacheId = funcInfo->FindOrAddInlineCacheId(instLocation, propertyId, false, false);
+                    this->m_writer.PatchableProperty(Js::OpCode::LdFld_ReuseLoc, lhsLocation, instLocation, cacheId);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                default:
+                    AssertOrFailFast(UNREACHED);
+            }
+
+            if (i == recList.Count() - 1)
+            {
+                break;
+            }
+            this->m_writer.Br(doneLabel);
+        }
+
         this->m_writer.MarkLabel(doneLabel);
     }
+
 }
 
 bool ByteCodeGenerator::NeedCheckBlockVar(Symbol* sym, Scope* scope, FuncInfo* funcInfo) const
@@ -5281,13 +5381,13 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
     // (TODO: optimize this by getting the sym from its normal location if there are no non-local defs.)
     // Otherwise, just return false.
 
-    Js::ByteCodeLabel doneLabel = 0;
-    bool fLabelDefined = false;
     Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     Js::PropertyId envIndex = -1;
     Scope *scope = nullptr;
     Scope *symScope = sym ? sym->GetScope() : this->globalScope;
     Assert(symScope);
+
+    JsUtil::List<DynamicLoadRecord, ArenaAllocator> recList(this->alloc);
 
     for (;;)
     {
@@ -5311,13 +5411,9 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
         Assert(scope && scope->GetIsDynamic());
         AssertOrFailFast(scope->GetIsObject());
 
-        if (!fLabelDefined)
-        {
-            fLabelDefined = true;
-            doneLabel = this->m_writer.DefineLabel();
-        }
+        DynamicLoadRecord rec;
 
-        Js::ByteCodeLabel nextLabel = this->m_writer.DefineLabel();
+        rec.label = this->m_writer.DefineLabel();
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
         Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
 
@@ -5325,47 +5421,36 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
         {
             if (envIndex == -1)
             {
-                this->m_writer.BrLocalProperty(Js::OpCode::BrOnNoLocalProperty, nextLabel, propertyIndex);
-                this->m_writer.ElementU(Js::OpCode::DeleteLocalFld, lhsLocation, propertyIndex);
+                this->m_writer.BrLocalProperty(Js::OpCode::BrOnHasLocalProperty, rec.label, propertyIndex);
+                rec.kind = DynamicLoadKind::Local;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoLocalEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-
-                this->m_writer.Property(Js::OpCode::DeleteFld, lhsLocation, instLocation, propertyIndex);
-
-                funcInfo->ReleaseTmpRegister(instLocation);
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasLocalEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::Env;
+                rec.index = frameDisplayIndex;
             }
         }
         else
         {
-            Js::RegSlot unwrappedScopeLocation = funcInfo->AcquireTmpRegister();
-
             if (envIndex == -1)
             {
-                this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation, propertyIndex);
+                this->m_writer.BrProperty(Js::OpCode::BrOnHasProperty, rec.label, scopeLocation, propertyIndex);
+                rec.kind = DynamicLoadKind::LocalWith;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, unwrappedScopeLocation, frameDisplayIndex);
-                scopeLocation = unwrappedScopeLocation;
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::EnvWith;
+                rec.index = frameDisplayIndex;
             }
-
-            this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, unwrappedScopeLocation, scopeLocation);
-            this->m_writer.Property(Js::OpCode::DeleteFld, lhsLocation, unwrappedScopeLocation, propertyIndex);
-            funcInfo->ReleaseTmpRegister(unwrappedScopeLocation);
         }
 
-        this->m_writer.Br(doneLabel);
-        this->m_writer.MarkLabel(nextLabel);
+        recList.Add(rec);
     }
 
     // Arrived at the scope in which the property was defined.
@@ -5390,13 +5475,62 @@ void ByteCodeGenerator::EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, Ide
         this->m_writer.Reg1(Js::OpCode::LdFalse, lhsLocation);
     }
 
-    if (fLabelDefined)
+    if (!recList.Empty())
     {
+        Js::ByteCodeLabel doneLabel = this->m_writer.DefineLabel();
+        this->m_writer.Br(doneLabel);
+
+        for (int i = 0;; i++)
+        {
+            Js::RegSlot instLocation;
+            Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
+            Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
+
+            this->m_writer.MarkLabel(recList.Item(i).label);
+            switch(recList.Item(i).kind)
+            {
+                case DynamicLoadKind::Local:
+                    this->m_writer.ElementU(Js::OpCode::DeleteLocalFld_ReuseLoc, lhsLocation, propertyIndex);
+                    break;
+
+                case DynamicLoadKind::Env:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->m_writer.Property(Js::OpCode::DeleteFld_ReuseLoc, lhsLocation, instLocation, propertyIndex);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::LocalWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, recList.Item(i).instance);
+                    this->m_writer.Property(Js::OpCode::DeleteFld_ReuseLoc, lhsLocation, instLocation, propertyIndex);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::EnvWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, instLocation);
+                    this->m_writer.Property(Js::OpCode::DeleteFld_ReuseLoc, lhsLocation, instLocation, propertyIndex);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                default:
+                    AssertOrFailFast(UNREACHED);
+            }
+
+            if (i == recList.Count() - 1)
+            {
+                break;
+            }
+            this->m_writer.Br(doneLabel);
+        }
+
         this->m_writer.MarkLabel(doneLabel);
     }
 }
 
-void ByteCodeGenerator::EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode ldFldOp)
+void ByteCodeGenerator::EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode ldFldOp, bool reuseLoc)
 {
 
     uint cacheId;
@@ -5420,7 +5554,7 @@ void ByteCodeGenerator::EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId proper
         break;
     }
 
-    this->Writer()->Reg2(Js::OpCode::Typeof, value, tmpReg);
+    this->Writer()->Reg2(reuseLoc ? Js::OpCode::Typeof_ReuseLoc : Js::OpCode::Typeof, value, tmpReg);
     funcInfo->ReleaseTmpRegister(tmpReg);
 }
 
@@ -5431,8 +5565,6 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
     // (TODO: optimize this by getting the sym from its normal location if there are no non-local defs.)
     // Otherwise, just return false
 
-    Js::ByteCodeLabel doneLabel = 0;
-    bool fLabelDefined = false;
     Js::RegSlot scopeLocation = Js::Constants::NoRegister;
     Js::PropertyId envIndex = -1;
     Scope *scope = nullptr;
@@ -5447,6 +5579,8 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         funcInfo->ReleaseTmpRegister(tmpLocation);
         return;
     }
+
+    JsUtil::List<DynamicLoadRecord, ArenaAllocator> recList(this->alloc);
 
     for (;;)
     {
@@ -5470,13 +5604,9 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         Assert(scope && scope->GetIsDynamic());
         AssertOrFailFast(scope->GetIsObject());
 
-        if (!fLabelDefined)
-        {
-            fLabelDefined = true;
-            doneLabel = this->m_writer.DefineLabel();
-        }
+        DynamicLoadRecord rec;
 
-        Js::ByteCodeLabel nextLabel = this->m_writer.DefineLabel();
+        rec.label = this->m_writer.DefineLabel();
         Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
         Js::PropertyIdIndexType propertyIndex = funcInfo->FindOrAddReferencedPropertyId(propertyId);
 
@@ -5484,48 +5614,36 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         {
             if (envIndex == -1)
             {
-                this->m_writer.BrLocalProperty(Js::OpCode::BrOnNoLocalProperty, nextLabel, propertyIndex);
-                this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, scopeLocation, Js::OpCode::LdLocalFld);
+                this->m_writer.BrLocalProperty(Js::OpCode::BrOnHasLocalProperty, rec.label, propertyIndex);
+                rec.kind = DynamicLoadKind::Local;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoLocalEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-
-                Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
-
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-
-                this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, instLocation, Js::OpCode::LdFldForTypeOf);
-
-                funcInfo->ReleaseTmpRegister(instLocation);
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasLocalEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::Env;
+                rec.index = frameDisplayIndex;
             }
         }
         else
         {
-            Js::RegSlot unwrappedScopeLocation = funcInfo->AcquireTmpRegister();
-
             if (envIndex == -1)
             {
-                this->m_writer.BrProperty(Js::OpCode::BrOnNoProperty, nextLabel, scopeLocation, propertyIndex);
+                this->m_writer.BrProperty(Js::OpCode::BrOnHasProperty, rec.label, scopeLocation, propertyIndex);
+                rec.kind = DynamicLoadKind::LocalWith;
+                rec.instance = scopeLocation;
             }
             else
             {
                 uint32 frameDisplayIndex = envIndex + Js::FrameDisplay::GetOffsetOfScopes() / sizeof(Js::Var);
-                this->m_writer.BrEnvProperty(Js::OpCode::BrOnNoEnvProperty, nextLabel, propertyIndex, frameDisplayIndex);
-                
-                this->m_writer.SlotI1(Js::OpCode::LdEnvObj, unwrappedScopeLocation, frameDisplayIndex);
-                scopeLocation = unwrappedScopeLocation;
+                this->m_writer.BrEnvProperty(Js::OpCode::BrOnHasEnvProperty, rec.label, propertyIndex, frameDisplayIndex);
+                rec.kind = DynamicLoadKind::EnvWith;
+                rec.index = frameDisplayIndex;
             }
-
-            this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, unwrappedScopeLocation, scopeLocation);
-            this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, unwrappedScopeLocation, Js::OpCode::LdFldForTypeOf);
-
-            funcInfo->ReleaseTmpRegister(unwrappedScopeLocation);
         }
 
-        this->m_writer.Br(doneLabel);
-        this->m_writer.MarkLabel(nextLabel);
+        recList.Add(rec);
     }
 
     // Arrived at the scope in which the property was defined.
@@ -5607,8 +5725,56 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
         this->m_writer.Reg2(Js::OpCode::Typeof, lhsLocation, sym->GetLocation());
     }
 
-    if (fLabelDefined)
+    if (!recList.Empty())
     {
+        Js::ByteCodeLabel doneLabel = this->m_writer.DefineLabel();
+        this->m_writer.Br(doneLabel);
+
+        for (int i = 0;; i++)
+        {
+            Js::RegSlot instLocation;
+            Js::PropertyId propertyId = sym ? sym->EnsurePosition(this) : pid->GetPropertyId();
+
+            this->m_writer.MarkLabel(recList.Item(i).label);
+            switch(recList.Item(i).kind)
+            {
+                case DynamicLoadKind::Local:
+                    this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, recList.Item(i).instance, Js::OpCode::LdLocalFld, true);
+                    break;
+
+                case DynamicLoadKind::Env:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, instLocation, Js::OpCode::LdFldForTypeOf, true);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::LocalWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, recList.Item(i).instance);
+                    this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, instLocation, Js::OpCode::LdFldForTypeOf, true);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                case DynamicLoadKind::EnvWith:
+                    instLocation = funcInfo->AcquireTmpRegister();
+                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, recList.Item(i).index);
+                    this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, instLocation);
+                    this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, instLocation, Js::OpCode::LdFldForTypeOf, true);
+                    funcInfo->ReleaseTmpRegister(instLocation);
+                    break;
+
+                default:
+                    AssertOrFailFast(UNREACHED);
+            }
+
+            if (i == recList.Count() - 1)
+            {
+                break;
+            }
+            this->m_writer.Br(doneLabel);
+        }
+
         this->m_writer.MarkLabel(doneLabel);
     }
 }
@@ -6077,11 +6243,11 @@ void EmitDestructuredRestArray(ParseNode *elem,
 
     if (isAssignmentTarget)
     {
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocationFinally);
         EmitReference(elem->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocationFinally);
     }
 
     byteCodeGenerator->Writer()->Reg1Unsigned1(
@@ -6115,8 +6281,8 @@ void EmitDestructuredRestArray(ParseNode *elem,
     Js::RegSlot valueLocation = funcInfo->AcquireTmpRegister();
     EmitIteratorValue(valueLocation, itemLocation, byteCodeGenerator, funcInfo);
 
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocationFinally);
 
     byteCodeGenerator->Writer()->Element(
         ByteCodeGenerator::GetStElemIOpCode(funcInfo),
@@ -6127,8 +6293,8 @@ void EmitDestructuredRestArray(ParseNode *elem,
 
     byteCodeGenerator->Writer()->Reg2(Js::OpCode::Incr_A, counterLocation, counterLocation);
 
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocation);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocationFinally);
 
     byteCodeGenerator->Writer()->Br(loopTop);
 
@@ -6244,13 +6410,13 @@ void EmitDestructuredArrayCore(
 
         if (isAssignmentTarget)
         {
-            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
-            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocation);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocationFinally);
             EmitReference(elem, byteCodeGenerator, funcInfo);
         }
 
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocationFinally);
 
         Js::RegSlot itemLocation = funcInfo->AcquireTmpRegister();
         EmitIteratorNext(itemLocation, iteratorLocation, Js::Constants::NoRegister, byteCodeGenerator, funcInfo);
@@ -6286,13 +6452,13 @@ void EmitDestructuredArrayCore(
         EmitIteratorValue(valueLocation, itemLocation, byteCodeGenerator, funcInfo);
         Js::ByteCodeLabel beforeDefaultAssign = byteCodeGenerator->Writer()->DefineLabel();
 
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocation);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, shouldCallReturnFunctionLocationFinally);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, shouldCallReturnFunctionLocationFinally);
         byteCodeGenerator->Writer()->Br(beforeDefaultAssign);
 
         // iteratorAlreadyDone:
         byteCodeGenerator->Writer()->MarkLabel(iteratorAlreadyDone);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, valueLocation, funcInfo->undefinedConstantRegister);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, valueLocation, funcInfo->undefinedConstantRegister);
 
         // beforeDefaultAssign:
         byteCodeGenerator->Writer()->MarkLabel(beforeDefaultAssign);
@@ -6339,7 +6505,7 @@ void EmitDestructuredArrayCore(
 
                 // skipDefault:
                 byteCodeGenerator->Writer()->MarkLabel(skipDefault);
-                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, valueLocationTmp, valueLocation);
+                byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, valueLocationTmp, valueLocation);
 
                 // loadIter:
                 // @@iterator
@@ -6376,8 +6542,8 @@ void EmitDestructuredArrayCore(
             EmitDestructuredValueOrInitializer(elem, valueLocation, init, isAssignmentTarget, byteCodeGenerator, funcInfo);
         }
 
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocation);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnFunctionLocationFinally);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocation);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnFunctionLocationFinally);
 
         if (list->nop != knopList)
         {
@@ -6503,7 +6669,7 @@ void EmitTopLevelCatch(Js::ByteCodeLabel catchLabel,
     Js::ByteCodeLabel skipCallCloseLabel = byteCodeGenerator->Writer()->DefineLabel();
 
     byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, skipCallCloseLabel, shouldCallReturnLocation);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, shouldCallReturnLocationFinally);
+    byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, shouldCallReturnLocationFinally);
     EmitTryCatchAroundClose(iteratorLocation, skipCallCloseLabel, byteCodeGenerator, funcInfo, isAsync);
 
     byteCodeGenerator->Writer()->MarkLabel(skipCallCloseLabel);
@@ -6773,7 +6939,7 @@ void EmitDestructuredValueOrInitializer(ParseNodePtr lhsElementNode,
         byteCodeGenerator->Writer()->MarkLabel(useDefault);
 
         Emit(initializer, byteCodeGenerator, funcInfo, false/*isConstructorCall*/);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, rhsLocationTmp, initializer->location);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, rhsLocationTmp, initializer->location);
         funcInfo->ReleaseLoc(initializer);
 
         byteCodeGenerator->Writer()->MarkLabel(end);
@@ -9118,7 +9284,7 @@ void EmitBooleanExpression(
 }
 
 void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, bool truefallthrough, Js::ByteCodeLabel falseLabel, bool falsefallthrough, Js::RegSlot writeto,
-    ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+    bool reuseLoc, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
 {
     switch (expr->nop)
     {
@@ -9127,10 +9293,10 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, trueLabel, false, leftFalse, true, writeto, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, trueLabel, false, leftFalse, true, writeto, reuseLoc, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftFalse);
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, true, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         byteCodeGenerator->EndStatement(expr);
         break;
@@ -9140,10 +9306,10 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
     {
         byteCodeGenerator->StartStatement(expr);
         Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, true, falseLabel, false, writeto, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode1, leftTrue, true, falseLabel, false, writeto, reuseLoc, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode1);
         byteCodeGenerator->Writer()->MarkLabel(leftTrue);
-        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(expr->AsParseNodeBin()->pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, true, byteCodeGenerator, funcInfo);
         funcInfo->ReleaseLoc(expr->AsParseNodeBin()->pnode2);
         byteCodeGenerator->EndStatement(expr);
         break;
@@ -9157,10 +9323,10 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         Js::ByteCodeLabel emitFalse = byteCodeGenerator->Writer()->DefineLabel();
         EmitBooleanExpression(expr->AsParseNodeUni()->pnode1, emitFalse, emitTrue, byteCodeGenerator, funcInfo, false, true);
         byteCodeGenerator->Writer()->MarkLabel(emitTrue);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        byteCodeGenerator->Writer()->Reg1(reuseLoc ? Js::OpCode::LdTrue_ReuseLoc : Js::OpCode::LdTrue, writeto);
         byteCodeGenerator->Writer()->Br(trueLabel);
         byteCodeGenerator->Writer()->MarkLabel(emitFalse);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse_ReuseLoc, writeto);
         if (!falsefallthrough)
         {
             byteCodeGenerator->Writer()->Br(falseLabel);
@@ -9184,7 +9350,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         funcInfo->AcquireLoc(expr);
         byteCodeGenerator->Writer()->Reg3(nopToCMOp[expr->nop], expr->location, expr->AsParseNodeBin()->pnode1->location,
             expr->AsParseNodeBin()->pnode2->location);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+        byteCodeGenerator->Writer()->Reg2(reuseLoc ? Js::OpCode::Ld_A_ReuseLoc : Js::OpCode::Ld_A, writeto, expr->location);
         // The inliner likes small bytecode
         if (!(truefallthrough || falsefallthrough))
         {
@@ -9201,7 +9367,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         break;
     case knopTrue:
         byteCodeGenerator->StartStatement(expr);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        byteCodeGenerator->Writer()->Reg1(reuseLoc ? Js::OpCode::LdTrue_ReuseLoc : Js::OpCode::LdTrue, writeto);
         if (!truefallthrough)
         {
             byteCodeGenerator->Writer()->Br(trueLabel);
@@ -9210,7 +9376,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         break;
     case knopFalse:
         byteCodeGenerator->StartStatement(expr);
-        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        byteCodeGenerator->Writer()->Reg1(reuseLoc ? Js::OpCode::LdFalse_ReuseLoc : Js::OpCode::LdFalse, writeto);
         if (!falsefallthrough)
         {
             byteCodeGenerator->Writer()->Br(falseLabel);
@@ -9227,7 +9393,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         {
             byteCodeGenerator->StartStatement(expr);
             Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            byteCodeGenerator->Writer()->Reg2(reuseLoc ? Js::OpCode::Ld_A_ReuseLoc : Js::OpCode::Ld_A, writeto, expr->location);
             // The inliner likes small bytecode
             if (!(truefallthrough || falsefallthrough))
             {
@@ -9245,7 +9411,7 @@ void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabe
         else
         {
             Emit(expr, byteCodeGenerator, funcInfo, false);
-            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            byteCodeGenerator->Writer()->Reg2(reuseLoc ? Js::OpCode::Ld_A_ReuseLoc : Js::OpCode::Ld_A, writeto, expr->location);
             // The inliner likes small bytecode
             if (!(truefallthrough || falsefallthrough))
             {
@@ -10215,7 +10381,6 @@ void EmitDummyYield(ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
     byteCodeGenerator->EmitTryBlockHeadersAfterYield();
     Js::RegSlot unusedResult = funcInfo->AcquireTmpRegister();
     byteCodeGenerator->Writer()->Reg2(Js::OpCode::ResumeYield, unusedResult, funcInfo->yieldRegister);
-    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Unused, unusedResult);
     funcInfo->ReleaseTmpRegister(unusedResult);
 }
 
@@ -10563,7 +10728,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
             Emit(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator, funcInfo, false);
             byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, pnode->location);
             byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, doneLabel, pnode->AsParseNodeUni()->pnode1->location);
-            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, pnode->location);
+            byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue_ReuseLoc, pnode->location);
             byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         }
         funcInfo->ReleaseLoc(pnode->AsParseNodeUni()->pnode1);
@@ -11047,30 +11212,17 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
             } while (pnode1->nop == knopComma);
 
             Emit(pnode1, byteCodeGenerator, funcInfo, false);
-            if (funcInfo->IsTmpReg(pnode1->location))
-            {
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::Unused, pnode1->location);
-            }
-
             while (!rhsStack.Empty())
             {
                 ParseNode *pnodeRhs = rhsStack.Pop();
                 pnodeRhs->isUsed = false;
                 Emit(pnodeRhs, byteCodeGenerator, funcInfo, false);
-                if (funcInfo->IsTmpReg(pnodeRhs->location))
-                {
-                    byteCodeGenerator->Writer()->Reg1(Js::OpCode::Unused, pnodeRhs->location);
-                }
                 funcInfo->ReleaseLoc(pnodeRhs);
             }
         }
         else
         {
             Emit(pnode1, byteCodeGenerator, funcInfo, false);
-            if (funcInfo->IsTmpReg(pnode1->location))
-            {
-                byteCodeGenerator->Writer()->Reg1(Js::OpCode::Unused, pnode1->location);
-            }
         }
         funcInfo->ReleaseLoc(pnode1);
 
@@ -11097,7 +11249,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         // We use a single dest here for the whole generating boolean expr, because we were poorly
         // optimizing the previous version where we had a dest for each level
         funcInfo->AcquireLoc(pnode);
-        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, false, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
@@ -11110,7 +11262,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
         // We use a single dest here for the whole generating boolean expr, because we were poorly
         // optimizing the previous version where we had a dest for each level
         funcInfo->AcquireLoc(pnode);
-        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, byteCodeGenerator, funcInfo);
+        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, false, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
@@ -11141,7 +11293,7 @@ void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* func
 
         byteCodeGenerator->Writer()->MarkLabel(falseLabel);
         Emit(pnode->AsParseNodeTri()->pnode3, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->AsParseNodeTri()->pnode3->location);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A_ReuseLoc, pnode->location, pnode->AsParseNodeTri()->pnode3->location);
         funcInfo->ReleaseLoc(pnode->AsParseNodeTri()->pnode3);
 
         byteCodeGenerator->Writer()->MarkLabel(skipLabel);

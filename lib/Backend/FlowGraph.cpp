@@ -835,6 +835,7 @@ FlowGraph::RunPeeps()
         case Js::OpCode::BrSrNeq_A:
         case Js::OpCode::BrOnHasProperty:
         case Js::OpCode::BrOnNoProperty:
+        case Js::OpCode::BrOnHasLocalProperty:
         case Js::OpCode::BrOnNoLocalProperty:
         case Js::OpCode::BrHasSideEffects:
         case Js::OpCode::BrNotHasSideEffects:

@@ -606,6 +606,7 @@ namespace Js
             }
 
             case OpCode::DeleteLocalFld:
+            case OpCode::DeleteLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s "), data->Instance, pPropertyName->GetBuffer());
                 break;
 
@@ -693,6 +694,7 @@ namespace Js
         switch (op)
         {
             case OpCode::DeleteFld:
+            case OpCode::DeleteFld_ReuseLoc:
             case OpCode::DeleteRootFld:
             case OpCode::DeleteFldStrict:
             case OpCode::DeleteRootFldStrict:
@@ -895,6 +897,7 @@ namespace Js
             case OpCode::LdLocalSlot:
             case OpCode::LdParamSlot:
             case OpCode::LdEnvObj:
+            case OpCode::LdEnvObj_ReuseLoc:
             case OpCode::LdLocalObjSlot:
             case OpCode::LdParamObjSlot:
                 Output::Print(_u(" R%d = [%d] "), data->Value, data->SlotIndex);
@@ -992,10 +995,12 @@ namespace Js
                 break;
 
             case OpCode::LdLocalFld:
+            case OpCode::LdLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 break;
 
             case OpCode::ProfiledLdLocalFld:
+            case OpCode::ProfiledLdLocalFld_ReuseLoc:
                 Output::Print(_u(" R%d = %s #%d"), data->Value, pPropertyName->GetBuffer(), data->inlineCacheIndex);
                 DumpProfileId(data->inlineCacheIndex);
                 break;
@@ -1056,6 +1061,7 @@ namespace Js
             case OpCode::LdLen_A:
             case OpCode::LdFldForTypeOf:
             case OpCode::LdFld:
+            case OpCode::LdFld_ReuseLoc:
             case OpCode::LdFldForCallApplyTarget:
             case OpCode::LdMethodFld:
             case OpCode::ScopedLdMethodFld:
@@ -1077,6 +1083,7 @@ namespace Js
             }
             case OpCode::ProfiledLdFldForTypeOf:
             case OpCode::ProfiledLdFld:
+            case OpCode::ProfiledLdFld_ReuseLoc:
             case OpCode::ProfiledLdFldForCallApplyTarget:
             case OpCode::ProfiledLdMethodFld:
             {
