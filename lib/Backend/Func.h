@@ -206,7 +206,7 @@ public:
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch()) &&
             (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally()) &&
-            !GetTopFunc()->GetJITFunctionBody()->IsCoroutine();
+            (!GetTopFunc()->GetJITFunctionBody()->IsCoroutine() || !PHASE_OFF(Js::GeneratorGlobOptPhase, this));
     }
 
     bool DoInline() const
