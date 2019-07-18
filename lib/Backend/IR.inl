@@ -126,6 +126,34 @@ Instr::AsLabelInstr()
 
 ///----------------------------------------------------------------------------
 ///
+/// Instr::IsGeneratorBailInInstr
+///
+///----------------------------------------------------------------------------
+
+__forceinline bool
+Instr::IsGeneratorBailInInstr() const
+{
+    return this->m_opcode == Js::OpCode::GeneratorBailInLabel;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Instr::AsGeneratorBailInInstr
+///
+///     Return this as a GeneratorBailInInstr *
+///
+///----------------------------------------------------------------------------
+
+inline GeneratorBailInInstr*
+Instr::AsGeneratorBailInInstr()
+{
+    AssertMsg(this->IsGeneratorBailInInstr(), "Bad call to AsGeneratorBailInInstr()");
+
+    return reinterpret_cast<GeneratorBailInInstr*>(this);
+}
+
+///----------------------------------------------------------------------------
+///
 /// Instr::AsMultiBrInstr
 ///
 ///     Return this as a MultiBrInstr *

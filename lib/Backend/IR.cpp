@@ -4247,6 +4247,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRTyp
     return true;
 }
 
+GeneratorBailInInstr*
+GeneratorBailInInstr::New(IR::Instr* yieldInstr, Func* func)
+{
+    GeneratorBailInInstr* labelInstr = JitAnew(func->m_alloc, IR::GeneratorBailInInstr, func->m_alloc, yieldInstr);
+    labelInstr->Init(Js::OpCode::GeneratorBailInLabel, InstrKindLabel, func, false /* isOpHelper */);
+    return labelInstr;
+}
+
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 ///----------------------------------------------------------------------------
 ///
