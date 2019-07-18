@@ -1654,9 +1654,6 @@ BranchInstr::New(Js::OpCode opcode, LabelInstr * branchTarget, Func *func)
     branchInstr->m_src1 = nullptr;
     branchInstr->m_src2 = nullptr;
     branchInstr->m_byteCodeReg = Js::Constants::NoRegister;
-#if DBG
-    branchInstr->m_isHelperToNonHelperBranch = false;
-#endif
 
     return branchInstr;
 }

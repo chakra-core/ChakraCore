@@ -871,6 +871,7 @@ public:
     {
 #if DBG
         m_isMultiBranch = false;
+        m_isHelperToNonHelperBranch = false;
         m_leaveConvToBr = false;
 #endif
     }
