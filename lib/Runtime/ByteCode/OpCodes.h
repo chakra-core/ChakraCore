@@ -856,8 +856,8 @@ MACRO_BACKEND_ONLY(GeneratorOutputBailInTrace,              Empty,  OpSideEffect
 MACRO_BACKEND_ONLY(GeneratorOutputBailInTraceLabel,         Empty,  None)
 MACRO_BACKEND_ONLY(GeneratorBailInLabel,                    Empty,  None)
 MACRO_BACKEND_ONLY(GeneratorResumeYieldLabel,               Empty,  None)
-MACRO_BACKEND_ONLY(GeneratorEpilogueFrameNullOut,           Empty,  None)
-MACRO_BACKEND_ONLY(GeneratorEpilogueNoFrameNullOut,         Empty,  None)
+MACRO_BACKEND_ONLY(GeneratorEpilogueFrameNullOutLabel,      Empty,  None)
+MACRO_BACKEND_ONLY(GeneratorEpilogueNoFrameNullOutLabel,    Empty,  None)
 
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

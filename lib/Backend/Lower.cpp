@@ -3122,8 +3122,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif
         case Js::OpCode::GeneratorBailInLabel:
         case Js::OpCode::GeneratorResumeYieldLabel:
-        case Js::OpCode::GeneratorEpilogueFrameNullOut:
-        case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+        case Js::OpCode::GeneratorEpilogueFrameNullOutLabel:
+        case Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel:
             Assert(this->m_func->GetJITFunctionBody()->IsCoroutine());
             break;
 
@@ -26473,8 +26473,8 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
 #endif
     case Js::OpCode::GeneratorBailInLabel:
     case Js::OpCode::GeneratorResumeYieldLabel:
-    case Js::OpCode::GeneratorEpilogueFrameNullOut:
-    case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+    case Js::OpCode::GeneratorEpilogueFrameNullOutLabel:
+    case Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel:
         return func->GetJITFunctionBody()->IsCoroutine();
 
     case Js::OpCode::LazyBailOutThunkLabel:
@@ -29130,12 +29130,12 @@ Lowerer::LowerGeneratorHelper::EnsureEpilogueLabels()
         return;
     }
 
-    IR::LabelInstr* withSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueFrameNullOut, this->func, false);
+    IR::LabelInstr* withSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueFrameNullOutLabel, this->func, false);
     LABELNAMESET(withSignalGeneratorDone, "Epilogue_WithSignalGeneratorDone");
     withSignalGeneratorDone->m_hasNonBranchRef = true;
     this->epilogueForReturnStatements = withSignalGeneratorDone;
 
-    IR::LabelInstr* withoutSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueNoFrameNullOut, this->func, false);
+    IR::LabelInstr* withoutSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel, this->func, false);
     LABELNAMESET(withoutSignalGeneratorDone, "Epilogue_NoSignalGeneratorDone");
     withoutSignalGeneratorDone->m_hasNonBranchRef = true;
     this->epilogueForBailOut = withoutSignalGeneratorDone;

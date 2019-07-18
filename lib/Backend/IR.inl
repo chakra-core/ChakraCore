@@ -760,8 +760,8 @@ LabelInstr::IsUnreferenced(void) const
 inline BOOL
 LabelInstr::IsGeneratorEpilogueLabel(void) const
 {
-    return this->m_opcode == Js::OpCode::GeneratorEpilogueNoFrameNullOut ||
-            this->m_opcode == Js::OpCode::GeneratorEpilogueFrameNullOut;
+    return this->m_opcode == Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel ||
+            this->m_opcode == Js::OpCode::GeneratorEpilogueFrameNullOutLabel;
 }
 
 inline void
