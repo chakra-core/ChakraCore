@@ -742,7 +742,7 @@ private:
     void                    InsertCloneStrs(BasicBlock *toBlock, GlobOptBlockData *toData, GlobOptBlockData *fromData);
     void                    InsertValueCompensation(BasicBlock *const predecessor, BasicBlock *const successor, const SymToValueInfoMap *symsRequiringCompensationToMergedValueInfoMap);
     IR::Instr *             ToVarUses(IR::Instr *instr, IR::Opnd *opnd, bool isDst, Value *val);
-    void                    ToVar(BVSparse<JitArenaAllocator> *bv, BasicBlock *block);
+    void                    ToVar(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IR::Instr* insertBeforeInstr = nullptr);
     IR::Instr *             ToVar(IR::Instr *instr, IR::RegOpnd *regOpnd, BasicBlock *block, Value *val, bool needsUpdate);
     void                    ToInt32(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, bool lossy, IR::Instr *insertBeforeInstr = nullptr);
     void                    ToFloat64(BVSparse<JitArenaAllocator> *bv, BasicBlock *block);

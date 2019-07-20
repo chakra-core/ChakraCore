@@ -838,14 +838,19 @@ GlobOpt::TryTailDup(IR::BranchInstr *tailBranch)
 }
 
 void
-GlobOpt::ToVar(BVSparse<JitArenaAllocator> *bv, BasicBlock *block)
+GlobOpt::ToVar(BVSparse<JitArenaAllocator> *bv, BasicBlock *block, IR::Instr* insertBeforeInstr /* = nullptr */)
 {
     FOREACH_BITSET_IN_SPARSEBV(id, bv)
     {
         StackSym *stackSym = this->func->m_symTable->FindStackSym(id);
         IR::RegOpnd *newOpnd = IR::RegOpnd::New(stackSym, TyVar, this->func);
-        IR::Instr *lastInstr = block->GetLastInstr();
-        if (lastInstr->IsBranchInstr() || lastInstr->m_opcode == Js::OpCode::BailTarget)
+        IR::Instr* lastInstr = block->GetLastInstr();
+
+        if (insertBeforeInstr != nullptr)
+        {
+            this->ToVar(insertBeforeInstr, newOpnd, block, nullptr, false);
+        }
+        else if (lastInstr->IsBranchInstr() || lastInstr->m_opcode == Js::OpCode::BailTarget)
         {
             // If branch is using this symbol, hoist the operand as the ToVar load will get
             // inserted right before the branch.
@@ -2427,15 +2432,15 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         return instrNext;
     }
 
-    if (!instr->IsRealInstr() || instr->IsByteCodeUsesInstr() || instr->m_opcode == Js::OpCode::Conv_Bool)
-    {
-        return instrNext;
-    }
-
     if (instr->m_opcode == Js::OpCode::Yield)
     {
         // TODO[generators][ianhall]: Can this and the FillBailOutInfo call below be moved to after Src1 and Src2 so that Yield can be optimized right up to the actual yield?
-        CurrentBlockData()->KillStateForGeneratorYield();
+        this->ProcessKills(instr);
+    }
+
+    if (!instr->IsRealInstr() || instr->IsByteCodeUsesInstr() || instr->m_opcode == Js::OpCode::Conv_Bool)
+    {
+        return instrNext;
     }
 
     if (!IsLoopPrePass())
@@ -3033,13 +3038,13 @@ GlobOpt::OptDst(
         else if (dstVal)
         {
             opnd->SetValueType(dstVal->GetValueInfo()->Type());
-
+#if 0
             if(currentBlock->loop &&
                 !IsLoopPrePass() &&
                 (instr->m_opcode == Js::OpCode::Ld_A || instr->m_opcode == Js::OpCode::Ld_I4) &&
                 instr->GetSrc1()->IsRegOpnd() &&
                 !func->IsJitInDebugMode() &&
-                func->DoGlobOptsForGeneratorFunc())
+                this->GetJITFunctionBody()->IsCoroutine())
             {
                 // Look for the following patterns:
                 //
@@ -3103,6 +3108,7 @@ GlobOpt::OptDst(
                     this->SetSymStoreDirect(dstVal->GetValueInfo(), dstVarSym);
                 } while(false);
             }
+#endif
         }
 
         this->ValueNumberObjectType(opnd, instr);
@@ -3655,15 +3661,6 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
     if (this->IsLoopPrePass())
     {
         // Transformations are not legal in prepass...
-        return opnd;
-    }
-
-    if (!this->func->DoGlobOptsForGeneratorFunc())
-    {
-        // Don't copy prop in generator functions because non-bytecode temps that span a yield
-        // cannot be saved and restored by the current bail-out mechanics utilized by generator
-        // yield/resume.
-        // TODO[generators][ianhall]: Enable copy-prop at least for in between yields.
         return opnd;
     }
 
@@ -14555,6 +14552,10 @@ swap_srcs:
 void
 GlobOpt::ProcessKills(IR::Instr *instr)
 {
+    if (instr->m_opcode == Js::OpCode::Yield)
+    {
+        this->CurrentBlockData()->KillStateForGeneratorYield(instr);
+    }
     this->ProcessFieldKills(instr);
     this->ProcessValueKills(instr);
     this->ProcessArrayValueKills(instr);
@@ -15695,7 +15696,7 @@ GlobOpt::DoConstFold() const
 bool
 GlobOpt::IsTypeSpecPhaseOff(Func const *func)
 {
-    return PHASE_OFF(Js::TypeSpecPhase, func) || func->IsJitInDebugMode() || !func->DoGlobOptsForGeneratorFunc();
+    return PHASE_OFF(Js::TypeSpecPhase, func) || func->IsJitInDebugMode();
 }
 
 bool
@@ -15802,8 +15803,7 @@ GlobOpt::DoArrayCheckHoist(Func const * const func)
     return
         !PHASE_OFF(Js::ArrayCheckHoistPhase, func) &&
         !func->IsArrayCheckHoistDisabled() &&
-        !func->IsJitInDebugMode() && // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
-        func->DoGlobOptsForGeneratorFunc();
+        !func->IsJitInDebugMode(); // StElemI fast path is not allowed when in debug mode, so it cannot have bailout
 }
 
 bool

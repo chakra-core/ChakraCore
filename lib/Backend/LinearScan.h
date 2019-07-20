@@ -256,28 +256,55 @@ private:
             IR::Instr* instrInsertRegSym;
         };
 
+        struct BailInSymbol
+        {
+            const SymID fromByteCodeRegSlot;
+            const SymID toBackendId;
+            const bool restoreConstDirectly : 1;
+            const Js::Var constValue;
+            BailInSymbol(SymID fromByteCodeRegSlot, SymID toBackendId, bool restoreConstDirectly = false, Js::Var constValue = nullptr):
+                fromByteCodeRegSlot(fromByteCodeRegSlot),
+                toBackendId(toBackendId),
+                restoreConstDirectly(restoreConstDirectly),
+                constValue(constValue) {}
+        };
+
         Func* const func;
         LinearScan* const linearScan;
         const JITTimeFunctionBody* const jitFnBody;
         BVSparse<JitArenaAllocator> initializedRegs;
+        SListBase<BailInSymbol>* bailInSymbols;
 
         static constexpr int regNum = 2;
         const RegNum regs[regNum];
         IR::RegOpnd* const interpreterFrameRegOpnd;
         IR::RegOpnd* const tempRegOpnd;
 
-        bool NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const;
+        bool NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const;
+        bool NeedsReloadingSymWhenBailingIn(StackSym* sym) const;
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
-        void InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint);
+        void InsertRestoreSymbols(
+            const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues,
+            BailInInsertionPoint& insertionPoint
+        );
+
+        void BuildBailInSymbolList(
+            const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues
+        );
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         void InsertBailInTrace(BVSparse<JitArenaAllocator>* symbols, IR::Instr* insertBeforeInstr);
 #endif
     public:
         GeneratorBailIn(Func* func, LinearScan* linearScan);
-        IR::Instr* GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);
+        ~GeneratorBailIn();
+        IR::Instr* GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr);
         void SpillRegsForBailIn();
     };
 

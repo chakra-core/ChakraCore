@@ -90,10 +90,9 @@ BackwardPass::DoMarkTempNumbers() const
 bool
 BackwardPass::SatisfyMarkTempObjectsConditions() const {
     return !PHASE_OFF(Js::MarkTempPhase, this->func) &&
-           !PHASE_OFF(Js::MarkTempObjectPhase, this->func) &&
-           func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
-           !func->IsJitInDebugMode() &&
-           func->DoGlobOptsForGeneratorFunc();
+        !PHASE_OFF(Js::MarkTempObjectPhase, this->func) &&
+        func->DoGlobOpt() && func->GetHasTempObjectProducingInstr() &&
+        !func->IsJitInDebugMode();
 
     // Why MarkTempObject is disabled under debugger:
     //   We add 'identified so far dead non-temp locals' to byteCodeUpwardExposedUsed in ProcessBailOutInfo,
@@ -156,8 +155,7 @@ BackwardPass::DoDeadStore(Func* func, StackSym* sym)
     // Dead store is disabled under debugger for non-temp local vars.
     return
         DoDeadStore(func) &&
-        !(func->IsJitInDebugMode() && sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot())) &&
-        func->DoGlobOptsForGeneratorFunc();
+        !(func->IsJitInDebugMode() && sym->HasByteCodeRegSlot() && func->IsNonTempLocalVar(sym->GetByteCodeRegSlot()));
 }
 
 bool
@@ -168,8 +166,7 @@ BackwardPass::DoTrackNegativeZero() const
         !PHASE_OFF(Js::TrackNegativeZeroPhase, func) &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
-        !func->IsJitInDebugMode() &&
-        func->DoGlobOptsForGeneratorFunc();
+        !func->IsJitInDebugMode();
 }
 
 bool
@@ -181,8 +178,7 @@ BackwardPass::DoTrackBitOpsOrNumber() const
         tag == Js::BackwardPhase &&
         func->DoGlobOpt() &&
         !IsPrePass() &&
-        !func->IsJitInDebugMode() &&
-        func->DoGlobOptsForGeneratorFunc();
+        !func->IsJitInDebugMode();
 #else
     return false;
 #endif
@@ -197,8 +193,7 @@ BackwardPass::DoTrackIntOverflow() const
         tag == Js::BackwardPhase &&
         !IsPrePass() &&
         globOpt->DoLossyIntTypeSpec() &&
-        !func->IsJitInDebugMode() &&
-        func->DoGlobOptsForGeneratorFunc();
+        !func->IsJitInDebugMode();
 }
 
 bool
@@ -2566,6 +2561,30 @@ BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
 }
 
 IR::Instr*
+BackwardPass::ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr)
+{
+    Assert(currentInstr->m_opcode == Js::OpCode::Yield);
+    IR::GeneratorBailInInstr* bailInInstr = currentInstr->m_next->m_next->AsGeneratorBailInInstr();
+
+    BailOutInfo* bailOutInfo = currentInstr->GetBailOutInfo();
+
+    // Make a copy of all detected constant values before we actually process
+    // the bailout info since we will then remove any values that don't need
+    // to be restored for the normal bailout cases. As for yields, we still
+    // need them for our bailin code.
+    bailInInstr->SetConstantValues(bailOutInfo->capturedValues->constantValues);
+
+    IR::Instr* ret = this->ProcessPendingPreOpBailOutInfo(currentInstr);
+
+    // We will need list of symbols that have been copy-prop'd to map the correct
+    // symbols to restore during bail-in. Since this list is cleared during
+    // FillBailOutRecord, make a copy of it now.
+    bailInInstr->SetCopyPropSyms(bailOutInfo->usedCapturedValues->copyPropSyms);
+
+    return ret;
+}
+
+IR::Instr*
 BackwardPass::ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr)
 {
     Assert(!IsCollectionPass());
@@ -2992,6 +3011,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 
         this->currentInstr = instr;
         this->currentRegion = this->currentBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
+
+        if (instr->m_opcode == Js::OpCode::Yield && !this->IsCollectionPass())
+        {
+            this->DisallowMarkTempAcrossYield(this->currentBlock->byteCodeUpwardExposedUsed);
+        }
 
         IR::Instr * insertedInstr = TryChangeInstrForStackArgOpt();
         if (insertedInstr != nullptr)
@@ -3855,7 +3879,24 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             }
         }
 #endif
-        instrPrev = ProcessPendingPreOpBailOutInfo(instr);
+
+        // Make a copy of upwardExposedUses for our bail-in code, note that we have
+        // to do it at the bail-in instruction (right after yield) and not at the yield point
+        // since the yield instruction might use some symbols as operands that we don't need when
+        // bail-in
+        if (instr->IsGeneratorBailInInstr() && this->currentBlock->upwardExposedUses)
+        {
+            instr->AsGeneratorBailInInstr()->SetUpwardExposedUses(*this->currentBlock->upwardExposedUses);
+        }
+
+        if (instr->m_opcode == Js::OpCode::Yield)
+        {
+            instrPrev = ProcessPendingPreOpBailOutInfoForYield(instr);
+        }
+        else
+        {
+            instrPrev = ProcessPendingPreOpBailOutInfo(instr);
+        }
 
 #if DBG_DUMP
         TraceInstrUses(block, instr, false);
@@ -6311,6 +6352,27 @@ BackwardPass::ProcessPropertySymUse(PropertySym *propertySym)
     }
 
     return isLive;
+}
+
+void
+BackwardPass::DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed)
+{
+    Assert(!this->IsCollectionPass());
+    BasicBlock* block = this->currentBlock;
+    if (this->DoMarkTempNumbers())
+    {
+        block->tempNumberTracker->DisallowMarkTempAcrossYield(bytecodeUpwardExposed);
+    }
+    if (this->DoMarkTempObjects())
+    {
+        block->tempObjectTracker->DisallowMarkTempAcrossYield(bytecodeUpwardExposed);
+    }
+#if DBG
+    if (this->DoMarkTempObjectVerify())
+    {
+        block->tempObjectVerifyTracker->DisallowMarkTempAcrossYield(bytecodeUpwardExposed);
+    }
+#endif
 }
 
 void

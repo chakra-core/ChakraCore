@@ -138,7 +138,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , vtableMap(nullptr)
 #endif
     , m_yieldOffsetResumeLabelList(nullptr)
-    , m_bailOutNoSaveLabel(nullptr)
+    , m_bailOutForElidedYieldInsertionPoint(nullptr)
     , constantAddressRegOpnd(alloc)
     , lastConstantAddressRegLoadInstr(nullptr)
     , m_totalJumpTableSizeInBytesForSwitchStatements(0)
@@ -865,13 +865,6 @@ Func::AjustLocalVarSlotOffset()
     }
 }
 #endif
-
-bool
-Func::DoGlobOptsForGeneratorFunc() const
-{
-    // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !GetJITFunctionBody()->IsCoroutine();
-}
 
 bool
 Func::DoSimpleJitDynamicProfile() const

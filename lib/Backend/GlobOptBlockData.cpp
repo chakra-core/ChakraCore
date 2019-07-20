@@ -1654,60 +1654,82 @@ GlobOptBlockData::IsFloat64TypeSpecialized(Sym const * sym) const
 }
 
 void
-GlobOptBlockData::KillStateForGeneratorYield()
+GlobOptBlockData::KillStateForGeneratorYield(IR::Instr* yieldInstr)
 {
-    /*
-    TODO[generators][ianhall]: Do a ToVar on any typespec'd syms before the bailout so that we can enable typespec in generators without bailin having to restore typespec'd values
-    FOREACH_BITSET_IN_SPARSEBV(symId, this->liveInt32Syms)
-    {
-        this->ToVar(instr, , this->globOpt->currentBlock, , );
-    }
-    NEXT_BITSET_IN_SPARSEBV;
-
-    FOREACH_BITSET_IN_SPARSEBV(symId, this->liveInt32Syms)
-    {
-        this->ToVar(instr, , this->globOpt->currentBlock, , );
-    }
-    NEXT_BITSET_IN_SPARSEBV;
-    */
-
-    FOREACH_GLOBHASHTABLE_ENTRY(bucket, this->symToValueMap)
-    {
-        ValueType type = bucket.element->GetValueInfo()->Type().ToLikely();
-        bucket.element = this->globOpt->NewGenericValue(type);
-    }
-    NEXT_GLOBHASHTABLE_ENTRY;
-
-    this->exprToValueMap->ClearAll();
-    this->liveFields->ClearAll();
-    this->liveArrayValues->ClearAll();
-    if (this->maybeWrittenTypeSyms)
-    {
-        this->maybeWrittenTypeSyms->ClearAll();
-    }
-    this->isTempSrc->ClearAll();
+    this->liveInt32Syms->Minus(this->liveVarSyms);
+    this->globOpt->ToVar(liveInt32Syms, this->globOpt->currentBlock, yieldInstr /* insertBeforeInstr */);
     this->liveInt32Syms->ClearAll();
-    this->liveLossyInt32Syms->ClearAll();
+
+    this->liveFloat64Syms->Minus(this->liveVarSyms);
+    this->globOpt->ToVar(liveFloat64Syms, this->globOpt->currentBlock, yieldInstr /* insertBeforeInstr */);
     this->liveFloat64Syms->ClearAll();
+
+    this->liveLossyInt32Syms->ClearAll();
     // Keep this->liveVarSyms as is
     // Keep this->argObjSyms as is
 
-    // MarkTemp should be disabled for generator functions for now
-    Assert(this->maybeTempObjectSyms == nullptr || this->maybeTempObjectSyms->IsEmpty());
-    Assert(this->canStoreTempObjectSyms == nullptr || this->canStoreTempObjectSyms->IsEmpty());
-
-    this->valuesToKillOnCalls->Clear();
-    if (this->inductionVariables)
-    {
-        this->inductionVariables->Clear();
-    }
-    if (this->availableIntBoundChecks)
-    {
-        this->availableIntBoundChecks->Clear();
-    }
-
-    // Keep bailout data as is
     this->hasCSECandidates = false;
+
+    // No need to clear `isTempSrc` (used for in-place string concat)
+
+    this->exprToValueMap->ClearAll();
+
+    this->KillSymToValueMapForGeneratorYield();
+}
+
+void
+GlobOptBlockData::KillSymToValueMapForGeneratorYield()
+{
+    // Remove illegal symToValueMap entries whose symstores don't have bytecode registers
+    // Hash table bucket key-value visualization: { bucket.value: bucket.element }
+    //
+    // Idea:
+    // Multiple symbols can map to the same value which has a symstore
+    // (multiple keys map to same value).
+    // Since the symstore might not have a bytecode register, our first pass
+    // through the map attemps to use the symbol (key) as a symstore for that value.
+    // This allows us to still retain such entries.
+    // After the first pass, any symToValueMap entries whose symstores don't have
+    // bytecode registers will be cleared.
+    FOREACH_VALUEHASHTABLE_ENTRY(GlobHashBucket, bucket, this->symToValueMap)
+    {
+        if (bucket.element == nullptr)
+        {
+            continue;
+        }
+
+        Sym* symStore = bucket.element->GetValueInfo()->GetSymStore();
+        if (symStore != nullptr && symStore->IsStackSym() && symStore->AsStackSym()->HasByteCodeRegSlot())
+        {
+            continue;
+        }
+
+        Sym* sym = bucket.value;
+        if (sym != nullptr && sym->IsStackSym() && sym->AsStackSym()->HasByteCodeRegSlot())
+        {
+            bucket.element->GetValueInfo()->SetSymStore(sym);
+        }
+    }
+    NEXT_VALUEHASHTABLE_ENTRY;
+
+    // Remove illegal entries
+    FOREACH_VALUEHASHTABLE_ENTRY_EDITING(GlobHashBucket, bucket, this->symToValueMap, iter)
+    {
+        Value* value = bucket.element;
+        if (value == nullptr)
+        {
+            iter.RemoveCurrent(this->symToValueMap->alloc);
+        }
+        else
+        {
+            Sym* symStore = value->GetValueInfo()->GetSymStore();
+            if (symStore == nullptr || !symStore->IsStackSym() || !symStore->AsStackSym()->HasByteCodeRegSlot())
+            {
+                iter.RemoveCurrent(this->symToValueMap->alloc);
+            }
+        }
+    }
+    NEXT_VALUEHASHTABLE_ENTRY_EDITING;
 }
 
 #if DBG_DUMP

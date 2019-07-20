@@ -44,6 +44,7 @@ public:
 
     // Actual mark temp algorithm that are shared, but have different condition based
     // on the type of tracker as the template parameter
+    void DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed);
     void ProcessUse(StackSym * sym, BackwardPass * backwardPass);
     void MarkTemp(StackSym * sym, BackwardPass * backwardPass);
 

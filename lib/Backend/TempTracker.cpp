@@ -291,6 +291,16 @@ TempTracker<T>::ProcessUse(StackSym * sym, BackwardPass * backwardPass)
 
 template <typename T>
 void
+TempTracker<T>::DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed)
+{
+    if (bytecodeUpwardExposed != nullptr)
+    {
+        this->nonTempSyms.Or(bytecodeUpwardExposed);
+    }
+}
+
+template <typename T>
+void
 TempTracker<T>::MarkTemp(StackSym * sym, BackwardPass * backwardPass)
 {
     // Don't care about type specialized syms
@@ -1421,7 +1431,10 @@ ObjectTempVerify::SetDstIsTemp(bool dstIsTemp, bool dstIsTempTransferred, IR::In
                     Output::Flush();
                 }
 #endif
-                Assert(!instr->dstIsTempObject);
+                // In a generator function, we don't allow marking temp across yields. Since this assert makes
+                // sure that all instructions whose destinations produce temps are marked, it is not
+                // applicable for generators
+                Assert(instr->m_func->GetJITFunctionBody()->IsCoroutine() || !instr->dstIsTempObject);
             }
         }
     }

@@ -329,8 +329,6 @@ public:
     void AjustLocalVarSlotOffset();
 #endif
 
-    bool DoGlobOptsForGeneratorFunc() const;
-
     static int32 AdjustOffsetValue(int32 offset);
 
     static inline uint32 GetDiagLocalSlotSize()
@@ -997,7 +995,7 @@ public:
 
     uint32 m_inlineeId;
 
-    IR::LabelInstr *    m_bailOutNoSaveLabel;
+    IR::Instr *    m_bailOutForElidedYieldInsertionPoint;
 
 private:
     Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only
