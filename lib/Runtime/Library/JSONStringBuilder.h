@@ -23,6 +23,7 @@ private:
     void AppendCharacter(char16 character);
     void AppendBuffer(_In_ const char16* buffer, charcount_t length);
     void AppendString(_In_ JavascriptString* str);
+    void AppendEscapeSequence(_In_ const char16 character);
     void EscapeAndAppendString(_In_ JavascriptString* str);
     void AppendObjectString(_In_ JSONObject* valueList);
     void AppendArrayString(_In_ JSONArray* valueArray);

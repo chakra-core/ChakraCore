@@ -31,6 +31,34 @@ JSONStringBuilder::AppendString(_In_ JavascriptString* str)
 }
 
 void
+JSONStringBuilder::AppendEscapeSequence(_In_ const char16 character)
+{
+    // Convert character into a 4 digit hex code (e.g. \u0010)
+    this->AppendCharacter(_u('\\'));
+    this->AppendCharacter(_u('u'));
+    {
+        char16 buf[5];
+        // Get hex value
+        _ltow_s(character, buf, _countof(buf), 16);
+
+        // Append leading zeros if necessary before the hex value
+        charcount_t count = static_cast<charcount_t>(wcslen(buf));
+        switch (count)
+        {
+        case 1:
+            this->AppendCharacter(_u('0'));
+        case 2:
+            this->AppendCharacter(_u('0'));
+        case 3:
+            this->AppendCharacter(_u('0'));
+        default:
+            this->AppendBuffer(buf, count);
+            break;
+        }
+    }
+}
+
+void
 JSONStringBuilder::EscapeAndAppendString(_In_ JavascriptString* str)
 {
     const charcount_t strLength = str->GetLength();
@@ -70,30 +98,25 @@ JSONStringBuilder::EscapeAndAppendString(_In_ JavascriptString* str)
             this->AppendCharacter(_u('t'));
             break;
         default:
-            if (currentCharacter < _u(' '))
+            if (currentCharacter < _u(' ') || utf8::IsLowSurrogateChar(currentCharacter))
             {
-                // If character is less than SPACE, it is converted into a 4 digit hex code (e.g. \u0010)
-                this->AppendCharacter(_u('\\'));
-                this->AppendCharacter(_u('u'));
+                this->AppendEscapeSequence(currentCharacter);
+            }
+            else if (utf8::IsHighSurrogateChar(currentCharacter))
+            {
+                if (index + 1 < bufferStart + strLength && utf8::IsLowSurrogateChar(*(index + 1)))
                 {
-                    char16 buf[5];
-                    // Get hex value
-                    _ltow_s(currentCharacter, buf, _countof(buf), 16);
+                    // Append surrogate pair normally
+                    this->AppendCharacter(currentCharacter);
+                    this->AppendCharacter(*(index + 1));
 
-                    // Append leading zeros if necessary before the hex value
-                    charcount_t count = static_cast<charcount_t>(wcslen(buf));
-                    switch (count)
-                    {
-                    case 1:
-                        this->AppendCharacter(_u('0'));
-                    case 2:
-                        this->AppendCharacter(_u('0'));
-                    case 3:
-                        this->AppendCharacter(_u('0'));
-                    default:
-                        this->AppendBuffer(buf, count);
-                        break;
-                    }
+                    // Skip the trailing-surrogate code unit
+                    index++;
+                }
+                else
+                {
+                    // High-surrogate code unit not followed by a trailing-surrogate code unit should be escaped.
+                    this->AppendEscapeSequence(currentCharacter);
                 }
             }
             else
