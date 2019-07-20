@@ -50,10 +50,16 @@ namespace Js
 
         const ConfigFlagsTable &configFlags = Configuration::Global.flags;
 
+        // AutoProfilingInterpreter might decide to not profile on the first run. For generator
+        // functions, that means we will miss the profiling information on the first run when we resume
+        // back to the function. This might result in lots of BailOnNoProfile even though we should have
+        // profiling information. So always collect profile data for generators
+        const bool skipAutoProfileForGenerator = functionBody->SkipAutoProfileForCoroutine();
+
         interpreterLimit = 0;
-        autoProfilingInterpreter0Limit = static_cast<uint16>(configFlags.AutoProfilingInterpreter0Limit);
+        autoProfilingInterpreter0Limit = skipAutoProfileForGenerator ? 0 : static_cast<uint16>(configFlags.AutoProfilingInterpreter0Limit);
         profilingInterpreter0Limit = static_cast<uint16>(configFlags.ProfilingInterpreter0Limit);
-        autoProfilingInterpreter1Limit = static_cast<uint16>(configFlags.AutoProfilingInterpreter1Limit);
+        autoProfilingInterpreter1Limit = skipAutoProfileForGenerator ? 0 : static_cast<uint16>(configFlags.AutoProfilingInterpreter1Limit);
         simpleJitLimit = static_cast<uint16>(configFlags.SimpleJitLimit);
         profilingInterpreter1Limit = static_cast<uint16>(configFlags.ProfilingInterpreter1Limit);
 
@@ -105,9 +111,9 @@ namespace Js
 
         uint16 fullJitThresholdConfig =
             static_cast<uint16>(
-                configFlags.AutoProfilingInterpreter0Limit +
+                (skipAutoProfileForGenerator ? 0 : configFlags.AutoProfilingInterpreter0Limit) +
                 configFlags.ProfilingInterpreter0Limit +
-                configFlags.AutoProfilingInterpreter1Limit +
+                (skipAutoProfileForGenerator ? 0 : configFlags.AutoProfilingInterpreter1Limit) +
                 configFlags.SimpleJitLimit +
                 configFlags.ProfilingInterpreter1Limit);
         if (!configFlags.EnforceExecutionModeLimits)

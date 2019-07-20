@@ -3408,6 +3408,8 @@ namespace Js
             return IsJitLoopBodyPhaseForced() && !this->GetHasTry();
         }
 
+        bool SkipAutoProfileForCoroutine() const;
+
         bool IsGeneratorAndJitIsDisabled() const;
 
         FunctionBodyFlags * GetAddressOfFlags() { return &this->flags; }
