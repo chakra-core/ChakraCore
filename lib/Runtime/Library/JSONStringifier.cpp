@@ -690,6 +690,25 @@ JSONStringifier::CalculateStringElementLength(_In_ JavascriptString* str)
         {
             escapedStrLength += LazyJSONString::escapeMapCount[currentCharacter];
         }
+        else if (utf8::IsLowSurrogateChar(currentCharacter))
+        {
+            // Lone trailing-surrogate code units should be escaped.
+            // They will always need 5 extra characters for the escape sequence, ie: \udbff
+            escapedStrLength += 5;
+        }
+        else if (utf8::IsHighSurrogateChar(currentCharacter))
+        {
+            if (index + 1 < bufferStart + strLength && utf8::IsLowSurrogateChar(*(index + 1)))
+            {
+                // Regular surrogate pairs are handled normally - skip the trailing-surrogate code unit.
+                index++;
+            }
+            else
+            {
+                // High-surrogate code unit not followed by a trailing-surrogate code unit should be escaped.
+                escapedStrLength += 5;
+            }
+        }
     }
     if (escapedStrLength > UINT32_MAX)
     {

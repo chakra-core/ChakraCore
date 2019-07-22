@@ -125,4 +125,10 @@
       <compile-flags>-ES2018AsyncIteration -args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>wellformedJSON.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>
