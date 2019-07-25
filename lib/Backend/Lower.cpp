@@ -14584,7 +14584,7 @@ Lowerer::LowerInlineeEnd(IR::Instr *instr)
     }
 
     // Keep InlineeEnd around as it is used by register allocator, if we have optimized the arguments stack
-    if (instr->m_func->m_hasInlineArgsOpt || (instr->m_func->GetParentFunc()->m_hasInlineArgsOpt && instr->m_func->GetHasImplicitCalls()))
+    if (instr->m_func->m_hasInlineArgsOpt || (instr->m_func->GetParentFunc()->m_hasInlineArgsOpt && !instr->m_func->m_hasInlineOverheadRemoved))
     {
         instr->FreeSrc1();
     }

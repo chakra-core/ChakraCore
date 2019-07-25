@@ -209,3 +209,5 @@
     func4()
     func4()
 }
+
+print("Pass")
