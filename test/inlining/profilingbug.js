@@ -11,3 +11,5 @@ try {
     }
     foo();
 } catch(e) {   }
+
+print("Pass")
