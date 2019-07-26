@@ -2675,10 +2675,9 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
                 uint32 targetOffset = target->GetByteCodeOffset();
 
                 // If the instr's label has the same bytecode offset as the instr then move the targetOffset
-                // to the next bytecode instr. This condition can be true on conditional branches, ex: a
-                // while loop with no body (passing the loop's condition would branch the IP back to executing
-                // the loop's condition), in these cases do not move the targetOffset.
-                if (targetOffset == instr->GetByteCodeOffset() && branchInstr->IsUnconditional())
+                // to the next bytecode instr. This can happen when we have airlock blocks or compensation
+                // code, but also for infinite loops. Don't do it for the latter.
+                if (targetOffset == instr->GetByteCodeOffset() && block != target->GetBasicBlock())
                 {
                     // This can happen if the target is a break or airlock block.
                     Assert(
