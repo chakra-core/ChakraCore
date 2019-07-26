@@ -277,6 +277,10 @@ EXDEF2_WMS(SET_ELEM_ENVSLOTNonVar,  StEnvObjSlotChkUndecl,      OP_StEnvObjSlotC
   DEF3_WMS(CUSTOM_L_R0,             LdArrHead,                  OP_LdArrayHeadSegment, Reg2)
   DEF3_WMS(CUSTOM,                  StArrSegItem_CI4,           OP_SetArraySegmentItem_CI4, ElementUnsigned1)
   DEF3    (CUSTOM,                  StArrSegItem_A,             OP_SetArraySegmentVars, Auxiliary)
+
+EXDEF3_WMS(CUSTOM_L_R0,             GenCtorObj,                 OP_GenCtorObj, Reg2)
+EXDEF3_WMS(CUSTOM_L_R0,             UpNewScObjCache,            OP_UpdateNewScObjCache, Reg2)
+
   DEF3_WMS(CALL,                    NewScObject,                OP_NewScObject, CallI)
   DEF3_WMS(CUSTOM_L_R0,             NewScObjectNoCtorFull,      OP_NewScObjectNoCtorFull, Reg2)
 EXDEF2_WMS(A1toA1Mem,               LdCustomSpreadIteratorList, JavascriptOperators::OP_LdCustomSpreadIteratorList)

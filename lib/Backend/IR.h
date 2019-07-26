@@ -195,7 +195,9 @@ protected:
         isCallInstrProtectedByNoProfileBailout(false),
         hasSideEffects(false),
         isNonFastPathFrameDisplay(false),
-        isSafeToSpeculate(false)
+        isSafeToSpeculate(false),
+        isFixedCall(false),
+        genCtorInstrHasArgs(false)
 #if DBG
         , highlight(0)
         , m_noLazyHelperAssert(false)
@@ -357,10 +359,14 @@ public:
     static IR::Instr * CloneRange(Instr * instrStart, Instr * instrLast, Instr * instrInsert, Lowerer *lowerer, JitArenaAllocator *alloc, bool (*fMapTest)(IR::Instr*), bool clonedInstrGetOrigArgSlot);
 
     bool            CanHaveArgOutChain() const;
+    bool            IsNewScObjCallVariantInstr();
     bool            HasEmptyArgOutChain(IR::Instr** startCallInstrOut = nullptr);
+    uint            Instr::ArgOutChainLength();
     bool            HasFixedFunctionAddressTarget() const;
     // Return whether the instruction transfer value from the src to the dst for copy prop
     bool            TransfersSrcValue();
+    Instr*          GetGenCtorInstr();
+    Opnd*           GetArgOutVal(uint argIndex);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     const char *    GetBailOutKindName() const;
@@ -581,6 +587,8 @@ public:
     bool            isCallInstrProtectedByNoProfileBailout : 1;
     bool            hasSideEffects : 1; // The instruction cannot be dead stored
     bool            isNonFastPathFrameDisplay : 1;
+    bool            isFixedCall : 1;
+    bool            genCtorInstrHasArgs : 1; 
 protected:
     bool            isCloned : 1;
     bool            hasBailOutInfo : 1;

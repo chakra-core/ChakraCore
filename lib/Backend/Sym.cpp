@@ -35,6 +35,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
 
     // Assume SingleDef until proven false.
 
+    stackSym->m_isNotNumber = false;
     stackSym->m_isConst = false;
     stackSym->m_isIntConst = false;
     stackSym->m_isTaggableIntConst = false;

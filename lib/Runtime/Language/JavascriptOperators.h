@@ -479,13 +479,16 @@ namespace Js
         static Var NewScObjectNoArgNoCtor(Var instance, ScriptContext* requestContext);
         static Var NewScObjectNoArgNoCtorFull(Var instance, ScriptContext* requestContext);
         static Var NewScObjectNoArg(Var instance, ScriptContext* requestContext);
-        static Var NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr);
+        static Var NewScObject(const Var callee, const Arguments args, ScriptContext *const scriptContext, const Js::AuxArray<uint32> *spreadIndices = nullptr, bool fullNewScObjPath = false);
+        static Var GenCtorObj(const Var ctor, ScriptContext *const scriptContext);
+        static Var UpdateNewScObjCache(const Var ctor, const Var ctorObj, ScriptContext *const scriptContext);
         template <typename Fn>
         static Var NewObjectCreationHelper_ReentrancySafe(RecyclableObject* constructor, bool isDefaultConstructor, ThreadContext * threadContext, Fn newObjectCreationFunction);
         static Var AddVarsToArraySegment(SparseArraySegment<Var> * segment, const Js::VarArray *vars);
         static void AddIntsToArraySegment(SparseArraySegment<int32> * segment, const Js::AuxArray<int32> *ints);
         static void AddFloatsToArraySegment(SparseArraySegment<double> * segment, const Js::AuxArray<double> *doubles);
         static void UpdateNewScObjectCache(Var function, Var instance, ScriptContext* requestContext);
+        static Var HandleAutoProxyFlagForNewScObj(Var instance, ScriptContext* requestContext);
 
         static RecyclableObject* GetIteratorFunction(Var iterable, ScriptContext* scriptContext, bool optional = false);
         static RecyclableObject* GetIteratorFunction(RecyclableObject* instance, ScriptContext * scriptContext, bool optional = false);

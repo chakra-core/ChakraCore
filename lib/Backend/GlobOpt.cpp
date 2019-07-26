@@ -1415,9 +1415,12 @@ GlobOpt::TrackInstrsForScopeObjectRemoval(IR::Instr * instr)
             //So we don't want to track the stack sym for this argout.- Skipping it here.
             if (instr->m_func->IsInlinedConstructor())
             {
+                IR::Instr* src1InstrDef = argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef();
                 //PRE might introduce a second defintion for the Src1. So assert for the opcode only when it has single definition.
-                Assert(argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef() == nullptr ||
-                    argOutInstr->GetSrc1()->GetStackSym()->GetInstrDef()->m_opcode == Js::OpCode::NewScObjectNoCtor);
+                Assert(src1InstrDef == nullptr ||
+                    src1InstrDef->m_opcode == Js::OpCode::NewScObjectNoCtor ||
+                    src1InstrDef->m_opcode == Js::OpCode::GenCtorObj
+                );
                 argOutInstr = argOutInstr->GetSrc2()->GetStackSym()->GetInstrDef();
             }
             if (formalsCount < actualsCount)
@@ -2499,7 +2502,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     CSEOptimize(this->currentBlock, &instr, &src1Val, &src2Val, &src1IndirIndexVal);
     OptimizeChecks(instr);
     OptArraySrc(&instr, &src1Val, &src2Val);
-    OptNewScObject(&instr, src1Val);
+    OptGenCtorObj(&instr, src1Val);
     OptStackArgLenAndConst(instr, &src1Val);
 
     instr = this->OptPeep(instr, src1Val, src2Val);
@@ -13862,6 +13865,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
 
         case Js::OpCode::NewScObjectNoCtor:
         case Js::OpCode::NewScObjectNoCtorFull:
+        case Js::OpCode::GenCtorObj:
             if(doNativeArrayTypeSpec)
             {
                 // Class/object construction can make something a prototype

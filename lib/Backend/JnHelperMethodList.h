@@ -325,6 +325,7 @@ HELPERCALLCHK(NewScObjectNoCtorFull, Js::JavascriptOperators::NewScObjectNoCtorF
 HELPERCALLCHK(NewScObjectNoArgNoCtorFull, Js::JavascriptOperators::NewScObjectNoArgNoCtorFull, 0)
 HELPERCALLCHK(NewScObjectNoArgNoCtor, Js::JavascriptOperators::NewScObjectNoArgNoCtor, 0)
 HELPERCALLCHK(UpdateNewScObjectCache, Js::JavascriptOperators::UpdateNewScObjectCache, AttrCanNotBeReentrant)
+HELPERCALLCHK(HandleAutoProxyFlagForNewScObj, Js::JavascriptOperators::HandleAutoProxyFlagForNewScObj, 0)
 HELPERCALLCHK(EnsureObjectLiteralType, Js::JavascriptOperators::EnsureObjectLiteralType, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(OP_InitClass, Js::JavascriptOperators::OP_InitClass, AttrCanThrow)

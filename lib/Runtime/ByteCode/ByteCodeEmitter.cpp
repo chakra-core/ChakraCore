@@ -7299,8 +7299,7 @@ size_t EmitArgs(
     FuncInfo *funcInfo,
     Js::ProfileId callSiteId,
     bool emitProfiledArgouts,
-    Js::AuxArray<uint32> *spreadIndices = nullptr
-    )
+    Js::AuxArray<uint32> *spreadIndices = nullptr)
 {
     Js::ArgSlot argIndex = 0;
     Js::ArgSlot spreadIndex = 0;
@@ -7318,8 +7317,6 @@ size_t EmitArgs(
 
     return argIndex;
 }
-
-
 
 void EmitArgListStart(
     Js::RegSlot thisLocation,
@@ -7454,14 +7451,17 @@ Js::ArgSlot EmitArgList(
     size_t argIndex = 0;
     if (emitArgOutsAtEnd)
     {
-        argIndex = EmitArgsWithArgOutsAtEnd(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, thisLocation, argsCountForStartCall, emitProfiledArgouts, spreadIndices == nullptr ? nullptr : *spreadIndices);
+        argIndex = EmitArgsWithArgOutsAtEnd(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId,
+            thisLocation, argsCountForStartCall, emitProfiledArgouts, spreadIndices == nullptr ? nullptr : *spreadIndices);
     }
     else
     {
-        argIndex = EmitArgs(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, emitProfiledArgouts, spreadIndices == nullptr ? nullptr : *spreadIndices);
+        argIndex = EmitArgs(pnode, fAssignRegs, byteCodeGenerator, funcInfo, callSiteId, emitProfiledArgouts,
+            spreadIndices == nullptr ? nullptr : *spreadIndices);
     }
 
-    Js::ArgSlot argumentsCount = EmitArgListEnd(pnode, thisLocation, evalLocation, newTargetLocation, byteCodeGenerator, funcInfo, argIndex, callSiteId);
+    Js::ArgSlot argumentsCount = EmitArgListEnd(pnode, thisLocation, evalLocation, newTargetLocation,
+        byteCodeGenerator, funcInfo, argIndex, callSiteId);
 
     if (fIsEval)
     {
@@ -7590,8 +7590,6 @@ Js::ArgSlot EmitNewObjectOfConstants(
     FuncInfo *funcInfo,
     unsigned int argCount)
 {
-    EmitArgListStart(Js::Constants::NoRegister, byteCodeGenerator, funcInfo, Js::Constants::NoProfileId);
-
     // Create the vars array
     Js::VarArrayVarCount *vars = AnewPlus(byteCodeGenerator->GetAllocator(), UInt32Math::Mul((argCount - 1), sizeof(Js::Var)), Js::VarArrayVarCount, Js::TaggedInt::ToVarUnchecked(argCount - 1));
 
@@ -8164,8 +8162,10 @@ void EmitCallInstr(
 
 void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
 {
+    Js::ByteCodeWriter* writer = byteCodeGenerator->Writer();
+
     Js::ArgSlot argCount = pnode->AsParseNodeCall()->argCount;
-    argCount++; // include "this"
+    argCount++; // include "this".
 
     BOOL fSideEffectArgs = FALSE;
     unsigned int tmpCount = CountArguments(pnode->AsParseNodeCall()->pnodeArgs, &fSideEffectArgs);
@@ -8176,6 +8176,8 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
     // Start call, allocate out param space
     funcInfo->StartRecordingOutArgs(argCount);
 
+    Js::RegSlot ctorRetVal = funcInfo->AcquireLoc(pnode);
+
     // Assign the call target operand(s), putting them into expression temps if necessary to protect
     // them from side-effects.
     if (fSideEffectArgs)
@@ -8183,19 +8185,32 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
         SaveOpndValue(pnode->AsParseNodeCall()->pnodeTarget, funcInfo);
     }
 
+    // reg at pnode->pnodeTarget will be released at end of this function.
     Emit(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo, false, true);
+
+    // Generate the constructor (ctor) object and return the value to ctorObj.
+    Js::RegSlot ctorObj = funcInfo->AcquireTmpRegister();
+    Js::RegSlot ctor = pnode->AsParseNodeCall()->pnodeTarget->location;
+
+    Js::OpCode op = Js::OpCode::Nop;
 
     if (pnode->AsParseNodeCall()->pnodeArgs == nullptr)
     {
-        funcInfo->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
-        Js::OpCode op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
+        op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
             && CallTargetIsArray(pnode->AsParseNodeCall()->pnodeTarget))
             ? Js::OpCode::NewScObjArray : Js::OpCode::NewScObject;
         Assert(argCount == 1);
 
         Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
         byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-        byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode),
+
+        bool emitProfiledArgouts = callSiteId != byteCodeGenerator->GetCurrentCallSiteId();
+
+        // GenCtorObj must be emitted right before it's corresponding ArgOut.
+        writer->Reg2(Js::OpCode::GenCtorObj, ctorObj, ctor);
+        writer->ArgOut<true>((Js::ArgSlot)0, ctorObj, callSiteId, emitProfiledArgouts);
+
+        byteCodeGenerator->Writer()->CallI(op, ctorRetVal,
             pnode->AsParseNodeCall()->pnodeTarget->location, argCount, callSiteId);
     }
     else
@@ -8205,12 +8220,14 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
         if (IsCallOfConstants(pnode))
         {
             byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-            funcInfo->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+
+            writer->Reg2(Js::OpCode::GenCtorObj, ctorObj, ctor);
+            writer->ArgOut<true>((Js::ArgSlot)0, ctorObj, Js::Constants::NoProfileId, false);
+
             actualArgCount = EmitNewObjectOfConstants(pnode, byteCodeGenerator, funcInfo, argCount);
         }
         else
         {
-            Js::OpCode op;
             if ((CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->AsParseNodeCall()->pnodeTarget)))
             {
                 op = pnode->AsParseNodeCall()->spreadArgCount > 0 ? Js::OpCode::NewScObjArraySpread : Js::OpCode::NewScObjArray;
@@ -8232,20 +8249,20 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
             actualArgCount = EmitArgList(pnode->AsParseNodeCall()->pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister,
                 false, true, byteCodeGenerator, funcInfo, callSiteId, argCount, emitArgOutsAtEnd, emitProfiledArgouts, pnode->AsParseNodeCall()->spreadArgCount, &spreadIndices);
 
-            funcInfo->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+            writer->Reg2(Js::OpCode::GenCtorObj, ctorObj, ctor);
+            writer->ArgOut<true>((Js::ArgSlot)0, ctorObj, callSiteId, emitProfiledArgouts);
 
             if (pnode->AsParseNodeCall()->spreadArgCount > 0)
             {
                 Assert(spreadIndices != nullptr);
                 uint spreadExtraAlloc = UInt32Math::Mul(spreadIndices->count, sizeof(uint32));
                 uint spreadIndicesSize = UInt32Math::Add(sizeof(*spreadIndices), spreadExtraAlloc);
-                byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->AsParseNodeCall()->pnodeTarget->location,
-                    (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
-                    spreadIndices, spreadIndicesSize, callSiteId);
+                byteCodeGenerator->Writer()->CallIExtended(op, ctorRetVal, pnode->AsParseNodeCall()->pnodeTarget->location,
+                    (uint16)actualArgCount, Js::CallIExtended_SpreadArgs, spreadIndices, spreadIndicesSize, callSiteId);
             }
             else
             {
-                byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode), pnode->AsParseNodeCall()->pnodeTarget->location,
+                byteCodeGenerator->Writer()->CallI(op, ctorRetVal, pnode->AsParseNodeCall()->pnodeTarget->location,
                     (uint16)actualArgCount, callSiteId);
             }
         }
@@ -8255,6 +8272,39 @@ void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* f
 
     // End call, pop param space
     funcInfo->EndRecordingOutArgs(argCount);
+    
+    // Given a ctorRetVal and ctorObj, we want to return the ctorRetVal if it is an object; otherwise we
+    // want to return the ctorObj.
+    // 
+    // GenCtorObj      R6  R7                      // Already emitted. R6 is ctorObj, R7 is ctor
+    // NewScObject     R5  R7(ArgCnt: 3) [0]=R6    // Already emitted. Args[0] is ctorObj. R5 is ctorRetVal.
+    // Br              ctorRetValIsObj IsObj(R5)   // if ctorRetVal is obj, branch to ctorRetValIsObj...
+    // Ld_A            R8  R6                      // ...otherwise put ctorObj into R8 (decidedRetVal).
+    // Br              ctorObjDecided              
+    // ctorRetValIsObj:
+    // Ld_A            R8  R5                      // put ctorRetVal into R8.
+    // ctorObjDecided                              // At this point R8 holds the value we want.
+    // UpNewScObjCache R7  R8                      // Update the ctorObj cache.
+    // Ld_A            R5  R8                      // "Return" the decidedRetVal.
+
+    Js::RegSlot decidedRetVal = funcInfo->AcquireTmpRegister();
+    Js::ByteCodeLabel ctorRetValIsObj = writer->DefineLabel();
+    Js::ByteCodeLabel ctorObjDecided = writer->DefineLabel();
+    writer->BrReg1(Js::OpCode::BrOnObject_A, ctorRetValIsObj, ctorRetVal);
+    writer->Reg2(Js::OpCode::Ld_A, decidedRetVal, ctorObj);
+    writer->Br(Js::OpCode::Br, ctorObjDecided);
+    writer->MarkLabel(ctorRetValIsObj);
+    writer->Reg2(Js::OpCode::Ld_A, decidedRetVal, ctorRetVal);
+    writer->MarkLabel(ctorObjDecided);
+    writer->Reg2(Js::OpCode::UpNewScObjCache, ctor/*keepCtorAlive*/, decidedRetVal);
+    writer->Reg2(Js::OpCode::Ld_A, ctorRetVal, decidedRetVal);
+    funcInfo->ReleaseTmpRegister(decidedRetVal);
+
+    funcInfo->ReleaseTmpRegister(ctorObj);
+
+    // Release ctor.
+    funcInfo->ReleaseLoc(pnode->AsParseNodeCall()->pnodeTarget);
+
     return;
 }
 
@@ -8339,11 +8389,13 @@ void EmitCall(
     {
         if (!fEvaluateComponents)
         {
-            EmitCallTargetNoEvalComponents(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo);
+            EmitCallTargetNoEvalComponents(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation,
+                &callObjLocation, byteCodeGenerator, funcInfo);
         }
         else
         {
-            EmitCallTarget(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation, byteCodeGenerator, funcInfo, &callApplyCallSiteId);
+            EmitCallTarget(pnodeTarget, fSideEffectArgs, &thisLocation, &releaseThisLocation, &callObjLocation,
+                byteCodeGenerator, funcInfo, &callApplyCallSiteId);
         }
     }
 
@@ -8375,11 +8427,13 @@ void EmitCall(
 
     if (!fEvaluateComponents)
     {
-        EmitCallInstrNoEvalComponents(pnodeCall, fIsEval, thisLocation, callObjLocation, argSlotCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
+        EmitCallInstrNoEvalComponents(pnodeCall, fIsEval, thisLocation, callObjLocation, argSlotCount, byteCodeGenerator,
+            funcInfo, callSiteId, spreadIndices);
     }
     else
     {
-        EmitCallInstr(pnodeCall, fIsEval, fHasNewTarget, releaseThisLocation ? thisLocation : Js::Constants::NoRegister, callObjLocation, argSlotCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
+        EmitCallInstr(pnodeCall, fIsEval, fHasNewTarget, releaseThisLocation ? thisLocation : Js::Constants::NoRegister,
+            callObjLocation, argSlotCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
     }
 
     // End call, pop param space

@@ -2,9 +2,9 @@
   {
     "callStack": [
       {
-        "line": 18,
+        "line": 17,
         "column": 2,
-        "sourceText": "var y = 1",
+        "sourceText": "new foo()",
         "function": "test_objectNoArg"
       },
       {
@@ -18,9 +18,9 @@
   {
     "callStack": [
       {
-        "line": 32,
+        "line": 31,
         "column": 2,
-        "sourceText": "Array = oldArray",
+        "sourceText": "new Array()",
         "function": "test_arrayNoArg"
       },
       {

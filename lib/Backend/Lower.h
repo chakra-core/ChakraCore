@@ -107,16 +107,18 @@ private:
     void            LowerNewScObjectSimple(IR::Instr *instr);
     void            LowerNewScObjectLiteral(IR::Instr *instr);
     IR::Instr *     LowerInitCachedFuncs(IR::Instr *instrInit);
+    IR::Instr *     LowerGenCtorObj(IR::Instr *instr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject = false);
 
-    IR::Instr *     LowerNewScObject(IR::Instr *instr, bool callCtor, bool hasArgs, bool isBaseClassConstructorNewScObject = false);
+    IR::Instr *     LowerNewScObject(IR::Instr *instr, bool newScObjInstrHasArgs, bool isBaseClassConstructorNewScObject = false, IR::RegOpnd* ctorObj = nullptr);
     IR::Instr *     LowerNewScObjArray(IR::Instr *instr);
-    IR::Instr *     LowerNewScObjArrayNoArg(IR::Instr *instr);
+    IR::Instr *     LowerNewScObjArrayNoArg(IR::Instr *instr, IR::RegOpnd* ctorObj = nullptr);
     bool            TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::RegOpnd* newObjDst, IR::LabelInstr* helperOrBailoutLabel, IR::LabelInstr* callCtorLabel,
                         bool& skipNewScObj, bool& returnNewScObj, bool& emitHelper);
     void            GenerateRecyclerAllocAligned(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
     IR::Instr *     LowerGetNewScObject(IR::Instr *const instr);
     void            LowerGetNewScObjectCommon(IR::RegOpnd *const resultObjOpnd, IR::RegOpnd *const constructorReturnOpnd, IR::RegOpnd *const newObjOpnd, IR::Instr *insertBeforeInstr);
     IR::Instr *     LowerUpdateNewScObjectCache(IR::Instr * updateInstr, IR::Opnd *dst, IR::Opnd *src1, const bool isCtorFunction);
+    void            LowerHandleAutoProxyFlagForNewScObj(IR::Instr* insertInstr, IR::Opnd* determinedRetObj);
     bool            GenerateLdFldWithCachedType(IR::Instr * instrLdFld, bool* continueAsHelperOut, IR::LabelInstr** labelHelperOut, IR::RegOpnd** typeOpndOut);
     bool            GenerateCheckFixedFld(IR::Instr * instrChkFld);
     void            GenerateCheckObjType(IR::Instr * instrChkObjType);

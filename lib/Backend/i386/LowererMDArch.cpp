@@ -1228,16 +1228,6 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
 
     IR::Instr *startCallInstr = argLinkSym->m_instrDef;
 
-    if (callInstr->m_opcode == Js::OpCode::NewScObject ||
-        callInstr->m_opcode == Js::OpCode::NewScObjectSpread ||
-        callInstr->m_opcode == Js::OpCode::NewScObjArray ||
-        callInstr->m_opcode == Js::OpCode::NewScObjArraySpread)
-
-    {
-        // These push an extra arg.
-        argCount++;
-    }
-
     AssertMsg(startCallInstr->m_opcode == Js::OpCode::StartCall || startCallInstr->m_opcode == Js::OpCode::LoweredStartCall, "Problem with arg chain.");
     AssertMsg(startCallInstr->GetArgOutCount(/*getInterpreterArgOutCount*/ false) == argCount, "ArgCount doesn't match StartCall count");
 

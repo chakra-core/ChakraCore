@@ -554,6 +554,7 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
     case Js::OpCode::NewScObjectNoCtorFull:
+    case Js::OpCode::GenCtorObj:
         if (inGlobOpt)
         {
             // Opcodes that make an object into a prototype may break object-header-inlining and final type opt.
@@ -1588,16 +1589,15 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
 }
 
 void
-GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
+GlobOpt::OptGenCtorObj(IR::Instr** instrPtr, Value* srcVal)
 {
     IR::Instr *&instr = *instrPtr;
 
-    if (!instr->IsNewScObjectInstr() || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
+    if (instr->m_opcode != Js::OpCode::GenCtorObj || IsLoopPrePass() || !this->DoFieldRefOpts() || PHASE_OFF(Js::ObjTypeSpecNewObjPhase, this->func))
     {
         return;
     }
 
-    bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;
     const JITTimeConstructorCache * ctorCache = instr->IsProfiledInstr() ?
         instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId)) : nullptr;
 
@@ -1605,7 +1605,7 @@ GlobOpt::OptNewScObject(IR::Instr** instrPtr, Value* srcVal)
     //Assert(ctorCache == nullptr || srcVal->GetValueInfo()->IsVarConstant() && Js::VarIs<Js::JavascriptFunction>(srcVal->GetValueInfo()->AsVarConstant()->VarValue()));
     Assert(ctorCache == nullptr || !ctorCache->IsTypeFinal() || ctorCache->CtorHasNoExplicitReturnValue());
 
-    if (ctorCache != nullptr && !ctorCache->SkipNewScObject() && (isCtorInlined || ctorCache->IsTypeFinal()))
+    if (ctorCache != nullptr && !ctorCache->SkipNewScObject())
     {
         GenerateBailAtOperation(instrPtr, IR::BailOutFailedCtorGuardCheck);
     }
@@ -1624,7 +1624,7 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
         return;
     }
 
-    if (instr->IsNewScObjectInstr())
+    if (instr->IsNewScObjectInstr()/*|| instr->m_opcode == Js::OpCode::GenCtorObj*/)
     {
         // If we have a NewScObj* for which we have a valid constructor cache we know what type the created object will have.
         // Let's produce the type value accordingly so we don't insert a type check and bailout in the constructor and
@@ -1636,6 +1636,8 @@ GlobOpt::ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr)
             Assert(instr->IsProfiledInstr());
             Assert(instr->GetBailOutKind() == IR::BailOutFailedCtorGuardCheck);
 
+            // TODO: possibly need to consider GenCtorObj for this path as well as
+            //       determine if NewScObj was inlined only using GenCtorObj.
             bool isCtorInlined = instr->m_opcode == Js::OpCode::NewScObjectNoCtor;
             JITTimeConstructorCache * ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
             Assert(ctorCache != nullptr && (isCtorInlined || ctorCache->IsTypeFinal()));

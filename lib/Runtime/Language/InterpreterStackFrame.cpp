@@ -6358,6 +6358,19 @@ skipThunk:
         SetReg(playout->R0, newObj);
     }
 
+    template <class T>
+    void InterpreterStackFrame::OP_GenCtorObj(const unaligned T* playout)
+    {
+        Var ctorObj = JavascriptOperators::GenCtorObj(GetReg(playout->R1), GetScriptContext());
+        SetReg(playout->R0, ctorObj);
+    }
+
+    template <class T>
+    void InterpreterStackFrame::OP_UpdateNewScObjCache(const unaligned T* playout)
+    {
+        JavascriptOperators::UpdateNewScObjCache(GetReg(playout->R0), GetReg(playout->R1), GetScriptContext());
+    }
+
     ///----------------------------------------------------------------------------
     ///
     /// InterpreterStackFrame::OP_NewScObject
