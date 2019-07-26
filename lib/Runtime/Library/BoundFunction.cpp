@@ -354,6 +354,12 @@ namespace Js
             Var varLength;
             if (targetFunction->GetProperty(targetFunction, PropertyIds::length, &varLength, nullptr, requestContext))
             {
+                if (!TaggedInt::Is(varLength))
+                {
+                    // ToInt32 conversion on non-primitive length can invalidate assumptions made by the JIT,
+                    // so add implicit call flag if length isn't a TaggedInt already
+                    requestContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_Accessor);
+                }
                 len = JavascriptConversion::ToInt32(varLength, requestContext);
             }
 
