@@ -1755,7 +1755,7 @@ template <typename SizePolicy>
 void
 IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset)
 {
-    Assert(!OpCodeAttr::IsProfiledOp(newOpcode) || newOpcode == Js::OpCode::ProfiledStrictLdThis);
+    Assert(!OpCodeAttr::IsProfiledOp(newOpcode));
     Assert(OpCodeAttr::HasMultiSizeLayout(newOpcode));
     auto layout = m_jnReader.GetLayout<Js::OpLayoutT_Reg2<SizePolicy>>();
 
@@ -1821,19 +1821,6 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         }
         break;
 
-    case Js::OpCode::ProfiledStrictLdThis:
-        newOpcode = Js::OpCode::StrictLdThis;
-        if (m_func->HasProfileInfo())
-        {
-            dstOpnd->SetValueType(m_func->GetReadOnlyProfileInfo()->GetThisInfo().valueType);
-        }
-
-        if (m_func->DoSimpleJitDynamicProfile())
-        {
-            IR::JitProfilingInstr* newInstr = IR::JitProfilingInstr::New(Js::OpCode::StrictLdThis, dstOpnd, src1Opnd, m_func);
-            instr = newInstr;
-        }
-        break;
     case Js::OpCode::Delete_A:
         dstOpnd->SetValueType(ValueType::Boolean);
         break;

@@ -16,7 +16,6 @@ namespace Js
         void ProfileCall(void* framePtr, ProfileId profileId, InlineCacheIndex inlineCacheIndex, Var retval, Var callee, CallInfo info);
         void ProfileReturnTypeCall(void* framePtr, ProfileId profileId, Var retval, JavascriptFunction*callee, CallInfo info);
 
-        Var ProfiledStrictLdThis(Var thisVar, FunctionBody* functionBody);
         Var ProfiledLdThis(Var thisVar, int moduleID, FunctionBody* functionBody);
         Var ProfiledSwitch(FunctionBody* functionBody,ProfileId profileId, Var exp);
         Var ProfiledDivide(FunctionBody* functionBody, ProfileId profileId, Var aLeft, Var aRight);
