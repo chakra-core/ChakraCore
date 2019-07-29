@@ -48,7 +48,6 @@ namespace Js
         Field(int) slotCapacity;
         Field(uint16) unusedBytes;             // This always has it's lowest bit set to avoid false references
         Field(uint16) inlineSlotCapacity;
-        Field(bool) isNotPathTypeHandlerOrHasUserDefinedCtor;
         Field(bool) protoCachesWereInvalidated;
 
     public:
@@ -58,7 +57,6 @@ namespace Js
             propertyTypes(typeHandler->propertyTypes),
             slotCapacity(typeHandler->slotCapacity),
             offsetOfInlineSlots(typeHandler->offsetOfInlineSlots),
-            isNotPathTypeHandlerOrHasUserDefinedCtor(typeHandler->isNotPathTypeHandlerOrHasUserDefinedCtor),
             unusedBytes(typeHandler->unusedBytes),
             protoCachesWereInvalidated(false),
             inlineSlotCapacity(typeHandler->inlineSlotCapacity)
@@ -427,7 +425,6 @@ namespace Js
         }
 
         BOOL Freeze(DynamicObject *instance, bool isConvertedType = false)  { return FreezeImpl(instance, isConvertedType); }
-        bool GetIsNotPathTypeHandlerOrHasUserDefinedCtor() const { return this->isNotPathTypeHandlerOrHasUserDefinedCtor; }
 
         virtual BOOL IsStringTypeHandler() const { return false; }
 
@@ -559,6 +556,8 @@ namespace Js
         virtual BOOL IsPathTypeHandler() const { return FALSE; }
         virtual BOOL IsSimpleDictionaryTypeHandler() const {return FALSE; }
         virtual BOOL IsDictionaryTypeHandler() const {return FALSE;}
+
+        virtual bool IsObjectCopyable() const { return false; }
 
         static bool IsolatePrototypes() { return CONFIG_FLAG(IsolatePrototypes); }
         static bool ChangeTypeOnProto() { return CONFIG_FLAG(ChangeTypeOnProto); }

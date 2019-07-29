@@ -77,7 +77,6 @@ using namespace Js;
                 ? RoundUpObjectHeaderInlinedInlineSlotCapacity(inlineSlotCapacity)
                 : RoundUpInlineSlotCapacity(inlineSlotCapacity);
         this->slotCapacity = RoundUpSlotCapacity(slotCapacity, inlineSlotCapacity);
-        this->isNotPathTypeHandlerOrHasUserDefinedCtor = true;
 
         Assert(IsObjectHeaderInlinedTypeHandler() == IsObjectHeaderInlined(offsetOfInlineSlots));
     }
@@ -884,6 +883,5 @@ using namespace Js;
         Output::Print(_u("%*sslotCapacity: %d\n"), fieldIndent, padding, this->slotCapacity);
         Output::Print(_u("%*sunusedBytes: %u\n"), fieldIndent, padding, this->unusedBytes);
         Output::Print(_u("%*sinlineSlotCapacty: %u\n"), fieldIndent, padding, this->inlineSlotCapacity);
-        Output::Print(_u("%*sisNotPathTypeHandlerOrHasUserDefinedCtor: %d\n"), fieldIndent, padding, static_cast<int>(this->isNotPathTypeHandlerOrHasUserDefinedCtor));
     }
 #endif
