@@ -279,6 +279,7 @@ namespace Js
         Field(DynamicType *) stringIteratorType;
         Field(DynamicType *) promiseType;
         Field(DynamicType *) listIteratorType;
+        Field(DynamicType *) generatorType;
 
         Field(JavascriptFunction*) builtinFunctions[BuiltinFunction::Count];
 
