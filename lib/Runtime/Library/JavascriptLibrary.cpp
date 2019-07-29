@@ -734,6 +734,9 @@ namespace Js
                 NullTypeHandler<false>::GetDefaultInstance(), true, true);
 
             generatorConstructorPrototypeObjectType->SetHasNoEnumerableProperties(true);
+
+            generatorType = DynamicType::New(scriptContext, TypeIds_Generator, generatorPrototype, nullptr,
+                PathTypeHandlerNoAttr::New(scriptContext, this->GetRootPath(), 0, 0, 0, true, true), true, true);
         }
 
         if (config->IsES2018AsyncIterationEnabled())
@@ -6120,8 +6123,9 @@ namespace Js
     JavascriptGenerator* JavascriptLibrary::CreateGenerator(Arguments& args, ScriptFunction* scriptFunction, RecyclableObject* prototype)
     {
         Assert(scriptContext->GetConfig()->IsES6GeneratorsEnabled());
-        DynamicType* generatorType = CreateGeneratorType(prototype);
-        return JavascriptGenerator::New(this->GetRecycler(), generatorType, args, scriptFunction);
+        JavascriptGenerator* generator = JavascriptGenerator::New(this->GetRecycler(), this->generatorType, args, scriptFunction);
+        JavascriptObject::ChangePrototype(generator, prototype, true, scriptContext);
+        return generator;
     }
 
     JavascriptError* JavascriptLibrary::CreateError()
