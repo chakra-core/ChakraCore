@@ -7292,17 +7292,7 @@ void
 IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
 {
     Assert(!OpCodeAttr::HasMultiSizeLayout(newOpcode));
-
-    switch (newOpcode)
-    {
-    case Js::OpCode::BrOnNoLocalProperty:
-        newOpcode = Js::OpCode::BrOnNoProperty;
-        break;
-
-    default:
-        Assert(0);
-        break;
-    }
+    Assert(newOpcode == Js::OpCode::BrOnNoLocalProperty);
 
     const unaligned   Js::OpLayoutBrLocalProperty *branchInsn = m_jnReader.BrLocalProperty();
 
@@ -7346,7 +7336,7 @@ IRBuilder::BuildBrEnvProperty(Js::OpCode newOpcode, uint32 offset)
     fieldSym = PropertySym::New(regOpnd->m_sym, propertyId, branchInsn->PropertyIdIndex, (uint)-1, PropertyKindData, m_func);
     fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
 
-    branchInstr = IR::BranchInstr::New(Js::OpCode::BrOnNoProperty, nullptr, fieldOpnd, m_func);
+    branchInstr = IR::BranchInstr::New(newOpcode == Js::OpCode::BrOnNoEnvProperty ? Js::OpCode::BrOnNoProperty : Js::OpCode::BrOnNoLocalProperty, nullptr, fieldOpnd, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);
 }
 

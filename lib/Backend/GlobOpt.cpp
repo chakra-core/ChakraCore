@@ -3393,6 +3393,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         case Js::OpCode::ScopedDeleteFldStrict:
         case Js::OpCode::LdMethodFromFlags:
         case Js::OpCode::BrOnNoProperty:
+        case Js::OpCode::BrOnNoLocalProperty:
         case Js::OpCode::BrOnHasProperty:
         case Js::OpCode::LdMethodFldPolyInlineMiss:
         case Js::OpCode::StSlotChkUndecl:

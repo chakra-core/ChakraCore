@@ -72,7 +72,8 @@ EXDEF2_WMS(BRB,                     BrNotUndecl_A,              OP_BrNotUndecl_A
 EXDEF2    (BRPROP,                  BrOnHasProperty,            OP_BrOnHasProperty)
   DEF2    (BRPROP,                  BrOnNoProperty,             OP_BrOnNoProperty)
   DEF2    (BRLOCALPROP,             BrOnNoLocalProperty,        OP_BrOnNoProperty)
-  DEF2    (BRENVPROP,               BrOnNoEnvProperty,          OP_BrOnNoEnvProperty)
+EXDEF2    (BRENVPROP,               BrOnNoEnvProperty,          OP_BrOnNoEnvProperty)
+  DEF2    (BRENVPROP,               BrOnNoLocalEnvProperty,     OP_BrOnNoEnvProperty)
   DEF2_WMS(BRBS,                    BrFncNeqApply,              JavascriptOperators::OP_BrFncNeqApply)
 //Not emitted for byte code, keep it here for completeness
 //DEF2_WMS(BRBS,                    BrFncEqApply,               JavascriptOperators::OP_BrFncEqApply)
