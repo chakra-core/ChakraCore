@@ -166,10 +166,8 @@ using namespace Js;
         CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
         Arguments heapArgs(callInfo, unsafe_write_barrier_cast<Var*>(argsHeapCopy));
 
-        DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject();
+        DynamicObject* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(function, Js::PropertyIds::prototype, scriptContext));
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
-        // Set the prototype from constructor
-        JavascriptOperators::OrdinaryCreateFromConstructor(function, generator, prototype, scriptContext);
 
         // Call a next on the generator to execute till the beginning of the body
         BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
@@ -197,12 +195,10 @@ using namespace Js;
         CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
         Arguments heapArgs(callInfo, unsafe_write_barrier_cast<Var*>(argsHeapCopy));
 
-        DynamicObject* prototype = scriptContext->GetLibrary()->CreateAsyncGeneratorConstructorPrototypeObject();
+        DynamicObject* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(function, Js::PropertyIds::prototype, scriptContext));
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, asyncGeneratorFunction->scriptFunction, prototype);
         generator->SetIsAsync();
         generator->InitialiseAsyncGenerator(scriptContext);
-        // Set the prototype from constructor
-        JavascriptOperators::OrdinaryCreateFromConstructor(function, generator, prototype, scriptContext);
         return generator;
     }
 
