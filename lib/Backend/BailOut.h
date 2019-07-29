@@ -277,6 +277,8 @@ protected:
     static uint32 BailOutFromLoopBodyHelper(Js::JavascriptCallStackLayout * layout, BailOutRecord const * bailOutRecord,
         uint32 bailOutOffset, IR::BailOutKind bailOutKind, Js::Var branchValue, Js::Var * registerSaves, BailOutReturnValue * returnValue = nullptr);
 
+    static void SetHasBailedOutBit(BailOutRecord const * bailOutRecord, Js::ScriptContext * scriptContext);
+
     static void UpdatePolymorphicFieldAccess(Js::JavascriptFunction *  function, BailOutRecord const * bailOutRecord);
 
     static void ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee, BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind,

@@ -196,6 +196,11 @@
   </test>
   <test>
     <default>
+       <files>hasBailedOutBug4.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
        <files>StackOverflow.js</files>
     </default>
   </test>
