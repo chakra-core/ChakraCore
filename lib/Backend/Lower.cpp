@@ -2244,6 +2244,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::BrOnHasProperty:
         case Js::OpCode::BrOnNoProperty:
+        case Js::OpCode::BrOnNoLocalProperty:
             this->LowerBrProperty(instr, IR::HelperOp_HasProperty);
             break;
 
@@ -10782,6 +10783,7 @@ Lowerer::LowerBrProperty(IR::Instr * instr, IR::JnHelperMethod helper)
         instr->m_opcode = Js::OpCode::BrTrue_A;
         break;
     case Js::OpCode::BrOnNoProperty:
+    case Js::OpCode::BrOnNoLocalProperty:
         instr->m_opcode = Js::OpCode::BrFalse_A;
         break;
     default:
