@@ -1814,7 +1814,7 @@ namespace Js
           value(_value),
           isInDeadZone(_isInDeadZone)
     {
-        parentObj = ((RecyclableObject*)parentObj)->GetThisObjectOrUnWrap();
+        parentObj = Js::VarTo<Js::RecyclableObject>(parentObj)->GetUnwrappedObject();
     }
 
     BOOL RecyclableObjectAddress::IsInDeadZone() const
@@ -2486,7 +2486,7 @@ namespace Js
                         if (JavascriptOperators::GetTypeId(object) == TypeIds_UnscopablesWrapperObject)
                         {
                             wrapperObject = object;
-                            object = object->GetThisObjectOrUnWrap();
+                            object = Js::UnsafeVarTo<Js::RecyclableObject>(JavascriptOperators::OP_UnwrapWithObj(wrapperObject));
                         }
 
                         int count = object->GetPropertyCount();

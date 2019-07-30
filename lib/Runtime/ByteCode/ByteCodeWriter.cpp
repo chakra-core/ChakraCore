@@ -382,19 +382,8 @@ namespace Js
         CheckOp(op, OpLayoutType::Reg2);
         Assert(OpCodeAttr::HasMultiSizeLayout(op));
 
-        if (DoDynamicProfileOpcode(CheckThisPhase) ||
-            DoDynamicProfileOpcode(TypedArrayTypeSpecPhase) ||
-            DoDynamicProfileOpcode(ArrayCheckHoistPhase))
-        {
-            if (op == OpCode::StrictLdThis)
-            {
-                op = OpCode::ProfiledStrictLdThis;
-            }
-        }
-
         R0 = ConsumeReg(R0);
         R1 = ConsumeReg(R1);
-
 
         bool isProfiled = false;
         bool isProfiled2 = false;

@@ -2195,7 +2195,11 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
         // thisLoadedFromParams would be true for the event Handler case,
         // "this" would have been loaded from parameters to put in the environment
         //
-        if (!thisLoadedFromParams)
+        if (funcInfo->GetIsStrictMode())
+        {
+            m_writer.ArgIn0(thisSym->GetLocation());
+        }
+        else if (!thisLoadedFromParams)
         {
             Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
             m_writer.ArgIn0(tmpReg);
@@ -2368,7 +2372,7 @@ void ByteCodeGenerator::EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * p
     }
 
     Symbol* thisSym = pnodeSuperCall->pnodeThis->sym;
-    this->Writer()->Reg2(Js::OpCode::StrictLdThis, pnodeSuperCall->pnodeThis->location, valueForThis);
+    this->Writer()->Reg2(Js::OpCode::Ld_A, pnodeSuperCall->pnodeThis->location, valueForThis);
 
     EmitPropStoreForSpecialSymbol(pnodeSuperCall->pnodeThis->location, thisSym, pnodeSuperCall->pnodeThis->pid, funcInfo, false);
 
@@ -2396,7 +2400,10 @@ void ByteCodeGenerator::EmitThis(FuncInfo *funcInfo, Js::RegSlot lhsLocation, Js
 {
     if (funcInfo->byteCodeFunction->GetIsStrictMode() && !funcInfo->IsGlobalFunction() && !funcInfo->IsLambda())
     {
-        m_writer.Reg2(Js::OpCode::StrictLdThis, lhsLocation, fromRegister);
+        if (lhsLocation != fromRegister)
+        {
+            m_writer.Reg2(Js::OpCode::Ld_A, lhsLocation, fromRegister);
+        }
     }
     else
     {
@@ -4321,7 +4328,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 this->m_writer.Reg1(Js::OpCode::LdLocalObj, instLocation);
                 if (thisLocation != Js::Constants::NoRegister && thisLocation != instLocation)
                 {
-                    this->m_writer.Reg1(Js::OpCode::LdLocalObj, thisLocation);
+                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
                 }
             }
             else
@@ -4334,7 +4341,7 @@ void ByteCodeGenerator::EmitLoadInstance(Symbol *sym, IdentPtr pid, Js::RegSlot 
                 this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
                 if (thisLocation != Js::Constants::NoRegister && thisLocation != instLocation)
                 {
-                    this->m_writer.SlotI1(Js::OpCode::LdEnvObj, thisLocation, frameDisplayIndex);
+                    this->m_writer.Reg2(Js::OpCode::Ld_A, thisLocation, funcInfo->undefinedConstantRegister);
                 }
             }
         }

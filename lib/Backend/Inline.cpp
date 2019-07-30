@@ -5453,7 +5453,6 @@ Inline::MapFormals(Func *inlinee,
 
 
         case Js::OpCode::LdThis:
-        case Js::OpCode::StrictLdThis:
             // Optimization of LdThis may be possible.
             // Verify that this is a use of the "this" passed by the caller (not a nested function).
             if (instr->GetSrc1()->AsRegOpnd()->m_sym == symThis)
@@ -5699,7 +5698,7 @@ Inline::DoCheckThisOpt(IR::Instr * instr)
     // If the instr is an inlined LdThis, try to replace it with a CheckThis
     // that will bail out if a helper call is required to get the real "this" pointer.
 
-    Assert(instr->m_opcode == Js::OpCode::LdThis || instr->m_opcode == Js::OpCode::StrictLdThis);
+    Assert(instr->m_opcode == Js::OpCode::LdThis);
     Assert(instr->IsInlined());
 
     // Create the CheckThis. The target is the original offset, i.e., the LdThis still has to be executed.
@@ -5708,7 +5707,7 @@ Inline::DoCheckThisOpt(IR::Instr * instr)
         instr->FreeSrc2();
     }
     IR::Instr *newInstr =
-        IR::BailOutInstr::New( instr->m_opcode == Js::OpCode::LdThis ? Js::OpCode::CheckThis : Js::OpCode::StrictCheckThis, IR::BailOutCheckThis, instr, instr->m_func);
+        IR::BailOutInstr::New(Js::OpCode::CheckThis, IR::BailOutCheckThis, instr, instr->m_func);
     // Just re-use the original src1 since the LdThis will usually be deleted.
     newInstr->SetSrc1(instr->GetSrc1());
     newInstr->SetByteCodeOffset(instr);

@@ -702,7 +702,10 @@ using namespace Js;
                     {
                         Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
                         varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
-                        UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
+                        if (!strictMode)
+                        {
+                            UpdateThisForEval(varThis, moduleID, scriptContext);
+                        }
                         successful = true;
                     }
                 }
@@ -710,7 +713,10 @@ using namespace Js;
                 if (!successful)
                 {
                     JavascriptStackWalker::GetThis(&varThis, moduleID, scriptContext);
-                    UpdateThisForEval(varThis, moduleID, scriptContext, strictMode);
+                    if (!strictMode)
+                    {
+                        UpdateThisForEval(varThis, moduleID, scriptContext);
+                    }
                 }
             }
             else
@@ -733,16 +739,9 @@ using namespace Js;
         return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis, scriptContext);
     }
 
-    void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode)
+    void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext)
     {
-        if (strictMode)
-        {
-            varThis = JavascriptOperators::OP_StrictGetThis(varThis, scriptContext);
-        }
-        else
-        {
-            varThis = JavascriptOperators::OP_GetThisNoFastPath(varThis, moduleID, scriptContext);
-        }
+        varThis = JavascriptOperators::OP_GetThisNoFastPath(varThis, moduleID, scriptContext);
     }
 
 

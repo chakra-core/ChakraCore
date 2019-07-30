@@ -25,7 +25,8 @@ namespace Js
 
         public:
             UnscopablesWrapperObject(RecyclableObject *wrappedObject, StaticType * type) : RecyclableObject(type), wrappedObject(wrappedObject) {}
-            RecyclableObject *GetWrappedObject() { return wrappedObject; }
+            RecyclableObject *GetWrappedObject() const { return wrappedObject; }
+            virtual RecyclableObject * GetThisAndUnwrappedInstance(Var* thisVar) const override;
             virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info) override;
             virtual BOOL HasOwnProperty(PropertyId propertyId) override;
             virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;

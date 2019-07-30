@@ -419,7 +419,6 @@ namespace Js
         static Var OP_GetLength(Var instance, ScriptContext* scriptContext);
         static Var OP_GetThis(Var thisVar, int moduleID, ScriptContextInfo* scriptContext);
         static Var OP_GetThisNoFastPath(Var thisVar, int moduleID, ScriptContext* scriptContext);
-        static Var OP_StrictGetThis(Var thisVar, ScriptContext* scriptContext);
         static bool IsThisSelf(TypeId typeId);
         static Var GetThisHelper(Var thisVar, TypeId typeId, int moduleID, ScriptContextInfo *scriptContext);
         static Var GetThisFromModuleRoot(Var thisVar);
