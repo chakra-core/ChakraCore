@@ -9070,7 +9070,13 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
                         BOOL tempResult = obj->SetPropertyWithAttributes(propId, filledDescriptor.GetValue(), filledDescriptor.GetAttributes(), nullptr);
                         if (!obj->IsExternal() && !tempResult)
                         {
-                            Assert(VarIs<TypedArrayBase>(obj)); // typed array returns false when canonical numeric index is not integer or out of range
+                            Assert(
+                                // Arrays return false when length property is non-writable and property is numeric
+                                // and greater than or equal to length
+                                DynamicObject::IsAnyArray(obj) ||
+                                // Typed arrays return false when canonical numeric index is not integer or out of range
+                                DynamicObject::IsAnyTypedArray(obj)
+                            );
                             return FALSE;
                         }
                     }
