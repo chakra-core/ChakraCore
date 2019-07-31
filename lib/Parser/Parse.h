@@ -22,6 +22,7 @@ enum
     koplQue,    // ?:
     koplLor,    // ||
     koplLan,    // &&
+    koplLco,    // ??
     koplBor,    // |
     koplXor,    // ^
     koplBan,    // &

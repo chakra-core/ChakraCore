@@ -279,6 +279,7 @@ LPCWSTR Parser::GetTokenString(tokens token)
     case tkColon: return _u(":");
     case tkLogOr: return _u("||");
     case tkLogAnd: return _u("&&");
+    case tkCoalesce: return _u("??");
     case tkOr: return _u("|");
     case tkXor: return _u("^");
     case tkAnd: return _u("&");
@@ -12707,6 +12708,7 @@ ParseNode* Parser::CopyPnode(ParseNode *pnode) {
     case knopComma:
     case knopLogOr:
     case knopLogAnd:
+    case knopCoalesce:
     case knopLsh:
     case knopRsh:
     case knopRs2:
@@ -13992,6 +13994,12 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
     case knopLogAnd:
         Indent(indentAmt);
         Output::Print(_u("&&\n"));
+        PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1, indentAmt + INDENT_SIZE);
+        PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode2, indentAmt + INDENT_SIZE);
+        break;
+    case knopCoalesce:
+        Indent(indentAmt);
+        Output::Print(_u("??\n"));
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode1, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeBin()->pnode2, indentAmt + INDENT_SIZE);
         break;
