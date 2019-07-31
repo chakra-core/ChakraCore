@@ -4935,6 +4935,7 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         byteCodeGenerator->EnregisterConstant(1);
         CheckMaybeEscapedUse(pnode->AsParseNodeUni()->pnode1, byteCodeGenerator);
         break;
+    case knopCoalesce:
     case knopObject:
         byteCodeGenerator->AssignNullConstRegister();
         break;
