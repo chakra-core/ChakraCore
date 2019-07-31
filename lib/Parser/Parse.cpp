@@ -1826,26 +1826,6 @@ void Parser::FinishParseBlock(ParseNodeBlock *pnodeBlock, bool needScanRCurly)
     }
 }
 
-void CheckFncExprNameCapturedInParamScope(ParseNodeFnc* pnodeFnc, ParseNodeBlock* pnodeFncExprScope)
-{
-    ParseNodeBlock* bodyScope = pnodeFnc->pnodeBodyScope;
-    ParseNodePtr pnodeName = pnodeFnc->pnodeName;
-
-    if (bodyScope == nullptr || pnodeName == nullptr || !pnodeFnc->IsBodyAndParamScopeMerged())
-    {
-        return;
-    }
-
-    for (PidRefStack* ref = pnodeName->AsParseNodeVar()->pid->GetTopRef(); ref && ref->id > pnodeFncExprScope->blockId; ref = ref->prev)
-    {
-        if (ref->id < bodyScope->blockId && ref->id > pnodeFncExprScope->blockId)
-        {
-            pnodeFncExprScope->scope->SetIsObject();
-            return;
-        }
-    }
-}
-
 void Parser::FinishParseFncExprScope(ParseNodeFnc * pnodeFnc, ParseNodeBlock * pnodeFncExprScope)
 {
     int fncExprScopeId = pnodeFncExprScope->blockId;
@@ -1990,6 +1970,20 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
                 !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
             {
                 m_currentNodeFunc->SetNestedFuncEscapes();
+            }
+        }
+
+        if (m_currentNodeFunc && m_currentNodeFunc->pnodeName && pid == m_currentNodeFunc->pnodeName->pid && !m_currentNodeFunc->IsDeclaration() && m_currentNodeFunc->IsBodyAndParamScopeMerged())
+        {
+            Scope* funcExprScope = m_currentNodeFunc->scope;
+            Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
+
+            ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope->blockType == PnodeBlockType::Function);
+
+            if (ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
+            {
+                funcExprScope->SetIsObject();
             }
         }
 
@@ -6038,11 +6032,6 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
         if (pnodeBlock)
         {
-            if (pnodeFncExprScope)
-            {
-                CheckFncExprNameCapturedInParamScope(pnodeFnc, pnodeFncExprScope);
-            }
-
             FinishParseBlock(pnodeBlock, *pNeedScanRCurly);
         }
 
