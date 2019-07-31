@@ -703,4 +703,15 @@
       <compile-flags>-forcedeferparse -forcejitloopbody -force:rejit -force:inline</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>boxStackSlots.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boxStackSlots.js</files>
+      <compile-flags>-mic:1 -off:simplejit -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

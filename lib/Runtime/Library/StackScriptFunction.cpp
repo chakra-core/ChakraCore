@@ -693,14 +693,14 @@ namespace Js
 
     ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
     {
-        // Box the frame display first, which may in turn box the function
-        FrameDisplay * frameDisplay = scriptFunction->GetEnvironment();
-        FrameDisplay * boxedFrameDisplay = BoxFrameDisplay(frameDisplay);
-
         if (!ThreadContext::IsOnStack(scriptFunction))
         {
             return scriptFunction;
         }
+
+        // Box the frame display first, which may in turn box the function
+        FrameDisplay * frameDisplay = scriptFunction->GetEnvironment();
+        FrameDisplay * boxedFrameDisplay = BoxFrameDisplay(frameDisplay);
 
         StackScriptFunction * stackFunction = VarTo<StackScriptFunction>(scriptFunction);
         ScriptFunction * boxedFunction = stackFunction->boxedScriptFunction;
