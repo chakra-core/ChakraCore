@@ -307,6 +307,7 @@ SWAP_BP_FOR_OPCODE:
 #ifndef INTERPRETER_ASMJS
         case INTERPRETER_OPCODE::Yield:
             {
+                this->retOffset = m_reader.GetCurrentOffset();
                 m_reader.Reg2_Small(ip);
                 return GetReg(GetFunctionBody()->GetYieldRegister());
             }

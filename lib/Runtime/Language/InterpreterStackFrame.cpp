@@ -1986,6 +1986,8 @@ skipThunk:
                 // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
                 // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
                 newInstance->m_stackAddress = reinterpret_cast<DWORD_PTR>(&generator);
+
+                newInstance->retOffset = 0;
             }
             else
             {
