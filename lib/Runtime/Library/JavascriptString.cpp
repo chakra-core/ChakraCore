@@ -1057,7 +1057,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 position = 0;
             }
@@ -1813,10 +1813,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
 
@@ -1881,7 +1881,7 @@ case_2:
         else
         {
             uint32 limit;
-            if (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (args.Info.Count < 3 || JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 limit = UINT_MAX;
             }
@@ -1943,10 +1943,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
 
@@ -1992,10 +1992,10 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            idxStart = JavascriptOperators::IsUndefinedObject(args[1], scriptContext) ? 0 : ConvertToIndex(args[1], scriptContext);
+            idxStart = JavascriptOperators::IsUndefinedObject(args[1]) ? 0 : ConvertToIndex(args[1], scriptContext);
             if (args.Info.Count > 2)
             {
-                idxEnd = JavascriptOperators::IsUndefinedObject(args[2], scriptContext) ? len : ConvertToIndex(args[2], scriptContext);
+                idxEnd = JavascriptOperators::IsUndefinedObject(args[2]) ? len : ConvertToIndex(args[2], scriptContext);
             }
         }
         if (idxStart < 0)
@@ -2089,7 +2089,7 @@ case_2:
         }
 
         JavascriptString * fillerString = nullptr;
-        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+        if (args.Info.Count > 2 && !JavascriptOperators::IsUndefinedObject(args[2]))
         {
             JavascriptString *argStr = JavascriptConversion::ToString(args[2], scriptContext);
             if (argStr->GetLength() > 0)
@@ -2509,7 +2509,7 @@ case_2:
 
         if (args.Info.Count > 1)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[1], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[1]))
             {
                 double countDbl = JavascriptConversion::ToInteger(args[1], scriptContext);
                 if (JavascriptNumber::IsPosInf(countDbl) || countDbl < 0.0)
@@ -2600,7 +2600,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 startPosition = ConvertToIndex(args[2], scriptContext); // this is to adjust corner cases like MAX_VALUE
                 startPosition = min(max(startPosition, 0), thisStrLen);
@@ -2655,7 +2655,7 @@ case_2:
 
         if (args.Info.Count > 2)
         {
-            if (!JavascriptOperators::IsUndefinedObject(args[2], scriptContext))
+            if (!JavascriptOperators::IsUndefinedObject(args[2]))
             {
                 endPosition = ConvertToIndex(args[2], scriptContext); // this is to adjust corner cases like MAX_VALUE
                 endPosition = min(max(endPosition, 0), thisStrLen);
