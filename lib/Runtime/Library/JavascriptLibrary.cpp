@@ -1520,7 +1520,10 @@ namespace Js
         AddFunction(globalObject, PropertyIds::String, stringConstructor);
         regexConstructorType = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, JavascriptRegExp::NewInstance,
             DeferredTypeHandler<InitializeRegexConstructor>::GetDefaultInstance());
-        regexConstructor = RecyclerNewEnumClass(recycler, EnumFunctionClass, JavascriptRegExpConstructor, regexConstructorType);
+        regexConstructor = RecyclerNewEnumClass(recycler, EnumFunctionClass,
+            JavascriptRegExpConstructor,
+            regexConstructorType,
+            builtInConstructorCache);
         AddFunction(globalObject, PropertyIds::RegExp, regexConstructor);
 
         arrayBufferConstructor = CreateBuiltinConstructor(&ArrayBuffer::EntryInfo::NewInstance,
