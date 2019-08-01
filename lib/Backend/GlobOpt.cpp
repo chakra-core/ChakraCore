@@ -2087,6 +2087,7 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
 
     // Consider: Can we remove the count field?
     memcopyInfo->count++;
+    AssertOrFailFast(memcopyInfo->count <= 1);
     memcopyInfo->base = baseSymID;
 
     return true;
@@ -2226,7 +2227,14 @@ MemOpCheckInductionVariable:
                 {
                     Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { 0, 0 };
                     inductionVariableChangeInfo = loop->memOpInfo->inductionVariableChangeInfoMap->Lookup(inductionSymID, inductionVariableChangeInfo);
-                    inductionVariableChangeInfo.unroll++;
+                    
+                    // If inductionVariableChangeInfo.unroll has been invalidated, do
+                    // not modify the Js::Constants::InvalidLoopUnrollFactor value
+                    if (inductionVariableChangeInfo.unroll != Js::Constants::InvalidLoopUnrollFactor)
+                    {
+                        inductionVariableChangeInfo.unroll++;
+                    }
+                    
                     inductionVariableChangeInfo.isIncremental = isIncr;
                     loop->memOpInfo->inductionVariableChangeInfoMap->Item(inductionSymID, inductionVariableChangeInfo);
                 }
@@ -16677,6 +16685,7 @@ GlobOpt::GetOrGenerateLoopCountForMemOp(Loop *loop)
 IR::Opnd *
 GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::Instr *insertBeforeInstr)
 {
+    AssertOrFailFast(unroll != Js::Constants::InvalidLoopUnrollFactor);
     LoopCount *loopCount = loop->loopCount;
     IR::Opnd *sizeOpnd = nullptr;
     Assert(loopCount);
@@ -16714,11 +16723,12 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
 
             IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc);
 
-            InsertInstr(IR::Instr::New(Js::OpCode::Mul_I4,
-                sizeOpnd,
-                loopCountOpnd,
-                unrollOpnd,
-                localFunc));
+            IR::Instr* inductionChangeMultiplier = IR::Instr::New(
+                Js::OpCode::Mul_I4, sizeOpnd, loopCountOpnd, unrollOpnd, localFunc);
+
+            InsertInstr(inductionChangeMultiplier);
+
+            inductionChangeMultiplier->ConvertToBailOutInstr(loop->bailOutInfo, IR::BailOutOnOverflow);
 
         }
     }

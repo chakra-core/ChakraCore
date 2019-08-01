@@ -8742,7 +8742,7 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
         StackSym *sym = localFunc->m_symTable->FindStackSym(symId)->GetInt32EquivSym(localFunc);
 
         IR::Opnd *inductionVariableOpnd = IR::RegOpnd::New(sym, IRType::TyInt32, localFunc);
-        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll);
+        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll, loop->memOpInfo->instr);
         IR::Instr* restoreInductionVarInstr = IR::Instr::New(opCode, inductionVariableOpnd, inductionVariableOpnd, sizeOpnd, loop->GetFunc());
 
         // The IR that restores the induction variable's value is placed before the MemOp. Since this IR can
