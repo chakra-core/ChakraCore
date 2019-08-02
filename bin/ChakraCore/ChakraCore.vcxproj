@@ -189,7 +189,7 @@
   <!-- Conditionally include the group of files to sign because MBv2 knows what to do with this but the old build definition gets confused. -->
   <ItemGroup Condition="'$(VSO_MICROBUILD_V2)'=='True' AND '$(POGO_TYPE)'!='PGI'">
     <FilesToSign Include="$(OutDir)\ChakraCore.dll">
-      <Authenticode>Microsoft</Authenticode>
+      <Authenticode>Microsoft400</Authenticode>
     </FilesToSign>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
