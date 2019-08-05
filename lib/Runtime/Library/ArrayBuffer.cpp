@@ -560,7 +560,7 @@ namespace Js
         // start and end are clamped to valid indices, so the new length also cannot exceed MaxArrayBufferLength.
         // Therefore, should be safe to cast down newLen to uint32.
         // TODO: If we ever support allocating ArrayBuffer with byteLength > MaxArrayBufferLength we may need to review this math.
-        Assert(newLen < MaxArrayBufferLength);
+        Assert(newLen <= MaxArrayBufferLength);
         uint32 byteLength = static_cast<uint32>(newLen);
 
         ArrayBuffer* newBuffer = nullptr;
