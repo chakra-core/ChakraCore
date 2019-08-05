@@ -139,6 +139,14 @@ var tests = [
     }
   },
   {
+    name: "Using RegExp as newTarget should not assert",
+    body: function() {
+      var v0 = function() { this.a; };
+      var v1 = class extends v0 { constructor() { super(); } };
+      Reflect.construct(v1, [], RegExp);
+    }
+  },
+  {
     name: "getPrototypeOf Should not be called when set as prototype",
     body: function () {
       var p = new Proxy({}, { getPrototypeOf: function() {

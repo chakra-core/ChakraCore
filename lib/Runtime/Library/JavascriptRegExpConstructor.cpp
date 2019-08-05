@@ -14,8 +14,8 @@ namespace Js
     const int JavascriptRegExpConstructor::NumCtorCaptures;
 #endif
 
-    JavascriptRegExpConstructor::JavascriptRegExpConstructor(DynamicType * type) :
-        RuntimeFunction(type, &JavascriptRegExp::EntryInfo::NewInstance),
+    JavascriptRegExpConstructor::JavascriptRegExpConstructor(DynamicType* type, ConstructorCache* cache) :
+        RuntimeFunction(type, &JavascriptRegExp::EntryInfo::NewInstance, cache),
         reset(false),
         invalidatedLastMatch(false),
         lastPattern(nullptr),
