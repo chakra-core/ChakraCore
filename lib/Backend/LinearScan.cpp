@@ -5143,7 +5143,7 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     }
     NEXT_BITSET_IN_SPARSEBV_EDITING;
 
-    AssertMsg(unrestorableSymbols.IsEmpty(), "There are unrestorable backend-only symbols across yield points");
+    AssertOrFailFastMsg(unrestorableSymbols.IsEmpty(), "There are unrestorable backend-only symbols across yield points");
 }
 
 void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
