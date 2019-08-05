@@ -287,6 +287,11 @@
   </test>
   <test>
     <default>
+      <files>profilingbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bug12528802.js</files>
     </default>
   </test>
