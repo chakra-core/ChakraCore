@@ -1064,7 +1064,6 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
                 ch = rawch = kchNWL;
             }
 
-LEcmaLineBreak:
             // Fall through
         case kchNWL:
             if (stringTemplateMode)
@@ -1124,18 +1123,7 @@ LEcmaLineBreak:
 LMainDefault:
             if (this->IsMultiUnitChar(ch))
             {
-                if ((ch == kchLS || ch == kchPS))
-                {
-                    goto LEcmaLineBreak;
-                }
-
                 rawch = ch = this->template ReadRest<true>(ch, p, last);
-                switch (ch)
-                {
-                case kchLS: // 0x2028, classifies as new line
-                case kchPS: // 0x2029, classifies as new line
-                    goto LEcmaLineBreak;
-                }
             }
             break;
 

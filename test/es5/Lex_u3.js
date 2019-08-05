@@ -27,7 +27,7 @@ eval('x= \"str const Left \u2028 str const right\";write(escape(x))');
 }
 catch(e)
 {
-write("LS in string -  compile failure in ES5: expected." + e)
+write("LS in string -  compile failure in ES5: not expected." + e)
 }
 
 var re = /falls/
