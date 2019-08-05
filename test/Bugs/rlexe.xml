@@ -606,4 +606,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS21193960.js</files>
+      <compile-flags>-maxinterpretcount:1 -maxsimplejitruncount:2 -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

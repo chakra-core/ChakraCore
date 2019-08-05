@@ -6323,7 +6323,8 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JavascriptProxy * proxy = JavascriptOperators::TryFromVar<JavascriptProxy>(instance);
         if (proxy)
         {
-            Arguments args(CallInfo(CallFlags_New, 1), &instance);
+            Var dummy = nullptr;
+            Arguments args(CallInfo(CallFlags_New, 1), &dummy);
             return requestContext->GetThreadContext()->ExecuteImplicitCall(proxy, Js::ImplicitCall_Accessor, [=]()->Js::Var
             {
                 return proxy->ConstructorTrap(args, requestContext, 0);
