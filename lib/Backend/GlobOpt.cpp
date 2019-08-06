@@ -3038,13 +3038,11 @@ GlobOpt::OptDst(
         else if (dstVal)
         {
             opnd->SetValueType(dstVal->GetValueInfo()->Type());
-#if 0
-            if(currentBlock->loop &&
+            if (currentBlock->loop &&
                 !IsLoopPrePass() &&
                 (instr->m_opcode == Js::OpCode::Ld_A || instr->m_opcode == Js::OpCode::Ld_I4) &&
                 instr->GetSrc1()->IsRegOpnd() &&
-                !func->IsJitInDebugMode() &&
-                this->GetJITFunctionBody()->IsCoroutine())
+                !func->IsJitInDebugMode())
             {
                 // Look for the following patterns:
                 //
@@ -3108,7 +3106,6 @@ GlobOpt::OptDst(
                     this->SetSymStoreDirect(dstVal->GetValueInfo(), dstVarSym);
                 } while(false);
             }
-#endif
         }
 
         this->ValueNumberObjectType(opnd, instr);
