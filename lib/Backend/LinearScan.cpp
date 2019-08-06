@@ -5086,13 +5086,21 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     {
         Sym* key = copyPropSym.Key();
         Sym* value = copyPropSym.Value();
-        if (unrestorableSymbols.Test(value->m_id))
+        if (unrestorableSymbols.TestAndClear(value->m_id))
         {
             Assert(key->IsStackSym() && (key->AsStackSym()->HasByteCodeRegSlot() || key->AsStackSym()->IsFromByteCodeConstantTable()));
-            unrestorableSymbols.Clear(value->m_id);
             if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
             {
                 BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, value->m_id /* toBackendId */);
+                bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
+            }
+        }
+        else if (unrestorableSymbols.TestAndClear(key->m_id))
+        {
+            Assert(key->IsStackSym() && (key->AsStackSym()->HasByteCodeRegSlot() || key->AsStackSym()->IsFromByteCodeConstantTable()));
+            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
+            {
+                BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, key->m_id /* toBackendId */);
                 bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
             }
         }
