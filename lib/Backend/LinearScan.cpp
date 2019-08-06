@@ -4944,7 +4944,10 @@ LinearScan::GeneratorBailIn::GeneratorBailIn(Func* func, LinearScan* linearScan)
     // so no need to restore.
     this->initializedRegs.Set(this->jitFnBody->GetYieldReg());
 
-    // The environment is loaded before the resume jump table, no need to restore either.
+    // The environment is loaded before the resume jump table. At bail-in point, it can either
+    // still be in register or already spilled. If it's in register we're good. If it's been spilled,
+    // the register allocator should have inserted compensation code before the bail-in block, so we
+    // are still fine there.
     this->initializedRegs.Set(this->jitFnBody->GetEnvReg());
 
     this->bailInSymbols = JitAnew(this->func->m_alloc, SListBase<BailInSymbol>);
@@ -5061,13 +5064,24 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
 {
     this->bailInSymbols->Clear(this->func->m_alloc);
 
-    // Assume all symbols cannot be restored
+    // Make sure that all symbols in `upwardExposedUses` can be restored.
+    // The idea is to first assume that we cannot restore any of the symbols.
+    // Then we use the information in `byteCodeUpwardExposedUses` and `capturedValues`
+    // which contains information about symbols in the bytecode, copy-prop'd symbols, and
+    // symbols with constant values. As we go through these lists, we clear the
+    // bits in `unrestorableSymbols` to indicate that they can be restored. At the
+    // end, the bitvector has to be empty.
+
+    // Assume all symbols cannot be restored.
     BVSparse<JitArenaAllocator> unrestorableSymbols(this->func->m_alloc);
     unrestorableSymbols.Or(&upwardExposedUses);
 
     unrestorableSymbols.Minus(&this->initializedRegs);
 
-    // Symbols in byteCodeUpwardExposedUses are restorable
+    // Symbols in byteCodeUpwardExposedUses are restorable.
+    // If a symbol is in byteCodeUpwardExposedUses, which means that it is not
+    // a constant nor a copy-prop candidate. In such cases, we can simply map
+    // the bytecode register directly to its backend id.
     FOREACH_BITSET_IN_SPARSEBV(symId, &byteCodeUpwardExposedUses)
     {
         StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
@@ -5081,14 +5095,32 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     }
     NEXT_BITSET_IN_SPARSEBV;
 
-    // Symbols that were copy-prop'd
+    // Symbols that were copy-prop'd.
+    // Example:
+    // `copyPropSyms` having an entry { s_key : s_value } means that we can use `s_key`
+    // in place of `s_value`.
+    //
+    //  1) if we find `s_value` at this point (after clearing all symbols in
+    //     `bytecodeUpwardExposedUses`), it means that `s_value` is a backend-only
+    //     symbol, and that the only way to restore this symbol is through `s_key`.
+    //     Since in `FillBailOutRecord`, we make sure to restore all symbols that are
+    //     keys in in `usedCapturedValues`, we can simply use `s_key` to restore the value
+    //     for `s_value`.
+    //  2) if we find `s_key`, then we can just map directly the value due to the above reason.
     FOREACH_SLISTBASE_ENTRY(CopyPropSyms, copyPropSym, &capturedValues.copyPropSyms)
     {
         Sym* key = copyPropSym.Key();
         Sym* value = copyPropSym.Value();
-        if (unrestorableSymbols.TestAndClear(value->m_id))
+
+#if DBG
+        if (unrestorableSymbols.Test(value->m_id) || unrestorableSymbols.Test(key->m_id))
         {
             Assert(key->IsStackSym() && (key->AsStackSym()->HasByteCodeRegSlot() || key->AsStackSym()->IsFromByteCodeConstantTable()));
+        }
+#endif
+
+        if (unrestorableSymbols.TestAndClear(value->m_id))
+        {
             if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
             {
                 BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, value->m_id /* toBackendId */);
@@ -5097,7 +5129,6 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
         }
         else if (unrestorableSymbols.TestAndClear(key->m_id))
         {
-            Assert(key->IsStackSym() && (key->AsStackSym()->HasByteCodeRegSlot() || key->AsStackSym()->IsFromByteCodeConstantTable()));
             if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
             {
                 BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, key->m_id /* toBackendId */);
@@ -5107,7 +5138,8 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     }
     NEXT_SLISTBASE_ENTRY;
 
-    // Used constant values
+    // Used constant values.
+    // These symbols are can be mapped directly.
     FOREACH_SLISTBASE_ENTRY(ConstantStackSymValue, entry, &capturedValues.constantValues)
     {
         SymID symId = entry.Key()->m_id;
@@ -5132,6 +5164,7 @@ void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
     }
     NEXT_SLISTBASE_ENTRY;
 
+    // Clear all symbols that don't need to be restored.
     FOREACH_BITSET_IN_SPARSEBV_EDITING(symId, &unrestorableSymbols)
     {
         StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
@@ -5253,8 +5286,8 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
 
 bool LinearScan::GeneratorBailIn::NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const
 {
-    // If we have for-in in the generator, don't need to reload the symbol again as it is done
-    // during the resume jump table
+    // for-in enumerator in generator is loaded as part of the resume jump table.
+    // By the same reasoning as `initializedRegs`'s, we don't have to restore this whether or not it's been spilled.
     if (this->func->GetForInEnumeratorSymForGeneratorSym() && this->func->GetForInEnumeratorSymForGeneratorSym()->m_id == sym->m_id)
     {
         return false;

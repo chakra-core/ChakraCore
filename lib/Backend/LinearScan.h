@@ -256,6 +256,13 @@ private:
             IR::Instr* instrInsertRegSym;
         };
 
+        // Represents a symbol that needs to be restored when bailing in.
+        // In normal cases, for a given symbol, whatever bytecode registers that the
+        // symbol has will map directly to the backend symbol with the same id.
+        // However, due to copy-prop, sometimes we would use a different symbol for a given value.
+        // This struct keep track of that fact and generate the restore instruction accordingly.
+        // Additionally, for symbols that are constant but not in the bytecode constant table, we have
+        // to reload the symbol's value directly.
         struct BailInSymbol
         {
             const SymID fromByteCodeRegSlot;
@@ -275,6 +282,9 @@ private:
         BVSparse<JitArenaAllocator> initializedRegs;
         SListBase<BailInSymbol>* bailInSymbols;
 
+        // Registers needed in the bail-in code.
+        // The register allocator will have to spill these
+        // so that we are free to use them.
         static constexpr int regNum = 2;
         const RegNum regs[regNum];
         IR::RegOpnd* const interpreterFrameRegOpnd;
@@ -285,6 +295,7 @@ private:
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
+        // Insert instructions to restore symbols in the `bailInSymbols` list
         void InsertRestoreSymbols(
             const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
             const BVSparse<JitArenaAllocator>& upwardExposedUses,
@@ -292,6 +303,7 @@ private:
             BailInInsertionPoint& insertionPoint
         );
 
+        // Fill `bailInSymbols` list with all of the symbols that need to be restored
         void BuildBailInSymbolList(
             const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
             const BVSparse<JitArenaAllocator>& upwardExposedUses,
@@ -305,6 +317,7 @@ private:
         GeneratorBailIn(Func* func, LinearScan* linearScan);
         ~GeneratorBailIn();
         IR::Instr* GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr);
+        // Spill all registers that we need in order to generate the bail-in code
         void SpillRegsForBailIn();
     };
 
