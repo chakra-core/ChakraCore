@@ -686,47 +686,6 @@ using namespace Js;
             pfuncScript->GetFunctionProxy()->EnsureDeserialized();
         }
 
-        if (pfuncScript->GetFunctionBody()->GetHasThis())
-        {
-            // The eval expression refers to "this"
-            if (args.Info.Flags & CallFlags_ExtraArg)
-            {
-                JavascriptFunction* pfuncCaller = nullptr;
-                // If we are non-hidden call to eval then look for the "this" object in the frame display if the caller is a lambda else get "this" from the caller's frame.
-
-                bool successful = false;
-                if (JavascriptStackWalker::GetCaller(&pfuncCaller, scriptContext))
-                {
-                    FunctionInfo* functionInfo = pfuncCaller->GetFunctionInfo();
-                    if (functionInfo != nullptr && (functionInfo->IsLambda() || functionInfo->IsClassConstructor()))
-                    {
-                        Var defaultInstance = (moduleID == kmodGlobal) ? JavascriptOperators::OP_LdRoot(scriptContext)->ToThis() : (Var)JavascriptOperators::GetModuleRoot(moduleID, scriptContext);
-                        varThis = JavascriptOperators::OP_GetThisScoped(environment, defaultInstance, scriptContext);
-                        if (!strictMode)
-                        {
-                            UpdateThisForEval(varThis, moduleID, scriptContext);
-                        }
-                        successful = true;
-                    }
-                }
-
-                if (!successful)
-                {
-                    JavascriptStackWalker::GetThis(&varThis, moduleID, scriptContext);
-                    if (!strictMode)
-                    {
-                        UpdateThisForEval(varThis, moduleID, scriptContext);
-                    }
-                }
-            }
-            else
-            {
-                // The expression, which refers to "this", is evaluated by an indirect eval.
-                // Set "this" to the current module root.
-                varThis = JavascriptOperators::OP_GetThis(scriptContext->GetLibrary()->GetUndefined(), moduleID, scriptContext);
-            }
-        }
-
         if (pfuncScript->HasSuperReference())
         {
             // Indirect evals cannot have a super reference.

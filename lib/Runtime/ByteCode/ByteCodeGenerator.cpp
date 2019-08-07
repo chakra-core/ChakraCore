@@ -2394,6 +2394,7 @@ void AddVarsToScope(ParseNode *vars, ByteCodeGenerator *byteCodeGenerator)
                 if (sym->IsThis())
                 {
                     funcInfo->SetThisSymbol(sym);
+                    funcInfo->GetParsedFunctionBody()->SetHasThis(true);
                 }
                 else if (sym->IsNewTarget())
                 {
