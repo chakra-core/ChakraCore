@@ -5495,7 +5495,6 @@ void ByteCodeGenerator::EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, Ide
                 Js::RegSlot instLocation = funcInfo->AcquireTmpRegister();
 
                 this->m_writer.SlotI1(Js::OpCode::LdEnvObj, instLocation, frameDisplayIndex);
-                this->m_writer.Reg2(Js::OpCode::UnwrapWithObj, instLocation, instLocation);
 
                 this->EmitTypeOfFld(funcInfo, propertyId, lhsLocation, instLocation, Js::OpCode::LdFldForTypeOf);
 
