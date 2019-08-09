@@ -330,4 +330,10 @@
       <files>recursiveCallbacks.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>argoptbugs.js</files>
+      <compile-flags>-mic:1 -bgjit- -off:simplejit</compile-flags>
+    </default>
+  </test>
 </regress-exe>

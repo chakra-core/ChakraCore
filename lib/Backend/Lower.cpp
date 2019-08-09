@@ -14527,7 +14527,7 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
 
     IR::Instr* prev = inlineeStartInstr->m_prev;
 
-    if (inlineeStartInstr->m_func->m_hasInlineArgsOpt)
+    if (inlineeStartInstr->m_func->m_hasInlineArgsOpt || inlineeStartInstr->m_func->GetParentFunc()->m_hasInlineArgsOpt)
     {
         inlineeStartInstr->FreeSrc1();
         inlineeStartInstr->FreeSrc2();
@@ -14537,6 +14537,7 @@ Lowerer::LowerInlineeStart(IR::Instr * inlineeStartInstr)
     {
         inlineeStartInstr->Remove();
     }
+
     return prev;
 }
 
@@ -14555,7 +14556,7 @@ Lowerer::LowerInlineeEnd(IR::Instr *instr)
     }
 
     // Keep InlineeEnd around as it is used by register allocator, if we have optimized the arguments stack
-    if (instr->m_func->m_hasInlineArgsOpt)
+    if (instr->m_func->m_hasInlineArgsOpt || (instr->m_func->GetParentFunc()->m_hasInlineArgsOpt && !instr->m_func->m_hasInlineOverheadRemoved))
     {
         instr->FreeSrc1();
     }
@@ -26456,7 +26457,7 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
 
     case Js::OpCode::InlineeStart:
     case Js::OpCode::InlineeEnd:
-        return instr->m_func->m_hasInlineArgsOpt;
+        return instr->m_func->m_hasInlineArgsOpt || instr->m_func->GetParentFunc()->m_hasInlineArgsOpt;
 #ifdef _M_X64
     case Js::OpCode::LdArgSize:
     case Js::OpCode::LdSpillSize:

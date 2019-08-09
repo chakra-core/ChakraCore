@@ -8087,7 +8087,6 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     inlineeStart->m_func->SetFirstArgOffset(inlineeStart);
 
     IR::Instr* startCallInstr = nullptr;
-    bool noImplicitCallsInInlinee = false;
     // Inlinee has no bailouts or implicit calls.  Get rid of the inline overhead.
     auto removeInstr = [&](IR::Instr* argInstr)
     {
@@ -8109,7 +8108,6 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     // If there are no implicit calls - bailouts/throws - we can remove all inlining overhead.
     if (!inlineeStart->m_func->GetHasImplicitCalls())
     {
-        noImplicitCallsInInlinee = true;
         inlineeStart->IterateArgInstrs(removeInstr);
 
         inlineeStart->IterateMetaArgs([](IR::Instr* metArg)
@@ -8118,6 +8116,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
             return false;
         });
         inlineeStart->m_func->m_hasInlineArgsOpt = false;
+        inlineeStart->m_func->m_hasInlineOverheadRemoved = true;
         removeInstr(inlineeStart);
         return true;
     }

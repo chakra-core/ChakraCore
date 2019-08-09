@@ -1011,7 +1011,7 @@ void Encoder::RecordInlineeFrame(Func* inlinee, uint32 currentOffset)
     if (!(this->m_func->IsLoopBody() && PHASE_OFF(Js::InlineInJitLoopBodyPhase, this->m_func)) && !this->m_func->IsSimpleJit())
     {
         InlineeFrameRecord* record = nullptr;
-        if (inlinee->frameInfo && inlinee->m_hasInlineArgsOpt)
+        if (inlinee->frameInfo)
         {
             record = inlinee->frameInfo->record;
             Assert(record != nullptr);

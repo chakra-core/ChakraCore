@@ -691,6 +691,7 @@ public:
     InlineeFrameInfo*   cachedInlineeFrameInfo;
     bool                m_hasCalls: 1; // This is more accurate compared to m_isLeaf
     bool                m_hasInlineArgsOpt : 1;
+    bool                m_hasInlineOverheadRemoved : 1;
     bool                m_doFastPaths : 1;
     bool                hasBailout: 1;
     bool                hasBailoutInEHRegion : 1;
