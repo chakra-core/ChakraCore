@@ -3855,6 +3855,11 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
             else if (pnodeFnc->IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
             {
                 bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+
+                if (pnodeFnc->IsBodyAndParamScopeMerged() && paramScope && paramScope->GetHasNestedParamFunc())
+                {
+                    paramScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+                }
             }
 
             if (!pnodeFnc->IsBodyAndParamScopeMerged())
