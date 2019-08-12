@@ -196,6 +196,7 @@ FlowGraph::Build(void)
     BasicBlock * currBlock = nullptr;
     BasicBlock * nextBlock = nullptr;
     bool hasCall = false;
+    bool hasYield = false;
 
     FOREACH_INSTR_IN_FUNC_BACKWARD_EDITING(instr, instrPrev, func)
     {
@@ -208,7 +209,9 @@ FlowGraph::Build(void)
                 nextBlock = currBlock;
                 currBlock = this->AddBlock(instr->m_next, currLastInstr, nextBlock);
                 currBlock->hasCall = hasCall;
+                currBlock->hasYield = hasYield;
                 hasCall = false;
+                hasYield = false;
             }
 
             currLastInstr = instr;
@@ -243,7 +246,9 @@ FlowGraph::Build(void)
             nextBlock = currBlock;
             currBlock = this->AddBlock(instr, currLastInstr, nextBlock);
             currBlock->hasCall = hasCall;
+            currBlock->hasYield = hasYield;
             hasCall = false;
+            hasYield = false;
             currLastInstr = nullptr;
         }
 
@@ -348,6 +353,11 @@ FlowGraph::Build(void)
             // here in FlowGraph.
             instr->SetDst(instr->GetSrc1());
             break;
+        }
+
+        if (instr->m_opcode == Js::OpCode::Yield)
+        {
+            hasYield = true;
         }
 
         if (OpCodeAttr::UseAllFields(instr->m_opcode))
@@ -1400,6 +1410,10 @@ FlowGraph::WalkLoopBlocks(BasicBlock *block, Loop *loop, JitArenaAllocator *temp
                     {
                         loop->SetHasCall();
                     }
+                    if (pred->loop->hasYield)
+                    {
+                        loop->SetHasYield();
+                    }
                     loop->SetImplicitCallFlags(pred->loop->GetImplicitCallFlags());
                 }
                 // Add pred to loop bit vector
@@ -1429,6 +1443,10 @@ FlowGraph::AddBlockToLoop(BasicBlock *block, Loop *loop)
     if (block->hasCall)
     {
         loop->SetHasCall();
+    }
+    if (block->hasYield)
+    {
+        loop->SetHasYield();
     }
 }
 
@@ -3501,6 +3519,29 @@ Loop::SetHasCall()
 }
 
 void
+Loop::SetHasYield()
+{
+    Loop* current = this;
+    do
+    {
+        if (current->hasYield)
+        {
+#if DBG
+            current = current->parent;
+            while (current)
+            {
+                Assert(current->hasYield);
+                current = current->parent;
+            }
+#endif
+            break;
+        }
+        current->hasYield = true;
+        current = current->parent;
+    } while (current != nullptr);
+}
+
+void
 Loop::SetImplicitCallFlags(Js::ImplicitCallFlags newFlags)
 {
     Loop * current = this;
@@ -3570,7 +3611,7 @@ Loop::CanHoistInvariants() const
         return false;
     }
 
-    return true;
+    return !this->hasYield;
 }
 
 IR::LabelInstr *

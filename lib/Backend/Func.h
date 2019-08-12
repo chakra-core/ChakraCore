@@ -206,7 +206,7 @@ public:
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
             (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch()) &&
             (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally()) &&
-            !GetTopFunc()->GetJITFunctionBody()->IsCoroutine();
+            (!GetTopFunc()->GetJITFunctionBody()->IsCoroutine() || !PHASE_OFF(Js::GeneratorGlobOptPhase, this));
     }
 
     bool DoInline() const
@@ -328,8 +328,6 @@ public:
 #ifdef MD_GROW_LOCALS_AREA_UP
     void AjustLocalVarSlotOffset();
 #endif
-
-    bool DoGlobOptsForGeneratorFunc() const;
 
     static int32 AdjustOffsetValue(int32 offset);
 
@@ -998,7 +996,7 @@ public:
 
     uint32 m_inlineeId;
 
-    IR::LabelInstr *    m_bailOutNoSaveLabel;
+    IR::Instr *    m_bailOutForElidedYieldInsertionPoint;
 
 private:
     Js::EntryPointInfo* m_entryPointInfo; // for in-proc JIT only

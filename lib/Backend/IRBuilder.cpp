@@ -1890,12 +1890,11 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->m_lastInstr = instr->ConvertToBailOutInstr(instr, IR::BailOutForGeneratorYield);
 
         // This label indicates the bail-in section that we will jump to from the generator jump table
-        IR::LabelInstr* bailInLabel = IR::LabelInstr::New(Js::OpCode::GeneratorBailInLabel, m_func);
+        IR::LabelInstr* bailInLabel = IR::GeneratorBailInInstr::New(this->m_lastInstr /* yieldInstr */, m_func);
         bailInLabel->m_hasNonBranchRef = true;              // set to true so that we don't move this label around
         LABELNAMESET(bailInLabel, "GeneratorBailInLabel");
         this->AddInstr(bailInLabel, offset);
         this->m_func->AddYieldOffsetResumeLabel(nextOffset, bailInLabel);
-
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (PHASE_TRACE(Js::Phase::BailInPhase, this->m_func))
@@ -7746,16 +7745,22 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     );
     this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
 
+    IR::LabelInstr* functionBegin = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    LABELNAMESET(functionBegin, "GeneratorFunctionBegin");
+
     IR::LabelInstr* initCode = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
     LABELNAMESET(initCode, "GeneratorInitializationAndJumpTable");
 
     // BrNotAddr_A s2 nullptr $initializationCode
-    IR::BranchInstr* branchInstr = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, initCode, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
-    this->m_irBuilder->AddInstr(branchInstr, this->m_irBuilder->m_functionStartOffset);
+    IR::BranchInstr* skipCreateInterpreterFrame = IR::BranchInstr::New(Js::OpCode::BrNotAddr_A, initCode, genFrameOpnd, IR::AddrOpnd::NewNull(this->m_func), this->m_func);
+    this->m_irBuilder->AddInstr(skipCreateInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
 
     // Create interpreter stack frame
     IR::Instr* createInterpreterFrame = IR::Instr::New(Js::OpCode::GeneratorCreateInterpreterStackFrame, genFrameOpnd /* dst */, genRegOpnd /* src */, this->m_func);
     this->m_irBuilder->AddInstr(createInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
+
+    IR::BranchInstr* skipJumpTable = IR::BranchInstr::New(Js::OpCode::Br, functionBegin, this->m_func);
+    this->m_irBuilder->AddInstr(skipJumpTable, this->m_irBuilder->m_functionStartOffset);
 
     // Label to insert any initialization code
     // $initializationCode:
@@ -7790,6 +7795,10 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     instr = IR::Instr::New(Js::OpCode::GeneratorResumeJumpTable, this->m_func);
     instr->SetSrc1(curOffsetOpnd);
     this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    this->m_func->m_bailOutForElidedYieldInsertionPoint = instr;
+
+    this->m_irBuilder->AddInstr(functionBegin, this->m_irBuilder->m_functionStartOffset);
 
     // Save these values for later use
     this->m_initLabel = initCode;

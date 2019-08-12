@@ -45,6 +45,7 @@ private:
     bool ProcessByteCodeUsesInstr(IR::Instr * instr);
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
+    IR::Instr* ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr);
     IR::Instr* ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
     void ClearDstUseForPostOpLazyBailOut(IR::Instr *instr);
     void ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed);
@@ -56,6 +57,7 @@ private:
     void ProcessPropertySymOpndUse(IR::PropertySymOpnd *opnd);
     bool ProcessPropertySymUse(PropertySym *propertySym);
     void ProcessNewScObject(IR::Instr* instr);
+    void DisallowMarkTempAcrossYield(BVSparse<JitArenaAllocator>* bytecodeUpwardExposed);
     void MarkTemp(StackSym * sym);
     bool ProcessInlineeStart(IR::Instr* instr);
     void ProcessInlineeEnd(IR::Instr* instr);

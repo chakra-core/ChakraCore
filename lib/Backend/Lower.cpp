@@ -3010,7 +3010,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::GeneratorResumeJumpTable:
         {
-            this->m_lowerGeneratorHelper.InsertBailOutForElidedYield();
             this->m_lowerGeneratorHelper.LowerGeneratorResumeJumpTable(instr);
             break;
         }
@@ -3122,8 +3121,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 #endif
         case Js::OpCode::GeneratorBailInLabel:
         case Js::OpCode::GeneratorResumeYieldLabel:
-        case Js::OpCode::GeneratorEpilogueFrameNullOut:
-        case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+        case Js::OpCode::GeneratorEpilogueFrameNullOutLabel:
+        case Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel:
             Assert(this->m_func->GetJITFunctionBody()->IsCoroutine());
             break;
 
@@ -26474,8 +26473,8 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
 #endif
     case Js::OpCode::GeneratorBailInLabel:
     case Js::OpCode::GeneratorResumeYieldLabel:
-    case Js::OpCode::GeneratorEpilogueFrameNullOut:
-    case Js::OpCode::GeneratorEpilogueNoFrameNullOut:
+    case Js::OpCode::GeneratorEpilogueFrameNullOutLabel:
+    case Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel:
         return func->GetJITFunctionBody()->IsCoroutine();
 
     case Js::OpCode::LazyBailOutThunkLabel:
@@ -29081,49 +29080,6 @@ void Lowerer::LowerGeneratorHelper::InsertNullOutGeneratorFrameInEpilogue(IR::La
 }
 
 void
-Lowerer::LowerGeneratorHelper::InsertBailOutForElidedYield()
-{
-    IR::LabelInstr* bailOutNoSaveLabel = nullptr;
-
-    this->func->MapUntilYieldOffsetResumeLabels([this, &bailOutNoSaveLabel](int, const YieldOffsetResumeLabel& yorl)
-    {
-        if (yorl.Second() == nullptr)
-        {
-            if (bailOutNoSaveLabel == nullptr)
-            {
-                bailOutNoSaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
-            }
-
-            return true;
-        }
-
-        return false;
-    });
-
-    // Insert the bailoutnosave label somewhere along with a call to BailOutNoSave helper
-    if (bailOutNoSaveLabel != nullptr)
-    {
-        bailOutNoSaveLabel->m_hasNonBranchRef = true;
-        bailOutNoSaveLabel->isOpHelper = true;
-
-        IR::Instr* exitPrevInstr = this->GetEpilogueForReturnStatements()->m_prev;
-        IR::Instr* bailOutCall = IR::Instr::New(Js::OpCode::Call, this->func);
-        IR::Instr* branchToEpilogue = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, this->GetEpilogueForBailOut(), this->func);
-
-        exitPrevInstr->InsertBefore(bailOutNoSaveLabel);
-        exitPrevInstr->InsertBefore(bailOutCall);
-        exitPrevInstr->InsertBefore(branchToEpilogue);
-
-        IR::RegOpnd* frameRegOpnd = IR::RegOpnd::New(nullptr, LowererMD::GetRegFramePointer(), TyMachPtr, this->func);
-        this->lowererMD.LoadHelperArgument(bailOutCall, frameRegOpnd);
-        this->lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
-
-        this->func->m_bailOutNoSaveLabel = bailOutNoSaveLabel;
-        LABELNAMESET(bailOutNoSaveLabel, "GeneratorBailOutForElidedYield");
-    }
-}
-
-void
 Lowerer::LowerGeneratorHelper::EnsureEpilogueLabels()
 {
     if (epilogueForBailOut != nullptr && epilogueForReturnStatements != nullptr)
@@ -29131,12 +29087,12 @@ Lowerer::LowerGeneratorHelper::EnsureEpilogueLabels()
         return;
     }
 
-    IR::LabelInstr* withSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueFrameNullOut, this->func, false);
+    IR::LabelInstr* withSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueFrameNullOutLabel, this->func, false);
     LABELNAMESET(withSignalGeneratorDone, "Epilogue_WithSignalGeneratorDone");
     withSignalGeneratorDone->m_hasNonBranchRef = true;
     this->epilogueForReturnStatements = withSignalGeneratorDone;
 
-    IR::LabelInstr* withoutSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueNoFrameNullOut, this->func, false);
+    IR::LabelInstr* withoutSignalGeneratorDone = IR::LabelInstr::New(Js::OpCode::GeneratorEpilogueNoFrameNullOutLabel, this->func, false);
     LABELNAMESET(withoutSignalGeneratorDone, "Epilogue_NoSignalGeneratorDone");
     withoutSignalGeneratorDone->m_hasNonBranchRef = true;
     this->epilogueForBailOut = withoutSignalGeneratorDone;
@@ -29166,28 +29122,74 @@ Lowerer::LowerGeneratorHelper::LowerGeneratorResumeJumpTable(IR::Instr* jumpTabl
     Assert(this->func->GetJITFunctionBody()->IsCoroutine());
     Assert(jumpTableInstr->m_opcode == Js::OpCode::GeneratorResumeJumpTable);
 
+    IR::LabelInstr* bailOutForElidedYield = this->InsertBailOutForElidedYield();
+
     IR::Opnd* srcOpnd = jumpTableInstr->UnlinkSrc1();
 
-    this->func->MapYieldOffsetResumeLabels([this, &srcOpnd, &jumpTableInstr](int i, const YieldOffsetResumeLabel& yorl)
+    this->func->MapYieldOffsetResumeLabels([this, &srcOpnd, &jumpTableInstr, &bailOutForElidedYield](int i, const YieldOffsetResumeLabel& yorl)
     {
         uint32 offset = yorl.First();
-        IR::LabelInstr* label = yorl.Second();
+        IR::LabelInstr* resumeLabel = yorl.Second();
 
-        if (label != nullptr && label->m_hasNonBranchRef)
+        if (resumeLabel != nullptr)
         {
+            Assert(resumeLabel->IsGeneratorBailInInstr());
             // Also fix up the bailout at the label with the jump to epilog that was not emitted in GenerateBailOut()
-            this->lowerer->GenerateJumpToEpilogForBailOut(label->m_prev->GetBailOutInfo(), label->m_prev, this->GetEpilogueForBailOut());
+            this->lowerer->GenerateJumpToEpilogForBailOut(resumeLabel->m_prev->GetBailOutInfo(), resumeLabel->m_prev, this->GetEpilogueForBailOut());
         }
-        else if (label == nullptr)
+        else if (resumeLabel == nullptr)
         {
-            label = this->func->m_bailOutNoSaveLabel;
+            resumeLabel = bailOutForElidedYield;
         }
 
         // For each offset label pair, insert a compare of the offset and branch if equal to the label
-        this->lowerer->InsertCompareBranch(srcOpnd, IR::IntConstOpnd::New(offset, TyUint32, this->func), Js::OpCode::BrSrEq_A, label, jumpTableInstr);
+        this->lowerer->InsertCompareBranch(srcOpnd, IR::IntConstOpnd::New(offset, TyUint32, this->func), Js::OpCode::BrSrEq_A, resumeLabel, jumpTableInstr);
     });
 
     jumpTableInstr->Remove();
+}
+
+IR::LabelInstr*
+Lowerer::LowerGeneratorHelper::InsertBailOutForElidedYield()
+{
+    IR::LabelInstr* bailOutNoSaveLabel = nullptr;
+
+    this->func->MapUntilYieldOffsetResumeLabels([this, &bailOutNoSaveLabel](int, const YieldOffsetResumeLabel& yorl)
+    {
+        if (yorl.Second() == nullptr)
+        {
+            if (bailOutNoSaveLabel == nullptr)
+            {
+                bailOutNoSaveLabel = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+            }
+
+            return true;
+        }
+
+        return false;
+    });
+
+    // Insert the bailoutnosave label somewhere along with a call to BailOutNoSave helper
+    if (bailOutNoSaveLabel != nullptr)
+    {
+        bailOutNoSaveLabel->m_hasNonBranchRef = true;
+
+        IR::Instr* insertionPoint = this->func->m_bailOutForElidedYieldInsertionPoint->m_next;
+        IR::Instr* bailOutCall = IR::Instr::New(Js::OpCode::Call, this->func);
+        IR::Instr* branchToEpilogue = IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, this->GetEpilogueForBailOut(), this->func);
+
+        insertionPoint->InsertBefore(bailOutNoSaveLabel);
+        insertionPoint->InsertBefore(bailOutCall);
+        insertionPoint->InsertBefore(branchToEpilogue);
+
+        IR::RegOpnd* frameRegOpnd = IR::RegOpnd::New(nullptr, LowererMD::GetRegFramePointer(), TyMachPtr, this->func);
+        this->lowererMD.LoadHelperArgument(bailOutCall, frameRegOpnd);
+        this->lowererMD.ChangeToHelperCall(bailOutCall, IR::HelperNoSaveRegistersBailOutForElidedYield);
+
+        LABELNAMESET(bailOutNoSaveLabel, "GeneratorBailOutForElidedYield");
+    }
+
+    return bailOutNoSaveLabel;
 }
 
 void

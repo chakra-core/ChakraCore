@@ -320,8 +320,9 @@ public:
 private:
 
     // Other
+    void                    KillSymToValueMapForGeneratorYield();
 public:
-    void                    KillStateForGeneratorYield();
+    void                    KillStateForGeneratorYield(IR::Instr *yieldInstr);
 
     // Debug
 public:

@@ -15,6 +15,7 @@ class IRBuilderAsmJs;
 class FlowGraph;
 class GlobOpt;
 class BailOutInfo;
+class GeneratorBailInInfo;
 class SCCLiveness;
 
 struct LazyBailOutRecord;
@@ -53,7 +54,7 @@ struct CapturedValues
         refCount++;
     }
 
-    void CopyTo(JitArenaAllocator *allocator, CapturedValues *other)
+    void CopyTo(JitArenaAllocator *allocator, CapturedValues *other) const
     {
         Assert(other != nullptr);
         this->constantValues.CopyTo(allocator, other->constantValues);
@@ -117,6 +118,7 @@ class ProfiledLabelInstr;
 class MultiBranchInstr;
 class PragmaInstr;
 class ByteCodeUsesInstr;
+class GeneratorBailInInstr;
 
 class Opnd;
 class RegOpnd;
@@ -154,8 +156,8 @@ const int32 InvalidInstrLayout = -1;
 ///     ExitInstr
 ///     PragmaInstr
 ///     BailoutInstr
-///     ByteCoteUsesInstr
-///
+///     ByteCodeUsesInstr
+///     GeneratorBailInInstr
 ///---------------------------------------------------------------------------
 
 class Instr
@@ -220,6 +222,9 @@ public:
     BranchInstr *   AsBranchInstr();
     bool            IsLabelInstr() const;
     LabelInstr *    AsLabelInstr();
+    bool            IsGeneratorBailInInstr() const;
+    GeneratorBailInInstr * AsGeneratorBailInInstr();
+
     bool            IsJitProfilingInstr() const;
     JitProfilingInstr * AsJitProfilingInstr();
     bool            IsProfiledInstr() const;
@@ -871,6 +876,7 @@ public:
     {
 #if DBG
         m_isMultiBranch = false;
+        m_isHelperToNonHelperBranch = false;
         m_leaveConvToBr = false;
 #endif
     }
@@ -1106,6 +1112,58 @@ public:
 #endif
     PragmaInstr * ClonePragma();
     PragmaInstr * CopyPragma();
+};
+
+class GeneratorBailInInstr : public LabelInstr
+{
+private:
+    GeneratorBailInInstr(JitArenaAllocator* allocator, IR::Instr* yieldInstr):
+        LabelInstr(allocator), allocator(allocator), yieldInstr(yieldInstr), upwardExposedUses(allocator)
+    {
+        Assert(yieldInstr != nullptr && yieldInstr->m_opcode == Js::OpCode::Yield);
+        this->usedCapturedValues = JitAnew(allocator, CapturedValues);
+    }
+
+    JitArenaAllocator* const allocator;
+    IR::Instr* const yieldInstr;
+    CapturedValues* usedCapturedValues;
+    BVSparse<JitArenaAllocator> upwardExposedUses;
+
+public:
+    static GeneratorBailInInstr* New(IR::Instr* yieldInstr, Func* func);
+    
+    IR::Instr* GetYieldInstr() const
+    {
+        return this->yieldInstr;
+    }
+
+    const CapturedValues& GetCapturedValues() const
+    {
+        return *this->usedCapturedValues;
+    }
+
+    const BVSparse<JitArenaAllocator>& GetUpwardExposedUses() const
+    {
+        return this->upwardExposedUses;
+    }
+
+    void SetCopyPropSyms(const SListBase<CopyPropSyms>& copyPropSyms)
+    {
+        this->usedCapturedValues->copyPropSyms.Clear(this->allocator);
+        copyPropSyms.CopyTo(this->allocator , this->usedCapturedValues->copyPropSyms);
+    }
+
+    void SetConstantValues(const SListBase<ConstantStackSymValue>& constantValues)
+    {
+        this->usedCapturedValues->constantValues.Clear(this->allocator);
+        constantValues.CopyTo(this->allocator, this->usedCapturedValues->constantValues);
+    }
+
+    void SetUpwardExposedUses(const BVSparse<JitArenaAllocator>& other)
+    {
+        this->upwardExposedUses.ClearAll();
+        this->upwardExposedUses.Or(&other);
+    }
 };
 
 template <typename InstrType>

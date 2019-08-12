@@ -256,28 +256,68 @@ private:
             IR::Instr* instrInsertRegSym;
         };
 
+        // Represents a symbol that needs to be restored when bailing in.
+        // In normal cases, for a given symbol, whatever bytecode registers that the
+        // symbol has will map directly to the backend symbol with the same id.
+        // However, due to copy-prop, sometimes we would use a different symbol for a given value.
+        // This struct keep track of that fact and generate the restore instruction accordingly.
+        // Additionally, for symbols that are constant but not in the bytecode constant table, we have
+        // to reload the symbol's value directly.
+        struct BailInSymbol
+        {
+            const SymID fromByteCodeRegSlot;
+            const SymID toBackendId;
+            const bool restoreConstDirectly : 1;
+            const Js::Var constValue;
+            BailInSymbol(SymID fromByteCodeRegSlot, SymID toBackendId, bool restoreConstDirectly = false, Js::Var constValue = nullptr):
+                fromByteCodeRegSlot(fromByteCodeRegSlot),
+                toBackendId(toBackendId),
+                restoreConstDirectly(restoreConstDirectly),
+                constValue(constValue) {}
+        };
+
         Func* const func;
         LinearScan* const linearScan;
         const JITTimeFunctionBody* const jitFnBody;
         BVSparse<JitArenaAllocator> initializedRegs;
+        SListBase<BailInSymbol>* bailInSymbols;
 
+        // Registers needed in the bail-in code.
+        // The register allocator will have to spill these
+        // so that we are free to use them.
         static constexpr int regNum = 2;
         const RegNum regs[regNum];
         IR::RegOpnd* const interpreterFrameRegOpnd;
         IR::RegOpnd* const tempRegOpnd;
 
-        bool NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const;
+        bool NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const;
+        bool NeedsReloadingSymWhenBailingIn(StackSym* sym) const;
         uint32 GetOffsetFromInterpreterStackFrame(Js::RegSlot regSlot) const;
         IR::SymOpnd* CreateGeneratorObjectOpnd() const;
 
-        void InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint);
+        // Insert instructions to restore symbols in the `bailInSymbols` list
+        void InsertRestoreSymbols(
+            const BVSparse<JitArenaAllocator>& bytecodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues,
+            BailInInsertionPoint& insertionPoint
+        );
+
+        // Fill `bailInSymbols` list with all of the symbols that need to be restored
+        void BuildBailInSymbolList(
+            const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
+            const BVSparse<JitArenaAllocator>& upwardExposedUses,
+            const CapturedValues& capturedValues
+        );
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         void InsertBailInTrace(BVSparse<JitArenaAllocator>* symbols, IR::Instr* insertBeforeInstr);
 #endif
     public:
         GeneratorBailIn(Func* func, LinearScan* linearScan);
-        IR::Instr* GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo);
+        ~GeneratorBailIn();
+        IR::Instr* GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr);
+        // Spill all registers that we need in order to generate the bail-in code
         void SpillRegsForBailIn();
     };
 

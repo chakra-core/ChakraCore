@@ -373,6 +373,7 @@ public:
     uint8                isDead:1;
     uint8                isLoopHeader:1;
     uint8                hasCall:1;
+    uint8                hasYield:1;
     uint8                isVisited:1;
     uint8                isAirLockCompensationBlock:1;
     uint8                beginsBailOnNoProfile:1;
@@ -431,6 +432,7 @@ private:
         isDead(false),
         isLoopHeader(false),
         hasCall(false),
+        hasYield(false),
         liveFixedFields(nullptr),
         upwardExposedUses(nullptr),
         upwardExposedFields(nullptr),
@@ -616,6 +618,7 @@ public:
     bool                hasDeadStoreCollectionPass : 1;
     bool                hasDeadStorePrepass : 1;
     bool                hasCall : 1;
+    bool                hasYield : 1;
     bool                hasHoistedFields : 1;
     bool                needImplicitCallBailoutChecksForJsArrayCheckHoist : 1;
     bool                allFieldsKilled : 1;
@@ -765,6 +768,7 @@ public:
     bool                CanHoistInvariants() const;
     bool                CanDoFieldCopyProp();
     void                SetHasCall();
+    void                SetHasYield();
     IR::LabelInstr *    GetLoopTopInstr() const;
     void                SetLoopTopInstr(IR::LabelInstr * loopTop);
     Func *              GetFunc() const { return GetLoopTopInstr()->m_func; }

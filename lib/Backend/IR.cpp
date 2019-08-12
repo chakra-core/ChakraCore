@@ -1654,9 +1654,6 @@ BranchInstr::New(Js::OpCode opcode, LabelInstr * branchTarget, Func *func)
     branchInstr->m_src1 = nullptr;
     branchInstr->m_src2 = nullptr;
     branchInstr->m_byteCodeReg = Js::Constants::NoRegister;
-#if DBG
-    branchInstr->m_isHelperToNonHelperBranch = false;
-#endif
 
     return branchInstr;
 }
@@ -4248,6 +4245,14 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult, IRTyp
 
     *pResult = value;
     return true;
+}
+
+GeneratorBailInInstr*
+GeneratorBailInInstr::New(IR::Instr* yieldInstr, Func* func)
+{
+    GeneratorBailInInstr* labelInstr = JitAnew(func->m_alloc, IR::GeneratorBailInInstr, func->m_alloc, yieldInstr);
+    labelInstr->Init(Js::OpCode::GeneratorBailInLabel, InstrKindLabel, func, false /* isOpHelper */);
+    return labelInstr;
 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS

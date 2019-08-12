@@ -31,7 +31,7 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
 
     block->globOptData.changedSyms->ClearAll();
 
-    FOREACH_GLOBHASHTABLE_ENTRY(bucket, block->globOptData.symToValueMap)
+    FOREACH_VALUEHASHTABLE_ENTRY(GlobHashBucket, bucket, block->globOptData.symToValueMap)
     {
         value = bucket.element;
         valueInfo = value->GetValueInfo();
@@ -48,7 +48,7 @@ GlobOpt::CaptureValuesFromScratch(BasicBlock * block,
         }
         block->globOptData.changedSyms->Set(sym->m_id);
     }
-    NEXT_GLOBHASHTABLE_ENTRY;
+    NEXT_VALUEHASHTABLE_ENTRY;
 
     if (argsToCapture)
     {
@@ -239,14 +239,6 @@ GlobOpt::CaptureValuesIncremental(BasicBlock * block,
 void
 GlobOpt::CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator>* argsToCapture)
 {
-    if (!this->func->DoGlobOptsForGeneratorFunc())
-    {
-        // TODO[generators][ianhall]: Enable constprop and copyprop for generator functions; see GlobOpt::CopyProp()
-        // Even though CopyProp is disabled for generator functions we must also not put the copy-prop sym into the
-        // bailOutInfo so that the bailOutInfo keeps track of the key sym in its byteCodeUpwardExposed list.
-        return;
-    }
-
     CapturedValues capturedValues;
     SListBase<ConstantStackSymValue>::EditingIterator bailOutConstValuesIter(&capturedValues.constantValues);
     SListBase<CopyPropSyms>::EditingIterator bailOutCopySymsIter(&capturedValues.copyPropSyms);

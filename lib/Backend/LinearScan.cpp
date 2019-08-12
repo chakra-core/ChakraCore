@@ -146,8 +146,6 @@ LinearScan::RegAlloc()
     }
 
     m_bailOutRecordCount = 0;
-    IR::Instr * insertBailInAfter = nullptr;
-    BailOutInfo * bailOutInfoForBailIn = nullptr;
     bool endOfBasicBlock = true;
     FOREACH_INSTR_EDITING(instr, instrNext, currentInstr)
     {
@@ -249,21 +247,6 @@ LinearScan::RegAlloc()
             }
 
             this->FillBailOutRecord(instr);
-            if (instr->GetBailOutKind() == IR::BailOutForGeneratorYield)
-            {
-                Assert(insertBailInAfter == nullptr);
-                bailOutInfoForBailIn = instr->GetBailOutInfo();
-                insertBailInAfter = instr->m_next;
-
-                // Insert right after the GeneratorBailInLabel
-                // The register allocator might insert some compensation code between
-                // the BailOutForGeneratorYield and the GeneratorBailInLabel, so our
-                // bail-in insertion point is not necessarily always the next instruction.
-                while (insertBailInAfter != nullptr && insertBailInAfter->m_opcode != Js::OpCode::GeneratorBailInLabel)
-                {
-                    insertBailInAfter = insertBailInAfter->m_next;
-                }
-            }
         }
 
         this->SetSrcRegs(instr);
@@ -304,11 +287,9 @@ LinearScan::RegAlloc()
             endOfBasicBlock = true;
         }
 
-        if (insertBailInAfter == instr)
+        if (instr->IsGeneratorBailInInstr())
         {
-            instrNext = this->bailIn.GenerateBailIn(instr, bailOutInfoForBailIn);
-            insertBailInAfter = nullptr;
-            bailOutInfoForBailIn = nullptr;
+            instrNext = this->bailIn.GenerateBailIn(instr->AsGeneratorBailInInstr());
         }
     } NEXT_INSTR_EDITING;
 
@@ -1485,7 +1466,6 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     // Fill in the constants
     FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->usedCapturedValues->constantValues, constantValuesIterator)
     {
-        AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "constant prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = value.Key();
         if(stackSym->HasArgSlotNum())
         {
@@ -1528,7 +1508,6 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     // Fill in the copy prop syms
     FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->usedCapturedValues->copyPropSyms, copyPropSymsIter)
     {
-        AssertMsg(bailOutInfo->bailOutRecord->bailOutKind != IR::BailOutForGeneratorYield, "copy prop syms unexpected for bail-in for generator yield");
         StackSym * stackSym = copyPropSyms.Key();
         if(stackSym->HasArgSlotNum())
         {
@@ -4978,8 +4957,20 @@ LinearScan::GeneratorBailIn::GeneratorBailIn(Func* func, LinearScan* linearScan)
     // so no need to restore.
     this->initializedRegs.Set(this->jitFnBody->GetYieldReg());
 
-    // The environment is loaded before the resume jump table, no need to restore either.
+    // The environment is loaded before the resume jump table. At bail-in point, it can either
+    // still be in register or already spilled. If it's in register we're good. If it's been spilled,
+    // the register allocator should have inserted compensation code before the bail-in block, so we
+    // are still fine there.
     this->initializedRegs.Set(this->jitFnBody->GetEnvReg());
+
+    this->bailInSymbols = JitAnew(this->func->m_alloc, SListBase<BailInSymbol>);
+}
+
+LinearScan::GeneratorBailIn::~GeneratorBailIn()
+{
+    this->bailInSymbols->Clear(this->func->m_alloc);
+    this->bailInSymbols->Reset();
+    JitAdelete(this->func->m_alloc, this->bailInSymbols);
 }
 
 void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
@@ -5011,14 +5002,16 @@ void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
 //
 //   MOV sym(register), [rax + regslot offset]
 //
-IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelInstr, BailOutInfo* bailOutInfo)
+IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr)
 {
+    BailOutInfo* bailOutInfo = bailInInstr->GetYieldInstr()->GetBailOutInfo();
+
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->constantValues.Empty());
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->copyPropSyms.Empty());
     Assert(!bailOutInfo->liveLosslessInt32Syms || bailOutInfo->liveLosslessInt32Syms->IsEmpty());
     Assert(!bailOutInfo->liveFloat64Syms || bailOutInfo->liveFloat64Syms->IsEmpty());
 
-    IR::Instr* instrAfter = resumeLabelInstr->m_next;
+    IR::Instr* instrAfter = bailInInstr->m_next;
 
     // 1) Load the generator object that was passed as one of the arguments to the jitted frame
     LinearScan::InsertMove(this->interpreterFrameRegOpnd, this->CreateGeneratorObjectOpnd(), instrAfter);
@@ -5049,7 +5042,19 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelIns
     // this->InsertRestoreSymbols(bailOutInfo->capturedValues->argObjSyms, insertionPoint, saveInitializedReg);
     // 
     // - We move all argout symbols right before the call so we don't need to restore argouts either
-    this->InsertRestoreSymbols(bailOutInfo->byteCodeUpwardExposedUsed, insertionPoint);
+
+    this->BuildBailInSymbolList(
+        *bailOutInfo->byteCodeUpwardExposedUsed,
+        bailInInstr->GetUpwardExposedUses(),
+        bailInInstr->GetCapturedValues()
+    );
+
+    this->InsertRestoreSymbols(
+        *bailOutInfo->byteCodeUpwardExposedUsed,
+        bailInInstr->GetUpwardExposedUses(),
+        bailInInstr->GetCapturedValues(),
+        insertionPoint
+    );
     Assert(!this->func->IsStackArgsEnabled());
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -5064,36 +5069,177 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::Instr* resumeLabelIns
     return instrAfter;
 }
 
-void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BVSparse<JitArenaAllocator>* symbols, BailInInsertionPoint& insertionPoint)
+void LinearScan::GeneratorBailIn::BuildBailInSymbolList(
+    const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
+    const BVSparse<JitArenaAllocator>& upwardExposedUses,
+    const CapturedValues& capturedValues
+)
 {
-    if (symbols == nullptr)
-    {
-        return;
-    }
+    this->bailInSymbols->Clear(this->func->m_alloc);
 
-    FOREACH_BITSET_IN_SPARSEBV(symId, symbols)
+    // Make sure that all symbols in `upwardExposedUses` can be restored.
+    // The idea is to first assume that we cannot restore any of the symbols.
+    // Then we use the information in `byteCodeUpwardExposedUses` and `capturedValues`
+    // which contains information about symbols in the bytecode, copy-prop'd symbols, and
+    // symbols with constant values. As we go through these lists, we clear the
+    // bits in `unrestorableSymbols` to indicate that they can be restored. At the
+    // end, the bitvector has to be empty.
+
+    // Assume all symbols cannot be restored.
+    BVSparse<JitArenaAllocator> unrestorableSymbols(this->func->m_alloc);
+    unrestorableSymbols.Or(&upwardExposedUses);
+
+    unrestorableSymbols.Minus(&this->initializedRegs);
+
+    // Symbols in byteCodeUpwardExposedUses are restorable.
+    // If a symbol is in byteCodeUpwardExposedUses, which means that it is not
+    // a constant nor a copy-prop candidate. In such cases, we can simply map
+    // the bytecode register directly to its backend id.
+    FOREACH_BITSET_IN_SPARSEBV(symId, &byteCodeUpwardExposedUses)
     {
         StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
-        Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
-
-        if (!this->NeedsReloadingValueWhenBailIn(stackSym, lifetime))
+        Assert(stackSym);
+        unrestorableSymbols.Clear(symId);
+        if (this->NeedsReloadingSymWhenBailingIn(stackSym))
         {
-            continue;
+            BailInSymbol bailInSym(symId /* fromByteCodeRegSlot */, symId /* toBackendId */);
+            bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
         }
+    }
+    NEXT_BITSET_IN_SPARSEBV;
 
-        Js::RegSlot regSlot = stackSym->GetByteCodeRegSlot();
-        IR::Opnd* srcOpnd = IR::IndirOpnd::New(
-            this->interpreterFrameRegOpnd,
-            this->GetOffsetFromInterpreterStackFrame(regSlot),
-            stackSym->GetType(),
-            this->func
-        );
+    // Symbols that were copy-prop'd.
+    // Example:
+    // `copyPropSyms` having an entry { s_key : s_value } means that we can use `s_key`
+    // in place of `s_value`.
+    //
+    //  1) if we find `s_value` at this point (after clearing all symbols in
+    //     `bytecodeUpwardExposedUses`), it means that `s_value` is a backend-only
+    //     symbol, and that the only way to restore this symbol is through `s_key`.
+    //     Since in `FillBailOutRecord`, we make sure to restore all symbols that are
+    //     keys in in `usedCapturedValues`, we can simply use `s_key` to restore the value
+    //     for `s_value`.
+    //  2) if we find `s_key`, then we can just map directly the value due to the above reason.
+    FOREACH_SLISTBASE_ENTRY(CopyPropSyms, copyPropSym, &capturedValues.copyPropSyms)
+    {
+        Sym* key = copyPropSym.Key();
+        Sym* value = copyPropSym.Value();
+
+#if DBG
+        if (unrestorableSymbols.Test(value->m_id) || unrestorableSymbols.Test(key->m_id))
+        {
+            Assert(key->IsStackSym() && (key->AsStackSym()->HasByteCodeRegSlot() || key->AsStackSym()->IsFromByteCodeConstantTable()));
+        }
+#endif
+
+        if (unrestorableSymbols.TestAndClear(value->m_id))
+        {
+            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
+            {
+                BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, value->m_id /* toBackendId */);
+                bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
+            }
+        }
+        else if (unrestorableSymbols.TestAndClear(key->m_id))
+        {
+            if (this->NeedsReloadingSymWhenBailingIn(copyPropSym.Key()))
+            {
+                BailInSymbol bailInSym(key->m_id /* fromByteCodeRegSlot */, key->m_id /* toBackendId */);
+                bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
+            }
+        }
+    }
+    NEXT_SLISTBASE_ENTRY;
+
+    // Used constant values.
+    // These symbols are can be mapped directly.
+    FOREACH_SLISTBASE_ENTRY(ConstantStackSymValue, entry, &capturedValues.constantValues)
+    {
+        SymID symId = entry.Key()->m_id;
+        if (unrestorableSymbols.TestAndClear(symId))
+        {
+            StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
+            Assert(stackSym);
+            if (this->NeedsReloadingSymWhenBailingIn(stackSym))
+            {
+                BailoutConstantValue constValue = entry.Value();
+                Js::Var varValue = constValue.ToVar(this->func);
+                Assert(!stackSym->IsFromByteCodeConstantTable());
+                BailInSymbol bailInSym(
+                    symId /* fromByteCodeRegSlot */,
+                    symId /* toBackendId */,
+                    true /* restoreConstDirectly */,
+                    varValue
+                );
+                bailInSymbols->PrependNode(this->func->m_alloc, bailInSym);
+            }
+        }
+    }
+    NEXT_SLISTBASE_ENTRY;
+
+    // Clear all symbols that don't need to be restored.
+    FOREACH_BITSET_IN_SPARSEBV_EDITING(symId, &unrestorableSymbols)
+    {
+        StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
+        Assert(stackSym);
+        Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
+        if (
+            // Special backend symbols that don't need to be restored
+            (!stackSym->HasByteCodeRegSlot() && !this->NeedsReloadingBackendSymWhenBailingIn(stackSym)) ||
+            // Symbols already in the constant table don't need to be restored either
+            stackSym->IsFromByteCodeConstantTable() ||
+            // Symbols having no lifetimes
+            lifetime == nullptr
+        )
+        {
+            unrestorableSymbols.Clear(stackSym->m_id);
+        }
+    }
+    NEXT_BITSET_IN_SPARSEBV_EDITING;
+
+    AssertOrFailFastMsg(unrestorableSymbols.IsEmpty(), "There are unrestorable backend-only symbols across yield points");
+}
+
+void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
+    const BVSparse<JitArenaAllocator>& byteCodeUpwardExposedUses,
+    const BVSparse<JitArenaAllocator>& upwardExposedUses,
+    const CapturedValues& capturedValues,
+    BailInInsertionPoint& insertionPoint
+)
+{
+    FOREACH_SLISTBASE_ENTRY(BailInSymbol, bailInSymbol, this->bailInSymbols)
+    {
+        StackSym* dstSym = this->func->m_symTable->FindStackSym(bailInSymbol.toBackendId);
+        Lifetime* lifetime = dstSym->scratch.linearScan.lifetime;
+        Assert(lifetime);
+
+        StackSym* copyPropStackSym = this->func->m_symTable->FindStackSym(bailInSymbol.fromByteCodeRegSlot);
+        Js::RegSlot regSlot = copyPropStackSym->GetByteCodeRegSlot();
+        IR::Opnd* srcOpnd;
+        
+        if (bailInSymbol.restoreConstDirectly)
+        {
+            srcOpnd = IR::AddrOpnd::New(bailInSymbol.constValue, IR::AddrOpndKind::AddrOpndKindDynamicVar, this->func);
+        }
+        else
+        {
+            srcOpnd = IR::IndirOpnd::New(
+                this->interpreterFrameRegOpnd,
+                this->GetOffsetFromInterpreterStackFrame(regSlot),
+                copyPropStackSym->GetType(),
+                this->func
+            );
+        }
 
         if (lifetime->isSpilled)
         {
-            Assert(!stackSym->IsConst());
+#if DBG
+            AssertMsg(!dstSym->IsConst(), "We don't need to restore constant symbol that has already been spilled");
+            // Supress assert in DbPostCheckLower
+            dstSym->m_allocated = true;
+#endif
             // Stack restores require an extra register since we can't move an indir directly to an indir on amd64
-            IR::SymOpnd* dstOpnd = IR::SymOpnd::New(stackSym, stackSym->GetType(), this->func);
+            IR::SymOpnd* dstOpnd = IR::SymOpnd::New(dstSym, dstSym->GetType(), this->func);
             LinearScan::InsertMove(this->tempRegOpnd, srcOpnd, insertionPoint.instrInsertStackSym);
             LinearScan::InsertMove(dstOpnd, this->tempRegOpnd, insertionPoint.instrInsertStackSym);
         }
@@ -5106,13 +5252,13 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BVSparse<JitArenaAllocato
 
             IR::Instr* instr;
 
-            if (stackSym->IsConst())
+            if (dstSym->IsConst())
             {
-                instr = this->linearScan->InsertLoad(insertionPoint.instrInsertRegSym, stackSym, lifetime->reg);
+                instr = this->linearScan->InsertLoad(insertionPoint.instrInsertRegSym, dstSym, lifetime->reg);
             }
             else
             {
-                IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(stackSym, stackSym->GetType(), this->func);
+                IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(dstSym, dstSym->GetType(), this->func);
                 dstRegOpnd->SetReg(lifetime->reg);
                 instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, insertionPoint.instrInsertRegSym);
             }
@@ -5134,8 +5280,7 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BVSparse<JitArenaAllocato
 
                 if (insertionPoint.raxRestoreInstr != nullptr)
                 {
-                    AssertMsg(false, "this is unexpected until copy prop is enabled");
-                    // rax was mapped to multiple bytecode registers.  Obviously only the first
+                    // rax was mapped to multiple bytecode registers. Obviously only the first
                     // restore we do will work so change all following stores to `mov rax, rax`.
                     // We still need to keep them around for RecordDef in case the corresponding
                     // dst sym is spilled later on.
@@ -5149,38 +5294,46 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(BVSparse<JitArenaAllocato
             this->linearScan->RecordDef(lifetime, instr, 0);
         }
     }
-    NEXT_BITSET_IN_SPARSEBV;
+    NEXT_SLISTBASE_ENTRY;
 }
 
-bool LinearScan::GeneratorBailIn::NeedsReloadingValueWhenBailIn(StackSym* sym, Lifetime* lifetime) const
+bool LinearScan::GeneratorBailIn::NeedsReloadingBackendSymWhenBailingIn(StackSym* sym) const
 {
-    if (sym->IsConst())
-    {
-        if (this->func->GetJITFunctionBody()->RegIsConstant(sym->GetByteCodeRegSlot()))
-        {
-            // Resume jump table is inserted after we load symbols in the constant table,
-            // so at bail-in point, we can have two scenarios:
-            //  1) the symbols are still in registers
-            //  2) the symbols have already been "spilled"
-            // Since we don't save/restore constant symbols and simply insert loads of their
-            // values before use, in either case, there is no need to reload the values
-            return false;
-        }
-        else
-        {
-            // Again, for all other constant symbols, if they are bytecodeUpwardExposed and they have
-            // already been "spilled", which means that the register allocator will automatically
-            // insert the load of their values later before use, we don't need to restore.
-            // Only restore symbols that are still in registers
-            return !lifetime->isSpilled;
-        }
-    }
-
-    // If we have for-in in the generator, don't need to reload the symbol again as it is done
-    // during the resume jump table
+    // for-in enumerator in generator is loaded as part of the resume jump table.
+    // By the same reasoning as `initializedRegs`'s, we don't have to restore this whether or not it's been spilled.
     if (this->func->GetForInEnumeratorSymForGeneratorSym() && this->func->GetForInEnumeratorSymForGeneratorSym()->m_id == sym->m_id)
     {
         return false;
+    }
+
+    return true;
+}
+
+bool LinearScan::GeneratorBailIn::NeedsReloadingSymWhenBailingIn(StackSym* sym) const
+{
+    if (sym->IsFromByteCodeConstantTable())
+    {
+        // Resume jump table is inserted after we load symbols in the constant table,
+        // so at bail-in point, we can have two scenarios:
+        //  1) the symbols are still in registers
+        //  2) the symbols have already been "spilled"
+        // Since we don't save/restore constant symbols and simply insert loads of their
+        // values before use, in either case, there is no need to reload the values
+        return false;
+    }
+
+    if (!sym->HasByteCodeRegSlot())
+    {
+        return this->NeedsReloadingBackendSymWhenBailingIn(sym);
+    }
+
+    if (sym->IsConst())
+    {
+        // For all other constant symbols, if they are bytecodeUpwardExposed and they have
+        // already been "spilled", which means that the register allocator will automatically
+        // insert the load of their values later before use, we don't need to restore.
+        // Only restore symbols that are still in registers
+        return !sym->scratch.linearScan.lifetime->isSpilled;
     }
 
     // Check for other special registers that are already initialized
@@ -5236,7 +5389,7 @@ void LinearScan::GeneratorBailIn::InsertBailInTrace(BVSparse<JitArenaAllocator>*
         StackSym* stackSym = this->func->m_symTable->FindStackSym(symId);
         Lifetime* lifetime = stackSym->scratch.linearScan.lifetime;
 
-        if (!this->NeedsReloadingValueWhenBailIn(stackSym, lifetime))
+        if (!this->NeedsReloadingSymWhenBailingIn(stackSym))
         {
             continue;
         }

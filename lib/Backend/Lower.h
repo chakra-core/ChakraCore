@@ -885,7 +885,7 @@ private:
         // They could still be hit if an active generator object had been paused at such a yield point when
         // the function body was JITed. So safe guard such a case by having the native code simply jump back
         // to the interpreter for such yield points.
-        void InsertBailOutForElidedYield();
+        IR::LabelInstr* InsertBailOutForElidedYield();
 
         void LowerGeneratorResumeJumpTable(IR::Instr* jumpTableInstr);
         void LowerCreateInterpreterStackFrameForGenerator(IR::Instr* instr);

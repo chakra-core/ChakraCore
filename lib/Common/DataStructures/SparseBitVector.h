@@ -36,10 +36,10 @@ typedef  BVUnit64 SparseBVUnit;
 #define FOREACH_BITSET_IN_SPARSEBV_EDITING(index, bv) \
 { \
     BVIndex index;  \
-    BVSparseNode * _curNodeEdit = (bv)->head; \
+    auto * _curNodeEdit = (bv)->head; \
     while (_curNodeEdit != nullptr) \
     { \
-        BVSparseNode * _next = _curNodeEdit->next; \
+        auto * _next = _curNodeEdit->next; \
         BVIndex _offset; \
         BVIndex _startIndex = _curNodeEdit->startIndex; \
         SparseBVUnit  _unit = _curNodeEdit->data; \
