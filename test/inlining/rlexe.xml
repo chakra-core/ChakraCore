@@ -109,6 +109,11 @@
   </test>
   <test>
     <default>
+      <files>applyBailoutArgs.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bugs.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simplejit -loopinterpretcount:1</compile-flags>
     </default>
