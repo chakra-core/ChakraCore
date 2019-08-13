@@ -17,6 +17,10 @@ namespace Js
 
         ResumeYieldData(Var data, JavascriptExceptionObject* exceptionObj, JavascriptGenerator* generator = nullptr) :
             data(data), exceptionObj(exceptionObj), generator(generator) {}
+
+        static uint32 GetOffsetOfData() { return offsetof(ResumeYieldData, data); }
+
+        static uint32 GetOffsetOfExceptionObject() { return offsetof(ResumeYieldData, exceptionObj); }
     };
 
     struct AsyncGeneratorRequest
