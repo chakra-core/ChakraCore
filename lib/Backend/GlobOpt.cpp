@@ -2695,7 +2695,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 }
 
 bool
-GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt, bool *isSafeToTransferInPrepass /*=nullptr*/) const
 {
     if (opnd == nullptr)
     {
@@ -2725,12 +2725,18 @@ GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
         {
             return true;
         }
+
+        bool isSafeToTransfer = this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        if (isSafeToTransferInPrepass != nullptr)
+        {
+            *isSafeToTransferInPrepass = isSafeToTransfer;
+        }
         if (this->prePassLoop->preservesNumberValue->Test(opnd->m_sym->m_id))
         {
             return false;
         }
 
-        return !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        return !isSafeToTransfer;
     }
 
     return true;
@@ -13144,6 +13150,37 @@ GlobOpt::OptArraySrc(IR::Instr ** const instrRef, Value ** src1Val, Value ** src
 }
 
 void
+GlobOpt::ProcessNoImplicitCallArrayUses(IR::RegOpnd * baseOpnd, IR::ArrayRegOpnd * baseArrayOpnd, IR::Instr * instr, bool isLikelyJsArray, bool useNoMissingValues)
+{
+    if (isLikelyJsArray)
+    {
+        // Insert an instruction to indicate to the dead-store pass that implicit calls need to be kept disabled until this
+        // instruction. Operations other than LdElem, StElem and IsIn don't benefit much from arrays having no missing values,
+        // so no need to ensure that the array still has no missing values. For a particular array, if none of the accesses
+        // benefit much from the no-missing-values information, it may be beneficial to avoid checking for no missing
+        // values, especially in the case for a single array access, where the cost of the check could be relatively
+        // significant. An StElem has to do additional checks in the common path if the array may have missing values, and
+        // a StElem that operates on an array that has no missing values is more likely to keep the no-missing-values info
+        // on the array more precise, so it still benefits a little from the no-missing-values info.
+        this->CaptureNoImplicitCallUses(baseOpnd, isLikelyJsArray);
+    }
+    else if (baseArrayOpnd && baseArrayOpnd->HeadSegmentLengthSym())
+    {
+        // A typed array's array buffer may be transferred to a web worker as part of an implicit call, in which case the typed
+        // array's length is set to zero. Insert an instruction to indicate to the dead-store pass that implicit calls need to
+        // be disabled until this instruction.
+        IR::RegOpnd *const headSegmentLengthOpnd =
+            IR::RegOpnd::New(
+                baseArrayOpnd->HeadSegmentLengthSym(),
+                baseArrayOpnd->HeadSegmentLengthSym()->GetType(),
+                instr->m_func);
+
+        const IR::AutoReuseOpnd autoReuseHeadSegmentLengthOpnd(headSegmentLengthOpnd, instr->m_func);
+        this->CaptureNoImplicitCallUses(headSegmentLengthOpnd, false);
+    }
+}
+
+void
 GlobOpt::CaptureNoImplicitCallUses(
     IR::Opnd *opnd,
     const bool usesNoMissingValuesInfo,
@@ -13464,6 +13501,7 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
                     case IR::HelperArray_Splice:
                     case IR::HelperArray_Unshift:
                     case IR::HelperArray_Concat:
+                    case IR::HelperArray_Slice:
                         kills.SetKillsArrayHeadSegments();
                         kills.SetKillsArrayHeadSegmentLengths();
                         break;
@@ -17031,11 +17069,27 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     }
 #endif
 
+    Assert(noImplicitCallUsesToInsert->Count() == 0);
+    bool isLikelyJsArray;
+    if (emitData->stElemInstr->GetDst()->IsIndirOpnd())
+    {
+        baseOpnd = emitData->stElemInstr->GetDst()->AsIndirOpnd()->GetBaseOpnd();
+        isLikelyJsArray = baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray();
+        ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, emitData->stElemInstr, isLikelyJsArray, true);
+    }
     RemoveMemOpSrcInstr(memopInstr, emitData->stElemInstr, emitData->block);
     if (!isMemset)
     {
+        if (((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->IsIndirOpnd())
+        {
+            baseOpnd = ((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
+            isLikelyJsArray = baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray();
+            ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, emitData->stElemInstr, isLikelyJsArray, true);
+        }
         RemoveMemOpSrcInstr(memopInstr, ((MemCopyEmitData*)emitData)->ldElemInstr, emitData->block);
     }
+    InsertNoImplicitCallUses(memopInstr);
+    noImplicitCallUsesToInsert->Clear();    
 }
 
 bool

@@ -2826,6 +2826,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             this->LowerConvPrimStr(instr);
             break;
 
+        case Js::OpCode::Conv_Prop:
+            this->LowerConvPropertyKey(instr);
+            break;
+
         case Js::OpCode::ClearAttributes:
             this->LowerBinaryHelper(instr, IR::HelperOP_ClearAttributes);
             break;
@@ -25472,6 +25476,12 @@ Lowerer::GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, I
     insertBeforeInstr->InsertBefore(doneLabel);
 
     return dstOpnd;
+}
+
+void
+Lowerer::LowerConvPropertyKey(IR::Instr* instr)
+{
+    LowerConvStrCommon(IR::HelperOp_ConvPropertyKey, instr);
 }
 
 void

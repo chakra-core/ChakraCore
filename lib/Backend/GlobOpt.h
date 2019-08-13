@@ -721,6 +721,7 @@ private:
 private:
     void                    CaptureNoImplicitCallUses(IR::Opnd *opnd, const bool usesNoMissingValuesInfo, IR::Instr *const includeCurrentInstr = nullptr);
     void                    InsertNoImplicitCallUses(IR::Instr *const instr);
+    void                    ProcessNoImplicitCallArrayUses(IR::RegOpnd * baseOpnd, IR::ArrayRegOpnd * baseArrayOpnd, IR::Instr * instr, bool isLikelyJsArray, bool useNoMissingValues);
     void                    PrepareLoopArrayCheckHoist();
 
 public:
@@ -773,7 +774,7 @@ private:
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
     void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd** srcOpndPtr, Value *const srcVal);
-    bool                    IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const;
+    bool                    IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt, bool *isSafeToTransferInPrepass = nullptr) const;
 
 public:
     static bool             IsTypeSpecPhaseOff(Func const * func);

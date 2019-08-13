@@ -670,6 +670,8 @@ private:
     void            LowerConvPrimStr(IR::Instr * instr);
     void            LowerConvStrCommon(IR::JnHelperMethod helper, IR::Instr * instr);
 
+    void            LowerConvPropertyKey(IR::Instr* instr);
+
     void            GenerateRecyclerAlloc(IR::JnHelperMethod allocHelper, size_t allocSize, IR::RegOpnd* newObjDst, IR::Instr* insertionPointInstr, bool inOpHelper = false);
 
     template <typename ArrayType>

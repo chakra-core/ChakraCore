@@ -225,7 +225,8 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse
     // - We check the type specialization status for the sym as well. For the purpose of doing kills, we can assume that
     //   if type specialization happened, that fields don't need to be killed. Note that they may be killed in the next
     //   pass based on the value.
-    if (func->GetThisOrParentInlinerHasArguments() || this->IsNonNumericRegOpnd(indexOpnd, inGlobOpt))
+    bool isSafeToTransfer = true;
+    if (func->GetThisOrParentInlinerHasArguments() || this->IsNonNumericRegOpnd(indexOpnd, inGlobOpt, &isSafeToTransfer))
     {
         this->KillAllFields(bv); // This also kills all property type values, as the same bit-vector tracks those stack syms
         SetAnyPropertyMayBeWrittenTo();
@@ -236,7 +237,7 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse
         ValueInfo * indexValueInfo = indexValue ? indexValue->GetValueInfo() : nullptr;
         int indexLowerBound = 0;
 
-        if (indirOpnd->GetOffset() < 0 || (indexOpnd && (!indexValueInfo || !indexValueInfo->TryGetIntConstantLowerBound(&indexLowerBound, false) || indexLowerBound < 0)))
+        if (!isSafeToTransfer || indirOpnd->GetOffset() < 0 || (indexOpnd && (!indexValueInfo || !indexValueInfo->TryGetIntConstantLowerBound(&indexLowerBound, false) || indexLowerBound < 0)))
         {
             // Write/delete to a non-integer numeric index can't alias a name on the RHS of a dot, but it change object layout
             this->KillAllObjectTypes(bv);
@@ -514,6 +515,18 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
                 {
                     // Deleting an item may change object layout
                     KillAllObjectTypes(bv);
+                }
+                break;
+
+            case IR::JnHelperMethod::HelperArray_Slice:
+            case IR::JnHelperMethod::HelperArray_Concat:
+                if (inGlobOpt && this->objectTypeSyms)
+                {
+                    if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
+                    {
+                        this->currentBlock->globOptData.maybeWrittenTypeSyms = JitAnew(this->alloc, BVSparse<JitArenaAllocator>, this->alloc);
+                    }
+                    this->currentBlock->globOptData.maybeWrittenTypeSyms->Or(this->objectTypeSyms);
                 }
                 break;
 

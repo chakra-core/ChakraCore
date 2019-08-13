@@ -5208,6 +5208,14 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(Op_DeleteElementI);
     }
 
+    Var JavascriptOperators::OP_ToPropertyKey(Js::Var argument, ScriptContext* scriptContext)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_ConvPropertyKey);
+        PropertyRecord const* unused = nullptr;
+        return JavascriptConversion::ToPropertyKey(argument, scriptContext, &unused, nullptr);
+        JIT_HELPER_END(Op_ConvPropertyKey);
+    }
+
     Var JavascriptOperators::OP_GetLength(Var instance, ScriptContext* scriptContext)
     {
         return JavascriptOperators::OP_GetProperty(instance, PropertyIds::length, scriptContext);

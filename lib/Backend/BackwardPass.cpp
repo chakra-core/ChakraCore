@@ -10,7 +10,6 @@
 BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
     : func(func), globOpt(globOpt), tag(tag), currentPrePassLoop(nullptr), tempAlloc(nullptr),
     preOpBailOutInstrToProcess(nullptr),
-    considerSymAsRealUseInNoImplicitCallUses(nullptr),
     isCollectionPass(false), currentRegion(nullptr),
     collectionPassSubPhase(CollectionPassSubPhase::None),
     isLoopPrepass(false)
@@ -412,6 +411,8 @@ BackwardPass::Optimize()
     candidateSymsRequiredToBeInt = &localCandidateSymsRequiredToBeInt;
     BVSparse<JitArenaAllocator> localCandidateSymsRequiredToBeLossyInt(tempAlloc);
     candidateSymsRequiredToBeLossyInt = &localCandidateSymsRequiredToBeLossyInt;
+    BVSparse<JitArenaAllocator> localConsiderSymsAsRealUsesInNoImplicitCallUses(tempAlloc);
+    considerSymsAsRealUsesInNoImplicitCallUses = &localConsiderSymsAsRealUsesInNoImplicitCallUses;
     intOverflowCurrentlyMattersInRange = true;
 
     FloatSymEquivalenceMap localFloatSymEquivalenceMap(tempAlloc);
@@ -3755,7 +3756,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         block->loop->regAlloc.liveOnBackEdgeSyms = block->upwardExposedUses->CopyNew(this->func->m_alloc);
     }
 
-    Assert(!considerSymAsRealUseInNoImplicitCallUses);
+    Assert(considerSymsAsRealUsesInNoImplicitCallUses->IsEmpty());
 
 #if DBG_DUMP
     TraceBlockUses(block, false);
@@ -4228,9 +4229,8 @@ BackwardPass::ProcessNoImplicitCallUses(IR::Instr *const instr)
             {
                 IR::RegOpnd *const regSrc = src->AsRegOpnd();
                 sym = regSrc->m_sym;
-                if(considerSymAsRealUseInNoImplicitCallUses && considerSymAsRealUseInNoImplicitCallUses == sym)
+                if(considerSymsAsRealUsesInNoImplicitCallUses->TestAndClear(sym->m_id))
                 {
-                    considerSymAsRealUseInNoImplicitCallUses = nullptr;
                     ProcessStackSymUse(sym->AsStackSym(), true);
                 }
                 if(regSrc->IsArrayRegOpnd())
@@ -4648,7 +4648,6 @@ BackwardPass::ProcessArrayRegOpndUse(IR::Instr *const instr, IR::ArrayRegOpnd *c
             // ProcessNoImplicitCallUses automatically marks JS array reg opnds and their corresponding syms as live. A typed
             // array's head segment length sym also needs to be marked as live at its use in the NoImplicitCallUses instruction,
             // but it is just in a reg opnd. Flag the opnd to have the sym be marked as live when that instruction is processed.
-            Assert(!considerSymAsRealUseInNoImplicitCallUses);
             IR::Opnd *const use =
                 FindNoImplicitCallUse(
                     instr,
@@ -4659,7 +4658,7 @@ BackwardPass::ProcessArrayRegOpndUse(IR::Instr *const instr, IR::ArrayRegOpnd *c
                     });
             if(use)
             {
-                considerSymAsRealUseInNoImplicitCallUses = arrayRegOpnd->HeadSegmentLengthSym();
+                considerSymsAsRealUsesInNoImplicitCallUses->Set(arrayRegOpnd->HeadSegmentLengthSym()->m_id);
             }
         }
     }
@@ -6555,6 +6554,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
             case Js::OpCode::Coerce_Regex:
             case Js::OpCode::Coerce_StrOrRegex:
             case Js::OpCode::Conv_PrimStr:
+            case Js::OpCode::Conv_Prop:
                 // These instructions don't generate -0, and their behavior is the same for any src that is -0 or +0
                 SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                 SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
