@@ -29252,11 +29252,35 @@ Lowerer::LowerGeneratorHelper::LowerGeneratorLoadResumeYieldData(IR::Instr* inst
 void
 Lowerer::LowerGeneratorHelper::LowerResumeGenerator(IR::Instr* instr)
 {
-    IR::Opnd* srcOpnd1 = instr->UnlinkSrc1();
-    IR::Opnd* srcOpnd2 = instr->m_opcode == Js::OpCode::ResumeYieldStar ? instr->UnlinkSrc2() : IR::AddrOpnd::NewNull(this->func);
-    this->lowererMD.LoadHelperArgument(instr, srcOpnd2);
-    this->lowererMD.LoadHelperArgument(instr, srcOpnd1);
-    this->lowererMD.ChangeToHelperCall(instr, IR::HelperResumeYield);
+    if (instr->m_opcode == Js::OpCode::ResumeYieldStar)
+    {
+        IR::Opnd* srcOpnd1 = instr->UnlinkSrc1();
+        IR::Opnd* srcOpnd2 = instr->UnlinkSrc2();
+        this->lowererMD.LoadHelperArgument(instr, srcOpnd2);
+        this->lowererMD.LoadHelperArgument(instr, srcOpnd1);
+        this->lowererMD.ChangeToHelperCall(instr, IR::HelperResumeYield);
+    }
+    else
+    {
+        Assert(instr->GetSrc1()->IsRegOpnd());
+        IR::RegOpnd* resumeYieldData = instr->UnlinkSrc1()->AsRegOpnd();
+        IR::IndirOpnd* exceptionObj = IR::IndirOpnd::New(resumeYieldData, Js::ResumeYieldData::GetOffsetOfExceptionObject(), TyMachPtr, this->func);
+        IR::IndirOpnd* resumeData = IR::IndirOpnd::New(resumeYieldData, Js::ResumeYieldData::GetOffsetOfData(), TyMachPtr, this->func);
+
+        IR::LabelInstr* helper = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+        IR::LabelInstr* done = IR::LabelInstr::New(Js::OpCode::Label, this->func);
+
+        this->lowerer->InsertCompareBranch(exceptionObj, IR::AddrOpnd::NewNull(this->func), Js::OpCode::BrNotAddr_A, helper, instr);
+        this->lowerer->InsertMove(instr->UnlinkDst(), resumeData, instr);
+        this->lowerer->InsertBranch(Js::OpCode::Br, done, instr);
+        instr->InsertBefore(helper);
+
+        this->lowererMD.LoadHelperArgument(instr, IR::AddrOpnd::NewNull(this->func));
+        this->lowererMD.LoadHelperArgument(instr, resumeYieldData);
+        this->lowererMD.ChangeToHelperCall(instr, IR::HelperResumeYield);
+
+        instr->InsertAfter(done);
+    }
 }
 
 void
