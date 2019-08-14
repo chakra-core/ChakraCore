@@ -336,13 +336,21 @@ namespace Js
     bool
     FunctionBody::SkipAutoProfileForCoroutine() const
     {
+#if defined(_ARM64_) || defined(_ARM_)
+        return false;
+#else
         return this->IsCoroutine() && CONFIG_FLAG(JitES6Generators);
+#endif
     }
 
     bool
     FunctionBody::IsGeneratorAndJitIsDisabled() const
     {
+#if defined(_ARM64_) || defined(_ARM_)
+        return this->IsCoroutine(); // disabled for ARM
+#else
         return this->IsCoroutine() && !(CONFIG_FLAG(JitES6Generators) && !this->GetHasTry() && !this->IsInDebugMode() && !this->IsAsync());
+#endif
     }
 
     ScriptContext* EntryPointInfo::GetScriptContext()
