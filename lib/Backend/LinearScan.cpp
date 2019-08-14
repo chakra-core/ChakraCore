@@ -5260,6 +5260,7 @@ void LinearScan::GeneratorBailIn::InsertRestoreSymbols(
             {
                 IR::RegOpnd* dstRegOpnd = IR::RegOpnd::New(dstSym, dstSym->GetType(), this->func);
                 dstRegOpnd->SetReg(lifetime->reg);
+                Assert(lifetime->reg != RegNOREG);
                 instr = LinearScan::InsertMove(dstRegOpnd, srcOpnd, insertionPoint.instrInsertRegSym);
             }
 
