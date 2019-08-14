@@ -2756,7 +2756,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
 }
 
 bool
-GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd *opnd, bool inGlobOpt) const
+GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd* opnd, bool inGlobOpt, bool* isSafeToTransferInPrepass /*=nullptr*/) const
 {
     if (opnd == nullptr)
     {
