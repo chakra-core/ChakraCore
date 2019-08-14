@@ -17,7 +17,7 @@ namespace Js {
         static Var ToPrimitive(_In_ Var aValue, _In_ ScriptContext * scriptContext);
         static BOOL CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext);
 
-        static void ToPropertyKey(
+        static Var ToPropertyKey(
             Var argument,
             _In_ ScriptContext* scriptContext,
             _Out_ const PropertyRecord** propertyRecord,

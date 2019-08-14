@@ -247,8 +247,8 @@ bool IsArguments(ParseNode *pnode)
 }
 
 bool ApplyEnclosesArgs(ParseNode* fncDecl, ByteCodeGenerator* byteCodeGenerator);
-void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall = false, ParseNode *bindPnode = nullptr, bool isTopLevel = false);
-void EmitBinaryOpnds(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
+void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, bool isConstructorCall = false, Js::RegSlot bindingNameLocation = Js::Constants::NoRegister, bool isTopLevel = false);
+void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation = Js::Constants::NoRegister);
 bool IsExpressionStatement(ParseNode* stmt, const Js::ScriptContext *const scriptContext);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo);
 void EmitInvoke(Js::RegSlot location, Js::RegSlot callObjLocation, Js::PropertyId propertyId, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot arg1Location);
@@ -977,7 +977,7 @@ void ByteCodeGenerator::EmitTopLevelStatement(ParseNode *stmt, FuncInfo *funcInf
         EndStatement(stmt);
     }
 
-    Emit(stmt, this, funcInfo, fReturnValue, false/*isConstructorCall*/, nullptr/*bindPnode*/, true/*isTopLevel*/);
+    Emit(stmt, this, funcInfo, fReturnValue, false/*isConstructorCall*/, Js::Constants::NoRegister/*computedPropertyLocation*/, true/*isTopLevel*/);
     if (funcInfo->IsTmpReg(stmt->location))
     {
         if (!stmt->isUsed && !fReturnValue)
@@ -8404,22 +8404,6 @@ void EmitInvoke(
     byteCodeGenerator->Writer()->CallI(Js::OpCode::CallI, location, location, 2, callSiteId);
 }
 
-void EmitComputedFunctionNameVar(ParseNode *nameNode, ParseNodeFnc *exprNode, ByteCodeGenerator *byteCodeGenerator)
-{
-    AssertMsg(exprNode != nullptr, "callers of this function should pass in a valid expression Node");
-    Assert(exprNode->HasComputedName());
-
-    if (nameNode == nullptr)
-    {
-        return;
-    }
-
-    if (exprNode->pnodeName == nullptr)
-    {
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetComputedNameVar, exprNode->location, nameNode->location);
-    }
-}
-
 void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, ParseNode* parentNode, bool useStore, bool* isObjectEmpty = nullptr)
 {
     ParseNode *nameNode = memberNode->AsParseNodeBin()->pnode1;
@@ -8434,6 +8418,8 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
         exprNode->AsParseNodeFnc()->SetHomeObjLocation(objectLocation);
     }
 
+    Js::RegSlot computedNamePropertyKey = Js::Constants::NoRegister;
+
     // Moved SetComputedNameVar before LdFld of prototype because loading the prototype undefers the function TypeHandler
     // which makes this bytecode too late to influence the function.name.
     if (nameNode->nop == knopComputedName)
@@ -8445,20 +8431,21 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
 
         // Save the previous value of the flag to be restored later.
         bool prevFlag = byteCodeGenerator->forceStrictModeForClassComputedPropertyName;
-
         // Strict mode must be enforced on the evaluation of computed property names inside  
         // classes, thus enable the flag if the computed property name is a class member.
         byteCodeGenerator->forceStrictModeForClassComputedPropertyName = isClassMember || prevFlag;
 
-        EmitBinaryOpnds(nameNode, exprNode, byteCodeGenerator, funcInfo);
+        computedNamePropertyKey = funcInfo->AcquireTmpRegister();
+        EmitBinaryOpnds(nameNode, exprNode, byteCodeGenerator, funcInfo, computedNamePropertyKey);
 
         // Restore the flag's previous value.
         byteCodeGenerator->forceStrictModeForClassComputedPropertyName = prevFlag;
 
-        if (isFncDecl && !exprNode->AsParseNodeFnc()->IsClassConstructor())
+        if (isFncDecl && !exprNode->AsParseNodeFnc()->IsClassConstructor() && exprNode->AsParseNodeFnc()->pnodeName == nullptr)
         {
-            EmitComputedFunctionNameVar(nameNode, exprNode->AsParseNodeFnc(), byteCodeGenerator);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetComputedNameVar, exprNode->location, computedNamePropertyKey);
         }
+
     }
 
     // Classes allocates a RegSlot as part of Instance Methods EmitClassInitializers,
@@ -8487,15 +8474,15 @@ void EmitMemberNode(ParseNode *memberNode, Js::RegSlot objectLocation, ByteCodeG
 
         // Strict mode must be enforced on the evaluation of computed property names inside  
         // classes, thus enable the flag if the computed property name is a class member.
-        byteCodeGenerator->Writer()->Element(setOp, exprNode->location, objectLocation, nameNode->location, true,
+        byteCodeGenerator->Writer()->Element(setOp, exprNode->location, objectLocation, computedNamePropertyKey, true,
             byteCodeGenerator->forceStrictModeForClassComputedPropertyName);
-        
+
         // Restore the flag's previous value.
         byteCodeGenerator->forceStrictModeForClassComputedPropertyName = prevFlag;
 
-
         funcInfo->ReleaseLoc(exprNode);
         funcInfo->ReleaseLoc(nameNode);
+        funcInfo->ReleaseTmpRegister(computedNamePropertyKey);
 
         return;
     }
@@ -9865,7 +9852,7 @@ void EmitJumpCleanup(ParseNodeStmt *pnode, ParseNode *pnodeTarget, ByteCodeGener
     }
 }
 
-void EmitBinaryOpnds(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+void EmitBinaryOpnds(ParseNode* pnode1, ParseNode* pnode2, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Js::RegSlot computedPropertyLocation)
 {
     // If opnd2 can overwrite opnd1, make sure the value of opnd1 is stashed away.
     if (MayHaveSideEffectOnNode(pnode1, pnode2, byteCodeGenerator))
@@ -9875,15 +9862,12 @@ void EmitBinaryOpnds(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *by
 
     Emit(pnode1, byteCodeGenerator, funcInfo, false);
 
-    if (pnode1->nop == knopComputedName && pnode2->nop == knopClassDecl &&
-        (pnode2->AsParseNodeClass()->pnodeConstructor == nullptr || pnode2->AsParseNodeClass()->pnodeConstructor->nop != knopVarDecl))
+    if (pnode1->nop == knopComputedName && computedPropertyLocation != Js::Constants::NoRegister)
     {
-        Emit(pnode2, byteCodeGenerator, funcInfo, false, false, pnode1);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Conv_Prop, computedPropertyLocation, pnode1->location);
     }
-    else
-    {
-        Emit(pnode2, byteCodeGenerator, funcInfo, false);
-    }
+
+    Emit(pnode2, byteCodeGenerator, funcInfo, false, false, computedPropertyLocation);
 }
 
 void EmitBinaryReference(ParseNode *pnode1, ParseNode *pnode2, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fLoadLhs)
@@ -10479,7 +10463,7 @@ void TrackGlobalIntAssignments(ParseNodePtr pnode, ByteCodeGenerator * byteCodeG
     }
 }
 
-void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo, BOOL fReturnValue, bool isConstructorCall, ParseNode * bindPnode, bool isTopLevel)
+void Emit(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, BOOL fReturnValue, bool isConstructorCall, Js::RegSlot bindingNameLocation, bool isTopLevel)
 {
     if (pnode == nullptr)
     {
@@ -11316,7 +11300,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
         // Constructor
         Emit(pnodeClass->pnodeConstructor, byteCodeGenerator, funcInfo, false);
-        EmitComputedFunctionNameVar(bindPnode, pnodeClass->pnodeConstructor, byteCodeGenerator);
+
+        if (bindingNameLocation != Js::Constants::NoRegister && !pnodeClass->pnodeConstructor->pnodeName)
+        {
+            Assert(pnodeClass->pnodeConstructor->HasComputedName());
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::SetComputedNameVar, pnodeClass->pnodeConstructor->location, bindingNameLocation);
+        }
+
         if (pnodeClass->pnodeExtends)
         {
             byteCodeGenerator->StartStatement(pnodeClass->pnodeExtends);
