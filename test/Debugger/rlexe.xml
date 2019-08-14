@@ -121,4 +121,10 @@
       <baseline>JsDebuggerAttachDetach.js.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <compile-flags>-debuglaunch -dbgbaseline:exceptionWhileFetchingProp.js.dbg.baseline</compile-flags>
+      <files>exceptionWhileFetchingProp.js</files>
+    </default>
+  </test>
 </regress-exe>

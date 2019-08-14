@@ -5104,10 +5104,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
                     }
                 }
 
-                if (buildAST)
-                {
-                    CheckArgumentsUse(pidHint, GetCurrentFunctionNode());
-                }
+                CheckArgumentsUse(pidHint, GetCurrentFunctionNode());
 
                 bool couldBeObjectPattern = !isObjectPattern && m_token.tk == tkAsg;
                 // Saving the current state as we may change the isObjectPattern down below.

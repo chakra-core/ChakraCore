@@ -268,7 +268,7 @@ CommonNumber:
     // ToPropertyKey() takes a value and converts it to a property key
     // Implementation of ES6 7.1.14
     //----------------------------------------------------------------------------
-    void JavascriptConversion::ToPropertyKey(
+    Var JavascriptConversion::ToPropertyKey(
         Var argument,
         _In_ ScriptContext* scriptContext,
         _Out_ const PropertyRecord** propertyRecord,
@@ -290,12 +290,15 @@ CommonNumber:
             {
                 propertyString = UnsafeVarTo<PropertyString>(propName);
             }
+            key = propName;
         }
 
         if (propString)
         {
             *propString = propertyString;
         }
+
+        return key;
     }
 
     //----------------------------------------------------------------------------

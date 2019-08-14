@@ -1278,13 +1278,20 @@ GlobOpt::InvalidateInductionVariables(IR::Instr * instr)
     }
 
     // If this is an induction variable, then treat it the way the prepass would have if it had seen
-    // the assignment and the resulting change to the value number, and mark it as indeterminate.
+    // the assignment and the resulting change to the value number, and mark induction variables
+    // for the loop as indeterminate.
+    // We need to invalidate all induction variables for the loop, because we might have used the
+    // invalidated induction variable to calculate the loopCount, and this now invalid loopCount
+    // also impacts bound checks for secondary induction variables
     for (Loop * loop = this->currentBlock->loop; loop; loop = loop->parent)
     {
-        InductionVariable *iv = nullptr;
-        if (loop->inductionVariables && loop->inductionVariables->TryGetReference(dstSym->m_id, &iv))
+        if (loop->inductionVariables && loop->inductionVariables->ContainsKey(dstSym->m_id))
         {
-            iv->SetChangeIsIndeterminate();
+            for (auto it = loop->inductionVariables->GetIterator(); it.IsValid(); it.MoveNext())
+            {
+                InductionVariable& inductionVariable = it.CurrentValueReference();
+                inductionVariable.SetChangeIsIndeterminate();
+            }
         }
     }
 }

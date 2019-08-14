@@ -85,15 +85,22 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
                 if (resolvedObjectDisplay != nullptr)
                 {
                     JsrtDebuggerObjectBase* debuggerObject = JsrtDebuggerObjectProperty::Make(this->GetDebuggerObjectsManager(), objectDisplayWeakRef);
-                    Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext, /* forceSetValueProp */ false);
-                    Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
-                    if (resolvedObjectDisplay->IsFake())
+                    try
                     {
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)debuggerOnlyPropertiesArray, Js::JavascriptNumber::ToVar(debuggerOnlyPropertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                        Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext, /* forceSetValueProp */ false);
+                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
+                        if (resolvedObjectDisplay->IsFake())
+                        {
+                            Js::JavascriptOperators::OP_SetElementI((Js::Var)debuggerOnlyPropertiesArray, Js::JavascriptNumber::ToVar(debuggerOnlyPropertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                        }
+                        else
+                        {
+                            Js::JavascriptOperators::OP_SetElementI((Js::Var)propertiesArray, Js::JavascriptNumber::ToVar(propertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                        }
                     }
-                    else
+                    catch (const Js::JavascriptException& err)
                     {
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)propertiesArray, Js::JavascriptNumber::ToVar(propertiesArrayCount++, scriptContext), marshaledObj, scriptContext);
+                        err.GetAndClear();   // discard exception object
                     }
                     objectDisplayWeakRef->ReleaseStrongReference();
                     objectDisplayWeakRef.Detach();
@@ -415,11 +422,18 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                     {
                         AutoPtr<WeakArenaReference<Js::IDiagObjectModelDisplay>> objectDisplayWeakRef(resolvedObject.GetObjectDisplay());
                         JsrtDebuggerObjectBase* debuggerObject = JsrtDebuggerObjectScope::Make(debuggerObjectsManager, objectDisplayWeakRef, scopesCount);
-                        Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext, /* forceSetValueProp */ false);
-                        Assert(object != nullptr);
-                        Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
-                        Js::JavascriptOperators::OP_SetElementI((Js::Var)scopesArray, Js::JavascriptNumber::ToVar(scopesCount, scriptContext), marshaledObj, scriptContext);
-                        scopesCount++;
+                        try
+                        {
+                            Js::DynamicObject* object = debuggerObject->GetJSONObject(resolvedObject.scriptContext, /* forceSetValueProp */ false);
+                            Assert(object != nullptr);
+                            Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, object);
+                            Js::JavascriptOperators::OP_SetElementI((Js::Var)scopesArray, Js::JavascriptNumber::ToVar(scopesCount, scriptContext), marshaledObj, scriptContext);
+                            scopesCount++;
+                        }
+                        catch (const Js::JavascriptException& err)
+                        {
+                            err.GetAndClear();   // discard exception object
+                        }
                         objectDisplayWeakRef.Detach();
                     }
                 }
