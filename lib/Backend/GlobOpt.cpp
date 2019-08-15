@@ -2786,12 +2786,18 @@ GlobOpt::IsNonNumericRegOpnd(IR::RegOpnd* opnd, bool inGlobOpt, bool* isSafeToTr
         {
             return true;
         }
+
+        bool isSafeToTransfer = this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        if (isSafeToTransferInPrepass != nullptr)
+        {
+            *isSafeToTransferInPrepass = isSafeToTransfer;
+        }
         if (this->prePassLoop->preservesNumberValue->Test(opnd->m_sym->m_id))
         {
             return false;
         }
 
-        return !this->IsSafeToTransferInPrepass(opnd->m_sym, opndValueInfo);
+        return !isSafeToTransfer;
     }
 
     return true;
@@ -17393,11 +17399,27 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     }
 #endif
 
+    Assert(noImplicitCallUsesToInsert->Count() == 0);
+    bool isLikelyJsArray;
+    if (emitData->stElemInstr->GetDst()->IsIndirOpnd())
+    {
+        baseOpnd = emitData->stElemInstr->GetDst()->AsIndirOpnd()->GetBaseOpnd();
+        isLikelyJsArray = baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray();
+        ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, emitData->stElemInstr, isLikelyJsArray, true);
+    }
     RemoveMemOpSrcInstr(memopInstr, emitData->stElemInstr, emitData->block);
     if (!isMemset)
     {
+        if (((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->IsIndirOpnd())
+        {
+            baseOpnd = ((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
+            isLikelyJsArray = baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray();
+            ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, emitData->stElemInstr, isLikelyJsArray, true);
+        }
         RemoveMemOpSrcInstr(memopInstr, ((MemCopyEmitData*)emitData)->ldElemInstr, emitData->block);
     }
+    InsertNoImplicitCallUses(memopInstr);
+    noImplicitCallUsesToInsert->Clear();
 }
 
 bool
