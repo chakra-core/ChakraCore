@@ -3068,7 +3068,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         {
             if (
                 this->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode() ||
-                (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || pnodeFnc->HasNonSimpleParameterList()))
+                (!CONFIG_FLAG(RemoveDummyYield) || pnodeFnc->HasNonSimpleParameterList()))
             {
                 EmitDummyYield(this, funcInfo);
             }

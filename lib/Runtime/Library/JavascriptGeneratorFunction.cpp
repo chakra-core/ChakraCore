@@ -173,7 +173,7 @@ using namespace Js;
         if (
             scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
             funcInfo->IsModule() ||
-            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
+            (!CONFIG_FLAG(RemoveDummyYield) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
         )
         {
             // Call a next on the generator to execute till the beginning of the body

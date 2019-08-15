@@ -608,7 +608,7 @@ namespace Js
         if (
             scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
             funcInfo->IsModule() ||
-            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
+            (!CONFIG_FLAG(RemoveDummyYield) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
         )
         {
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
