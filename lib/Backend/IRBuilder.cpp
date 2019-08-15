@@ -7759,9 +7759,6 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     IR::Instr* createInterpreterFrame = IR::Instr::New(Js::OpCode::GeneratorCreateInterpreterStackFrame, genFrameOpnd /* dst */, genRegOpnd /* src */, this->m_func);
     this->m_irBuilder->AddInstr(createInterpreterFrame, this->m_irBuilder->m_functionStartOffset);
 
-    IR::BranchInstr* skipJumpTable = IR::BranchInstr::New(Js::OpCode::Br, functionBegin, this->m_func);
-    this->m_irBuilder->AddInstr(skipJumpTable, this->m_irBuilder->m_functionStartOffset);
-
     // Label to insert any initialization code
     // $initializationCode:
     this->m_irBuilder->AddInstr(initCode, this->m_irBuilder->m_functionStartOffset);
@@ -7795,6 +7792,9 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     instr = IR::Instr::New(Js::OpCode::GeneratorResumeJumpTable, this->m_func);
     instr->SetSrc1(curOffsetOpnd);
     this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
+
+    IR::BranchInstr* skipBailOutForElidedYield = IR::BranchInstr::New(Js::OpCode::Br, functionBegin, this->m_func);
+    this->m_irBuilder->AddInstr(skipBailOutForElidedYield, this->m_irBuilder->m_functionStartOffset);
 
     this->m_func->m_bailOutForElidedYieldInsertionPoint = instr;
 
