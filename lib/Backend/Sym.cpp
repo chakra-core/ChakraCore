@@ -48,6 +48,7 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isTypeSpec = false;
     stackSym->m_isArgSlotSym = false;
     stackSym->m_isArgSlotRegSym = false;
+    stackSym->m_nonEscapingArgObjAlias = false;
     stackSym->m_isParamSym = false;
     stackSym->m_isImplicitParamSym = false;
     stackSym->m_isBailOutReferenced = false;

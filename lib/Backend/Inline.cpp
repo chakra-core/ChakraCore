@@ -3088,15 +3088,23 @@ bool Inline::InlineApplyScriptTarget(IR::Instr *callInstr, const FunctionJITTime
         // set src1 to avoid CSE on BailOnNotStackArgs for different arguments object
         bailOutOnNotStackArgs->SetSrc1(argumentsObjArgOut->GetSrc1()->Copy(this->topFunc));
         argumentsObjArgOut->InsertBefore(bailOutOnNotStackArgs);
+
+        // Insert ByteCodeUses instr to ensure that arguments object is available on bailout
+        IR::ByteCodeUsesInstr* bytecodeUses = IR::ByteCodeUsesInstr::New(callInstr);
+        IR::Opnd* argSrc1 = argObjByteCodeArgoutCapture->GetSrc1();
+        bytecodeUses->SetRemovedOpndSymbol(argSrc1->GetIsJITOptimizedReg(), argSrc1->GetStackSym()->m_id);
+        callInstr->InsertBefore(bytecodeUses);
     }
 
     IR::Instr* byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
     byteCodeArgOutUse->SetSrc1(implicitThisArgOut->GetSrc1());
+    callInstr->InsertBefore(byteCodeArgOutUse);
     if (argumentsObjArgOut)
     {
-        byteCodeArgOutUse->SetSrc2(argumentsObjArgOut->GetSrc1());
+        byteCodeArgOutUse = IR::Instr::New(Js::OpCode::BytecodeArgOutUse, callInstr->m_func);
+        byteCodeArgOutUse->SetSrc1(argumentsObjArgOut->GetSrc1());
+        callInstr->InsertBefore(byteCodeArgOutUse);
     }
-    callInstr->InsertBefore(byteCodeArgOutUse);
 
     // don't need the implicit "this" anymore
     explicitThisArgOut->ReplaceSrc2(startCall->GetDst());
