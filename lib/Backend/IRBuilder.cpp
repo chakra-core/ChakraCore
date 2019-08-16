@@ -7835,6 +7835,9 @@ IRBuilder::GeneratorJumpTable::BuildJumpTable()
     instr->SetSrc1(curOffsetOpnd);
     this->m_irBuilder->AddInstr(instr, this->m_irBuilder->m_functionStartOffset);
 
+    // TODO: Improvements
+    // If the code falls through to here, it means that none of the offsets matched. This must be the first
+    // time we create the interpreter frame. Skip this bailout.
     IR::BranchInstr* skipBailOutForElidedYield = IR::BranchInstr::New(Js::OpCode::Br, functionBegin, this->m_func);
     this->m_irBuilder->AddInstr(skipBailOutForElidedYield, this->m_irBuilder->m_functionStartOffset);
 
