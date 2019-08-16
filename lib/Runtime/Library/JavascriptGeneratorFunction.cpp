@@ -168,13 +168,21 @@ using namespace Js;
 
         DynamicObject* prototype = VarTo<DynamicObject>(JavascriptOperators::GetPropertyNoCache(function, Js::PropertyIds::prototype, scriptContext));
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
+        FunctionInfo* funcInfo = generatorFunction->scriptFunction->GetFunctionInfo();
 
-        // Call a next on the generator to execute till the beginning of the body
-        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+        if (
+            scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
+            funcInfo->IsModule() ||
+            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
+        )
         {
-            CALL_ENTRYPOINT(scriptContext->GetThreadContext(), generator->EntryNext, function, CallInfo(CallFlags_Value, 1), generator);
+            // Call a next on the generator to execute till the beginning of the body
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                CALL_ENTRYPOINT(scriptContext->GetThreadContext(), generator->EntryNext, function, CallInfo(CallFlags_Value, 1), generator);
+            }
+            END_SAFE_REENTRANT_CALL
         }
-        END_SAFE_REENTRANT_CALL
 
         return generator;
     }

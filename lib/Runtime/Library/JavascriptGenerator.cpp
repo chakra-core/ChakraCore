@@ -602,11 +602,22 @@ namespace Js
         ResumeYieldData data(scriptContext->GetLibrary()->GetUndefined(), nullptr);
         Var thunkArgs[] = { this, &data };
         Arguments arguments(_countof(thunkArgs), thunkArgs);
-        BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+
+        FunctionInfo* funcInfo = this->scriptFunction->GetFunctionInfo();
+
+        if (
+            scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
+            funcInfo->IsModule() ||
+            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
+        )
         {
-            JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
+            BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
+            {
+                JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
+            }
+            END_SAFE_REENTRANT_CALL
         }
-        END_SAFE_REENTRANT_CALL
+
         SetState(JavascriptGenerator::GeneratorState::SuspendedStart);
     }
 

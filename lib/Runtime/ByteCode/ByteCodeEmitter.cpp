@@ -3064,7 +3064,16 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         // to be verified. Ideally if the function has simple parameter list then we can avoid inserting the opcode and the additional call.
         if (pnodeFnc->IsGenerator() && !pnodeFnc->IsModule())
         {
-            EmitDummyYield(this, funcInfo);
+            if (
+                this->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode() ||
+                (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || pnodeFnc->HasNonSimpleParameterList()))
+            {
+                EmitDummyYield(this, funcInfo);
+            }
+            else
+            {
+                this->Writer()->Reg1(Js::OpCode::LdUndef, funcInfo->yieldRegister);
+            }
         }
 
         DefineUserVars(funcInfo);
