@@ -1242,6 +1242,7 @@ static const Js::FunctionInfo::Attributes StableFunctionInfoAttributesMask = (Js
     Js::FunctionInfo::Attributes::ClassMethod |
     Js::FunctionInfo::Attributes::Method |
     Js::FunctionInfo::Attributes::Generator |
+    Js::FunctionInfo::Attributes::EvaluateNonSimpleParameterListForGenerator |
     Js::FunctionInfo::Attributes::Module |
     Js::FunctionInfo::Attributes::ComputedName |
     Js::FunctionInfo::Attributes::HomeObj
@@ -1293,6 +1294,10 @@ static Js::FunctionInfo::Attributes GetFunctionInfoAttributes(ParseNodeFnc * pno
     if (pnodeFnc->IsGenerator())
     {
         attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::Generator);
+        if (pnodeFnc->HasNonSimpleParameterList())
+        {
+            attributes = (Js::FunctionInfo::Attributes)(attributes | Js::FunctionInfo::Attributes::EvaluateNonSimpleParameterListForGenerator);
+        }
     }
     if (pnodeFnc->IsAccessor())
     {
