@@ -354,7 +354,7 @@ namespace Js
 #if defined(_ARM64_) || defined(_ARM_)
         return this->IsCoroutine(); // disabled for ARM
 #else
-        return this->IsCoroutine() && !(CONFIG_FLAG(JitES6Generators) && !this->GetHasTry() && !this->IsInDebugMode() && !this->IsAsync());
+        return this->IsCoroutine() && !(CONFIG_FLAG(JitES6Generators) && !this->GetHasTry() && !this->IsInDebugMode());
 #endif
     }
 
