@@ -143,6 +143,7 @@ struct SerializedFieldList {
     bool has_debuggerScopeSlotArray : 1;
     bool has_deferredStubs : 1;
     bool has_scopeInfo : 1;
+    bool has_printOffsets : 1;
 };
 
 C_ASSERT(sizeof(GUID)==sizeof(DWORD)*4);
@@ -2350,6 +2351,14 @@ public:
             AddDeferredStubs(builder, deferredStubs, function->GetNestedCount(), cache, true);
         }
 
+        PrintOffsets* printOffsets = function->GetPrintOffsets();
+        if (printOffsets != nullptr)
+        {
+            definedFields.has_printOffsets = true;
+            PrependInt32(builder, _u("Start print offset"), printOffsets->cbStartPrintOffset);
+            PrependInt32(builder, _u("End print offset"), printOffsets->cbEndPrintOffset);
+        }
+
         ScopeInfo* scopeInfo = function->GetScopeInfo();
         if (scopeInfo != nullptr
             && (attributes & (FunctionInfo::Attributes::DeferredParse | FunctionInfo::Attributes::CanDefer)) != 0)
@@ -4075,6 +4084,14 @@ public:
             current = ReadDeferredStubs(current, cache, nestedCount, &deferredStubs, true);
         }
 
+        PrintOffsets* printOffsets = nullptr;
+        if (definedFields->has_printOffsets)
+        {
+            printOffsets = RecyclerNewLeaf(this->scriptContext->GetRecycler(), PrintOffsets);
+            current = ReadUInt32(current, &printOffsets->cbStartPrintOffset);
+            current = ReadUInt32(current, &printOffsets->cbEndPrintOffset);
+        }
+
         ScopeInfo* scopeInfo = nullptr;
         if (definedFields->has_scopeInfo)
         {
@@ -4139,6 +4156,10 @@ public:
             {
                 (*function)->SetDeferredStubs(deferredStubs);
             }
+            if (printOffsets != nullptr)
+            {
+                (*function)->SetPrintOffsets(printOffsets);
+            }
             if (scopeInfo != nullptr)
             {
                 (*function)->SetScopeInfo(scopeInfo);
@@ -4172,7 +4193,6 @@ public:
 
         // This is offsetIntoSource is the start offset in bytes as well.
         (*function)->m_cbStartOffset = offsetIntoSource;
-        (*function)->m_cbStartPrintOffset = offsetIntoSourcePrintable;
         (*function)->m_sourceIndex = this->sourceIndex;
 
 #define DEFINE_FUNCTION_PROXY_FIELDS 1

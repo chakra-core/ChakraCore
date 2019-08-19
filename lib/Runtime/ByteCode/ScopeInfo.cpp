@@ -36,6 +36,7 @@ namespace Js
             this->SetIsFuncExpr(scopeSlot, sym->GetIsFuncExpr());
             this->SetIsModuleExportStorage(scopeSlot, sym->GetIsModuleExportStorage());
             this->SetIsModuleImport(scopeSlot, sym->GetIsModuleImport());
+            this->SetNeedDeclaration(scopeSlot, sym->GetNeedDeclaration());
         }
 
         TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
@@ -76,6 +77,7 @@ namespace Js
         {
             scopeInfo->isGeneratorFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsGenerator();
             scopeInfo->isAsyncFunctionBody = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsAsync();
+            scopeInfo->isClassConstructor = scope->GetFunc()->byteCodeFunction->GetFunctionInfo()->IsClassConstructor();
         }
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s #symbols: %d %s\n"),
@@ -266,6 +268,7 @@ namespace Js
                 sym->SetIsFuncExpr(GetIsFuncExpr(i));
                 sym->SetIsModuleExportStorage(GetIsModuleExportStorage(i));
                 sym->SetIsModuleImport(GetIsModuleImport(i));
+                sym->SetNeedDeclaration(GetNeedDeclaration(i));
                 if (GetHasFuncAssignment(i))
                 {
                     sym->RestoreHasFuncAssignment();
