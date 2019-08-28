@@ -767,12 +767,23 @@ GlobOptBlockData::MergeValueMaps(
 
             if (iter2.IsValid() && bucket.value->m_id == iter2.Data().value->m_id)
             {
+                // Syms that are assigned to within the loop must have unique
+                // value numbers in the loop header after merging; a single
+                // prepass is not adequate to determine that sym values are
+                // equivalent through all possible loop paths.
+                bool forceUniqueValue =
+                    isLoopBackEdge &&
+                    !this->globOpt->IsLoopPrePass() &&
+                    loop &&
+                    loop->symsAssignedToInLoop->Test(bucket.value->m_id);
+
                 newValue =
                     this->MergeValues(
                         bucket.element,
                         iter2.Data().element,
                         iter2.Data().value,
                         isLoopBackEdge,
+                        forceUniqueValue,
                         symsRequiringCompensation,
                         symsCreatedForMerge);
             }
@@ -847,6 +858,7 @@ GlobOptBlockData::MergeValues(
     Value *fromDataValue,
     Sym *fromDataSym,
     bool isLoopBackEdge,
+    bool forceUniqueValue,
     BVSparse<JitArenaAllocator> *const symsRequiringCompensation,
     BVSparse<JitArenaAllocator> *const symsCreatedForMerge)
 {
@@ -879,22 +891,30 @@ GlobOptBlockData::MergeValues(
         return toDataValue;
     }
 
-    // There may be other syms in toData that haven't been merged yet, referring to the current toData value for this sym. If
-    // the merge produced a new value info, don't corrupt the value info for the other sym by changing the same value. Instead,
-    // create one value per source value number pair per merge and reuse that for new value infos.
-    Value *newValue = this->globOpt->valuesCreatedForMerge->Lookup(sourceValueNumberPair, nullptr);
-    if(newValue)
+    Value *newValue = nullptr;
+    if (forceUniqueValue)
     {
-        Assert(sameValueNumber == (newValue->GetValueNumber() == toDataValue->GetValueNumber()));
-
-        // This is an exception where Value::SetValueInfo is called directly instead of GlobOpt::ChangeValueInfo, because we're
-        // actually generating new value info through merges.
-        newValue->SetValueInfo(newValueInfo);
+        newValue = this->globOpt->NewValue(newValueInfo);
     }
     else
     {
-        newValue = this->globOpt->NewValue(sameValueNumber ? sourceValueNumberPair.First() : this->globOpt->NewValueNumber(), newValueInfo);
-        this->globOpt->valuesCreatedForMerge->Add(sourceValueNumberPair, newValue);
+        // There may be other syms in toData that haven't been merged yet, referring to the current toData value for this sym. If
+        // the merge produced a new value info, don't corrupt the value info for the other sym by changing the same value. Instead,
+        // create one value per source value number pair per merge and reuse that for new value infos.
+        newValue = this->globOpt->valuesCreatedForMerge->Lookup(sourceValueNumberPair, nullptr);
+        if (newValue)
+        {
+            Assert(sameValueNumber == (newValue->GetValueNumber() == toDataValue->GetValueNumber()));
+
+            // This is an exception where Value::SetValueInfo is called directly instead of GlobOpt::ChangeValueInfo, because we're
+            // actually generating new value info through merges.
+            newValue->SetValueInfo(newValueInfo);
+        }
+        else
+        {
+            newValue = this->globOpt->NewValue(sameValueNumber ? sourceValueNumberPair.First() : this->globOpt->NewValueNumber(), newValueInfo);
+            this->globOpt->valuesCreatedForMerge->Add(sourceValueNumberPair, newValue);
+        }
     }
 
     // Set symStore if same on both paths.

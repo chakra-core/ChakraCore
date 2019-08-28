@@ -19,7 +19,6 @@ testInlined
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
-TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
@@ -30,7 +29,6 @@ undefined
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop [in landing pad]: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
-TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdRootFld field: Direction 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: FORWARD 
 TestTrace fieldcopyprop: function inlinee ( (#1.3), #4) inlined caller function testInlined ( (#1.4), #5) opcode: LdFld field: count 
