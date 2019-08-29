@@ -1774,6 +1774,12 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
     BAILOUT_FLUSH(executeFunction);
 
+    if (executeFunction->IsCoroutine() && bailOutKind != IR::BailOutForGeneratorYield)
+    {
+        Js::ResumeYieldData* resumeYieldData = static_cast<Js::ResumeYieldData*>(args[1]);
+        newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), resumeYieldData);
+    }
+
     executeFunction->BeginExecution();
 
     // Restart at the bailout byte code offset.
