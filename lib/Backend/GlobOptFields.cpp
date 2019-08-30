@@ -905,7 +905,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
 
         SymID opndId = opnd->HasObjectTypeSym() ? opnd->GetObjectTypeSym()->m_id : -1;
 
-        if (!isObjTypeChecked)
+        if (!isObjTypeSpecialized || opnd->IsBeingAdded())
         {
             if (block->globOptData.maybeWrittenTypeSyms == nullptr)
             {
@@ -1122,6 +1122,19 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     Assert(opnd->IsTypeCheckSeqCandidate());
     Assert(opnd->HasObjectTypeSym());
 
+    if (opnd->HasTypeMismatch())
+    {
+        if (emitsTypeCheckOut != nullptr)
+        {
+            *emitsTypeCheckOut = false;
+        }
+        if (changesTypeValueOut != nullptr)
+        {
+            *changesTypeValueOut = false;
+        }
+        return false;
+    }
+
     bool isStore = opnd == instr->GetDst();
     bool isTypeDead = opnd->IsTypeDead();
     bool consumeType = makeChanges && !IsLoopPrePass();
@@ -1229,7 +1242,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 // a new type value here.
                 isSpecialized = false;
 
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1273,7 +1286,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
                 // a new type value here.
                 isSpecialized = false;
 
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1324,7 +1337,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             {
                 // Indicates failure/mismatch
                 isSpecialized = false;
-                if (consumeType)
+                if (makeChanges)
                 {
                     opnd->SetTypeMismatch(true);
                 }
@@ -1423,7 +1436,7 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
             // a new type value here.
             isSpecialized = false;
 
-            if (consumeType)
+            if (makeChanges)
             {
                 opnd->SetTypeMismatch(true);
             }

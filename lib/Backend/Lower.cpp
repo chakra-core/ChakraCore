@@ -7420,9 +7420,6 @@ Lowerer::GenerateStFldWithCachedType(IR::Instr *instrStFld, bool* continueAsHelp
 
     if (hasTypeCheckBailout)
     {
-        AssertMsg(PHASE_ON1(Js::ObjTypeSpecIsolatedFldOpsWithBailOutPhase) || !propertySymOpnd->IsTypeDead() || propertySymOpnd->TypeCheckRequired(),
-            "Why does a field store have a type check bailout, if its type is dead?");
-
         if (instrStFld->GetBailOutInfo()->bailOutInstr != instrStFld)
         {
             // Set the cache index in the bailout info so that the generated code will write it into the
@@ -7482,7 +7479,7 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
     // cache and no type check bailout. In the latter case, we can wind up doing expensive failed equivalence checks
     // repeatedly and never rejit.
     bool doEquivTypeCheck =
-        (instrChk->HasEquivalentTypeCheckBailOut() && propertySymOpnd->TypeCheckRequired()) ||
+        (instrChk->HasEquivalentTypeCheckBailOut() && (propertySymOpnd->TypeCheckRequired() || propertySymOpnd == instrChk->GetDst())) ||
         (propertySymOpnd->HasEquivalentTypeSet() &&
          !(propertySymOpnd->HasFinalType() && propertySymOpnd->HasInitialType()) &&
          !propertySymOpnd->MustDoMonoCheck() &&
