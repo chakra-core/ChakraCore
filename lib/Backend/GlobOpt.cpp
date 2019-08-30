@@ -3603,7 +3603,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
 
         opnd->SetValueType(valueType);
 
-        if(!IsLoopPrePass() && opnd->IsSymOpnd() && valueType.IsDefinite())
+        if(!IsLoopPrePass() && opnd->IsSymOpnd() && (valueType.IsDefinite() || valueType.IsNotTaggedValue()))
         {
             if (opnd->AsSymOpnd()->m_sym->IsPropertySym())
             {
