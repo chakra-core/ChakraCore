@@ -1768,7 +1768,10 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset)
 void
 IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::RegSlot R1, uint32 nextOffset)
 {
-    IR::RegOpnd *   src1Opnd = this->BuildSrcOpnd(R1);
+    // special case required for AsyncYieldIsReturn where the source will be the ResumeYieldData
+    // which will be loaded via a backend only instruction inserted below
+    IR::RegOpnd *   src1Opnd = newOpcode != Js::OpCode::AsyncYieldIsReturn ? 
+        this->BuildSrcOpnd(R1): this->BuildDstOpnd(R1);
     StackSym *      symSrc1 = src1Opnd->m_sym;
     bool            reuseLoc = false;
 
@@ -1892,6 +1895,19 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->AddInstr(loadResumeYieldData, offset);
 
         instr = IR::Instr::New(newOpcode, nullptr /* dst */, dstOpnd /* src1 */, src1Opnd /* src2 */, m_func);
+        this->AddInstr(instr, offset);
+
+        return;
+    }
+
+    case Js::OpCode::AsyncYieldIsReturn:
+    {
+        // Similar to the above this OpCode also relies on the ResumeYieldData passed in as an argument to the jit'd frame
+        // However this OpCode expects it to be the source and then has a destination
+        IR::Instr* loadResumeYieldData = IR::Instr::New(Js::OpCode::GeneratorLoadResumeYieldData, src1Opnd, m_func);
+        this->AddInstr(loadResumeYieldData, offset);
+
+        instr = IR::Instr::New(newOpcode, dstOpnd /* dst */, src1Opnd /* src1 */, m_func);
         this->AddInstr(instr, offset);
 
         return;
