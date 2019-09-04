@@ -171,9 +171,11 @@ using namespace Js;
         FunctionInfo* funcInfo = generatorFunction->scriptFunction->GetFunctionInfo();
 
         if (
+#if ENABLE_TTD
             scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
+#endif
             funcInfo->IsModule() ||
-            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
+            funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator()
         )
         {
             // Call a next on the generator to execute till the beginning of the body

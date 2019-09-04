@@ -3060,20 +3060,14 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
 
         // If the function has non simple parameter list, the params needs to be evaluated when the generator object is created
         // (that is when the function is called). This yield opcode is to mark the  begining of the function body.
-        // TODO: Inserting a yield should have almost no impact on perf as it is a direct return from the function. But this needs
-        // to be verified. Ideally if the function has simple parameter list then we can avoid inserting the opcode and the additional call.
-        if (pnodeFnc->IsGenerator() && !pnodeFnc->IsModule())
+        // this is avoided when not required
+        if (pnodeFnc->IsGenerator() && !pnodeFnc->IsModule() && (
+#if ENABLE_TTD
+            this->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode() ||
+#endif
+            pnodeFnc->HasNonSimpleParameterList()))
         {
-            if (
-                this->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode() ||
-                (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || pnodeFnc->HasNonSimpleParameterList()))
-            {
-                EmitDummyYield(this, funcInfo);
-            }
-            else
-            {
-                this->Writer()->Reg1(Js::OpCode::LdUndef, funcInfo->yieldRegister);
-            }
+            EmitDummyYield(this, funcInfo);
         }
 
         DefineUserVars(funcInfo);

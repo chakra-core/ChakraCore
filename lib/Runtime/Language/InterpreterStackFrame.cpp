@@ -1992,6 +1992,17 @@ skipThunk:
             else
             {
                 newInstance = CreateInterpreterStackFrameForGenerator(function, executeFunction, generator, doProfile);
+                if (generator->GetIsAsync())
+                {
+                    ResumeYieldData* resumeYieldData = static_cast<ResumeYieldData*>(args[1]);
+                    newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), resumeYieldData);
+
+                    // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
+                    // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
+                    newInstance->m_stackAddress = reinterpret_cast<DWORD_PTR>(&generator);
+
+                    newInstance->retOffset = 0;
+                }
             }
         }
         else

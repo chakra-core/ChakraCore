@@ -606,10 +606,12 @@ namespace Js
         FunctionInfo* funcInfo = this->scriptFunction->GetFunctionInfo();
 
         if (
+#if ENABLE_TTD
             scriptContext->GetThreadContext()->IsRuntimeInTTDMode() ||
+#endif
             funcInfo->IsModule() ||
-            (!CONFIG_ISENABLED(Js::RemoveDummyYieldFlag) || funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator())
-        )
+            funcInfo->ShouldEvaluateNonSimpleParameterListForGenerator()
+            )
         {
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {

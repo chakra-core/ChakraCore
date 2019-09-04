@@ -1226,8 +1226,6 @@ FLAGR(Boolean, ESImportMeta, "Enable import.meta keyword", DEFAULT_CONFIG_ESImpo
 //ES globalThis flag
 FLAGR(Boolean, ESGlobalThis, "Enable globalThis", DEFAULT_CONFIG_ESGlobalThis)
 
-FLAGNR(Boolean, RemoveDummyYield, "Remove first dummy yield in generator, used to evaluate default parameter expression, if not needed", false)
-
 // This flag to be removed once JITing generator functions is stable
 FLAGNR(Boolean, JitES6Generators        , "Enable JITing of ES6 generators", DEFAULT_CONFIG_JitES6Generators)
 
