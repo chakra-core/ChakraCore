@@ -6,15 +6,15 @@
 (module
     (import "dummy" "memory" (memory 1))
 
-    (func (export "m128_load4") (param $x i32) (result i32)
+    (func (export "v128_load4") (param $x i32) (result i32)
         (i32x4.extract_lane 0 (v128.load offset=0 (get_local $x)))
     )
 
-    (func (export "m128_load4_offset") (param $x i32) (result i32)
+    (func (export "v128_load4_offset") (param $x i32) (result i32)
         (i32x4.extract_lane 0 (v128.load offset=16 (get_local $x)))
     )
 
-    (func (export "m128_load_test") (param $x i32) (local v128)
+    (func (export "v128_load_test") (param $x i32) (local v128)
         (set_local 1 (v128.load offset=0 (get_local $x)))
         (i32.store offset=0 (get_local $x) (i32.popcnt (i32x4.extract_lane 0 (get_local 1))))
         (set_local 1 (v128.load offset=0 (get_local $x)))
