@@ -103,7 +103,6 @@ using namespace Js;
             pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
         }
 
-
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
         return pfuncScript;

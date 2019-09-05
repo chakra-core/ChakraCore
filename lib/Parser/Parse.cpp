@@ -8059,6 +8059,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             pnodeConstructor->hintLength = constructorNameLength;
             pnodeConstructor->hintOffset = constructorShortNameHintOffset;
             pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
+            pnodeConstructor->SetHasNonThisStmt();
             pnodeConstructor->SetHasComputedName();
             pnodeConstructor->SetHasHomeObj();
         }

@@ -1,7 +1,7 @@
 [
   {
     "evaluate": {
-      "var varProp = 'varProp';let letProp = 'letProp';const constProp = 'constProp';function func() {return 0;};nonVarProp = 'nonVarProp';class class1{foo(){return 0;}};": "function {"
+      "var varProp = 'varProp';let letProp = 'letProp';const constProp = 'constProp';function func() {return 0;};nonVarProp = 'nonVarProp';class class1{foo(){return 0;}};": "function <large string>"
     }
   },
   {
@@ -21,7 +21,7 @@
   },
   {
     "evaluate": {
-      "var varProp = 'varProp1';let letProp = 'letProp1';const constProp = 'constProp1';function func() {return 1;};nonVarProp = 'nonVarProp1';class class1{foo(){return 1;}};": "function {"
+      "var varProp = 'varProp1';let letProp = 'letProp1';const constProp = 'constProp1';function func() {return 1;};nonVarProp = 'nonVarProp1';class class1{foo(){return 1;}};": "function <large string>"
     }
   },
   {
