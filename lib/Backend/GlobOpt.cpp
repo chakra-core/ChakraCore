@@ -17080,13 +17080,14 @@ GlobOpt::EmitMemop(Loop * loop, LoopCount *loopCount, const MemOpEmitData* emitD
     RemoveMemOpSrcInstr(memopInstr, emitData->stElemInstr, emitData->block);
     if (!isMemset)
     {
-        if (((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->IsIndirOpnd())
+        IR::Instr* ldElemInstr = ((MemCopyEmitData*)emitData)->ldElemInstr;
+        if (ldElemInstr->GetSrc1()->IsIndirOpnd())
         {
-            baseOpnd = ((MemCopyEmitData*)emitData)->ldElemInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
+            baseOpnd = ldElemInstr->GetSrc1()->AsIndirOpnd()->GetBaseOpnd();
             isLikelyJsArray = baseOpnd->GetValueType().IsLikelyArrayOrObjectWithArray();
-            ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, emitData->stElemInstr, isLikelyJsArray, true);
+            ProcessNoImplicitCallArrayUses(baseOpnd, baseOpnd->IsArrayRegOpnd() ? baseOpnd->AsArrayRegOpnd() : nullptr, ldElemInstr, isLikelyJsArray, true);
         }
-        RemoveMemOpSrcInstr(memopInstr, ((MemCopyEmitData*)emitData)->ldElemInstr, emitData->block);
+        RemoveMemOpSrcInstr(memopInstr, ldElemInstr, emitData->block);
     }
     InsertNoImplicitCallUses(memopInstr);
     noImplicitCallUsesToInsert->Clear();    
