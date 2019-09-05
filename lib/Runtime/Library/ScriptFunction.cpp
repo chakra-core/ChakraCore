@@ -103,7 +103,6 @@ using namespace Js;
             pfuncScript->GetTypeHandler()->EnsureObjectReady(pfuncScript);
         }
 
-
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(pfuncScript, EtwTrace::GetFunctionId(functionProxy)));
 
         return pfuncScript;
@@ -345,19 +344,26 @@ using namespace Js;
             charcount_t cch = pFuncBody->LengthInChars();
             size_t cbLength = pFuncBody->LengthInBytes();
             LPCUTF8 pbStart = pFuncBody->GetToStringSource(_u("ScriptFunction::EnsureSourceString"));
+            size_t cbPreludeLength = 0;
             // cch and cbLength refer to the length of the parse, which may be smaller than the length of the to-string function
-            Assert(pFuncBody->StartOffset() >= pFuncBody->PrintableStartOffset());
-            size_t cbPreludeLength = pFuncBody->StartOffset() - pFuncBody->PrintableStartOffset();
+            PrintOffsets* printOffsets = pFuncBody->GetPrintOffsets();
+            if (printOffsets != nullptr)
+            {
+                Assert((printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset) >= cbLength);
+                cbPreludeLength = (printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset) - cbLength;
+
+                Assert(pFuncBody->StartOffset() >= printOffsets->cbStartPrintOffset);
+                cbLength = printOffsets->cbEndPrintOffset - printOffsets->cbStartPrintOffset;
+            }
             Assert(cbPreludeLength < MaxCharCount);
             // the toString of a function may include some prelude, e.g. the computed name expression.
             // We do not store the char-index of the start, but if there are cbPreludeLength bytes difference,
             // then that is an upper bound on the number of characters difference.
             // We also assume that function.toString is relatively infrequent, and non-ascii characters in
             // a prelude are relatively infrequent, so the inaccuracy here should in general be insignificant
-
             BufferStringBuilder builder(cch + static_cast<charcount_t>(cbPreludeLength), scriptContext);
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            size_t decodedCount = utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength + cbPreludeLength, options);
+            size_t decodedCount = utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength, options);
 
             if (decodedCount < cch)
             {

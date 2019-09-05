@@ -137,4 +137,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>deferparseclass.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

@@ -1134,6 +1134,7 @@ ParseNodeProg * Parser::CreateProgNode(bool isModuleSource, ULONG lineNumber)
 
     pnodeProg->cbMin = this->GetScanner()->IecpMinTok();
     pnodeProg->cbStringMin = pnodeProg->cbMin;
+    pnodeProg->cbStringLim = pnodeProg->cbLim;
     pnodeProg->lineNumber = lineNumber;
     pnodeProg->homeObjLocation = Js::Constants::NoRegister;
     pnodeProg->superRestrictionState = SuperRestrictionState::Disallowed;
@@ -3678,6 +3679,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         if (isAsyncExpr)
         {
             pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
+            pnode->AsParseNodeFnc()->cbStringLim = pnode->AsParseNodeFnc()->cbLim;
         }
         fCanAssign = FALSE;
         break;
@@ -4687,6 +4689,7 @@ ParseNodeBin * Parser::ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint, size
         /*needsPIDOnRCurlyScan*/ false);
 
     pnodeFnc->cbStringMin = iecpMin;
+    pnodeFnc->cbStringLim = pnodeFnc->cbLim;
 
     if (isComputedName)
     {
@@ -5031,13 +5034,14 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             if (isAsyncMethod || isGenerator)
             {
                 pnodeFnc->cbStringMin = iecpMin;
+                pnodeFnc->cbStringLim = pnodeFnc->cbLim;
             }
 
             if (isComputedName)
             {
                 pnodeFnc->SetHasComputedName();
                 pnodeFnc->cbStringMin = iecpMin;
-                
+                pnodeFnc->cbStringLim = pnodeFnc->cbLim;
             }
             pnodeFnc->SetHasHomeObj();
 
@@ -5354,6 +5358,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->nestedFuncEscapes = false;
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->cbStringMin = pnodeFnc->cbMin;
+    pnodeFnc->cbStringLim = pnodeFnc->cbLim;
     pnodeFnc->functionId = (*m_nextFunctionId)++;
     pnodeFnc->superRestrictionState = superRestrictionState;
 
@@ -5390,6 +5395,7 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
+    pnodeFnc->SetHasNonThisStmt(pnodeFnc->IsClassConstructor());
 
     if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
     {
@@ -5677,15 +5683,6 @@ void Parser::ParseFncDeclHelper(ParseNodeFnc * pnodeFnc, LPCOLESTR pNameHint, us
 
     uint uCanDeferSave = m_grfscr & fscrCanDeferFncParse;
     uint uDeferSave = m_grfscr & fscrWillDeferFncParse;
-    if (flags & fFncClassMember)
-    {
-        // Disable deferral on class members or other construct with unusual text bounds
-        // as these are usually trivial, and re-parsing is problematic.
-        // NOTE: It is probably worth supporting these cases for memory and load-time purposes,
-        // especially as they become more and more common.
-        m_grfscr &= ~(fscrCanDeferFncParse | fscrWillDeferFncParse);
-    }
-
     bool isTopLevelDeferredFunc = false;
 
 #if ENABLE_BACKGROUND_PARSING
@@ -7176,6 +7173,7 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->cbLim = this->GetScanner()->IecpLimTok();
     pnodeFnc->cbMin = this->GetScanner()->IecpMinTok();
     pnodeFnc->cbStringMin = pnodeFnc->cbMin;
+    pnodeFnc->cbStringLim = pnodeFnc->cbLim;
     pnodeFnc->lineNumber = this->GetScanner()->LineCur();
 
     pnodeFnc->functionId = (*m_nextFunctionId);
@@ -8143,15 +8141,11 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                         fncDeclFlags |= fFncAsync;
                     }
                     pnodeFnc = ParseFncDeclNoCheckScope<buildAST>(fncDeclFlags, SuperRestrictionState::PropertyAllowed, pidHint ? pidHint->Psz() : nullptr, /* needsPIDOnRCurlyScan */ true);
-                    if (isAsyncMethod)
-                    {
-                        pnodeFnc->cbMin = iecpMin;
-                        pnodeFnc->ichMin = ichMin;
-                    }
 
                     if (isAsyncMethod || isGenerator || isComputedName)
                     {
                         pnodeFnc->cbStringMin = iecpMin;
+                        pnodeFnc->cbStringLim = pnodeFnc->cbLim;
                     }
                 }
                 pnodeFnc->SetIsStaticMember(isStatic);
@@ -8221,11 +8215,8 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
 
     if (buildAST)
     {
-        pnodeConstructor->cbMin = cbMinConstructor;
         pnodeConstructor->cbStringMin = cbMinConstructor;
-        pnodeConstructor->cbLim = cbLimConstructor;
-        pnodeConstructor->ichMin = pnodeClass->ichMin;
-        pnodeConstructor->ichLim = pnodeClass->ichLim;
+        pnodeConstructor->cbStringLim = cbLimConstructor;
 
         PopFuncBlockScope(ppnodeScopeSave, ppnodeExprScopeSave);
 
@@ -9275,6 +9266,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             if (isAsyncMethod)
             {
                 pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
+                pnode->AsParseNodeFnc()->cbStringLim = pnode->AsParseNodeFnc()->cbLim;
             }
 
             // ArrowFunction/AsyncArrowFunction is part of AssignmentExpression, which should terminate the expression unless followed by a comma
@@ -10204,6 +10196,7 @@ LRestart:
         if (isAsyncMethod)
         {
             pnode->AsParseNodeFnc()->cbStringMin = iecpMin;
+            pnode->AsParseNodeFnc()->cbStringLim = pnode->AsParseNodeFnc()->cbLim;
         }
         break;
     }
@@ -11957,6 +11950,7 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
 
             m_currentNodeFunc->SetIsGenerator(scopeInfo->IsGeneratorFunctionBody());
             m_currentNodeFunc->SetIsAsync(scopeInfo->IsAsyncFunctionBody());
+            m_currentNodeFunc->SetIsClassConstructor(scopeInfo->IsClassConstructor());
         }
     }
 
@@ -12021,6 +12015,23 @@ ParseNodeProg * Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, char
                 flags |= fFncAsync;
             }
 
+            if (m_grfscr & fscrDeferredFncIsClassConstructor)
+            {
+                m_grfscr &= ~fscrDeferredFncIsClassConstructor;
+                flags |= fFncClassConstructor | fFncClassMember;
+            }
+
+            if (m_grfscr & fscrDeferredFncIsBaseClassConstructor)
+            {
+                m_grfscr &= ~fscrDeferredFncIsBaseClassConstructor;
+                flags |= fFncBaseClassConstructor;
+            }
+
+            if (m_grfscr & fscrDeferredFncIsClassMember)
+            {
+                m_grfscr &= ~fscrDeferredFncIsClassMember;
+                flags |= fFncClassMember;
+            }
 
 #if DBG
             if (isMethod && m_token.tk == tkID)
