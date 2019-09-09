@@ -1562,6 +1562,12 @@
   </test>
   <test>
     <default>
+      <files>bugsimplepathbrfold5.js</files>
+      <tags>exclude_dynapogo,exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>bugsimplepathbrfoldgetter.js</files>
       <baseline>bugsimplepathbrfoldgetter.baseline</baseline>
       <tags>exclude_dynapogo,exclude_nonative</tags>

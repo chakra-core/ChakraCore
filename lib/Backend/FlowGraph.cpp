@@ -3643,9 +3643,14 @@ Loop::SetLoopTopInstr(IR::LabelInstr * loopTop)
 bool
 Loop::IsSymAssignedToInSelfOrParents(StackSym * const sym) const
 {
+    return IsSymAssignedToInSelfOrParents(sym->m_id);
+}
+
+bool Loop::IsSymAssignedToInSelfOrParents(SymID id) const
+{
     for (const Loop* curLoop = this; curLoop != nullptr; curLoop = curLoop->parent)
     {
-        if (curLoop->symsAssignedToInLoop->Test(sym->m_id))
+        if (curLoop->symsAssignedToInLoop->Test(id))
         {
             return true;
         }
@@ -4488,18 +4493,47 @@ Value * BasicBlock::FindValueInLocalThenGlobalValueTableAndUpdate(GlobOpt *globO
     return srcVal;
 }
 
-IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt* globOpt, GlobHashTable * localSymToValueMap)
+Value* BasicBlock::GetValueForConditionalBranch(
+    IR::BranchInstr* branch,
+    IR::Opnd* opnd,
+    GlobOpt* globOpt,
+    GlobHashTable* localSymToValueMap)
 {
-    if (!branch->GetSrc1() || !branch->GetSrc1()->GetStackSym())
+    if (!opnd || !opnd->GetStackSym())
     {
         return nullptr;
     }
 
+    StackSym* sym = opnd->GetStackSym();
+
+    Value* val = FindValueInLocalThenGlobalValueTableAndUpdate(
+        globOpt,
+        localSymToValueMap,
+        branch,
+        nullptr,
+        sym);
+
+    if (val != nullptr && this->loop)
+    {
+        // If this branch is within a loop, the stack sym is type specialized, and the associated
+        // var sym is written to within the loop, then we cannot prove the condition: additional
+        // assignments to the type specialized sym might be inserted in a later block.
+        SymID varSymID = globOpt->GetVarSymID(sym);
+        if (varSymID != sym->m_id && this->loop->IsSymAssignedToInSelfOrParents(varSymID))
+        {
+            return nullptr;
+        }
+    }
+
+    return val;
+}
+
+IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, GlobOpt *globOpt, GlobHashTable *localSymToValueMap)
+{
     Value *src1Val = nullptr, *src2Val = nullptr;
     Js::Var src1Var = nullptr, src2Var = nullptr;
 
-    src1Val = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, branch, nullptr, branch->GetSrc1()->GetStackSym());
-
+    src1Val = GetValueForConditionalBranch(branch, branch->GetSrc1(), globOpt, localSymToValueMap);
     if (!src1Val)
     {
         return nullptr;
@@ -4508,10 +4542,7 @@ IR::LabelInstr* BasicBlock::CanProveConditionalBranch(IR::BranchInstr *branch, G
 
     if (branch->GetSrc2() != nullptr)
     {
-        if (branch->GetSrc2()->GetStackSym())
-        {
-            src2Val = FindValueInLocalThenGlobalValueTableAndUpdate(globOpt, localSymToValueMap, branch, nullptr, branch->GetSrc2()->GetStackSym());
-        }
+        src2Val = GetValueForConditionalBranch(branch, branch->GetSrc2(), globOpt, localSymToValueMap);
         if (!src2Val)
         {
             return nullptr;
