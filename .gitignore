@@ -39,10 +39,7 @@ build_*.log
 build_*.wrn
 Build/ipch/
 Build/swum-cache.txt
-Build/VCBuild.Lite/
-Build/VCBuild.NoJIT/
-Build/VCBuild.SWB/
-Build/VCBuild/
+Build/VCBuild*/
 buildchk.*
 buildfre.*
 out/

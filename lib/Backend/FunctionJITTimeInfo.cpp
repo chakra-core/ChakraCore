@@ -311,6 +311,18 @@ FunctionJITTimeInfo::GetObjTypeSpecFldInfo(uint index) const
     return reinterpret_cast<ObjTypeSpecFldInfo *>(m_data.objTypeSpecFldInfoArray[index]);
 }
 
+void
+FunctionJITTimeInfo::ClearObjTypeSpecFldInfo(uint index)
+{
+    if (m_data.objTypeSpecFldInfoArray == nullptr)
+    {
+        return;
+    }
+    AssertOrFailFast(index < m_data.objTypeSpecFldInfoCount);
+
+    m_data.objTypeSpecFldInfoArray[index] = nullptr;
+}
+
 ObjTypeSpecFldInfo *
 FunctionJITTimeInfo::GetGlobalObjTypeSpecFldInfo(uint index) const
 {

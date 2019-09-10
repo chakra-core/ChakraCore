@@ -5422,7 +5422,14 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
                         // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
                         // the initial type check that protects this path.
-                        opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        if (!opnd->SetMonoGuardType(bucket->GetMonoGuardType()))
+                        {
+                            // We can't safely check for the required type here. Clear the objtypespec info to disable optimization
+                            // using this inline cache, since there appears to be a mismatch, and re-jit.
+                            // (Dead store pass is too late to generate the bailout points we need to use this type correctly.)
+                            this->currentInstr->m_func->ClearObjTypeSpecFldInfo(opnd->m_inlineCacheIndex);
+                            throw Js::RejitException(RejitReason::FailedEquivalentTypeCheck);
+                        }
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
@@ -8742,7 +8749,7 @@ BackwardPass::RestoreInductionVariableValuesAfterMemOp(Loop *loop)
         StackSym *sym = localFunc->m_symTable->FindStackSym(symId)->GetInt32EquivSym(localFunc);
 
         IR::Opnd *inductionVariableOpnd = IR::RegOpnd::New(sym, IRType::TyInt32, localFunc);
-        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll);
+        IR::Opnd *sizeOpnd = globOpt->GenerateInductionVariableChangeForMemOp(loop, inductionVariableChangeInfo.unroll, loop->memOpInfo->instr);
         IR::Instr* restoreInductionVarInstr = IR::Instr::New(opCode, inductionVariableOpnd, inductionVariableOpnd, sizeOpnd, loop->GetFunc());
 
         // The IR that restores the induction variable's value is placed before the MemOp. Since this IR can

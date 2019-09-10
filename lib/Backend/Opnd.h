@@ -799,9 +799,17 @@ public:
         return this->monoGuardType;
     }
 
-    void SetMonoGuardType(JITTypeHolder type)
+    bool SetMonoGuardType(JITTypeHolder type)
     {
+        if (!(this->monoGuardType == nullptr || this->monoGuardType == type) ||
+            !((HasEquivalentTypeSet() && GetEquivalentTypeSet()->Contains(type)) ||
+              (!HasEquivalentTypeSet() && GetType() == type)))
+        {
+            // Required type is not in the available set, or we already set the type to something else. Inform the caller.
+            return false;
+        }
         this->monoGuardType = type;
+        return true;
     }
 
     bool NeedsMonoCheck() const

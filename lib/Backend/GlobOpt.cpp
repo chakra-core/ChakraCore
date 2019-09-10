@@ -1167,6 +1167,10 @@ void GlobOpt::InsertValueCompensation(
     IR::Instr *insertBeforeInstr = predecessor->GetLastInstr();
     Func *const func = insertBeforeInstr->m_func;
     bool setLastInstrInPredecessor;
+    // If this is a loop back edge, and the successor has been completed, don't attempt to update its block data.
+    // The update is unnecessary, and the data has likely been freed.
+    bool updateSuccessorBlockData = !this->isPerformingLoopBackEdgeCompensation || successor->GetDataUseCount() > 0;
+
     if(insertBeforeInstr->IsBranchInstr() || insertBeforeInstr->m_opcode == Js::OpCode::BailTarget)
     {
         // Don't insert code between the branch and the corresponding ByteCodeUses instructions
@@ -1257,29 +1261,33 @@ void GlobOpt::InsertValueCompensation(
             // Merge the head segment length value
             Assert(predecessorBlockData.liveVarSyms->Test(predecessorHeadSegmentLengthSym->m_id));
             predecessorBlockData.liveVarSyms->Set(mergedHeadSegmentLengthSym->m_id);
-            successorBlockData.liveVarSyms->Set(mergedHeadSegmentLengthSym->m_id);
             Value *const predecessorHeadSegmentLengthValue =
                 predecessorBlockData.FindValue(predecessorHeadSegmentLengthSym);
             Assert(predecessorHeadSegmentLengthValue);
             predecessorBlockData.SetValue(predecessorHeadSegmentLengthValue, mergedHeadSegmentLengthSym);
-            Value *const mergedHeadSegmentLengthValue = successorBlockData.FindValue(mergedHeadSegmentLengthSym);
-            if(mergedHeadSegmentLengthValue)
+
+            if (updateSuccessorBlockData)
             {
-                Assert(mergedHeadSegmentLengthValue->GetValueNumber() != predecessorHeadSegmentLengthValue->GetValueNumber());
-                if(predecessorHeadSegmentLengthValue->GetValueInfo() != mergedHeadSegmentLengthValue->GetValueInfo())
+                successorBlockData.liveVarSyms->Set(mergedHeadSegmentLengthSym->m_id);
+                Value *const mergedHeadSegmentLengthValue = successorBlockData.FindValue(mergedHeadSegmentLengthSym);
+                if(mergedHeadSegmentLengthValue)
                 {
-                    mergedHeadSegmentLengthValue->SetValueInfo(
-                        ValueInfo::MergeLikelyIntValueInfo(
-                            this->alloc,
-                            mergedHeadSegmentLengthValue,
-                            predecessorHeadSegmentLengthValue,
-                            mergedHeadSegmentLengthValue->GetValueInfo()->Type()
-                                .Merge(predecessorHeadSegmentLengthValue->GetValueInfo()->Type())));
+                    Assert(mergedHeadSegmentLengthValue->GetValueNumber() != predecessorHeadSegmentLengthValue->GetValueNumber());
+                    if(predecessorHeadSegmentLengthValue->GetValueInfo() != mergedHeadSegmentLengthValue->GetValueInfo())
+                    {
+                        mergedHeadSegmentLengthValue->SetValueInfo(
+                            ValueInfo::MergeLikelyIntValueInfo(
+                                this->alloc,
+                                mergedHeadSegmentLengthValue,
+                                predecessorHeadSegmentLengthValue,
+                                mergedHeadSegmentLengthValue->GetValueInfo()->Type()
+                                    .Merge(predecessorHeadSegmentLengthValue->GetValueInfo()->Type())));
+                    }
                 }
-            }
-            else
-            {
-                successorBlockData.SetValue(CopyValue(predecessorHeadSegmentLengthValue), mergedHeadSegmentLengthSym);
+                else
+                {
+                    successorBlockData.SetValue(CopyValue(predecessorHeadSegmentLengthValue), mergedHeadSegmentLengthSym);
+                }
             }
         }
 
@@ -1300,27 +1308,31 @@ void GlobOpt::InsertValueCompensation(
             // Merge the length value
             Assert(predecessorBlockData.liveVarSyms->Test(predecessorLengthSym->m_id));
             predecessorBlockData.liveVarSyms->Set(mergedLengthSym->m_id);
-            successorBlockData.liveVarSyms->Set(mergedLengthSym->m_id);
             Value *const predecessorLengthValue = predecessorBlockData.FindValue(predecessorLengthSym);
             Assert(predecessorLengthValue);
             predecessorBlockData.SetValue(predecessorLengthValue, mergedLengthSym);
-            Value *const mergedLengthValue = successorBlockData.FindValue(mergedLengthSym);
-            if(mergedLengthValue)
+
+            if (updateSuccessorBlockData)
             {
-                Assert(mergedLengthValue->GetValueNumber() != predecessorLengthValue->GetValueNumber());
-                if(predecessorLengthValue->GetValueInfo() != mergedLengthValue->GetValueInfo())
+                successorBlockData.liveVarSyms->Set(mergedLengthSym->m_id);
+                Value *const mergedLengthValue = successorBlockData.FindValue(mergedLengthSym);
+                if(mergedLengthValue)
                 {
-                    mergedLengthValue->SetValueInfo(
-                        ValueInfo::MergeLikelyIntValueInfo(
-                            this->alloc,
-                            mergedLengthValue,
-                            predecessorLengthValue,
-                            mergedLengthValue->GetValueInfo()->Type().Merge(predecessorLengthValue->GetValueInfo()->Type())));
+                    Assert(mergedLengthValue->GetValueNumber() != predecessorLengthValue->GetValueNumber());
+                    if(predecessorLengthValue->GetValueInfo() != mergedLengthValue->GetValueInfo())
+                    {
+                        mergedLengthValue->SetValueInfo(
+                            ValueInfo::MergeLikelyIntValueInfo(
+                                this->alloc,
+                                mergedLengthValue,
+                                predecessorLengthValue,
+                                mergedLengthValue->GetValueInfo()->Type().Merge(predecessorLengthValue->GetValueInfo()->Type())));
+                    }
                 }
-            }
-            else
-            {
-                successorBlockData.SetValue(CopyValue(predecessorLengthValue), mergedLengthSym);
+                else
+                {
+                    successorBlockData.SetValue(CopyValue(predecessorLengthValue), mergedLengthSym);
+                }
             }
         }
 
@@ -2087,6 +2099,7 @@ bool GlobOpt::CollectMemcopyStElementI(IR::Instr *instr, Loop *loop)
 
     // Consider: Can we remove the count field?
     memcopyInfo->count++;
+    AssertOrFailFast(memcopyInfo->count <= 1);
     memcopyInfo->base = baseSymID;
 
     return true;
@@ -2226,7 +2239,14 @@ MemOpCheckInductionVariable:
                 {
                     Loop::InductionVariableChangeInfo inductionVariableChangeInfo = { 0, 0 };
                     inductionVariableChangeInfo = loop->memOpInfo->inductionVariableChangeInfoMap->Lookup(inductionSymID, inductionVariableChangeInfo);
-                    inductionVariableChangeInfo.unroll++;
+                    
+                    // If inductionVariableChangeInfo.unroll has been invalidated, do
+                    // not modify the Js::Constants::InvalidLoopUnrollFactor value
+                    if (inductionVariableChangeInfo.unroll != Js::Constants::InvalidLoopUnrollFactor)
+                    {
+                        inductionVariableChangeInfo.unroll++;
+                    }
+                    
                     inductionVariableChangeInfo.isIncremental = isIncr;
                     loop->memOpInfo->inductionVariableChangeInfoMap->Item(inductionSymID, inductionVariableChangeInfo);
                 }
@@ -16677,6 +16697,7 @@ GlobOpt::GetOrGenerateLoopCountForMemOp(Loop *loop)
 IR::Opnd *
 GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::Instr *insertBeforeInstr)
 {
+    AssertOrFailFast(unroll != Js::Constants::InvalidLoopUnrollFactor);
     LoopCount *loopCount = loop->loopCount;
     IR::Opnd *sizeOpnd = nullptr;
     Assert(loopCount);
@@ -16714,11 +16735,12 @@ GlobOpt::GenerateInductionVariableChangeForMemOp(Loop *loop, byte unroll, IR::In
 
             IR::Opnd *unrollOpnd = IR::IntConstOpnd::New(unroll, type, localFunc);
 
-            InsertInstr(IR::Instr::New(Js::OpCode::Mul_I4,
-                sizeOpnd,
-                loopCountOpnd,
-                unrollOpnd,
-                localFunc));
+            IR::Instr* inductionChangeMultiplier = IR::Instr::New(
+                Js::OpCode::Mul_I4, sizeOpnd, loopCountOpnd, unrollOpnd, localFunc);
+
+            InsertInstr(inductionChangeMultiplier);
+
+            inductionChangeMultiplier->ConvertToBailOutInstr(loop->bailOutInfo, IR::BailOutOnOverflow);
 
         }
     }
