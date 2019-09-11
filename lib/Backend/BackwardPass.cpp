@@ -5636,7 +5636,14 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
                         // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
                         // the initial type check that protects this path.
-                        opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        if (!opnd->SetMonoGuardType(bucket->GetMonoGuardType()))
+                        {
+                            // We can't safely check for the required type here. Clear the objtypespec info to disable optimization
+                            // using this inline cache, since there appears to be a mismatch, and re-jit.
+                            // (Dead store pass is too late to generate the bailout points we need to use this type correctly.)
+                            this->currentInstr->m_func->ClearObjTypeSpecFldInfo(opnd->m_inlineCacheIndex);
+                            throw Js::RejitException(RejitReason::FailedEquivalentTypeCheck);
+                        }
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
