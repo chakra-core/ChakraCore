@@ -353,12 +353,10 @@ IRBuilder::Build()
     if (tempCount > 0)
     {
         this->tempMap = AnewArrayZ(m_tempAlloc, SymID, tempCount);
-        this->fbvTempUsed = BVFixed::New<JitArenaAllocator>(tempCount, m_tempAlloc);
     }
     else
     {
         this->tempMap = nullptr;
-        this->fbvTempUsed = nullptr;
     }
 
     m_func->m_headInstr = IR::EntryInstr::New(Js::OpCode::FunctionEntry, m_func);
@@ -1224,7 +1222,6 @@ IRBuilder::BuildSrcStackSymID(Js::RegSlot regSlot)
             this->SetMappedTemp(regSlot, symID);
             this->EnsureLoopBodyLoadSlot(symID);
         }
-        this->SetTempUsed(regSlot, TRUE);
     }
     else
     {
@@ -1315,7 +1312,7 @@ IRBuilder::BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type)
 ///----------------------------------------------------------------------------
 
 IR::RegOpnd *
-IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectSym)
+IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectSym, bool reuseTemp)
 {
     StackSym *   symDst;
     SymID        symID;
@@ -1336,24 +1333,20 @@ IRBuilder::BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type, bool isCatchObjectS
 
         // This is a def of a temp. Create a new sym ID for it if it's been used since its last def.
         //     !!!NOTE: always process an instruction's temp uses before its temp defs!!!
-        if (this->GetTempUsed(dstRegSlot))
+
+        symID = this->GetMappedTemp(dstRegSlot);
+        if (symID == 0)
         {
-            symID = m_func->m_symTable->NewID();
-            this->SetTempUsed(dstRegSlot, FALSE);
+            // First time we've seen the temp. Just use the number that the front end gave it.
+            symID = static_cast<SymID>(dstRegSlot);
             this->SetMappedTemp(dstRegSlot, symID);
         }
-        else
+        else if (!reuseTemp)
         {
-            symID = this->GetMappedTemp(dstRegSlot);
-            // The temp hasn't been used since its last def. There are 2 possibilities:
-            if (symID == 0)
-            {
-                // First time we've seen the temp. Just use the number that the front end gave it.
-                symID = static_cast<SymID>(dstRegSlot);
-                this->SetMappedTemp(dstRegSlot, symID);
-            }
+            // Byte code has not told us to reuse the mapped temp at this def, so don't. Make a new one.
+            symID = m_func->m_symTable->NewID();
+            this->SetMappedTemp(dstRegSlot, symID);
         }
-
     }
     else
     {
@@ -1506,6 +1499,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
     IR::Opnd * srcOpnd = nullptr;
     bool isNotInt = false;
     bool dstIsCatchObject = false;
+    bool reuseLoc = false;
     ValueType dstValueType;
     switch (newOpcode)
     {
@@ -1560,6 +1554,9 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         isNotInt = true;
         break;
 
+    case Js::OpCode::LdLocalObj_ReuseLoc:
+        reuseLoc = true;
+        // fall through
     case Js::OpCode::LdLocalObj:
         if (!m_func->GetJITFunctionBody()->HasScopeObject())
         {
@@ -1636,6 +1633,9 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             break;
         }
 
+    case Js::OpCode::LdFalse_ReuseLoc:
+        reuseLoc = true;
+        // fall through
     case Js::OpCode::LdFalse:
         {
             const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetFalseAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
@@ -1645,6 +1645,9 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             break;
         }
 
+    case Js::OpCode::LdTrue_ReuseLoc:
+        reuseLoc = true;
+        // fall through
     case Js::OpCode::LdTrue:
         {
             const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
@@ -1665,12 +1668,6 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
     case Js::OpCode::LdFuncObj:
         isNotInt = TRUE;
         break;
-
-    case Js::OpCode::Unused:
-        // Don't generate anything. Just indicate that the temp reg is used.
-        Assert(this->RegIsTemp(dstRegSlot));
-        this->SetTempUsed(dstRegSlot, TRUE);
-        return;
 
     case Js::OpCode::InitUndecl:
         srcOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetUndeclBlockVarAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
@@ -1705,7 +1702,7 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         }
     }
 
-    IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(dstRegSlot, TyVar, dstIsCatchObject);
+    IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(dstRegSlot, TyVar, dstIsCatchObject, reuseLoc);
     dstOpnd->SetValueType(dstValueType);
     StackSym *      dstSym = dstOpnd->m_sym;
     dstSym->m_isCatchObjectSym = dstIsCatchObject;
@@ -1773,9 +1770,25 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
 {
     IR::RegOpnd *   src1Opnd = this->BuildSrcOpnd(R1);
     StackSym *      symSrc1 = src1Opnd->m_sym;
+    bool            reuseLoc = false;
 
     switch (newOpcode)
     {
+    case Js::OpCode::Ld_A_ReuseLoc:
+        newOpcode = Js::OpCode::Ld_A;
+        reuseLoc = true;
+        break;
+
+    case Js::OpCode::Typeof_ReuseLoc:
+        newOpcode = Js::OpCode::Typeof;
+        reuseLoc = true;
+        break;
+
+    case Js::OpCode::UnwrapWithObj_ReuseLoc:
+        newOpcode = Js::OpCode::UnwrapWithObj;
+        reuseLoc = true;
+        break;
+
     case Js::OpCode::SpreadObjectLiteral:
         // fall through
     case Js::OpCode::SetComputedNameVar:
@@ -1807,7 +1820,7 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
     }
     }
 
-    IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(R0);
+    IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(R0, TyVar, false, reuseLoc);
     StackSym *      dstSym = dstOpnd->m_sym;
 
     IR::Instr * instr = nullptr;
@@ -2380,7 +2393,7 @@ IRBuilder::BuildReg2B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSl
 
     IR::Instr *     instr;
     IR::RegOpnd * srcOpnd = this->BuildSrcOpnd(srcRegSlot);
-    IR::RegOpnd * dstOpnd = this->BuildDstOpnd(dstRegSlot);
+    IR::RegOpnd * dstOpnd = this->BuildDstOpnd(dstRegSlot, TyVar, false, true);
 
     IR::IndirOpnd * indir1Opnd = IR::IndirOpnd::New(dstOpnd, index, TyVar, m_func);
 
@@ -2417,22 +2430,23 @@ IRBuilder::BuildReg3B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSl
     IR::Instr *     instr;
     IR::RegOpnd * src1Opnd = this->BuildSrcOpnd(src1RegSlot);
     IR::RegOpnd * src2Opnd = this->BuildSrcOpnd(src2RegSlot);
-    IR::RegOpnd * dstOpnd = this->BuildDstOpnd(dstRegSlot);
-    dstOpnd->SetValueType(ValueType::String);
+    IR::RegOpnd * dstOpnd = nullptr;
 
     IR::Instr * newConcatStrMulti = nullptr;
     switch (newOpcode)
     {
     case Js::OpCode::NewConcatStrMulti:
-
+        dstOpnd = this->BuildDstOpnd(dstRegSlot);
         newConcatStrMulti = IR::Instr::New(Js::OpCode::NewConcatStrMulti, dstOpnd, IR::IntConstOpnd::New(index, TyUint32, m_func), m_func);
         index = 0;
         break;
     case Js::OpCode::SetConcatStrMultiItem2:
+        dstOpnd = this->BuildDstOpnd(dstRegSlot, TyVar, false, true);
         break;
     default:
         Assert(false);
     };
+    dstOpnd->SetValueType(ValueType::String);
     IR::IndirOpnd * indir1Opnd = IR::IndirOpnd::New(dstOpnd, index, TyVar, m_func);
     IR::IndirOpnd * indir2Opnd = IR::IndirOpnd::New(dstOpnd, index + 1, TyVar, m_func);
 
@@ -3152,15 +3166,20 @@ IRBuilder::BuildElementC(Js::OpCode newOpcode, uint32 offset, Js::RegSlot fieldR
     PropertyKind    propertyKind = PropertyKindData;
     IR::SymOpnd *   fieldSymOpnd = this->BuildFieldOpnd(newOpcode, fieldRegSlot, propertyId, propertyIdIndex, propertyKind);
     IR::RegOpnd * regOpnd;
+    bool            reuseLoc = false;
 
     switch (newOpcode)
     {
+    case Js::OpCode::DeleteFld_ReuseLoc:
+        newOpcode = Js::OpCode::DeleteFld;
+        reuseLoc = true;
+        // fall through
     case Js::OpCode::DeleteFld:
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
         // Load
-        regOpnd = this->BuildDstOpnd(regSlot);
+        regOpnd = this->BuildDstOpnd(regSlot, TyVar, false, reuseLoc);
         instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
         break;
 
@@ -3482,6 +3501,7 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
     StackSym *   stackFuncPtrSym = nullptr;
     SymID        symID = m_func->GetJITFunctionBody()->GetLocalClosureReg();
     bool isLdSlotThatWasNotProfiled = false;
+    bool reuseLoc = false;
     StackSym* closureSym = m_func->GetLocalClosureSym();
 
     uint scopeSlotSize = this->IsParamScopeDone() ? m_func->GetJITFunctionBody()->GetScopeSlotArraySize() : m_func->GetJITFunctionBody()->GetParamScopeSlotArraySize();
@@ -3679,9 +3699,12 @@ IRBuilder::BuildElementSlotI1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
             this->AddInstr(instr, offset);
             break;
 
+        case Js::OpCode::LdEnvObj_ReuseLoc:
+            reuseLoc = true;
+            // fall through
         case Js::OpCode::LdEnvObj:
             fieldOpnd = this->BuildFieldOpnd(Js::OpCode::LdSlotArr, this->GetEnvReg(), slotId, (Js::PropertyIdIndexType)-1, PropertyKindSlotArray);
-            regOpnd = this->BuildDstOpnd(regSlot);
+            regOpnd = this->BuildDstOpnd(regSlot, TyVar, false, reuseLoc);
             instr = IR::Instr::New(Js::OpCode::LdSlotArr, regOpnd, fieldOpnd, m_func);
             this->AddInstr(instr, offset);
 
@@ -4255,9 +4278,14 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
     propertyId = this->m_func->GetJITFunctionBody()->GetPropertyIdFromCacheId(inlineCacheIndex);
 
     Js::RegSlot instance = this->GetEnvRegForEvalCode();
+    bool reuseLoc = false;
 
     switch (newOpcode)
     {
+    case Js::OpCode::LdLocalFld_ReuseLoc:
+        reuseLoc = true;
+        newOpcode = Js::OpCode::LdLocalFld;
+        // fall through
     case Js::OpCode::LdLocalFld:
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
@@ -4272,7 +4300,7 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
         {
             fieldSymOpnd->AsPropertySymOpnd()->TryDisableRuntimePolymorphicCache();
         }
-        regOpnd = this->BuildDstOpnd(regSlot);
+        regOpnd = this->BuildDstOpnd(regSlot, TyVar, false, reuseLoc);
 
         instr = nullptr;
         if (isProfiled)
@@ -4485,8 +4513,13 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
 
     IR::Instr *     instr = nullptr;
     bool isLdFldThatWasNotProfiled = false;
+    bool reuseLoc = false;
     switch (newOpcode)
     {
+    case Js::OpCode::LdFld_ReuseLoc:
+        reuseLoc = true;
+        newOpcode = Js::OpCode::LdFld;
+        // fall through
     case Js::OpCode::LdFldForTypeOf:
     case Js::OpCode::LdFld:
     case Js::OpCode::LdLen_A:
@@ -4502,7 +4535,7 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
     case Js::OpCode::ScopedLdMethodFld:
         // Load
         // LdMethodFromFlags is backend only. Don't need to be added here.
-        regOpnd = this->BuildDstOpnd(regSlot);
+        regOpnd = this->BuildDstOpnd(regSlot, TyVar, false, reuseLoc);
 
         if (isProfiled)
         {
@@ -4879,6 +4912,7 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
     IR::RegOpnd *   regOpnd;
     IR::SymOpnd *   fieldSymOpnd;
     Js::PropertyId propertyId = m_func->GetJITFunctionBody()->GetReferencedPropertyId(propertyIdIndex);
+    bool            reuseLoc = false;
 
     switch (newOpcode)
     {
@@ -4926,10 +4960,14 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
             instr = IR::Instr::New(newOpcode, fieldSymOpnd, regOpnd, m_func);
             break;
 
+        case Js::OpCode::DeleteLocalFld_ReuseLoc:
+            newOpcode = Js::OpCode::DeleteLocalFld;
+            reuseLoc = true;
+            // fall through
         case Js::OpCode::DeleteLocalFld:
             newOpcode = Js::OpCode::DeleteFld;
             fieldSymOpnd = BuildFieldOpnd(newOpcode, m_func->GetJITFunctionBody()->GetLocalClosureReg(), propertyId, propertyIdIndex, PropertyKindData);
-            regOpnd = BuildDstOpnd(instance);
+            regOpnd = BuildDstOpnd(instance, TyVar, false, reuseLoc);
             instr = IR::Instr::New(newOpcode, regOpnd, fieldSymOpnd, m_func);
             break;
 
@@ -7278,7 +7316,7 @@ void
 IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
 {
     Assert(!OpCodeAttr::HasMultiSizeLayout(newOpcode));
-    Assert(newOpcode == Js::OpCode::BrOnNoLocalProperty);
+    Assert(newOpcode == Js::OpCode::BrOnHasLocalProperty);
 
     const unaligned   Js::OpLayoutBrLocalProperty *branchInsn = m_jnReader.BrLocalProperty();
 
@@ -7322,7 +7360,8 @@ IRBuilder::BuildBrEnvProperty(Js::OpCode newOpcode, uint32 offset)
     fieldSym = PropertySym::New(regOpnd->m_sym, propertyId, branchInsn->PropertyIdIndex, (uint)-1, PropertyKindData, m_func);
     fieldOpnd = IR::SymOpnd::New(fieldSym, TyVar, m_func);
 
-    branchInstr = IR::BranchInstr::New(newOpcode == Js::OpCode::BrOnNoEnvProperty ? Js::OpCode::BrOnNoProperty : Js::OpCode::BrOnNoLocalProperty, nullptr, fieldOpnd, m_func);
+    Assert(newOpcode == Js::OpCode::BrOnHasEnvProperty || newOpcode == Js::OpCode::BrOnHasLocalEnvProperty);
+    branchInstr = IR::BranchInstr::New(newOpcode == Js::OpCode::BrOnHasEnvProperty ? Js::OpCode::BrOnHasProperty : Js::OpCode::BrOnHasLocalProperty, nullptr, fieldOpnd, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);
 }
 

@@ -8,6 +8,24 @@ const int32 AstBytecodeRatioEstimate = 4;
 const int32 AstBytecodeRatioEstimate = 5;
 #endif
 
+
+enum DynamicLoadKind {
+    Invalid,
+    Local,
+    Env,
+    LocalWith,
+    EnvWith
+};
+struct DynamicLoadRecord {
+    DynamicLoadRecord();
+    DynamicLoadKind kind;
+    Js::ByteCodeLabel label;
+    union {
+        uint32 index;
+        Js::RegSlot instance;
+    };
+};
+
 class ByteCodeGenerator
 {
 private:
@@ -317,7 +335,7 @@ public:
     void EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo, bool skipUseBeforeDeclarationCheck = false);
     void EmitPropDelete(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
     void EmitPropTypeof(Js::RegSlot lhsLocation, Symbol *sym, IdentPtr pid, FuncInfo *funcInfo);
-    void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1);
+    void EmitTypeOfFld(FuncInfo * funcInfo, Js::PropertyId propertyId, Js::RegSlot value, Js::RegSlot instance, Js::OpCode op1, bool reuseLoc = false);
 
     bool ShouldLoadConstThis(FuncInfo* funcInfo);
 

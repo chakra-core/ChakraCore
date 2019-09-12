@@ -1455,6 +1455,7 @@ StoreCommon:
         case OpCode::InitClassMemberSet:
         case OpCode::InitProto:
         case OpCode::DeleteFld:
+        case OpCode::DeleteFld_ReuseLoc:
         case OpCode::DeleteRootFld:
         case OpCode::LdElemUndefScoped:
         case OpCode::StFuncExpr:
@@ -1583,6 +1584,7 @@ StoreCommon:
         switch (op)
         {
             case OpCode::LdEnvObj:
+            case OpCode::LdEnvObj_ReuseLoc:
             case OpCode::StLocalSlot:
             case OpCode::StParamSlot:
             case OpCode::StLocalObjSlot:
@@ -1910,6 +1912,7 @@ StoreCommon:
             break;
 
         case OpCode::LdLocalFld:
+        case OpCode::LdLocalFld_ReuseLoc:
             if (isCtor) // The symbol loaded by this LdFld will be used as a constructor
             {
                 if (registerCacheIdForCall)
@@ -2044,6 +2047,7 @@ StoreCommon:
         }
         case OpCode::LdFldForTypeOf:
         case OpCode::LdFld:
+        case OpCode::LdFld_ReuseLoc:
             if (isCtor) // The symbol loaded by this LdFld will be used as a constructor
             {
                 if (registerCacheIdForCall)

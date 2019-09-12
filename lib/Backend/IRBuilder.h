@@ -214,7 +214,7 @@ private:
     IR::SymOpnd *       BuildFieldOpnd(Js::OpCode newOpCode, Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, PropertyKind propertyKind, uint inlineCacheIndex = -1);
     PropertySym *       BuildFieldSym(Js::RegSlot reg, Js::PropertyId propertyId, Js::PropertyIdIndexType propertyIdIndex, uint inlineCacheIndex, PropertyKind propertyKind);
     SymID               BuildSrcStackSymID(Js::RegSlot regSlot);
-    IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false);
+    IR::RegOpnd *       BuildDstOpnd(Js::RegSlot dstRegSlot, IRType type = TyVar, bool isCatchObjectSym = false, bool reuseTemp = false);
     IR::RegOpnd *       BuildSrcOpnd(Js::RegSlot srcRegSlot, IRType type = TyVar);
     IR::AddrOpnd *      BuildAuxArrayOpnd(AuxArrayValue auxArrayType, uint32 auxArrayOffset);
     IR::Opnd *          BuildAuxObjectLiteralTypeRefOpnd(int objectId);
@@ -245,33 +245,6 @@ private:
         Js::RegSlot tempIndex = reg - this->firstTemp;
         AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
         this->tempMap[tempIndex] = tempId;
-    }
-
-    BOOL                GetTempUsed(Js::RegSlot reg)
-    {
-        AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
-        AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
-
-        Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
-        return this->fbvTempUsed->Test(tempIndex);
-    }
-
-    void                SetTempUsed(Js::RegSlot reg, BOOL used)
-    {
-        AssertMsg(this->RegIsTemp(reg), "Processing non-temp reg as a temp?");
-        AssertMsg(this->fbvTempUsed, "Processing non-temp reg without a used BV?");
-
-        Js::RegSlot tempIndex = reg - this->firstTemp;
-        AssertOrFailFast(tempIndex < m_func->GetJITFunctionBody()->GetTempCount());
-        if (used)
-        {
-            this->fbvTempUsed->Set(tempIndex);
-        }
-        else
-        {
-            this->fbvTempUsed->Clear(tempIndex);
-        }
     }
 
     BOOL                RegIsTemp(Js::RegSlot reg)
@@ -347,7 +320,6 @@ private:
     typedef Pair<uint, bool> handlerStackElementType;
     SList<handlerStackElementType>         *handlerOffsetStack;
     SymID *             tempMap;
-    BVFixed *           fbvTempUsed;
     Js::RegSlot         firstTemp;
     IRBuilderSwitchAdapter m_switchAdapter;
     SwitchIRBuilder     m_switchBuilder;
