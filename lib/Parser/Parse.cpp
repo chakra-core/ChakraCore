@@ -3352,6 +3352,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
         pid = ParseSuper<buildAST>(!!fAllowCall);
         isSpecialName = true;
+        fCanAssign = FALSE;
 
         // Super reference and super call need to push a pid ref to 'this' even when not building an AST
         ReferenceSpecialName(wellKnownPropertyPids._this, ichMin, ichLim);
@@ -3376,6 +3377,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
         this->GetScanner()->Scan();
         isSpecialName = true;
+        fCanAssign = FALSE;
 
         goto LIdentifier;
 
@@ -3581,6 +3583,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
 
             this->GetScanner()->Scan();
             isSpecialName = true;
+            fCanAssign = FALSE;
 
             goto LIdentifier;
         }
@@ -3617,14 +3620,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             this->m_funcInArrayDepth = 0;
         }
         ChkCurTok(tkRBrack, ERRnoRbrack);
-        if (!IsES6DestructuringEnabled())
-        {
-            fCanAssign = FALSE;
-        }
-        else if (pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (IsES6DestructuringEnabled() && pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
+        fCanAssign = FALSE;
         break;
     }
 
@@ -3640,14 +3640,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             pnode->ichLim = this->GetScanner()->IchLimTok();
         }
         ChkCurTok(tkRCurly, ERRnoRcurly);
-        if (!IsES6DestructuringEnabled())
-        {
-            fCanAssign = FALSE;
-        }
-        else if (pfLikelyPattern != nullptr && !IsPostFixOperators())
+        if (IsES6DestructuringEnabled() && pfLikelyPattern != nullptr && !IsPostFixOperators())
         {
             *pfLikelyPattern = TRUE;
         }
+        fCanAssign = FALSE;
         break;
     }
 
@@ -9055,6 +9052,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             m_nextBlockId = parserState.m_nextBlockId;
 
             ParseDestructuredLiteralWithScopeSave(tkLCurly, false/*isDecl*/, false /*topLevel*/, DIC_ShouldNotParseInitializer);
+            fCanAssign = TRUE;
 
             // Restore the Block ID at the end of the reparsing so it matches the one at the end of the first pass. We need to do this 
             // because we don't parse initializers during reparse and there may be additional blocks (e.g. a class declaration)
@@ -10409,6 +10407,7 @@ LRestart:
             {
                 this->GetScanner()->SeekTo(exprStart);
                 ParseDestructuredLiteralWithScopeSave(tkNone, false/*isDecl*/, false /*topLevel*/, DIC_None, false /*allowIn*/);
+                fCanAssign = TRUE;
 
                 if (buildAST)
                 {

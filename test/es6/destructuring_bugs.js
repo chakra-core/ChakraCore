@@ -367,10 +367,6 @@ var tests = [
   {
     name: "Destructuring pattern at param has nested blocks.",
     body: function () {
-        assert.doesNotThrow(function () { eval("var e = 1;       ( {abcdef  = ((((({})) = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and it's initializer both have extra parentheses.");
-
-        assert.doesNotThrow(function () { eval("var e = 1;       ( {ghijkl  = ((((({})) =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value has extra parentheses.");
-
         assert.doesNotThrow(function () { eval("var e = 1; ( {mnopqrs = (((  {}   = (1))))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value initializer has extra parentheses.");
 
         assert.doesNotThrow(function () { eval("var e = 1; ( {tuvwxy  = (((  {}   =  1 )))} = (e)) => {  try{ } catch(e) {}}") }, "Should not throw when the default value and initializer are wrapped in extra parentheses.");
@@ -507,6 +503,17 @@ var tests = [
           for (var y in {}) { };
         };
         test1();
+    }
+  },
+  {
+    name: "Invalid destructuring patterns should be early errors",
+    body: function () {
+        assert.throws(function () {
+            eval("if (false) { [11] += [1, 2, 3] }");
+        }, ReferenceError, "", "Invalid left-hand side in assignment");
+        assert.throws(function () {
+            eval("if (false) { [11] = [1, 2, 3] }");
+        }, SyntaxError, "", "Destructuring expressions can only have identifier references");
     }
   },
   {
