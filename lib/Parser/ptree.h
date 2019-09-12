@@ -521,6 +521,7 @@ public:
     int32 astSize;
     size_t cbMin; // Min an Lim UTF8 offsets.
     size_t cbStringMin;
+    size_t cbStringLim;
     size_t cbLim;
     ULONG lineNumber;   // Line number relative to the current source buffer of the function declaration.
     ULONG columnNumber; // Column number of the declaration.

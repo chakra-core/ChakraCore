@@ -218,7 +218,12 @@ namespace Js
     uint
     ParseableFunctionInfo::PrintableStartOffset() const
     {
-        return this->m_cbStartPrintOffset;
+        PrintOffsets* printOffsets = this->GetPrintOffsets();
+        if (printOffsets != nullptr)
+        {
+            return printOffsets->cbStartPrintOffset;
+        }
+        return this->m_cbStartOffset;
     }
 
     void ParseableFunctionInfo::RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle)
@@ -1526,6 +1531,7 @@ namespace Js
         CopyDeferParseField(m_grfscr);
         other->SetScopeInfo(this->GetScopeInfo());
         other->SetDeferredStubs(this->GetDeferredStubs());
+        other->SetPrintOffsets(this->GetPrintOffsets());
         CopyDeferParseField(m_utf8SourceHasBeenSet);
 #if DBG
         CopyDeferParseField(deferredParseNextFunctionId);
@@ -1549,7 +1555,6 @@ namespace Js
         CopyDeferParseField(m_lineNumber);
         CopyDeferParseField(m_columnNumber);
         CopyDeferParseField(m_cbStartOffset);
-        CopyDeferParseField(m_cbStartPrintOffset);
         CopyDeferParseField(m_cbLength);
 
         this->CopyNestedArray(other);
@@ -1653,7 +1658,6 @@ namespace Js
       m_cbLength(0),
       m_cchStartOffset(0),
       m_cbStartOffset(0),
-      m_cbStartPrintOffset(0),
       m_lineNumber(0),
       m_columnNumber(0),
       m_isEval(false),
@@ -2460,6 +2464,33 @@ namespace Js
                         grfscr &= ~fscrDeferredFncIsGenerator;
                     }
 
+                    if (funcBody->IsClassConstructor())
+                    {
+                        grfscr |= fscrDeferredFncIsClassConstructor;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsClassConstructor;
+                    }
+
+                    if (funcBody->IsBaseClassConstructor())
+                    {
+                        grfscr |= fscrDeferredFncIsBaseClassConstructor;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsBaseClassConstructor;
+                    }
+
+                    if (funcBody->IsClassMethod())
+                    {
+                        grfscr |= fscrDeferredFncIsClassMember;
+                    }
+                    else
+                    {
+                        grfscr &= ~fscrDeferredFncIsClassMember;
+                    }
+
                     if (isDebugOrAsmJsReparse)
                     {
                         // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
@@ -2894,8 +2925,15 @@ namespace Js
             }
             Assert(node->cbStringMin <= node->cbMin);
             this->m_cbStartOffset = (uint)cbMin;
-            this->m_cbStartPrintOffset = (uint)node->cbStringMin;
             this->m_cbLength = (uint)lengthInBytes;
+
+            if (node->cbStringMin != node->cbMin)
+            {
+                PrintOffsets* printOffsets = RecyclerNewLeaf(this->m_scriptContext->GetRecycler(), PrintOffsets);
+                printOffsets->cbStartPrintOffset = (uint)node->cbStringMin;
+                printOffsets->cbEndPrintOffset = (uint)node->cbStringLim;
+                this->SetPrintOffsets(printOffsets);
+            }
 
             Assert(this->m_utf8SourceInfo != nullptr);
             this->m_utf8SourceHasBeenSet = true;
@@ -2952,7 +2990,6 @@ namespace Js
             this->m_columnNumber = 0;
 
             this->m_cbStartOffset = 0;
-            this->m_cbStartPrintOffset = 0;
             this->m_cbLength = 0;
 
             this->m_utf8SourceHasBeenSet = true;
@@ -4598,7 +4635,6 @@ namespace Js
             Output::Print(_u("\n\n  Line %3d: "), line + 1);
             // Need to match up cchStartOffset to appropriate cbStartOffset given function's cbStartOffset and cchStartOffset
             size_t utf8SrcStartIdx = utf8::CharacterIndexToByteIndex(source, sourceInfo->GetCbLength(), cchStartOffset, this->m_cbStartOffset, this->m_cchStartOffset);
-
             size_t utf8SrcEndIdx = StartOffset() + LengthInBytes();
             char16* utf16Buf = HeapNewArray(char16, utf8SrcEndIdx - utf8SrcStartIdx + 2); 
             size_t utf16BufSz = utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(utf16Buf, source + utf8SrcStartIdx, source + utf8SrcEndIdx, utf8::DecodeOptions::doDefault);

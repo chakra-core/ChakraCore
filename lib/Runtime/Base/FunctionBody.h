@@ -854,6 +854,12 @@ namespace Js
     typedef Field(FunctionInfo*)* FunctionInfoArray;
     typedef Field(FunctionInfo*)* FunctionInfoPtrPtr;
 
+    struct PrintOffsets
+    {
+        uint cbStartPrintOffset;
+        uint cbEndPrintOffset;
+    };
+
     //
     // FunctionProxy represents a user defined function
     // This could be either from a source file or the byte code cache
@@ -905,7 +911,7 @@ namespace Js
             CodeGenCallApplyTargetRuntimeData = 26,
             CallSiteToCallApplyCallSiteArray = 27,
 #endif
-
+            PrintOffsets = 28,
             Max,
             Invalid = 0xff
         };
@@ -954,6 +960,7 @@ namespace Js
         AuxPointerTypeEntry(AuxPointerType::CodeGenCallApplyTargetRuntimeData, Field(FunctionCodeGenRuntimeData*)*);
         AuxPointerTypeEntry(AuxPointerType::CallSiteToCallApplyCallSiteArray, ProfileId*);
 #endif
+        AuxPointerTypeEntry(AuxPointerType::PrintOffsets, PrintOffsets*);
 #undef AuxPointerTypeEntry
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
@@ -1772,6 +1779,8 @@ namespace Js
         void BuildDeferredStubs(ParseNodeFnc* pnodeFnc);
         DeferredFunctionStub *GetDeferredStubs() const { return this->GetAuxPtr<AuxPointerType::DeferredStubs>(); }
         void SetDeferredStubs(DeferredFunctionStub *stub) { this->SetAuxPtr<AuxPointerType::DeferredStubs>(stub); }
+        PrintOffsets* GetPrintOffsets() const { return this->GetAuxPtr<AuxPointerType::PrintOffsets>(); }
+        void SetPrintOffsets(PrintOffsets* offsets) { this->SetAuxPtr<AuxPointerType::PrintOffsets>(offsets); }
         void RegisterFuncToDiag(ScriptContext * scriptContext, char16 const * pszTitle);
         bool IsES6ModuleCode() const;
     private:
@@ -1842,7 +1851,6 @@ namespace Js
 
         FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
                                                         // This is generally the same as m_cchStartOffset unless the buffer has a BOM or other non-ascii characters
-        FieldWithBarrier(uint) m_cbStartPrintOffset;    // pUtf8Source is this many bytes from the start of the toString-relevant part of the scriptContext's source buffer.
 
         FieldWithBarrier(ULONG) m_lineNumber;
         FieldWithBarrier(ULONG) m_columnNumber;
