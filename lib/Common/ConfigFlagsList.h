@@ -636,8 +636,14 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Destructuring        (true)
 #define DEFAULT_CONFIG_ES6ForLoopSemantics     (true)
 #define DEFAULT_CONFIG_ES6FunctionNameFull     (true)
+
+#ifdef _M_X64
+    // Jitting Generator functions and async functions - currently only works on x64
+    #define DEFAULT_CONFIG_JitES6Generators    (true)
+#else
+    #define DEFAULT_CONFIG_JitES6Generators    (false)
+#endif
 #define DEFAULT_CONFIG_ES6Generators           (true)
-#define DEFAULT_CONFIG_JitES6Generators        (true)
 #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
 #define DEFAULT_CONFIG_ES6Math                 (true)
 #ifdef COMPILE_DISABLE_ES6Module
