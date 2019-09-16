@@ -2410,7 +2410,7 @@ void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* impor
         if (m_token.tk == tkID)
         {
             // We have the pattern "IdentifierName as"
-            if (wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
+            if (!CheckContextualKeyword(wellKnownPropertyPids.as))
             {
                 Error(ERRsyntax);
             }
@@ -2666,7 +2666,7 @@ void Parser::ParseImportClause(ModuleImportOrExportEntryList* importEntryList, b
 
         // Token following * must be the identifier 'as'
         this->GetScanner()->Scan();
-        if (m_token.tk != tkID || wellKnownPropertyPids.as != m_token.GetIdentifier(this->GetHashTbl()))
+        if (!CheckContextualKeyword(wellKnownPropertyPids.as))
         {
             Error(ERRsyntax);
         }
@@ -2828,7 +2828,7 @@ IdentPtr Parser::ParseImportOrExportFromClause(bool throwIfNotFound)
 {
     IdentPtr moduleSpecifier = nullptr;
 
-    if (m_token.tk == tkID && wellKnownPropertyPids.from == m_token.GetIdentifier(this->GetHashTbl()))
+    if (CheckContextualKeyword(wellKnownPropertyPids.from))
     {
         this->GetScanner()->Scan();
 
@@ -2901,7 +2901,7 @@ ParseNodePtr Parser::ParseDefaultExportClause()
         // function token) or it could be an identifier (let async = 0; export default async;).
         // To handle both cases, when we parse an async token we need to keep the parser state
         // and rewind if the next token is not function.
-        if (wellKnownPropertyPids.async == m_token.GetIdentifier(this->GetHashTbl()))
+        if (CheckContextualKeyword(wellKnownPropertyPids.async))
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -3023,26 +3023,22 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
         if (m_scriptContext->GetConfig()->IsESExportNsAsEnabled())
         {
-            // export * as name
-            if (m_token.tk == tkID)
+            // check for 'as'
+            if (CheckContextualKeyword(wellKnownPropertyPids.as))
             {
-                // check for 'as'
-                if (wellKnownPropertyPids.as == m_token.GetIdentifier(this->GetHashTbl()))
+                // scan to the next token
+                this->GetScanner()->Scan();
+
+                // token after as must be an identifier
+                if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
                 {
-                    // scan to the next token
-                    this->GetScanner()->Scan();
-
-                    // token after as must be an identifier
-                    if (!(m_token.IsIdentifier() || m_token.IsReservedWord()))
-                    {
-                        Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
-                    }
-
-                    exportName = m_token.GetIdentifier(this->GetHashTbl());
-                    
-                    // scan to next token
-                    this->GetScanner()->Scan();
+                    Error(ERRValidIfFollowedBy, _u("'as'"), _u("an identifier."));
                 }
+
+                exportName = m_token.GetIdentifier(this->GetHashTbl());
+
+                // scan to next token
+                this->GetScanner()->Scan();
             }
         }
 
@@ -3122,14 +3118,18 @@ ParseNodePtr Parser::ParseExportDeclaration(bool *needTerminator)
 
     case tkID:
     {
-        IdentPtr pid = m_token.GetIdentifier(this->GetHashTbl());
+        IdentPtr pid = nullptr;
+        if (!this->GetScanner()->LastIdentifierHasEscape())
+        {
+            pid = m_token.GetIdentifier(this->GetHashTbl());
+        }
 
-        if (wellKnownPropertyPids.let == pid)
+        if (pid == wellKnownPropertyPids.let)
         {
             declarationType = tkLET;
             goto ParseVarDecl;
         }
-        if (wellKnownPropertyPids.async == pid && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (pid == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             // In module export statements, async token is only valid if it's followed by function.
             // We need to check here because ParseStatement would think 'async = 20' is a var decl.
@@ -3267,6 +3267,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         iecpLim = this->GetScanner()->IecpLimTok();
 
         if (pid == wellKnownPropertyPids.async &&
+            !this->GetScanner()->LastIdentifierHasEscape() &&
             m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             isAsyncExpr = true;
@@ -4747,7 +4748,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         bool isAsyncMethod = false;
         charcount_t ichMin = this->GetScanner()->IchMinTok();
         size_t iecpMin = this->GetScanner()->IecpMinTok();
-        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -4789,6 +4790,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         charcount_t idHintIchLim = static_cast<charcount_t>(this->GetScanner()->IecpLimTok());
         bool wrapInBrackets = false;
         bool seenEllipsis = false;
+        bool maybeKeyword = false;
         switch (m_token.tk)
         {
         default:
@@ -4801,6 +4803,7 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             // fall-through
         case tkID:
             pidHint = m_token.GetIdentifier(this->GetHashTbl());
+            maybeKeyword = !this->GetScanner()->LastIdentifierHasEscape();
             if (buildAST)
             {
                 pnodeName = CreateStrNode(pidHint);
@@ -5066,9 +5069,10 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
         {
             Assert(pidHint->Psz() != nullptr);
 
+            // get/set are only pseudo keywords when they are identifiers (i.e. not strings)
             if ((pidHint == wellKnownPropertyPids.get || pidHint == wellKnownPropertyPids.set) &&
-                // get/set are only pseudo keywords when they are identifiers (i.e. not strings)
-                tkHint.tk == tkID && NextTokenIsPropertyNameStart())
+                maybeKeyword &&
+                NextTokenIsPropertyNameStart())
             {
                 if (isObjectPattern)
                 {
@@ -7471,7 +7475,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn)
             for (;;)
             {
                 this->GetScanner()->Scan();
-                if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
+                if (CheckContextualKeyword(wellKnownPropertyPids.async))
                 {
                     Assert(pnodeFnc->IsAsync());
                     continue;
@@ -7502,7 +7506,7 @@ void Parser::FinishFncNode(ParseNodeFnc * pnodeFnc, bool fAllowIn)
         Assert(pnodeFnc->IsGenerator());
         this->GetScanner()->ScanNoKeywords();
     }
-    if (fLambda && m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async)
+    if (fLambda && CheckContextualKeyword(wellKnownPropertyPids.async))
     {
         Assert(pnodeFnc->IsAsync());
         this->GetScanner()->ScanNoKeywords();
@@ -7960,13 +7964,14 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         ParseNodePtr pnodeMemberName = nullptr;
         IdentPtr pidHint = nullptr;
         IdentPtr memberPid = nullptr;
+        bool maybeAccessor = false;
         LPCOLESTR pMemberNameHint = nullptr;
-        uint32     memberNameHintLength = 0;
-        uint32     memberNameOffset = 0;
+        uint32 memberNameHintLength = 0;
+        uint32 memberNameOffset = 0;
         bool isComputedName = false;
         bool isAsyncMethod = false;
 
-        if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -8002,6 +8007,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         }
         else // not computed name
         {
+            maybeAccessor = !this->GetScanner()->LastIdentifierHasEscape();
             memberPid = this->ParseClassPropertyName(&pidHint);
             if (pidHint)
             {
@@ -8063,21 +8069,21 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         else
         {
             ParseNodePtr pnodeMember = nullptr;
-
-            bool isMemberNamedGetOrSet = false;
             RestorePoint beginMethodName;
             this->GetScanner()->Capture(&beginMethodName);
-            if (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set)
+
+            if (maybeAccessor && (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set))
             {
                 this->GetScanner()->ScanForcingPid();
             }
+
             if (m_token.tk == tkLParen)
             {
                 this->GetScanner()->SeekTo(beginMethodName);
-                isMemberNamedGetOrSet = true;
+                maybeAccessor = false;
             }
 
-            if ((memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set) && !isMemberNamedGetOrSet)
+            if (maybeAccessor && (memberPid == wellKnownPropertyPids.get || memberPid == wellKnownPropertyPids.set))
             {
                 bool isGetter = (memberPid == wellKnownPropertyPids.get);
 
@@ -9244,7 +9250,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
             RestoreStateFrom(&parserState);
 
             this->GetScanner()->SeekTo(termStart);
-            if (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+            if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
             {
                 ichMin = this->GetScanner()->IchMinTok();
                 iecpMin = this->GetScanner()->IecpMinTok();
@@ -10216,7 +10222,7 @@ LRestart:
 
     case tkID:
     case tkLET:
-        if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
+        if (tok == tkLET || CheckContextualKeyword(wellKnownPropertyPids.let))
         {
             // We see "let" at the start of a statement. This could either be a declaration or an identifier
             // reference. The next token determines which.
@@ -10241,7 +10247,7 @@ LRestart:
             }
             this->GetScanner()->SeekTo(parsedLet);
         }
-        else if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.async && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
+        else if (CheckContextualKeyword(wellKnownPropertyPids.async) && m_scriptContext->GetConfig()->IsES7AsyncAndAwaitEnabled())
         {
             RestorePoint parsedAsync;
             this->GetScanner()->Capture(&parsedAsync);
@@ -10286,7 +10292,7 @@ LRestart:
         ichMin = this->GetScanner()->IchMinTok();
 
         this->GetScanner()->Scan();
-        if (m_token.tk == tkAWAIT || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.await))
+        if (m_token.tk == tkAWAIT || CheckContextualKeyword(wellKnownPropertyPids.await))
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion())
             {
@@ -10317,7 +10323,7 @@ LRestart:
         switch (tok)
         {
         case tkID:
-            if (m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.let)
+            if (CheckContextualKeyword(wellKnownPropertyPids.let))
             {
                 // We see "let" in the init part of a for loop. This could either be a declaration or an identifier
                 // reference. The next token determines which.
@@ -10426,7 +10432,7 @@ LRestart:
         if (TokIsForInOrForOf())
         {
             bool isForOf = (m_token.tk != tkIN);
-            Assert(!isForOf || (m_token.tk == tkID && m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of));
+            Assert(!isForOf || CheckContextualKeyword(wellKnownPropertyPids.of));
 
             if (isForAwait && !isForOf)
             {
@@ -11321,9 +11327,7 @@ LNeedTerminator:
 BOOL
 Parser::TokIsForInOrForOf()
 {
-    return m_token.tk == tkIN ||
-        (m_token.tk == tkID &&
-            m_token.GetIdentifier(this->GetHashTbl()) == wellKnownPropertyPids.of);
+    return m_token.tk == tkIN || CheckContextualKeyword(wellKnownPropertyPids.of);
 }
 
 /***************************************************************************
