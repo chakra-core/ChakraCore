@@ -7859,6 +7859,9 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         cbMinConstructor = this->GetScanner()->IecpMinTok();
     }
 
+    BOOL strictSave = m_fUseStrictMode;
+    m_fUseStrictMode = TRUE;
+
     this->GetScanner()->Scan();
     if (m_token.tk == tkID)
     {
@@ -7874,9 +7877,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     {
         GetCurrentFunctionNode()->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
     }
-
-    BOOL strictSave = m_fUseStrictMode;
-    m_fUseStrictMode = TRUE;
 
     ParseNodeVar * pnodeDeclName = nullptr;
     if (isDeclaration)
