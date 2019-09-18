@@ -635,14 +635,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6DefaultArgs          (true)
 #define DEFAULT_CONFIG_ES6Destructuring        (true)
 #define DEFAULT_CONFIG_ES6ForLoopSemantics     (true)
-
-#ifdef COMPILE_DISABLE_ES6FunctionNameFull
-    // If ES6FunctionNameFull needs to be disabled by compile flag, COMPILE_DISABLE_ES6FunctionNameFull should be false
-    #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
-#else
-    #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
-#endif
-
+#define DEFAULT_CONFIG_ES6FunctionNameFull     (true)
 #define DEFAULT_CONFIG_ES6Generators           (true)
 #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
 #define DEFAULT_CONFIG_ES6Math                 (true)
@@ -1143,12 +1136,7 @@ FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse 
 FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
 FLAGPR           (Boolean, ES6, ES6Destructuring       , "Enable ES6 Destructuring"                                 , DEFAULT_CONFIG_ES6Destructuring)
 FLAGPR           (Boolean, ES6, ES6ForLoopSemantics    , "Enable ES6 for loop per iteration bindings"               , DEFAULT_CONFIG_ES6ForLoopSemantics)
-
-#ifndef COMPILE_DISABLE_ES6FunctionNameFull
-    #define COMPILE_DISABLE_ES6FunctionNameFull 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
-
+FLAGPR           (Boolean, ES6, ES6FunctionNameFull    , "Enable ES6 Full function.name"                            , DEFAULT_CONFIG_ES6FunctionNameFull)
 FLAGPR           (Boolean, ES6, ES6Generators          , "Enable ES6 generators"                                    , DEFAULT_CONFIG_ES6Generators)
 FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponentiation operator (**)"                , DEFAULT_CONFIG_ES7ExponentionOperator)
 
