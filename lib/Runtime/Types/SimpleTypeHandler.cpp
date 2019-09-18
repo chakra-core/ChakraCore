@@ -194,16 +194,15 @@ namespace Js
         ObjectSlotAttributes attr = ObjectSlotAttr_None;
         for (PropertyIndex i = 0; i < propertyCount; i++)
         {
-            Var value = instance->GetSlot(i);
             propertyId = descriptors[i].Id->GetPropertyId();
             attr = PathTypeHandlerBase::PropertyAttributesToObjectSlotAttributes(descriptors[i].Attributes);
-            Assert(value != nullptr || IsInternalPropertyId(propertyId));
             PropertyIndex index;
             currentType = newTypeHandler->PromoteType<false>(currentType, PathTypeSuccessorKey(propertyId, attr), false, scriptContext, instance, &index);
             newTypeHandler = PathTypeHandlerBase::FromTypeHandler(currentType->GetTypeHandler());
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            bool markAsFixed = !IsInternalPropertyId(propertyId) &&
+            Var value = instance->GetSlot(i);
+            bool markAsFixed = !IsInternalPropertyId(propertyId) && value != nullptr &&
                 (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : false);
             newTypeHandler->InitializePath(instance, i, newTypeHandler->GetPathLength(), scriptContext, [=]() { return markAsFixed; });
 #endif

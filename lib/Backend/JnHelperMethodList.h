@@ -29,6 +29,7 @@ HELPERCALLCHK(ScrFunc_OP_NewScFunc, Js::ScriptFunction::OP_NewScFunc, AttrCanNot
 HELPERCALLCHK(ScrFunc_OP_NewScFuncHomeObj, Js::ScriptFunction::OP_NewScFuncHomeObj, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_OP_NewScGenFunc, Js::JavascriptGeneratorFunction::OP_NewScGenFunc, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_OP_NewScGenFuncHomeObj, Js::JavascriptGeneratorFunction::OP_NewScGenFuncHomeObj, AttrCanNotBeReentrant)
+HELPERCALLCHK(ScrFunc_OP_NewClassConstructor, Js::ScriptFunction::OP_NewClassConstructor, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrFunc_CheckAlignment, Js::JavascriptFunction::CheckAlignment, AttrCanNotBeReentrant)
 HELPERCALLCHK(ScrObj_LdHandlerScope, Js::JavascriptOperators::OP_LdHandlerScope, 0)
 HELPERCALLCHK(ScrObj_LdFrameDisplay, Js::JavascriptOperators::OP_LdFrameDisplay, AttrCanNotBeReentrant)
@@ -43,7 +44,9 @@ HELPERCALLCHK(ScrObj_OP_IsInst, Js::JavascriptOperators::OP_IsInst, AttrCanThrow
 
 HELPERCALLCHK(Op_IsIn, Js::JavascriptOperators::IsIn, AttrCanThrow)
 HELPERCALLCHK(Op_IsObject, (BOOL (*) (Js::Var))Js::JavascriptOperators::IsObject, AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_IsObjectOrNull, (BOOL (*) (Js::Var))Js::JavascriptOperators::IsObjectOrNull, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_IsClassConstructor, Js::JavascriptOperators::IsClassConstructor, AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_IsConstructor, (bool (*)(Js::Var))Js::JavascriptOperators::IsConstructor, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_IsBaseConstructorKind, Js::JavascriptOperators::IsBaseConstructorKind, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LoadHeapArguments, Js::JavascriptOperators::LoadHeapArguments, AttrCanNotBeReentrant)
 HELPERCALLCHK(Op_LoadHeapArgsCached, Js::JavascriptOperators::LoadHeapArgsCached, AttrCanNotBeReentrant)
@@ -327,7 +330,7 @@ HELPERCALLCHK(NewScObjectNoArgNoCtor, Js::JavascriptOperators::NewScObjectNoArgN
 HELPERCALLCHK(UpdateNewScObjectCache, Js::JavascriptOperators::UpdateNewScObjectCache, AttrCanNotBeReentrant)
 HELPERCALLCHK(EnsureObjectLiteralType, Js::JavascriptOperators::EnsureObjectLiteralType, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(OP_InitClass, Js::JavascriptOperators::OP_InitClass, AttrCanThrow)
+HELPERCALLCHK(Op_NewClassCtorProto, Js::JavascriptOperators::OP_NewClassCtorProto, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(OP_ClearAttributes, Js::JavascriptOperators::OP_ClearAttributes, AttrCanThrow | AttrCanNotBeReentrant)
 

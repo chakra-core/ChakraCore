@@ -665,7 +665,7 @@ private:
     void            GenerateGetCurrentFunctionObject(IR::Instr * instr);
     IR::Opnd *      GetInlineCacheFromFuncObjectForRuntimeUse(IR::Instr * instr, IR::PropertySymOpnd * propSymOpnd, bool isHelper);
 
-    IR::Instr *     LowerInitClass(IR::Instr * instr);
+    IR::Instr *     LowerNewClassConstructor(IR::Instr * instr);
 
     IR::RegOpnd *   GenerateGetImmutableOrScriptUnreferencedString(IR::RegOpnd * strOpnd, IR::Instr * insertBeforeInstr, IR::JnHelperMethod helperMethod, bool loweringCloneStr = false, bool reloadDst = true);
     void            LowerNewConcatStrMulti(IR::Instr * instr);

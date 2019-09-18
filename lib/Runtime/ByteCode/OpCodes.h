@@ -169,6 +169,8 @@ MACRO(                  BrOnHasLocalEnvProperty, BrEnvProperty,  OpSideEffect|Op
 MACRO_EXTEND(           BrOnNoLocalEnvProperty,  BrEnvProperty,  OpSideEffect|OpTempNumberSources|OpTempObjectSources)                     // Branch if object does not have the given property (NOTE: May have DOM implicit calls)
 MACRO_WMS(              BrOnObject_A,       BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if typeId is not primitive type (i.e. > TypeIds_LastJavascriptPrimitiveType)
 MACRO_WMS(              BrNotNull_A,        BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if not NULL
+MACRO_BACKEND_ONLY(     BrOnNotNullObj_A,   BrReg1,         OpTempNumberSources|OpTempObjectSources)
+MACRO_EXTEND_WMS(       BrOnObjectOrNull_A, BrReg1,         OpTempNumberSources|OpTempObjectSources)
 MACRO_EXTEND_WMS(       BrNotUndecl_A,      BrReg1,         OpSideEffect|OpTempNumberSources|OpTempObjectSources)                          // Branch if source reg is NEQ to Undecl
 MACRO_BACKEND_ONLY(     BrNotEq_A,          Empty,          OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Branch if !'>='
 MACRO_BACKEND_ONLY(     BrNotNeq_A,         Empty,          OpSideEffect|OpOpndHasImplicitCall|OpTempNumberSources|OpTempObjectSources) // Branch if !'>='
@@ -399,6 +401,9 @@ MACRO_EXTEND_WMS(       InitClassMemberSetComputedName,ElementI,    OpSideEffect
 MACRO_EXTEND_WMS(       InitClassMemberGetComputedName,ElementI,    OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member in get syntax with computed property name
 MACRO_EXTEND_WMS(       BrOnClassConstructor,       BrReg1,         None)               // Branch if argument is a class constructor
 MACRO_EXTEND_WMS(       BrOnBaseConstructorKind,    BrReg1,         None)               // Branch if argument's [[ConstructorKind]] is 'base'
+MACRO_BACKEND_ONLY(     NewClassCtorProto,          Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     NewClassConstructor,        Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     BrOnConstructor_A,          BrReg1,         None)
 
 MACRO_BACKEND_ONLY(     ArgIn_A,                    Empty,          None)       // Copy from "in slot" to "local slot", unchecked
 MACRO_WMS(              ArgIn0,                     Reg1,           OpByteCodeOnly)     // Copy from "in slot" to "local slot", unchecked
@@ -609,7 +614,11 @@ MACRO_WMS_PROFILED(     NewScArray,         Reg1Unsigned1,  OpSideEffect|OpTempO
 MACRO_WMS(              NewScArrayWithMissingValues, Reg1Unsigned1,    OpSideEffect|OpTempObjectProducing)  // Create new ScriptArray instance
 MACRO_PROFILED(         NewScIntArray,      Auxiliary,      OpSideEffect|OpTempObjectProducing)             // Create new ScriptArray instance
 MACRO_PROFILED(         NewScFltArray,      Auxiliary,      OpSideEffect|OpTempObjectProducing)             // Create new ScriptArray instance
-MACRO_EXTEND_WMS(       InitClass,          Class,          OpSideEffect|OpHasImplicitCall|OpPostOpDbgBailOut)
+MACRO_EXTEND_WMS(       InitBaseClass,      Reg2U,          OpSideEffect|OpPostOpDbgBailOut)
+MACRO_EXTEND_WMS(       InitInnerBaseClass, Reg3U,          OpSideEffect|OpPostOpDbgBailOut)
+MACRO_EXTEND_WMS(       InitClass,          Reg4U,          OpSideEffect|OpPostOpDbgBailOut)
+MACRO_EXTEND_WMS(       InitInnerClass,     Reg5U,          OpSideEffect|OpPostOpDbgBailOut)
+MACRO_EXTEND_WMS(       CheckExtends,       BrReg3,         OpSideEffect)
 
 MACRO_WMS(              NewScFunc,          ElementSlotI1,  OpSideEffect)   // Create new ScriptFunction instance
 MACRO_BACKEND_ONLY(     NewScFuncData,      Reg2,           None)
