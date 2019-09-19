@@ -1213,6 +1213,11 @@
   </test>
   <test>
     <default>
+      <files>PrePassEntanglement.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>missing_len.js</files>
       <baseline>missing_len.baseline</baseline>
     </default>
