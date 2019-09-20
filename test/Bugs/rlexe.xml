@@ -618,4 +618,10 @@
       <compile-flags>-force:deferparse</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS23102586.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
 </regress-exe>

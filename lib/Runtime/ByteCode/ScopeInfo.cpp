@@ -185,7 +185,6 @@ namespace Js
             {
                 currentScope = func->GetParamScope();
                 Assert(currentScope->GetScopeType() == ScopeType_Parameter);
-                Assert(!currentScope->GetMustInstantiate());
             }
         }
 
