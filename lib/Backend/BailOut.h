@@ -13,33 +13,23 @@ class BailOutInfo
 public:
 
 #ifdef _M_IX86
-    typedef struct
+    struct StartCallInfo
     {
         IR::Instr * instr;
         uint argCount;
         uint argRestoreAdjustCount;
         bool isOrphanedCall;
-    } StartCallInfo;
+    };
 #else
-    typedef uint StartCallInfo;
+    using StartCallInfo = uint;
 #endif
 
     BailOutInfo(uint32 bailOutOffset, Func* bailOutFunc) :
-        bailOutOffset(bailOutOffset), bailOutFunc(bailOutFunc),
-        byteCodeUpwardExposedUsed(nullptr), polymorphicCacheIndex((uint)-1), startCallCount(0), startCallInfo(nullptr), bailOutInstr(nullptr),
-        totalOutParamCount(0), argOutSyms(nullptr), bailOutRecord(nullptr), wasCloned(false), isInvertedBranch(false), sharedBailOutKind(true), isLoopTopBailOutInfo(false), canDeadStore(true),
-        outParamInlinedArgSlot(nullptr), liveVarSyms(nullptr), liveLosslessInt32Syms(nullptr), liveFloat64Syms(nullptr),
-        branchConditionOpnd(nullptr),
-        stackLiteralBailOutInfoCount(0), stackLiteralBailOutInfo(nullptr),
-        clearedDstByteCodeUpwardExposedUseId(SymID_Invalid)
+        bailOutOffset(bailOutOffset),
+        bailOutFunc(bailOutFunc)
     {
         Assert(bailOutOffset != Js::Constants::NoByteCodeOffset);
-#ifdef _M_IX86
-        outParamFrameAdjustArgSlot = nullptr;
-#endif
-#if DBG
-        wasCopied = false;
-#endif
+
         this->capturedValues = JitAnew(bailOutFunc->m_alloc, CapturedValues);
         this->capturedValues->refCount = 1;
 
@@ -105,46 +95,61 @@ public:
 #if DBG
     static bool IsBailOutHelper(IR::JnHelperMethod helper);
 #endif
-    bool wasCloned;
-    bool isInvertedBranch;
-    bool canDeadStore;
-    bool sharedBailOutKind;
-    bool isLoopTopBailOutInfo;
+
+    bool wasCloned = false;
+    bool isInvertedBranch = false;
+    bool canDeadStore = true;
+    bool sharedBailOutKind = true;
+    bool isLoopTopBailOutInfo = false;
 
 #if DBG
-    bool wasCopied;
+    bool wasCopied = false;
 #endif
-    SymID clearedDstByteCodeUpwardExposedUseId;
-    uint32 bailOutOffset;
-    BailOutRecord * bailOutRecord;
-    CapturedValues * capturedValues;                                      // Values we know about after forward pass
-    CapturedValues * usedCapturedValues;                                  // Values that need to be restored in the bail out
-    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;              // Non-constant stack syms that needs to be restored in the bail out
-    uint polymorphicCacheIndex;
-    uint startCallCount;
-    uint totalOutParamCount;
-    Func ** startCallFunc;
 
-    StartCallInfo * startCallInfo;
-    StackSym ** argOutSyms;
+    SymID clearedDstByteCodeUpwardExposedUseId = SymID_Invalid;
+    uint32 bailOutOffset;
+    BailOutRecord* bailOutRecord = nullptr;
+
+    // Values we know about after forward pass
+    CapturedValues* capturedValues;
+
+    // Values that need to be restored in the bail out
+    CapturedValues* usedCapturedValues = nullptr;
+
+    // Non-constant stack syms that needs to be restored in the bail out
+    BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = nullptr;
+
+    uint polymorphicCacheIndex = (uint)-1;
+    uint startCallCount = 0;
+    uint totalOutParamCount = 0;
+    Func** startCallFunc = nullptr;
+
+    StartCallInfo* startCallInfo = nullptr;
+    StackSym** argOutSyms = nullptr;
 
     struct StackLiteralBailOutInfo
     {
-        StackSym * stackSym;
+        StackSym* stackSym;
         uint initFldCount;
     };
-    uint stackLiteralBailOutInfoCount;
-    StackLiteralBailOutInfo * stackLiteralBailOutInfo;
 
-    BVSparse<JitArenaAllocator> * liveVarSyms;
-    BVSparse<JitArenaAllocator> * liveLosslessInt32Syms;                // These are only the live int32 syms that fully represent the var-equivalent sym's value (see GlobOpt::FillBailOutInfo)
-    BVSparse<JitArenaAllocator> * liveFloat64Syms;
-    int * outParamOffsets;
+    uint stackLiteralBailOutInfoCount = 0;
+    StackLiteralBailOutInfo* stackLiteralBailOutInfo = nullptr;
 
-    BVSparse<JitArenaAllocator> * outParamInlinedArgSlot;
+    BVSparse<JitArenaAllocator>* liveVarSyms = nullptr;
+
+    // These are only the live int32 syms that fully represent the var-equivalent 
+    // sym's value (see GlobOpt::FillBailOutInfo)
+    BVSparse<JitArenaAllocator>* liveLosslessInt32Syms = nullptr;
+
+    BVSparse<JitArenaAllocator>* liveFloat64Syms = nullptr;
+
+    int* outParamOffsets = nullptr;
+    BVSparse<JitArenaAllocator>* outParamInlinedArgSlot = nullptr;
+
 #ifdef _M_IX86
-    BVSparse<JitArenaAllocator> * outParamFrameAdjustArgSlot;
-    BVFixed * inlinedStartCall;
+    BVSparse<JitArenaAllocator>* outParamFrameAdjustArgSlot = nullptr;
+    BVFixed* inlinedStartCall = nullptr;
 #endif
 
 #ifdef MD_GROW_LOCALS_AREA_UP
@@ -158,13 +163,20 @@ public:
     // - in case of shared bailout this will be the BailTarget instr (corresponds to the call to SaveRegistersAndBailOut,
     //   while other instrs sharing bailout info will just have checks and JMP to BailTarget).
     // 2) After we generated bailout, this becomes label instr. In case of shared bailout other instrs JMP to this label.
-    IR::Instr * bailOutInstr;
+    IR::Instr* bailOutInstr = nullptr;
+
+    // As we process bailout info for a yield point in a generator function, we
+    // copy captured value information to the corresponding bailin instr. This
+    // value info is then used when building code to restore machine state from
+    // an interpreter frame.
+    IR::GeneratorBailInInstr* bailInInstr = nullptr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     Js::OpCode bailOutOpcode;
 #endif
-    Func * bailOutFunc;
-    IR::Opnd * branchConditionOpnd;
+
+    Func* bailOutFunc;
+    IR::Opnd* branchConditionOpnd = nullptr;
 
     template<class Fn>
     void IterateArgOutSyms(Fn callback)

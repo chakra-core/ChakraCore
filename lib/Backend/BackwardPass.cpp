@@ -7,10 +7,15 @@
 
 #define INLINEEMETAARG_COUNT 3
 
-BackwardPass::BackwardPass(Func * func, GlobOpt * globOpt, Js::Phase tag)
-    : func(func), globOpt(globOpt), tag(tag), currentPrePassLoop(nullptr), tempAlloc(nullptr),
+BackwardPass::BackwardPass(Func* func, GlobOpt* globOpt, Js::Phase tag) :
+    func(func),
+    globOpt(globOpt),
+    tag(tag),
+    currentPrePassLoop(nullptr),
+    tempAlloc(nullptr),
     preOpBailOutInstrToProcess(nullptr),
-    isCollectionPass(false), currentRegion(nullptr),
+    isCollectionPass(false),
+    currentRegion(nullptr),
     collectionPassSubPhase(CollectionPassSubPhase::None),
     isLoopPrepass(false)
 {
@@ -1773,9 +1778,18 @@ BackwardPass::ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitAre
     // Find other constants that we need to restore
     FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->capturedValues->constantValues, iter)
     {
-        if (byteCodeUpwardExposedUsed->TestAndClear(value.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(value.Key()->m_id))
+        auto* bailInInstr = bailOutInfo->bailInInstr;
+        if (bailInInstr)
         {
-            // Constant need to be restore, move it to the restore list
+            // Store all captured constant values for the corresponding bailin instr
+            bailInInstr->capturedValues.constantValues.PrependNode(this->func->m_alloc, value);
+        }
+
+        SymID symID = value.Key()->m_id;
+
+        if (byteCodeUpwardExposedUsed->TestAndClear(symID) || bailoutReferencedArgSymsBv->TestAndClear(symID))
+        {
+            // Constant needs to be restored, move it to the restore list
             iter.MoveCurrentTo(usedConstantValues);
         }
         else if (!this->IsPrePass())
@@ -1814,6 +1828,14 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
         Assert(!copyPropSyms.Value()->IsTypeSpec());
         if (byteCodeUpwardExposedUsed->TestAndClear(copyPropSyms.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(copyPropSyms.Key()->m_id))
         {
+            auto* bailInInstr = bailOutInfo->bailInInstr;
+            if (bailInInstr)
+            {
+                // Copy all copyprop syms into the corresponding bail-in instr so that
+                // we can map the correct symbols to restore during bail-in
+                bailInInstr->capturedValues.copyPropSyms.PrependNode(allocator, copyPropSyms);
+            }
+
             // This copy-prop sym needs to be restored; add it to the restore list.
 
             /*
@@ -2559,30 +2581,6 @@ BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
         }
     }
     return false;
-}
-
-IR::Instr*
-BackwardPass::ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr)
-{
-    Assert(currentInstr->m_opcode == Js::OpCode::Yield);
-    IR::GeneratorBailInInstr* bailInInstr = currentInstr->m_next->m_next->AsGeneratorBailInInstr();
-
-    BailOutInfo* bailOutInfo = currentInstr->GetBailOutInfo();
-
-    // Make a copy of all detected constant values before we actually process
-    // the bailout info since we will then remove any values that don't need
-    // to be restored for the normal bailout cases. As for yields, we still
-    // need them for our bailin code.
-    bailInInstr->SetConstantValues(bailOutInfo->capturedValues->constantValues);
-
-    IR::Instr* ret = this->ProcessPendingPreOpBailOutInfo(currentInstr);
-
-    // We will need list of symbols that have been copy-prop'd to map the correct
-    // symbols to restore during bail-in. Since this list is cleared during
-    // FillBailOutRecord, make a copy of it now.
-    bailInInstr->SetCopyPropSyms(bailOutInfo->usedCapturedValues->copyPropSyms);
-
-    return ret;
 }
 
 IR::Instr*
@@ -3881,23 +3879,29 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         }
 #endif
 
-        // Make a copy of upwardExposedUses for our bail-in code, note that we have
-        // to do it at the bail-in instruction (right after yield) and not at the yield point
-        // since the yield instruction might use some symbols as operands that we don't need when
-        // bail-in
-        if (instr->IsGeneratorBailInInstr() && this->currentBlock->upwardExposedUses)
+        if (instr->IsGeneratorBailInInstr())
         {
-            instr->AsGeneratorBailInInstr()->SetUpwardExposedUses(*this->currentBlock->upwardExposedUses);
+            auto* bailInInstr = instr->AsGeneratorBailInInstr();
+
+            // Store this bail-in instr with the bailout info for the corresponding yield
+            // instr so that it can be updated with captured value info when processing
+            // bailout info
+            auto* bailOutInfo = bailInInstr->yieldInstr->GetBailOutInfo();
+            Assert(bailOutInfo);
+            if (bailOutInfo->bailInInstr) Assert(bailOutInfo->bailInInstr == bailInInstr);
+            else bailOutInfo->bailInInstr = bailInInstr;
+
+            // Make a copy of upwardExposedUses for our bail-in code. Note that we have
+            // to do it at the bail-in instruction (right after yield) and not at the yield
+            // point since the yield instruction might use some symbols as operands that we
+            // don't need when bailing in.
+            if (this->currentBlock->upwardExposedUses)
+            {
+                bailInInstr->upwardExposedUses.Copy(this->currentBlock->upwardExposedUses);
+            }
         }
 
-        if (instr->m_opcode == Js::OpCode::Yield)
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfoForYield(instr);
-        }
-        else
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfo(instr);
-        }
+        instrPrev = ProcessPendingPreOpBailOutInfo(instr);
 
 #if DBG_DUMP
         TraceInstrUses(block, instr, false);
