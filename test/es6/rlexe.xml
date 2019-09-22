@@ -128,6 +128,13 @@
   </test>
   <test>
     <default>
+      <files>generator-jit-bugs.js</files>
+      <compile-flags>-JitES6Generators</compile-flags>
+      <tags>exclude_nonative</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proto_basic.js</files>
       <baseline>proto_basic.baseline</baseline>
     </default>
