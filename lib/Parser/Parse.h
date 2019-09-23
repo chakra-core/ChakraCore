@@ -328,6 +328,16 @@ private:
     bool CheckStrictModeStrPid(IdentPtr pid);
     bool CheckAsmjsModeStrPid(IdentPtr pid);
 
+    bool CheckContextualKeyword(IdentPtr keywordPid)
+    {
+        if (m_token.tk == tkID && !GetScanner()->LastIdentifierHasEscape())
+        {
+            IdentPtr pid = m_token.GetIdentifier(GetHashTbl());
+            return pid == keywordPid;
+        }
+        return false;
+    }
+
     bool IsCurBlockInLoop() const;
 
     void InitPids();

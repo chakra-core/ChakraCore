@@ -135,6 +135,14 @@ var tests = [
         }
     },
     {
+        name: "Async keyword cannot contain unicode escapes",
+        body: function () {
+            assert.throws(function () { eval("\\u0061sync function foo() {} }"); }, SyntaxError, "async keyword cannot contain unicode escapes");
+            assert.throws(function () { eval("({ \\u0061sync foo() {} })"); }, SyntaxError, "async keyword cannot contain unicode escapes");
+            assert.throws(function () { eval("class A { \\u0061sync foo() {} }"); }, SyntaxError, "async keyword cannot contain unicode escapes");
+        }
+    },
+    {
         name: "It is a Syntax Error if FormalParameters Contains AwaitExpression is true",
         body: function () {
             assert.throws(function () { eval("async function af(a, b = await a) { }"); }, SyntaxError, "await expressions not allowed in non-strict async function", "'await' expression not allowed in this context");

@@ -492,6 +492,8 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         break;
     }
 
+    m_lastIdentifierHasEscape = fHasEscape;
+
     Assert(p - pchMin > 0 && p - pchMin <= LONG_MAX);
 
     *pp = p;
