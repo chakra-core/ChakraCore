@@ -148,14 +148,6 @@ namespace Js
         }
 #endif
 
-        void ClearFunctions()
-        {
-            if (this->functionBodyDictionary)
-            {
-                this->functionBodyDictionary->Clear();
-            }
-        }
-
         bool HasFunctions() const
         {
             return (this->functionBodyDictionary ? this->functionBodyDictionary->Count() > 0 : false);
