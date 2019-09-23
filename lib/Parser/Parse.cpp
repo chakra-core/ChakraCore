@@ -9225,7 +9225,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         // Special case the "?:" operator
         if (nop == knopQmark)
         {
-            pnodeT = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn);
+            pnodeT = ParseExpr<buildAST>(koplAsg, NULL, TRUE);
             ChkCurTok(tkColon, ERRnoColon);
             ParseNodePtr pnodeT2 = ParseExpr<buildAST>(koplAsg, NULL, fAllowIn, 0, nullptr, nullptr, nullptr, nullptr, false, nullptr, plastRParen);
             if (buildAST)
