@@ -11951,7 +11951,7 @@ Case0:
         SetHeadAndLastUsedSegment(dst);
         dst->CheckLengthvsSize();
 
-        Assert(IsInlineSegment(src, instance) == IsInlineSegment(dst, static_cast<T*>(this)));
+        Assert(!IsInlineSegment(src, instance) || IsInlineSegment(dst, static_cast<T*>(this)));
 
         CopyArray(dst->elements, dst->size, src->elements, sourceSize);
 
