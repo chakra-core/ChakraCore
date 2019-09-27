@@ -37,7 +37,7 @@ namespace Js
 
         if (list == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         if (iterator->index >= iterator->count)
@@ -45,13 +45,13 @@ namespace Js
             // Nulling out the listForIterator field is important so that the iterator
             // does not keep the list alive after iteration is completed.
             iterator->listForIterator = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         Var current = list->Item(iterator->index);
 
         iterator->index++;
 
-        return library->CreateIteratorResultObjectValueFalse(current);
+        return library->CreateIteratorResultObject(current);
     }
 } // namespace Js

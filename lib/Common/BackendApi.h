@@ -276,6 +276,7 @@ enum VTableValue {
     VtableVirtualJavascriptGeneratorFunctionWithComputedName,
     VtableVirtualJavascriptGeneratorFunctionWithHomeObjAndComputedName,
     VtableJavascriptAsyncFunction,
+    VtableJavascriptAsyncGeneratorFunction,
 
     VtableStackScriptFunction,
     VtableAsmJsScriptFunctionWithComputedName,

@@ -5,6 +5,6 @@
 // NOTE: If there is a merge conflict the correct fix is to make a new GUID.
 // This file was generated with tools/xplatRegenByteCode.py
 
-// {51f0edaa-63a2-4d76-bcac-160b8dd6c2ad}
+// {4CD08EFA-A1E7-4C2D-81CE-D70DB9D553E2}
 const GUID byteCodeCacheReleaseFileVersion =
-{ 0x51f0edaa, 0x63a2, 0x4d76, {0xbc, 0xac, 0x16, 0x0b, 0x8d, 0xd6, 0xc2, 0xad } };
+{ 0x4CD08EFA, 0xA1E7, 0x4C2D, { 0x81, 0xCE, 0xD7, 0x0D, 0xB9, 0xD5, 0x53, 0xE2 } };

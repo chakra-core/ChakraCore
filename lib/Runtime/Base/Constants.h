@@ -27,6 +27,7 @@ namespace Js
         static const uint               NoByteCodeOffset            = (uint)-1;
         static const PropertyId         NoProperty                  = -1;
         static const RegSlot            NoRegister                  = (RegSlot)-1;
+        static const ByteCodeLabel      NoByteCodeLabel             = (ByteCodeLabel)-1;
         static const RegSlot            OneByteRegister             = (RegSlot_OneByte)-1;
         static const int32              InvalidOffset               = -1;
         static const unsigned int       PropertyGroupSize           = 512;
