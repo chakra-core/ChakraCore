@@ -1104,8 +1104,7 @@ namespace Js
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
             BEGIN_SAFE_REENTRANT_CALL(scriptContext->GetThreadContext())
             {
-                ResumeYieldData yieldData(scriptContext->GetLibrary()->GetUndefined(), nullptr);
-                ret = gen->CallGenerator(&yieldData, Constants::ModuleCode);
+                ret = gen->CallGenerator(scriptContext->GetLibrary()->GetUndefined(), ResumeYieldKind::Normal);
                 ret = JavascriptOperators::GetProperty(VarTo<RecyclableObject>(ret), PropertyIds::value, scriptContext);
             }
             END_SAFE_REENTRANT_CALL

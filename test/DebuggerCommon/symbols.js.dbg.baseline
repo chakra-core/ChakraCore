@@ -115,6 +115,7 @@
               "hasInstance": "symbol <large string>",
               "isConcatSpreadable": "symbol <large string>",
               "iterator": "symbol <large string>",
+              "asyncIterator": "symbol <large string>",
               "species": "symbol <large string>",
               "toPrimitive": "symbol <large string>",
               "toStringTag": "symbol <large string>",

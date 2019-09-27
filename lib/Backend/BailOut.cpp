@@ -992,16 +992,14 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
     }
     else if (regSlot == newInstance->function->GetFunctionBody()->GetYieldRegister() && newInstance->function->GetFunctionBody()->IsCoroutine())
     {
-        // This value can only either be:
-        // 1) the ResumeYieldData. Even though this value is on the stack, it is only used to extract the data as part of Op_ResumeYield.
-        //    So there is no need to box the value.
-        // 2) the object used as the return value for yield statement. This object is created on the heap, so no need to box either.
+        // This value can only either be a resume yield object created on the heap or
+        // an iterator result object created on the heap. No need to box either.
         Assert(value);
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (ThreadContext::IsOnStack(value))
         {
-            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p (ResumeYieldData)"), value);
+            BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u(", value: 0x%p (Resume Yield Object)"), value);
         }
         else
         {
@@ -1534,9 +1532,9 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         // If the FunctionBody is a generator then this call is being made by one of the three
         // generator resuming methods: next(), throw(), or return(). They all pass the generator
         // object as the first of two arguments. The real user arguments are obtained from the
-        // generator object. The second argument is the ResumeYieldData which is only needed when
-        // resuming a generator and not needed when yielding from a generator, as is occurring here.
-        AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+        // generator object. The second argument is the resume yield object which is only needed
+        // when resuming a generator and not needed when yielding from a generator, as is occurring here.
+        AssertMsg(args.Info.Count == 2, "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a resume yield object");
         Js::JavascriptGenerator* generator = Js::VarTo<Js::JavascriptGenerator>(args[0]);
         newInstance = generator->GetFrame();
 
@@ -2833,8 +2831,7 @@ Js::Var BailOutRecord::BailOutForElidedYield(void * framePointer)
     Js::InterpreterStackFrame* frame = generator->GetFrame();
     ThreadContext *threadContext = frame->GetScriptContext()->GetThreadContext();
 
-    Js::ResumeYieldData* resumeYieldData = static_cast<Js::ResumeYieldData*>(layout->args[1]);
-    frame->SetNonVarReg(executeFunction->GetYieldRegister(), resumeYieldData);
+    frame->SetNonVarReg(executeFunction->GetYieldRegister(), layout->args[1]);
 
     // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
     // give the InterpreterStackFrame a legit enough stack address to make this comparison work.

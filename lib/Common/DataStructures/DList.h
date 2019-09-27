@@ -108,6 +108,19 @@ public:
             current = current->Next();
             return true;
         }
+
+        bool Prev()
+        {
+            Assert(current != nullptr);
+            if (list->IsHead(current->Prev()))
+            {
+                current = nullptr;
+                return false;
+            }
+            current = current->Prev();
+            return true;
+        }
+
         TData const& Data() const
         {
             Assert(this->IsValid());

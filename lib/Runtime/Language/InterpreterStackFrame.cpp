@@ -2029,18 +2029,17 @@ skipThunk:
             // If the FunctionBody is a generator then this call is being made by one of the three
             // generator resuming methods: next(), throw(), or return().  They all pass the generator
             // object as the first of two arguments.  The real user arguments are obtained from the
-            // generator object.  The second argument is the ResumeYieldData which is only needed
+            // generator object.  The second argument is the resume yield object which is only needed
             // when resuming a generator and so it is only used here if a frame already exists on the
             // generator object.
-            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a ResumeYieldData pointer");
+            AssertOrFailFastMsg(args.Info.Count == 2 && ((args.Info.Flags & CallFlags_ExtraArg) == CallFlags_None), "Generator ScriptFunctions should only be invoked by generator APIs with the pair of arguments they pass in -- the generator object and a resume yield object");
 
             JavascriptGenerator* generator = VarTo<JavascriptGenerator>(args[0]);
             newInstance = generator->GetFrame();
 
             if (newInstance != nullptr)
             {
-                ResumeYieldData* resumeYieldData = static_cast<ResumeYieldData*>(args[1]);
-                newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), resumeYieldData);
+                newInstance->SetNonVarReg(executeFunction->GetYieldRegister(), args[1]);
 
                 // The debugger relies on comparing stack addresses of frames to decide when a step_out is complete so
                 // give the InterpreterStackFrame a legit enough stack address to make this comparison work.
@@ -2543,8 +2542,7 @@ skipThunk:
             if (exception)
             {
                 bool skipException = false;
-                if (!exception->IsGeneratorReturnException() &&
-                    exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject() &&
+                if (exception != scriptContext->GetThreadContext()->GetPendingSOErrorObject() &&
                     exception != scriptContext->GetThreadContext()->GetPendingOOMErrorObject())
                 {
                     skipException = exception->IsDebuggerSkip();
@@ -6770,12 +6768,6 @@ skipThunk:
         // Now that the stack is unwound, let's run the catch block.
         if (exception)
         {
-            if (exception->IsGeneratorReturnException())
-            {
-                // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }
-
             exception = exception->CloneIfStaticExceptionObject(scriptContext);
             // We've got a JS exception. Grab the exception object and assign it to the
             // catch object's location, then call the handler (i.e., we consume the Catch op here).
@@ -6986,11 +6978,6 @@ skipThunk:
         // Now that the stack is unwound, let's run the catch block.
         if (exception)
         {
-            if (exception->IsGeneratorReturnException())
-            {
-                // Generator return scenario, so no need to go into the catch block and we must rethrow to propagate the exception to down level
-                JavascriptExceptionOperators::DoThrow(exception, scriptContext);
-            }
             if (catchOffset != 0)
             {
                 exception = exception->CloneIfStaticExceptionObject(scriptContext);
@@ -7252,7 +7239,7 @@ skipThunk:
             SetNonVarReg(regOffset, reinterpret_cast<Js::Var>(currOffset));
         }
 
-        if (pExceptionObject && !pExceptionObject->IsGeneratorReturnException())
+        if (pExceptionObject)
         {
             // Clone static exception object early in case finally block overwrites it
             pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
@@ -7310,7 +7297,7 @@ skipThunk:
             return;
         }
 
-        if (pExceptionObject && (endOfFinallyBlock || !pExceptionObject->IsGeneratorReturnException()))
+        if (pExceptionObject)
         {
             JavascriptExceptionOperators::DoThrow(pExceptionObject, scriptContext);
         }
@@ -7360,7 +7347,7 @@ skipThunk:
         }
 
         Js::JavascriptExceptionObject* exceptionObj = (Js::JavascriptExceptionObject*)GetNonVarReg(exceptionRegSlot);
-        if (exceptionObj && (endOfFinallyBlock || !exceptionObj->IsGeneratorReturnException()))
+        if (exceptionObj)
         {
             JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
         }
@@ -9580,42 +9567,6 @@ skipThunk:
     void* InterpreterStackFrame::OP_LdArgCnt()
     {
         return (void*)m_inSlotsCount;
-    }
-
-    void InterpreterStackFrame::OP_AsyncYieldStar(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_AsyncYieldStar(yieldData->generator, value, scriptContext);
-    }
-
-    void InterpreterStackFrame::OP_AsyncYield(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_AsyncYield(yieldData->generator, value, scriptContext);
-    }
-
-    void InterpreterStackFrame::OP_Await(Var yieldDataVar, Var value, ScriptContext* scriptContext)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        JavascriptOperators::OP_Await(yieldData->generator, value, scriptContext);
-    }
-
-    Var InterpreterStackFrame::OP_AsyncYieldIsReturn(Var yieldDataVar)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-
-        return JavascriptOperators::OP_AsyncYieldIsReturn(yieldData);
-    }
-
-    Var InterpreterStackFrame::OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator)
-    {
-        ResumeYieldData* yieldData = static_cast<ResumeYieldData*>(yieldDataVar);
-        RecyclableObject* iterator = yieldStarIterator != Constants::NoRegister ? VarTo<RecyclableObject>(GetNonVarReg(yieldStarIterator)) : nullptr;
-
-        return JavascriptOperators::OP_ResumeYield(yieldData, iterator);
     }
 
     void* InterpreterStackFrame::operator new(size_t byteSize, void* previousAllocation) throw()

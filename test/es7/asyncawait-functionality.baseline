@@ -65,6 +65,7 @@ Test #5 - Success async in a class #6 called with result = '12'
 Test #5 - Success async in a class #7 called with result = '10'
 Test #5 - Success async in a class #10 called with result = '10'
 Test #8 - Success async function with default arguments's value overwritten #1 called with result = 'true'
+Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #8 - Success async function with default arguments's value #3 called with result = 'true'
 Test #11 - Success inner var x overwrote formal parameter x only after the declaration statement
 Test #11 - Success inner function x() overwrote formal parameter x
@@ -105,7 +106,6 @@ Test #25 - Success caught the expected exception
 Test #31 - Success async function returned through caller property is the same as the original async function
 Test #32 - Success value returned through await is assigned to the formal
 Test #32 - Success value returned through await is not assigned to the formal
-Test #8 - Success async function with default arguments's value has been rejected as expected by 'err' #2 called with err = 'expected error'
 Test #9 - Success resolved promise in an async function #1 called with result = 'resolved'
 Test #9 - Success promise in an async function has been rejected as expected by 'err' #3 called with err = 'rejected'
 Test #22 - Success functions completes both await calls

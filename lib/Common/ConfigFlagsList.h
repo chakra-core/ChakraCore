@@ -699,7 +699,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ESDynamicImport         (true)
 #define DEFAULT_CONFIG_ESImportMeta            (true)
 #define DEFAULT_CONFIG_ESExportNsAs            (true)
-#define DEFAULT_CONFIG_ES2018AsyncIteration    (false)
+#define DEFAULT_CONFIG_ES2018AsyncIteration    (true)
 
 #define DEFAULT_CONFIG_ESSharedArrayBuffer     (false)
 

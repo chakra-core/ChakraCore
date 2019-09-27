@@ -524,7 +524,7 @@
   {
     "callStack": [
       {
-        "line": 129,
+        "line": 130,
         "column": 0,
         "sourceText": "g.return(2)",
         "function": "Global code"
@@ -540,7 +540,7 @@
         "function": "gf4"
       },
       {
-        "line": 129,
+        "line": 130,
         "column": 0,
         "sourceText": "g.return(2)",
         "function": "Global code"
@@ -550,7 +550,7 @@
   {
     "callStack": [
       {
-        "line": 138,
+        "line": 139,
         "column": 0,
         "sourceText": "g = gf5()",
         "function": "Global code"
@@ -560,7 +560,7 @@
   {
     "callStack": [
       {
-        "line": 148,
+        "line": 149,
         "column": 0,
         "sourceText": "g.return(1)",
         "function": "Global code"
@@ -570,13 +570,13 @@
   {
     "callStack": [
       {
-        "line": 133,
+        "line": 134,
         "column": 8,
         "sourceText": "yield 32",
         "function": "gf5"
       },
       {
-        "line": 148,
+        "line": 149,
         "column": 0,
         "sourceText": "g.return(1)",
         "function": "Global code"
@@ -586,7 +586,7 @@
   {
     "callStack": [
       {
-        "line": 150,
+        "line": 151,
         "column": 0,
         "sourceText": "WScript.Echo(\"PASS\")",
         "function": "Global code"

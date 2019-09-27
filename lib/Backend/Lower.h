@@ -842,7 +842,8 @@ private:
     //
     // Generator
     //
-    class LowerGeneratorHelper {
+    class LowerGeneratorHelper
+    {
         Func* const func;
         LowererMD &lowererMD;
         Lowerer* const lowerer;
@@ -851,7 +852,7 @@ private:
         IR::LabelInstr* epilogueForBailOut = nullptr;
 
         void EnsureEpilogueLabels();
-        IR::SymOpnd* CreateResumeYieldDataOpnd() const;
+        IR::SymOpnd* CreateResumeYieldOpnd() const;
 
     public:
         LowerGeneratorHelper(Func* func, Lowerer* lowerer, LowererMD &lowererMD);
@@ -891,9 +892,8 @@ private:
 
         void LowerGeneratorResumeJumpTable(IR::Instr* jumpTableInstr);
         void LowerCreateInterpreterStackFrameForGenerator(IR::Instr* instr);
-        void LowerResumeGenerator(IR::Instr* instr);
         void LowerYield(IR::Instr* instr);
-        void LowerGeneratorLoadResumeYieldData(IR::Instr* instr);
+        void LowerGeneratorResumeYield(IR::Instr* instr);
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         void LowerGeneratorTraceBailIn(IR::Instr* instr);

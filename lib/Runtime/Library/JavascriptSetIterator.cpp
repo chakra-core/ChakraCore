@@ -39,7 +39,7 @@ namespace Js
         if (set == nullptr || !setIterator.Next())
         {
             iterator->m_set = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         auto value = setIterator.Current();
@@ -58,6 +58,6 @@ namespace Js
             result = value;
         }
 
-        return library->CreateIteratorResultObjectValueFalse(result);
+        return library->CreateIteratorResultObject(result);
     }
 } //namespace Js

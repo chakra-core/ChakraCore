@@ -46,7 +46,7 @@ namespace Js
 
         if (iterable == nullptr)
         {
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         int64 length;
@@ -82,14 +82,14 @@ namespace Js
             // Nulling out the m_iterableObject field is important so that the iterator
             // does not keep the iterable object alive after iteration is completed.
             iterator->m_iterableObject = nullptr;
-            return library->CreateIteratorResultObjectUndefinedTrue();
+            return library->CreateIteratorResultObjectDone();
         }
 
         iterator->m_nextIndex += 1;
 
         if (iterator->m_kind == JavascriptArrayIteratorKind::Key)
         {
-            return library->CreateIteratorResultObjectValueFalse(JavascriptNumber::ToVar(index, scriptContext));
+            return library->CreateIteratorResultObject(JavascriptNumber::ToVar(index, scriptContext));
         }
 
         Var value;
@@ -110,7 +110,7 @@ namespace Js
 
         if (iterator->m_kind == JavascriptArrayIteratorKind::Value)
         {
-            return library->CreateIteratorResultObjectValueFalse(value);
+            return library->CreateIteratorResultObject(value);
         }
 
         Assert(iterator->m_kind == JavascriptArrayIteratorKind::KeyAndValue);
@@ -120,6 +120,6 @@ namespace Js
         keyValueTuple->SetItem(0, JavascriptNumber::ToVar(index, scriptContext), PropertyOperation_None);
         keyValueTuple->SetItem(1, value, PropertyOperation_None);
 
-        return library->CreateIteratorResultObjectValueFalse(keyValueTuple);
+        return library->CreateIteratorResultObject(keyValueTuple);
     }
 } //namespace Js

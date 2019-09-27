@@ -116,8 +116,6 @@ namespace Js
     class JavascriptPromise;
     class JavascriptPromiseCapability;
     class JavascriptPromiseReaction;
-    class JavascriptPromiseAsyncSpawnExecutorFunction;
-    class JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction;
     class JavascriptPromiseCapabilitiesExecutorFunction;
     class JavascriptPromiseResolveOrRejectFunction;
     class JavascriptPromiseReactionTaskFunction;
@@ -128,6 +126,8 @@ namespace Js
     class JavascriptPromiseAllSettledResolveOrRejectElementFunction;
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper;
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper;
+    class JavascriptAsyncSpawnExecutorFunction;
+    class JavascriptAsyncSpawnStepFunction;
     class JavascriptGenerator;
     class LiteralString;
     class JavascriptStringObject;
@@ -538,6 +538,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #ifdef _CHAKRACOREBUILD
 #include "Library/CustomExternalWrapperObject.h"
 #endif
+
 #include "Library/JavascriptProxy.h"
 
 #if ENABLE_TTD
@@ -555,6 +556,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Debug/TTActionEvents.h"
 #include "Debug/TTEventLog.h"
 #endif
+
+#include "Library/JavascriptGeneratorFunction.h"
+#include "Library/JavascriptAsyncFunction.h"
+#include "Library/JavascriptAsyncGeneratorFunction.h"
 
 #include "../WasmReader/WasmReader.h"
 
@@ -581,7 +586,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/InlineCachePointerArray.inl"
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
-#include "Library/JavascriptGeneratorFunction.h"
 
 #ifndef USED_IN_STATIC_LIB
 #ifdef ENABLE_INTL_OBJECT
