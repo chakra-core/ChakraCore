@@ -684,6 +684,7 @@ namespace Js
         Js::RecyclableObject* CreateJavascriptGenerator_TTD(Js::ScriptContext *ctx,
                                                             Js::RecyclableObject *prototype, Js::Arguments &arguments,
                                                             Js::JavascriptGenerator::GeneratorState generatorState);
+        Js::RecyclableObject* CreatePromiseAnyRejectElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper);
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
@@ -1036,6 +1037,7 @@ namespace Js
         JavascriptPromiseThenFinallyFunction* CreatePromiseThenFinallyFunction(JavascriptMethod entryPoint, RecyclableObject* OnFinally, RecyclableObject* Constructor, bool shouldThrow);
         JavascriptPromiseThunkFinallyFunction* CreatePromiseThunkFinallyFunction(JavascriptMethod entryPoint, Var value, bool shouldThrow);
         JavascriptExternalFunction* CreateWrappedExternalFunction(JavascriptExternalFunction* wrappedFunction);
+        JavascriptPromiseAnyRejectElementFunction* CreatePromiseAnyRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper);
 
 #if ENABLE_NATIVE_CODEGEN
 #if !FLOATVAR

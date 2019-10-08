@@ -2569,6 +2569,7 @@ namespace Js
 
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::all, &JavascriptPromise::EntryInfo::All, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::allSettled, &JavascriptPromise::EntryInfo::AllSettled, 1);
+        library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::any, &JavascriptPromise::EntryInfo::Any, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::race, &JavascriptPromise::EntryInfo::Race, 1);
         library->AddFunctionToLibraryObject(promiseConstructor, PropertyIds::reject, &JavascriptPromise::EntryInfo::Reject, 1);
         library->AddMember(promiseConstructor, PropertyIds::resolve, library->EnsurePromiseResolveFunction(), PropertyBuiltInMethodDefaults);
@@ -5604,6 +5605,13 @@ namespace Js
         return generator;
     }
 
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseAnyRejectElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper)
+    {
+        Js::JavascriptPromiseAnyRejectElementFunction * res = this->CreatePromiseAnyRejectElementFunction(JavascriptPromise::EntryAnyRejectElementFunction, index, Js::VarTo<Js::JavascriptArray>(values), capabilities, wrapper, alreadyCalledWrapper);
+
+        return res;
+    }
+
 #endif // ENABLE_TTD
 
     void JavascriptLibrary::SetCrossSiteForLockedFunctionType(JavascriptFunction * function)
@@ -6542,6 +6550,19 @@ namespace Js
         FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AllSettledResolveOrRejectElementFunction;
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
         JavascriptPromiseAllSettledResolveOrRejectElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAllSettledResolveOrRejectElementFunction, type, functionInfo, index, values, capabilities, remainingElements, alreadyCalledWrapper, isRejecting);
+
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
+
+        return function;
+    }
+
+    JavascriptPromiseAnyRejectElementFunction* JavascriptLibrary::CreatePromiseAnyRejectElementFunction(JavascriptMethod entryPoint, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElements, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper)
+    {
+        Assert(scriptContext->GetConfig()->IsES6PromiseEnabled());
+
+        FunctionInfo* functionInfo = &Js::JavascriptPromise::EntryInfo::AnyRejectElementFunction;
+        DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, functionPrototype, entryPoint, GetDeferredAnonymousFunctionTypeHandler());
+        JavascriptPromiseAnyRejectElementFunction* function = RecyclerNewEnumClass(this->GetRecycler(), EnumFunctionClass, JavascriptPromiseAnyRejectElementFunction, type, functionInfo, index, values, capabilities, remainingElements, alreadyCalledWrapper);
 
         function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable, nullptr);
 

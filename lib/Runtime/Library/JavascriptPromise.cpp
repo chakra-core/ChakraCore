@@ -267,6 +267,133 @@ namespace Js
         return promiseCapability->GetPromise();
     }
 
+    Var JavascriptPromise::EntryAny(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Promise.any"));
+
+        // 1. Let C be the this value.
+        Var constructor = args[0];
+
+        // 2. If Type(C) is not Object, throw a TypeError exception.
+        if (!JavascriptOperators::IsObject(constructor))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("Promise.any"));
+        }
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        Var iterable;
+
+        if (args.Info.Count > 1)
+        {
+            iterable = args[1];
+        }
+        else
+        {
+            iterable = library->GetUndefined();
+        }
+
+        // 3. Let promiseCapability be NewPromiseCapability(C).
+        JavascriptPromiseCapability* promiseCapability = NewPromiseCapability(constructor, scriptContext);
+
+        RecyclableObject* constructorObject = VarTo<RecyclableObject>(constructor);
+
+        JavascriptExceptionObject* exception = nullptr;
+        try
+        {
+            // 4. Let iterator be GetIterator(iterable).
+            RecyclableObject* iteratorRecord = JavascriptOperators::GetIterator(iterable, scriptContext);
+
+            // Assert(!JavascriptOperators::IsConstructor(constructorObject));
+
+            JavascriptArray* values = library->CreateArray(0);
+
+            JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper);
+            remainingElementsWrapper->remainingElements = 1;
+            uint32 index = 0;
+
+
+            Var resolveVar = JavascriptOperators::GetProperty(constructorObject, Js::PropertyIds::resolve, scriptContext);
+            
+            if (!JavascriptConversion::IsCallable(resolveVar))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+            }
+
+            RecyclableObject* resolveFunc = VarTo<RecyclableObject>(resolveVar);
+
+            JavascriptOperators::DoIteratorStepAndValue(iteratorRecord, scriptContext, [&](Var nextValue){
+                ThreadContext* threadContext = scriptContext->GetThreadContext();
+                Var nextPromise = nullptr;
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    nextPromise = CALL_FUNCTION(threadContext,
+                        resolveFunc, Js::CallInfo(CallFlags_Value, 2),
+                        constructorObject,
+                        nextValue);
+                }
+                END_SAFE_REENTRANT_CALL
+
+                JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
+                alreadyCalledWrapper->alreadyResolved = false;
+                Var rejectElement = library->CreatePromiseAnyRejectElementFunction(EntryAnyRejectElementFunction, index, values, promiseCapability, remainingElementsWrapper, alreadyCalledWrapper);
+
+                remainingElementsWrapper->remainingElements++;
+
+                RecyclableObject* nextPromiseObject;
+                if (!JavascriptConversion::ToObject(nextPromise, scriptContext, &nextPromiseObject))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
+                }
+
+                Var thenVar = JavascriptOperators::GetProperty(nextPromiseObject, Js::PropertyIds::then, scriptContext);
+
+                if (!JavascriptConversion::IsCallable(thenVar))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+                }
+
+                RecyclableObject* thenFunc = VarTo<RecyclableObject>(thenVar);
+
+                BEGIN_SAFE_REENTRANT_CALL(threadContext)
+                {
+                    CALL_FUNCTION(scriptContext->GetThreadContext(),
+                        thenFunc, Js::CallInfo(CallFlags_Value, 3),
+                        nextPromiseObject,
+                        promiseCapability->GetResolve(),
+                        rejectElement);
+                }
+                END_SAFE_REENTRANT_CALL
+
+                index++;
+            });
+
+            remainingElementsWrapper->remainingElements--;
+            if (remainingElementsWrapper->remainingElements == 0)
+            {
+                Assert(values != nullptr);
+
+                TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
+            }
+        }
+        catch (const JavascriptException& err)
+        {
+            exception = err.GetAndClear();
+        }
+
+        if (exception != nullptr)
+        {
+            TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
+        }
+
+        return promiseCapability->GetPromise();
+    }
+
     Var JavascriptPromise::EntryAllSettled(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -1523,6 +1650,61 @@ namespace Js
         return undefinedVar;
     }
 
+    Var JavascriptPromise::EntryAnyRejectElementFunction(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+        Var undefinedVar = scriptContext->GetLibrary()->GetUndefined();
+        Var x;
+
+        if (args.Info.Count > 1)
+        {
+            x = args[1];
+        }
+        else
+        {
+            x = undefinedVar;
+        }
+
+        JavascriptPromiseAnyRejectElementFunction* anyRejectElementFunction = VarTo<JavascriptPromiseAnyRejectElementFunction>(function);
+
+        if (anyRejectElementFunction->IsAlreadyCalled())
+        {
+            return undefinedVar;
+        }
+
+        anyRejectElementFunction->SetAlreadyCalled(true);
+
+        uint32 index = anyRejectElementFunction->GetIndex();
+        JavascriptArray* values = anyRejectElementFunction->GetValues();
+        JavascriptPromiseCapability* promiseCapability = anyRejectElementFunction->GetCapabilities();
+        JavascriptExceptionObject* exception = nullptr;
+
+        try
+        {
+            values->SetItem(index, x, PropertyOperation_None);
+        }
+        catch (const JavascriptException& err)
+        {
+            exception = err.GetAndClear();
+        }
+
+        if (exception != nullptr)
+        {
+            return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
+        }
+
+        if (anyRejectElementFunction->DecrementRemainingElements() == 0)
+        {
+            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), values, scriptContext);
+        }
+
+        return undefinedVar;
+    }
+
     Var JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
@@ -2515,6 +2697,81 @@ namespace Js
     }
 
     void JavascriptPromiseAllSettledResolveOrRejectElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo* sprai = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo>();
+
+        JsUtil::List<TTD_PTR_ID, HeapAllocator> depOnList(&HeapAllocator::Instance);
+        this->capabilities->ExtractSnapPromiseCapabilityInto(&sprai->Capabilities, depOnList, alloc);
+
+        sprai->Index = this->index;
+        sprai->RemainingElementsWrapperId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this->remainingElementsWrapper);
+        sprai->RemainingElementsValue = this->remainingElementsWrapper->remainingElements;
+
+        sprai->Values = TTD_CONVERT_VAR_TO_PTR_ID(this->values);
+        depOnList.Add(sprai->Values);
+
+        sprai->AlreadyCalled = this->alreadyCalled;
+
+        uint32 depOnCount = depOnList.Count();
+        TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+        for (uint32 i = 0; i < depOnCount; ++i)
+        {
+            depOnArray[i] = depOnList.Item(i);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject>(objData, sprai, alloc, depOnCount, depOnArray);
+    }
+#endif
+
+    JavascriptPromiseAnyRejectElementFunction::JavascriptPromiseAnyRejectElementFunction(DynamicType* type)
+        : JavascriptPromiseAllResolveElementFunction(type), alreadyCalledWrapper(nullptr)
+    { }
+
+    JavascriptPromiseAnyRejectElementFunction::JavascriptPromiseAnyRejectElementFunction(DynamicType* type, FunctionInfo* functionInfo, uint32 index, JavascriptArray* values, JavascriptPromiseCapability* capabilities, JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyCalledWrapper)
+        : JavascriptPromiseAllResolveElementFunction(type, functionInfo, index, values, capabilities, remainingElementsWrapper), alreadyCalledWrapper(alreadyCalledWrapper)
+    { }
+
+    bool JavascriptPromiseAnyRejectElementFunction::IsAlreadyCalled() const
+    {
+        Assert(this->alreadyCalledWrapper);
+
+        return this->alreadyCalledWrapper->alreadyResolved;
+    }
+
+    void JavascriptPromiseAnyRejectElementFunction::SetAlreadyCalled(const bool is)
+    {
+        Assert(this->alreadyCalledWrapper);
+
+        this->alreadyCalledWrapper->alreadyResolved = is;
+    }
+
+    template <> bool VarIsImpl<JavascriptPromiseAnyRejectElementFunction>(RecyclableObject* obj)
+    {
+        if (VarIs<JavascriptFunction>(obj))
+        {
+            return VirtualTableInfo<JavascriptPromiseAnyRejectElementFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptPromiseAnyRejectElementFunction>>::HasVirtualTable(obj);
+        }
+
+        return false;
+    }
+
+#if ENABLE_TTD
+    void JavascriptPromiseAnyRejectElementFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        TTDAssert(this->capabilities != nullptr && this->remainingElementsWrapper != nullptr && this->alreadyCalledWrapper != nullptr && this->values != nullptr, "Don't think these can be null");
+
+        this->capabilities->MarkVisitPtrs(extractor);
+        extractor->MarkVisitVar(this->values);
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAnyRejectElementFunction::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseAnyRejectElementFunctionObject;
+    }
+
+    void JavascriptPromiseAnyRejectElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
         TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo* sprai = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo>();
 

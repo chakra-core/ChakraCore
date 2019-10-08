@@ -484,6 +484,31 @@ namespace TTD
         void AssertSnapEquiv_SnapPromiseAllSettledResolveOrRejectElementFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
 
+        ////
+        // AnyRejectElementFunctionObject Info
+        struct SnapPromiseAnyRejectElementFunctionInfo
+        {
+            NSSnapValues::SnapPromiseCapabilityInfo Capabilities;
+            uint32 Index;
+
+            TTD_PTR_ID RemainingElementsWrapperId;
+            uint32 RemainingElementsValue;
+
+            TTD_PTR_ID AlreadyCalledWrapperId;
+            bool AlreadyCalledValue;
+
+            TTD_PTR_ID Values;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseAnyRejectElementFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseAnyRejectElementFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseAnyRejectElementFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE
+        void AssertSnapEquiv_SnapPromiseAnyRejectElementFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+#endif
+
         //////////////////
 
         ////
