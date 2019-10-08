@@ -852,4 +852,10 @@
       <files>argobjlengthhoist.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>OS23440664.js</files>
+      <compile-flags>-off:bailonnoprofile -force:fixdataprops -forcejitloopbody</compile-flags>
+    </default>
+  </test>
 </regress-exe>

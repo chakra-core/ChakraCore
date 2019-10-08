@@ -2195,6 +2195,13 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
         return;
     }
 
+    // By default, do not do this for stores, as it makes the presence of type checks unpredictable in the forward pass.
+    // For instance, we can't predict which stores may cause reallocation of aux slots.
+    if (instr->GetDst() && instr->GetDst()->IsSymOpnd())
+    {
+        return;
+    }
+
     IR::BailOutKind oldBailOutKind = instr->GetBailOutKind();
     if (!IR::IsTypeCheckBailOutKind(oldBailOutKind))
     {
