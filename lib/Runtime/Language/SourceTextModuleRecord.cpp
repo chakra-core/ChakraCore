@@ -1079,10 +1079,13 @@ namespace Js
 
         try
         {
-            if (childrenModuleSet != nullptr)
+            if (requestedModuleList != nullptr)
             {
-                childrenModuleSet->EachValue([=](SourceTextModuleRecord* childModuleRecord)
-                {
+                requestedModuleList->Reverse();
+                requestedModuleList->Map([&](IdentPtr specifier) {
+                    SourceTextModuleRecord* childModuleRecord = nullptr;
+                    AssertOrFailFast(childrenModuleSet->TryGetValue(specifier->Psz(), &childModuleRecord));
+
                     childModuleRecord->ModuleEvaluation();
                     // if child module was evaluated before and threw need to re-throw now
                     // if child module has been dynamically imported and has exception need to throw
