@@ -26,7 +26,7 @@ namespace Js
     public:
 
         JavascriptError(DynamicType* type, BOOL isExternalError = FALSE, BOOL isPrototype = FALSE) :
-            DynamicObject(type), originalRuntimeErrorMessage(nullptr), isExternalError(isExternalError), isPrototype(isPrototype), isStackPropertyRedefined(false)
+            DynamicObject(type), originalRuntimeErrorMessage(nullptr), isExternalError(isExternalError), isPrototype(isPrototype), isStackPropertyRedefined(false), aggregateErrors(nullptr)
         {
             Assert(type->GetTypeId() == TypeIds_Error);
             exceptionObject = nullptr;
@@ -60,6 +60,7 @@ namespace Js
             static FunctionInfo NewWinRTErrorInstance;
 #endif
             static FunctionInfo ToString;
+            static FunctionInfo GetterErrors;
         };
 
         static Var NewErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -78,6 +79,7 @@ namespace Js
 #endif
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryGetterErrors(RecyclableObject* function, CallInfo callInfo, ...);
 
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
@@ -142,6 +144,14 @@ namespace Js
 
         JavascriptExceptionObject *GetJavascriptExceptionObject() { return exceptionObject; }
 
+        void SetJavascriptAggregateErrors(RecyclableObject* aggregateErrors)
+        {
+            Assert(aggregateErrors);
+            this->aggregateErrors = aggregateErrors;
+        }
+
+        RecyclableObject* GetJavascriptAggregateErrors() { return aggregateErrors; }
+
         static DWORD GetAdjustedResourceStringHr(DWORD hr, bool isFormatString);
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
@@ -159,6 +169,7 @@ namespace Js
         Field(bool) isStackPropertyRedefined;
         Field(char16 const *) originalRuntimeErrorMessage;
         Field(JavascriptExceptionObject *) exceptionObject;
+        Field(RecyclableObject*) aggregateErrors;
 
 #ifdef ERROR_TRACE
         static void Trace(const char16 *form, ...) // const

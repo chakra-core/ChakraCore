@@ -2434,12 +2434,37 @@ namespace Js
     INIT_ERROR(SyntaxError);
     INIT_ERROR(TypeError);
     INIT_ERROR(URIError);
-    INIT_ERROR(AggregateError);
     INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError);
     INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError);
     INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
 
 #undef INIT_ERROR
+
+    bool JavascriptLibrary::InitializeAggregateErrorConstructor(DynamicObject* constructor, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode) \
+    {
+        typeHandler->Convert(constructor, mode, 3);
+        JavascriptLibrary* library = constructor->GetLibrary();
+        library->AddMember(constructor, PropertyIds::prototype, library->GetAggregateErrorPrototype(), PropertyNone);
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable;
+        library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
+        constructor->SetHasNoEnumerableProperties(true);
+        return true;
+    }
+    bool JavascriptLibrary::InitializeAggregateErrorPrototype(DynamicObject* prototype, DeferredTypeHandlerBase* typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(prototype, mode, 4);
+        JavascriptLibrary* library = prototype->GetLibrary();
+        library->AddMember(prototype, PropertyIds::constructor, library->GetAggregateErrorConstructor());
+        bool hasNoEnumerableProperties = true;
+        PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable;
+        library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
+        library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes);
+        library->AddAccessorsToLibraryObject(prototype, PropertyIds::errors, &JavascriptError::EntryInfo::GetterErrors, nullptr);
+        library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0);
+        prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
+        return true;
+    }
 
     bool JavascriptLibrary::InitializeBooleanConstructor(DynamicObject* booleanConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {

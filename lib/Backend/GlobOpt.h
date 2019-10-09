@@ -366,6 +366,7 @@ public:
             (valueType.IsArrayOrObjectWithArray() &&
              (
               (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
+              (killsObjectArraysWithNoMissingValues && !valueType.IsArray() && valueType.HasNoMissingValues()) ||
               (killsNativeArrays && !valueType.HasVarElements())
              )
             );

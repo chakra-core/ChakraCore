@@ -138,12 +138,25 @@ namespace Js
     NEW_ERROR(SyntaxError);
     NEW_ERROR(TypeError);
     NEW_ERROR(URIError);
-    NEW_ERROR(AggregateError);
     NEW_ERROR(WebAssemblyCompileError);
     NEW_ERROR(WebAssemblyRuntimeError);
     NEW_ERROR(WebAssemblyLinkError);
 
 #undef NEW_ERROR
+    Var JavascriptError::NewAggregateErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptError* pError = scriptContext->GetLibrary()->CreateAggregateError();
+        Var newTarget = args.GetNewTarget();
+        RecyclableObject* errors = args.Info.Count > 1 ? VarTo<RecyclableObject>(args[1]) : library->CreateArray(0);
+        Var message = args.Info.Count > 2 ? args[2] : library->GetUndefined();
+        pError->SetJavascriptAggregateErrors(errors);
+
+        return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
+    }
 
 #ifdef ENABLE_PROJECTION
     Var JavascriptError::NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -159,6 +172,35 @@ namespace Js
         return JavascriptError::NewInstance(function, pError, callInfo, newTarget, message);
     }
 #endif
+
+    Var JavascriptError::EntryGetterErrors(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        if (args[0] == 0 || !JavascriptOperators::IsObject(args[0]))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("AggregateError.prototype.errors"));
+        }
+
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptError* thisError = VarTo<JavascriptError>(args[0]);
+
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(thisError->GetJavascriptAggregateErrors(), scriptContext);
+        JavascriptArray* errorsList = library->CreateArray(0);
+        JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
+        {
+            JavascriptArray::Push(scriptContext, errorsList, next);
+        });
+
+        return errorsList;
+    }
 
     Var JavascriptError::EntryToString(RecyclableObject* function, CallInfo callInfo, ...)
     {

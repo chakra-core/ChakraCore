@@ -144,6 +144,7 @@ BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErro
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
 BUILTIN(JavascriptError, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptError, GetterErrors, EntryGetterErrors, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptExternalFunction, ExternalFunctionThunk, ExternalFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, WrappedFunctionThunk, WrappedFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, StdCallExternalFunctionThunk, StdCallExternalFunctionThunk, FunctionInfo::None)
