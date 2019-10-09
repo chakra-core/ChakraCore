@@ -9506,6 +9506,15 @@ ParseNodeCatch * Parser::ParseCatch()
             GetCurrentBlock()->SetChildCallsEval(true);
         }
 
+        if (pnodeCatchScope->GetCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetCallsEval(true);
+        }
+        if (pnodeCatchScope->GetChildCallsEval())
+        {
+            pnodeBody->AsParseNodeBlock()->SetChildCallsEval(true);
+        }
+
         if (buildAST)
         {
             PopStmt(&stmt);
