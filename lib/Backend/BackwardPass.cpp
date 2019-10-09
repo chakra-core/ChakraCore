@@ -2261,7 +2261,7 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
 
     // By default, do not do this for stores, as it makes the presence of type checks unpredictable in the forward pass.
     // For instance, we can't predict which stores may cause reallocation of aux slots.
-    if (!PHASE_ON(Js::DeadStoreTypeChecksOnStoresPhase, this->func) && instr->GetDst() && instr->GetDst()->IsSymOpnd())
+    if (instr->GetDst() && instr->GetDst()->IsSymOpnd())
     {
         return;
     }
