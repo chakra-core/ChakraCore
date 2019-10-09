@@ -138,6 +138,7 @@ namespace Js
     NEW_ERROR(SyntaxError);
     NEW_ERROR(TypeError);
     NEW_ERROR(URIError);
+    NEW_ERROR(AggregateError);
     NEW_ERROR(WebAssemblyCompileError);
     NEW_ERROR(WebAssemblyRuntimeError);
     NEW_ERROR(WebAssemblyLinkError);
@@ -294,6 +295,7 @@ namespace Js
     THROW_ERROR_IMPL(ThrowSyntaxError, CreateSyntaxError, GetSyntaxErrorType, kjstSyntaxError)
     THROW_ERROR_IMPL(ThrowTypeError, CreateTypeError, GetTypeErrorType, kjstTypeError)
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
+    THROW_ERROR_IMPL(ThrowAggregateError, CreateAggregateError, GetAggregateErrorType, kjstAggregateError)
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
@@ -316,6 +318,8 @@ namespace Js
           return CreateReferenceError(scriptContext);
         case kjstURIError:
           return CreateURIError(scriptContext);
+        case kjstAggregateError:
+          return CreateAggregateError(scriptContext);
         case kjstWebAssemblyCompileError:
           return CreateWebAssemblyCompileError(scriptContext);
         case kjstWebAssemblyRuntimeError:
@@ -827,6 +831,9 @@ namespace Js
             break;
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
+            break;
+        case kjstAggregateError:
+            jsNewError = targetJavascriptLibrary->CreateAggregateError();
             break;
         case kjstWebAssemblyCompileError:
             jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();

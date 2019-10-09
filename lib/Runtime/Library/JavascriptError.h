@@ -52,6 +52,7 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewAggregateErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
@@ -68,6 +69,7 @@ namespace Js
         static Var NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
         static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -97,6 +99,7 @@ namespace Js
         THROW_ERROR_DECL(ThrowSyntaxError)
         THROW_ERROR_DECL(ThrowTypeError)
         THROW_ERROR_DECL(ThrowURIError)
+        THROW_ERROR_DECL(ThrowAggregateError)
         THROW_ERROR_DECL(ThrowWebAssemblyCompileError)
         THROW_ERROR_DECL(ThrowWebAssemblyRuntimeError)
         THROW_ERROR_DECL(ThrowWebAssemblyLinkError)

@@ -311,6 +311,7 @@ namespace Js
         INIT_ERROR_PROTO(syntaxErrorPrototype, InitializeSyntaxErrorPrototype);
         INIT_ERROR_PROTO(typeErrorPrototype, InitializeTypeErrorPrototype);
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
+        INIT_ERROR_PROTO(aggregateErrorPrototype, InitializeAggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -541,6 +542,7 @@ namespace Js
         INIT_SIMPLE_TYPE(syntaxErrorType, TypeIds_Error, syntaxErrorPrototype);
         INIT_SIMPLE_TYPE(typeErrorType, TypeIds_Error, typeErrorPrototype);
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
+        INIT_SIMPLE_TYPE(aggregateErrorType, TypeIds_Error, aggregateErrorPrototype);
 
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
@@ -952,6 +954,9 @@ namespace Js
 
         case kjstURIError:
             return GetURIErrorType();
+
+        case kjstAggregateError:
+            return GetAggregateErrorType();
 
         case kjstWebAssemblyCompileError:
             return GetWebAssemblyCompileErrorType();
@@ -1729,6 +1734,11 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
+        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
+            DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
+            nativeErrorPrototype);
+        AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
+
 #ifdef ENABLE_WASM
         if (CONFIG_FLAG(Wasm) && PHASE_ENABLED1(WasmPhase))
         {
@@ -2424,6 +2434,7 @@ namespace Js
     INIT_ERROR(SyntaxError);
     INIT_ERROR(TypeError);
     INIT_ERROR(URIError);
+    INIT_ERROR(AggregateError);
     INIT_ERROR_IMPL(WebAssemblyCompileError, CompileError);
     INIT_ERROR_IMPL(WebAssemblyRuntimeError, RuntimeError);
     INIT_ERROR_IMPL(WebAssemblyLinkError, LinkError);
@@ -6196,6 +6207,9 @@ namespace Js
         case kjstURIError:
             baseErrorType = uriErrorType;
             break;
+        case kjstAggregateError:
+            baseErrorType = aggregateErrorType;
+            break;
         case kjstWebAssemblyCompileError:
             baseErrorType = webAssemblyCompileErrorType;
             break;
@@ -6227,6 +6241,7 @@ namespace Js
     CREATE_ERROR(SyntaxError, syntaxErrorType, kjstSyntaxError);
     CREATE_ERROR(TypeError, typeErrorType, kjstTypeError);
     CREATE_ERROR(URIError, uriErrorType, kjstURIError);
+    CREATE_ERROR(AggregateError, aggregateErrorType, kjstAggregateError);
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
     CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
@@ -7394,6 +7409,7 @@ namespace Js
         REGISTER_ERROR_OBJECT(SyntaxError);
         REGISTER_ERROR_OBJECT(TypeError);
         REGISTER_ERROR_OBJECT(URIError);
+        REGISTER_ERROR_OBJECT(AggregateError);
 
 #ifdef ENABLE_PROJECTION
         if (config.IsWinRTEnabled())

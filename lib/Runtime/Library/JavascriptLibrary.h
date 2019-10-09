@@ -317,6 +317,7 @@ namespace Js
         Field(DynamicType *) syntaxErrorType;
         Field(DynamicType *) typeErrorType;
         Field(DynamicType *) uriErrorType;
+        Field(DynamicType *) aggregateErrorType;
         Field(DynamicType *) webAssemblyCompileErrorType;
         Field(DynamicType *) webAssemblyRuntimeErrorType;
         Field(DynamicType *) webAssemblyLinkErrorType;
@@ -731,6 +732,7 @@ namespace Js
         DynamicType * GetSyntaxErrorType() const { return syntaxErrorType; }
         DynamicType * GetTypeErrorType() const { return typeErrorType; }
         DynamicType * GetURIErrorType() const { return uriErrorType; }
+        DynamicType * GetAggregateErrorType()const { return aggregateErrorType; }
         DynamicType * GetWebAssemblyCompileErrorType() const { return webAssemblyCompileErrorType; }
         DynamicType * GetWebAssemblyRuntimeErrorType() const { return webAssemblyRuntimeErrorType; }
         DynamicType * GetWebAssemblyLinkErrorType() const { return webAssemblyLinkErrorType; }
@@ -928,6 +930,7 @@ namespace Js
         JavascriptError* CreateSyntaxError();
         JavascriptError* CreateTypeError();
         JavascriptError* CreateURIError();
+        JavascriptError* CreateAggregateError();
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
         JavascriptError* CreateWebAssemblyCompileError();
@@ -1232,6 +1235,7 @@ namespace Js
         STANDARD_INIT(SyntaxError);
         STANDARD_INIT(TypeError);
         STANDARD_INIT(URIError);
+        STANDARD_INIT(AggregateError);
         STANDARD_INIT(RuntimeError);
         STANDARD_INIT(TypedArray);
         STANDARD_INIT(Int8Array);
