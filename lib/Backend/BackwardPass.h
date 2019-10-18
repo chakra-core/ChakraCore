@@ -45,7 +45,6 @@ private:
     bool ProcessByteCodeUsesInstr(IR::Instr * instr);
     bool ProcessBailOutInfo(IR::Instr * instr);
     void ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo);
-    IR::Instr* ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr);
     IR::Instr* ProcessPendingPreOpBailOutInfo(IR::Instr *const currentInstr);
     void ClearDstUseForPostOpLazyBailOut(IR::Instr *instr);
     void ProcessBailOutArgObj(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed);

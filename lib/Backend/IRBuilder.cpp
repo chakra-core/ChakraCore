@@ -1900,14 +1900,17 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
     case Js::OpCode::Yield:
         instr = IR::Instr::New(newOpcode, dstOpnd, src1Opnd, m_func);
         this->AddInstr(instr, offset);
-        this->m_lastInstr = instr->ConvertToBailOutInstr(instr, IR::BailOutForGeneratorYield);
+        IR::Instr* yieldInstr = instr->ConvertToBailOutInstr(instr, IR::BailOutForGeneratorYield);
+        this->m_lastInstr = yieldInstr;
 
         // This label indicates the bail-in section that we will jump to from the generator jump table
-        IR::LabelInstr* bailInLabel = IR::GeneratorBailInInstr::New(this->m_lastInstr /* yieldInstr */, m_func);
+        auto* bailInLabel = IR::GeneratorBailInInstr::New(yieldInstr, m_func);
         bailInLabel->m_hasNonBranchRef = true;              // set to true so that we don't move this label around
         LABELNAMESET(bailInLabel, "GeneratorBailInLabel");
         this->AddInstr(bailInLabel, offset);
         this->m_func->AddYieldOffsetResumeLabel(nextOffset, bailInLabel);
+
+        yieldInstr->GetBailOutInfo()->bailInInstr = bailInLabel;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         if (PHASE_TRACE(Js::Phase::BailInPhase, this->m_func))

@@ -1770,9 +1770,17 @@ BackwardPass::ProcessBailOutConstants(BailOutInfo * bailOutInfo, BVSparse<JitAre
     }
     NEXT_SLISTBASE_ENTRY;
 
+    IR::GeneratorBailInInstr* bailInInstr = bailOutInfo->bailInInstr;
+
     // Find other constants that we need to restore
     FOREACH_SLISTBASE_ENTRY_EDITING(ConstantStackSymValue, value, &bailOutInfo->capturedValues->constantValues, iter)
     {
+        if (bailInInstr)
+        {
+            // Store all captured constant values for the corresponding bailin instr
+            bailInInstr->capturedValues.constantValues.PrependNode(this->func->m_alloc, value);
+        }
+
         if (byteCodeUpwardExposedUsed->TestAndClear(value.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(value.Key()->m_id))
         {
             // Constant need to be restore, move it to the restore list
@@ -1805,6 +1813,7 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
     JitArenaAllocator * allocator = this->func->m_alloc;
     BasicBlock * block = this->currentBlock;
     BVSparse<JitArenaAllocator> * upwardExposedUses = block->upwardExposedUses;
+    IR::GeneratorBailInInstr* bailInInstr = bailOutInfo->bailInInstr;
 
     // Find other copy prop that we need to restore
     FOREACH_SLISTBASE_ENTRY_EDITING(CopyPropSyms, copyPropSyms, &bailOutInfo->capturedValues->copyPropSyms, iter)
@@ -1814,6 +1823,13 @@ BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitAre
         Assert(!copyPropSyms.Value()->IsTypeSpec());
         if (byteCodeUpwardExposedUsed->TestAndClear(copyPropSyms.Key()->m_id) || bailoutReferencedArgSymsBv->TestAndClear(copyPropSyms.Key()->m_id))
         {
+            if (bailInInstr)
+            {
+                // Copy all copyprop syms into the corresponding bail-in instr so that
+                // we can map the correct symbols to restore during bail-in
+                bailInInstr->capturedValues.copyPropSyms.PrependNode(allocator, copyPropSyms);
+            }
+
             // This copy-prop sym needs to be restored; add it to the restore list.
 
             /*
@@ -2559,30 +2575,6 @@ BackwardPass::NeedBailOutOnImplicitCallsForTypedArrayStore(IR::Instr* instr)
         }
     }
     return false;
-}
-
-IR::Instr*
-BackwardPass::ProcessPendingPreOpBailOutInfoForYield(IR::Instr* const currentInstr)
-{
-    Assert(currentInstr->m_opcode == Js::OpCode::Yield);
-    IR::GeneratorBailInInstr* bailInInstr = currentInstr->m_next->m_next->AsGeneratorBailInInstr();
-
-    BailOutInfo* bailOutInfo = currentInstr->GetBailOutInfo();
-
-    // Make a copy of all detected constant values before we actually process
-    // the bailout info since we will then remove any values that don't need
-    // to be restored for the normal bailout cases. As for yields, we still
-    // need them for our bailin code.
-    bailInInstr->SetConstantValues(bailOutInfo->capturedValues->constantValues);
-
-    IR::Instr* ret = this->ProcessPendingPreOpBailOutInfo(currentInstr);
-
-    // We will need list of symbols that have been copy-prop'd to map the correct
-    // symbols to restore during bail-in. Since this list is cleared during
-    // FillBailOutRecord, make a copy of it now.
-    bailInInstr->SetCopyPropSyms(bailOutInfo->usedCapturedValues->copyPropSyms);
-
-    return ret;
 }
 
 IR::Instr*
@@ -3887,17 +3879,10 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         // bail-in
         if (instr->IsGeneratorBailInInstr() && this->currentBlock->upwardExposedUses)
         {
-            instr->AsGeneratorBailInInstr()->SetUpwardExposedUses(*this->currentBlock->upwardExposedUses);
+            instr->AsGeneratorBailInInstr()->upwardExposedUses.Copy(this->currentBlock->upwardExposedUses);
         }
 
-        if (instr->m_opcode == Js::OpCode::Yield)
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfoForYield(instr);
-        }
-        else
-        {
-            instrPrev = ProcessPendingPreOpBailOutInfo(instr);
-        }
+        instrPrev = ProcessPendingPreOpBailOutInfo(instr);
 
 #if DBG_DUMP
         TraceInstrUses(block, instr, false);

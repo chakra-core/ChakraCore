@@ -5004,7 +5004,7 @@ void LinearScan::GeneratorBailIn::SpillRegsForBailIn()
 //
 IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr* bailInInstr)
 {
-    BailOutInfo* bailOutInfo = bailInInstr->GetYieldInstr()->GetBailOutInfo();
+    BailOutInfo* bailOutInfo = bailInInstr->yieldInstr->GetBailOutInfo();
 
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->constantValues.Empty());
     Assert(!bailOutInfo->capturedValues || bailOutInfo->capturedValues->copyPropSyms.Empty());
@@ -5045,14 +5045,14 @@ IR::Instr* LinearScan::GeneratorBailIn::GenerateBailIn(IR::GeneratorBailInInstr*
 
     this->BuildBailInSymbolList(
         *bailOutInfo->byteCodeUpwardExposedUsed,
-        bailInInstr->GetUpwardExposedUses(),
-        bailInInstr->GetCapturedValues()
+        bailInInstr->upwardExposedUses,
+        bailInInstr->capturedValues
     );
 
     this->InsertRestoreSymbols(
         *bailOutInfo->byteCodeUpwardExposedUsed,
-        bailInInstr->GetUpwardExposedUses(),
-        bailInInstr->GetCapturedValues(),
+        bailInInstr->upwardExposedUses,
+        bailInInstr->capturedValues,
         insertionPoint
     );
     Assert(!this->func->IsStackArgsEnabled());
