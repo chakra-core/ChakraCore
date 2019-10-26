@@ -43,6 +43,13 @@ var tests = [
             assert.areEqual('function', typeof descriptor.value, "typeof Promise.allSettled === 'function'");
             assert.areEqual(1, Promise.allSettled.length, "Promise.allSettled.length === 1");
 
+            var descriptor = Object.getOwnPropertyDescriptor(Promise, 'any');
+            assert.isTrue(descriptor.writable, "Promise.any.writable === true");
+            assert.isFalse(descriptor.enumerable, "Promise.any.enumerable === false");
+            assert.isTrue(descriptor.configurable, "Promise.any.configurable === true");
+            assert.areEqual('function', typeof descriptor.value, "typeof Promise.any === 'function'");
+            assert.areEqual(1, Promise.any.length, "Promise.any.length === 1");
+
             var descriptor = Object.getOwnPropertyDescriptor(Promise, 'race');
             assert.isTrue(descriptor.writable, "Promise.race.writable === true");
             assert.isFalse(descriptor.enumerable, "Promise.race.enumerable === false");
@@ -219,6 +226,16 @@ var tests = [
             assert.throws(function() { Promise.allSettled.call(null); }, TypeError, "Promise.allSettled throws when called when this parameter is null", "Promise.allSettled: 'this' is not an Object");
             assert.throws(function() { Promise.allSettled.call({}); }, TypeError, "Promise.allSettled throws when called when this parameter is non-callable", "Function expected");
             assert.throws(function() { Promise.allSettled.call(Math.sin); }, TypeError, "Promise.allSettled throws when this parameter is a non-constructor", "Function expected");
+        }
+    },
+    {
+        name: "Promise.any throwing behavior",
+        body: function () {
+            assert.throws(function() { Promise.any.call(); }, TypeError, "Promise.any throws when called with no this parameter", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call(undefined); }, TypeError, "Promise.any throws when called when this parameter is undefined", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call(null); }, TypeError, "Promise.any throws when called when this parameter is null", "Promise.any: 'this' is not an Object");
+            assert.throws(function() { Promise.any.call({}); }, TypeError, "Promise.any throws when called when this parameter is non-callable", "Function expected");
+            assert.throws(function() { Promise.any.call(Math.sin); }, TypeError, "Promise.any throws when this parameter is a non-constructor", "Function expected");
         }
     },
     {
