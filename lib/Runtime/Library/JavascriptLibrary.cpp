@@ -1734,7 +1734,7 @@ namespace Js
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
-        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewAggregateErrorInstance,
+        aggregateErrorConstructor = CreateBuiltinConstructor(&JavascriptAggregateError::EntryInfo::NewAggregateErrorInstance,
             DeferredTypeHandler<InitializeAggregateErrorConstructor>::GetDefaultInstance(),
             nativeErrorPrototype);
         AddFunction(globalObject, PropertyIds::AggregateError, aggregateErrorConstructor);
@@ -2460,7 +2460,7 @@ namespace Js
         PropertyAttributes prototypeNameMessageAttributes = PropertyConfigurable | PropertyWritable;
         library->AddMember(prototype, PropertyIds::name, library->CreateStringFromCppLiteral(_u("AggregateError")), prototypeNameMessageAttributes);
         library->AddMember(prototype, PropertyIds::message, library->GetEmptyString(), prototypeNameMessageAttributes);
-        library->AddAccessorsToLibraryObject(prototype, PropertyIds::errors, &JavascriptError::EntryInfo::GetterErrors, nullptr);
+        library->AddAccessorsToLibraryObject(prototype, PropertyIds::errors, &JavascriptAggregateError::EntryInfo::GetterErrors, nullptr);
         library->AddFunctionToLibraryObject(prototype, PropertyIds::toString, &JavascriptError::EntryInfo::ToString, 0);
         prototype->SetHasNoEnumerableProperties(hasNoEnumerableProperties);
         return true;
@@ -6266,12 +6266,19 @@ namespace Js
     CREATE_ERROR(SyntaxError, syntaxErrorType, kjstSyntaxError);
     CREATE_ERROR(TypeError, typeErrorType, kjstTypeError);
     CREATE_ERROR(URIError, uriErrorType, kjstURIError);
-    CREATE_ERROR(AggregateError, aggregateErrorType, kjstAggregateError);
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
     CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
 
+
 #undef CREATE_ERROR
+    JavascriptAggregateError* JavascriptLibrary::CreateAggregateError()
+    {
+        AssertMsg(aggregateErrorType, "Where's field?");
+        JavascriptAggregateError* pError = RecyclerNew(this->GetRecycler(), JavascriptAggregateError, aggregateErrorType);
+        JavascriptError::SetErrorType(pError, kjstAggregateError);
+        return pError;
+    }
 
     JavascriptError* JavascriptLibrary::CreateStackOverflowError()
     {

@@ -208,6 +208,8 @@ namespace Js
         static BOOL GetProperty(Var instance, RecyclableObject* propertyObject, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo* info = NULL);
         static BOOL GetPropertyObject(Var instance, ScriptContext * scriptContext, RecyclableObject** propertyObject);
 
+        static JavascriptArray* IterableToList(RecyclableObject* items, ScriptContext* scriptContext);
+
         static bool GetPropertyObjectForElementAccess(
             _In_ Var instance,
             _In_ Var index,

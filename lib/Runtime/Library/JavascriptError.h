@@ -26,7 +26,7 @@ namespace Js
     public:
 
         JavascriptError(DynamicType* type, BOOL isExternalError = FALSE, BOOL isPrototype = FALSE) :
-            DynamicObject(type), originalRuntimeErrorMessage(nullptr), isExternalError(isExternalError), isPrototype(isPrototype), isStackPropertyRedefined(false), aggregateErrors(nullptr)
+            DynamicObject(type), originalRuntimeErrorMessage(nullptr), isExternalError(isExternalError), isPrototype(isPrototype), isStackPropertyRedefined(false)
         {
             Assert(type->GetTypeId() == TypeIds_Error);
             exceptionObject = nullptr;
@@ -52,7 +52,6 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
-            static FunctionInfo NewAggregateErrorInstance;
             static FunctionInfo NewWebAssemblyCompileErrorInstance;
             static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
             static FunctionInfo NewWebAssemblyLinkErrorInstance;
@@ -60,7 +59,6 @@ namespace Js
             static FunctionInfo NewWinRTErrorInstance;
 #endif
             static FunctionInfo ToString;
-            static FunctionInfo GetterErrors;
         };
 
         static Var NewErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -70,7 +68,6 @@ namespace Js
         static Var NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
         static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
@@ -79,7 +76,6 @@ namespace Js
 #endif
 
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryGetterErrors(RecyclableObject* function, CallInfo callInfo, ...);
 
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
@@ -101,7 +97,6 @@ namespace Js
         THROW_ERROR_DECL(ThrowSyntaxError)
         THROW_ERROR_DECL(ThrowTypeError)
         THROW_ERROR_DECL(ThrowURIError)
-        THROW_ERROR_DECL(ThrowAggregateError)
         THROW_ERROR_DECL(ThrowWebAssemblyCompileError)
         THROW_ERROR_DECL(ThrowWebAssemblyRuntimeError)
         THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
@@ -144,14 +139,6 @@ namespace Js
 
         JavascriptExceptionObject *GetJavascriptExceptionObject() { return exceptionObject; }
 
-        void SetJavascriptAggregateErrors(RecyclableObject* aggregateErrors)
-        {
-            Assert(aggregateErrors);
-            this->aggregateErrors = aggregateErrors;
-        }
-
-        RecyclableObject* GetJavascriptAggregateErrors() { return aggregateErrors; }
-
         static DWORD GetAdjustedResourceStringHr(DWORD hr, bool isFormatString);
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
@@ -169,7 +156,6 @@ namespace Js
         Field(bool) isStackPropertyRedefined;
         Field(char16 const *) originalRuntimeErrorMessage;
         Field(JavascriptExceptionObject *) exceptionObject;
-        Field(RecyclableObject*) aggregateErrors;
 
 #ifdef ERROR_TRACE
         static void Trace(const char16 *form, ...) // const
@@ -195,5 +181,56 @@ namespace Js
     template <> inline bool VarIsImpl<JavascriptError>(RecyclableObject* obj)
     {
         return JavascriptOperators::GetTypeId(obj) == TypeIds_Error;
+    }
+
+    class JavascriptAggregateError : public JavascriptError {
+    private:
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptAggregateError);
+
+        Field(RecyclableObject*) m_errors;
+
+    protected:
+        DEFINE_VTABLE_CTOR(JavascriptAggregateError, JavascriptError);
+
+    public:
+        class EntryInfo
+        {
+        public:
+            static FunctionInfo NewAggregateErrorInstance;
+            static FunctionInfo GetterErrors;
+        };
+
+        JavascriptAggregateError(DynamicType* type, BOOL isExternalError = FALSE, BOOL isPrototype = FALSE) :
+            JavascriptError(type, isExternalError, isPrototype), m_errors(nullptr)
+        {
+
+        }
+
+        static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
+        static Var EntryGetterErrors(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static void SetErrorsProperties(JavascriptError* pError, RecyclableObject* errors);
+
+        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, EXCEPINFO* ei);
+        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, PCWSTR varName = nullptr);
+        static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, JavascriptString* varName);
+        static void __declspec(noreturn) ThrowAggregateErrorVar(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, ...);
+
+        void SetErrors(RecyclableObject* errors)
+        {
+            Assert(errors);
+            this->m_errors = errors;
+        }
+
+        RecyclableObject* GetErrors() { return m_errors; }
+    };
+
+    template <> inline bool VarIsImpl<JavascriptAggregateError>(RecyclableObject* obj)
+    {
+        return JavascriptOperators::GetTypeId(obj) == TypeIds_Error &&
+            (
+                VirtualTableInfo<JavascriptAggregateError>::HasVirtualTable(obj) ||
+                VirtualTableInfo<CrossSiteObject<JavascriptAggregateError>>::HasVirtualTable(obj)
+            );
     }
 }

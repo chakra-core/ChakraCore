@@ -136,7 +136,7 @@ BUILTIN(JavascriptError, NewReferenceErrorInstance, NewReferenceErrorInstance, F
 BUILTIN(JavascriptError, NewSyntaxErrorInstance, NewSyntaxErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
-BUILTIN(JavascriptError, NewAggregateErrorInstance, NewAggregateErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptAggregateError, NewAggregateErrorInstance, NewAggregateErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErrorInstance, FunctionInfo::None)
@@ -144,7 +144,7 @@ BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErro
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
 BUILTIN(JavascriptError, ToString, EntryToString, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
-BUILTIN(JavascriptError, GetterErrors, EntryGetterErrors, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(JavascriptAggregateError, GetterErrors, EntryGetterErrors, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
 BUILTIN(JavascriptExternalFunction, ExternalFunctionThunk, ExternalFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, WrappedFunctionThunk, WrappedFunctionThunk, FunctionInfo::None)
 BUILTIN(JavascriptExternalFunction, StdCallExternalFunctionThunk, StdCallExternalFunctionThunk, FunctionInfo::None)

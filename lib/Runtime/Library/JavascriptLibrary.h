@@ -930,7 +930,7 @@ namespace Js
         JavascriptError* CreateSyntaxError();
         JavascriptError* CreateTypeError();
         JavascriptError* CreateURIError();
-        JavascriptError* CreateAggregateError();
+        JavascriptAggregateError* CreateAggregateError();
         JavascriptError* CreateStackOverflowError();
         JavascriptError* CreateOutOfMemoryError();
         JavascriptError* CreateWebAssemblyCompileError();

@@ -2139,6 +2139,19 @@ CommonNumber:
         return TRUE;
     }
 
+    JavascriptArray* JavascriptOperators::IterableToList(RecyclableObject* items, ScriptContext* scriptContext) {
+        Assert(items);
+
+        RecyclableObject* iterator = JavascriptOperators::GetIterator(items, scriptContext);
+        JavascriptArray* values = scriptContext->GetLibrary()->CreateArray(0);
+        JavascriptOperators::DoIteratorStepAndValue(iterator, scriptContext, [&](Var next)
+        {
+            JavascriptArray::Push(scriptContext, values, next);
+        });
+
+        return values;
+    }
+
 #if DBG
     BOOL JavascriptOperators::IsPropertyObject(RecyclableObject * instance)
     {
