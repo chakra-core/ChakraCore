@@ -1117,53 +1117,20 @@ public:
 class GeneratorBailInInstr : public LabelInstr
 {
 private:
-    GeneratorBailInInstr(JitArenaAllocator* allocator, IR::Instr* yieldInstr):
-        LabelInstr(allocator), allocator(allocator), yieldInstr(yieldInstr), upwardExposedUses(allocator)
+    GeneratorBailInInstr(JitArenaAllocator* allocator, IR::Instr* yieldInstr) :
+        LabelInstr(allocator),
+        yieldInstr(yieldInstr),
+        upwardExposedUses(allocator)
     {
         Assert(yieldInstr != nullptr && yieldInstr->m_opcode == Js::OpCode::Yield);
-        this->usedCapturedValues = JitAnew(allocator, CapturedValues);
     }
-
-    JitArenaAllocator* const allocator;
-    IR::Instr* const yieldInstr;
-    CapturedValues* usedCapturedValues;
-    BVSparse<JitArenaAllocator> upwardExposedUses;
 
 public:
+    IR::Instr* yieldInstr;
+    CapturedValues capturedValues;
+    BVSparse<JitArenaAllocator> upwardExposedUses;
+
     static GeneratorBailInInstr* New(IR::Instr* yieldInstr, Func* func);
-    
-    IR::Instr* GetYieldInstr() const
-    {
-        return this->yieldInstr;
-    }
-
-    const CapturedValues& GetCapturedValues() const
-    {
-        return *this->usedCapturedValues;
-    }
-
-    const BVSparse<JitArenaAllocator>& GetUpwardExposedUses() const
-    {
-        return this->upwardExposedUses;
-    }
-
-    void SetCopyPropSyms(const SListBase<CopyPropSyms>& copyPropSyms)
-    {
-        this->usedCapturedValues->copyPropSyms.Clear(this->allocator);
-        copyPropSyms.CopyTo(this->allocator , this->usedCapturedValues->copyPropSyms);
-    }
-
-    void SetConstantValues(const SListBase<ConstantStackSymValue>& constantValues)
-    {
-        this->usedCapturedValues->constantValues.Clear(this->allocator);
-        constantValues.CopyTo(this->allocator, this->usedCapturedValues->constantValues);
-    }
-
-    void SetUpwardExposedUses(const BVSparse<JitArenaAllocator>& other)
-    {
-        this->upwardExposedUses.ClearAll();
-        this->upwardExposedUses.Or(&other);
-    }
 };
 
 template <typename InstrType>

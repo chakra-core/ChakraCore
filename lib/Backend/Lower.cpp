@@ -29085,7 +29085,7 @@ void Lowerer::LowerGeneratorHelper::InsertNullOutGeneratorFrameInEpilogue(IR::La
 
     IR::IndirOpnd* indirOpnd = IR::IndirOpnd::New(dstOpnd, Js::JavascriptGenerator::GetFrameOffset(), TyMachPtr, this->func);
     IR::AddrOpnd* addrOpnd = IR::AddrOpnd::NewNull(this->func);
-    InsertMove(indirOpnd, addrOpnd, insertionPoint);
+    InsertMove(indirOpnd, addrOpnd, insertionPoint, false /* generateWriteBarrier */);
 }
 
 void

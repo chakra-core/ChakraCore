@@ -75,6 +75,7 @@ void BailOutInfo::PartialDeepCopyTo(BailOutInfo * const other) const
 #endif
 
     other->bailOutInstr = this->bailOutInstr;
+    other->bailInInstr = this->bailInInstr;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     other->bailOutOpcode = this->bailOutOpcode;
