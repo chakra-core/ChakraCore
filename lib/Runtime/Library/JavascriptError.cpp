@@ -190,6 +190,10 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("AggregateError.prototype.errors"));
         }
 
+        if (!VarIs<JavascriptAggregateError>(args[0])) {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedObject, _u("AggregateError.prototype.errors"));
+        }
+
         JavascriptLibrary* library = scriptContext->GetLibrary();
         JavascriptAggregateError* thisError = VarTo<JavascriptAggregateError>(args[0]);
 
@@ -338,22 +342,22 @@ namespace Js
     THROW_ERROR_IMPL(ThrowSyntaxError, CreateSyntaxError, GetSyntaxErrorType, kjstSyntaxError)
     THROW_ERROR_IMPL(ThrowTypeError, CreateTypeError, GetTypeErrorType, kjstTypeError)
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
-    // THROW_ERROR_IMPL(ThrowAggregateError, CreateAggregateError, GetAggregateErrorType, kjstAggregateError)
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
     THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
 #undef THROW_ERROR_IMPL
 
-    static JavascriptError* CreateAggregateError(ScriptContext* scriptContext)
+    static JavascriptAggregateError* CreateAggregateError(ScriptContext* scriptContext)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        JavascriptError* pError = library->CreateAggregateError();
+        JavascriptAggregateError* pError = library->CreateAggregateError();
         return pError;
     }
        
     void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, EXCEPINFO* pei)
     {
-        JavascriptError* pError = CreateAggregateError(scriptContext);
+        JavascriptAggregateError* pError = CreateAggregateError(scriptContext);
+        pError->SetErrors(errors);
         JavascriptAggregateError::SetErrorsProperties(pError, errors);
         JavascriptError::SetMessageAndThrowError(scriptContext, pError, hCode, pei);
     }
@@ -361,17 +365,18 @@ namespace Js
     void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, PCWSTR varName)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        JavascriptError* pError = library->CreateAggregateError();
+        JavascriptAggregateError* pError = library->CreateAggregateError();
+        pError->SetErrors(errors);
         JavascriptAggregateError::SetErrorsProperties(pError, errors);
         JavascriptError::SetErrorMessage(pError, hCode, varName, scriptContext);
-        
         JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
        
     void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, JavascriptString* varName)
     {
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        JavascriptError* pError = library->CreateAggregateError();
+        JavascriptAggregateError* pError = library->CreateAggregateError();
+        pError->SetErrors(errors);
         JavascriptAggregateError::SetErrorsProperties(pError, errors);
         JavascriptError::SetErrorMessage(pError, hCode, varName->GetSz(), scriptContext);
         JavascriptExceptionOperators::Throw(pError, scriptContext);
@@ -380,7 +385,8 @@ namespace Js
     void __declspec(noreturn) JavascriptAggregateError::ThrowAggregateErrorVar(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, ...)
     {
         JavascriptLibrary *library = scriptContext->GetLibrary();
-        JavascriptError *pError = library->CreateAggregateError();
+        JavascriptAggregateError*pError = library->CreateAggregateError();
+        pError->SetErrors(errors);
         JavascriptAggregateError::SetErrorsProperties(pError, errors);
         va_list argList;
         va_start(argList, hCode);
@@ -576,7 +582,7 @@ namespace Js
         pError->m_errorType = errorType;
     }
 
-    void JavascriptAggregateError::SetErrorsProperties(JavascriptError* pError, RecyclableObject* errors)
+    void JavascriptAggregateError::SetErrorsProperties(JavascriptAggregateError* pError, RecyclableObject* errors)
     {
         JavascriptOperators::InitProperty(pError, PropertyIds::errors, errors);
         pError->SetNotEnumerable(PropertyIds::errors);

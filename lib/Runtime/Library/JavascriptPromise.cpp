@@ -377,8 +377,7 @@ namespace Js
             if (remainingElementsWrapper->remainingElements == 0)
             {
                 Assert(values != nullptr);
-
-                TryCallResolveOrRejectHandler(promiseCapability->GetResolve(), values, scriptContext);
+                JavascriptAggregateError::ThrowAggregateError(scriptContext, values, JSERR_NeedFunction);
             }
         }
         catch (const JavascriptException& err)
@@ -1686,6 +1685,11 @@ namespace Js
         try
         {
             values->SetItem(index, x, PropertyOperation_None);
+
+            if (anyRejectElementFunction->DecrementRemainingElements() == 0)
+            {
+                JavascriptAggregateError::ThrowAggregateError(scriptContext, values, JSERR_NeedFunction);
+            }
         }
         catch (const JavascriptException& err)
         {
@@ -1695,11 +1699,6 @@ namespace Js
         if (exception != nullptr)
         {
             return TryRejectWithExceptionObject(exception, promiseCapability->GetReject(), scriptContext);
-        }
-
-        if (anyRejectElementFunction->DecrementRemainingElements() == 0)
-        {
-            return TryCallResolveOrRejectHandler(promiseCapability->GetReject(), values, scriptContext);
         }
 
         return undefinedVar;

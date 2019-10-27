@@ -209,7 +209,7 @@ namespace Js
         static Var NewAggregateErrorInstance(RecyclableObject* function, CallInfo callinfo, ...);
         static Var EntryGetterErrors(RecyclableObject* function, CallInfo callInfo, ...);
 
-        static void SetErrorsProperties(JavascriptError* pError, RecyclableObject* errors);
+        static void SetErrorsProperties(JavascriptAggregateError* pError, RecyclableObject* errors);
 
         static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, EXCEPINFO* ei);
         static void __declspec(noreturn) ThrowAggregateError(ScriptContext* scriptContext, RecyclableObject* errors, int32 hCode, PCWSTR varName = nullptr);
