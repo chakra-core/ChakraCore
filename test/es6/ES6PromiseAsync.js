@@ -1400,7 +1400,167 @@ var tests = [
 
             Promise.race.call(FakePromise, [1, 2]);
         }
-    }
+    },
+    {
+        name: "Promise.any resolve when any promise in iterable resolved",
+        body: function (index) {
+            var iterable = [getAsyncRejectPromise('Test #' + index + ' - ', 'p1'),
+                            Promise.reject('p2'),
+                            Promise.reject('p3'),
+                            getAsyncResolvePromise('Test #' + index + ' - ', 'p4'),];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any resolve first even if any promise resolved",
+        body: function (index) {
+            var iterable = [getAsyncRejectPromise('Test #' + index + ' - ', 'p1'),
+                            Promise.resolve('p2'),
+                            Promise.resolve('p3'),
+                            getAsyncResolvePromise('Test #' + index + ' - ', 'p4'),];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any reject even if all promise rejected",
+        body: function (index) {
+            var iterable = [getAsyncRejectPromise('Test #' + index + ' - ', 'p1'),
+                            Promise.reject('p2'),
+                            Promise.reject('p3'),
+                            getAsyncRejectPromise('Test #' + index + ' - ', 'p4'),];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any settle immediately with an empty iterator",
+        body: function (index) {
+            var iterable = [];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any does settle if some promises don't settle",
+        body: function (index) {
+            var iterable = [Promise.resolve('p1'), new Promise(()=>{})];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any doesn't settle if all promises don't settle",
+        body: function (index) {
+            var iterable = [new Promise(()=>{}), new Promise(()=>{})];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any passes all elements of iterable to Promise.resolve",
+        body: function (index) {
+            var iterable = ['p1', 'p2'];
+
+            Promise.any(iterable).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any rejects immediately with an iterator that throws",
+        body: function (index) {
+            var objectWithIterator = {
+                [Symbol.iterator]: function() {
+                    return {
+                        i: 0,
+                        next: function () { 
+                            if (this.i > 2)
+                            {
+                                throw new TypeError('failure inside iterator');
+                            }
+
+                            this.i++;
+
+                            return {
+                                done: this.i == 5,
+                                value: getAsyncResolvePromise('Test #' + index + ' - ', 'p' + this.i)
+                            };
+                        }
+                    };
+                }
+            };
+
+            Promise.any(objectWithIterator).then(
+                v => echo(`Test #${index} - Success - ${JSON.stringify(v)}`),
+                e => echo(`Test #${index} - Failed - ${JSON.stringify(e)}`));
+        }
+    },
+    {
+        name: "Promise.any resolve and reject functions cannot be called multiple times",
+        body: function(index) {
+            let oldThen = Promise.prototype.then;
+
+            try {
+                var resolveFunc;
+                var rejectFunc;
+
+                Promise.prototype.then = function(resolve, reject) {
+                    console.log(`Test #${index} - Temp then handler called from Promise.any`);
+
+                    // Stash resolve functions
+                    resolveFunc = resolve;
+                    rejectFunc = reject;
+                    // Reset Promise#then
+                    Promise.prototype.then = oldThen;
+                    // Call builtin Promise#then
+                    Promise.prototype.then.call(this, resolve, reject);
+                }
+
+                Promise.any([getAsyncResolvePromise('Test #' + index + ' - ', 'p1')]).then(
+                    v => {
+                        console.log(`Test #${index} - Success: ${JSON.stringify(v)}`);
+                        // Call the stashed resolve function a second time.
+                        // It is a wrapper (defined in getAsyncResolvePromise) and will log something
+                        // but it does not trigger allSettled to fire.
+                        resolveFunc('p2');
+                        rejectFunc('e2');
+                    },
+                    e => console.log(`Test #${index} - Error: ${e}`)
+                );
+            } finally {
+                // Reset Promise#then in case of failure
+                Promise.prototype.then = oldThen;
+            }
+        }
+    },
+    {
+		name: "Promise.any called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler",
+		body: function (index) {
+			function FakePromise(fn) {
+			  function resolve() { echo(`Test #${index} - resolve called`); throw new Error('oops'); }
+			  function reject(e) { echo(`Test #${index} - reject called: ${e.message}`) }
+			  fn(resolve, reject);
+			  this.then = function(onResolve, onReject) {};
+			}
+
+			FakePromise.resolve = function() {};
+			Promise.any.call(FakePromise, []);
+		}
+	},
 ];
 
 var index = 1;

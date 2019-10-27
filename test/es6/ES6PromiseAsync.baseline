@@ -88,6 +88,19 @@ Executing test #74 - Promise.race gets the constructor's resolve function only o
 Test #74 - get constructor resolve
 Test #74 - constructor resolve called
 Test #74 - constructor resolve called
+Executing test #75 - Promise.any resolve when any promise in iterable resolved
+Executing test #76 - Promise.any resolve first even if any promise resolved
+Executing test #77 - Promise.any reject even if all promise rejected
+Executing test #78 - Promise.any settle immediately with an empty iterator
+Executing test #79 - Promise.any does settle if some promises don't settle
+Executing test #80 - Promise.any doesn't settle if all promises don't settle
+Executing test #81 - Promise.any passes all elements of iterable to Promise.resolve
+Executing test #82 - Promise.any rejects immediately with an iterator that throws
+Executing test #83 - Promise.any resolve and reject functions cannot be called multiple times
+Test #83 - Temp then handler called from Promise.any
+Executing test #84 - Promise.any called with empty iterator, calls Promise.resolve synchronously and passes abrupt completion to reject handler
+Test #84 - resolve called
+Test #84 - reject called: oops
 
 Completion Results:
 Test #1 - Success handler called with result = basic:success
@@ -135,6 +148,8 @@ Test #56 - Success finally handler called for rejected promise without value
 Test #63 - val is 0(Expect 0)
 Test #66 - Success - []
 Test #68 - Failed - {}
+Test #78 - Success - []
+Test #82 - Failed - {}
 Test #6 - Error handler #2 called with err = thenable.get:error!
 Test #8 - Error handler #2 called with err = success.throw:error
 Test #9 - Error handler #2 called with err = error.throw:error
@@ -173,6 +188,19 @@ Test #68 - p2 success: p2
 Test #68 - p3 success: p3
 Test #69 - p1 success: p1
 Test #70 - Success - [{"status":"fulfilled","value":"p1"},{"status":"fulfilled","value":"p2"}]
+Test #75 - p1 failure: p1
+Test #75 - p4 success: p4
+Test #76 - p1 failure: p1
+Test #76 - p4 success: p4
+Test #76 - Success - "p2"
+Test #77 - p1 failure: p1
+Test #77 - p4 failure: p4
+Test #79 - Success - "p1"
+Test #81 - Success - "p1"
+Test #82 - p1 success: p1
+Test #82 - p2 success: p2
+Test #82 - p3 success: p3
+Test #83 - p1 success: p1
 Test #7 - Error handler #2 called with err = thenable.call:error!
 Test #13 - Catch handler #2 called with err = error2
 Test #15 - Catch handler #1 called with err = failure
@@ -188,6 +216,11 @@ Test #65 - Success - [{"status":"rejected","reason":"p1"},{"status":"rejected","
 Test #69 - Success: [{"status":"fulfilled","value":"p1"}]
 Test #69 - p1 success: p2
 Test #69 - p1 failure: e2
+Test #75 - Success - "p4"
+Test #77 - Failed - ["p1","p2","p3","p4"]
+Test #83 - Success: "p1"
+Test #83 - p1 success: p2
+Test #83 - p1 failure: e2
 Test #4 - Success handler #2 called with result = chain:success2
 Test #57 - Success - Rejected status and value passed through finally
 Test #58 - Success - Resolved status and value passed through finally
