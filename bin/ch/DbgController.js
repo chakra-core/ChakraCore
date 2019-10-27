@@ -125,6 +125,7 @@ var controllerObj = (function () {
             "WeakSet",
             "WebAssembly",
             "WScript",
+            "AggregateError"
         ].forEach(function (name) {
             filter[name] = 1;
         });
