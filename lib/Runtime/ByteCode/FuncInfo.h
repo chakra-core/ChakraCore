@@ -114,6 +114,7 @@ public:
     Js::RegSlot frameDisplayRegister; // location, if any, of the display of nested frames
     Js::RegSlot funcObjRegister;
     Js::RegSlot localClosureReg;
+    Js::RegSlot awaitRegister;
     Js::RegSlot yieldRegister;
     Js::RegSlot firstTmpReg;
     Js::RegSlot curTmpReg;
@@ -566,6 +567,13 @@ public:
             this->falseConstantRegister = NextConstRegister();
         }
         return this->falseConstantRegister;
+    }
+
+    Js::RegSlot AssignAwaitRegister()
+    {
+        AssertMsg(this->awaitRegister == Js::Constants::NoRegister, "await register should only be assigned once by FinalizeRegisters()");
+        this->awaitRegister = NextVarRegister();
+        return this->awaitRegister;
     }
 
     Js::RegSlot AssignYieldRegister()

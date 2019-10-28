@@ -349,7 +349,7 @@ EXDEF2_WMS(GET_SLOT_FB_HMO,         NewScGenFuncHomeObj,        JavascriptGenera
 EXDEF2_WMS(GET_ELEM_SLOT_FB_HMO,    NewInnerScFuncHomeObj,      ScriptFunction::OP_NewScFuncHomeObj)
 EXDEF2_WMS(GET_ELEM_SLOT_FB_HMO,    NewInnerScGenFuncHomeObj,   JavascriptGeneratorFunction::OP_NewScGenFuncHomeObj)
 EXDEF2_WMS(A1toA1Mem,               NewAsyncFromSyncIterator,   JavascriptOperators::OP_NewAsyncFromSyncIterator)
-EXDEF2_WMS(A1toA1Mem,               NewAwaitObject,             JavascriptOperators::OP_NewAwaitObject)
+EXDEF2_WMS(XXtoA1Mem,               NewAwaitObject,             JavascriptOperators::OP_NewAwaitObject)
   DEF2_WMS(A1U1toXX,                InitForInEnumerator,        OP_InitForInEnumerator)
   DEF2_WMS(A1U1toXXWithCache,       ProfiledInitForInEnumerator,OP_InitForInEnumeratorWithCache)
   DEF2_WMS(A1toXXMem,               Throw,                      JavascriptExceptionOperators::OP_Throw)

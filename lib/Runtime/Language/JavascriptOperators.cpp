@@ -10293,13 +10293,12 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ImportCall);
     }
 
-    Var JavascriptOperators::OP_NewAwaitObject(Var value, ScriptContext* scriptContext)
+    Var JavascriptOperators::OP_NewAwaitObject(ScriptContext* scriptContext)
     {
         JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(NewAwaitObject);
         auto* awaitObject = DynamicObject::New(
             scriptContext->GetRecycler(),
             scriptContext->GetLibrary()->GetAwaitObjectType());
-        awaitObject->SetSlot(SetSlotArguments(Js::PropertyIds::value, 0, value));
         return awaitObject;
         JIT_HELPER_END(NewAwaitObject);
     }

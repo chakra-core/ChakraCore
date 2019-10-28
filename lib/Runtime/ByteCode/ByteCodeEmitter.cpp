@@ -1794,6 +1794,10 @@ void ByteCodeGenerator::FinalizeRegisters(FuncInfo* funcInfo, Js::FunctionBody* 
     // NOTE: The FB expects the yield reg to be the final non-temp.
     if (byteCodeFunction->IsCoroutine())
     {
+        if (funcInfo->root->IsAsync())
+        {
+            funcInfo->AssignAwaitRegister();
+        }
         funcInfo->AssignYieldRegister();
     }
 
@@ -2902,6 +2906,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNodeFnc *pnodeFnc)
         // For now, emit all constant loads at top of function (should instead put in closest dominator of uses).
         LoadAllConstants(funcInfo);
         HomeArguments(funcInfo);
+
+        if (funcInfo->root->IsAsync())
+        {
+            Writer()->Reg1(Js::OpCode::NewAwaitObject, funcInfo->awaitRegister);
+        }
 
         if (!funcInfo->IsBodyAndParamScopeMerged())
         {
@@ -10576,17 +10585,18 @@ void EmitAwait(
     ByteCodeGenerator* byteCodeGenerator,
     FuncInfo* funcInfo)
 {
-    // OPTIMIZE: We should only have to allocate this object once before any awaits.
-    // Awaiting can merely set the value property of that object.
 
-    auto* writer = byteCodeGenerator->Writer();
-    writer->Reg2(Js::OpCode::NewAwaitObject, funcInfo->yieldRegister, inputReg);
-
+    auto writer = byteCodeGenerator->Writer();
+    writer->PatchableProperty(
+        Js::OpCode::StFld,
+        inputReg,
+        funcInfo->awaitRegister,
+        funcInfo->FindOrAddInlineCacheId(funcInfo->awaitRegister, Js::PropertyIds::value, false, true));
     Js::ByteCodeLabel resumeNormal = writer->DefineLabel();
 
     EmitYieldAndResume(
         resultReg,
-        funcInfo->yieldRegister,
+        funcInfo->awaitRegister,
         resumeNormal,
         Js::Constants::NoByteCodeLabel,
         byteCodeGenerator,
