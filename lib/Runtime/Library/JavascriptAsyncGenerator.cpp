@@ -15,13 +15,24 @@ JavascriptAsyncGenerator* JavascriptAsyncGenerator::New(
 {
     auto* requestQueue = RecyclerNew(recycler, JavascriptAsyncGenerator::RequestQueue, recycler);
 
-    return RecyclerNew(
+    JavascriptAsyncGenerator* generator = RecyclerNew(
         recycler,
         JavascriptAsyncGenerator,
         generatorType,
         args,
         scriptFunction,
         requestQueue);
+
+    auto* library = scriptFunction->GetLibrary();
+    generator->onFulfilled = library->CreateAsyncGeneratorCallbackFunction(
+        EntryAwaitFulfilledCallback,
+        generator);
+
+    generator->onRejected = library->CreateAsyncGeneratorCallbackFunction(
+        EntryAwaitRejectedCallback,
+        generator);
+
+    return generator;
 }
 
 Var JavascriptAsyncGenerator::EntryNext(RecyclableObject* function, CallInfo callInfo, ...)
@@ -294,17 +305,8 @@ void JavascriptAsyncGenerator::UnwrapValue(Var value, PendingState pendingState)
     this->pendingState = pendingState;
 
     auto* scriptContext = GetScriptContext();
-    auto* library = scriptContext->GetLibrary();
     auto* promise = JavascriptPromise::InternalPromiseResolve(value, scriptContext);
     auto* unused = JavascriptPromise::UnusedPromiseCapability(scriptContext);
-
-    auto* onFulfilled = library->CreateAsyncGeneratorCallbackFunction(
-        EntryAwaitFulfilledCallback,
-        this);
-
-    auto* onRejected = library->CreateAsyncGeneratorCallbackFunction(
-        EntryAwaitRejectedCallback,
-        this);
 
     JavascriptPromise::PerformPromiseThen(promise, unused, onFulfilled, onRejected, scriptContext);
 }
