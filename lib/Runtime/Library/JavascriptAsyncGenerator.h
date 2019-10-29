@@ -37,6 +37,8 @@ private:
 
     Field(RequestQueue*) requestQueue;
     Field(PendingState) pendingState = PendingState::None;
+    Field(RuntimeFunction*) onFulfilled;
+    Field(RuntimeFunction*) onRejected; 
 
     JavascriptAsyncGenerator(
         DynamicType* type,
