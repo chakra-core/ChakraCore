@@ -884,18 +884,27 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
     bool isObjTypeSpecialized = false;
     bool isObjTypeChecked = false;
 
+    if (block == nullptr)
+    {
+        block = this->currentBlock;
+    }
+
     if (isTypeCheckSeqCandidate)
     {
         isObjTypeSpecialized = ProcessPropOpInTypeCheckSeq<true>(instr, opnd, block, updateExistingValue, emitsTypeCheckOut, changesTypeValueOut, &isObjTypeChecked);
     }
 
+    if (opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto())
+    {
+        StackSym* auxSlotPtrSym = opnd->GetAuxSlotPtrSym();
+        if (auxSlotPtrSym && !isObjTypeSpecialized)
+        {
+            block->globOptData.liveFields->Clear(auxSlotPtrSym->m_id);
+        }
+    }
+
     if (opnd == instr->GetDst() && this->objectTypeSyms)
     {
-        if (block == nullptr)
-        {
-            block = this->currentBlock;
-        }
-
         // This is a property store that may change the layout of the object that it stores to. This means that
         // it may change any aliased object. Do two things to address this:
         // - Add all object types in this function to the set that may have had a property added. This will prevent
@@ -1576,36 +1585,17 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     if (makeChanges)
     {
         // Track liveness of aux slot ptr syms.
-        if (!PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func) && isSpecialized)
+        if (!PHASE_OFF(Js::ReuseAuxSlotPtrPhase, this->func) &&
+            opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto() && isSpecialized)
         {
-            if (opnd->UsesAuxSlot() && !opnd->IsLoadedFromProto())
+            // Optimized ld/st that loads/uses an aux slot ptr.
+            // Aux slot sym is live forward.
+            StackSym *auxSlotPtrSym = this->EnsureAuxSlotPtrSym(opnd);
+            bool isAvailable = block->globOptData.liveFields->TestAndSet(auxSlotPtrSym->m_id);
+            if (!this->IsLoopPrePass() && opnd->IsTypeChecked() && isAvailable)
             {
-                // Optimized ld/st that loads/uses an aux slot ptr.
-                // Aux slot sym is live forward.
-                StackSym *auxSlotPtrSym = this->EnsureAuxSlotPtrSym(opnd);
-                if (!this->IsLoopPrePass() && opnd->IsTypeChecked())
-                {
-                    if (block->globOptData.liveFields->TestAndSet(auxSlotPtrSym->m_id))
-                    {
-                        // Aux slot sym is available here. Tell lowerer to use it.
-                        opnd->SetAuxSlotPtrSymAvailable(true);
-                    }
-                }
-                else
-                {
-                    block->globOptData.liveFields->Set(auxSlotPtrSym->m_id);
-                }
-            }
-            else if (!opnd->IsTypeChecked())
-            {
-                // Type sym is not available here (i.e., object shape is not known) and we're not loading the aux slots.
-                // May get here with aux slot sym still in live set if type sym is not in the value table.
-                // Clear the aux slot sym out of the live set.
-                StackSym *auxSlotPtrSym = opnd->GetAuxSlotPtrSym();
-                if (auxSlotPtrSym)
-                {
-                    block->globOptData.liveFields->Clear(auxSlotPtrSym->m_id);
-                }
+                // Aux slot sym is available here. Tell lowerer to use it.
+                opnd->SetAuxSlotPtrSymAvailable(true);
             }
         }
     }
