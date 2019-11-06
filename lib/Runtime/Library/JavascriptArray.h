@@ -1059,7 +1059,6 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
         static bool Is(TypeId typeId);
-        static bool IsNonCrossSite(Var aValue);
 
         typedef int32 TElement;
 
@@ -1227,7 +1226,6 @@ namespace Js
         static Var NewInstance(RecyclableObject* function, Arguments args);
 
         static bool Is(TypeId typeId);
-        static bool IsNonCrossSite(Var aValue);
 
         typedef double TElement;
 
