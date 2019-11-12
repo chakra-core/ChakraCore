@@ -250,7 +250,8 @@ GlobOpt::KillLiveElems(IR::IndirOpnd * indirOpnd, IR::Opnd * valueOpnd, BVSparse
             IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
             Value * baseValue = baseOpnd ? this->currentBlock->globOptData.FindValue(baseOpnd->m_sym) : nullptr;
             ValueInfo * baseValueInfo = baseValue ? baseValue->GetValueInfo() : nullptr;
-            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray())
+            if (!baseValueInfo || !baseValueInfo->IsNotNativeArray() || 
+                (this->IsLoopPrePass() && !this->IsSafeToTransferInPrepass(baseOpnd->m_sym, baseValueInfo)))
             {
                 if (this->currentBlock->globOptData.maybeWrittenTypeSyms == nullptr)
                 {
