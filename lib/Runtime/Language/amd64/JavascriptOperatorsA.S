@@ -27,15 +27,15 @@ NESTED_ENTRY amd64_CallWithFakeFrame, _TEXT, NoHandler
         sub rsp, rdx
 
         // Save callee-saved xmm registers -- none on Sys V x64
-        // movapd xmmword ptr [rsp + 90h], xmm15
-        // movapd xmmword ptr [rsp + 80h], xmm14
-        // movapd xmmword ptr [rsp + 70h], xmm13
-        // movapd xmmword ptr [rsp + 60h], xmm12
-        // movapd xmmword ptr [rsp + 50h], xmm11
-        // movapd xmmword ptr [rsp + 40h], xmm10
-        // movapd xmmword ptr [rsp + 30h], xmm9
-        // movapd xmmword ptr [rsp + 20h], xmm8
-        // movapd xmmword ptr [rsp + 10h], xmm7
+        // movapd xmmword ptr [rsp + 0x90], xmm15
+        // movapd xmmword ptr [rsp + 0x80], xmm14
+        // movapd xmmword ptr [rsp + 0x70], xmm13
+        // movapd xmmword ptr [rsp + 0x60], xmm12
+        // movapd xmmword ptr [rsp + 0x50], xmm11
+        // movapd xmmword ptr [rsp + 0x40], xmm10
+        // movapd xmmword ptr [rsp + 0x30], xmm9
+        // movapd xmmword ptr [rsp + 0x20], xmm8
+        // movapd xmmword ptr [rsp + 0x10], xmm7
         // movapd xmmword ptr [rsp], xmm6
 
         // Save all callee saved registers.
@@ -67,15 +67,15 @@ NESTED_ENTRY amd64_ReturnFromCallWithFakeFrame, _TEXT, NoHandler
 
         // Restore callee-saved xmm registers -- none on Sys V x64; must match RegList.h
         // movapd xmm6, xmmword ptr [rsp]
-        // movapd xmm7, xmmword ptr [rsp + 10h]
-        // movapd xmm8, xmmword ptr [rsp + 20h]
-        // movapd xmm9, xmmword ptr [rsp + 30h]
-        // movapd xmm10, xmmword ptr [rsp + 40h]
-        // movapd xmm11, xmmword ptr [rsp + 50h]
-        // movapd xmm12, xmmword ptr [rsp + 60h]
-        // movapd xmm13, xmmword ptr [rsp + 70h]
-        // movapd xmm14, xmmword ptr [rsp + 80h]
-        // movapd xmm15, xmmword ptr [rsp + 90h]
+        // movapd xmm7, xmmword ptr [rsp + 0x10]
+        // movapd xmm8, xmmword ptr [rsp + 0x20]
+        // movapd xmm9, xmmword ptr [rsp + 0x30]
+        // movapd xmm10, xmmword ptr [rsp + 0x40]
+        // movapd xmm11, xmmword ptr [rsp + 0x50]
+        // movapd xmm12, xmmword ptr [rsp + 0x60]
+        // movapd xmm13, xmmword ptr [rsp + 0x70]
+        // movapd xmm14, xmmword ptr [rsp + 0x80]
+        // movapd xmm15, xmmword ptr [rsp + 0x90]
 
         add  rsp, rdx
 

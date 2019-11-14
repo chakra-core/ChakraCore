@@ -16,20 +16,20 @@
 //
 .globl C_FUNC(amd64_SAVE_REGISTERS)
 C_FUNC(amd64_SAVE_REGISTERS):   
-        mov [rdi+00h], rsp
-        mov [rdi+08h], rax
-        mov [rdi+10h], rbx
-        mov [rdi+18h], rcx
-        mov [rdi+20h], rdx
-        mov [rdi+28h], rbp
-        mov [rdi+30h], rsi
-        mov [rdi+38h], rdi
-        mov [rdi+40h], r8
-        mov [rdi+48h], r9
-        mov [rdi+50h], r10
-        mov [rdi+58h], r11
-        mov [rdi+60h], r12
-        mov [rdi+68h], r13
-        mov [rdi+70h], r14
-        mov [rdi+78h], r15
+        mov [rdi+0x00], rsp
+        mov [rdi+0x08], rax
+        mov [rdi+0x10], rbx
+        mov [rdi+0x18], rcx
+        mov [rdi+0x20], rdx
+        mov [rdi+0x28], rbp
+        mov [rdi+0x30], rsi
+        mov [rdi+0x38], rdi
+        mov [rdi+0x40], r8
+        mov [rdi+0x48], r9
+        mov [rdi+0x50], r10
+        mov [rdi+0x58], r11
+        mov [rdi+0x60], r12
+        mov [rdi+0x68], r13
+        mov [rdi+0x70], r14
+        mov [rdi+0x78], r15
         ret

@@ -75,7 +75,7 @@ NESTED_ENTRY amd64_CallFunction, _TEXT, NoHandler
         and r10, -2     // Mask off the lower bit to 16 byte align the stack
         shl r10, 3      // Calculate space for remaining args (* sizeof(Var*))
 
-        cmp r10, 1000h  // If the space is large, make sure the stack is committed
+        cmp r10, 0x1000  // If the space is large, make sure the stack is committed
         jl  LOCAL_LABEL(allocate_stack)
         // xplat-todo: Figure out if we need to implement __chkstk
         // call __chkstk
@@ -83,17 +83,17 @@ NESTED_ENTRY amd64_CallFunction, _TEXT, NoHandler
 LOCAL_LABEL(allocate_stack):
         sub rsp, r10    // Allocate the stack space
         mov qword ptr [rsp], rdi        // function
-        mov qword ptr [rsp + 8h], rsi   // callInfo
+        mov qword ptr [rsp + 0x8], rsi   // callInfo
         cmp rcx, 0
         je LOCAL_LABEL(args_setup_done)
 
         // Copy all args (r8) to rsp[2]. rcx has argc.
 LOCAL_LABEL(copy_args_to_stack):
-        lea rdi, [rsp + 10h]            // &rsp[2]
+        lea rdi, [rsp + 0x10]            // &rsp[2]
         mov rsi, r8                     // argv
         rep movsq
         mov rdi, qword ptr [rsp]        // restore rdi
-        mov rsi, qword ptr [rsp + 8h]   // restore rsi
+        mov rsi, qword ptr [rsp + 0x8]   // restore rsi
 
 LOCAL_LABEL(args_setup_done):
         xor rax, rax    // Zero out rax in case r11 expects varags
@@ -193,13 +193,13 @@ NESTED_ENTRY _ZN2Js18JavascriptFunction20DeferredParsingThunkEPNS_16RecyclableOb
         // Call
         //  JavascriptMethod JavascriptFunction::DeferredParse(ScriptFunction**)
         //
-        lea rdi, [rbp + 10h]    // &function, setup by custom calling convention
+        lea rdi, [rbp + 0x10]    // &function, setup by custom calling convention
         call C_FUNC(_ZN2Js18JavascriptFunction13DeferredParseEPPNS_14ScriptFunctionE)
 
         pop_register rsi
         pop_register rdi
 
-        mov rdi, qword ptr [rbp + 10h]  // re-load function, might have been changed by DeferredParse.
+        mov rdi, qword ptr [rbp + 0x10]  // re-load function, might have been changed by DeferredParse.
                                         // e.g. StackScriptFunction is Boxed
                                         // previous push/pop rdi is for stack alignment
 
