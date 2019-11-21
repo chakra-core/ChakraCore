@@ -2500,6 +2500,12 @@ FuncInfo* PreVisitFunction(ParseNodeFnc* pnodeFnc, ByteCodeGenerator* byteCodeGe
         //
         funcExprWithName = true;
     }
+    else if (pnodeFnc->IsModule())
+    {
+        funcName = Js::Constants::ModuleCode;
+        funcNameLength = Js::Constants::ModuleCodeLength;
+        functionNameOffset = 0;
+    }
 
     if (byteCodeGenerator->Trace())
     {

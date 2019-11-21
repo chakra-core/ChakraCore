@@ -19,6 +19,7 @@ const char16 Constants::Anonymous[] = _u("anonymous");
 const char16 Constants::Empty[] = _u("");
 const char16 Constants::FunctionCode[] = _u("Function code");
 const char16 Constants::GlobalCode[] = _u("Global code");
+const char16 Constants::ModuleCode[] = _u("Module code");
 const char16 Constants::EvalCode[] = _u("eval code");
 const char16 Constants::GlobalFunction[] = _u("glo");
 const char16 Constants::UnknownScriptCode[] = _u("Unknown script code");

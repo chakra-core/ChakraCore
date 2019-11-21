@@ -2791,6 +2791,7 @@ namespace Js
         if (srcName == Js::Constants::GlobalFunction ||
             srcName == Js::Constants::AnonymousFunction ||
             srcName == Js::Constants::GlobalCode ||
+            srcName == Js::Constants::ModuleCode ||
             srcName == Js::Constants::Anonymous ||
             srcName == Js::Constants::UnknownScriptCode ||
             srcName == Js::Constants::FunctionCode)
