@@ -7107,6 +7107,57 @@ Lowerer::LowerStFld(
     IR::Opnd *dst = stFldInstr->UnlinkDst();
     AssertMsg(dst->IsSymOpnd() && dst->AsSymOpnd()->m_sym->IsPropertySym(), "Expected property sym as dst of field store");
 
+    BailOutInfo * bailOutInfo = nullptr; 
+    bool doCheckLayout = false;
+    IR::PropertySymOpnd * propertySymOpnd = nullptr;
+    if (dst->AsSymOpnd()->IsPropertySymOpnd())
+    {
+        propertySymOpnd = dst->AsPropertySymOpnd();
+        if (stFldInstr->HasBailOutInfo() && !propertySymOpnd->IsTypeCheckSeqCandidate() && propertySymOpnd->TypeCheckRequired())
+        {
+            IR::Instr * instrBailTarget = stFldInstr->ShareBailOut();
+            LowerBailTarget(instrBailTarget);
+            doCheckLayout = true;
+            bailOutInfo = stFldInstr->GetBailOutInfo();
+            switch (helperMethod)
+            {
+                case IR::HelperOp_PatchPutValue:
+                    helperMethod = IR::HelperOp_PatchPutValueCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValuePolymorphic:
+                    helperMethod = IR::HelperOp_PatchPutValuePolymorphicCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueNoLocalFastPath:
+                    helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphic:
+                    helperMethod = IR::HelperOp_PatchPutValueNoLocalFastPathPolymorphicCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueWithThisPtr:
+                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueWithThisPtrPolymorphic:
+                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrPolymorphicCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPath:
+                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout;
+                    break;
+                case IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphic:
+                    helperMethod = IR::HelperOp_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout;
+                    break;
+                case IR::HelperOp_PatchInitValue:
+                    helperMethod = IR::HelperOp_PatchInitValueCheckLayout;
+                    break;
+                case IR::HelperOp_PatchInitValuePolymorphic:
+                    helperMethod = IR::HelperOp_PatchInitValuePolymorphicCheckLayout;
+                    break;
+                default:
+                    AssertOrFailFast(false);
+                    break;
+            }
+        }
+    }
+
     IR::Opnd * inlineCacheOpnd = nullptr;
     if (withInlineCache)
     {
@@ -7153,7 +7204,20 @@ Lowerer::LowerStFld(
     }
 
     IR::RegOpnd *opndBase = dst->AsSymOpnd()->CreatePropertyOwnerOpnd(m_func);
-    m_lowererMD.ChangeToHelperCall(stFldInstr, helperMethod, labelBailOut, opndBase, dst->AsSymOpnd()->IsPropertySymOpnd() ? dst->AsSymOpnd()->AsPropertySymOpnd() : nullptr, isHelper);
+
+    IR::Instr * callInstr = 
+        m_lowererMD.ChangeToHelperCall(stFldInstr, helperMethod, labelBailOut, opndBase, propertySymOpnd, isHelper);
+
+    if (doCheckLayout)
+    {
+        callInstr->SetDst(IR::RegOpnd::New(TyUint8, bailOutInfo->bailOutFunc));
+        IR::Instr * bailOutInstr = IR::BailOutInstr::New(Js::OpCode::BailOnNotEqual, IR::BailOutFailedTypeCheck, bailOutInfo, bailOutInfo->bailOutFunc);
+        bailOutInstr->SetSrc1(callInstr->GetDst());
+        bailOutInstr->SetSrc2(IR::IntConstOpnd::New(0, TyUint8, bailOutInfo->bailOutFunc));
+        callInstr->InsertAfter(bailOutInstr);
+        bailOutInfo->polymorphicCacheIndex = propertySymOpnd->m_inlineCacheIndex;
+        LowerBailOnEqualOrNotEqual(bailOutInstr, nullptr, nullptr, nullptr, isHelper);
+    }
 
     return instrPrev;
 }
