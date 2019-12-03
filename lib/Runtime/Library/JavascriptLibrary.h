@@ -1034,6 +1034,7 @@ namespace Js
         JavascriptGeneratorFunction* CreateGeneratorFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncGeneratorFunction* CreateAsyncGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         AsyncGeneratorCallbackFunction* CreateAsyncGeneratorCallbackFunction(JavascriptMethod entryPoint, JavascriptAsyncGenerator* generator);
+        RuntimeFunction* CreateAsyncModuleCallbackFunction(JavascriptMethod entryPoint, SourceTextModuleRecord* module);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction);
         JavascriptAsyncFunction* CreateAsyncFunction(JavascriptMethod entryPoint, bool isAnonymousFunction);
         JavascriptAsyncSpawnStepFunction* CreateAsyncSpawnStepFunction(JavascriptMethod entryPoint, JavascriptGenerator* generator, Var argument, Var resolve = nullptr, Var reject = nullptr, bool isReject = false);

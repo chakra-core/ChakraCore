@@ -2727,6 +2727,17 @@ bool Parser::IsTopLevelModuleFunc()
     return curFunc->nop == knopFncDecl && curFunc->IsModule();
 }
 
+void Parser::MakeModuleAsync()
+{
+    Assert(IsTopLevelModuleFunc());
+    if (!m_scriptContext->GetConfig()->IsESTopLevelAwaitEnabled())
+    {
+        Error(ERRExperimental);
+    }
+    ParseNodeFnc * curFunc = GetCurrentFunctionNode();
+    curFunc->SetIsAsync();
+}
+
 template<bool buildAST> ParseNodePtr Parser::ParseImportCall()
 {
     this->GetScanner()->Scan();
@@ -8873,7 +8884,14 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // is not a grammar production outside of async functions.
                 //
                 // Further, await expressions are disallowed within parameter scopes.
-                Error(ERRBadAwait);
+                if (IsTopLevelModuleFunc())
+                {
+                    MakeModuleAsync();
+                }
+                else
+                {
+                    Error(ERRBadAwait);
+                }   
             }
         }
 
@@ -10282,7 +10300,14 @@ LRestart:
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion())
             {
-                Error(ERRBadAwait); // for await () in a non-async function
+                if (IsTopLevelModuleFunc())
+                {
+                    MakeModuleAsync();
+                }
+                else
+                {
+                    Error(ERRBadAwait); // for await () in a non-async function
+                }
             }
             if (!m_scriptContext->GetConfig()->IsES2018AsyncIterationEnabled())
             {

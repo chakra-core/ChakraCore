@@ -6505,6 +6505,30 @@ namespace Js
             generator);
     }
 
+    RuntimeFunction* JavascriptLibrary::CreateAsyncModuleCallbackFunction(
+        JavascriptMethod entryPoint,
+        SourceTextModuleRecord* module)
+    {
+        Assert(scriptContext->GetConfig()->IsES2018AsyncIterationEnabled());
+
+        auto* functionInfo = RecyclerNew(GetRecycler(), FunctionInfo, entryPoint);
+
+        auto* type = DynamicType::New(
+            scriptContext,
+            TypeIds_Function,
+            functionPrototype,
+            entryPoint,
+            GetDeferredAnonymousFunctionTypeHandler());
+
+        return RecyclerNewEnumClass(
+            GetRecycler(),
+            EnumFunctionClass,
+            AsyncModuleCallbackFunction,
+            type,
+            functionInfo,
+            module);
+    }
+
     JavascriptAsyncGeneratorFunction* JavascriptLibrary::CreateAsyncGeneratorFunction(JavascriptMethod entryPoint, GeneratorVirtualScriptFunction* scriptFunction)
     {
         Assert(scriptContext->GetConfig()->IsES2018AsyncIterationEnabled());

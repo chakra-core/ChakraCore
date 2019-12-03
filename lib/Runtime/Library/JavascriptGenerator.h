@@ -82,6 +82,8 @@ public:
     bool IsSuspended() const { return this->state == GeneratorState::Suspended; }
     bool IsCompleted() const { return this->state == GeneratorState::Completed; }
 
+    bool IsAsyncModule() const;
+
     void SetSuspendedStart()
     {
         Assert(

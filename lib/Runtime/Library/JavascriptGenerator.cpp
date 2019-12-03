@@ -318,6 +318,12 @@ Var JavascriptGenerator::EntryThrow(RecyclableObject* function, CallInfo callInf
     return generator->CallGenerator(input, ResumeYieldKind::Throw);
 }
 
+bool JavascriptGenerator::IsAsyncModule() const
+{ 
+    FunctionProxy* proxy = this->scriptFunction->GetFunctionProxy();
+    return proxy->IsModule() && proxy->IsAsync();
+}
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
 void JavascriptGenerator::OutputBailInTrace(JavascriptGenerator* generator)
 {

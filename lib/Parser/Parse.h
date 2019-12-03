@@ -975,6 +975,7 @@ private:
 
     void CheckIfImportOrExportStatementValidHere();
     bool IsTopLevelModuleFunc();
+    void MakeModuleAsync();
 
     template<bool buildAST> ParseNodePtr ParseImport();
     template<bool buildAST> void ParseImportClause(ModuleImportOrExportEntryList* importEntryList, bool parsingAfterComma = false);
