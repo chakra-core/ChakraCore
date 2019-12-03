@@ -5366,6 +5366,8 @@ ScriptContext::GetJitFuncRangeCache()
         contextData.charStringCacheAddr = (intptr_t)&GetLibrary()->GetCharStringCache();
         contextData.libraryAddr = (intptr_t)GetLibrary();
         contextData.globalObjectAddr = (intptr_t)GetLibrary()->GetGlobalObject();
+        contextData.objectPrototypeAddr = (intptr_t)GetLibrary()->GetObjectPrototype();
+        contextData.functionPrototypeAddr = (intptr_t)GetLibrary()->GetFunctionPrototype();
         contextData.builtinFunctionsBaseAddr = (intptr_t)GetLibrary()->GetBuiltinFunctions();
         contextData.sideEffectsAddr = optimizationOverrides.GetAddressOfSideEffects();
         contextData.arraySetElementFastPathVtableAddr = (intptr_t)optimizationOverrides.GetAddressOfArraySetElementFastPathVtable();
@@ -5576,6 +5578,16 @@ ScriptContext::GetJitFuncRangeCache()
     intptr_t ScriptContext::GetGlobalObjectThisAddr() const
     {
         return (intptr_t)GetLibrary()->GetGlobalObject()->ToThis();
+    }
+
+    intptr_t ScriptContext::GetObjectPrototypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetObjectPrototype();
+    }
+
+    intptr_t ScriptContext::GetFunctionPrototypeAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetFunctionPrototype();
     }
 
     intptr_t ScriptContext::GetNumberAllocatorAddr() const

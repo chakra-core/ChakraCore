@@ -85,7 +85,7 @@ namespace Js
     protected:
         SimpleDictionaryTypeHandlerBase(Recycler * recycler);
         SimpleDictionaryTypeHandlerBase(Recycler * recycler, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
-        SimpleDictionaryTypeHandlerBase(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+        SimpleDictionaryTypeHandlerBase(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, int slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, bool isInitialized = false);
         SimpleDictionaryTypeHandlerBase(Recycler* recycler, int slotCapacity, int propertyCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
         SimpleDictionaryTypeHandlerBase(Recycler* recycler, SimpleDictionaryTypeHandlerBase * typeHandler);
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleDictionaryTypeHandlerBase, DynamicTypeHandler);
@@ -102,6 +102,10 @@ namespace Js
 
         // Create a new type handler for a future DynamicObject. This is for public usage. "propertyCount" indicates desired slotCapacity, subject to alignment round up.
         static SimpleDictionaryTypeHandlerBase * New(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+
+#if ENABLE_FIXED_FIELDS
+        static SimpleDictionaryTypeHandlerBase * NewInitialized(ScriptContext * scriptContext, SimplePropertyDescriptor const* propertyDescriptors, int propertyCount, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false);
+#endif
 
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType, bool check__proto__);
 

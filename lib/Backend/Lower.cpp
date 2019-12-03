@@ -2076,12 +2076,31 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
 
+        case Js::OpCode::BrOnObjectOrNull_A:
+            if (PHASE_OFF(Js::BranchFastPathPhase, this->m_func) || noMathFastPath)
+            {
+                this->LowerBrOnObject(instr, IR::HelperOp_IsObjectOrNull);
+            }
+            else
+            {
+                GenerateFastBrOnObject(instr);
+            }
+            break;
+
+        case Js::OpCode::BrOnNotNullObj_A:
+            GenerateFastBrOnObject(instr);
+            break;
+
         case Js::OpCode::BrOnBaseConstructorKind:
             this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsBaseConstructorKind);
             break;
 
         case Js::OpCode::BrOnClassConstructor:
             this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsClassConstructor);
+            break;
+
+        case Js::OpCode::BrOnConstructor_A:
+            this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsConstructor);
             break;
 
         case Js::OpCode::BrAddr_A:
@@ -2798,8 +2817,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::DeletedNonHelperBranch:
             break;
 
-        case Js::OpCode::InitClass:
-            instrPrev = this->LowerInitClass(instr);
+        case Js::OpCode::NewClassCtorProto:
+            this->LowerUnaryHelperMem(instr, IR::HelperOp_NewClassCtorProto);
+            break;
+
+        case Js::OpCode::NewClassConstructor:
+            instrPrev = this->LowerNewClassConstructor(instr);
             break;
 
         case Js::OpCode::NewConcatStrMulti:
@@ -10222,7 +10245,7 @@ IR::Instr * Lowerer::LowerBrOnClassConstructor(IR::Instr * instr, IR::JnHelperMe
 
     opndHelper = IR::HelperCallOpnd::New(helperMethod, this->m_func);
     symDst = StackSym::New(TyVar, this->m_func);
-    opndDst = IR::RegOpnd::New(symDst, TyVar, this->m_func);
+    opndDst = IR::RegOpnd::New(symDst, TyUint8, this->m_func);
     instrCall = IR::Instr::New(Js::OpCode::Call, opndDst, opndHelper, this->m_func);
 
     instr->InsertBefore(instrCall);
@@ -14693,13 +14716,9 @@ Lowerer::GetValueFromIndirOpnd(IR::IndirOpnd *indirOpnd, IR::Opnd **pValueOpnd, 
 void
 Lowerer::GenerateFastBrOnObject(IR::Instr *instr)
 {
-    Assert(instr->m_opcode == Js::OpCode::BrOnObject_A);
-
     IR::RegOpnd      *object        = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
     IR::LabelInstr   *done          = instr->GetOrCreateContinueLabel();
     IR::LabelInstr   *target        = instr->AsBranchInstr()->GetTarget();
-    IR::RegOpnd      *typeRegOpnd   = IR::RegOpnd::New(TyMachReg, m_func);
-    IR::IntConstOpnd *typeIdOpnd    = IR::IntConstOpnd::New(Js::TypeIds_LastJavascriptPrimitiveType, TyInt32, instr->m_func);
 
     if (!object)
     {
@@ -14714,15 +14733,44 @@ Lowerer::GenerateFastBrOnObject(IR::Instr *instr)
     // JGT $target
     // $done:
 
-    m_lowererMD.GenerateObjectTest(object, instr, done);
+    m_lowererMD.GenerateObjectTest(object, instr, instr->m_opcode == Js::OpCode::BrOnNotNullObj_A ? target : done);
 
+    IR::RegOpnd      *typeRegOpnd   = IR::RegOpnd::New(TyMachReg, m_func);
     InsertMove(typeRegOpnd,
                IR::IndirOpnd::New(object, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func),
                instr);
 
-    InsertCompareBranch(
-        IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func),
-        typeIdOpnd, Js::OpCode::BrGt_A, target, instr);
+    switch (instr->m_opcode)
+    {
+        case Js::OpCode::BrOnObjectOrNull_A:
+        {
+            IR::RegOpnd * opndTypeId = IR::RegOpnd::New(TyInt32, m_func);
+            InsertMove(opndTypeId, IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func), instr);
+            InsertCompareBranch(opndTypeId,
+                                IR::IntConstOpnd::New(Js::TypeIds_LastJavascriptPrimitiveType, TyInt32, instr->m_func), 
+                                Js::OpCode::BrGt_A, target, instr);
+            InsertCompareBranch(opndTypeId, IR::IntConstOpnd::New(Js::TypeIds_Null, TyInt32, m_func), Js::OpCode::BrEq_A, target, instr);
+            break;
+        }
+
+        case Js::OpCode::BrOnObject_A:
+            InsertCompareBranch(
+                IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func),
+                IR::IntConstOpnd::New(Js::TypeIds_LastJavascriptPrimitiveType, TyInt32, instr->m_func), 
+                Js::OpCode::BrGt_A, target, instr);
+            break;
+
+        case Js::OpCode::BrOnNotNullObj_A:
+            InsertCompareBranch(
+                IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func),
+                IR::IntConstOpnd::New(Js::TypeIds_Null, TyInt32, instr->m_func), 
+                Js::OpCode::BrNeq_A, target, instr);
+            break;
+
+        default:
+            AssertMsg(false, "Unknown BrOnObject opcode");
+            break;
+    }
 
     instr->Remove();
 }
@@ -25883,31 +25931,54 @@ Lowerer::GetInlineCacheFromFuncObjectForRuntimeUse(IR::Instr * instr, IR::Proper
 }
 
 IR::Instr *
-Lowerer::LowerInitClass(IR::Instr * instr)
+Lowerer::LowerNewClassConstructor(IR::Instr * instr)
 {
-    // scriptContext
-    IR::Instr   * prevInstr = LoadScriptContext(instr);
+    IR::Instr * instrPrev = instr->m_prev;
 
-    // extends
-    if (instr->GetSrc2() != nullptr)
-    {
-        IR::Opnd * extendsOpnd = instr->UnlinkSrc2();
-        m_lowererMD.LoadHelperArgument(instr, extendsOpnd);
-    }
-    else
-    {
-        IR::AddrOpnd* extendsOpnd = IR::AddrOpnd::NewNull(this->m_func);
-        m_lowererMD.LoadHelperArgument(instr, extendsOpnd);
-    }
+    IR::RegOpnd * opndLink = instr->UnlinkSrc1()->AsRegOpnd();
+    IR::Instr * instrDef = opndLink->m_sym->m_instrDef;
+    Assert(instrDef && instrDef->m_opcode == Js::OpCode::ExtendArg_A);
 
-    // constructor
-    IR::Opnd * ctorOpnd = instr->UnlinkSrc1();
-    m_lowererMD.LoadHelperArgument(instr, ctorOpnd);
+    IR::RegOpnd * opndEnvironment = instrDef->GetSrc1()->AsRegOpnd();
+    opndLink = instrDef->GetSrc2()->AsRegOpnd();
+    instrDef = opndLink->m_sym->m_instrDef;
+    Assert(instrDef && instrDef->m_opcode == Js::OpCode::ExtendArg_A);
 
-    // call
-    m_lowererMD.ChangeToHelperCall(instr, IR::HelperOP_InitClass);
+    IR::AddrOpnd * opndFunctionBodySlot = instrDef->GetSrc1()->AsAddrOpnd();
+    opndLink = instrDef->GetSrc2()->AsRegOpnd();
+    instrDef = opndLink->m_sym->m_instrDef;
+    Assert(instrDef && instrDef->m_opcode == Js::OpCode::ExtendArg_A);
 
-    return prevInstr;
+    IR::RegOpnd * opndProto = instrDef->GetSrc1()->AsRegOpnd();
+    opndLink = instrDef->GetSrc2()->AsRegOpnd();
+    instrDef = opndLink->m_sym->m_instrDef;
+    Assert(instrDef && instrDef->m_opcode == Js::OpCode::ExtendArg_A);
+
+    IR::Opnd * opndCtorParent = instrDef->GetSrc1();
+
+    m_lowererMD.LoadHelperArgument(instr, opndCtorParent);
+    m_lowererMD.LoadHelperArgument(instr, opndProto);
+    m_lowererMD.LoadHelperArgument(instr, opndFunctionBodySlot);
+    m_lowererMD.LoadHelperArgument(instr, opndEnvironment);
+
+    IR::RegOpnd * opndConstructor = instr->GetDst()->AsRegOpnd();
+    IR::Instr * instrNext = instr->m_next;
+
+    m_lowererMD.ChangeToHelperCall(instr, IR::HelperScrFunc_OP_NewClassConstructor);
+
+    // Put constructor in proto's slot 0
+
+    IR::RegOpnd * opndAuxSlots = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(opndAuxSlots, IR::IndirOpnd::New(opndProto, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachPtr, m_func, true), instrNext, false);
+    InsertMove(IR::IndirOpnd::New(opndAuxSlots, 0, TyMachPtr, m_func, true), opndConstructor, instrNext, false);
+
+    // Put proto in constructor's slot 0
+
+    opndAuxSlots = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(opndAuxSlots, IR::IndirOpnd::New(opndConstructor, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachPtr, m_func, true), instrNext, false);
+    InsertMove(IR::IndirOpnd::New(opndAuxSlots, 0, TyMachPtr, m_func, true), opndProto, instrNext, false);
+
+    return instrPrev;
 }
 
 void

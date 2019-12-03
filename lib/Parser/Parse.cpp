@@ -4992,14 +4992,22 @@ ParseNodePtr Parser::ParseMemberList(LPCOLESTR pNameHint, uint32* pNameHintLengt
             {
                 pnodeExpr = ParseExpr<buildAST>(koplCma, nullptr/*pfCantAssign*/, TRUE/*fAllowIn*/, FALSE/*fAllowEllipsis*/, pFullNameHint, &fullNameHintLength, &shortNameOffset);
 
-                if (pnodeExpr && pnodeExpr->nop == knopFncDecl)
+                ParseNodeFnc* funcNode = nullptr;
+                if (pnodeExpr)
                 {
-                    ParseNodeFnc* funcNode = pnodeExpr->AsParseNodeFnc();
-                    if (isComputedName)
+                    if (pnodeExpr->nop == knopFncDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeFnc();
+                        funcNode->SetHasHomeObj();
+                    }
+                    else if (pnodeExpr->nop == knopClassDecl)
+                    {
+                        funcNode = pnodeExpr->AsParseNodeClass()->pnodeConstructor;
+                    }
+                    if (funcNode && funcNode->pnodeName == nullptr && isComputedName)
                     {
                         funcNode->SetHasComputedName();
                     }
-                    funcNode->SetHasHomeObj();
                 }
             }
 #if DEBUG
@@ -7158,14 +7166,12 @@ ParseNodeFnc * Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc = CreateAllowDeferNodeForOpT<knopFncDecl>();
     pnodeFnc->SetNested(NULL != m_currentNodeFunc);
     pnodeFnc->SetStrictMode();
-    pnodeFnc->SetDeclaration(TRUE);
     pnodeFnc->SetIsMethod(TRUE);
     pnodeFnc->SetIsClassMember(TRUE);
     pnodeFnc->SetIsClassConstructor(TRUE);
     pnodeFnc->SetIsBaseClassConstructor(!extends);
     pnodeFnc->SetHasNonThisStmt();
     pnodeFnc->SetIsGeneratedDefault(TRUE);
-    pnodeFnc->SetHasComputedName();
     pnodeFnc->SetHasHomeObj();
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
 
@@ -7845,8 +7851,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
     ParseNodePtr pnodeExtends = nullptr;
     ParseNodePtr pnodeMembers = nullptr;
     ParseNodePtr *lastMemberNodeRef = nullptr;
-    ParseNodePtr pnodeStaticMembers = nullptr;
-    ParseNodePtr *lastStaticMemberNodeRef = nullptr;
     uint32 nameHintLength = pHintLength ? *pHintLength : 0;
     uint32 nameHintOffset = pShortNameOffset ? *pShortNameOffset : 0;
 
@@ -8063,7 +8067,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
             pnodeConstructor->hintOffset = constructorShortNameHintOffset;
             pnodeConstructor->pid = pnodeName && pnodeName->pid ? pnodeName->pid : wellKnownPropertyPids.constructor;
             pnodeConstructor->SetHasNonThisStmt();
-            pnodeConstructor->SetHasComputedName();
             pnodeConstructor->SetHasHomeObj();
         }
         else
@@ -8173,7 +8176,7 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->hintOffset = memberNameOffset;
                 pnodeMember->AsParseNodeBin()->pnode2->AsParseNodeFnc()->pid = memberPid; // Short name
 
-                AddToNodeList(isStatic ? &pnodeStaticMembers : &pnodeMembers, isStatic ? &lastStaticMemberNodeRef : &lastMemberNodeRef, pnodeMember);
+                AddToNodeList(&pnodeMembers, &lastMemberNodeRef, pnodeMember);
             }
         }
     }
@@ -8228,7 +8231,6 @@ ParseNodeClass * Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint,
         pnodeClass->pnodeConstructor = pnodeConstructor;
         pnodeClass->pnodeExtends = pnodeExtends;
         pnodeClass->pnodeMembers = pnodeMembers;
-        pnodeClass->pnodeStaticMembers = pnodeStaticMembers;
         pnodeClass->isDefaultModuleExport = false;
     }
     FinishParseBlock(pnodeBlock);
@@ -14370,7 +14372,6 @@ void PrintPnodeWIndent(ParseNode *pnode, int indentAmt) {
 
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeConstructor, indentAmt + INDENT_SIZE);
         PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeMembers, indentAmt + INDENT_SIZE);
-        PrintPnodeWIndent(pnode->AsParseNodeClass()->pnodeStaticMembers, indentAmt + INDENT_SIZE);
         break;
     case knopStrTemplate:
         Indent(indentAmt);

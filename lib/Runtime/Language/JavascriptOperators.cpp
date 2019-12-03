@@ -1488,8 +1488,10 @@ CommonNumber:
 
     bool JavascriptOperators::IsConstructor(_In_ Var instanceVar)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_IsConstructor);
         RecyclableObject* instanceObj = TryFromVar<RecyclableObject>(instanceVar);
         return instanceObj && IsConstructor(instanceObj);
+        JIT_HELPER_END(Op_IsConstructor);
     }
 
     BOOL JavascriptOperators::IsConcatSpreadable(Var instanceVar)
@@ -7770,77 +7772,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ScrObj_OP_IsInst);
     }
 
-    void JavascriptOperators::OP_InitClass(Var constructor, Var extends, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_NewClassCtorProto(Var protoParent, ScriptContext * scriptContext)
     {
-        JIT_HELPER_REENTRANT_HEADER(OP_InitClass);
-        if (JavascriptOperators::GetTypeId(constructor) != Js::TypeId::TypeIds_Function)
-        {
-             JavascriptError::ThrowTypeError(scriptContext, JSERR_Operand_Invalid_NeedFunction, _u("class"));
-        }
-
-        RecyclableObject * ctor = VarTo<RecyclableObject>(constructor);
-
-        if (extends)
-        {
-            switch (JavascriptOperators::GetTypeId(extends))
-            {
-                case Js::TypeId::TypeIds_Null:
-                {
-                    Var ctorProto = JavascriptOperators::GetProperty(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-                    RecyclableObject * ctorProtoObj = VarTo<RecyclableObject>(ctorProto);
-
-                    ctorProtoObj->SetPrototype(VarTo<RecyclableObject>(extends));
-
-                    ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
-                    ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
-
-                    break;
-                }
-
-                default:
-                {
-                    if (!VarIs<RecyclableObject>(extends))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
-                    }
-                    RecyclableObject * extendsObj = VarTo<RecyclableObject>(extends);
-                    if (!JavascriptOperators::IsConstructor(extendsObj))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_ErrorOnNew);
-                    }
-                    if (!extendsObj->HasProperty(Js::PropertyIds::prototype))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidPrototype);
-                    }
-
-                    Var extendsProto = JavascriptOperators::GetPropertyNoCache(extends, extendsObj, Js::PropertyIds::prototype, scriptContext);
-                    uint extendsProtoTypeId = JavascriptOperators::GetTypeId(extendsProto);
-                    if (extendsProtoTypeId <= Js::TypeId::TypeIds_LastJavascriptPrimitiveType && extendsProtoTypeId != Js::TypeId::TypeIds_Null)
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidPrototype);
-                    }
-
-                    Var ctorProto = JavascriptOperators::GetPropertyNoCache(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-                    RecyclableObject * ctorProtoObj = VarTo<RecyclableObject>(ctorProto);
-
-                    ctorProtoObj->SetPrototype(VarTo<RecyclableObject>(extendsProto));
-
-                    ctorProtoObj->EnsureProperty(Js::PropertyIds::constructor);
-                    ctorProtoObj->SetEnumerable(Js::PropertyIds::constructor, FALSE);
-
-                    Var protoCtor = JavascriptOperators::GetPropertyNoCache(ctorProto, ctorProtoObj, Js::PropertyIds::constructor, scriptContext);
-                    RecyclableObject * protoCtorObj = VarTo<RecyclableObject>(protoCtor);
-                    protoCtorObj->SetPrototype(extendsObj);
-
-                    break;
-                }
-            }
-        }
-
-        Var proto = JavascriptOperators::GetProperty(constructor, ctor, Js::PropertyIds::prototype, scriptContext);
-        JavascriptOperators::OP_SetHomeObj(constructor, proto);
-
-        JIT_HELPER_END(OP_InitClass);
+        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewClassCtorProto, reentrancylock, scriptContext->GetThreadContext());
+        return scriptContext->GetLibrary()->CreateClassConstructorPrototypeObject(VarTo<RecyclableObject>(protoParent));
+        JIT_HELPER_END(Op_NewClassCtorProto);
     }
 
     void JavascriptOperators::OP_LoadUndefinedToElement(Var instance, PropertyId propertyId)
@@ -11073,8 +11009,10 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
 
     BOOL JavascriptOperators::IsObjectOrNull(Var instance)
     {
+        JIT_HELPER_NOT_REENTRANT_NOLOCK_HEADER(Op_IsObjectOrNull);
         TypeId typeId = GetTypeId(instance);
         return IsObjectType(typeId) || typeId == TypeIds_Null;
+        JIT_HELPER_END(Op_IsObjectOrNull);
     }
 
     BOOL JavascriptOperators::IsUndefined(_In_ RecyclableObject* instance)
