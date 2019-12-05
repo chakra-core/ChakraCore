@@ -295,7 +295,7 @@ namespace Js
         Field(DynamicTypeHandler *) functionTypeHandlerWithLength;
         Field(DynamicTypeHandler *) functionWithPrototypeAndLengthTypeHandler;
         Field(DynamicTypeHandler *) functionWithPrototypeTypeHandler;
-        Field(DynamicTypeHandler *) classConstructorPrototypeTypeHandler;
+        Field(DynamicTypeHandler *) classPrototypeTypeHandler;
 
         Field(DynamicType *) externalFunctionWithDeferredPrototypeType;
         Field(DynamicType *) externalFunctionWithLengthAndDeferredPrototypeType;
@@ -556,7 +556,7 @@ namespace Js
         static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeAndLengthTypeDescriptors[2];
         static SimplePropertyDescriptor const FunctionWithNonWritablePrototypeLengthAndNameTypeDescriptors[3];
         static SimplePropertyDescriptor const ModuleNamespaceTypeDescriptors[1];
-        static SimplePropertyDescriptor const ClassConstructorPrototypePropertyDescriptors[1];
+        static SimplePropertyDescriptor const ClassPrototypePropertyDescriptors[1];
 
     public:
 
@@ -1055,7 +1055,7 @@ namespace Js
         DynamicObject* CreateGeneratorConstructorPrototypeObject();
         DynamicObject* CreateAsyncGeneratorConstructorPrototypeObject();
         DynamicObject* CreateConstructorPrototypeObject(JavascriptFunction * constructor);
-        DynamicObject* CreateClassConstructorPrototypeObject(RecyclableObject * protoParent);
+        DynamicObject* CreateClassPrototypeObject(RecyclableObject * protoParent);
         DynamicObject* CreateObject(const bool allowObjectHeaderInlining = false, const PropertyIndex requestedInlineSlotCapacity = 0);
         DynamicObject* CreateObject(DynamicTypeHandler * typeHandler);
         DynamicObject* CreateActivationObject();

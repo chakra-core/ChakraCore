@@ -7912,7 +7912,7 @@ skipThunk:
         Assert(constructorParent && (JavascriptOperators::IsConstructor(constructorParent) || constructorParent == scriptContext->GetLibrary()->GetFunctionPrototype()));
 
         // Create prototype object with the default class prototype object shape {'constructor': W:T, E:F, C:T} and [[Prototype]] == protoParent
-        DynamicObject * proto = scriptContext->GetLibrary()->CreateClassConstructorPrototypeObject(protoParent);
+        DynamicObject * proto = scriptContext->GetLibrary()->CreateClassPrototypeObject(protoParent);
 
         // Create class constructor object for the constructor function, with default constructor shape:
         //    {'prototype': W:F, E:F, C:F}, {'length': W:F, E:F, C:T}, {'name': W:F, E:F, C:T}

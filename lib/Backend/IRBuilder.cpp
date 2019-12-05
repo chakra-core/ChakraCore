@@ -2401,7 +2401,7 @@ IRBuilder::BuildInitClass(uint32 offset, Js::RegSlot regConstructor, Js::RegSlot
 {
     IR::RegOpnd * opndProto = BuildDstOpnd(regProto);
     opndProto->SetValueType(ValueType::GetObject(ObjectType::Object));
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::NewClassCtorProto, opndProto, opndProtoParent, m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::NewClassProto, opndProto, opndProtoParent, m_func);
     this->AddInstr(instr, offset);
 
     instr = IR::Instr::New(Js::OpCode::ExtendArg_A, IR::RegOpnd::New(TyVar, m_func), opndConstructorParent, m_func);

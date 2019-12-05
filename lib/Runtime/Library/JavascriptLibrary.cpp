@@ -103,7 +103,7 @@ namespace Js
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
     };
 
-    SimplePropertyDescriptor const JavascriptLibrary::ClassConstructorPrototypePropertyDescriptors[1] =
+    SimplePropertyDescriptor const JavascriptLibrary::ClassPrototypePropertyDescriptors[1] =
     {
         SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyConfigurable | PropertyWritable)
     };
@@ -475,13 +475,13 @@ namespace Js
         heapArgumentsType = DynamicType::New(scriptContext, TypeIds_Arguments, objectPrototype, nullptr,
             SimpleDictionaryTypeHandler::New(scriptContext, HeapArgumentsPropertyDescriptors, _countof(HeapArgumentsPropertyDescriptors), 0, 0, true, true), true, true);
 
-        classConstructorPrototypeTypeHandler = 
+        classPrototypeTypeHandler = 
 #if ENABLE_FIXED_FIELDS
             SimpleDictionaryTypeHandler::NewInitialized
 #else
             SimpleDictionaryTypeHandler::New
 #endif
-                (scriptContext, ClassConstructorPrototypePropertyDescriptors, _countof(ClassConstructorPrototypePropertyDescriptors), 0, 0, true, true);
+                (scriptContext, ClassPrototypePropertyDescriptors, _countof(ClassPrototypePropertyDescriptors), 0, 0, true, true);
 
         TypePath *const strictHeapArgumentsTypePath = TypePath::New(recycler);
         strictHeapArgumentsTypePath->Add(BuiltInPropertyRecords::callee);
@@ -6658,13 +6658,13 @@ namespace Js
         return prototype;
     }
 
-    DynamicObject* JavascriptLibrary::CreateClassConstructorPrototypeObject(RecyclableObject * protoParent)
+    DynamicObject* JavascriptLibrary::CreateClassPrototypeObject(RecyclableObject * protoParent)
     {
         // We can't share types of objects that are prototypes. If we gain the ability to do that, try using a shared type
         // with a PathTypeHandler for this object. (PathTypeHandler and not SimpleTypeHandler, because it will likely have
         // user-defined properties on it.) Until then, make a new type for each object and use a SimpleDictionaryTypeHandler.
         DynamicType * dynamicType = 
-            DynamicType::New(scriptContext, TypeIds_Object, protoParent, nullptr, classConstructorPrototypeTypeHandler);
+            DynamicType::New(scriptContext, TypeIds_Object, protoParent, nullptr, classPrototypeTypeHandler);
         dynamicType->SetHasNoEnumerableProperties(true);
         DynamicObject * proto = DynamicObject::New(this->GetRecycler(), dynamicType);
         return proto;

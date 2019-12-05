@@ -540,7 +540,7 @@ namespace Js
         static Var OP_NewPseudoScope(ScriptContext *scriptContext);
         static Var OP_NewBlockScope(ScriptContext *scriptContext);
         static Var OP_CloneBlockScope(BlockActivationObject *blockScope, ScriptContext *scriptContext);
-        static Var OP_NewClassCtorProto(Var protoParent, ScriptContext * scriptContext);
+        static Var OP_NewClassProto(Var protoParent, ScriptContext * scriptContext);
         static void OP_LoadUndefinedToElement(Var instance, PropertyId propertyId);
         static void OP_LoadUndefinedToElementDynamic(Var instance, PropertyId propertyId, ScriptContext* scriptContext);
         static void OP_LoadUndefinedToElementScoped(FrameDisplay *pScope, PropertyId propertyId, Var defaultInstance, ScriptContext* scriptContext);
