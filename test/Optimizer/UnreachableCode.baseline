@@ -1,1 +1,1 @@
-ReferenceError: Invalid left-hand side in assignment
+SyntaxError: Invalid left-hand side in assignment.
