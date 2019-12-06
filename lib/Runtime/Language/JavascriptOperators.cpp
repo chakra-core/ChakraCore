@@ -7772,11 +7772,11 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_END(ScrObj_OP_IsInst);
     }
 
-    Var JavascriptOperators::OP_NewClassCtorProto(Var protoParent, ScriptContext * scriptContext)
+    Var JavascriptOperators::OP_NewClassProto(Var protoParent, ScriptContext * scriptContext)
     {
-        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewClassCtorProto, reentrancylock, scriptContext->GetThreadContext());
-        return scriptContext->GetLibrary()->CreateClassConstructorPrototypeObject(VarTo<RecyclableObject>(protoParent));
-        JIT_HELPER_END(Op_NewClassCtorProto);
+        JIT_HELPER_NOT_REENTRANT_HEADER(Op_NewClassProto, reentrancylock, scriptContext->GetThreadContext());
+        return scriptContext->GetLibrary()->CreateClassPrototypeObject(VarTo<RecyclableObject>(protoParent));
+        JIT_HELPER_END(Op_NewClassProto);
     }
 
     void JavascriptOperators::OP_LoadUndefinedToElement(Var instance, PropertyId propertyId)

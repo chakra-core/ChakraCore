@@ -330,7 +330,7 @@ HELPERCALLCHK(NewScObjectNoArgNoCtor, Js::JavascriptOperators::NewScObjectNoArgN
 HELPERCALLCHK(UpdateNewScObjectCache, Js::JavascriptOperators::UpdateNewScObjectCache, AttrCanNotBeReentrant)
 HELPERCALLCHK(EnsureObjectLiteralType, Js::JavascriptOperators::EnsureObjectLiteralType, AttrCanNotBeReentrant)
 
-HELPERCALLCHK(Op_NewClassCtorProto, Js::JavascriptOperators::OP_NewClassCtorProto, AttrCanNotBeReentrant)
+HELPERCALLCHK(Op_NewClassProto, Js::JavascriptOperators::OP_NewClassProto, AttrCanNotBeReentrant)
 
 HELPERCALLCHK(OP_ClearAttributes, Js::JavascriptOperators::OP_ClearAttributes, AttrCanThrow | AttrCanNotBeReentrant)
 

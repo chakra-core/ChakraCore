@@ -13931,21 +13931,14 @@ GlobOpt::CheckJsArrayKills(IR::Instr *const instr)
             break;
         }            
 
-        case Js::OpCode::InitClass:
+        case Js::OpCode::NewClassProto:
             Assert(instr->GetSrc1());
-            if (instr->GetSrc2() == nullptr)
+            if (IR::AddrOpnd::IsEqualAddr(instr->GetSrc1(), (void*)func->GetScriptContextInfo()->GetObjectPrototypeAddr()))
             {
-                // No extends operand, so the InitClass will not make something into a prototype
+                // No extends operand, the proto parent is the Object prototype
                 break;
             }
-
-            if(doNativeArrayTypeSpec)
-            {
-                // Class/object construction can make something a prototype
-                kills.SetKillsNativeArrays();
-            }
-            break;
-
+            // Fall through
         case Js::OpCode::NewScObjectNoCtor:
         case Js::OpCode::NewScObjectNoCtorFull:
             if(doNativeArrayTypeSpec)

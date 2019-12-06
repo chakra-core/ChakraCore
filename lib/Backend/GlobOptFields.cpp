@@ -564,7 +564,14 @@ GlobOpt::ProcessFieldKills(IR::Instr *instr, BVSparse<JitArenaAllocator> *bv, bo
         }
         break;
 
-    case Js::OpCode::InitClass:
+    case Js::OpCode::NewClassProto:
+        Assert(instr->GetSrc1());
+        if (IR::AddrOpnd::IsEqualAddr(instr->GetSrc1(), (void*)func->GetScriptContextInfo()->GetObjectPrototypeAddr()))
+        {
+            // No extends operand, the proto parent is the Object prototype
+            break;
+        }
+        // Fall through
     case Js::OpCode::InitProto:
     case Js::OpCode::NewScObjectNoCtor:
     case Js::OpCode::NewScObjectNoCtorFull:

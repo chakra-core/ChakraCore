@@ -2817,8 +2817,8 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::DeletedNonHelperBranch:
             break;
 
-        case Js::OpCode::NewClassCtorProto:
-            this->LowerUnaryHelperMem(instr, IR::HelperOp_NewClassCtorProto);
+        case Js::OpCode::NewClassProto:
+            this->LowerUnaryHelperMem(instr, IR::HelperOp_NewClassProto);
             break;
 
         case Js::OpCode::NewClassConstructor:

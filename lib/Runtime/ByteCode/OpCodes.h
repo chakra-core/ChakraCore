@@ -401,7 +401,7 @@ MACRO_EXTEND_WMS(       InitClassMemberSetComputedName,ElementI,    OpSideEffect
 MACRO_EXTEND_WMS(       InitClassMemberGetComputedName,ElementI,    OpSideEffect|OpOpndHasImplicitCall|OpPostOpDbgBailOut)                  // Class member in get syntax with computed property name
 MACRO_EXTEND_WMS(       BrOnClassConstructor,       BrReg1,         None)               // Branch if argument is a class constructor
 MACRO_EXTEND_WMS(       BrOnBaseConstructorKind,    BrReg1,         None)               // Branch if argument's [[ConstructorKind]] is 'base'
-MACRO_BACKEND_ONLY(     NewClassCtorProto,          Empty,          OpSideEffect)
+MACRO_BACKEND_ONLY(     NewClassProto,              Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     NewClassConstructor,        Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     BrOnConstructor_A,          BrReg1,         None)
 
