@@ -5285,7 +5285,7 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
             }
         }
     }
-
+    
     IR::IndirOpnd *src = instr->GetSrc1()->AsIndirOpnd();
     const ValueType baseValueType(src->GetBaseOpnd()->GetValueType());
     if (instr->DoStackArgsOpt(this->func) ||

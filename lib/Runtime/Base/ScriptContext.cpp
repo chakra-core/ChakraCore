@@ -41,6 +41,12 @@
 #include "Language/SimpleDataCacheWrapper.h"
 #include "Core/CRC.h"
 
+#ifdef _M_IX86
+#ifdef _CONTROL_FLOW_GUARD
+extern "C" PVOID __guard_check_icall_fptr;
+#endif
+#endif
+
 namespace Js
 {
     ScriptContext * ScriptContext::New(ThreadContext * threadContext)

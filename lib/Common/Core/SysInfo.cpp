@@ -361,20 +361,6 @@ AutoSystemInfo::CheckForAtom() const
 #endif
 
 bool
-AutoSystemInfo::IsCFGEnabled()
-{
-#if defined(_CONTROL_FLOW_GUARD)
-    return true
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        && IsWinThresholdOrLater() && !PHASE_OFF1(Js::CFGPhase)
-#endif //ENABLE_DEBUG_CONFIG_OPTIONS
-        ;
-#else
-    return false;
-#endif //_CONTROL_FLOW_GUARD
-}
-
-bool
 AutoSystemInfo::IsWin8OrLater()
 {
     return isWindows8OrGreater;
