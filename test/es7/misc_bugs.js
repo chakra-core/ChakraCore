@@ -26,6 +26,20 @@ var tests = [
                     }`); });
         }
     },
+    {
+        name: "Await in class body should not crash",
+        body: function () {
+            async function trigger() {
+                a=class b{
+                    [a = class b{
+                        [await 0](){}
+                    }](){}
+                };
+            }
+
+            trigger();
+        }
+    },
 
 ];
 
