@@ -1059,6 +1059,7 @@ public:
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg4U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5);
+                DEFAULT_LAYOUT_WITH_ONEBYTE(Reg5U);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(Reg3C);
                 DEFAULT_LAYOUT_WITH_ONEBYTE_AND_PROFILED(Arg);
                 DEFAULT_LAYOUT_WITH_ONEBYTE(ArgNoSrc);
