@@ -1738,6 +1738,20 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             }
         }
 
+        if (m_currentNodeFunc && m_currentNodeFunc->pnodeName && pid == m_currentNodeFunc->pnodeName->pid && !m_currentNodeFunc->IsDeclaration() && m_currentNodeFunc->IsBodyAndParamScopeMerged())
+        {
+            Scope* funcExprScope = m_currentNodeFunc->scope;
+            Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
+
+            ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope->blockType == PnodeBlockType::Function);
+
+            if (ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
+            {
+                funcExprScope->SetIsObject();
+            }
+        }
+
         if (ref->GetScopeId() == blockId)
         {
             break;
@@ -4937,6 +4951,12 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;

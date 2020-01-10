@@ -1818,7 +1818,7 @@ FuncInfo *ByteCodeGenerator::FindEnclosingNonLambda()
     return nullptr;
 }
 
-FuncInfo* GetParentFuncInfo(FuncInfo* child)
+FuncInfo* ByteCodeGenerator::GetParentFuncInfo(FuncInfo* child)
 {
     for (Scope* scope = child->GetBodyScope(); scope; scope = scope->GetEnclosingScope())
     {
@@ -1829,6 +1829,19 @@ FuncInfo* GetParentFuncInfo(FuncInfo* child)
     }
     Assert(0);
     return nullptr;
+}
+
+FuncInfo* ByteCodeGenerator::GetEnclosingFuncInfo()
+{
+    FuncInfo* top = this->funcInfoStack->Pop();
+
+    Assert(!this->funcInfoStack->Empty());
+
+    FuncInfo* second = this->funcInfoStack->Top();
+
+    this->funcInfoStack->Push(top);
+
+    return second;
 }
 
 bool ByteCodeGenerator::CanStackNestedFunc(FuncInfo * funcInfo, bool trace)
@@ -2605,7 +2618,7 @@ void AssignFuncSymRegister(ParseNodeFnc * pnodeFnc, ByteCodeGenerator * byteCode
                 Assert(byteCodeGenerator->GetCurrentScope()->GetFunc() == sym->GetScope()->GetFunc());
                 if (byteCodeGenerator->GetCurrentScope()->GetFunc() != sym->GetScope()->GetFunc())
                 {
-                    Assert(GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
+                    Assert(ByteCodeGenerator::GetParentFuncInfo(byteCodeGenerator->GetCurrentScope()->GetFunc()) == sym->GetScope()->GetFunc());
                     sym->GetScope()->SetMustInstantiate(true);
                     byteCodeGenerator->ProcessCapturedSym(sym);
                     sym->GetScope()->GetFunc()->SetHasLocalInClosure(true);

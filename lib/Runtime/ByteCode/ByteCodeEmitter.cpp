@@ -3411,8 +3411,6 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 }
                 this->StartEmitFunction(pnode->AsParseNodeFnc());
 
-                PushFuncInfo(_u("StartEmitFunction"), funcInfo);
-
                 if (!funcInfo->IsBodyAndParamScopeMerged())
                 {
                     this->EmitScopeList(pnode->AsParseNodeFnc()->pnodeBodyScope->pnodeScopes);
@@ -3789,6 +3787,11 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
             else if (pnodeFnc->IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
             {
                 bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+
+                if (pnodeFnc->IsBodyAndParamScopeMerged() && paramScope && paramScope->GetHasNestedParamFunc())
+                {
+                    paramScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+                }
             }
 
             if (!pnodeFnc->IsBodyAndParamScopeMerged())
@@ -3815,6 +3818,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
             }
         }
     }
+
+    PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
     if (!funcInfo->IsBodyAndParamScopeMerged())
     {
