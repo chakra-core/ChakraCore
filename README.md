@@ -46,6 +46,9 @@ You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 o
 * Open `Build\Chakra.Core.sln` in Visual Studio
 * Build Solution
 
+If you are using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager you can download and install ChakraCore with CMake integration in a single command:
+* vcpkg install chakracore
+
 More details in [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore).
 
 Alternatively, see [Getting ChakraCore binaries](https://github.com/Microsoft/ChakraCore/wiki/Getting-ChakraCore-binaries) for pre-built ChakraCore binaries.
