@@ -31,7 +31,7 @@ namespace Js
         {
             undeferredFunctionType = functionProxy->GetUndeferredFunctionType();
         }
-        if (undeferredFunctionType && !isProto && !instance->IsCrossSiteObject())
+        if (undeferredFunctionType && !isProto && !instance->IsCrossSiteObject() && (undeferredFunctionType->GetPrototype() == instance->GetType()->GetPrototype()))
         {
             Assert(undeferredFunctionType->GetIsShared());
             Assert(!CrossSite::IsThunk(undeferredFunctionType->GetEntryPoint()));
@@ -40,9 +40,8 @@ namespace Js
         else
         {
             typeHandler->SetInstanceTypeHandler(instance);
-            if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !PHASE_OFF1(ShareFuncTypesPhase))
+            if (functionProxy && !isProto && typeHandler->GetMayBecomeShared() && !CrossSite::IsThunk(instance->GetType()->GetEntryPoint()) && !functionProxy->GetUndeferredFunctionType() && !PHASE_OFF1(ShareFuncTypesPhase))
             {
-                Assert(!functionProxy->GetUndeferredFunctionType());
                 functionProxy->SetUndeferredFunctionType(ScriptFunction::UnsafeFromVar(instance)->GetScriptFunctionType());
                 instance->ShareType();
             }
