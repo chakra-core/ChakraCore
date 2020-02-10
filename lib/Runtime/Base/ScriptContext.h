@@ -945,7 +945,7 @@ private:
         void EnsureSourceContextInfoMap();
         void EnsureDynamicSourceContextInfoMap();
 
-        void AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
+        void AddToEvalMapHelper(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript);
 
         uint moduleSrcInfoCount;
 #ifdef RUNTIME_DATA_COLLECTION
@@ -1096,7 +1096,7 @@ private:
         static const int MaxEvalSourceSize = 400;
 
         bool IsInEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction **ppFuncScript);
-        void AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript);
+        void AddToEvalMap(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript);
 
         template <typename TCacheType>
         void CleanDynamicFunctionCache(TCacheType* cacheType);
