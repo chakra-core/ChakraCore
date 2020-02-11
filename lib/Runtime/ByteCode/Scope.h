@@ -41,6 +41,7 @@ private:
     BYTE canMergeWithBodyScope : 1;
     BYTE hasLocalInClosure : 1;
     BYTE isBlockInLoop : 1;
+    BYTE hasNestedParamFunc : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -60,6 +61,7 @@ public:
         canMergeWithBodyScope(true),
         hasLocalInClosure(false),
         isBlockInLoop(false),
+        hasNestedParamFunc(false),
         location(Js::Constants::NoRegister),
         m_symList(nullptr),
         m_count(0),
@@ -169,6 +171,15 @@ public:
         return enclosingScope;
     }
 
+    bool AncestorScopeIsParameter() const
+    {
+        // Check if the current scope is a parameter or a block which belongs to a parameter scope
+        // In such cases, certain asynchronous behavior is forbidden
+        const Scope *currentScope = this;
+        while(currentScope->GetScopeType() != ScopeType_Global && currentScope->GetScopeType() != ScopeType_FunctionBody && currentScope->GetScopeType() != ScopeType_Parameter) currentScope = currentScope->GetEnclosingScope();
+        return (currentScope->GetScopeType() == ScopeType_Parameter);
+    }
+
     void SetScopeInfo(Js::ScopeInfo * scopeInfo)
     {
         this->scopeInfo = scopeInfo;
@@ -251,6 +262,9 @@ public:
 
     void SetIsBlockInLoop(bool is = true) { isBlockInLoop = is; }
     bool IsBlockInLoop() const { return isBlockInLoop; }
+
+    void SetHasNestedParamFunc(bool is = true) { hasNestedParamFunc = is; }
+    bool GetHasNestedParamFunc() const { return hasNestedParamFunc; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }

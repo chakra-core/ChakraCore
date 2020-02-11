@@ -3411,8 +3411,6 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 }
                 this->StartEmitFunction(pnode->AsParseNodeFnc());
 
-                PushFuncInfo(_u("StartEmitFunction"), funcInfo);
-
                 if (!funcInfo->IsBodyAndParamScopeMerged())
                 {
                     this->EmitScopeList(pnode->AsParseNodeFnc()->pnodeBodyScope->pnodeScopes);
@@ -3789,6 +3787,11 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
             else if (pnodeFnc->IsBodyAndParamScopeMerged() || bodyScope->GetScopeSlotCount() != 0)
             {
                 bodyScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+
+                if (pnodeFnc->IsBodyAndParamScopeMerged() && paramScope && paramScope->GetHasNestedParamFunc())
+                {
+                    paramScope->SetMustInstantiate(funcInfo->frameSlotsRegister != Js::Constants::NoRegister);
+                }
             }
 
             if (!pnodeFnc->IsBodyAndParamScopeMerged())
@@ -3815,6 +3818,8 @@ void ByteCodeGenerator::StartEmitFunction(ParseNodeFnc *pnodeFnc)
             }
         }
     }
+
+    PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
     if (!funcInfo->IsBodyAndParamScopeMerged())
     {
@@ -5931,39 +5936,43 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
         // These have to be emitted before the RHS, but they have to persist until
         // the end of the expression.
         // Emit the call target operands first.
-        switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
+        // The call target does not need to be emitted for a super call - EmitSuperCall will do this.
+        if (!pnode->AsParseNodeCall()->isSuperCall)
         {
-        case knopDot:
-        case knopIndex:
-            funcInfo->AcquireLoc(pnode->AsParseNodeCall()->pnodeTarget);
-            EmitReference(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
-            break;
-
-        case knopName:
-        {
-            Symbol *sym = pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym;
-            if (!sym || sym->GetLocation() == Js::Constants::NoRegister)
+            switch (pnode->AsParseNodeCall()->pnodeTarget->nop)
             {
+            case knopDot:
+            case knopIndex:
                 funcInfo->AcquireLoc(pnode->AsParseNodeCall()->pnodeTarget);
-            }
-            if (sym && (sym->IsInSlot(byteCodeGenerator, funcInfo) || sym->GetScope()->GetFunc() != funcInfo))
-            {
-                // Can't get the value from the assigned register, so load it here.
-                EmitLoad(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
-            }
-            else
-            {
-                // EmitLoad will check for needsDeclaration and emit the Use Before Declaration error
-                // bytecode op as necessary, but EmitReference does not check this (by design). So we
-                // must manually check here.
-                EmitUseBeforeDeclaration(pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym, byteCodeGenerator, funcInfo);
                 EmitReference(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
+                break;
+
+            case knopName:
+            {
+                Symbol* sym = pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym;
+                if (!sym || sym->GetLocation() == Js::Constants::NoRegister)
+                {
+                    funcInfo->AcquireLoc(pnode->AsParseNodeCall()->pnodeTarget);
+                }
+                if (sym && (sym->IsInSlot(byteCodeGenerator, funcInfo) || sym->GetScope()->GetFunc() != funcInfo))
+                {
+                    // Can't get the value from the assigned register, so load it here.
+                    EmitLoad(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
+                }
+                else
+                {
+                    // EmitLoad will check for needsDeclaration and emit the Use Before Declaration error
+                    // bytecode op as necessary, but EmitReference does not check this (by design). So we
+                    // must manually check here.
+                    EmitUseBeforeDeclaration(pnode->AsParseNodeCall()->pnodeTarget->AsParseNodeName()->sym, byteCodeGenerator, funcInfo);
+                    EmitReference(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
+                }
+                break;
             }
-            break;
-        }
-        default:
-            EmitLoad(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
-            break;
+            default:
+                EmitLoad(pnode->AsParseNodeCall()->pnodeTarget, byteCodeGenerator, funcInfo);
+                break;
+            }
         }
 
         // Now the arg list. We evaluate everything now and emit the ArgOut's later.
@@ -5976,12 +5985,6 @@ void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncI
                 pnodeArg = pnodeArg->AsParseNodeBin()->pnode2;
             }
             Emit(pnodeArg, byteCodeGenerator, funcInfo, false);
-        }
-
-        if (pnode->AsParseNodeCall()->isSuperCall)
-        {
-            Emit(pnode->AsParseNodeSuperCall()->pnodeThis, byteCodeGenerator, funcInfo, false);
-            Emit(pnode->AsParseNodeSuperCall()->pnodeNewTarget, byteCodeGenerator, funcInfo, false);
         }
         break;
 
@@ -6961,7 +6964,14 @@ void EmitLoad(
     case knopCall:
     {
         ParseNodeCall * pnodeCallLhs = lhs->AsParseNodeCall();
-        if (pnodeCallLhs->pnodeTarget->nop == knopImport)
+
+        if (pnodeCallLhs->isSuperCall)
+        {
+            funcInfo->AcquireLoc(pnodeCallLhs);
+            EmitReference(pnodeCallLhs, byteCodeGenerator, funcInfo);
+            byteCodeGenerator->EmitSuperCall(funcInfo, pnodeCallLhs->AsParseNodeSuperCall(), /*fReturnValue=*/ false);
+        }
+        else if (pnodeCallLhs->pnodeTarget->nop == knopImport)
         {
             ParseNodePtr args = pnodeCallLhs->pnodeArgs;
             Assert(CountArguments(args) == 2); // import() takes one argument

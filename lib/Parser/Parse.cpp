@@ -1738,6 +1738,20 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             }
         }
 
+        if (m_currentNodeFunc && m_currentNodeFunc->pnodeName && pid == m_currentNodeFunc->pnodeName->pid && !m_currentNodeFunc->IsDeclaration() && m_currentNodeFunc->IsBodyAndParamScopeMerged())
+        {
+            Scope* funcExprScope = m_currentNodeFunc->scope;
+            Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
+
+            ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope->blockType == PnodeBlockType::Function);
+
+            if (ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
+            {
+                funcExprScope->SetIsObject();
+            }
+        }
+
         if (ref->GetScopeId() == blockId)
         {
             break;
@@ -4937,6 +4951,12 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsClassConstructor((flags & fFncClassConstructor) != 0);
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     IdentPtr pFncNamePid = nullptr;
     bool needScanRCurly = true;
@@ -8378,8 +8398,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter
-                || (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+            if(m_currentScope->AncestorScopeIsParameter()) // Yield is not allowed within any parameter scope
             {
                 Error(ERRsyntax);
             }
@@ -8387,8 +8406,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else if (nop == knopAwait)
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion() ||
-                m_currentScope->GetScopeType() == ScopeType_Parameter ||
-                (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+                m_currentScope->AncestorScopeIsParameter()) // Await is not allowed within any parameter scope
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
                 // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())
