@@ -13739,6 +13739,23 @@ Lowerer::GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBa
     InsertMove(opndType, opndIndir, instrLdSt);
 }
 
+void Lowerer::InsertMoveForPolymorphicCacheIndex(IR::Instr * instr, BailOutInfo * bailOutInfo, int bailOutRecordOffset, uint polymorphicCacheIndexValue)
+{
+    IR::Opnd * indexOpnd = nullptr;
+
+    if (this->m_func->IsOOPJIT())
+    {
+        indexOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
+    }
+    else
+    {
+        indexOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
+    }
+
+    InsertMove(
+        indexOpnd, IR::IntConstOpnd::New(polymorphicCacheIndexValue, TyUint32, this->m_func), instr, false);
+}
+
 IR::LabelInstr *
 Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::LabelInstr *bailOutLabel, IR::LabelInstr * collectRuntimeStatsLabel)
 {
@@ -13800,23 +13817,19 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             // Generate code to write the cache index into the bailout record before we jump to the call site.
             Assert(bailOutInfo->polymorphicCacheIndex != (uint)-1);
             Assert(bailOutInfo->bailOutRecord);
-            IR::Opnd * indexOpnd = nullptr;
-
-            if (this->m_func->IsOOPJIT())
-            {
-                indexOpnd = IR::IndirOpnd::New(IR::RegOpnd::New(m_func->GetTopFunc()->GetNativeCodeDataSym(), TyVar, m_func), (int)(bailOutRecordOffset + BailOutRecord::GetOffsetOfPolymorphicCacheIndex()), TyUint32, m_func);
-            }
-            else
-            {
-                indexOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + BailOutRecord::GetOffsetOfPolymorphicCacheIndex(), TyUint32, this->m_func);
-            }
-
-            InsertMove(
-                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr, false);
+            InsertMoveForPolymorphicCacheIndex(instr, bailOutInfo, bailOutRecordOffset, bailOutInfo->polymorphicCacheIndex);
         }
 
         if (bailOutInfo->bailOutRecord->IsShared())
         {
+            // The polymorphicCacheIndex value should be relevant only for field type check bailouts.
+            // In case of a shared bailout record, the polymorphicCacheIndex sticks regardless of the bailout kind being different
+            // from field type check. Therefore, it results in an out-of-bound write while trying to recrod a field access update.
+            if (instr->GetBailOutKind() != IR::BailOutFailedTypeCheck && instr->GetBailOutKind() != IR::BailOutFailedFixedFieldTypeCheck)
+            {
+                InsertMoveForPolymorphicCacheIndex(instr, bailOutInfo, bailOutRecordOffset, (uint)-1);
+            }
+
             IR::Opnd *functionBodyOpnd;
             if (this->m_func->IsOOPJIT())
             {
