@@ -498,6 +498,13 @@ void GlobOpt::ArraySrcOpt::CheckLoops()
         if (doArrayChecks)
         {
             hoistChecksOutOfLoop = loop;
+
+            // If BailOnNotObject isn't hoisted, the value may still be tagged in the landing pad
+            if (baseValueInLoopLandingPad->GetValueInfo()->Type().CanBeTaggedValue())
+            {
+                baseValueType = baseValueType.SetCanBeTaggedValue(true);
+                baseOpnd->SetValueType(baseValueType);
+            }
         }
 
         if (isLikelyJsArray && loopKills.KillsArrayHeadSegments())
