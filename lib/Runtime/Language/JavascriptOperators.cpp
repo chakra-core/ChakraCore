@@ -8565,7 +8565,7 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
     {
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValue);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValue, Op_PatchPutValueWithThisPtr);
-        return PatchPutValueWithThisPtr<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        PatchPutValueWithThisPtr<IsFromFullJit, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
         JIT_HELPER_END(Op_PatchPutValue);
     }
     JIT_HELPER_TEMPLATE(Op_PatchPutValue, Op_PatchPutValuePolymorphic)
@@ -8834,6 +8834,94 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
             // Add implicit call flags, to bail out if field copy prop may propagate the wrong value.
             scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
         }
+    }
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueCheckLayout, Op_PatchPutValue);
+
+        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueCheckLayout, Op_PatchPutValuePolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrCheckLayout, Op_PatchPutValueWithThisPtr);
+
+        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrCheckLayout, Op_PatchPutValueWithThisPtrPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueNoLocalFastPathCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueNoLocalFastPathCheckLayout, Op_PatchPutValueNoLocalFastPath);
+
+        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueNoLocalFastPathCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueNoLocalFastPathCheckLayout, Op_PatchPutValueNoLocalFastPathPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueNoLocalFastPathCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, Op_PatchPutValueWithThisPtrNoLocalFastPath);
+
+        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
+        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, Op_PatchPutValueWithThisPtrNoLocalFastPathPolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+    template bool JavascriptOperators::PatchPutValueWithThisPtrNoLocalFastPathCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, Var instance, PropertyId propertyId, Var newValue, Var thisInstance, PropertyOperationFlags flags);
+
+    template <class TInlineCache>
+    inline bool JavascriptOperators::PatchInitValueCheckLayout(FunctionBody *const functionBody, TInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue)
+    {
+        JIT_HELPER_REENTRANT_HEADER(Op_PatchInitValueCheckLayout);
+        JIT_HELPER_SAME_ATTRIBUTES(Op_PatchInitValueCheckLayout, Op_PatchInitValue);
+
+        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(object) ? DynamicObject::FromVar(object)->GetTypeHandler() : nullptr;
+        PatchInitValue<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, object, propertyId, newValue);
+        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(object), oldTypeHandler));
+
+        JIT_HELPER_END(Op_PatchInitValueCheckLayout);
+    }
+    JIT_HELPER_TEMPLATE(Op_PatchInitValueCheckLayout, Op_PatchInitValuePolymorphicCheckLayout);
+    template bool JavascriptOperators::PatchInitValueCheckLayout<InlineCache>(FunctionBody *const functionBody, InlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+    template bool JavascriptOperators::PatchInitValueCheckLayout<PolymorphicInlineCache>(FunctionBody *const functionBody, PolymorphicInlineCache *const inlineCache, const InlineCacheIndex inlineCacheIndex, RecyclableObject* object, PropertyId propertyId, Var newValue);
+
+    bool JavascriptOperators::LayoutChanged(DynamicObject *const instance, DynamicTypeHandler *const oldTypeHandler)
+    {
+        DynamicTypeHandler * newTypeHandler = instance->GetTypeHandler();
+        return (oldTypeHandler != newTypeHandler &&
+                (oldTypeHandler->GetInlineSlotCapacity() != newTypeHandler->GetInlineSlotCapacity() ||
+                 oldTypeHandler->GetOffsetOfInlineSlots() != newTypeHandler->GetOffsetOfInlineSlots()));
     }
 
     template <bool IsFromFullJit, class TInlineCache>

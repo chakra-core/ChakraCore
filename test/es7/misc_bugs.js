@@ -39,6 +39,20 @@ var tests = [
             trigger();
         }
     },
+    {
+        name: "Await in class body should not crash - 1",
+        body: function () {
+            async function trigger() {
+                a=class b{
+                    [a = class b{
+                        [await 0](){}
+                    }](){}
+                };
+            }
+
+            trigger();
+        }
+    },
 
 ];
 
