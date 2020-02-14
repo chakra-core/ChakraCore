@@ -8842,9 +8842,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueCheckLayout);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueCheckLayout, Op_PatchPutValue);
 
-        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
         PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
-        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
 
         JIT_HELPER_END(Op_PatchPutValueCheckLayout);
     }
@@ -8858,9 +8858,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrCheckLayout);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrCheckLayout, Op_PatchPutValueWithThisPtr);
 
-        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
         PatchPutValueWithThisPtr<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
-        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
 
         JIT_HELPER_END(Op_PatchPutValueWithThisPtrCheckLayout);
     }
@@ -8874,9 +8874,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueNoLocalFastPathCheckLayout);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueNoLocalFastPathCheckLayout, Op_PatchPutValueNoLocalFastPath);
 
-        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
         PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, instance, flags);
-        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
 
         JIT_HELPER_END(Op_PatchPutValueNoLocalFastPathCheckLayout);
     }
@@ -8890,9 +8890,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout, Op_PatchPutValueWithThisPtrNoLocalFastPath);
 
-        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(instance) ? DynamicObject::FromVar(instance)->GetTypeHandler() : nullptr;
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(instance) ? UnsafeVarTo<DynamicObject>(instance)->GetTypeHandler() : nullptr;
         PatchPutValueWithThisPtrNoLocalFastPath<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, instance, propertyId, newValue, thisInstance, flags);
-        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(instance), oldTypeHandler));
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(instance), oldTypeHandler));
 
         JIT_HELPER_END(Op_PatchPutValueWithThisPtrNoLocalFastPathCheckLayout);
     }
@@ -8906,9 +8906,9 @@ SetElementIHelper_INDEX_TYPE_IS_NUMBER:
         JIT_HELPER_REENTRANT_HEADER(Op_PatchInitValueCheckLayout);
         JIT_HELPER_SAME_ATTRIBUTES(Op_PatchInitValueCheckLayout, Op_PatchInitValue);
 
-        DynamicTypeHandler * oldTypeHandler = DynamicObject::Is(object) ? DynamicObject::FromVar(object)->GetTypeHandler() : nullptr;
+        DynamicTypeHandler * oldTypeHandler = VarIs<DynamicObject>(object) ? UnsafeVarTo<DynamicObject>(object)->GetTypeHandler() : nullptr;
         PatchInitValue<true, TInlineCache>(functionBody, inlineCache, inlineCacheIndex, object, propertyId, newValue);
-        return (oldTypeHandler != nullptr && LayoutChanged(DynamicObject::FromVar(object), oldTypeHandler));
+        return (oldTypeHandler != nullptr && LayoutChanged(UnsafeVarTo<DynamicObject>(object), oldTypeHandler));
 
         JIT_HELPER_END(Op_PatchInitValueCheckLayout);
     }
