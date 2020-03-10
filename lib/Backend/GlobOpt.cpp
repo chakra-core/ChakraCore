@@ -2903,7 +2903,12 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                     // the byteCodeUse fields...
                     TrackByteCodeUsesForInstrAddedInOptInstr(bailOutInstr, [&]()
                     {
-                        TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue);
+                        if (TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue))
+                        {
+                            Value* landingPadValue = this->currentBlock->loop->landingPad->globOptData.FindValue(stackSym);
+                            ValueType newLandingPadValueType = landingPadValue->GetValueInfo()->Type().SetCanBeTaggedValue(false);
+                            ChangeValueType(nullptr, landingPadValue, newLandingPadValueType, false);
+                        }
                     });
                 }
                 if (symOpnd)

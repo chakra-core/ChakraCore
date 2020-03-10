@@ -2808,7 +2808,7 @@ namespace Js
         return success;
     }
 
-    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pfuncScript)
+    void ScriptContext::AddToEvalMap(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pfuncScript)
     {
         Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
@@ -2831,7 +2831,7 @@ namespace Js
 #endif
     }
 
-    void ScriptContext::AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
+    void ScriptContext::AddToEvalMapHelper(FastEvalMapString & key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
         EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
@@ -2846,6 +2846,15 @@ namespace Js
             {
                 this->Cache()->evalCacheDictionary = dict;
             }
+        }
+
+        if (key.owningVar == nullptr)
+        {
+            // We need to copy buffer because in this case the buffer could have come from the host e.g. through IActiveScriptDirect::Parse
+            JavascriptString* copiedString = JavascriptString::NewCopyBuffer(key.str.GetBuffer(), key.str.GetLength(), this);
+            key.owningVar = copiedString;
+            Assert(key.str.GetLength() == copiedString->GetLength());
+            key.str = JsUtil::CharacterBuffer<char16>(copiedString->GetString(), copiedString->GetLength());
         }
 
         dict->Add(key, pFuncScript);
@@ -5725,6 +5734,7 @@ ScriptContext::GetJitFuncRangeCache()
 
     void ConvertKey(const FastEvalMapString& src, EvalMapString& dest)
     {
+        dest.owningVar = src.owningVar;
         dest.str = src.str;
         dest.strict = src.strict;
         dest.moduleID = src.moduleID;

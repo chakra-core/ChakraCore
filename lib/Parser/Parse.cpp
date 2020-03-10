@@ -1744,9 +1744,9 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
 
             ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
-            Assert(bodyScope->blockType == PnodeBlockType::Function);
+            Assert(bodyScope == nullptr || bodyScope->blockType == PnodeBlockType::Function);
 
-            if (ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
+            if (bodyScope && ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
             {
                 funcExprScope->SetIsObject();
             }

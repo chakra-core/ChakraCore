@@ -498,6 +498,13 @@ void GlobOpt::ArraySrcOpt::CheckLoops()
         if (doArrayChecks)
         {
             hoistChecksOutOfLoop = loop;
+
+            // If BailOnNotObject isn't hoisted, the value may still be tagged in the landing pad
+            if (baseValueInLoopLandingPad->GetValueInfo()->Type().CanBeTaggedValue())
+            {
+                baseValueType = baseValueType.SetCanBeTaggedValue(true);
+                baseOpnd->SetValueType(baseValueType);
+            }
         }
 
         if (isLikelyJsArray && loopKills.KillsArrayHeadSegments())
@@ -1704,9 +1711,7 @@ void GlobOpt::ArraySrcOpt::Optimize()
 
     baseOpnd->SetValueType(baseValueType);
 
-    if (!baseValueType.IsLikelyAnyOptimizedArray() ||
-        !globOpt->DoArrayCheckHoist(baseValueType, globOpt->currentBlock->loop, instr) ||
-        (baseOwnerIndir && !globOpt->ShouldExpectConventionalArrayIndexValue(baseOwnerIndir)))
+    if (!baseValueType.IsLikelyAnyOptimizedArray())
     {
         return;
     }
@@ -1718,6 +1723,16 @@ void GlobOpt::ArraySrcOpt::Optimize()
     if (!isLikelyJsArray && instr->m_opcode == Js::OpCode::LdMethodElem)
     {
         // Fast path is not generated in this case since the subsequent call will throw
+        return;
+    }
+
+    if (!globOpt->DoArrayCheckHoist(baseValueType, globOpt->currentBlock->loop, instr) ||
+        (baseOwnerIndir && !globOpt->ShouldExpectConventionalArrayIndexValue(baseOwnerIndir)))
+    {
+        if (!globOpt->IsLoopPrePass() && baseValueType.IsAnyOptimizedArray())
+        {
+            globOpt->ProcessNoImplicitCallArrayUses(baseOpnd, nullptr, instr, isLikelyJsArray, isLoad || isStore || instr->m_opcode == Js::OpCode::IsIn);
+        }
         return;
     }
 
