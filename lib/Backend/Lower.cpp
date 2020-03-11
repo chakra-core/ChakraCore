@@ -1802,7 +1802,6 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             //fallthrough
         case Js::OpCode::Ld_A:
-        case Js::OpCode::InitConst:
             if (instr->IsJitProfilingInstr() && instr->AsJitProfilingInstr()->isBeginSwitch) {
                 LowerProfiledBeginSwitch(instr->AsJitProfilingInstr());
                 break;
