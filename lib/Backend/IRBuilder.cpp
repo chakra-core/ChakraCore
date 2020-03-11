@@ -1818,10 +1818,6 @@ IRBuilder::BuildReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0, Js::Re
         this->AddInstr(instr, offset);
         return;
     }
-    case Js::OpCode::InitConst:
-        // Don't use InitConst in the JIT, as some dataflow tracking is missing, and we don't currently optimize for it.
-        newOpcode = Js::OpCode::Ld_A;
-        break;
     }
 
     IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(R0, TyVar, false, reuseLoc);

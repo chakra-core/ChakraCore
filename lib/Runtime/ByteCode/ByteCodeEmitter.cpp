@@ -4889,15 +4889,6 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
             this->UpdateDebuggerPropertyInitializationOffset(location, sym->GetPosition(), false);
         }
     }
-    else if (isConstDecl)
-    {
-        this->m_writer.Reg2(Js::OpCode::InitConst, sym->GetLocation(), rhsLocation);
-
-        if (this->ShouldTrackDebuggerMetadata())
-        {
-            this->UpdateDebuggerPropertyInitializationOffset(sym->GetLocation(), sym->GetPosition());
-        }
-    }
     else
     {
         if (!isConstDecl && sym->GetDecl() && sym->GetDecl()->nop == knopConstDecl)
@@ -4910,7 +4901,7 @@ void ByteCodeGenerator::EmitPropStore(Js::RegSlot rhsLocation, Symbol *sym, Iden
         {
             this->m_writer.Reg2(Js::OpCode::Ld_A, sym->GetLocation(), rhsLocation);
 
-            if (this->ShouldTrackDebuggerMetadata() && isLetDecl)
+            if (this->ShouldTrackDebuggerMetadata() && (isLetDecl || isConstDecl))
             {
                 this->UpdateDebuggerPropertyInitializationOffset(sym->GetLocation(), sym->GetPosition());
             }

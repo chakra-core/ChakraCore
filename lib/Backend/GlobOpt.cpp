@@ -4783,7 +4783,6 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         // fall-through
 
     case Js::OpCode::BytecodeArgOutCapture:
-    case Js::OpCode::InitConst:
     case Js::OpCode::LdAsmJsFunc:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:
