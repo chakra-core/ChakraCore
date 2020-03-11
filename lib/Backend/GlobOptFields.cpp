@@ -1162,19 +1162,6 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     Assert(opnd->IsTypeCheckSeqCandidate());
     Assert(opnd->HasObjectTypeSym());
 
-    if (opnd->HasTypeMismatch())
-    {
-        if (emitsTypeCheckOut != nullptr)
-        {
-            *emitsTypeCheckOut = false;
-        }
-        if (changesTypeValueOut != nullptr)
-        {
-            *changesTypeValueOut = false;
-        }
-        return false;
-    }
-
     bool isStore = opnd == instr->GetDst();
     bool isTypeDead = opnd->IsTypeDead();
     bool consumeType = makeChanges && !IsLoopPrePass();
@@ -1212,6 +1199,19 @@ GlobOpt::ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd
     if (consumeType && valueInfo != nullptr)
     {
         opnd->SetTypeAvailable(true);
+    }
+
+    if (opnd->HasTypeMismatch())
+    {
+        if (emitsTypeCheckOut != nullptr)
+        {
+            *emitsTypeCheckOut = false;
+        }
+        if (changesTypeValueOut != nullptr)
+        {
+            *changesTypeValueOut = false;
+        }
+        return false;
     }
 
     bool doEquivTypeCheck = opnd->HasEquivalentTypeSet() && !opnd->NeedsMonoCheck();

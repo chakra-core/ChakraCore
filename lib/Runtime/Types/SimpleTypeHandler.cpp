@@ -188,6 +188,17 @@ namespace Js
                 false);
         newTypeHandler->SetMayBecomeShared();
 
+#if ENABLE_FIXED_FIELDS
+#ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
+        Assert(HasSingletonInstanceOnlyIfNeeded());
+
+        // If instance has a shared type, the type handler change below will induce a type transition, which
+        // guarantees that any existing fast path field stores (which could quietly overwrite a fixed field
+        // on this instance) will be invalidated.  It is safe to mark all fields as fixed.
+        bool const allowFixedFields = DynamicTypeHandler::AreSingletonInstancesNeeded() && instance->HasLockedType();
+#endif
+#endif
+
         DynamicType *existingType = instance->GetDynamicType();
         DynamicType *currentType = DynamicType::New(scriptContext, existingType->GetTypeId(), existingType->GetPrototype(), nullptr, newTypeHandler, false, false);
         PropertyId propertyId = Constants::NoProperty;
@@ -202,7 +213,7 @@ namespace Js
 #if ENABLE_FIXED_FIELDS
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
             Var value = instance->GetSlot(i);
-            bool markAsFixed = !IsInternalPropertyId(propertyId) && value != nullptr &&
+            bool markAsFixed = allowFixedFields && !IsInternalPropertyId(propertyId) && value != nullptr &&
                 (VarIs<JavascriptFunction>(value) ? ShouldFixMethodProperties() : false);
             newTypeHandler->InitializePath(instance, i, newTypeHandler->GetPathLength(), scriptContext, [=]() { return markAsFixed; });
 #endif
