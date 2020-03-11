@@ -23,6 +23,12 @@ namespace Js
         return static_cast<UnscopablesWrapperObject*>(aValue);
     }
 
+    RecyclableObject * UnscopablesWrapperObject::GetThisAndUnwrappedInstance(Var* thisVar) const
+    {
+        *thisVar = this->GetWrappedObject();
+        return this->GetWrappedObject();
+    }
+
     PropertyQueryFlags UnscopablesWrapperObject::HasPropertyQuery(PropertyId propertyId, _Inout_opt_ PropertyValueInfo* info)
     {
         return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptOperators::HasPropertyUnscopables(wrappedObject, propertyId));

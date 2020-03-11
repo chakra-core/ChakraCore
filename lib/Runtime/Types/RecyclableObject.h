@@ -353,6 +353,7 @@ namespace Js {
         virtual uint GetSpecialPropertyCount() const { return 0; }
         virtual PropertyId const * GetSpecialPropertyIds() const { return nullptr; }
         virtual RecyclableObject* GetThisObjectOrUnWrap(); // Due to the withScope object there are times we need to unwrap
+        virtual RecyclableObject* GetThisAndUnwrappedInstance(Var* thisVar) const;
 
         virtual BOOL HasInstance(Var instance, ScriptContext* scriptContext, IsInstInlineCache* inlineCache = NULL);
 
