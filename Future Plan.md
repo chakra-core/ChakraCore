@@ -6,9 +6,9 @@ Future releases of Chakracore are planned by a community team of volunteers (ple
 
 1. Prioritise ease of use for potential embedders of chakracore - these are intended as our primary users. We will aim to reflect this priority in any design decisions and by committing to never breaking the API and providing detailed and user friendly documentation.
 
-1. Achieve full standards compliance - we recognise that Chakracore is significantly behind in some areas due to its slowed pace of development, it may take some time to catch up but we will aim to do it. Any deviation from standards should be considered a bug and we will aim to fix it.
+1. Work towards standards compliance - we recognise that Chakracore is significantly behind in some areas. We will work towards standards compliance including seeking to fix existing deviations and implement new standards as they arise. Any deviation from standards should be considered a bug.
 
-1. Improve performance - we will almost certainly not be able to keep up with v8 or JSC on performance due to the smaller size of our team and limited time we have to work on this, but we will aim to continue to improve performance when we can.
+1. Improve performance - we will aim to to improve performance when we can.
 
 1. Invite community involvement - this project is being continued by volunteers and input will be appreciated from any other volunteers with relevant skills and availability. We will aim to make the project easy to get involved in - if as a potential contributor you see any obvious barriers to entry please raise an issue to discuss them.
 
