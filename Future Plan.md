@@ -1,12 +1,12 @@
-# Chakracore Project Future
+# ChakraCore Project Future
 
 ## Future Aim
 
-Future releases of Chakracore are planned by a community team of volunteers (please see history section at the end of this document for how this has come about). We will aim to:
+Future releases of ChakraCore are planned by a community team of volunteers (please see history section at the end of this document for how this has come about). We will aim to:
 
-1. Prioritise ease of use for potential embedders of Chakracore - these are intended as our primary users. We will aim to reflect this priority in any design decisions including by prioritising API stability and providing detailed and user friendly documentation.
+1. Prioritise ease of use for potential embedders of ChakraCore - these are intended as our primary users. We will aim to reflect this priority in any design decisions including by prioritising API stability and providing detailed and user friendly documentation.
 
-1. Work towards standards compliance - we recognise that Chakracore is significantly behind in some areas. We will work towards standards compliance including seeking to fix existing deviations and implement new standards as they arise. Any deviation from standards should be considered a bug.
+1. Work towards standards compliance - we recognise that ChakraCore is significantly behind in some areas. We will work towards standards compliance including seeking to fix existing deviations and implement new standards as they arise. Any deviation from standards should be considered a bug.
 
 1. Improve performance - we will aim to to improve performance when we can.
 
@@ -26,7 +26,7 @@ The core team currently planning to work on this are:
 
 ## Development process
 
-This community development will proceed on the Chakracore master branch. At a future time this repository may be transferred out of the microsoft organisation within Github - though it will remain here to begin with.
+This community development will proceed on the ChakraCore master branch. At a future time this repository may be transferred out of the microsoft organisation within Github - though it will remain here to begin with.
 
 We will periodically (time scale TBD) publish a release plan document listing planned enhancements and proposed time scale for the next release.
 
@@ -46,16 +46,16 @@ We will additionally ask Google's project OSS-Fuzz to provide continuous fuzzing
 
 ## Security Issues
 
-Until March 2021 we will liaise with microsoft on any security issues in case they relate to Chakracore 1.11 and Chakra.dll - the exact method for this is to be determined. For the time being please report any Chakracore security concerns to microsoft via the microsoft security tech centre in the first instance.
+Until March 2021 we will liaise with microsoft on any security issues in case they relate to ChakraCore 1.11 and Chakra.dll - the exact method for this is to be determined. For the time being please report any ChakraCore security concerns to microsoft via the microsoft security tech centre in the first instance.
 
 ## Licensing and Copyright
 
-The project will continue to be licensed under the MIT license. However the license and copyright statements will be updated to say "Copyright (c) Microsoft Corporation and Chakracore Community contributors".
+The project will continue to be licensed under the MIT license. However the license and copyright statements will be updated to say "Copyright (c) Microsoft Corporation and ChakraCore Community contributors".
 
 ## History
 
-Historically Chakracore was the core part of the javascript engine used in Microsoft Edge and shipped as Chakra.dll with windows.
+Historically ChakraCore was the core part of the javascript engine used in Microsoft Edge and shipped as Chakra.dll with windows.
 
-Microsoft Edge now uses Chromium including v8 and hence microsoft is discontinuing their support of Chakra and by extension Chakracore. They intend to provide security fixes to the version 1.11 release of until 09/03/2021. But no other future development.
+Microsoft Edge now uses Chromium including v8 and hence microsoft is discontinuing their support of Chakra and by extension ChakraCore. They intend to provide security fixes to the version 1.11 release of until 09/03/2021. But no other future development.
 
-However rather than discarding Chakracore Microsoft have asked if a community team would like to continue it as an open source project.
+However rather than discarding ChakraCore Microsoft have asked if a community team would like to continue it as an open source project.

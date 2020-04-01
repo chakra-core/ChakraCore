@@ -2,7 +2,7 @@
 
 ## Timing
 
-The last feature release of chakracore occurred on 29th June 2018 (version 1.10) since then there have been numerous security update releases and 1 non-security bug fix release (1.11). There has however been significant feature work performed since that date all of which is unreleased.
+The last feature release of ChakraCore occurred on 29th June 2018 (version 1.10) since then there have been numerous security update releases and 1 non-security bug fix release (1.11). There has however been significant feature work performed since that date all of which is unreleased.
 
 We would therefore like our first release to be done fairly quickly - however there are also some half complete pieces of work to finish before that as well as a variety of bugs introduced that should be fixed before that.
 
@@ -14,7 +14,9 @@ We will endeavour to perform the below work prior to issuing this first communit
 
 1. Review major changes between 1.11 and master to generate an accurate set of release notes.
 
-1. Review current master against standards to identify major gaps including assessing against the tc39 list of stage 3 and stage 4 proposals and also testing with test262. This action may identify further actions to be taken before release including fixing small deviations from the standards.
+1. Review current master against JavaScript standards to identify major gaps including assessing against the tc39 list of stage 3 and stage 4 proposals and also testing with test262. This action may identify further actions to be taken before release including fixing small deviations from the standards.
+
+1. Review changes to WASM proposals since last update to ChakraCore's WASM implementation, look for proposals that have became part of the MVP, and update opcodes when necessary on supported in-flight proposals.
 
 1. Review all open bug reports and assess impact, fix where practicable.
 
