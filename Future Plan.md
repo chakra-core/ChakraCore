@@ -4,7 +4,7 @@
 
 Future releases of Chakracore are planned by a community team of volunteers (please see history section at the end of this document for how this has come about). We will aim to:
 
-1. Prioritise ease of use for potential embedders of chakracore - these are intended as our primary users. We will aim to reflect this priority in any design decisions and by committing to never breaking the API and providing detailed and user friendly documentation.
+1. Prioritise ease of use for potential embedders of Chakracore - these are intended as our primary users. We will aim to reflect this priority in any design decisions including by prioritising API stability and providing detailed and user friendly documentation.
 
 1. Work towards standards compliance - we recognise that Chakracore is significantly behind in some areas. We will work towards standards compliance including seeking to fix existing deviations and implement new standards as they arise. Any deviation from standards should be considered a bug.
 
@@ -28,7 +28,7 @@ The core team currently planning to work on this are:
 
 This community development will proceed on the Chakracore master branch. At a future time this repository may be transferred out of the microsoft organisation within Github - though it will remain here to begin with.
 
-We will periodically (timescale TBD) publish a release plan document listing planned enhancements and proposed timescale for the next release.
+We will periodically (time scale TBD) publish a release plan document listing planned enhancements and proposed time scale for the next release.
 
 We will also aim to triage and address bug reports as received, depending on the scale of these issues they may be fixed immediately or left until a future release.
 
@@ -54,8 +54,8 @@ The project will continue to be licensed under the MIT license. However the lice
 
 ## History
 
-Historically Chakracore was the core part of the javascript engine used in Microsoft Edge and shipped as chakra.dll with windows.
+Historically Chakracore was the core part of the javascript engine used in Microsoft Edge and shipped as Chakra.dll with windows.
 
-Microsoft Edge now uses Chromium including v8 and hence microsoft is discontinuing their support of Chakra and by extension chakracore. They intend to provide security fixes to the version 1.11 release of until 09/03/2021. But no other future development.
+Microsoft Edge now uses Chromium including v8 and hence microsoft is discontinuing their support of Chakra and by extension Chakracore. They intend to provide security fixes to the version 1.11 release of until 09/03/2021. But no other future development.
 
 However rather than discarding Chakracore Microsoft have asked if a community team would like to continue it as an open source project.
