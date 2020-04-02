@@ -12,7 +12,7 @@ Future releases of ChakraCore are planned by a community team of volunteers (ple
 
 1. Invite community involvement - this project is being continued by volunteers and input will be appreciated from any other volunteers with relevant skills and availability. We will aim to make the project easy to get involved in - if as a potential contributor you see any obvious barriers to entry please raise an issue to discuss them.
 
-1. Simplify the codebase and test suite - when time permits and where practicable we will endeavour to perform housekeeping actions such as removing dead code, combining related tests and removing unnecessary layering.
+1. Simplify the codebase and test suite - when time permits and where practicable we will endeavour to perform housekeeping actions such as removing dead code, appropriate refactoring, combining related tests and removing unnecessary layering. We will also aim to introduce a consistent style guide.
 
 ## Core Community Team
 
@@ -28,15 +28,15 @@ The core team currently planning to work on this are:
 
 This community development will proceed on the ChakraCore master branch. At a future time this repository may be transferred out of the microsoft organisation within Github - though it will remain here to begin with.
 
-We will periodically (time scale TBD) publish a release plan document listing planned enhancements and proposed time scale for the next release.
+We will periodically (time scale TBD) publish a release plan document listing planned enhancements and proposed time scale for the next release. Major decisions such as these release plans will require approval from all members of the Core Community Team.
 
 We will also aim to triage and address bug reports as received, depending on the scale of these issues they may be fixed immediately or left until a future release.
 
-Pull requests will be invited from anyone who wishes to contribute in addition to the Core Community Team. Any pull request will be required to pass all CI checks and be reviewed by a member of the Core Community Team (different to its author) prior to being merged. The reviewer will merge the PR when happy with it - no PR should be merged by its author.
+Pull requests will be invited from anyone who wishes to contribute in addition to the Core Community Team. Any pull request will be required to pass all CI checks and be reviewed by a member of the Core Community Team (different to its author) prior to being merged. Once the review is cleared and the reviwer and author are happy with the work any member of the Core Community Team may merge the PR.
 
 Additionally any bug fix PR must include a test case that it has fixed; and any new feature PR must include tests for that feature.
 
-Further documentation and guidance will be created on PR best practises including how to author tests - in its absence please ask if unsure.
+Further documentation and guidance will eventually be created on PR best practises including code style and how to author tests - in its absence please ask if unsure.
 
 ## Continuous Integration (CI)
 
