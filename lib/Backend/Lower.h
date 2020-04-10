@@ -601,6 +601,7 @@ private:
     void            PreserveSourcesForBailOnResultCondition(IR::Instr *const instr, IR::LabelInstr *const skipBailOutLabel) const;
     void            LowerInstrWithBailOnResultCondition(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) const;
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
+    void            InsertMoveForPolymorphicCacheIndex(IR::Instr * instr, BailOutInfo * bailOutInfo, int bailOutRecordOffset, uint polymorphicCacheIndexValue);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter, IR::LabelInstr *exitTargetInstr);
     void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr);

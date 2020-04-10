@@ -6097,7 +6097,7 @@ BackwardPass::InsertTypeTransitionsAtPotentialKills()
                     // This is the sym we're tracking. No aliasing to worry about.
                     return false;
                 }
-                if (propertySymOpnd->IsMono() && data->GetInitialType() != propertySymOpnd->GetType())
+                if (propertySymOpnd->NeedsMonoCheck() && data->GetInitialType() != propertySymOpnd->GetType())
                 {
                     // Type mismatch in a monomorphic case -- no aliasing.
                     return false;

@@ -1980,6 +1980,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             Assert(funcExprScope->GetScopeType() == ScopeType_FuncExpr);
 
             ParseNodeBlock* bodyScope = m_currentNodeFunc->pnodeBodyScope;
+            Assert(bodyScope == nullptr || bodyScope->blockType == PnodeBlockType::Function);
 
             if (bodyScope && ref->GetScopeId() < bodyScope->blockId && ref->GetScopeId() > blockId)
             {
@@ -5403,6 +5404,12 @@ ParseNodeFnc * Parser::ParseFncDeclInternal(ushort flags, LPCOLESTR pNameHint, c
     pnodeFnc->SetIsBaseClassConstructor((flags & fFncBaseClassConstructor) != 0);
     pnodeFnc->SetHomeObjLocation(Js::Constants::NoRegister);
     pnodeFnc->SetHasNonThisStmt(pnodeFnc->IsClassConstructor());
+
+    if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
+    {
+        pnodeFnc->SetIsDeclaredInParamScope();
+        this->m_currentScope->SetHasNestedParamFunc();
+    }
 
     if (this->m_currentScope && this->m_currentScope->GetScopeType() == ScopeType_Parameter)
     {
@@ -8869,8 +8876,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter
-                || (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+            if(m_currentScope->AncestorScopeIsParameter()) // Yield is not allowed within any parameter scope
             {
                 Error(ERRsyntax);
             }
@@ -8878,8 +8884,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         else if (nop == knopAwait)
         {
             if (!this->GetScanner()->AwaitIsKeywordRegion() ||
-                m_currentScope->GetScopeType() == ScopeType_Parameter ||
-                (m_currentScope->GetScopeType() == ScopeType_Block && m_currentScope->GetEnclosingScope()->GetScopeType() == ScopeType_Parameter)) // Check whether this is a class definition inside param scope
+                m_currentScope->AncestorScopeIsParameter()) // Await is not allowed within any parameter scope
             {
                 // As with the 'yield' keyword, the case where 'await' is scanned as a keyword (tkAWAIT)
                 // but the scanner is not treating await as a keyword (!this->GetScanner()->AwaitIsKeyword())

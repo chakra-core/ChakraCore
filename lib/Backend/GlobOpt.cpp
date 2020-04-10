@@ -2958,7 +2958,12 @@ GlobOpt::OptTagChecks(IR::Instr *instr)
                     // the byteCodeUse fields...
                     TrackByteCodeUsesForInstrAddedInOptInstr(bailOutInstr, [&]()
                     {
-                        TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue);
+                        if (TryHoistInvariant(bailOutInstr, this->currentBlock, nullptr, value, nullptr, true, false, false, IR::BailOutOnTaggedValue))
+                        {
+                            Value* landingPadValue = this->currentBlock->loop->landingPad->globOptData.FindValue(stackSym);
+                            ValueType newLandingPadValueType = landingPadValue->GetValueInfo()->Type().SetCanBeTaggedValue(false);
+                            ChangeValueType(nullptr, landingPadValue, newLandingPadValueType, false);
+                        }
                     });
                 }
                 if (symOpnd)
@@ -4778,7 +4783,6 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
         // fall-through
 
     case Js::OpCode::BytecodeArgOutCapture:
-    case Js::OpCode::InitConst:
     case Js::OpCode::LdAsmJsFunc:
     case Js::OpCode::Ld_A:
     case Js::OpCode::Ld_I4:

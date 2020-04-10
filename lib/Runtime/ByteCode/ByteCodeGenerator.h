@@ -315,7 +315,7 @@ public:
     void LoadImportMetaObject(FuncInfo* funcInfo);
     void LoadSuperObject(FuncInfo *funcInfo);
     void LoadSuperConstructorObject(FuncInfo *funcInfo);
-    void EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * pnodeSuperCall, BOOL fReturnValue);
+    void EmitSuperCall(FuncInfo* funcInfo, ParseNodeSuperCall * pnodeSuperCall, BOOL fReturnValue, BOOL fEvaluateComponents);
     void EmitClassConstructorEndCode(FuncInfo *funcInfo);
 
     // TODO: home the 'this' argument

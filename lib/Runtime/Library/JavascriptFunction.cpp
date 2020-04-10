@@ -194,7 +194,7 @@ using namespace Js;
         FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
-        EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
+        EvalMapString key(bs, sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
         if (!scriptContext->IsInNewFunctionMap(key, &pfuncInfoCache))
         {
             // Validate formals here
