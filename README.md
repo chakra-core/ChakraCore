@@ -63,6 +63,9 @@ Once built, you have a few options for how you can use ChakraCore:
 
 _A note about using ChakraCore_: ChakraCore is the foundational JavaScript engine, but it does not include the external APIs that make up the modern JavaScript development experience.  For example, DOM APIs like ```document.write()``` are additional APIs that are not available by default and would need to be provided.  For debugging, you may instead want to use ```print()```.
 
+Alternatively, if you are using the [vcpkg](https://github.com/Microsoft/vcpkg/) dependency manager you can download and install ChakraCore with CMake integration in a single command:
+* vcpkg install chakracore
+
 ## Contribute
 
 Contributions to ChakraCore are welcome.  Here is how you can contribute to ChakraCore:
